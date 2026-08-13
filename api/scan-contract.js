@@ -449,9 +449,13 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   - "upon closing and funding" or "upon closing" -> possession.type = "closing" (or "funding" if explicitly funding-only)
   - A specific date -> possession.type = "specific_date" and possession.specificDate = yyyy-MM-dd
   Mirror the same values into paragraph9Closing.possessionType and paragraph9Closing.possessionDate.
+- Paragraph 7 PROPERTY CONDITION: Scan this paragraph for TWO distinct things:
+  1. Residential Service Contracts ("home warranty"): look for language about Buyer purchasing a residential service contract from a company licensed by TREC, and whether Seller will pay/reimburse for it and up to what dollar amount. Capture a one-sentence free-text summary into paragraph7HomeWarranty, e.g. "Seller to pay up to $500 toward a home warranty Buyer purchases" or "No residential service contract" if the box is unchecked/blank. If there is no such provision on the form at all, return null.
+  2. Negotiated repairs: any language where Seller has agreed to complete specific repairs before closing (this is uncommon directly in the base contract — more often found in Paragraph 11 Special Provisions or as an attached repair amendment, so check there too). Capture a free-text summary into paragraph7Repairs, e.g. "Seller to repair the fence and replace the HVAC filter before closing." If none found anywhere in the contract or its addenda, return null.
 - Paragraph 10 POSSESSION / FIXTURES (the "items included / not included" list): TREC 20-17 lists standard items (curtains, drapery rods, mounted TV brackets, etc.) and has write-in lines for additional inclusions and for exclusions. Capture each non-default included item into paragraph10.inclusions[] and each excluded item into paragraph10.exclusions[]. Don't enumerate items the form lists as included by default; only capture write-in additions/removals.
 - Paragraph 11 SPECIAL PROVISIONS: free-text block. Capture the entire content verbatim (including line breaks as \\n) into paragraph11SpecialProvisions. Trim leading/trailing whitespace. If the field is blank, return null.
 - Paragraph 12 SETTLEMENT AND OTHER EXPENSES: 12A.(1)(b) lists the seller's contribution to the buyer's expenses. The line is typically "Seller's Expenses (Buyer's Expenses): An amount not to exceed $___ ..." Capture the dollar amount into paragraph12Expenses.sellerPaysAmount, and any percentage into paragraph12Expenses.sellerPaysPercentage. paragraph12Expenses.buyerPaysClosingCosts is true unless the seller-pays line covers ALL of buyer's typical closing costs (rare).
+- Paragraph 13 PRORATIONS: usually standard boilerplate (taxes and rents prorated through the Closing Date, homestead exemption assumptions, rollback taxes language). Capture into paragraph13Prorations ONLY if it has been modified or has a non-standard note (different proration date, a specific dollar escrow, a rollback-tax allocation called out, etc). If it is the standard unmodified boilerplate, or you cannot tell, return null — do not transcribe the standard language.
 - Paragraph 22 AGREEMENT OF PARTIES — ATTACHED ADDENDA: a list of checkboxes for every standard TREC addendum. Look at each checkbox and record whether it is marked. Map each to the addenda.* schema below. Standard items in this list:
   - "Third Party Financing Addendum" (TREC 40-x) -> addenda.hasThirdPartyFinancing
   - "Addendum for Property Subject to Mandatory Membership in a Property Owners Association" / HOA disclosure (TREC 36-x) -> addenda.hasHOA
@@ -607,12 +611,16 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "inclusions": [string],                           // write-in items beyond TREC standard list
       "exclusions": [string]                            // items explicitly excluded from sale
     },
+    "paragraph7HomeWarranty": string | null,            // free-text summary of residential service contract / home warranty terms, or null if none
+    "paragraph7Repairs": string | null,                 // free-text summary of negotiated repairs Seller agreed to complete, or null if none
     "paragraph11SpecialProvisions": string | null,      // verbatim text of special provisions, line breaks as \\n
     "paragraph12Expenses": {
       "sellerPaysAmount": number | null,                // dollar amount seller agreed to credit toward buyer expenses
       "sellerPaysPercentage": number | null,            // percentage if expressed that way (e.g. 3 means 3%)
       "buyerPaysClosingCosts": boolean
     },
+    "paragraph13Prorations": string | null,             // free-text note ONLY if prorations are non-standard/customized, else null
+    "surveyPayer": string | null,                       // DO NOT FILL — computed deterministically server-side from debugParagraph6C after extraction, same as surveyDeadline. Always return null here.
     "paragraph23TerminationOption": {
       "optionDays": number | null,                      // mirror of top-level optionDays
       "optionFee": number | null,                       // mirror of top-level optionFee
@@ -706,10 +714,13 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "paragraph9Closing.possessionDate": number,
     "paragraph10.inclusions": number,
     "paragraph10.exclusions": number,
+    "paragraph7HomeWarranty": number,
+    "paragraph7Repairs": number,
     "paragraph11SpecialProvisions": number,
     "paragraph12Expenses.sellerPaysAmount": number,
     "paragraph12Expenses.sellerPaysPercentage": number,
     "paragraph12Expenses.buyerPaysClosingCosts": number,
+    "paragraph13Prorations": number,
     "paragraph23TerminationOption.optionDays": number,
     "paragraph23TerminationOption.optionFee": number,
     "paragraph23TerminationOption.optionFeePayableTo": number
@@ -849,12 +860,17 @@ function emptyResult(warning) {
         inclusions: [],
         exclusions: [],
       },
+      paragraph7HomeWarranty: null,
+      paragraph7Repairs: null,
       paragraph11SpecialProvisions: null,
       paragraph12Expenses: {
         sellerPaysAmount: null,
         sellerPaysPercentage: null,
         buyerPaysClosingCosts: true,
       },
+      paragraph13Prorations: null,
+      surveyPayer: null,
+      addendaSummary: [],
       paragraph23TerminationOption: {
         optionDays: null,
         optionFee: null,
@@ -1014,6 +1030,54 @@ async function scanContract(pdfBase64) {
         if (calc) extracted.surveyDeadline = calc;
       }
     }
+  }
+
+  // CRITICAL: Derive surveyPayer deterministically from debugParagraph6C —
+  // same "deterministic backstop beats asking the model to both identify
+  // AND paraphrase in one JSON field" reasoning as surveyDeadline directly
+  // above. Rather than asking the model to interpret WHO pays (a judgment
+  // call that varies by which of the three ¶6.C checkbox options is
+  // checked — Buyer obtains at Buyer's expense / Seller furnishes existing
+  // survey / Seller obtains new survey at Seller's expense), this slices
+  // out the VERBATIM text of whichever option is actually checked, so the
+  // answer is a direct quote from the real document, not a paraphrase that
+  // could invent or drop a nuance. Built 2026-08-13 — Heath asked "who pays
+  // for the survey on Wild Cherry" and Dossie had no way to answer it even
+  // though this exact text was already being captured and thrown away.
+  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
+    const checkedBlock = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)[^[]*/i);
+    if (checkedBlock) {
+      const payerText = checkedBlock[0]
+        .replace(/^\[X\]\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (payerText) {
+        extracted.surveyPayer = payerText;
+      }
+    }
+  }
+
+  // Readable one-line summary of which addenda are actually attached to
+  // THIS contract (as opposed to the raw addenda.has* booleans, which are
+  // fine for code but not something a chat assistant should have to
+  // re-derive labels for on every answer). Only lists items that are true.
+  if (extracted.addenda && typeof extracted.addenda === 'object') {
+    const ADDENDUM_LABELS = {
+      hasThirdPartyFinancing: 'Third Party Financing Addendum',
+      hasHOA: 'HOA Addendum',
+      hasLeadBasedPaint: 'Lead-Based Paint Addendum',
+      hasSellerFinancing: 'Seller Financing Addendum',
+      hasSaleOfOtherProperty: 'Addendum for Sale of Other Property by Buyer',
+      hasBackupContract: 'Addendum for Back-Up Contract',
+      hasAppraisalRightToTerminate: "Addendum Concerning Right to Terminate Due to Lender's Appraisal",
+      hasCondoResale: 'Condominium Resale Certificate Addendum',
+      hasCoastalProperty: 'Addendum for Coastal Area Property',
+      hasMineralsReservation: 'Addendum for Reservation of Oil, Gas and Other Minerals',
+      hasOther: extracted.addenda.notes ? `Other: ${extracted.addenda.notes}` : 'Other addendum',
+    };
+    extracted.addendaSummary = Object.entries(ADDENDUM_LABELS)
+      .filter(([key]) => extracted.addenda[key] === true)
+      .map(([, label]) => label);
   }
 
   // CRITICAL: Parse optionDays directly from debugParagraph5B using regex.

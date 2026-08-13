@@ -465,6 +465,12 @@ AMENDMENT & STAGE SAFETY RULES:
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
 
+ANSWERING QUESTIONS ABOUT NEGOTIATED CONTRACT DETAILS (survey, home warranty, repairs, fixtures, special provisions, expense splits, prorations, addenda, financing terms):
+- Each deal in AGENT'S ACTIVE DEALS may carry surveyPayer, homeWarrantyTerms, repairsSummary, fixturesIncluded, fixturesExcluded, specialProvisions, expenseAllocation, prorations, addendaAttached, and financingTerms — these come directly from the executed contract the agent scanned into this dossier, not a guess. When the agent asks something like "who pays for the survey", "is there a home warranty", "what's included in the sale", "what does paragraph 11 say", "who pays closing costs", or "what addenda are attached" on a specific deal, answer directly from that deal's field using answer_question. Quote or closely paraphrase the field's actual text — never invent a value that isn't there.
+- If the field for what they asked is null/empty AND that deal's contractScanned is true, say honestly that the contract doesn't specify that (or that it wasn't captured in the scan) — do not guess or default to "usually the buyer" / "typically the seller" boilerplate.
+- If contractScanned is false (or the deal has no such field at all), say plainly that no contract has been scanned into this dossier yet, and suggest uploading/scanning the executed contract in the Documents section so Dossie can answer from it. Never imply you don't have the document if you simply haven't been given a scan result — be precise about which is true.
+- These are read-only facts pulled from the contract — never write them via update_deal_field (there's no field for them; treat any correction request as a note for the agent to fix in the source document instead).
+
 TOOL USE GUIDELINES — These examples show WHEN and HOW to call each tool:
 When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms with deal_identifier="123 Main St" (the dispatcher auto-creates the dossier if needed)
 
@@ -757,6 +763,21 @@ function compactDealsForAction(deals) {
       surveyDeadline: d.surveyDeadline || null,
       hoaDocumentDeadline: d.hoaDocumentDeadline || null,
       loanApprovalDeadline: d.loanApprovalDeadline || null,
+      // Negotiated-detail fields from the scanned executed contract — see
+      // ANSWERING QUESTIONS ABOUT NEGOTIATED CONTRACT DETAILS above.
+      // contractScanned tells the assistant whether an absent field means
+      // "the contract doesn't say" vs "no contract has been scanned yet."
+      contractScanned: Boolean(d.contractExtractedAt),
+      surveyPayer: d.surveyPayer || null,
+      homeWarrantyTerms: d.homeWarrantyTerms || null,
+      repairsSummary: d.repairsSummary || null,
+      fixturesIncluded: Array.isArray(d.fixturesIncluded) && d.fixturesIncluded.length ? d.fixturesIncluded : null,
+      fixturesExcluded: Array.isArray(d.fixturesExcluded) && d.fixturesExcluded.length ? d.fixturesExcluded : null,
+      specialProvisions: d.specialProvisions || null,
+      expenseAllocation: (d.expenseAllocation && typeof d.expenseAllocation === 'object' && Object.keys(d.expenseAllocation).length) ? d.expenseAllocation : null,
+      prorations: d.prorations || null,
+      addendaAttached: Array.isArray(d.addendaAttached) && d.addendaAttached.length ? d.addendaAttached : null,
+      financingTerms: (d.financingTerms && typeof d.financingTerms === 'object' && Object.keys(d.financingTerms).length) ? d.financingTerms : null,
     }));
 }
 
