@@ -124,9 +124,15 @@ export default async function handler(req, res) {
       }
       case 'outbound_email': {
         if (action === 'reject') {
-          newStatus = 'cancelled';
+          // outbound_email_queue.status has a CHECK constraint that does NOT
+          // include 'cancelled'/'canceled'/'rejected' (confirmed via live
+          // 23514 check-violation, 2026-08-13) — 'skipped' is the valid value
+          // that means "not sending this one." Using an invalid value here
+          // made every Reject click fail with a 500 silently swallowed by the
+          // generic "Approve failed: internal" toast.
+          newStatus = 'skipped';
           updated = await sbPatch(`outbound_email_queue?id=eq.${id}`, {
-            status: 'cancelled',
+            status: 'skipped',
             updated_at: now,
             error_text: reason || 'Heath rejected via Jarvis HUD',
           });
