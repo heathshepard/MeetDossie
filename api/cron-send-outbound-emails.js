@@ -33,6 +33,7 @@
 
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { isSuppressed, clearCache } = require('./_lib/check-suppression.js');
+const { sendOutboundEmailRow, isValidEmail } = require('./_lib/outbound-email-send.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -42,21 +43,6 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const MAX_PER_RUN = 20;
 const MAX_ATTEMPTS = 5;
 const STUCK_SENDING_MINUTES = 5;
-
-const isValidEmail = (e) =>
-  typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function renderHtml(bodyText) {
-  const escaped = escapeHtml(bodyText).replace(/\n/g, '<br>');
-  return `<div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:40px 20px;color:#1C2B3A;line-height:1.7;">${escaped}</div>`;
-}
 
 function supabaseHeaders(extra = {}) {
   return {
@@ -191,84 +177,9 @@ async function returnToPending(id, errorText, attempts) {
   });
 }
 
-// Send through Resend. Returns { ok, id?, status, errorText? }.
-// status === 4xx -> permanent failure (bad address etc.); 5xx/network -> transient.
-async function sendViaResend(row) {
-  const payload = {
-    from: row.from_email
-      ? `Heath at Dossie <${row.from_email}>`
-      : 'Heath at Dossie <heath@meetdossie.com>',
-    to: [String(row.to_email).trim()],
-    subject: String(row.subject).trim(),
-    html: row.body_html && row.body_html.trim().length > 0
-      ? row.body_html
-      : renderHtml(row.body_text || ''),
-    reply_to: isValidEmail(row.reply_to)
-      ? String(row.reply_to).trim()
-      : (row.from_email || 'heath@meetdossie.com'),
-  };
-
-  // BCC Heath on transactional/Cole-sent rows so he has archive copies.
-  // STRIP the BCC on outbound marketing (cold email daily batch) — was
-  // flooding Heath's KW inbox 25/day at full ramp. Heath approved
-  // 2026-07-14 18:02 CT. Replies still route to heath@meetdossie.com via
-  // the reply_to field above. Detection: metadata.queued_by tag set by the
-  // enqueue side (cron-cold-email-daily-batch marks every row).
-  const queuedBy = row && row.metadata && row.metadata.queued_by;
-  const isMarketingBatch = queuedBy === 'cron-cold-email-daily-batch';
-  if (!isMarketingBatch) {
-    payload.bcc = ['heath@meetdossie.com'];
-  }
-
-  // Attachment support via metadata.attachments_b64:
-  // [{ filename: 'foo.png', content_b64: '...', content_type: 'image/png' }]
-  // Resend expects { filename, content (base64 string) } per their API.
-  // Keeps the schema flat; no migration needed.
-  try {
-    const attachments = row && row.metadata && Array.isArray(row.metadata.attachments_b64)
-      ? row.metadata.attachments_b64
-      : null;
-    if (attachments && attachments.length > 0) {
-      const cleaned = [];
-      for (const a of attachments) {
-        if (!a || typeof a !== 'object') continue;
-        if (typeof a.filename !== 'string' || !a.filename.trim()) continue;
-        if (typeof a.content_b64 !== 'string' || !a.content_b64.trim()) continue;
-        cleaned.push({
-          filename: a.filename.trim(),
-          content: a.content_b64.trim(),
-          ...(a.content_type ? { content_type: String(a.content_type) } : {}),
-        });
-      }
-      if (cleaned.length > 0) payload.attachments = cleaned;
-    }
-  } catch (e) {
-    console.warn('[outbound-email] attachments parse failed', e && e.message);
-  }
-
-  let r;
-  try {
-    r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-  } catch (err) {
-    return { ok: false, status: 0, transient: true, errorText: `fetch_failed: ${err && err.message}` };
-  }
-
-  const data = await r.json().catch(() => ({}));
-  if (r.ok) {
-    return { ok: true, id: data && data.id, status: r.status };
-  }
-  // 4xx → permanent (bad email, validation, blocked). 5xx → transient retry.
-  const transient = r.status >= 500;
-  const msg = (data && (data.message || data.error)) || `resend_${r.status}`;
-  return { ok: false, status: r.status, transient, errorText: String(msg).slice(0, 500) };
-}
+// Send through Resend. sendOutboundEmailRow lives in ./_lib/outbound-email-send.js
+// — shared with /api/jarvis-approve so a single Heath-tap "Approve" send uses
+// the exact same Resend/suppression path as this batch cron (2026-08-13).
 
 async function handler(req, res) {
   // Auth: Vercel cron hits us with Authorization: Bearer <CRON_SECRET>.
@@ -324,7 +235,7 @@ async function handler(req, res) {
       if (!claimed) continue; // race lost
       result.claimed += 1;
 
-      const send = await sendViaResend(claimed);
+      const send = await sendOutboundEmailRow(claimed);
       if (send.ok) {
         await markSent(claimed.id, send.id);
         result.sent += 1;
