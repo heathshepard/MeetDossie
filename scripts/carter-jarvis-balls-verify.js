@@ -39,6 +39,20 @@ function report(name, pass, note) {
   console.log(`[${pass ? 'PASS' : 'FAIL'}] ${name}${note ? ' — ' + note : ''}`);
 }
 
+// Real computed-color assertions (added 2026-08-13 per Quinn catch: the
+// original version of this script only checked class names like "at-you" /
+// "at-them" and never actually looked at getComputedStyle, which is exactly
+// how a dropped/invalid CSS var (--coral/--sage referenced but never
+// defined in :root -- only --rose/--ok existed) shipped as a PASS while the
+// balls rendered as hollow transparent rings and the status text had zero
+// color differentiation. Comparing rendered pixels, not just class strings.
+function hexToRgb(hex) {
+  const m = hex.replace('#', '').match(/.{1,2}/g).map((x) => parseInt(x, 16));
+  return `rgb(${m[0]}, ${m[1]}, ${m[2]})`;
+}
+const CORAL_RGB = hexToRgb('#E8836B'); // brand Coral, CLAUDE.md Section 4
+const SAGE_RGB = hexToRgb('#8BA888');  // brand Sage, CLAUDE.md Section 4
+
 async function mintHeathSession() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -126,6 +140,29 @@ async function sbRest(pathAndQuery, opts = {}) {
   report('A "your move" row shows the ball on the you side, warm color',
     /Your move/i.test(ymStatusText) && ymBallClass.includes('at-you'),
     `text="${ymStatusText}" ballClass="${ymBallClass}"`);
+
+  // ---------- REAL COMPUTED COLOR (not just class names) ----------
+  // Catches exactly the bug Quinn found: an invalid/undefined CSS var drops
+  // the value silently -- the class is still present, but nothing actually
+  // renders. Assert on getComputedStyle output, not on className strings.
+  const ymBallBgImage = await yourMoveRow.locator('.jb-ball').evaluate((el) => getComputedStyle(el).backgroundImage);
+  report('your-move ball computed background-image is a real coral gradient (not dropped)',
+    ymBallBgImage.includes('232, 131, 107'), `backgroundImage="${ymBallBgImage}"`);
+
+  const ymStatusColor = await yourMoveRow.locator('.jb-court-status').evaluate((el) => getComputedStyle(el).color);
+  report('your-move status text computed color is coral, not a default fallback',
+    ymStatusColor === CORAL_RGB, `computed="${ymStatusColor}" expected="${CORAL_RGB}"`);
+
+  const nopalitoBallBgImage = await nopalitoRow.locator('.jb-ball').evaluate((el) => getComputedStyle(el).backgroundImage);
+  report('waiting-on-them ball computed background-image is a real sage gradient (not dropped)',
+    nopalitoBallBgImage.includes('139, 168, 136'), `backgroundImage="${nopalitoBallBgImage}"`);
+
+  const nopalitoStatusColor = await nopalitoRow.locator('.jb-court-status').evaluate((el) => getComputedStyle(el).color);
+  report('waiting-on-them status text computed color is sage, not a default fallback',
+    nopalitoStatusColor === SAGE_RGB, `computed="${nopalitoStatusColor}" expected="${SAGE_RGB}"`);
+
+  report('coral and sage computed colors actually differ from each other',
+    ymStatusColor !== nopalitoStatusColor, `mine="${ymStatusColor}" other="${nopalitoStatusColor}"`);
 
   // ---------- EXPAND ----------
   await nopalitoRow.locator('.jb-item-head').click();
