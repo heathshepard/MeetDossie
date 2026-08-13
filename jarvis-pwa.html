@@ -1150,6 +1150,19 @@
       line-height: 1.3;
       flex: 1;
     }
+    .merge-queue-repo-chip {
+      display: inline-block;
+      font-family: 'Inter', sans-serif;
+      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      font-weight: 600;
+      color: var(--cyan);
+      background: rgba(77, 208, 225, 0.12);
+      border: 1px solid rgba(77, 208, 225, 0.25);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
     .merge-queue-desc {
       font-size: 12px; line-height: 1.45;
       color: var(--txt-mute);
@@ -2846,7 +2859,7 @@
             <span class="venture-name">Rust</span>
             <span class="venture-status-dot"></span>
           </div>
-          <div class="venture-untracked-note">Fitness app. Separate Supabase project — no agent_queue / merge_queue / heath_todo presence yet. Not tracked here.</div>
+          <div class="venture-untracked-note">Fitness app. Separate Supabase project — merge queue now tracked (see MERGE QUEUE panel below, 2026-08-13). No agent_queue / heath_todo presence yet.</div>
         </div>
         <div class="venture-card untracked" id="venture-card-sawyer">
           <div class="venture-card-header">
@@ -6209,21 +6222,29 @@
       list.innerHTML = '';
       for (const item of items) {
         const row = document.createElement('div');
-        // Every row in this panel is quinn_qa_status='pass' by construction
-        // (filter=ready, server-side) — always render the "verified" state.
+        // Server (merge-queue-list.js) only returns rows here that pass the
+        // repo-appropriate gate (Quinn PASS for quinn-gated repos, or "no
+        // gate" repos like Rust) — see item.qa_gate / item.ready_reason.
+        // 2026-08-13: multi-repo — never show a fake "QA verified by Quinn"
+        // for a repo that has no Quinn harness.
         row.className = 'merge-queue-item all-green';
         const sha = item.commit_sha.slice(0, 7);
         const desc = (item.description || '').trim();
+        const repoLabel = item.repo_label || item.repo || 'MeetDossie';
+        const statusNote = item.ready_reason || 'QA verified by Quinn';
         row.innerHTML = `
           <div class="merge-queue-header">
             <div>
-              <div class="merge-queue-title">${escapeHtml(humanizeTitle(item.title) || `Merge ${sha}`)}</div>
-              <div class="merge-queue-sha">${sha} · QA verified by Quinn</div>
+              <div class="merge-queue-title">
+                <span class="merge-queue-repo-chip">${escapeHtml(repoLabel)}</span>
+                ${escapeHtml(humanizeTitle(item.title) || `Merge ${sha}`)}
+              </div>
+              <div class="merge-queue-sha">${sha} · ${escapeHtml(statusNote)}</div>
             </div>
           </div>
           ${desc ? `<div class="merge-queue-desc">${escapeHtml(desc)}</div>` : ''}
           <div class="merge-queue-buttons">
-            <button class="merge-btn" data-sha="${sha}" data-action="merge">MERGE</button>
+            <button class="merge-btn" data-sha="${sha}" data-id="${escapeHtml(item.id)}" data-action="merge">MERGE</button>
           </div>
         `;
 
@@ -6431,10 +6452,11 @@
 
 
     async function mergeStagingToMain(item) {
-      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} to main?\n\n${item.title || ''}`);
+      const repoLabel = item.repo_label || item.repo || 'MeetDossie';
+      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} (${repoLabel}) to main?\n\n${item.title || ''}`);
       if (!confirmed) return;
 
-      const btn = document.querySelector(`[data-sha="${item.commit_sha.slice(0, 7)}"][data-action="merge"]`);
+      const btn = document.querySelector(`[data-id="${item.id}"][data-action="merge"]`);
       if (btn) btn.disabled = true;
 
       try {
@@ -6445,7 +6467,9 @@
             'Content-Type': 'application/json',
             Authorization: auth,
           },
-          body: JSON.stringify({ sha: item.commit_sha }),
+          // id resolves repo/branch server-side (multi-repo, 2026-08-13);
+          // sha kept for back-compat with existing intercept-based QA scripts.
+          body: JSON.stringify({ id: item.id, sha: item.commit_sha }),
         });
 
         if (!res.ok) {

@@ -42,7 +42,14 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 // (e.g. "2 commits on local main, unpushed") — GitHub's compare API only
 // sees refs that exist on the remote. That gap needs a local git scan, not
 // a change here.
-const REPOS = ['heathshepard/MeetDossie', 'heathshepard/Dossie', 'heathshepard/Rust'];
+//
+// 2026-08-13 (Carter, SV-ENG-MERGE-QUEUE-MULTI-REPO): pulled from the same
+// api/_lib/tracked-repos.js registry the Merge Queue now uses, instead of a
+// second hardcoded list — that duplication is exactly how this list ended
+// up with a wrong slug (`heathshepard/Dossie`, which 404s — the real repo
+// is `heathshepard/DossieApp`, verified against the live GitHub API).
+const { TRACKED_REPOS } = require('./_lib/tracked-repos.js');
+const REPOS = TRACKED_REPOS.map((r) => r.repo);
 
 export const config = { api: { bodyParser: true }, maxDuration: 15 };
 

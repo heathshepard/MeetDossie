@@ -13,7 +13,7 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 //
 // SOURCES (run in this order — most-authoritative first):
 //   1. github          — branches with commits in last 14 days, not main/staging
-//   2. github-pr       — open PRs in heathshepard/MeetDossie + heathshepard/Dossie
+//   2. github-pr       — open PRs in heathshepard/MeetDossie + heathshepard/DossieApp
 //   3. memory          — project_*_handoff_*.md + project_*_in_flight.md
 //   4. dod             — files in Shepard-Ventures/Engineering/definitions-of-done/ mod'd last 30d
 //   5. heath-queue     — heath_todo rows with status in ('pending', 'in_progress')
@@ -44,7 +44,11 @@ const HEATH_TENANT_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 
 const REPOS = [
   'heathshepard/MeetDossie',
-  'heathshepard/Dossie',
+  // 2026-08-13 (Carter): was 'heathshepard/Dossie' — that repo doesn't
+  // exist on GitHub (verified via live API), so branch/PR reconciliation
+  // for the Dossie React source has been silently 404ing since this cron
+  // was written. Real slug is heathshepard/DossieApp.
+  'heathshepard/DossieApp',
 ];
 const PROTECTED_BRANCHES = new Set(['main', 'master', 'staging', 'production', 'gh-pages']);
 const BRANCH_ACTIVE_DAYS = 14;

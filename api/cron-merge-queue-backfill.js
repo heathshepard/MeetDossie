@@ -1,4 +1,5 @@
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { getRepoConfig } = require('./_lib/tracked-repos.js');
 
 'use strict';
 
@@ -25,6 +26,12 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 // main. If YES, flip merged_to_main=true and fill merged_at from the actual
 // commit-on-main timestamp (best-effort via compare API).
 //
+// GENERALIZED TO MULTI-REPO 2026-08-13 (Carter, SV-ENG-MERGE-QUEUE-MULTI-REPO):
+// each row now carries its own `repo` column (see api/_lib/tracked-repos.js);
+// the GitHub compare call below uses row.repo instead of a single hardcoded
+// constant, and main_branch comes from that repo's tracked config (falls
+// back to 'main' for any legacy/untracked repo value).
+//
 // Uses the same GitHub Compare API pattern as merge-to-main.js:
 //   GET /repos/:owner/:repo/compare/:sha...main
 //   - status = "identical"  -> sha IS main HEAD, definitely merged
@@ -48,8 +55,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET               = process.env.CRON_SECRET;
 const GITHUB_TOKEN              = process.env.GITHUB_TOKEN;
 
-const GITHUB_REPO = 'heathshepard/MeetDossie';
-const MAIN_BRANCH = 'main';
+const DEFAULT_REPO = 'heathshepard/MeetDossie';
 const POLL_NAME   = 'cron-merge-queue-backfill';
 const MAX_ROWS_PER_TICK = 100; // hard cap; ~50s worst case at ~500ms/GH call
 
@@ -93,7 +99,7 @@ async function ghFetch(path) {
 }
 
 // Returns { merged: boolean, committed_at: string|null, error?: string }
-async function isShaInMain(sha) {
+async function isShaInMain(repo, mainBranch, sha) {
   if (!sha || typeof sha !== 'string') return { merged: false, error: 'bad_sha' };
   // Compare sha...main:
   //   identical  -> sha IS main head  -> merged
@@ -101,7 +107,7 @@ async function isShaInMain(sha) {
   //   behind     -> sha ahead of main -> not merged
   //   diverged   -> different lineage -> not merged
   const { ok, status, data } = await ghFetch(
-    `/repos/${GITHUB_REPO}/compare/${sha}...${MAIN_BRANCH}`,
+    `/repos/${repo}/compare/${sha}...${mainBranch}`,
   );
   if (!ok) {
     // 404 => sha doesn't exist at all in the repo -> treat as not-mergeable-here.
@@ -141,7 +147,7 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
 
   // 1. Fetch pending rows
   const listRes = await sb(
-    `/rest/v1/merge_queue?select=id,commit_sha,committed_at&merged_to_main=eq.false&order=created_at.asc&limit=${MAX_ROWS_PER_TICK}`,
+    `/rest/v1/merge_queue?select=id,commit_sha,repo,committed_at&merged_to_main=eq.false&order=created_at.asc&limit=${MAX_ROWS_PER_TICK}`,
   );
   if (!listRes.ok) {
     return res.status(500).json({ ok: false, error: 'pending_list_failed', detail: listRes.error || listRes.status });
@@ -158,8 +164,12 @@ module.exports = withTelemetry(POLL_NAME, async function handler(req, res) {
   const results = [];
 
   for (const row of pending) {
-    const check = await isShaInMain(row.commit_sha);
+    const repo = row.repo || DEFAULT_REPO;
+    const cfg = getRepoConfig(repo);
+    const mainBranch = (cfg && cfg.main_branch) || 'main';
+    const check = await isShaInMain(repo, mainBranch, row.commit_sha);
     results.push({
+      repo,
       sha: row.commit_sha.slice(0, 7),
       merged: check.merged,
       status: check.status,

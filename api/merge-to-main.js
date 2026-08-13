@@ -1,15 +1,25 @@
 /**
  * /api/merge-to-main — POST
  *
- * Fast-forwards `main` to a specific commit SHA on `staging`, then pushes.
- * Triggered by the Merge button in /today.
+ * Fast-forwards a repo's main branch to a specific commit SHA, then pushes.
+ * Triggered by the Merge button on the Jarvis PWA Merge Queue panel.
+ *
+ * GENERALIZED TO MULTI-REPO 2026-08-13 (Carter, SV-ENG-MERGE-QUEUE-MULTI-REPO)
+ * — was hardcoded to heathshepard/MeetDossie only. Now resolves repo +
+ * branch_from from the merge_queue row itself so the same endpoint safely
+ * merges any repo in api/_lib/tracked-repos.js.
  *
  * Auth: Bearer JWT, MUST be heath.shepard@kw.com. No CRON_SECRET fallback —
  *       merging to main is human-only. (Even Cole/agents don't merge.)
  *
  * Safety:
- *   - Requires explicit commit SHA in the request body.
- *   - Verifies SHA exists on staging.
+ *   - Requires either `id` (preferred — merge_queue row uuid, resolves repo
+ *     + branch_from server-side so the client can't spoof which repo it's
+ *     merging) or a legacy `sha`-only body (defaults to MeetDossie/staging
+ *     for backward compatibility with existing callers/tests).
+ *   - Refuses to touch any repo not in the tracked-repos registry.
+ *   - Verifies SHA exists on the row's source branch (staging, or the real
+ *     feature branch for no-staging-tier repos like Rust).
  *   - Verifies main can fast-forward to that SHA — refuses if NOT a strict
  *     ancestor relationship (would be a non-FF / divergent merge). Heath has
  *     to resolve those manually.
@@ -18,22 +28,26 @@
  *     the fast-forward-only guarantee we want.
  *
  * Body:
- *   { sha: "<full-or-short-SHA>" }
+ *   { id: "<merge_queue row uuid>" }             — preferred
+ *   { sha: "<full-or-short-SHA>" }                — legacy, MeetDossie only
+ *   { id, sha } — both sent by the current PWA; id wins when present.
  *
  * Returns:
  *   { ok: true, mergedSha, mainNewSha }
  *   or
- *   { error: "...", code: "NOT_FAST_FORWARD" | "SHA_NOT_ON_STAGING" | ... }
+ *   { error: "...", code: "NOT_FAST_FORWARD" | "SHA_NOT_ON_STAGING" | "REPO_NOT_TRACKED" | ... }
  *
- * Updated: 2026-06-17 — initial build (Atlas).
+ * Updated: 2026-06-17 — initial build (Atlas). 2026-08-13 — multi-repo (Carter).
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { getRepoConfig } = require('./_lib/tracked-repos.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = 'heathshepard/MeetDossie';
+const LEGACY_REPO = 'heathshepard/MeetDossie';
+const LEGACY_BRANCH_FROM = 'staging';
 
 const ALLOWED_EMAIL = 'heath.shepard@kw.com';
 
@@ -88,14 +102,49 @@ module.exports = async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const sha = String(body.sha || '').trim();
-  if (!sha || !/^[0-9a-f]{7,40}$/i.test(sha)) {
-    return res.status(400).json({ error: 'sha required (7-40 hex)', code: 'BAD_SHA' });
+  const idInput = String(body.id || '').trim();
+  const shaInput = String(body.sha || '').trim();
+  if (!idInput && (!shaInput || !/^[0-9a-f]{7,40}$/i.test(shaInput))) {
+    return res.status(400).json({ error: 'id or sha required (sha must be 7-40 hex)', code: 'BAD_SHA' });
+  }
+
+  // Resolve which repo + source branch this merge_queue row belongs to.
+  // Prefer `id` (server-side lookup — client can't spoof the repo this way).
+  // Fall back to legacy sha-only behavior (MeetDossie/staging) so existing
+  // callers/tests that only ever sent `sha` keep working.
+  let queueRow = null;
+  if (idInput) {
+    const { data, error: rowErr } = await supabase
+      .from('merge_queue')
+      .select('id, commit_sha, repo, branch_from, merged_to_main')
+      .eq('id', idInput)
+      .maybeSingle();
+    if (rowErr) {
+      return res.status(500).json({ error: `merge_queue lookup failed: ${rowErr.message}`, code: 'ROW_LOOKUP_FAILED' });
+    }
+    if (!data) {
+      return res.status(404).json({ error: `merge_queue row ${idInput} not found`, code: 'ROW_NOT_FOUND' });
+    }
+    queueRow = data;
+  }
+
+  const repo = queueRow ? (queueRow.repo || LEGACY_REPO) : LEGACY_REPO;
+  const branchFrom = queueRow ? (queueRow.branch_from || LEGACY_BRANCH_FROM) : LEGACY_BRANCH_FROM;
+  const sha = queueRow ? queueRow.commit_sha : shaInput;
+
+  const repoCfg = getRepoConfig(repo);
+  if (!repoCfg) {
+    return res.status(400).json({ error: `repo "${repo}" is not in the tracked-repos registry — refusing to merge`, code: 'REPO_NOT_TRACKED' });
+  }
+  const mainBranch = repoCfg.main_branch || 'main';
+
+  if (queueRow && queueRow.merged_to_main) {
+    return res.status(200).json({ ok: true, noop: true, message: 'row already marked merged_to_main', mainNewSha: sha });
   }
 
   try {
     // 1. Resolve to full SHA via the commits API. Confirms the commit exists.
-    const commitLookup = await githubFetch(`/repos/${GITHUB_REPO}/commits/${sha}`);
+    const commitLookup = await githubFetch(`/repos/${repo}/commits/${sha}`);
     if (!commitLookup.ok) {
       return res.status(404).json({
         error: `commit ${sha} not found`,
@@ -105,24 +154,24 @@ module.exports = async function handler(req, res) {
     }
     const fullSha = commitLookup.json.sha;
 
-    // 2. Confirm the commit is actually on staging. We do this by walking the
-    //    staging history (newest first) and looking for the sha. Cap at 250
-    //    commits — beyond that, Heath should merge manually.
-    let foundOnStaging = false;
+    // 2. Confirm the commit is actually on its source branch. We do this by
+    //    walking that branch's history (newest first) and looking for the
+    //    sha. Cap at 250 commits — beyond that, Heath should merge manually.
+    let foundOnBranch = false;
     let page = 1;
     let pagesChecked = 0;
-    while (page <= 5 && !foundOnStaging) {
-      const list = await githubFetch(`/repos/${GITHUB_REPO}/commits?sha=staging&per_page=50&page=${page}`);
+    while (page <= 5 && !foundOnBranch) {
+      const list = await githubFetch(`/repos/${repo}/commits?sha=${encodeURIComponent(branchFrom)}&per_page=50&page=${page}`);
       if (!list.ok) break;
       const arr = list.json || [];
       if (arr.length === 0) break;
-      if (arr.some(c => c.sha === fullSha)) { foundOnStaging = true; break; }
+      if (arr.some(c => c.sha === fullSha)) { foundOnBranch = true; break; }
       page += 1;
       pagesChecked += 1;
     }
-    if (!foundOnStaging) {
+    if (!foundOnBranch) {
       return res.status(400).json({
-        error: `commit ${fullSha.slice(0, 7)} not found on staging (checked last ${pagesChecked * 50} commits)`,
+        error: `commit ${fullSha.slice(0, 7)} not found on ${branchFrom} (checked last ${pagesChecked * 50} commits)`,
         code: 'SHA_NOT_ON_STAGING',
       });
     }
@@ -130,7 +179,7 @@ module.exports = async function handler(req, res) {
     // 3. Verify fast-forward is possible: compare base=main vs head=fullSha.
     //    If status is "ahead" or "identical", FF is safe. Anything else
     //    (diverged, behind) means main has commits not in this SHA — refuse.
-    const compare = await githubFetch(`/repos/${GITHUB_REPO}/compare/main...${fullSha}`);
+    const compare = await githubFetch(`/repos/${repo}/compare/${mainBranch}...${fullSha}`);
     if (!compare.ok) {
       return res.status(500).json({
         error: 'github compare failed',
@@ -149,16 +198,16 @@ module.exports = async function handler(req, res) {
     }
     if (status !== 'ahead') {
       return res.status(409).json({
-        error: `cannot fast-forward main to ${fullSha.slice(0, 7)} — relationship is "${status}". main has ${compare.json.behind_by || 0} commits not in target. Resolve manually.`,
+        error: `cannot fast-forward ${mainBranch} to ${fullSha.slice(0, 7)} — relationship is "${status}". ${mainBranch} has ${compare.json.behind_by || 0} commits not in target. Resolve manually.`,
         code: 'NOT_FAST_FORWARD',
         relationship: status,
       });
     }
 
-    // 4. Fast-forward update of refs/heads/main. GitHub's PATCH ref endpoint
+    // 4. Fast-forward update of refs/heads/{main}. GitHub's PATCH ref endpoint
     //    requires force=false for pure FF; the API will reject non-FF when
     //    force=false. That's our hard guarantee.
-    const update = await githubFetch(`/repos/${GITHUB_REPO}/git/refs/heads/main`, {
+    const update = await githubFetch(`/repos/${repo}/git/refs/heads/${mainBranch}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sha: fullSha, force: false }),
@@ -178,22 +227,20 @@ module.exports = async function handler(req, res) {
         .from('agent_activity')
         .insert({
           agent_name: 'system',
-          task_summary: `Merged ${fullSha.slice(0, 7)} to main: ${(commitLookup.json.commit?.message || '').split('\n')[0].slice(0, 200)}`,
+          task_summary: `Merged ${fullSha.slice(0, 7)} to ${repo}#${mainBranch}: ${(commitLookup.json.commit?.message || '').split('\n')[0].slice(0, 200)}`,
           status: 'done',
-          metadata: { kind: 'merge_to_main', sha: fullSha, triggered_by: user.email },
+          metadata: { kind: 'merge_to_main', repo, sha: fullSha, triggered_by: user.email },
           completed_at: new Date().toISOString(),
         });
     } catch {}
 
-    // 6. Mark merge_queue row(s) as merged.
+    // 6. Mark merge_queue row(s) as merged — scoped to this repo only, so a
+    //    fast-forward on one repo never touches another repo's rows.
     //    Two paths:
     //      a. Direct match on this SHA.
-    //      b. Any pending queue row whose SHA is now an ancestor of main
-    //         (fast-forward brings intermediate commits with it). Walk the
-    //         commits list returned by /compare/main~1...fullSha earlier is
-    //         expensive here — instead we hit /compare/<row.sha>...main and
-    //         flip if the row is now "identical" or "ahead". Bounded to 50
-    //         rows to keep this call cheap.
+    //      b. Any pending queue row (same repo) whose SHA is now an ancestor
+    //         of main (fast-forward brings intermediate commits with it).
+    //         Bounded to 50 rows to keep this call cheap.
     try {
       const nowIso = new Date().toISOString();
       // (a) direct
@@ -204,19 +251,22 @@ module.exports = async function handler(req, res) {
           merged_at: nowIso,
           merged_by_user_id: user.id,
         })
-        .eq('commit_sha', fullSha);
+        .eq('commit_sha', fullSha)
+        .eq('repo', repo);
 
-      // (b) sweep other pending rows that may now be ancestors of main
+      // (b) sweep other pending rows in the SAME repo that may now be
+      // ancestors of main
       const { data: pending } = await supabase
         .from('merge_queue')
         .select('id, commit_sha')
         .eq('merged_to_main', false)
+        .eq('repo', repo)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (Array.isArray(pending) && pending.length > 0) {
         for (const row of pending) {
-          const c = await githubFetch(`/repos/${GITHUB_REPO}/compare/${row.commit_sha}...${fullSha}`);
+          const c = await githubFetch(`/repos/${repo}/compare/${row.commit_sha}...${fullSha}`);
           if (!c.ok || !c.json) continue;
           const s = c.json.status;
           if (s === 'identical' || s === 'ahead') {
