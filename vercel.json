@@ -799,7 +799,7 @@
     },
     {
       "path": "/api/cron-generate-pages",
-      "schedule": "30 5 * * *"
+      "schedule": "0 0 1 1 *"
     },
     {
       "path": "/api/cron-content-pipeline-review",

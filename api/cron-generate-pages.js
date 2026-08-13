@@ -10,8 +10,18 @@
 // docs/CONTENT-PIPELINE.md for the full flow.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json -- "30 5 * * *" (05:30 UTC = 12:30am CDT / 11:30pm CST,
-// well inside the 11pm-6am CDT window both sides of the DST boundary).
+// Schedule: vercel.json -- normally "30 5 * * *" (05:30 UTC = 12:30am CDT /
+// 11:30pm CST, well inside the 11pm-6am CDT window both sides of the DST
+// boundary).
+//
+// TEMPORARILY DISABLED 2026-08-13 (Atlas): schedule set to "0 0 1 1 *"
+// (effectively never) in vercel.json -- Heath is near his weekly Claude usage
+// cap (resets Saturday) and asked to hold off on discretionary agent spawns
+// until then. This is the same disable-by-schedule pattern already used on
+// cron-generate-posts / cron-coverage-check elsewhere in this file. Restore
+// the "30 5 * * *" schedule in vercel.json after Saturday's reset. Does NOT
+// affect cron-content-pipeline-review or cron-content-pipeline-promote --
+// those keep running so Heath can process the pending_review backlog.
 //
 // Owner: Atlas, 2026-08-11 (SV-ENG-NIGHTLY-CONTENT-PIPELINE)
 
