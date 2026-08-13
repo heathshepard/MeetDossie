@@ -2424,6 +2424,33 @@
       background: rgba(232, 94, 94, 0.1);
     }
 
+    /* ===== BUILD STATUS (In-Flight Work + Agents collapsed, 2026-08-12) =====
+       One quiet plain-English line always visible; the raw per-repo/agent
+       telemetry lives behind a native <details> so it's there when wanted
+       but not competing for attention by default. */
+    .build-status-line {
+      font-size: 13px; color: var(--txt-mute); line-height: 1.5;
+    }
+    #build-status-details {
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    #build-status-details summary {
+      cursor: pointer;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--txt-faint);
+      list-style: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #build-status-details summary::-webkit-details-marker { display: none; }
+    #build-status-details summary::before {
+      content: '▸'; display: inline-block; transition: transform 0.15s ease;
+    }
+    #build-status-details[open] summary::before { transform: rotate(90deg); }
+    #build-status-details[open] summary { margin-bottom: 10px; }
+    .build-status-subtitle { margin-top: 12px; }
+    .build-status-subtitle:first-of-type { margin-top: 0; }
+
     /* ===== IN-FLIGHT WORK (redesigned 2026-08-10, Heath dashboard teardown) =====
        agent_queue rows with status=in_progress ONLY — genuinely active work,
        right now. A row disappears the moment the agent's status moves on;
@@ -3031,82 +3058,96 @@
           </div>
         </div>
 
-        <!-- IN-FLIGHT WORK — NEW unified view (mission-control consolidation, item 5).
-             Merges agent_queue (in_progress/blocked) + merge_queue (unmerged) +
-             heath_todo (pending/snoozed) + live main..staging diff count per repo.
-             Sortable by staleness (blocked always first), Done button per row calls
-             /api/jarvis-mark-complete with an exact {source,id}. -->
-        <div class="panel panel-featured" id="inflight-panel">
-          <div class="panel-title agent-panel-header">
-            <span>IN-FLIGHT WORK</span>
-            <span class="agent-panel-count" id="inflight-count">0</span>
-          </div>
-          <div id="inflight-git-row" class="inflight-git-row"></div>
-          <div id="inflight-list" class="inflight-list">
-            <div class="inflight-empty">Loading…</div>
-          </div>
-        </div>
+        <!-- BUILD STATUS — collapsed by default, 2026-08-12 (Heath: "worthless...
+             not sure what all this stuff is" re: In-Flight Work + Agents panels).
+             Was two always-open panels dumping raw engineering telemetry (per-repo
+             unmerged branch counts, agent_queue blocked-count, live instance ticker,
+             24h throughput table) with zero translation to something Heath would
+             act on. Fix: one quiet plain-English summary line up top, everything
+             else (the original IN-FLIGHT WORK + AGENTS panels, ids/render fns
+             untouched) moved inside a native <details> the engineer-facing agents
+             (or Heath, if curious) can expand. buildStatusSummary() below composes
+             the one-liner from the same data these panels already load — no new
+             endpoint. -->
+        <div class="panel" id="build-status-panel">
+          <div class="panel-title">BUILD STATUS</div>
+          <div id="build-status-line" class="build-status-line">Loading…</div>
+          <details id="build-status-details">
+            <summary>Advanced (engineering detail)</summary>
 
-        <!-- AGENTS — unified (mission-control consolidation, item 1). Was 3 panels
-             reading the same underlying source (AGENTS IN FLIGHT / AGENT STATUS /
-             AGENT THROUGHPUT) — merged into one card with a blocked-count badge.
-             Each subsection keeps its original container id + render function
-             untouched; only the surrounding chrome changed. -->
-        <div class="panel" id="agents-panel">
-          <div class="panel-title agent-panel-header">
-            <span>AGENTS</span>
-            <span class="panel-blocked-badge" id="agents-blocked-badge">0 blocked</span>
-          </div>
-          <!-- "Running" subsection (active_agents table via jarvis-active-agents /
-               jarvis-agent-lifecycle) removed 2026-08-06 (Atlas). Confirmed zero
-               writers anywhere in the codebase — jarvis-agent-lifecycle.js and
-               jarvis-emit-agent-event.js are both orphaned, nothing calls them.
-               The box was permanently stuck on "No agents running", duplicating
-               the Instances subsection below (which IS live, ticks every second,
-               and is fed by agent_queue — the table that's actually written to).
-               loadActiveAgents()/renderActiveAgents() left defined (harmless,
-               null-guarded) in case a future caller wires active_agents for real. -->
-          <div class="subpanel-section">
-            <div class="subpanel-header"><span>Instances</span><span class="subpanel-count" id="instance-count">0</span></div>
-            <div id="instance-list">
-              <div class="instance-empty">Loading agents…</div>
+            <!-- IN-FLIGHT WORK — merges agent_queue (in_progress/blocked) + merge_queue
+                 (unmerged) + heath_todo (pending/snoozed) + live main..staging diff
+                 count per repo. Sortable by staleness (blocked always first), Done
+                 button per row calls /api/jarvis-mark-complete with an exact {source,id}. -->
+            <div class="panel-title agent-panel-header build-status-subtitle">
+              <span>IN-FLIGHT WORK</span>
+              <span class="agent-panel-count" id="inflight-count">0</span>
             </div>
-            <!-- Legacy per-role rows kept hidden as a fallback target for older code paths
-                 (agentLedger merge logic still references .agent-row). They're invisible by
-                 default but renderAgentRows() still updates them in-memory. -->
-            <div id="agent-grid" style="display:none;">
-              <div class="agent-row" data-agent="atlas">
-                <div class="agent-name">Atlas</div>
-                <div class="agent-status idle">IDLE</div>
-                <div class="agent-summary">—</div>
+            <div id="inflight-git-row" class="inflight-git-row"></div>
+            <div id="inflight-list" class="inflight-list">
+              <div class="inflight-empty">Loading…</div>
+            </div>
+
+            <!-- AGENTS — was 3 panels reading the same underlying source (AGENTS IN
+                 FLIGHT / AGENT STATUS / AGENT THROUGHPUT) — merged into one card
+                 with a blocked-count badge. Each subsection keeps its original
+                 container id + render function untouched; only the surrounding
+                 chrome changed. -->
+            <div class="panel-title agent-panel-header build-status-subtitle">
+              <span>AGENTS</span>
+              <span class="panel-blocked-badge" id="agents-blocked-badge">0 blocked</span>
+            </div>
+            <!-- "Running" subsection (active_agents table via jarvis-active-agents /
+                 jarvis-agent-lifecycle) removed 2026-08-06 (Atlas). Confirmed zero
+                 writers anywhere in the codebase — jarvis-agent-lifecycle.js and
+                 jarvis-emit-agent-event.js are both orphaned, nothing calls them.
+                 The box was permanently stuck on "No agents running", duplicating
+                 the Instances subsection below (which IS live, ticks every second,
+                 and is fed by agent_queue — the table that's actually written to).
+                 loadActiveAgents()/renderActiveAgents() left defined (harmless,
+                 null-guarded) in case a future caller wires active_agents for real. -->
+            <div class="subpanel-section">
+              <div class="subpanel-header"><span>Instances</span><span class="subpanel-count" id="instance-count">0</span></div>
+              <div id="instance-list">
+                <div class="instance-empty">Loading agents…</div>
               </div>
-              <div class="agent-row" data-agent="carter">
-                <div class="agent-name">Carter</div>
-                <div class="agent-status idle">IDLE</div>
-                <div class="agent-summary">—</div>
-              </div>
-              <div class="agent-row" data-agent="hadley">
-                <div class="agent-name">Hadley</div>
-                <div class="agent-status idle">IDLE</div>
-                <div class="agent-summary">—</div>
-              </div>
-              <div class="agent-row" data-agent="pierce">
-                <div class="agent-name">Pierce</div>
-                <div class="agent-status idle">IDLE</div>
-                <div class="agent-summary">—</div>
-              </div>
-              <div class="agent-row" data-agent="sage">
-                <div class="agent-name">Sage</div>
-                <div class="agent-status idle">IDLE</div>
-                <div class="agent-summary">—</div>
+              <!-- Legacy per-role rows kept hidden as a fallback target for older code paths
+                   (agentLedger merge logic still references .agent-row). They're invisible by
+                   default but renderAgentRows() still updates them in-memory. -->
+              <div id="agent-grid" style="display:none;">
+                <div class="agent-row" data-agent="atlas">
+                  <div class="agent-name">Atlas</div>
+                  <div class="agent-status idle">IDLE</div>
+                  <div class="agent-summary">—</div>
+                </div>
+                <div class="agent-row" data-agent="carter">
+                  <div class="agent-name">Carter</div>
+                  <div class="agent-status idle">IDLE</div>
+                  <div class="agent-summary">—</div>
+                </div>
+                <div class="agent-row" data-agent="hadley">
+                  <div class="agent-name">Hadley</div>
+                  <div class="agent-status idle">IDLE</div>
+                  <div class="agent-summary">—</div>
+                </div>
+                <div class="agent-row" data-agent="pierce">
+                  <div class="agent-name">Pierce</div>
+                  <div class="agent-status idle">IDLE</div>
+                  <div class="agent-summary">—</div>
+                </div>
+                <div class="agent-row" data-agent="sage">
+                  <div class="agent-name">Sage</div>
+                  <div class="agent-status idle">IDLE</div>
+                  <div class="agent-summary">—</div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="subpanel-section">
-            <div class="subpanel-header"><span>Throughput (24h)</span></div>
-            <div id="throughput-totals" class="throughput-totals">Loading…</div>
-            <div id="throughput-rows" class="throughput-rows"></div>
-          </div>
+            <div class="subpanel-section">
+              <div class="subpanel-header"><span>Throughput (24h)</span></div>
+              <div id="throughput-totals" class="throughput-totals">Loading…</div>
+              <div id="throughput-rows" class="throughput-rows"></div>
+            </div>
+          </details>
         </div>
 
         <!-- WORK ITEMS — unified (mission-control consolidation, item 2). Was 4 panels
@@ -6199,6 +6240,34 @@
       }
     }
 
+    // ===== BUILD STATUS SUMMARY — 2026-08-12 =====
+    // One plain-English line for the collapsed BUILD STATUS panel. Fed by
+    // the same two loads (In-Flight Work, Agent Throughput) that already
+    // populate the detailed panels below — no extra endpoint. Each loader
+    // updates its own slice of buildStatusState and re-renders the line;
+    // whichever loads first shows "Loading…" for pieces not in yet.
+    const buildStatusState = { inFlightCount: null, unmergedTotal: null, blockedCount: null };
+    function renderBuildStatusLine() {
+      const el = document.getElementById('build-status-line');
+      if (!el) return;
+      const { inFlightCount, unmergedTotal, blockedCount } = buildStatusState;
+      if (inFlightCount == null && unmergedTotal == null && blockedCount == null) {
+        el.textContent = 'Loading…';
+        return;
+      }
+      const parts = [];
+      parts.push(
+        inFlightCount ? `${inFlightCount} task${inFlightCount === 1 ? '' : 's'} running now` : 'Nothing running right now'
+      );
+      if (unmergedTotal) {
+        parts.push(`${unmergedTotal} unmerged change${unmergedTotal === 1 ? '' : 's'} on staging`);
+      }
+      if (blockedCount) {
+        parts.push(`${blockedCount} task${blockedCount === 1 ? '' : 's'} stuck in an old queue (not urgent)`);
+      }
+      el.textContent = parts.join(' · ');
+    }
+
     // ===== IN-FLIGHT WORK — redesigned 2026-08-10 (Heath dashboard teardown) =====
     // "What's being worked on, right now" — nothing else. Server
     // (/api/jarvis-in-flight-work) already scopes this to genuinely active
@@ -6244,6 +6313,11 @@
         }).join('');
         gitRow.innerHTML = chips || '';
       }
+
+      // Feed BUILD STATUS summary line (item count + total unmerged across repos).
+      buildStatusState.inFlightCount = (items || []).length;
+      buildStatusState.unmergedTotal = (gitDiffs || []).reduce((sum, g) => sum + (Number(g.ahead_by) || 0), 0);
+      renderBuildStatusLine();
 
       if (!items || items.length === 0) {
         list.innerHTML = `<div class="inflight-empty">Nothing actively running right now.</div>`;
@@ -8116,6 +8190,9 @@
         blockedBadge.textContent = `${nBlocked} blocked`;
         blockedBadge.classList.toggle('hot', nBlocked > 0);
       }
+      // Feed BUILD STATUS summary line.
+      buildStatusState.blockedCount = Number(t.total_blocked) || 0;
+      if (typeof renderBuildStatusLine === 'function') renderBuildStatusLine();
       // Top totals row — completed, cache hit rate, savings, projected daily cost
       totalsEl.innerHTML = '';
       [

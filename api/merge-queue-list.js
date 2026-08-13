@@ -79,11 +79,22 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
+    // Defense in depth: filter=ready feeds a MERGE button that posts
+    // commit_sha straight to /api/merge-to-main, which rejects anything that
+    // isn't 7-40 hex chars. A row with a malformed sha (e.g. a QA test
+    // fixture that leaked past cleanup, 2026-08-12) would otherwise render
+    // as "ready" and then fail with a raw "sha required" error the moment
+    // Heath presses MERGE. Never show a row here that can't actually merge.
+    let items = data || [];
+    if (filter === 'ready') {
+      items = items.filter((row) => /^[0-9a-f]{7,40}$/i.test(String(row.commit_sha || '')));
+    }
+
     return res.status(200).json({
       ok: true,
       filter,
-      count: data ? data.length : 0,
-      items: data || [],
+      count: items.length,
+      items,
     });
   } catch (err) {
     console.error('[merge-queue-list]', err);
