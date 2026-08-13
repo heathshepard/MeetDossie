@@ -500,6 +500,17 @@ async function watchStagingRepo(repoCfg) {
 }
 
 // ─── Per-repo: branch-scan watcher (Rust — no staging tier) ───────────────────
+//
+// DESIGN NOTE (2026-08-13, post-hoc Quinn QA): this queues any branch that's
+// ahead_by>0 of main — deliberately, for VISIBILITY. It does NOT check
+// whether the branch is a clean fast-forward candidate, and on purpose:
+// that's a point-in-time check that goes stale the moment main moves again,
+// so doing it here (write time) would just be wrong again later. Real
+// mergeability (fast-forward vs diverged vs blocked) is computed live at
+// READ time instead — see the merge_status/merge_action fields in
+// api/merge-queue-list.js. A genuinely-diverged branch still needs to show
+// up here (Heath needs to know it exists and needs attention); it just
+// won't render an enabled plain MERGE button.
 
 async function watchBranchScanRepo(repoCfg) {
   const { repo, main_branch } = repoCfg;

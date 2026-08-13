@@ -21,11 +21,21 @@
  *   - Verifies SHA exists on the row's source branch (staging, or the real
  *     feature branch for no-staging-tier repos like Rust).
  *   - Verifies main can fast-forward to that SHA — refuses if NOT a strict
- *     ancestor relationship (would be a non-FF / divergent merge). Heath has
- *     to resolve those manually.
- *   - Uses the GitHub Git Refs API to update refs/heads/main directly.
- *     GitHub's update-ref endpoint defaults to `force=false`, which is exactly
- *     the fast-forward-only guarantee we want.
+ *     ancestor relationship (would be a non-FF / divergent merge), UNLESS
+ *     the repo's qa_gate='none' (Rust today), in which case it falls back
+ *     to a real merge commit via GitHub's Merges API (server-side 3-way
+ *     merge — refuses cleanly with MERGE_CONFLICT on real content
+ *     conflicts, never a silent rewrite). MeetDossie/DossieApp
+ *     (qa_gate='quinn') get no such fallback — still strict-FF-only.
+ *     Added 2026-08-13 after Quinn's post-hoc QA found live Rust rows
+ *     rendering an enabled MERGE button that predictably 409'd because the
+ *     branch had genuinely diverged from main (main moved on since the
+ *     branch was cut) — see api/merge-queue-list.js header comment for the
+ *     matching read-side fix (merge_status/merge_action per row).
+ *   - Uses the GitHub Git Refs API to update refs/heads/main directly for
+ *     the fast-forward path. GitHub's update-ref endpoint defaults to
+ *     `force=false`, which is exactly the fast-forward-only guarantee we
+ *     want.
  *
  * Body:
  *   { id: "<merge_queue row uuid>" }             — preferred
@@ -33,11 +43,13 @@
  *   { id, sha } — both sent by the current PWA; id wins when present.
  *
  * Returns:
- *   { ok: true, mergedSha, mainNewSha }
+ *   { ok: true, mergedSha, mainNewSha, strategy: "fast_forward" | "merge_commit" }
  *   or
- *   { error: "...", code: "NOT_FAST_FORWARD" | "SHA_NOT_ON_STAGING" | "REPO_NOT_TRACKED" | ... }
+ *   { error: "...", code: "NOT_FAST_FORWARD" | "MERGE_CONFLICT" | "SHA_NOT_ON_STAGING" | "REPO_NOT_TRACKED" | ... }
  *
- * Updated: 2026-06-17 — initial build (Atlas). 2026-08-13 — multi-repo (Carter).
+ * Updated: 2026-06-17 — initial build (Atlas). 2026-08-13 — multi-repo
+ * (Carter); merge-commit fallback for qa_gate='none' repos (Carter, same
+ * day, post-hoc Quinn QA fix).
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -196,29 +208,78 @@ module.exports = async function handler(req, res) {
         mainNewSha: fullSha,
       });
     }
-    if (status !== 'ahead') {
-      return res.status(409).json({
-        error: `cannot fast-forward ${mainBranch} to ${fullSha.slice(0, 7)} — relationship is "${status}". ${mainBranch} has ${compare.json.behind_by || 0} commits not in target. Resolve manually.`,
-        code: 'NOT_FAST_FORWARD',
-        relationship: status,
-      });
-    }
+    let mergeStrategy = 'fast_forward';
+    let mainNewSha = fullSha;
 
-    // 4. Fast-forward update of refs/heads/{main}. GitHub's PATCH ref endpoint
-    //    requires force=false for pure FF; the API will reject non-FF when
-    //    force=false. That's our hard guarantee.
-    const update = await githubFetch(`/repos/${repo}/git/refs/heads/${mainBranch}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sha: fullSha, force: false }),
-    });
-    if (!update.ok) {
-      return res.status(500).json({
-        error: 'github ref update failed',
-        code: 'REF_UPDATE_FAILED',
-        status: update.status,
-        detail: update.text.slice(0, 300),
+    if (status !== 'ahead') {
+      // NOT a clean fast-forward — main has moved since this branch was cut
+      // (confirmed live 2026-08-13, Quinn's post-hoc QA: both real Rust
+      // rows were "diverged", not just stale display — a genuine
+      // ahead/behind split, not a queue bug on its own).
+      //
+      // MERGE-COMMIT FALLBACK — only for qa_gate='none' repos (Rust today).
+      // Those repos have no QA/history-hygiene requirement, so a real merge
+      // commit via GitHub's Merges API is an acceptable, safe self-service
+      // path: GitHub performs the actual 3-way merge server-side and
+      // refuses cleanly (409) on a real content conflict — never a silent
+      // rewrite. MeetDossie/DossieApp (qa_gate='quinn') get ZERO behavior
+      // change here — still strict-FF-only, refused exactly as before.
+      if (repoCfg.qa_gate === 'none') {
+        const merge = await githubFetch(`/repos/${repo}/merges`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            base: mainBranch,
+            head: fullSha,
+            commit_message: `Merge ${branchFrom} into ${mainBranch} (Jarvis merge queue, qa_gate=none — no QA harness on this repo, Heath reviewed before clicking)`,
+          }),
+        });
+        if (merge.status === 204) {
+          // Base already contains head — nothing to merge, effectively done.
+          return res.status(200).json({ ok: true, noop: true, message: `${mainBranch} already contains this branch`, mainNewSha: fullSha });
+        }
+        if (merge.status === 409) {
+          return res.status(409).json({
+            error: `real merge conflict merging ${branchFrom} into ${mainBranch} — GitHub could not auto-merge. This needs a manual resolution in the actual repo, not a queue fix.`,
+            code: 'MERGE_CONFLICT',
+            relationship: status,
+          });
+        }
+        if (!merge.ok) {
+          return res.status(500).json({
+            error: 'github merge-commit failed',
+            code: 'MERGE_COMMIT_FAILED',
+            status: merge.status,
+            detail: merge.text.slice(0, 300),
+          });
+        }
+        mergeStrategy = 'merge_commit';
+        mainNewSha = merge.json && merge.json.sha ? merge.json.sha : fullSha;
+      } else {
+        return res.status(409).json({
+          error: `cannot fast-forward ${mainBranch} to ${fullSha.slice(0, 7)} — relationship is "${status}". ${mainBranch} has ${compare.json.behind_by || 0} commits not in target. Resolve manually.`,
+          code: 'NOT_FAST_FORWARD',
+          relationship: status,
+        });
+      }
+    } else {
+      // 4. Fast-forward update of refs/heads/{main}. GitHub's PATCH ref
+      //    endpoint requires force=false for pure FF; the API rejects
+      //    non-FF when force=false. That's our hard guarantee.
+      const update = await githubFetch(`/repos/${repo}/git/refs/heads/${mainBranch}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sha: fullSha, force: false }),
       });
+      if (!update.ok) {
+        return res.status(500).json({
+          error: 'github ref update failed',
+          code: 'REF_UPDATE_FAILED',
+          status: update.status,
+          detail: update.text.slice(0, 300),
+        });
+      }
+      mainNewSha = update.json?.object?.sha || fullSha;
     }
 
     // 5. Record in agent_activity for the "Done Today" feed.
@@ -227,9 +288,9 @@ module.exports = async function handler(req, res) {
         .from('agent_activity')
         .insert({
           agent_name: 'system',
-          task_summary: `Merged ${fullSha.slice(0, 7)} to ${repo}#${mainBranch}: ${(commitLookup.json.commit?.message || '').split('\n')[0].slice(0, 200)}`,
+          task_summary: `Merged ${fullSha.slice(0, 7)} to ${repo}#${mainBranch} (${mergeStrategy}): ${(commitLookup.json.commit?.message || '').split('\n')[0].slice(0, 200)}`,
           status: 'done',
-          metadata: { kind: 'merge_to_main', repo, sha: fullSha, triggered_by: user.email },
+          metadata: { kind: 'merge_to_main', repo, sha: fullSha, strategy: mergeStrategy, triggered_by: user.email },
           completed_at: new Date().toISOString(),
         });
     } catch {}
@@ -287,7 +348,8 @@ module.exports = async function handler(req, res) {
       ok: true,
       mergedSha: fullSha,
       shortSha: fullSha.slice(0, 7),
-      mainNewSha: update.json?.object?.sha || fullSha,
+      mainNewSha,
+      strategy: mergeStrategy,
       ahead_before: compare.json.ahead_by,
       message: (commitLookup.json.commit?.message || '').split('\n')[0],
     });

@@ -1136,6 +1136,29 @@
       border-color: rgba(139, 168, 136, 0.3);
       background: rgba(139, 168, 136, 0.06);
     }
+    /* merge_action='merge_commit' — diverged but qa_gate='none' repo, safe
+       self-service via a real (non-FF) merge commit. Amber, not green —
+       distinct from a plain fast-forward so Heath knows what he's clicking. */
+    .merge-queue-item.needs-merge-commit {
+      border-color: rgba(201, 169, 110, 0.4);
+      background: rgba(201, 169, 110, 0.07);
+    }
+    /* merge_action='blocked' — diverged AND no safe auto-resolution path
+       (qa_gate='quinn', or the mergeability check itself failed). Still
+       shown (visibility is the point of this panel) but muted, no active
+       MERGE button — added 2026-08-13 after Quinn's post-hoc QA found a
+       live enabled button that predictably 409'd. */
+    .merge-queue-item.needs-rebase {
+      border-color: rgba(232, 131, 107, 0.3);
+      background: rgba(232, 131, 107, 0.05);
+      opacity: 0.85;
+    }
+    .merge-queue-rebase-note {
+      font-size: 11px; color: var(--coral, #E8836B);
+      padding: 6px 4px; text-align: center;
+      border: 1px dashed rgba(232, 131, 107, 0.35);
+      border-radius: 6px;
+    }
     .merge-queue-header {
       display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;
     }
@@ -6313,11 +6336,30 @@
         // gate" repos like Rust) — see item.qa_gate / item.ready_reason.
         // 2026-08-13: multi-repo — never show a fake "QA verified by Quinn"
         // for a repo that has no Quinn harness.
-        row.className = 'merge-queue-item all-green';
+        //
+        // merge_action (added 2026-08-13, post-hoc Quinn QA fix) — passing
+        // the QA gate does NOT mean a row can actually merge. Branch-scan
+        // rows (Rust) can genuinely diverge from main after being queued;
+        // never show an enabled MERGE button for a row that's confirmed
+        // (live GitHub compare, server-side) to just fail.
         const sha = item.commit_sha.slice(0, 7);
         const desc = (item.description || '').trim();
         const repoLabel = item.repo_label || item.repo || 'MeetDossie';
         const statusNote = item.ready_reason || 'QA verified by Quinn';
+        const action = item.merge_action || 'fast_forward'; // fail open only for pre-fix rows without the field
+
+        let buttonHtml;
+        if (action === 'blocked') {
+          row.className = 'merge-queue-item needs-rebase';
+          buttonHtml = `<div class="merge-queue-rebase-note">Diverged from main — needs a manual rebase/merge, not a fast-forward. Resolve in the real repo.</div>`;
+        } else if (action === 'merge_commit') {
+          row.className = 'merge-queue-item needs-merge-commit';
+          buttonHtml = `<button class="merge-btn" data-sha="${sha}" data-id="${escapeHtml(item.id)}" data-action="merge">MERGE (creates merge commit)</button>`;
+        } else {
+          row.className = 'merge-queue-item all-green';
+          buttonHtml = `<button class="merge-btn" data-sha="${sha}" data-id="${escapeHtml(item.id)}" data-action="merge">MERGE</button>`;
+        }
+
         row.innerHTML = `
           <div class="merge-queue-header">
             <div>
@@ -6330,11 +6372,11 @@
           </div>
           ${desc ? `<div class="merge-queue-desc">${escapeHtml(desc)}</div>` : ''}
           <div class="merge-queue-buttons">
-            <button class="merge-btn" data-sha="${sha}" data-id="${escapeHtml(item.id)}" data-action="merge">MERGE</button>
+            ${buttonHtml}
           </div>
         `;
 
-        // Wire up merge action.
+        // Wire up merge action (no-op for the 'blocked' note — it's not a button).
         row.querySelector('[data-action="merge"]')?.addEventListener('click', () => {
           mergeStagingToMain(item);
         });
@@ -6539,7 +6581,10 @@
 
     async function mergeStagingToMain(item) {
       const repoLabel = item.repo_label || item.repo || 'MeetDossie';
-      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} (${repoLabel}) to main?\n\n${item.title || ''}`);
+      const commitAction = item.merge_action === 'merge_commit'
+        ? '\n\n(This branch has diverged from main — this will create a real merge commit, not a fast-forward.)'
+        : '';
+      const confirmed = confirm(`Merge ${item.commit_sha.slice(0, 7)} (${repoLabel}) to main?\n\n${item.title || ''}${commitAction}`);
       if (!confirmed) return;
 
       const btn = document.querySelector(`[data-id="${item.id}"][data-action="merge"]`);
@@ -6565,7 +6610,9 @@
           return;
         }
 
-        showToast(`Merged ${item.commit_sha.slice(0, 7)} to main`);
+        const okBody = await res.json().catch(() => ({}));
+        const strategyNote = okBody.strategy === 'merge_commit' ? ' (merge commit)' : '';
+        showToast(`Merged ${item.commit_sha.slice(0, 7)} to main${strategyNote}`);
         // Optimistic: remove from list
         mergeQueueCache = mergeQueueCache.filter(m => m.id !== item.id);
         renderMergeQueue(mergeQueueCache);
