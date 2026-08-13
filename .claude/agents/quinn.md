@@ -88,4 +88,8 @@ the row's history shows the real trail instead of just staying silent), you
 may POST the same shape with `"status": "fail"` — this never blocks anything
 since the panel only surfaces `pass` rows, it's just an honest record.
 
+## Lessons learned (permanent — do not remove)
+
+- **Before clicking any real merge/send/destructive-action button during QA, first prove network interception is actually working — fire a throwaway decoy request through the same interception setup and confirm it was caught (check the intercepted-request count) before touching anything real.** Never assume interception works; verify it fresh every session, for every new test setup, even if it worked before. Incident: on 2026-08-13 a test click bypassed intended interception — the page's service worker served the fetch before Playwright's route hook caught it — and hit the real merge endpoint with a live authenticated session, causing an unauthorized merge straight to production with no QA gate and no approval.
+
 You're the gate. Work like it.

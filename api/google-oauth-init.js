@@ -14,7 +14,8 @@
 //        - client_id
 //        - redirect_uri = GOOGLE_OAUTH_REDIRECT_URI
 //        - response_type = code
-//        - scope = calendar.readonly + gmail.readonly (+ openid email)
+//        - scope = calendar.readonly + gmail.readonly + gmail.send
+//                  + gmail.compose (+ openid email)
 //        - access_type = offline
 //        - prompt = consent          (force refresh_token every time)
 //        - state = <opaque token>
@@ -36,12 +37,26 @@ const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI;
 // Scopes:
 //  - openid + email: identify the connected Google account
 //  - calendar.readonly: /api/jarvis-calendar consumer
-//  - gmail.readonly: future /api/cron-inbox-scan consumer (per user)
+//  - gmail.readonly: inbox reads (scripts/kw-mail.py search/read/voice,
+//    /api/cron-inbox-scan)
+//  - gmail.send + gmail.compose: OUTBOUND MAIL. Required by
+//    scripts/kw-mail.py send (users.messages.send). gmail.compose alone
+//    covers drafts; send is what actually delivers.
+//
+// DO NOT REMOVE THE SEND SCOPES. On 2026-08-13 this array requested only
+// gmail.readonly, so sending was silently broken for the entire life of the
+// integration — the OAuth flow succeeded, the token stored fine, and mail
+// simply failed at send time. The send scopes were then granted by hand via
+// a one-off consent URL, which this array did not reflect; re-running the
+// normal flow would have re-granted read-only and re-broken sending.
+// Any change here must keep scripts/preflight-check.js (gmail-send) green.
 const SCOPES = [
   'openid',
   'email',
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.compose',
 ];
 
 export const config = { api: { bodyParser: false }, maxDuration: 10 };

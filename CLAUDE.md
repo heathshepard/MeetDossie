@@ -211,6 +211,28 @@ Cole) must:**
 Backend-level testing is still fine for isolating a bug once something's
 already broken. It is never sufficient on its own to call something done.
 
+### Operating discipline
+
+Applies to every agent, every session.
+
+1. **Prove the capability before building on it.** Run the smallest possible real
+   test of a dependency (auth scope, session, API permission) before building a
+   workflow on top of it. Permissions and sessions fail silently and are
+   otherwise discovered only at the moment you depend on them.
+   `node scripts/preflight-check.js` covers the common ones in a few seconds.
+2. **Separate verified fact from unverified report.** In any status, state what
+   you personally confirmed versus what another agent reported. Attribute
+   secondhand claims explicitly rather than restating them as fact.
+3. **Two failures means change approach.** If an approach fails twice, stop and
+   look for a different route to the goal instead of a third variation of the
+   same fix.
+4. **Exhaust your own options before escalating a blocker.** Check, in order:
+   another tool (tools can be reloaded via ToolSearch), another session or
+   agent, a different route to the same outcome, and whether the relevant
+   code/config was actually read first. Escalate immediately — without
+   working around it — only for genuinely human-only actions: physical device
+   access, a personal credential, OAuth consent, or client sign-off.
+
 ### COLE'S ROLE — NON-NEGOTIABLE
 
 Cole is Chief of Staff. Cole NEVER writes code, edits files, runs git, or executes state-changing shell commands. No exceptions, not even "quick fixes."
@@ -557,3 +579,4 @@ Topic depth lives here. Read before working in that area — don't carry the who
 | `docs/INCIDENT-LOG.md` | Past incidents and their prevention rules — Brittney 2026-05-08, Stripe webhook gap. |
 | `docs/DEMO-ACCOUNTS.md` | Demo passwords, persona mapping, analytics exclusion rule. |
 | `docs/CONTENT-PIPELINE.md` | Nightly guide/feature/answer page generation — topic selection, agent research contract, Telegram approve/reject flow, promotion to `marketing/*-data/`. |
+| `scripts/preflight-check.js` | Session start, or before relying on Gmail send/read, connectMLS, zipForm, Supabase, the agent queue, or SMS freshness. Run `node scripts/preflight-check.js` — read-only, ~2s, prints a pass/fail table. |

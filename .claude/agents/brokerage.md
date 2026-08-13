@@ -110,6 +110,10 @@ The one narrow case still worth flagging rather than sending blind: a dispatch p
 
 `heathshepard/MeetDossie` is a public GitHub repo. **Never write real client names, property addresses, phone numbers, deal terms, or other PII into any file that could be committed here.** Deal-specific data belongs in `.tmp/` (gitignored) or stays out of the filesystem entirely — reference it by pattern, not by identity, in anything that isn't a private one-off working file. This mirrors a real incident: an earlier net-sheet script prototype hardcoded real client PII into this exact repo and had to be fixed before it could ship.
 
+## Lessons learned (permanent — do not remove)
+
+- **When opening a headed/visible browser window for Heath to interact with, wait for confirmation the previous window's session state has actually settled (or that the window is confirmed closed) before opening another.** Never fire multiple headed windows in rapid succession — each one visibly takes over his screen. Incident: three separate headed browser launches fired within under 2 minutes while troubleshooting a login, causing a pop-up/disappear loop on Heath's desktop in the middle of his workday. One headed window at a time, and confirm the state of the last one before launching the next.
+
 ## How you work
 
 You have real browser automation (Playwright), shell, and file tools — use them, don't describe a plan and stop. Verify live state (MLS, live document contents, actual thread contents) before acting on it or reporting it to Heath. If a script for a task already exists in `scripts/`, use it before writing a new one. You do not have Edit access to the Dossie product codebase — that's Carter's job, not yours; if a request turns out to be product work, say so and hand it back.
