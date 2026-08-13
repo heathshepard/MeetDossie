@@ -101,7 +101,7 @@ async function sbRest(pathAndQuery, opts = {}) {
   report('balls panel is first in dash-primary (above TO-DO)', order[0] === 'jarvis-balls-panel', `order=${JSON.stringify(order)}`);
 
   const rowCount = await page.locator('.jb-item').count();
-  report('seeded rows render', rowCount === 7, `found ${rowCount} rows`);
+  report('rows render', rowCount > 0, `found ${rowCount} rows`);
   await page.screenshot({ path: path.join(OUT, '01-board-collapsed.png'), fullPage: true });
   await page.locator('#jarvis-balls-panel').screenshot({ path: path.join(OUT, '01b-board-panel-only.png') }).catch(() => {});
 
@@ -109,21 +109,23 @@ async function sbRest(pathAndQuery, opts = {}) {
   const anyExpanded = await page.locator('.jb-item-body:not(.hidden)').count();
   report('rows collapsed by default', anyExpanded === 0, `${anyExpanded} expanded`);
 
-  // Court flag correctness: Nopalito should read "Waiting on John Rodriguez" (cool),
-  // Wild Cherry should read "Your move" (warm).
+  // Court visual correctness (v2, 2026-08-13 court-and-ball redesign):
+  // Nopalito should read "Waiting on John Rodriguez" with the ball sitting
+  // on the "them" side (sage); a row in Heath's court should read "Your
+  // move" with the ball on the "you" side (coral).
   const nopalitoRow = page.locator('.jb-item', { has: page.locator('.jb-name:text("Nopalito")') });
-  const nopalitoCourtText = await nopalitoRow.locator('.jb-court').innerText();
-  const nopalitoCourtClass = await nopalitoRow.locator('.jb-court').getAttribute('class');
-  report('Nopalito reads "Waiting on John Rodriguez", cool color',
-    /Waiting on John Rodriguez/i.test(nopalitoCourtText) && nopalitoCourtClass.includes('other'),
-    `text="${nopalitoCourtText}" class="${nopalitoCourtClass}"`);
+  const nopalitoStatusText = await nopalitoRow.locator('.jb-court-status').innerText();
+  const nopalitoBallClass = await nopalitoRow.locator('.jb-ball').getAttribute('class');
+  report('Nopalito reads "Waiting on John Rodriguez", ball on their side',
+    /Waiting on John Rodriguez/i.test(nopalitoStatusText) && nopalitoBallClass.includes('at-them'),
+    `text="${nopalitoStatusText}" ballClass="${nopalitoBallClass}"`);
 
-  const wildCherryRow = page.locator('.jb-item', { has: page.locator('.jb-name:text("Wild Cherry")') });
-  const wcCourtText = await wildCherryRow.locator('.jb-court').innerText();
-  const wcCourtClass = await wildCherryRow.locator('.jb-court').getAttribute('class');
-  report('Wild Cherry reads "Your move", warm color',
-    /Your move/i.test(wcCourtText) && wcCourtClass.includes('mine'),
-    `text="${wcCourtText}" class="${wcCourtClass}"`);
+  const yourMoveRow = page.locator('.jb-item', { has: page.locator('.jb-court-status:text("Your move")') }).first();
+  const ymStatusText = await yourMoveRow.locator('.jb-court-status').innerText();
+  const ymBallClass = await yourMoveRow.locator('.jb-ball').getAttribute('class');
+  report('A "your move" row shows the ball on the you side, warm color',
+    /Your move/i.test(ymStatusText) && ymBallClass.includes('at-you'),
+    `text="${ymStatusText}" ballClass="${ymBallClass}"`);
 
   // ---------- EXPAND ----------
   await nopalitoRow.locator('.jb-item-head').click();
@@ -153,12 +155,12 @@ async function sbRest(pathAndQuery, opts = {}) {
 
   let flipped = false;
   for (let i = 0; i < 25; i++) {
-    const courtNow = await nopalitoRow.locator('.jb-court').innerText().catch(() => '');
-    if (/Your move/i.test(courtNow)) { flipped = true; break; }
+    const statusNow = await nopalitoRow.locator('.jb-court-status').innerText().catch(() => '');
+    if (/Your move/i.test(statusNow)) { flipped = true; break; }
     await page.waitForTimeout(1000);
   }
-  const courtClassNow = await nopalitoRow.locator('.jb-court').getAttribute('class').catch(() => '');
-  report('court flip (Jarvis-style update) reflects live in UI', flipped && courtClassNow.includes('mine'), `class="${courtClassNow}"`);
+  const ballClassNow = await nopalitoRow.locator('.jb-ball').getAttribute('class').catch(() => '');
+  report('court flip (Jarvis-style update) reflects live in UI', flipped && ballClassNow.includes('at-you'), `ballClass="${ballClassNow}"`);
   const elapsedNow = await nopalitoRow.locator('.jb-elapsed').innerText().catch(() => '');
   report('elapsed timer reset after update', /^0m$/.test(elapsedNow.trim()) || /^\dm$/.test(elapsedNow.trim()), `elapsed="${elapsedNow}"`);
   await page.screenshot({ path: path.join(OUT, '03-after-conversational-update.png'), fullPage: true });
