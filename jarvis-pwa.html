@@ -5193,24 +5193,60 @@
       const audioBlob = await ttsRes.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
-      // Atlas 2026-06-28: half-duplex interrupt for legacy path.
+
+      // 2026-08-13 (Atlas): hardened to match runStreamingChatTTS's advance()
+      // pattern — this path relied on a single audio.onended firing to call
+      // resumeListening(), which is exactly the failure mode already found
+      // and fixed there on 2026-06-27 ("on Android WebView and some browsers,
+      // audio.onended never fires for short MP3 chunks, so the chain
+      // stalls" — mic never rearms, matches Heath's 2026-08-13 report). This
+      // path never got that hardening because it used to be a rare fallback;
+      // today's tool-intent routing fix makes it a first-class default path
+      // for a real share of turns, so the same gap now bites regularly.
+      // Idempotent settle() so onended/interrupt/timeout can't double-fire
+      // resumeListening — mirrors advance()'s `advanced` guard.
+      let settled = false;
+      let durationTimer = null;
       let __legacyAborted = false;
       window.__jarvisInterruptTTS = function legacyInterrupt(reason) {
         if (__legacyAborted) return;
         __legacyAborted = true;
         console.log(`[jarvis-half-duplex] legacy TTS interrupt: ${reason || 'unknown'}`);
-        try { audio.onended = null; audio.pause(); } catch {}
-      };
-      audio.onended = async () => {
-        URL.revokeObjectURL(audioUrl);
+        try { audio.pause(); } catch {}
+        // Caller (onPttClick's interrupt branch) calls resumeListening()
+        // itself right after this — don't also fire it from settle().
+        settled = true;
+        if (durationTimer) { clearTimeout(durationTimer); durationTimer = null; }
         try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
-        await resumeListening();
       };
-      audio.onerror = async () => {
+      const settle = (reason) => {
+        if (settled) return;
+        settled = true;
+        if (durationTimer) { clearTimeout(durationTimer); durationTimer = null; }
+        if (reason !== 'ended') console.log(`[jarvis] legacy TTS advanced via ${reason}`);
+        try { URL.revokeObjectURL(audioUrl); } catch {}
         try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
-        await resumeListening();
+        resumeListening().catch((e) => console.warn('[jarvis] resumeListening (legacy) threw:', e));
       };
-      await audio.play();
+      audio.onended = () => settle('ended');
+      audio.addEventListener('ended', () => settle('ended-listener'));
+      audio.onerror = () => settle('error');
+      audio.addEventListener('error', () => settle('error-listener'));
+      const armDurationTimer = () => {
+        const dur = isFinite(audio.duration) ? audio.duration : 0;
+        if (dur > 0 && !durationTimer && !settled) {
+          durationTimer = setTimeout(() => settle('duration-timeout'), (dur + 1.5) * 1000);
+        }
+      };
+      audio.addEventListener('loadedmetadata', armDurationTimer);
+      audio.addEventListener('canplay', armDurationTimer);
+      // Absolute hard ceiling, same 15s bound as the streaming path.
+      const hardCeiling = setTimeout(() => settle('hard-ceiling'), 15000);
+      audio.addEventListener('ended', () => clearTimeout(hardCeiling));
+      audio.play().catch((err) => {
+        console.warn('[jarvis] legacy audio.play() rejected:', err);
+        settle('play-rejected');
+      });
     }
 
     async function resumeListening() {
