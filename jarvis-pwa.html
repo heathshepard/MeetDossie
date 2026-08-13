@@ -4602,7 +4602,15 @@
     // Flag to Heath: if there's a real remaining need to talk to the live
     // Cole session specifically (not just "get real work done"), that needs
     // an explicit way back in — not re-guessed here.
-    const TOOL_INTENT_RE = /\b(mrr|customers?|subscribers?|brittney|miki|search|google|browse|telegram|sms|message|email|spawn|atlas|carter|hadley|pierce|sage|quinn|ridge|sterling|jarvis|remind|reminder|todo|calendar|schedule|today|brief|dashboard|status|posts?|pending|approve|approval|how many|how much|what's our|when did|find|look up|check on)\b/i;
+    // Extended 2026-08-13 with build/deploy/agent-queue terms — the original
+    // 2026-06-21 list predates the merge queue dashboard and today's
+    // agent_queue-driven work; without these, real work-status questions
+    // ("why isn't the merge queue showing X", "what are the work items")
+    // would silently fall to the no-tools streaming path and get answered
+    // from guesswork instead of a real lookup. Evidenced by the two real
+    // queries that motivated this fix (turns na4fon06 and 5tdiewke) — the
+    // first wouldn't have matched the old list at all.
+    const TOOL_INTENT_RE = /\b(mrr|customers?|subscribers?|brittney|miki|search|google|browse|telegram|sms|message|email|spawn|atlas|carter|hadley|pierce|sage|quinn|ridge|sterling|jarvis|remind|reminder|todo|calendar|schedule|today|brief|dashboard|status|posts?|pending|approve|approval|how many|how much|what's our|when did|find|look up|check on|merge|queue|deploy|commit|push|build|rust|dossie|dossier|work\s*items?|agents?|schema|cron|repo|branch|staging|production)\b/i;
 
     async function handleUtteranceBlob(blob) {
       try {
