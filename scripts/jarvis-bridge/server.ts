@@ -49,6 +49,7 @@ import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprot
 import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
+import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
 import { findYoutubeVideoId, buildYoutubeContextBlock } from './youtube-context.js'
 
 const STATE_DIR = process.env.JARVIS_BRIDGE_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'jarvis-bridge')
@@ -117,11 +118,16 @@ process.on('uncaughtException', err => {
 })
 
 type Turn = {
-  status: 'pending' | 'delivered' | 'answered' | 'error'
+  status: 'pending' | 'delivered' | 'working' | 'answered' | 'error'
   user_message: string
   reply_text?: string
   created_at: string
   delivered_at?: string
+  // 'working' = an interim ack (reply called with final:false) — reply_text
+  // holds the ack text, progress_at when it was sent. Non-terminal: the
+  // client (api/jarvis-bridge-turn.js GET) keeps polling past this status,
+  // unlike 'answered'. See the reply tool handler below.
+  progress_at?: string
   answered_at?: string
   // Optional inbound image (Jarvis chat attach button). Sent as base64 by
   // api/jarvis-bridge-turn.js — this process decodes it to a local file on
@@ -211,9 +217,9 @@ const mcp = new Server(
       '',
       "This is a live voice conversation, not a chat window Heath is reading — keep replies short and speakable (a few sentences, plain language), not a wall of markdown or a bulleted list. He hears this read aloud by ElevenLabs TTS, never sees it rendered. If the answer genuinely needs a list/table/something to copy, say so briefly and note it's easier to see on screen than to hear.",
       '',
-      'MANDATORY: call the reply tool exactly once for every inbound message here, with chat_id set exactly as given in the tag — no exceptions for trivial, throwaway, or meta requests ("just say X back", "repeat this word"). Your transcript output is never seen or heard by Heath; reply is the ONLY channel back to him. Finishing your reasoning without calling reply means the turn is NOT done, even for a one-word answer.',
+      'MANDATORY: call the reply tool at least once for every inbound message here, with chat_id set exactly as given in the tag — no exceptions for trivial, throwaway, or meta requests ("just say X back", "repeat this word"). Your transcript output is never seen or heard by Heath; reply is the ONLY channel back to him. Finishing your reasoning without calling reply means the turn is NOT done, even for a one-word answer.',
       '',
-      'Long task (dispatching Carter/Atlas/etc)? You still only get one reply per turn — send a brief early ack ("On it, give me a sec") or wait for the final result, but never go silent while you work.',
+      'Long task (dispatching Carter/Atlas/etc)? Send a brief early ack with final:false ("On it, give me a sec") — Jarvis keeps listening on that same turn. When the real result is ready, call reply again on the SAME chat_id with final:true (or omit final) and the actual answer. Never leave a turn parked on an ack — the ack is not the answer, and Jarvis stops listening the moment you send final:true, so only send it when you mean it.',
       '',
       'If a later <channel> message is tagged as a reply reminder for a chat_id you already saw, your first pass dropped the reply call — call reply immediately with your best answer, don\'t second-guess whether it\'s "worth" one.',
       '',
@@ -228,14 +234,16 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       name: 'reply',
       description:
         'Send your answer back to Heath through Jarvis (spoken aloud by TTS). ' +
-        'REQUIRED: call this tool exactly once for every jarvis-bridge turn, with NO exceptions for trivial, one-word, or meta requests ("just say X back", "repeat this word") — those still need a real reply call, not just transcript text. ' +
+        'REQUIRED: call this tool at least once for every jarvis-bridge turn, with NO exceptions for trivial, one-word, or meta requests ("just say X back", "repeat this word") — those still need a real reply call, not just transcript text. ' +
         'Nothing else you output reaches Heath; skipping this tool means total silence on his end, not a harmless no-op. ' +
-        'Pass chat_id exactly as given in the inbound <channel chat_id="..."> tag.',
+        'Pass chat_id exactly as given in the inbound <channel chat_id="..."> tag. ' +
+        'Set final:false for an early ack while you dispatch a background agent — Jarvis keeps polling that SAME turn (up to 9 min) instead of hanging up, and you can call reply again later on the same chat_id with the real answer. Only set final:true (or omit final — it defaults true) when you are done talking for this turn; that ends Jarvis\'s polling, so a second reply after that point goes nowhere.',
       inputSchema: {
         type: 'object',
         properties: {
           chat_id: { type: 'string', description: 'The turn id from the inbound <channel chat_id="..."> tag.' },
           text: { type: 'string', description: 'What to say back. Keep it short and speakable — this gets read aloud.' },
+          final: { type: 'boolean', description: 'Default true. Set false for an interim ack so Jarvis keeps listening on this turn for a follow-up reply call with the real answer.' },
         },
         required: ['chat_id', 'text'],
       },
@@ -250,17 +258,31 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
       case 'reply': {
         const chat_id = String(args.chat_id ?? '').trim()
         const text = String(args.text ?? '')
+        const final = args.final === undefined ? true : Boolean(args.final)
         if (!chat_id) throw new Error('chat_id required')
         if (!text) throw new Error('text required')
         const existing = await getTurn(chat_id)
         if (!existing) throw new Error(`turn ${chat_id} not found — it may have expired or been cleaned up`)
+        if (existing.status === 'answered') {
+          // The turn already went final (Jarvis's poll loop already returned
+          // and stopped listening on this chat_id) — writing here would be a
+          // silent no-op from Heath's side. Tell the model instead of lying
+          // with a bare 'sent'.
+          throw new Error(
+            `turn ${chat_id} already went final at ${existing.answered_at} — Jarvis stopped listening on this turn. ` +
+              'Nothing you send now reaches Heath here; if this is new information, it needs Heath\'s next voice turn or another channel (Telegram/terminal).',
+          )
+        }
+        // final:false — interim ack. Status 'working' is NOT terminal, so
+        // Jarvis's client poll loop (api/jarvis-bridge-turn.js GET) keeps
+        // waiting on this same turn_id instead of resolving and hanging up.
         await putTurn(chat_id, {
           ...existing,
-          status: 'answered',
+          status: final ? 'answered' : 'working',
           reply_text: text,
-          answered_at: new Date().toISOString(),
+          ...(final ? { answered_at: new Date().toISOString() } : { progress_at: new Date().toISOString() }),
         })
-        return { content: [{ type: 'text', text: 'sent' }] }
+        return { content: [{ type: 'text', text: final ? 'sent' : 'sent (interim — turn stays open for a follow-up reply)' }] }
       }
       default:
         return { content: [{ type: 'text', text: `unknown tool: ${req.params.name}` }], isError: true }
@@ -273,13 +295,141 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
 
 await mcp.connect(new StdioServerTransport())
 
+// ---- ambient DB-change awareness (Atlas, 2026-08-13) -----------------------
+// Heath's ask: when he (or another agent) edits jarvis_balls/jarvis_todos
+// directly — through the PWA UI, the DB, or a different agent's Supabase
+// call — while this live session did NOT make the edit itself, does this
+// session have any way to notice without being told in conversation? Before
+// this, no: the poll loop above only reacts to jarvis-bridge Storage turns
+// (Heath talking), and this session's only path to jarvis_balls/jarvis_todos
+// was the separate `supabase` MCP server, queried on-demand. A change made
+// outside that server was invisible here until/unless a later turn happened
+// to re-query the same row.
+//
+// Both tables are ALREADY in the `supabase_realtime` Postgres publication
+// (see supabase/migrations/20260812_jarvis_{balls,todos}.sql — added so the
+// PWA's own browser tab can live-update the HUD) and the service-role key
+// this process already loads is sufficient to subscribe directly with
+// @supabase/supabase-js's realtime client — confirmed working end-to-end
+// tonight (Bun process, external REST insert -> event received in <10ms).
+// No migration, no new secret, no new table needed.
+//
+// What this does: on every INSERT/UPDATE/DELETE to jarvis_balls or
+// jarvis_todos, push a `notifications/claude/channel` note into THIS live
+// session's context — same delivery mechanism already used for inbound
+// Heath turns and the reply-reliability nudges above, just with no chat_id
+// (there's no voice turn to answer; the model should NOT call `reply` for
+// these, there's nothing to reply to). This makes an external edit show up
+// in the model's actual context within about a second of Heath making it,
+// so next time he opens a turn, Jarvis already knows — without Heath having
+// said a word about it in conversation.
+//
+// Known, deliberate limitation: this does NOT make Jarvis speak unprompted.
+// The only outbound path today is the `reply` tool tied to an open Storage
+// turn (a voice/text turn Heath initiated) — there is no push-to-phone /
+// service-worker-push / always-listening-speaker path, so "notices instantly
+// in its context" and "says something out loud with nobody asking" are two
+// different features. This ships the first. The second is a real, separate,
+// bigger build (Web Push API + VAPID keys + SW push handler + a UI
+// permission grant) — flagged for Heath, not attempted tonight.
+//
+// Self-write noise: this session's OWN writes to these tables (via the
+// separate `supabase` MCP server) also flow through Postgres and will also
+// fire a realtime event here — there is no reliable way to tag "who wrote
+// this row" without adding an actor column the schema deliberately omits
+// (see the tables' own doc comments: kept plain on purpose so a generic LLM
+// MCP write never has to know about a bookkeeping column). The notification
+// text below says so explicitly so the model can recognize "that's the edit
+// I just made" and not treat it as news.
+const REALTIME_TABLES = ['jarvis_balls', 'jarvis_todos'] as const
+const realtimeClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  realtime: { params: { eventsPerSecond: 5 } },
+})
+let realtimeChannel: RealtimeChannel | null = null
+
+function summarizeChange(table: string, eventType: string, oldRow: Record<string, unknown>, newRow: Record<string, unknown>): string {
+  if (table === 'jarvis_todos') {
+    if (eventType === 'INSERT') return `new to-do added: "${newRow.title}"${newRow.detail ? ` — ${newRow.detail}` : ''}`
+    if (eventType === 'DELETE') return `to-do removed: "${oldRow.title}"`
+    if (newRow.done === true && oldRow.done !== true) return `to-do marked done: "${newRow.title}"`
+    if (newRow.done === false && oldRow.done === true) return `to-do re-opened: "${newRow.title}"`
+    if (oldRow.title !== newRow.title || oldRow.detail !== newRow.detail) {
+      return `to-do edited: "${oldRow.title}" -> title: "${newRow.title}"${newRow.detail ? `, detail: "${newRow.detail}"` : ''}`
+    }
+    return `to-do row updated (no visible field change — likely a timestamp-only touch): "${newRow.title}"`
+  }
+  if (table === 'jarvis_balls') {
+    if (eventType === 'INSERT') return `new ball added: "${newRow.name}" (${newRow.business_tag}) — court: ${newRow.court}${newRow.status_note ? `, note: ${newRow.status_note}` : ''}`
+    if (eventType === 'DELETE') return `ball closed/removed: "${oldRow.name}"`
+    const courtChanged = oldRow.court !== newRow.court
+    const noteChanged = oldRow.status_note !== newRow.status_note
+    if (!courtChanged && !noteChanged) return `ball row updated (no visible field change): "${newRow.name}"`
+    return `ball "${newRow.name}" updated:${courtChanged ? ` court ${oldRow.court} -> ${newRow.court};` : ''}${noteChanged ? ` note: ${newRow.status_note ?? '(cleared)'}` : ''}`
+  }
+  return `${table} row ${eventType.toLowerCase()}`
+}
+
+function subscribeRealtime(): void {
+  realtimeChannel = realtimeClient.channel('jarvis-bridge:ambient-db-changes')
+  for (const table of REALTIME_TABLES) {
+    realtimeChannel.on(
+      'postgres_changes' as never,
+      { event: '*', schema: 'public', table } as never,
+      (payload: { eventType: string; new: Record<string, unknown>; old: Record<string, unknown> }) => {
+        const summary = summarizeChange(table, payload.eventType, payload.old ?? {}, payload.new ?? {})
+        // Skip pure no-op notices (e.g. a touch-trigger re-save with nothing
+        // actually different) — not worth cluttering the session's context.
+        if (summary.includes('no visible field change')) return
+        process.stderr.write(`jarvis-bridge channel: ambient DB change [${table}] ${summary}\n`)
+        mcp
+          .notification({
+            method: 'notifications/claude/channel',
+            params: {
+              content:
+                `[ambient DB change — public.${table}, NOT a voice turn, no reply needed] ${summary}\n\n` +
+                `This table was just changed outside this conversation (could be Heath editing directly through the Jarvis PWA UI, another agent, or your OWN just-made write showing back up here — there's no way to tell which from this event alone). ` +
+                `Do NOT call the reply tool for this — there is no chat_id/open turn to answer. If this matches something you just did in this same conversation, no action needed. If it's new to you, just fold it into what you know; naturally mention it unprompted next time Heath actually talks to you, if relevant — don't wait for him to ask.`,
+              meta: { source_table: table, ambient: 'true', event_type: payload.eventType },
+            },
+          })
+          .catch(err => {
+            process.stderr.write(`jarvis-bridge channel: ambient notify failed for ${table}: ${err}\n`)
+          })
+      },
+    )
+  }
+  realtimeChannel.subscribe(status => {
+    process.stderr.write(`jarvis-bridge channel: realtime ambient-awareness subscription status: ${status}\n`)
+    if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') && !shuttingDownRef.value) {
+      // realtime-js retries internally for transient network blips, but a
+      // hard CLOSED/error can leave it dead — rebuild the subscription from
+      // scratch after a short delay rather than silently going deaf.
+      process.stderr.write('jarvis-bridge channel: rebuilding realtime subscription in 5s\n')
+      try {
+        realtimeClient.removeChannel(realtimeChannel!)
+      } catch {}
+      setTimeout(subscribeRealtime, 5000)
+    }
+  })
+}
+
+// Plain object (not `let shuttingDown` directly) so subscribeRealtime's
+// closure above — defined before `shuttingDown` exists below — can read the
+// live value at call time instead of capturing `false` forever.
+const shuttingDownRef = { value: false }
+subscribeRealtime()
+
 // Without this, when Claude Code closes the MCP connection (session ends),
 // this process would keep polling Supabase forever as a zombie.
 let shuttingDown = false
 function shutdown(): void {
   if (shuttingDown) return
   shuttingDown = true
+  shuttingDownRef.value = true
   process.stderr.write('jarvis-bridge channel: shutting down\n')
+  try {
+    if (realtimeChannel) realtimeClient.removeChannel(realtimeChannel)
+  } catch {}
   setTimeout(() => process.exit(0), 500)
 }
 process.stdin.on('end', shutdown)
@@ -457,6 +607,35 @@ async function tick(): Promise<void> {
           })
           .catch(err => {
             process.stderr.write(`jarvis-bridge channel: nudge notify failed for ${id}: ${err}\n`)
+          })
+      }
+    }
+
+    // status === 'working' — same reply-reliability problem, later stage: the
+    // model sent an interim ack (final:false) but never came back with the
+    // final answer once its background agent finished. Distinct nudge key
+    // (`${id}:final`) so this doesn't collide with the 'delivered' nudge
+    // above, and a longer delay — background work is expected to take a
+    // while, a quick nudge here would just be noise.
+    const FINAL_NUDGE_DELAY_MS = Math.max(NUDGE_DELAY_MS, parseInt(process.env.JARVIS_BRIDGE_FINAL_NUDGE_MS || '180000', 10))
+    if (turn.status === 'working' && !nudged.has(`${id}:final`)) {
+      const progressMs = new Date(turn.progress_at || turn.delivered_at || turn.created_at || 0).getTime()
+      if (Date.now() - progressMs > FINAL_NUDGE_DELAY_MS) {
+        nudged.add(`${id}:final`)
+        const waitedS = Math.round((Date.now() - progressMs) / 1000)
+        process.stderr.write(`jarvis-bridge channel: final-nudge ${id} — still 'working' after ${waitedS}s\n`)
+        mcp
+          .notification({
+            method: 'notifications/claude/channel',
+            params: {
+              content:
+                `[reply reminder] Turn "${id}" has been sitting on your interim ack ("${turn.reply_text || ''}") for ${waitedS}s with no final reply — ` +
+                `Heath is still staring at that ack with nothing since. If your background agent/work for this is done (check for a finished result or memory write), call reply now with chat_id="${id}", final:true, and the real answer. If it's genuinely still running, call reply again with final:false and a short status update so Heath knows it's alive. Original message: ${turn.user_message}`,
+              meta: { chat_id: id, ts: turn.created_at, nudge: 'true' },
+            },
+          })
+          .catch(err => {
+            process.stderr.write(`jarvis-bridge channel: final-nudge notify failed for ${id}: ${err}\n`)
           })
       }
     }
