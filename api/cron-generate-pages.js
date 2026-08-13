@@ -72,6 +72,16 @@ function buildTaskBrief({ pageType, candidate, contentPipelineId, existingPages,
     `**Night batch:** ${nightBatchId}`,
     `**Page type:** ${pageType}`,
     '',
+    `## IMPORTANT -- do not write the page file to disk`,
+    '',
+    'Do NOT use the Write tool to create or edit any file under marketing/guides-data/, ' +
+      'marketing/answers-data/, or marketing/features-data/ -- not as a draft, not as a ' +
+      '"reference copy," not for any reason. That step belongs solely to the atlas ' +
+      'promotion agent, and only after Heath taps Approve in Telegram. Found live ' +
+      '2026-08-12 (Atlas): stray untracked files written directly to disk mid-generation ' +
+      'for at least 2 real topics -- exactly the failure mode this instruction exists to ' +
+      'prevent. Your ONLY output channel is the curl POST to /api/content-pipeline-submit below.',
+    '',
     `## Proposed topic`,
     '',
     candidate.topic,
