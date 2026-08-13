@@ -32,7 +32,17 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-const REPOS = ['heathshepard/MeetDossie', 'heathshepard/Dossie'];
+// 2026-08-12: added heathshepard/Rust (fitness app, verified slug — see
+// memory rust-fitness-vercel-project) so the panel isn't blind to a third
+// of Heath's active repos. CAVEAT: Rust has no `staging` branch (confirmed
+// via GitHub branches API, 2026-08-12 — only main + a few feature branches),
+// so main...staging will 404 and render as "—" (unknown), same as any other
+// GitHub compare failure — never fabricated as 0. This also can NOT surface
+// commits sitting only on Heath's local checkout that haven't been pushed
+// (e.g. "2 commits on local main, unpushed") — GitHub's compare API only
+// sees refs that exist on the remote. That gap needs a local git scan, not
+// a change here.
+const REPOS = ['heathshepard/MeetDossie', 'heathshepard/Dossie', 'heathshepard/Rust'];
 
 export const config = { api: { bodyParser: true }, maxDuration: 15 };
 
