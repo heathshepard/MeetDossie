@@ -16,12 +16,19 @@
 //   ?limit=N            (default 20, max 50)
 //   ?autonomous_only=1  (filter to metadata->>'autonomous' = 'true' OR
 //                        metadata->>'is_smoke_test' = 'true')
+//   ?status=X           (2026-08-13, Atlas: diagnostic escape hatch — queries
+//                        agent_queue directly by status instead of the
+//                        agent_queue_ready view, so blocked/completed/
+//                        cancelled rows are inspectable without a raw
+//                        service-role connection. Ignored if autonomous_only
+//                        is also set, since that filter only makes sense on
+//                        the ready view.)
 //
 // Returns:
 //   200 { ok: true, tasks: [{id, agent_name, task_subject, priority, venture, metadata}] }
 //   401 on bad auth
 //
-// Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17)
+// Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17, ?status= added 2026-08-13)
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -61,15 +68,28 @@ module.exports = async function handler(req, res) {
   const autonomousOnly = String(req.query.autonomous_only || '').toLowerCase() === '1'
     || String(req.query.autonomous_only || '').toLowerCase() === 'true';
 
+  const statusFilter = !autonomousOnly && req.query.status
+    ? String(req.query.status).trim()
+    : null;
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Use the ready view so dependency satisfaction is already enforced.
-  let q = supabase
-    .from('agent_queue_ready')
-    .select('id, agent_name, task_subject, priority, venture, metadata, created_at')
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: true })
-    .limit(limit);
+  // Default: the ready view, so dependency satisfaction is already enforced.
+  // ?status=X: query agent_queue directly (bypasses the ready view — shows
+  // rows regardless of dependency state, e.g. blocked/completed/cancelled).
+  let q = statusFilter
+    ? supabase
+        .from('agent_queue')
+        .select('id, agent_name, task_subject, priority, venture, status, metadata, created_at')
+        .eq('status', statusFilter)
+        .order('created_at', { ascending: true })
+        .limit(limit)
+    : supabase
+        .from('agent_queue_ready')
+        .select('id, agent_name, task_subject, priority, venture, metadata, created_at')
+        .order('priority', { ascending: true })
+        .order('created_at', { ascending: true })
+        .limit(limit);
 
   const { data, error } = await q;
   if (error) {
