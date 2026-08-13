@@ -1871,24 +1871,132 @@ async function fillTerminationNotice(pdfDoc, fv) {
 
 // ---------------------------------------------------------------------------
 // WIRE FRAUD WARNING (TAR 2517)
-// Fields: buyer_name, buyer_email, property_address, agent_name, agent_license, delivery_date
-// Note: TAR 2517 base64 PDF must be populated in _assets/tar-wire-fraud-base64.js
-// before this form will produce output. The field names below are best-guess —
-// adjust after inspecting the actual AcroForm fields in TAR 2517 if needed.
+//
+// 2026-08-13 CARTER — bug fix. The underlying asset (_assets/tar-wire-fraud-
+// base64.js) is Heath's own personally-downloaded TAR copy. TAR stamps the
+// downloading member's brokerage into a STATIC footer baked into the page
+// CONTENT STREAM — "Keller Williams City-View... | Heath Shepard" — and the
+// PDF has ZERO AcroForm fields (verified: pdf-lib form.getFields().length
+// === 0), so every prior safeSetText() call below was a silent no-op. Every
+// customer's Wire Fraud Warning was rendering with HEATH'S brokerage in the
+// footer, regardless of who actually sent it.
+//
+// Fix (verified against the real asset, single Contents stream,
+// FlateDecode): the two footer lines are drawn by two exact, literal
+// `Td [(...)] TJ` operators inside that one content stream. We decompress
+// that stream, string-replace those two literal operators with the SENDING
+// agent's own brokerage line + name (same coordinates/font, so the redrawn
+// text lands in the identical spot), and recompress. This is TRUE redaction
+// — the old text bytes are gone from the PDF, not just visually covered — so
+// there's no leftover "Heath Shepard" recoverable via copy/paste or text
+// extraction. Falls back to a white-rectangle-and-redraw overlay (same
+// visual result, used elsewhere for other flat/non-fillable TREC forms — see
+// api/_lib/fill-trec-20-19.js) if the exact literal markers ever don't match
+// (e.g. asset gets swapped for a different TAR download).
+//
+// fv fields come from fill-form.js's txDefaults block (profiles table),
+// same "listing_*"/"wire_fraud_*" fields used elsewhere in this file — see
+// the profiles fetch + txDefaults mapping in the POST handler below.
 // ---------------------------------------------------------------------------
+
+// Exact literal operators baked into the one page-content stream by TCPDF
+// (verified via zlib-inflating the stream and reading the raw bytes).
+const WIRE_FRAUD_FOOTER_LINE_1_OP =
+  'BT 34.015748 25.875457 Td [(Keller Williams City-View, 15510 Vance Jackson Rd, STE 101, San Antonio, TX 78249 | \\(210\\) 696-9996 | \\(210\\) 696-9996)] TJ ET';
+const WIRE_FRAUD_FOOTER_LINE_2_OP =
+  'BT 34.015748 17.371520 Td [(Heath Shepard)] TJ ET';
+
+function pdfEscapeLiteralString(s) {
+  return String(s == null ? '' : s)
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+// Attempts true content-stream redaction. Returns true if both known literal
+// footer operators were found and replaced; false otherwise (caller should
+// fall back to the visual white-out overlay).
+function redactWireFraudFooterInContentStream(pdfDoc, brokerageLine, agentLine) {
+  const zlib = require('zlib');
+  const { PDFName } = require('pdf-lib');
+  try {
+    const page = pdfDoc.getPages()[0];
+    const stream = page.node.Contents();
+    if (!stream || typeof stream.getContents !== 'function') return false;
+    const filter = stream.dict && stream.dict.lookup && stream.dict.lookup(PDFName.of('Filter'));
+    // PDFName.asString() returns the encoded name WITH its leading slash
+    // (e.g. "/FlateDecode", not "FlateDecode") — verified against pdf-lib's
+    // PDFName.prototype.asString source.
+    const isFlate = filter && typeof filter.asString === 'function' && filter.asString() === '/FlateDecode';
+    const raw = Buffer.from(stream.getContents());
+    const decoded = isFlate ? zlib.inflateSync(raw) : raw;
+    let text = decoded.toString('latin1');
+
+    if (!text.includes(WIRE_FRAUD_FOOTER_LINE_1_OP) || !text.includes(WIRE_FRAUD_FOOTER_LINE_2_OP)) {
+      return false;
+    }
+
+    const newLine1 = 'BT 34.015748 25.875457 Td [(' + pdfEscapeLiteralString(brokerageLine).slice(0, 200) + ')] TJ ET';
+    const newLine2 = 'BT 34.015748 17.371520 Td [(' + pdfEscapeLiteralString(agentLine).slice(0, 100) + ')] TJ ET';
+    text = text.split(WIRE_FRAUD_FOOTER_LINE_1_OP).join(newLine1);
+    text = text.split(WIRE_FRAUD_FOOTER_LINE_2_OP).join(newLine2);
+
+    const newDecoded = Buffer.from(text, 'latin1');
+    const newEncoded = isFlate ? zlib.deflateSync(newDecoded) : newDecoded;
+    stream.contents = new Uint8Array(newEncoded);
+    return true;
+  } catch (e) {
+    console.warn('[fill-form] wire fraud content-stream redaction failed:', e && e.message);
+    return false;
+  }
+}
+
+// Fallback: white-out the footer region and redraw over it. Same visual
+// result as the redaction path, used only if the exact literal markers
+// above don't match the loaded asset.
+function overlayWireFraudFooter(pdfDoc, brokerageLine, agentLine) {
+  try {
+    const { rgb } = require('pdf-lib');
+    const page = pdfDoc.getPages()[0];
+    page.drawRectangle({ x: 25, y: 10, width: 567, height: 27, color: rgb(1, 1, 1) });
+    if (brokerageLine) {
+      page.drawText(brokerageLine.slice(0, 160), { x: 34, y: 24, size: 6.5, color: rgb(0, 0, 0) });
+    }
+    if (agentLine) {
+      page.drawText(agentLine.slice(0, 100), { x: 34, y: 15, size: 6.5, color: rgb(0, 0, 0) });
+    }
+  } catch (e) {
+    console.warn('[fill-form] wire fraud footer overlay failed:', e && e.message);
+  }
+}
+
 async function fillWireFraudWarning(pdfDoc, fv) {
   const form = pdfDoc.getForm();
-
-  // Best-effort field fills — TAR 2517 AcroForm fields may differ from these names.
-  // After obtaining the real PDF, run scripts/inspect_resale_fields.py to get exact names.
   const today = fv.delivery_date || new Date().toISOString().slice(0, 10);
 
+  // These remain harmless no-ops on the real TAR 2517 asset (0 AcroForm
+  // fields), kept only in case a future genuinely-fillable replacement asset
+  // is dropped into _assets/tar-wire-fraud-base64.js.
   if (fv.buyer_name) safeSetText(form, 'Buyer Name', fv.buyer_name);
-  if (fv.buyer_email) safeSetText(form, 'Buyer Email', fv.buyer_email);
   if (fv.property_address) safeSetText(form, 'Property Address', fv.property_address);
-  if (fv.agent_name) safeSetText(form, 'Agent Name', fv.agent_name);
-  if (fv.agent_license) safeSetText(form, 'License No', fv.agent_license);
   if (today) safeSetText(form, 'Date', formatDate(today));
+
+  // --- Dynamic brokerage footer: THE sending agent's own info, never Heath's.
+  const agentName = String(fv.listing_agent_name || '').trim();
+  const brokerageName = String(fv.wire_fraud_brokerage_name || '').trim();
+  const brokerageAddress = String(fv.wire_fraud_brokerage_address || '').trim();
+  const brokeragePhone = String(fv.wire_fraud_brokerage_phone || '').trim();
+
+  const brokerageLine = [brokerageName, brokerageAddress].filter(Boolean).join(', ')
+    + (brokeragePhone ? ` | ${brokeragePhone}` : '');
+
+  // No profile brokerage info on file for the sending agent — still redact
+  // Heath's footer, just leave the replacement blank rather than misrepresent
+  // whose brokerage this notice came from.
+  const redacted = redactWireFraudFooterInContentStream(pdfDoc, brokerageLine, agentName);
+  if (!redacted) {
+    overlayWireFraudFooter(pdfDoc, brokerageLine, agentName);
+  }
 
   return pdfDoc;
 }
@@ -3785,13 +3893,27 @@ module.exports = async function handler(req, res) {
 
     let profile = {};
     try {
+      // 2026-08-13 CARTER — 'trec_license_number' is not a real column on
+      // profiles (live schema has agent_license_number/license_number
+      // instead); this SELECT was 400-ing on every call, so `profile` was
+      // ALWAYS {} and every listing_agent_*/wire_fraud_* field below was
+      // silently blank. Fixed column list + added the richer broker_* /
+      // IABS-default columns (already used by esign-create.js's
+      // getIabsDefaults()) needed to stamp the SENDING agent's own
+      // brokerage on the Wire Fraud Warning footer instead of Heath's.
       const profResp = await supabaseRest(
-        'profiles?id=eq.' + safeUid + '&select=full_name,phone,email,brokerage,trec_license_number&limit=1',
+        'profiles?id=eq.' + safeUid
+          + '&select=full_name,phone,email,brokerage,agent_license_number,license_number,'
+          + 'broker_name,broker_address_street,broker_address_city,broker_address_state,'
+          + 'broker_address_zip,broker_phone,broker_license_number&limit=1',
         { method: 'GET' },
       );
       if (profResp.ok) {
         const profRows = await profResp.json();
         profile = (Array.isArray(profRows) && profRows[0]) || {};
+      } else {
+        const errText = await profResp.text().catch(() => '');
+        console.warn('[fill-form] profile fetch non-ok:', profResp.status, errText.slice(0, 200));
       }
     } catch (e) {
       console.warn('[fill-form] profile fetch failed (non-fatal):', e && e.message);
@@ -3823,7 +3945,19 @@ module.exports = async function handler(req, res) {
       listing_broker_firm:     profile.brokerage || '',
       listing_agent_phone:     profile.phone || '',
       listing_agent_email:     profile.email || '',
-      listing_agent_license:   profile.trec_license_number || '',
+      listing_agent_license:   profile.agent_license_number || profile.license_number || '',
+      // Wire Fraud Warning (TAR 2517) dynamic footer — sending agent's OWN
+      // brokerage-of-record, never Heath's. broker_name/address/phone come
+      // from the IABS-defaults columns (richer + kept current via Settings);
+      // falls back to the legacy single `brokerage` string field when a user
+      // hasn't filled out IABS defaults yet. See fillWireFraudWarning().
+      wire_fraud_brokerage_name:    profile.broker_name || profile.brokerage || '',
+      wire_fraud_brokerage_address: [
+        profile.broker_address_street || '',
+        [profile.broker_address_city, profile.broker_address_state].filter(Boolean).join(', '),
+        profile.broker_address_zip || '',
+      ].filter(Boolean).join(', '),
+      wire_fraud_brokerage_phone:   profile.broker_phone || profile.phone || '',
       // HOA fields (Block 9B)
       hoa_name:                tx.hoa_name || '',
       hoa_phone:               tx.hoa_phone || '',
