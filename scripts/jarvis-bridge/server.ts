@@ -347,10 +347,24 @@ const realtimeClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 })
 let realtimeChannel: RealtimeChannel | null = null
 
+// Confirmed 2026-08-13, AFTER setting REPLICA IDENTITY FULL on both tables
+// (api/admin-jarvis-realtime-replica-identity.js): FULL fixes UPDATE's `old`
+// payload (was PK-only, now the complete pre-image — verified live), but
+// Supabase Realtime's DELETE event still only ever carries the row's
+// primary key in `old`, replica identity or not. That's Realtime server
+// behavior, not a Postgres/replica-identity limitation this project can
+// configure away — DELETE payloads are deliberately minimal upstream. Net
+// effect: this can say a to-do/ball with a given id was deleted, and give
+// the id for a manual lookup if it still matters, but not what it *was*
+// called. Degrade honestly instead of printing "undefined".
 function summarizeChange(table: string, eventType: string, oldRow: Record<string, unknown>, newRow: Record<string, unknown>): string {
   if (table === 'jarvis_todos') {
     if (eventType === 'INSERT') return `new to-do added: "${newRow.title}"${newRow.detail ? ` — ${newRow.detail}` : ''}`
-    if (eventType === 'DELETE') return `to-do removed: "${oldRow.title}"`
+    if (eventType === 'DELETE') {
+      return oldRow.title
+        ? `to-do removed: "${oldRow.title}"`
+        : `a to-do was removed (id ${oldRow.id ?? 'unknown'}) — Supabase Realtime doesn't include the row's title on DELETE, only its id`
+    }
     if (newRow.done === true && oldRow.done !== true) return `to-do marked done: "${newRow.title}"`
     if (newRow.done === false && oldRow.done === true) return `to-do re-opened: "${newRow.title}"`
     if (oldRow.title !== newRow.title || oldRow.detail !== newRow.detail) {
@@ -360,7 +374,11 @@ function summarizeChange(table: string, eventType: string, oldRow: Record<string
   }
   if (table === 'jarvis_balls') {
     if (eventType === 'INSERT') return `new ball added: "${newRow.name}" (${newRow.business_tag}) — court: ${newRow.court}${newRow.status_note ? `, note: ${newRow.status_note}` : ''}`
-    if (eventType === 'DELETE') return `ball closed/removed: "${oldRow.name}"`
+    if (eventType === 'DELETE') {
+      return oldRow.name
+        ? `ball closed/removed: "${oldRow.name}"`
+        : `a ball was closed/removed (id ${oldRow.id ?? 'unknown'}) — Supabase Realtime doesn't include the row's name on DELETE, only its id`
+    }
     const courtChanged = oldRow.court !== newRow.court
     const noteChanged = oldRow.status_note !== newRow.status_note
     if (!courtChanged && !noteChanged) return `ball row updated (no visible field change): "${newRow.name}"`
@@ -389,7 +407,13 @@ function subscribeRealtime(): void {
                 `[ambient DB change — public.${table}, NOT a voice turn, no reply needed] ${summary}\n\n` +
                 `This table was just changed outside this conversation (could be Heath editing directly through the Jarvis PWA UI, another agent, or your OWN just-made write showing back up here — there's no way to tell which from this event alone). ` +
                 `Do NOT call the reply tool for this — there is no chat_id/open turn to answer. If this matches something you just did in this same conversation, no action needed. If it's new to you, just fold it into what you know; naturally mention it unprompted next time Heath actually talks to you, if relevant — don't wait for him to ask.`,
-              meta: { source_table: table, ambient: 'true', event_type: payload.eventType },
+              // row_id lets the model correlate a later DELETE (whose old
+              // record is id-only, see summarizeChange above) back to an
+              // earlier INSERT/UPDATE it saw for the same row — confirmed
+              // useful live 2026-08-13, the model asked for exactly this
+              // after an INSERT+DELETE round trip left it unable to tell
+              // whether a delete matched something it had just seen created.
+              meta: { source_table: table, ambient: 'true', event_type: payload.eventType, row_id: String(payload.new?.id ?? payload.old?.id ?? '') },
             },
           })
           .catch(err => {
