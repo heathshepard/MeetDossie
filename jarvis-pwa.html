@@ -3070,6 +3070,7 @@
             <span>TO-DO</span>
             <span class="pending-count-badge zero" id="jt-count">0</span>
           </div>
+          <div class="venture-untracked-note" style="margin-bottom:8px;">Yours — add/edit here, and Jarvis can add or check items off during conversation.</div>
           <div class="jt-add-row">
             <input type="text" id="jt-add-input" class="jt-add-input" placeholder="Add a to-do…" maxlength="200" autocomplete="off" />
             <button id="jt-add-btn" class="jt-add-btn" type="button">Add</button>
@@ -3210,7 +3211,18 @@
             </div>
           </div>
           <div class="subpanel-section">
-            <div class="subpanel-header"><span>To-Do</span><span class="subpanel-count" id="todo-meta">—</span></div>
+            <!-- Renamed from generic "To-Do" (Carter, 2026-08-13) -- Heath flagged
+                 confusion between this and the jarvis-todos-panel TO-DO above:
+                 same word, two different tables. This one is heath_todo, an
+                 AGENT-populated single-item-at-a-time queue (cron-daily-debrief,
+                 cron-codebase-facts-indexer, etc. feed it) -- Heath doesn't add to
+                 it directly and it's not what Jarvis writes to conversationally.
+                 Left as a separate table on purpose: it also feeds
+                 jarvis-context-load / jarvis-voice-brief / jarvis-mark-complete,
+                 so merging it into jarvis_todos is a real migration, not a rename
+                 -- flagged as a follow-up, not done here. -->
+            <div class="subpanel-header"><span>Agent Queue</span><span class="subpanel-count" id="todo-meta">—</span></div>
+            <div class="venture-untracked-note" style="margin-bottom:8px;">Auto-queued by other agents (Cole, crons) — one at a time. Not the same list as TO-DO above.</div>
             <div id="todo-body" class="todo-body">
               <div class="todo-empty">Loading…</div>
             </div>
