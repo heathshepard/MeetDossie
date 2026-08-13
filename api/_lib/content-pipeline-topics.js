@@ -208,7 +208,21 @@ const CANDIDATES = {
  */
 function pickNextCandidate(pageType, claimedTopics, existingPages) {
   const list = CANDIDATES[pageType] || [];
-  const claimedSlugs = new Set((claimedTopics || []).map((c) => normalize(c.slug || c.topic)));
+  // Claim BOTH the row's final slug (if set) AND its original topic text.
+  // Bug fixed 2026-08-12 (Atlas): this used to be `c.slug || c.topic`, which
+  // silently dropped the topic string the moment a row got a real final
+  // slug -- and the doc explicitly allows the generating agent's final slug
+  // to differ from the proposed candidate slug. That hole let
+  // "How Dossie handles the main dashboard" get proposed a second time
+  // the same night its first (pending_review, slug
+  // how-dossie-handles-the-pipeline-dashboard) was still sitting in review,
+  // because neither the candidate's proposed slug nor its topic text
+  // matched the row's now-different final slug. Always claim both.
+  const claimedSlugs = new Set();
+  for (const c of (claimedTopics || [])) {
+    if (c.slug) claimedSlugs.add(normalize(c.slug));
+    if (c.topic) claimedSlugs.add(normalize(c.topic));
+  }
   const existingSlugs = new Set((existingPages || []).map((p) => normalize(p.slug)));
   const existingTitleWords = (existingPages || []).map((p) => p.topic_text);
 
