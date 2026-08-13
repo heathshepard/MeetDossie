@@ -1398,13 +1398,67 @@
       font-size: 13px; color: var(--txt-primary);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .jb-court {
-      font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-      padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
-      white-space: nowrap;
+    /* ===== COURT VISUALIZATION (v2, 2026-08-13) =====
+       Replaces the old plain-text "WAITING ON X" / "YOUR MOVE" pill with an
+       actual court-and-ball metaphor: a rail with a net (center divider), a
+       glowing ball sites on whichever end currently has possession, and it
+       physically slides across (FLIP-animated in JS, see renderJarvisBalls())
+       when court changes. Brand tokens: Coral = your move (act now, warm/
+       urgent, matches the app's existing --fail-for-urgency convention),
+       Sage = waiting on someone else (calm, matches --ok elsewhere in this
+       HUD). Both already brand-correct hex values (CLAUDE.md Section 4). */
+    .jb-court-track {
+      display: flex; align-items: center; gap: 6px;
+      margin: 6px 0 2px 22px; /* aligns under name, past the toggle/tag */
     }
-    .jb-court.mine { color: var(--fail); border: 1px solid var(--fail); background: rgba(232, 94, 94, 0.08); }
-    .jb-court.other { color: var(--cyan); border: 1px solid var(--line-strong); }
+    .jb-court-end {
+      font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--txt-faint); flex-shrink: 0; max-width: 74px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      transition: color 300ms ease, text-shadow 300ms ease;
+    }
+    .jb-court-end.jb-court-them { text-align: right; }
+    .jb-court-end.active.jb-court-you { color: var(--coral); font-weight: 600; text-shadow: 0 0 6px rgba(232, 131, 107, 0.55); }
+    .jb-court-end.active.jb-court-them { color: var(--sage); font-weight: 600; text-shadow: 0 0 6px rgba(139, 168, 136, 0.5); }
+    .jb-court-rail {
+      position: relative; flex: 1 1 auto; height: 18px; min-width: 60px;
+      border-radius: 9px; border: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(232, 131, 107, 0.10), rgba(255, 255, 255, 0.02) 46%, rgba(255, 255, 255, 0.02) 54%, rgba(139, 168, 136, 0.10));
+    }
+    .jb-court-rail::before {
+      /* the "net" -- center divider */
+      content: ''; position: absolute; left: 50%; top: 2px; bottom: 2px; width: 0;
+      border-left: 1px dashed var(--line-strong); transform: translateX(-50%);
+    }
+    .jb-ball {
+      position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px;
+      border-radius: 50%;
+    }
+    .jb-ball.at-you {
+      left: 3px;
+      background: radial-gradient(circle at 35% 30%, #ffe4d9, var(--coral) 55%, #a8442f 100%);
+      box-shadow: 0 0 9px rgba(232, 131, 107, 0.7), 0 0 2px rgba(232, 131, 107, 0.9);
+      animation: jb-ball-pulse-you 2.4s ease-in-out infinite;
+    }
+    .jb-ball.at-them {
+      left: calc(100% - 15px);
+      background: radial-gradient(circle at 35% 30%, #eef5ed, var(--sage) 55%, #55704f 100%);
+      box-shadow: 0 0 8px rgba(139, 168, 136, 0.6), 0 0 2px rgba(139, 168, 136, 0.85);
+    }
+    .jb-ball.jb-ball-landed { animation: jb-ball-landed-flash 700ms ease-out; }
+    @keyframes jb-ball-pulse-you {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); box-shadow: 0 0 14px rgba(232, 131, 107, 0.9), 0 0 4px rgba(232, 131, 107, 1); }
+    }
+    @keyframes jb-ball-landed-flash {
+      0% { box-shadow: 0 0 0 0 rgba(226, 244, 251, 0.9), 0 0 2px rgba(226, 244, 251, 0.9); }
+      100% { box-shadow: 0 0 9px rgba(226, 244, 251, 0), 0 0 2px rgba(226, 244, 251, 0); }
+    }
+    .jb-court-status {
+      margin: 3px 0 0 22px; font-size: 11px; font-weight: 500;
+    }
+    .jb-court-status.mine { color: var(--coral); }
+    .jb-court-status.other { color: var(--sage); }
     .jb-elapsed {
       font-size: 9px; letter-spacing: 0.08em;
       padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
@@ -5917,6 +5971,15 @@
         list.innerHTML = `<div class="jb-empty">Nothing in the air right now.</div>`;
         return;
       }
+      // FLIP animation setup: capture each ball's current on-screen position
+      // BEFORE the DOM gets wiped/rebuilt below, keyed by row id. If a ball's
+      // court changed since the last render, we animate it sliding across
+      // the rail after the rebuild instead of just snapping into place.
+      const oldBallRects = new Map();
+      list.querySelectorAll('.jb-item').forEach((el) => {
+        const ball = el.querySelector('.jb-ball');
+        if (ball) oldBallRects.set(el.dataset.id, ball.getBoundingClientRect());
+      });
       list.innerHTML = '';
       jarvisBalls.forEach((b) => {
         const expanded = jbExpanded.has(b.id);
@@ -5936,10 +5999,17 @@
             <button class="jb-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
             <span class="jb-tag ${escapeHtml(b.business_tag || '')}"></span>
             <span class="jb-name"></span>
-            <span class="jb-court ${mine ? 'mine' : 'other'}"></span>
             <span class="jb-elapsed ${elapsed.level}">${elapsed.text}</span>
             <button class="jb-del-btn" title="Dismiss / resolved">✕</button>
           </div>
+          <div class="jb-court-track">
+            <span class="jb-court-end jb-court-you ${mine ? 'active' : ''}">YOU</span>
+            <div class="jb-court-rail">
+              <div class="jb-ball ${mine ? 'at-you' : 'at-them'}"></div>
+            </div>
+            <span class="jb-court-end jb-court-them ${mine ? '' : 'active'}" title="${escapeHtml(mine ? '' : (b.court || ''))}"></span>
+          </div>
+          <div class="jb-court-status ${mine ? 'mine' : 'other'}"></div>
           <div class="jb-item-body ${expanded ? '' : 'hidden'}">
             <div class="jb-status-note"></div>
             <div class="jb-item-meta">Since ${lastUpdatedStr} · added ${createdStr}</div>
@@ -5947,7 +6017,8 @@
         `;
         row.querySelector('.jb-tag').textContent = b.business_tag || '—';
         row.querySelector('.jb-name').textContent = b.name;
-        row.querySelector('.jb-court').textContent = mine ? 'Your move' : `Waiting on ${b.court}`;
+        row.querySelector('.jb-court-them').textContent = mine ? 'OTHER' : (b.court || '').toUpperCase();
+        row.querySelector('.jb-court-status').textContent = mine ? 'Your move' : `Waiting on ${b.court}`;
         row.querySelector('.jb-status-note').textContent = b.status_note || '(no detail)';
         list.appendChild(row);
 
@@ -5957,6 +6028,30 @@
           toggleJbExpand(b.id);
         });
         row.querySelector('.jb-del-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteJb(b.id); });
+      });
+
+      // FLIP playback: for any ball whose x-position moved since the last
+      // render (court flipped sides), invert to the old position with a
+      // transform, then release it on the next frame so the browser
+      // animates the slide + a brief landing flash instead of a hard cut.
+      requestAnimationFrame(() => {
+        list.querySelectorAll('.jb-item').forEach((el) => {
+          const ball = el.querySelector('.jb-ball');
+          const oldRect = oldBallRects.get(el.dataset.id);
+          if (!ball || !oldRect) return;
+          const newRect = ball.getBoundingClientRect();
+          const dx = oldRect.left - newRect.left;
+          if (Math.abs(dx) < 2) return;
+          ball.style.transition = 'none';
+          ball.style.transform = `translateX(${dx}px)`;
+          ball.getBoundingClientRect(); // force reflow so the transition below actually animates
+          requestAnimationFrame(() => {
+            ball.style.transition = 'transform 550ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            ball.style.transform = 'translateX(0)';
+            ball.classList.add('jb-ball-landed');
+            setTimeout(() => ball.classList.remove('jb-ball-landed'), 700);
+          });
+        });
       });
     }
 
