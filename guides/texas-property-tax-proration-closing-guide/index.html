@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texas Closing Tax Proration: TREC Paragraph 13 Explained</title>
+<meta name="description" content="How TREC&#39;s One to Four Family Residential Contract prorates property taxes at closing, why the estimate is often wrong, and where rollback and exemption-loss bills come from after closing.">
+<link rel="canonical" href="https://meetdossie.com/guides/texas-property-tax-proration-closing-guide">
+<meta name="author" content="Heath Shepard, Texas REALTOR®">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How Property Taxes Are Prorated at a Texas Closing">
+<meta property="og:description" content="How TREC&#39;s One to Four Family Residential Contract prorates property taxes at closing, why the estimate is often wrong, and where rollback and exemption-loss bills come from after closing.">
+<meta property="og:url" content="https://meetdossie.com/guides/texas-property-tax-proration-closing-guide">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/calculator-widget.css">
+<script src="/assets/posthog-loader.js"></script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How Property Taxes Are Prorated at a Texas Closing","description":"How TREC's One to Four Family Residential Contract prorates property taxes at closing, why the estimate is often wrong, and where rollback and exemption-loss bills come from after closing.","author":{"@type":"Person","name":"Heath Shepard","jobTitle":"Texas REALTOR®"},"publisher":{"@type":"Organization","name":"Dossie","url":"https://meetdossie.com"},"mainEntityOfPage":"https://meetdossie.com/guides/texas-property-tax-proration-closing-guide","datePublished":"2026-05-05","dateModified":"2026-08-13"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://meetdossie.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://meetdossie.com/guides/"},{"@type":"ListItem","position":3,"name":"How Property Taxes Are Prorated at a Texas Closing","item":"https://meetdossie.com/guides/texas-property-tax-proration-closing-guide"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What TREC paragraph covers property tax prorations?","acceptedAnswer":{"@type":"Answer","text":"Paragraph 13 (Prorations) of the One to Four Family Residential Contract (Resale), currently TREC Form 20-19 (effective 07/01/2026). It prorates current-year taxes, interest, rents, and periodic dues/assessments through the Closing Date."}},{"@type":"Question","name":"Why doesn't the closing tax proration match the actual tax bill?","acceptedAnswer":{"@type":"Answer","text":"Texas CADs usually don't finalize the current year's appraisal roll or mail bills until later in the year, so title companies prorate off the most recent available figure -- often last year's bill. Paragraph 13 anticipates this: it requires the parties to adjust the proration once the current year's actual tax statement is available."}},{"@type":"Question","name":"Does the buyer get the seller's homestead exemption at closing?","acceptedAnswer":{"@type":"Answer","text":"No. A homestead, over-65, or disability exemption belongs to the seller and generally terminates with the sale. Under Tax Code Section 26.10, the tax due for the period the exemption no longer applies is prorated on a 365-day basis. The buyer must file their own exemption application for the following tax year; until then, the closing estimate may understate what's actually owed."}},{"@type":"Question","name":"What is a rollback tax and is it covered by the standard TREC contract?","acceptedAnswer":{"@type":"Answer","text":"A rollback tax (Tax Code Section 23.55) is triggered when land taxed under an open-space agricultural or timberland appraisal changes to a non-qualifying use. The CAD can bill the tax savings for the prior three years plus interest, and the lien attaches when the use changes. Paragraph 13's ordinary proration language does not address rollback liability -- that needs a special provision or addendum if it's a live risk on the file."}},{"@type":"Question","name":"Who is responsible for a rollback tax bill that arrives after closing?","acceptedAnswer":{"@type":"Answer","text":"The standard contract doesn't assign it. Because the lien attaches at the change of use (often after closing, once the buyer changes how the land is used), the burden can fall on the buyer as record owner unless the parties negotiated otherwise in Paragraph 11 or an addendum before closing. This is a fact-specific allocation question a licensed Texas attorney should weigh in on before anyone relies on an assumption either way."}}]}</script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: var(--coral-deep); }
+
+nav { position: sticky; top: 0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-light); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-mark { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
+.nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
+.nav-cta { display: inline-flex; align-items: center; padding: 10px 18px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 8px 20px rgba(232,131,107,0.28); }
+.nav-cta:hover { background: var(--coral-deep); }
+
+.crumbs { max-width: 760px; margin: 32px auto 0; padding: 0 24px; font-size: 12px; color: var(--text-light); letter-spacing: 0.4px; }
+.crumbs a { color: var(--text-secondary); text-decoration: none; }
+
+.article-hero { padding: 32px 24px 24px; max-width: 760px; margin: 0 auto; }
+.article-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-deep); }
+.article-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5.4vw, 52px); font-weight: 600; line-height: 1.05; letter-spacing: -1px; color: var(--text-primary); margin-top: 10px; }
+.article-hero h1 em { font-style: italic; color: var(--blush-deep); }
+.article-hero .deck { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--blush-deep); margin-top: 12px; }
+.article-meta { font-size: 13px; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.article-meta strong { color: var(--text-primary); font-weight: 700; }
+
+.listen-btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px 11px 16px; border: 1px solid var(--blush); border-radius: 999px; background: var(--blush-light); color: var(--blush-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.listen-btn:hover { background: var(--blush); color: #fff; transform: translateY(-1px); }
+.listen-icon { display: inline-flex; width: 16px; height: 16px; }
+.listen-spin { animation: listen-spin 0.9s linear infinite; }
+@keyframes listen-spin { to { transform: rotate(360deg); } }
+
+main.article { max-width: 760px; margin: 0 auto; padding: 24px; }
+main.article h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(24px, 3.6vw, 34px); font-weight: 600; line-height: 1.2; color: var(--text-primary); margin: 36px 0 14px; letter-spacing: -0.4px; }
+main.article h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 28px 0 10px; }
+main.article p { font-size: 16px; color: var(--text-primary); margin: 12px 0; line-height: 1.75; }
+main.article ul, main.article ol { margin: 12px 0 12px 22px; }
+main.article li { margin: 6px 0; line-height: 1.7; font-size: 16px; }
+main.article strong { color: var(--text-primary); font-weight: 700; }
+main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px solid var(--blush); background: var(--bg-warm); border-radius: 0 12px 12px 0; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--text-primary); }
+.callout { margin: 22px 0; padding: 18px 22px; background: var(--blush-light); border-radius: 14px; font-size: 15.5px; line-height: 1.65; color: var(--text-primary); border: 1px solid var(--blush); }
+.callout strong { color: var(--blush-deep); }
+
+.compare-wrap { margin: 28px 0; overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 14px; overflow: hidden; }
+.compare-table th { background: var(--bg-warm); font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: var(--text-primary); text-align: left; padding: 14px 16px; }
+.compare-table td { padding: 14px 16px; border-top: 1px solid var(--border-light); color: var(--text-secondary); vertical-align: top; }
+
+.calc-section { max-width: 1080px; margin: 56px auto 0; padding: 0 24px; }
+.calc-section .section-h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(26px, 4vw, 36px); font-weight: 600; color: var(--text-primary); }
+.calc-section .section-sub { font-size: 15px; color: var(--text-secondary); margin: 8px 0 24px; max-width: 640px; line-height: 1.7; }
+
+.cta-block { margin: 56px auto 0; max-width: 760px; padding: 36px 28px; background: linear-gradient(180deg, var(--bg-card) 0%, var(--blush-light) 220%); border: 1px solid var(--blush); border-radius: 22px; text-align: center; }
+.cta-block h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 3.4vw, 30px); font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.2; }
+.cta-block p { color: var(--text-secondary); font-size: 15px; max-width: 580px; margin: 0 auto 18px; }
+.cta-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 30px rgba(232,131,107,0.28); transition: transform 0.15s, background 0.15s; }
+.cta-btn:hover { transform: translateY(-1px); background: var(--coral-deep); }
+
+.faq-section { max-width: 760px; margin: 56px auto 0; padding: 0 24px; }
+.faq-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.faq-item { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; }
+.faq-item[open] { border-color: var(--blush); }
+.faq-q { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 22px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-primary); list-style: none; }
+.faq-q::-webkit-details-marker { display: none; }
+.faq-toggle { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-warm); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s, background 0.2s; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); background: var(--coral-light); color: var(--coral-deep); }
+.faq-a { padding: 0 22px 20px; font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; }
+
+.related { max-width: 1080px; margin: 64px auto 0; padding: 0 24px; }
+.related h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(24px, 3.4vw, 32px); font-weight: 600; color: var(--text-primary); }
+.related-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.related-card { display: block; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 22px 22px 26px; text-decoration: none; color: var(--text-primary); transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.related-card:hover { transform: translateY(-2px); border-color: var(--blush); box-shadow: 0 14px 32px rgba(45,42,38,0.06); }
+.related-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-primary); line-height: 1.25; margin-bottom: 6px; }
+.related-card p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
+.related-arrow { display: inline-block; margin-top: 8px; font-size: 14px; color: var(--coral-deep); font-weight: 700; }
+
+.legal { padding: 24px; text-align: center; font-size: 12px; color: var(--text-light); line-height: 1.6; max-width: 760px; margin: 32px auto 0; }
+.legal a { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
+  <a href="/app" class="nav-cta">Get Started</a>
+</nav>
+
+<div class="crumbs">
+  <a href="/">Home</a> · <a href="/calculator">Calculator</a> · <span>How Property Taxes Are Prorated at a Texas Closing</span>
+</div>
+
+<header class="article-hero">
+  <div class="article-eyebrow">Closing &amp; Settlement</div>
+  <h1>How Property Taxes Are Prorated at a <em>Texas Closing</em></h1>
+  <p class="deck">TREC&#39;s tax proration paragraph splits the current year&#39;s taxes as of the Closing Date -- but the number on the settlement statement is almost always an estimate. Here&#39;s why, and where the post-closing surprises come from.</p>
+  <div class="article-meta">
+    <span>By <strong>Heath Shepard</strong>, Texas REALTOR®</span>
+    <span>Updated 2026-08-13</span>
+  </div>
+  <button id="dossie-listen-btn" class="listen-btn" type="button" data-type="guide" data-slug="texas-property-tax-proration-closing-guide" data-idle-label="Listen to this guide">
+    <span class="listen-icon"></span>
+    <span class="listen-label">Listen to this guide</span>
+  </button>
+  <audio id="dossie-listen-audio" preload="none"></audio>
+</header>
+
+<main class="article">
+<p>Every Texas resale contract prorates property taxes between buyer and seller as of the Closing Date. The mechanics live in <strong>Paragraph 13 (Prorations)</strong> of TREC's One to Four Family Residential Contract (Resale) -- currently <strong>Form 20-19</strong>, effective 07/01/2026 and mandatory for use since that date. The proration language itself did not change in the 20-19 revision (the July 2026 form update touched broker-compensation language in Paragraph 12 and federal reporting language in Paragraph 20, not Paragraph 13), so agents working off the prior 20-18 form will recognize this paragraph unchanged.</p>
+
+<h2>What Paragraph 13 actually says</h2>
+<p>Paragraph 13 provides: <em>"Taxes for the current year, interest, rents, and regular periodic maintenance fees, assessments, and dues (including prepaid items) will be prorated through the Closing Date. The tax proration may be calculated taking into consideration any change in exemptions that will affect the current year's taxes. If taxes for the current year vary from the amount prorated at closing, the parties shall adjust the prorations when tax statements for the current year are available. If taxes are not paid at or prior to closing, Buyer shall pay taxes for the current year."</em></p>
+<p>Three things to flag for a client reading that for the first time:</p>
+<ul>
+<li><strong>It's a through-the-Closing-Date split, not a full-year number.</strong> Seller owes taxes for the days owned January 1 through closing; Buyer owes the rest of the year.</li>
+<li><strong>"May be calculated taking into consideration any change in exemptions" is permissive, not automatic.</strong> Nothing forces the title company to build a seller's homestead or over-65 exemption loss into the estimate -- many settlement statements simply prorate off last year's tax bill as-is, exemptions and all.</li>
+<li><strong>The contract itself contemplates the estimate being wrong.</strong> The "parties shall adjust the prorations when tax statements for the current year are available" sentence exists precisely because most Texas closings happen before the current year's actual bill exists.</li>
+</ul>
+
+<h2>Why the number at closing is almost always an estimate</h2>
+<p>Texas county appraisal districts (CADs) typically don't certify appraisal rolls until midsummer, and tax offices don't mail actual bills until October, with the statutory delinquency date of January 31 of the following year. A closing any time from January through roughly September is settling taxes that don't technically exist yet as a final number. Title companies handle this by prorating off the <strong>most recent available figure</strong> -- usually last year's assessed value and tax rate, or a current-year CAD estimate if one is posted. Neither is guaranteed to match the bill that actually arrives.</p>
+<p>Two statutory mechanics make the gap bigger than agents expect:</p>
+<ul>
+<li><strong>Exemption loss (Tax Code Section 26.10).</strong> If the seller carried a homestead, over-65, or disability exemption that terminates because of the sale, the property's taxable value for that exemption's terminated period gets prorated up -- the statute prorates the tax due using a 365-day fraction for the days the exemption no longer applies. A buyer who doesn't file their own homestead exemption for the new tax year can end up with a materially higher bill than the closing estimate assumed, since the estimate was built on the seller's now-gone exemption.</li>
+<li><strong>Ownership-based reassessment isn't automatic mid-year</strong> -- Texas generally values property as of January 1 and taxes the owner of record that day for the full year's roll, with the buyer/seller split handled contractually (Paragraph 13) rather than by the CAD re-cutting a bill. The CAD doesn't issue two bills for a mid-year sale; the parties true up privately, which is exactly what "the parties shall adjust the prorations" is doing.</li>
+</ul>
+
+<h2>The bigger risk: rollback and supplemental tax bills</h2>
+<p>The scenario that actually blindsides people isn't a small proration miss -- it's a <strong>rollback tax</strong>. Under Tax Code Section 23.55, when land that's been getting the open-space (1-d-1) agricultural or timberland appraisal changes to a non-qualifying use, the CAD can bill back the tax savings for each of the <strong>three preceding years</strong> -- the difference between what was paid under the ag valuation and what would have been owed at market value -- plus penalty and interest if not paid on time. That lien attaches the moment the change of use occurs, and the additional tax becomes delinquent if unpaid before the next February 1 that's at least 20 days after the bill is delivered. A buyer converting a rural or edge-of-town parcel out of ag use after closing -- building a home, subdividing, running a business on it -- can trigger a supplemental bill covering years the <em>seller</em> owned the property, and TREC's standard contract does not make the seller responsible for that bill unless a special provision or addendum says so.</p>
+<p>Paragraph 13 only prorates the current year's ordinary tax bill -- it says nothing about rollback exposure. If a property carries an ag or open-space exemption and the buyer's intended use won't qualify, that needs to be addressed affirmatively, typically in Paragraph 11 (Special Provisions) or a negotiated addendum allocating responsibility for a future rollback bill, not assumed to be covered by the standard proration language.</p>
+
+<div class="callout"><strong>Practical read for the file:</strong> (1) confirm with the title company whether the proration used the seller's actual prior-year bill or a current-year CAD estimate, and whether any exemption the seller is losing was backed out of that number; (2) if the property has an ag/open-space/timber appraisal and the buyer's use will end that qualification, don't rely on Paragraph 13 -- negotiate who eats a potential rollback bill before you get to the option period deadline; (3) tell buyers in writing to file their own homestead exemption promptly for the following tax year so the estimate they were shown at closing isn't the number they actually pay.</div>
+
+<h2>Not legal advice</h2>
+<p>This is a plain-English walkthrough of a standard contract paragraph and two Tax Code provisions, not a substitute for a licensed Texas attorney or the title company's tax certificate on a specific file. Rollback exposure in particular depends on facts -- acreage, exemption history, and intended use -- that need a real read of the CAD record before anyone quotes a number to a client.</p>
+</main>
+
+
+    <section class="calc-section" aria-labelledby="calc-title">
+      <h2 class="section-h2" id="calc-title">Try the calculator</h2>
+      <p class="section-sub">Estimating a proration split? Run the numbers with the TREC deadline calculator to keep your Closing Date and any objection/cure timelines straight while you work the file.</p>
+      <div id="dossie-calculator"></div>
+    </section>
+
+<section class="cta-block">
+  <h2>Stop tracking deadlines manually.</h2>
+  <p>Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.</p>
+  <a class="cta-btn" href="/app">Start for $149/mo →</a>
+</section>
+
+
+<section class="faq-section">
+  <h2 class="section-h2">Frequently asked</h2>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary class="faq-q">What TREC paragraph covers property tax prorations? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Paragraph 13 (Prorations) of the One to Four Family Residential Contract (Resale), currently TREC Form 20-19 (effective 07/01/2026). It prorates current-year taxes, interest, rents, and periodic dues/assessments through the Closing Date.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Why doesn&#39;t the closing tax proration match the actual tax bill? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Texas CADs usually don&#39;t finalize the current year&#39;s appraisal roll or mail bills until later in the year, so title companies prorate off the most recent available figure -- often last year&#39;s bill. Paragraph 13 anticipates this: it requires the parties to adjust the proration once the current year&#39;s actual tax statement is available.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Does the buyer get the seller&#39;s homestead exemption at closing? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">No. A homestead, over-65, or disability exemption belongs to the seller and generally terminates with the sale. Under Tax Code Section 26.10, the tax due for the period the exemption no longer applies is prorated on a 365-day basis. The buyer must file their own exemption application for the following tax year; until then, the closing estimate may understate what&#39;s actually owed.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">What is a rollback tax and is it covered by the standard TREC contract? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">A rollback tax (Tax Code Section 23.55) is triggered when land taxed under an open-space agricultural or timberland appraisal changes to a non-qualifying use. The CAD can bill the tax savings for the prior three years plus interest, and the lien attaches when the use changes. Paragraph 13&#39;s ordinary proration language does not address rollback liability -- that needs a special provision or addendum if it&#39;s a live risk on the file.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Who is responsible for a rollback tax bill that arrives after closing? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">The standard contract doesn&#39;t assign it. Because the lien attaches at the change of use (often after closing, once the buyer changes how the land is used), the burden can fall on the buyer as record owner unless the parties negotiated otherwise in Paragraph 11 or an addendum before closing. This is a fact-specific allocation question a licensed Texas attorney should weigh in on before anyone relies on an assumption either way.</div>
+    </details></div>
+</section>
+
+<section class="related"><h2>Related guides</h2><div class="related-grid"><a class="related-card" href="/guides/texas-real-estate-closing-checklist"><h3>Texas Real Estate Closing Checklist (Free)</h3><p>The full closing checklist for a Texas residential transaction, ordered by TREC paragraph.</p><span class="related-arrow">→</span></a><a class="related-card" href="/guides/texas-firpta-withholding-guide"><h3>FIRPTA Withholding on a Texas Sale: The Three-Tier Rate Agents Get Wrong</h3><p>FIRPTA withholding isn&#39;t a flat 15% — it&#39;s a three-tier rate keyed to the buyer&#39;s residence-use intent and the sale price, with the buyer holding the withholding obligation.</p><span class="related-arrow">→</span></a><a class="related-card" href="/guides/trec-deadline-calculator"><h3>TREC Deadline Calculator for Texas Real Estate Agents</h3><p>How the major TREC deadlines stack up — option, earnest money, financing, closing — and which roll for weekends.</p><span class="related-arrow">→</span></a><a class="related-card" href="/guides/texas-hoa-resale-certificate-guide"><h3>Texas HOA Resale Certificate: Ordering It, Deadlines, and What It Must Disclose</h3><p>Property Code Chapter 207 — the resale certificate ordering process, the HOA&#39;s 10-business-day deadline, the 16 required disclosures, the $375 fee cap, and owner remedies if the HOA misses the deadline.</p><span class="related-arrow">→</span></a></div></section>
+
+<p class="legal">
+  This guide is provided as-is for educational purposes. It is not legal advice. Always verify deadlines and contract interpretations against your executed contract and confer with your broker or a Texas real estate attorney for binding interpretations. <a href="/">meetdossie.com</a>
+</p>
+
+<script src="/assets/trec-engine.js"></script>
+<script src="/assets/calculator-widget.js"></script>
+<script src="/assets/article-audio.js" defer></script>
+
+<script>
+// Analytics: fire guide_page_viewed with page_type/slug so Pierce can compare
+// which guides actually get traffic. Wrapped in posthog:ready — see
+// founding.html for why (pre-boot stub queue isn't reliably read by array.js).
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('guide_page_viewed', {
+          page_type: 'guide',
+          page_slug: "texas-property-tax-proration-closing-guide",
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
+
+</body>
+</html>

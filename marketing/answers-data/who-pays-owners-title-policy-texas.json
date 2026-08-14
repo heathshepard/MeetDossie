@@ -1,0 +1,29 @@
+{
+  "faq": [
+    {
+      "a": "No. Paragraph 6A of TREC Form 20-19 is a checkbox — Seller's expense or Buyer's expense — and no Texas statute mandates either outcome. It's negotiated between the parties and written into the contract.",
+      "q": "Is the seller legally required to pay for the owner's title policy in Texas?"
+    },
+    {
+      "a": "The owner's policy (set up in Paragraph 6A) protects the buyer's ownership interest. The lender's policy protects the buyer's mortgage lender and is listed as a Buyer's Expense under Paragraph 12A(2) regardless of who pays for the owner's policy.",
+      "q": "What's the difference between the owner's title policy and the lender's title policy?"
+    },
+    {
+      "a": "No. Paragraph 6B is the \"Commitment\" provision — it covers the seller's deadline to deliver the title commitment and exception documents. Who pays for the owner's title policy is set in Paragraph 6A.",
+      "q": "Is this the same as Paragraph 6B?"
+    },
+    {
+      "a": "The printed form only offers a single checkbox for Seller's or Buyer's expense, not a split. Parties who want to split the cost would need to address it through Paragraph 11 (Special Provisions) or an attorney-drafted addendum rather than the standard checkbox.",
+      "q": "Can a buyer and seller agree to split the cost of the owner's title policy?"
+    }
+  ],
+  "deck": "It's a checkbox, not a rule. TREC Paragraph 6A leaves it blank for the parties to fill in — custom just fills in the same answer most of the time.",
+  "slug": "who-pays-owners-title-policy-texas",
+  "tldr": "Paragraph 6A of TREC Form 20-19 (the One to Four Family Residential Contract (Resale)) requires Seller to furnish Buyer an owner's title policy, but leaves a checkbox for whether it's at Seller's or Buyer's expense. In the large majority of Texas transactions, the seller checks the box and pays for the owner's policy, while the buyer separately pays for their lender's title policy under Paragraph 12A(2). Neither allocation is required by Texas statute — it's negotiable custom, and the box has to actually be checked for either party to be bound to it.",
+  "title": "Who Pays for the Owner's Title Policy in a Texas Home Sale?",
+  "body_html": "<h2>The short answer</h2><p>In most Texas resale transactions, the <strong>seller</strong> pays for the buyer's owner policy of title insurance. But that's custom, not law — the actual contract language leaves it as an open choice.</p><h2>Where it lives in the contract</h2><p>TREC Form 20-19, the One to Four Family Residential Contract (Resale), addresses this in <strong>Paragraph 6A, \"Title Policy\"</strong>: \"Seller shall furnish to Buyer at &#9744; Seller's &#9744; Buyer's expense an owner policy of title insurance (Title Policy)&hellip;\" Whoever drafts the contract checks one box or the other before the parties sign. If the box is left blank, the contract doesn't default to either party — it's an unresolved term that should get cleared up before execution, not assumed.</p><p>A common mix-up: Paragraph 6B is a <em>different</em> provision entirely — it's the \"Commitment\" clause, which gives the seller 20 days after the title company receives the contract to furnish Buyer a title commitment and (at Buyer's expense) copies of the exception documents. It has nothing to do with who pays the title policy premium. That's 6A.</p><h2>Why the seller usually pays</h2><p>Longstanding custom in the large majority of Texas markets is for the seller to pay for the buyer's owner's title policy, on the theory that it's part of the seller's cost of clearing and conveying good title. It shows up often enough as the default assumption that some agents treat it as a rule — it isn't. It's a negotiated term like any other, and either party can propose shifting it, particularly in a buyer's market or a distressed sale.</p><h2>Owner's policy vs. lender's policy</h2><p>Don't confuse the two policies in play on a financed deal. The <strong>owner's policy</strong> (Paragraph 6A) protects the buyer's equity and is the one this custom is about. The <strong>lender's title policy</strong> is a separate policy protecting the lender's lien, and it's listed as a Buyer's Expense under Paragraph 12A(2) of the same contract — the buyer pays for that one regardless of what's checked in 6A, because it's the buyer's lender requiring it.</p><h2>No statute controls the allocation</h2><p>Neither the Texas Property Code nor the Texas Insurance Code (which regulates title insurance rates and forms through the Texas Department of Insurance) dictates who pays the owner's title policy premium in a residential resale. TREC's role is limited to promulgating the standard contract form and its blank-and-checkbox structure — it doesn't mandate an outcome. The rate itself is a promulgated, state-set premium regardless of who pays it; what's negotiable is only who writes the check.</p><div class=\"callout\"><strong>For agents and TCs:</strong> confirm the 6A box is actually checked — not left blank — before the contract goes final, and flag it clearly if a buyer's agent is drafting an offer that shifts the cost to the buyer, since that's a deviation from what most sellers expect.</div><p><em>This is a general explanation of standard TREC contract language and common practice, not legal advice on a specific transaction. A specific contract negotiation or dispute should go to a licensed Texas real estate attorney.</em></p>",
+  "meta_title": "Who Pays the Owner's Title Policy in Texas? — TREC ¶ 6A",
+  "title_html": "Who Pays for the <em>Owner's Title Policy</em> in a Texas Home Sale?",
+  "updated_at": "2026-08-12",
+  "meta_description": "TREC 20-19 Paragraph 6A leaves it as a checkbox — Seller or Buyer. In most Texas deals the seller pays, but it's local custom, not law, and fully negotiable."
+}

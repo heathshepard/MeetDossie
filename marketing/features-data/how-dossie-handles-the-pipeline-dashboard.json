@@ -1,0 +1,55 @@
+{
+  "faq": [
+    {
+      "a": "Nine: Pre-Listing, Pre-Contract, Active Listing, Under Contract, Option Period, Inspection, Financing, Title & Survey, and Clear to Close. A tenth stage, Closed, exists in the data model but is shown in a separate Closed Dossiers view rather than as a column on the board.",
+      "q": "What stages does the Pipeline Dashboard track?"
+    },
+    {
+      "a": "Each card shows its nearest upcoming deadline pulled from that dossier's contract-derived dates. If none is set, it falls back to the closing date, marked overdue in red if that date has already passed.",
+      "q": "How does Dossie decide which deadline to show on a card?"
+    },
+    {
+      "a": "No. Once a dossier is archived, it's removed from the Pipeline board and appears instead under Closed Dossiers in the side navigation, which keeps a running count of how many files are archived.",
+      "q": "Do closed deals stay on the Pipeline board?"
+    },
+    {
+      "a": "Yes. Opening any dossier gives the option to advance it to the next stage or move it directly to a specific stage, in addition to the automatic progression as the deal moves forward.",
+      "q": "Can I move a deal to a different stage manually?"
+    }
+  ],
+  "deck": "Nine stages, one board, every open file visible at a glance. Dossie's Pipeline Dashboard is the home screen for an agent's whole book of business — no spreadsheet, no separate tracker.",
+  "slug": "how-dossie-handles-the-pipeline-dashboard",
+  "image": "/assets/product/pipeline-dashboard.png",
+  "steps": [
+    {
+      "h": "1. Nine stages, one board",
+      "p": "Pre-Listing, Pre-Contract, Active Listing, Under Contract, Option Period, Inspection, Financing, Title & Survey, and Clear to Close each get their own column. A dossier moves left to right as the deal progresses; nothing has to be re-entered or re-filed to change columns."
+    },
+    {
+      "h": "2. Each card shows what's next, not just what's open",
+      "p": "Every card carries the property address (or client names if the address isn't set yet), the counterparty, and the nearest upcoming deadline. A deadline within 3 days shows red, within 7 days shows amber, and anything further out shows neutral — so the board itself tells an agent where to look first without opening a single file."
+    },
+    {
+      "h": "3. Closed files move off the board on their own",
+      "p": "Once a dossier is archived at Clear to Close, it drops out of the Pipeline board entirely and moves into its own Closed Dossiers view in the side nav — so the active board only ever shows deals that still need attention, never a growing pile of finished ones."
+    }
+  ],
+  "title": "How Dossie Handles the Pipeline Dashboard",
+  "callout": "The board also carries two quiet signals beyond the stage columns: a trophy badge on any dossier with a closing milestone card ready to share, and an envelope badge on any file where a compliance document packet has already gone out — both visible without opening the dossier.",
+  "cta_sub": "Dossie organizes every active file by stage automatically — built for Texas agents.",
+  "eyebrow": "Product feature",
+  "cta_title": "See your whole pipeline in one place.",
+  "image_alt": "Dossie's Pipeline Dashboard showing active dossiers organized into columns by transaction stage, with overdue closings flagged in red",
+  "intro_html": "<p>Before an agent can manage forty open files, they have to be able to see them. Dossie's Pipeline Dashboard is the screen an agent lands on after Morning Brief — every active dossier laid out in columns by stage, from Pre-Listing through Clear to Close, with each card showing the property, the other party, and the next thing that's due.</p>",
+  "meta_title": "How Dossie's Pipeline Dashboard Shows Every Active Deal — Dossie",
+  "title_html": "How Dossie Handles the <em>Pipeline Dashboard</em>",
+  "updated_at": "2026-08-12",
+  "image_caption": "The Pipeline Dashboard — every open file, sorted into its stage, deadlines flagged by urgency.",
+  "related_blurb": "One board showing every active dossier organized by transaction stage, with overdue and upcoming deadlines flagged automatically.",
+  "meta_description": "Every active dossier, organized by stage on one board — closing dates flagged red when they're overdue, with closed files moved off the board automatically.",
+  "related_features": [
+    "how-dossie-handles-deadline-tracking",
+    "how-dossie-handles-closing-milestones",
+    "how-dossie-handles-closing-checklist"
+  ]
+}

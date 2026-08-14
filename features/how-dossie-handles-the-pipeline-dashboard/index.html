@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Dossie&#39;s Pipeline Dashboard Shows Every Active Deal — Dossie</title>
+<meta name="description" content="Every active dossier, organized by stage on one board — closing dates flagged red when they&#39;re overdue, with closed files moved off the board automatically.">
+<link rel="canonical" href="https://meetdossie.com/features/how-dossie-handles-the-pipeline-dashboard">
+<meta name="author" content="Heath Shepard, Texas REALTOR®">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How Dossie Handles the Pipeline Dashboard">
+<meta property="og:description" content="Every active dossier, organized by stage on one board — closing dates flagged red when they&#39;re overdue, with closed files moved off the board automatically.">
+<meta property="og:image" content="https://meetdossie.com/assets/product/pipeline-dashboard.png">
+<meta property="og:url" content="https://meetdossie.com/features/how-dossie-handles-the-pipeline-dashboard">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/assets/posthog-loader.js"></script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How Dossie Handles the Pipeline Dashboard","description":"Every active dossier, organized by stage on one board — closing dates flagged red when they're overdue, with closed files moved off the board automatically.","image":"https://meetdossie.com/assets/product/pipeline-dashboard.png","author":{"@type":"Person","name":"Heath Shepard","jobTitle":"Texas REALTOR®"},"publisher":{"@type":"Organization","name":"Dossie","url":"https://meetdossie.com"},"mainEntityOfPage":"https://meetdossie.com/features/how-dossie-handles-the-pipeline-dashboard","datePublished":"2026-08-12","dateModified":"2026-08-12"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://meetdossie.com/"},{"@type":"ListItem","position":2,"name":"Features","item":"https://meetdossie.com/features/"},{"@type":"ListItem","position":3,"name":"How Dossie Handles the Pipeline Dashboard","item":"https://meetdossie.com/features/how-dossie-handles-the-pipeline-dashboard"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What stages does the Pipeline Dashboard track?","acceptedAnswer":{"@type":"Answer","text":"Nine: Pre-Listing, Pre-Contract, Active Listing, Under Contract, Option Period, Inspection, Financing, Title & Survey, and Clear to Close. A tenth stage, Closed, exists in the data model but is shown in a separate Closed Dossiers view rather than as a column on the board."}},{"@type":"Question","name":"How does Dossie decide which deadline to show on a card?","acceptedAnswer":{"@type":"Answer","text":"Each card shows its nearest upcoming deadline pulled from that dossier's contract-derived dates. If none is set, it falls back to the closing date, marked overdue in red if that date has already passed."}},{"@type":"Question","name":"Do closed deals stay on the Pipeline board?","acceptedAnswer":{"@type":"Answer","text":"No. Once a dossier is archived, it's removed from the Pipeline board and appears instead under Closed Dossiers in the side navigation, which keeps a running count of how many files are archived."}},{"@type":"Question","name":"Can I move a deal to a different stage manually?","acceptedAnswer":{"@type":"Answer","text":"Yes. Opening any dossier gives the option to advance it to the next stage or move it directly to a specific stage, in addition to the automatic progression as the deal moves forward."}}]}</script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: var(--coral-deep); }
+
+nav { position: sticky; top: 0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-light); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-mark { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
+.nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
+.nav-cta { display: inline-flex; align-items: center; padding: 10px 18px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 8px 20px rgba(232,131,107,0.28); }
+.nav-cta:hover { background: var(--coral-deep); }
+
+.crumbs { max-width: 860px; margin: 32px auto 0; padding: 0 24px; font-size: 12px; color: var(--text-light); letter-spacing: 0.4px; }
+.crumbs a { color: var(--text-secondary); text-decoration: none; }
+
+.article-hero { padding: 28px 24px 8px; max-width: 860px; margin: 0 auto; text-align: center; }
+.article-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--coral-deep); }
+.article-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(32px, 5.2vw, 48px); font-weight: 600; line-height: 1.08; letter-spacing: -1px; color: var(--text-primary); margin-top: 10px; }
+.article-hero h1 em { font-style: italic; color: var(--blush-deep); }
+.article-hero .deck { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--text-secondary); margin: 14px auto 0; max-width: 620px; }
+.article-meta { font-size: 13px; color: var(--text-secondary); margin-top: 18px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.article-meta strong { color: var(--text-primary); font-weight: 700; }
+
+.listen-btn { margin-top: 20px; display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px 11px 16px; border: 1px solid var(--blush); border-radius: 999px; background: var(--blush-light); color: var(--blush-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.listen-btn:hover { background: var(--blush); color: #fff; transform: translateY(-1px); }
+.listen-icon { display: inline-flex; width: 16px; height: 16px; }
+.listen-spin { animation: listen-spin 0.9s linear infinite; }
+@keyframes listen-spin { to { transform: rotate(360deg); } }
+
+.shot-wrap { max-width: 980px; margin: 36px auto 0; padding: 0 24px; }
+.browser-frame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; box-shadow: 0 24px 64px rgba(26,26,46,0.10); }
+.browser-chrome { display: flex; align-items: center; gap: 6px; padding: 11px 16px; background: var(--bg-warm); border-bottom: 1px solid var(--border-light); }
+.browser-chrome .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.browser-chrome .dot-r { background: #E8836B; }
+.browser-chrome .dot-y { background: #C9A96E; }
+.browser-chrome .dot-g { background: #8BA888; }
+.browser-url { margin-left: 10px; font-size: 11.5px; color: var(--text-light); background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 100px; padding: 3px 12px; font-weight: 500; }
+.browser-frame img { display: block; width: 100%; height: auto; }
+.shot-caption { text-align: center; font-size: 13.5px; color: var(--text-secondary); margin-top: 14px; }
+
+main.article { max-width: 700px; margin: 0 auto; padding: 40px 24px 0; }
+main.article > .intro p { font-size: 17px; color: var(--text-primary); line-height: 1.8; margin: 0 0 8px; }
+
+.step-list { margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
+.step { padding: 20px 22px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; }
+.step h3 { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--blush-deep); margin-bottom: 6px; }
+.step p { font-size: 15px; color: var(--text-primary); line-height: 1.65; }
+.step p strong { font-weight: 700; }
+
+.callout { margin: 28px 0 4px; padding: 18px 22px; background: var(--blush-light); border-radius: 14px; font-size: 15.5px; line-height: 1.65; color: var(--text-primary); border: 1px solid var(--blush); font-family: 'Cormorant Garamond', serif; font-style: italic; }
+
+.cta-block { margin: 52px auto 0; max-width: 700px; padding: 36px 28px; background: linear-gradient(180deg, var(--bg-card) 0%, var(--blush-light) 220%); border: 1px solid var(--blush); border-radius: 22px; text-align: center; }
+.cta-block h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 3.4vw, 30px); font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.2; }
+.cta-block p { color: var(--text-secondary); font-size: 15px; max-width: 560px; margin: 0 auto 18px; }
+.cta-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 30px rgba(232,131,107,0.28); transition: transform 0.15s, background 0.15s; }
+.cta-btn:hover { transform: translateY(-1px); background: var(--coral-deep); }
+
+.faq-section { max-width: 700px; margin: 52px auto 0; padding: 0 24px; }
+.faq-section h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 3.2vw, 28px); font-weight: 600; color: var(--text-primary); }
+.faq-list { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.faq-item { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; }
+.faq-item[open] { border-color: var(--blush); }
+.faq-q { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text-primary); list-style: none; }
+.faq-q::-webkit-details-marker { display: none; }
+.faq-toggle { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-warm); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s, background 0.2s; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); background: var(--coral-light); color: var(--coral-deep); }
+.faq-a { padding: 0 20px 18px; font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; }
+
+.related { max-width: 980px; margin: 60px auto 0; padding: 0 24px; }
+.related h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 3.2vw, 28px); font-weight: 600; color: var(--text-primary); }
+.related-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.related-card { display: block; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 22px 22px 26px; text-decoration: none; color: var(--text-primary); transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.related-card:hover { transform: translateY(-2px); border-color: var(--blush); box-shadow: 0 14px 32px rgba(45,42,38,0.06); }
+.related-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-primary); line-height: 1.25; margin-bottom: 6px; }
+.related-card p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
+.related-arrow { display: inline-block; margin-top: 8px; font-size: 14px; color: var(--coral-deep); font-weight: 700; }
+
+.legal { padding: 24px; text-align: center; font-size: 12px; color: var(--text-light); line-height: 1.6; max-width: 700px; margin: 28px auto 0; }
+.legal a { color: var(--text-secondary); }
+
+@media (max-width: 640px) { .article-hero { text-align: left; } .article-meta { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
+  <a href="/app" class="nav-cta">Get Started</a>
+</nav>
+
+<div class="crumbs">
+  <a href="/">Home</a> · <a href="/features/">Features</a> · <span>How Dossie Handles the Pipeline Dashboard</span>
+</div>
+
+<header class="article-hero">
+  <div class="article-eyebrow">Product feature</div>
+  <h1>How Dossie Handles the <em>Pipeline Dashboard</em></h1>
+  <p class="deck">Nine stages, one board, every open file visible at a glance. Dossie&#39;s Pipeline Dashboard is the home screen for an agent&#39;s whole book of business — no spreadsheet, no separate tracker.</p>
+  <div class="article-meta">
+    <span>By <strong>Heath Shepard</strong>, Texas REALTOR®</span>
+    <span>Updated 2026-08-12</span>
+  </div>
+  <button id="dossie-listen-btn" class="listen-btn" type="button" data-type="feature" data-slug="how-dossie-handles-the-pipeline-dashboard" data-idle-label="Listen to this page">
+    <span class="listen-icon"></span>
+    <span class="listen-label">Listen to this page</span>
+  </button>
+  <audio id="dossie-listen-audio" preload="none"></audio>
+</header>
+
+<div class="shot-wrap">
+  <div class="browser-frame">
+    <div class="browser-chrome">
+      <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+      <span class="browser-url">meetdossie.com/workspace</span>
+    </div>
+    <img src="/assets/product/pipeline-dashboard.png" alt="Dossie&#39;s Pipeline Dashboard showing active dossiers organized into columns by transaction stage, with overdue closings flagged in red" loading="eager" width="1440" height="900">
+  </div>
+  <p class="shot-caption">The Pipeline Dashboard — every open file, sorted into its stage, deadlines flagged by urgency.</p>
+</div>
+
+<main class="article">
+  <div class="intro"><p>Before an agent can manage forty open files, they have to be able to see them. Dossie's Pipeline Dashboard is the screen an agent lands on after Morning Brief — every active dossier laid out in columns by stage, from Pre-Listing through Clear to Close, with each card showing the property, the other party, and the next thing that's due.</p></div>
+  <div class="step-list">
+    <div class="step">
+      <h3>1. Nine stages, one board</h3>
+      <p>Pre-Listing, Pre-Contract, Active Listing, Under Contract, Option Period, Inspection, Financing, Title &amp; Survey, and Clear to Close each get their own column. A dossier moves left to right as the deal progresses; nothing has to be re-entered or re-filed to change columns.</p>
+    </div>
+    <div class="step">
+      <h3>2. Each card shows what&#39;s next, not just what&#39;s open</h3>
+      <p>Every card carries the property address (or client names if the address isn&#39;t set yet), the counterparty, and the nearest upcoming deadline. A deadline within 3 days shows red, within 7 days shows amber, and anything further out shows neutral — so the board itself tells an agent where to look first without opening a single file.</p>
+    </div>
+    <div class="step">
+      <h3>3. Closed files move off the board on their own</h3>
+      <p>Once a dossier is archived at Clear to Close, it drops out of the Pipeline board entirely and moves into its own Closed Dossiers view in the side nav — so the active board only ever shows deals that still need attention, never a growing pile of finished ones.</p>
+    </div></div>
+  <div class="callout">The board also carries two quiet signals beyond the stage columns: a trophy badge on any dossier with a closing milestone card ready to share, and an envelope badge on any file where a compliance document packet has already gone out — both visible without opening the dossier.</div>
+</main>
+
+<section class="cta-block">
+  <h2>See your whole pipeline in one place.</h2>
+  <p>Dossie organizes every active file by stage automatically — built for Texas agents.</p>
+  <a class="cta-btn" href="/app">Start for $149/mo →</a>
+</section>
+
+
+<section class="faq-section">
+  <h2>Frequently asked</h2>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary class="faq-q">What stages does the Pipeline Dashboard track? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Nine: Pre-Listing, Pre-Contract, Active Listing, Under Contract, Option Period, Inspection, Financing, Title &amp; Survey, and Clear to Close. A tenth stage, Closed, exists in the data model but is shown in a separate Closed Dossiers view rather than as a column on the board.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">How does Dossie decide which deadline to show on a card? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Each card shows its nearest upcoming deadline pulled from that dossier&#39;s contract-derived dates. If none is set, it falls back to the closing date, marked overdue in red if that date has already passed.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Do closed deals stay on the Pipeline board? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">No. Once a dossier is archived, it&#39;s removed from the Pipeline board and appears instead under Closed Dossiers in the side navigation, which keeps a running count of how many files are archived.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Can I move a deal to a different stage manually? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Yes. Opening any dossier gives the option to advance it to the next stage or move it directly to a specific stage, in addition to the automatic progression as the deal moves forward.</div>
+    </details></div>
+</section>
+
+<section class="related"><h2>More features</h2><div class="related-grid"><a class="related-card" href="/features/how-dossie-handles-deadline-tracking"><h3>How Dossie Handles TREC Deadlines</h3><p>Every TREC deadline computed automatically from the effective date, with wire fraud and IABS warnings surfaced.</p><span class="related-arrow">→</span></a><a class="related-card" href="/features/how-dossie-handles-closing-milestones"><h3>How Dossie Handles Closing Milestones</h3><p>Every Under Contract, Clear to Close, and Closed milestone becomes a branded, privacy-safe card ready to share in one click.</p><span class="related-arrow">→</span></a><a class="related-card" href="/features/how-dossie-handles-closing-checklist"><h3>How Dossie Handles the Closing Checklist</h3><p>A side-specific pre-closing checklist that stays visible in every dossier until every item is verified.</p><span class="related-arrow">→</span></a></div></section>
+
+<p class="legal">
+  Screenshots shown are real Dossie product screens, not mockups. This page is provided as-is for informational purposes. <a href="/">meetdossie.com</a>
+</p>
+
+<script src="/assets/article-audio.js" defer></script>
+
+<script>
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('guide_page_viewed', {
+          page_type: 'feature',
+          page_slug: "how-dossie-handles-the-pipeline-dashboard",
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "faq": [
+    {
+      "a": "TREC Form 47-0, Addendum for Property in a Propane Gas System Service Area, effective 2/1/2014. It implements the seller notice requirement in Utilities Code Section 141.010(b).",
+      "q": "What TREC form is used for a propane gas system service area disclosure?"
+    },
+    {
+      "a": "Only when the property is located in a service area of a regulated propane distribution system retailer under Utilities Code Chapter 141 -- a company that runs shared propane lines to a subdivision or area, similar to how a gas utility operates. It does not apply just because a property has a propane tank; an individually owned or leased tank isn't a \"distribution system\" under this chapter.",
+      "q": "When is TREC 47-0 actually required?"
+    },
+    {
+      "a": "The seller must give the buyer written notice, and the buyer must acknowledge receipt at or before execution of a binding purchase contract, or at closing, per Section 141.010(b).",
+      "q": "Who has to give the notice, and when?"
+    },
+    {
+      "a": "A copy of the notice the distribution system retailer recorded in the county real property records under Section 141.010(a). The form directs the seller to get that copy from the county clerk's office or from the distribution system retailer.",
+      "q": "What has to be attached to the addendum?"
+    },
+    {
+      "a": "TREC 52-1 (Fixture Leases Addendum) covers a leased individual propane tank as a leased fixture on the property -- a private equipment-lease disclosure. TREC 47-0 covers a completely different scenario: the property sitting inside a regulated propane distribution system retailer's service area under Utilities Code Chapter 141. A file could theoretically need both, or neither, depending on the setup.",
+      "q": "How is TREC 47-0 different from the Fixture Leases Addendum's propane tank language?"
+    },
+    {
+      "a": "The statute requires the notice and sets the timing, but the specific remedies for a seller's failure to comply aren't spelled out in the plain text the way, say, the Seller's Disclosure Notice statute is. Treat any actual dispute over a missed 141.010 disclosure as a matter for a licensed Texas real estate attorney rather than something to resolve off a guide like this one.",
+      "q": "What happens if the notice isn't given?"
+    }
+  ],
+  "deck": "A short addendum that comes up in exactly one situation -- and gets skipped more often than it should because most agents have never heard of it.",
+  "slug": "texas-propane-gas-addendum-guide",
+  "title": "TREC 47-0: Addendum for Property in a Propane Gas System Service Area",
+  "eyebrow": "TREC Forms",
+  "body_html": "<p>Most Texas agents will go an entire career without touching <strong>TREC Form 47-0, Addendum for Property in a Propane Gas System Service Area</strong>. It only applies to a specific, fairly narrow situation: a property served by a regulated propane distribution system rather than a natural gas utility or an individually owned tank. When it does apply, though, it's a required statutory disclosure -- not optional boilerplate -- and skipping it creates real exposure.</p><p>This guide covers what the form says, when it's triggered, who has to give notice to whom, and how it's different from the propane-related addendum agents actually see more often: the Fixture Leases Addendum.</p><h2>What is a &quot;propane gas system service area&quot;?</h2><p>Texas Utilities Code Chapter 141, Subtitle C (Propane Gas Distribution Systems) regulates companies -- &quot;distribution system retailers&quot; -- that build and operate shared propane distribution lines to serve a subdivision or area, the same way a natural gas utility would, except the fuel is propane instead of piped natural gas. This is different from a homeowner's individually owned or leased propane tank sitting in the backyard; Chapter 141 is about a retailer running lines to multiple properties in a defined service area.</p><p>Under <strong>Utilities Code Section 141.010(a)</strong>, the distribution system retailer is required to record a disclosure notice in the real property records of every county where it operates a system, including a service map of the subdivisions or areas it serves and a summary of customers' rights under the chapter.</p><h2>When TREC 47-0 is required</h2><p><strong>Section 141.010(b)</strong> is the part that reaches into a real estate transaction: if a person sells or conveys real property located in one of these propane gas system service areas, they must give the purchaser written notice, and the buyer must acknowledge receipt <strong>at or before execution of a binding contract for the purchase of the property, or at closing</strong>. TREC 47-0 is the promulgated form used to satisfy that notice requirement -- it isn't a form TREC invented independently, it exists specifically to implement this statute.</p><p>The form itself is short: one page, a property address line, the statutory notice paragraph, and signature/date lines for buyer and seller. Critically, the form requires that <strong>a copy of the distribution retailer's recorded notice be attached</strong> to the addendum -- the form language references Section 141.010(a) directly and states the seller can obtain that recorded copy from the county clerk's office where the property is located, or from the distribution system retailer itself.</p><h2>What the notice actually tells the buyer</h2><p>The substance of the disclosure is that the property may be in a propane gas system service area, that there may be special costs or charges the buyer will have to pay before receiving propane service, and that there may be a lead time required to construct lines or other facilities to reach the property. The form advises the buyer to confirm with the distribution system retailer what those costs and timelines actually are before relying on propane service being available on day one.</p><h2>Practical steps for agents</h2><ul><li><strong>Ask early, not at the table.</strong> If a listing is in a rural subdivision without natural gas utility service, ask the seller (or check county records) whether propane is delivered via a shared distribution system retailer rather than an individually owned tank. That distinction determines whether 47-0 applies at all.</li><li><strong>Get the recorded notice, not just the form.</strong> TREC 47-0 without the attached recorded copy referenced in Section 141.010(a) is incomplete -- the form itself says so. Pull it from the county clerk or ask the retailer directly.</li><li><strong>Don't confuse this with the Fixture Leases Addendum.</strong> If the seller has a leased (not owned) individual propane tank on the property -- common with a single tank serving one house rather than a shared distribution system -- that's a fixture-lease disclosure issue (TREC 52-1), not a Section 141.010 service-area issue. See our guide on <a href=\"/guides/texas-fixture-leases-addendum-guide\">TREC 52-1</a> for that scenario.</li><li><strong>Timing matters.</strong> The statute allows acknowledgment either before the contract binds or at closing -- but waiting until closing to surface a propane service-area issue for the first time is a bad experience for a buyer who assumed standard utility gas was available.</li></ul><div class=\"callout\"><strong>Not legal advice.</strong> This is a general explainer, not a determination of whether a specific property triggers Section 141.010 or how a specific failure-to-disclose scenario would be treated. Whether a given system counts as a regulated distribution system retailer, and what remedies apply if notice is skipped, are questions for a licensed Texas real estate attorney -- especially on anything already in dispute.</div>",
+  "meta_title": "TREC 47-0 Propane Gas Addendum | What It Discloses",
+  "title_html": "TREC 47-0: Addendum for Property in a Propane Gas System Service Area",
+  "updated_at": "2026-08-12",
+  "related_blurb": "More TREC addenda worth knowing before you're staring at a stack of paper at the table.",
+  "related_guides": [
+    "texas-fixture-leases-addendum-guide",
+    "texas-sellers-disclosure-notice-guide",
+    "texas-utility-special-district-notices-guide",
+    "texas-mineral-rights-reservation-addendum"
+  ],
+  "calculator_blurb": "Not sure which addenda your file needs? Dossie flags the ones tied to your property type and location automatically -- see how in the calculator.",
+  "meta_description": "TREC Form 47-0 discloses when a property sits in a propane gas system service area under Utilities Code Section 141.010. Here's when agents need it and why."
+}
