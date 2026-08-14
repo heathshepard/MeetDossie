@@ -286,95 +286,38 @@
     }
   ],
   "functions": {
-    "api/cron-process-agent-requests.js": {
+    "api/{cron-process-agent-requests,cron-sage-draft-engagements,cron-sage-autonomous-review,cron-mission-watchdog,cron-verify-zernio-deliveries,cron-kpi-drift-detector}.js": {
       "maxDuration": 60
     },
-    "api/agent-dispatch.js": {
+    "api/{cron-affiliate-qualify-referrals,cron-daily-debrief,cron-fanout-builds-to-agent-queues,cron-autonomous-daily-digest,cron-inbox-scan,cron-support-ticket-alert,cron-apply-approved-improvements}.js": {
+      "maxDuration": 60
+    },
+    "api/cron-generate-heath-linkedin.js": {
+      "maxDuration": 60
+    },
+    "api/{agent-dispatch,cole-enqueue}.js": {
       "maxDuration": 10
     },
-    "api/cron-sage-draft-engagements.js": {
-      "maxDuration": 60
-    },
-    "api/cron-send-engagement-approvals.js": {
+    "api/{cron-send-engagement-approvals,cron-engagement-summary,cron-send-to-sage,cron-heath-publish-digest,cron-morning-ops-digest,cron-platform-health-checker,cron-account-session-monitor}.js": {
       "maxDuration": 30
     },
-    "api/cron-engagement-summary.js": {
+    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation,cron-content-pipeline-review,cron-content-pipeline-promote}.js": {
       "maxDuration": 30
     },
-    "api/cron-send-to-sage.js": {
-      "maxDuration": 30
-    },
-    "api/cron-sage-autonomous-review.js": {
-      "maxDuration": 60
-    },
-    "api/cron-heath-publish-digest.js": {
-      "maxDuration": 30
-    },
-    "api/cron-mission-watchdog.js": {
-      "maxDuration": 60
-    },
-    "api/cron-morning-ops-digest.js": {
-      "maxDuration": 30
-    },
-    "api/cron-cron-fire-verifier.js": {
-      "maxDuration": 120
-    },
-    "api/cron-platform-health-checker.js": {
-      "maxDuration": 30
-    },
-    "api/cron-account-session-monitor.js": {
+    "api/{admin-migrate-content-pipeline-queue,cron-cold-email-followup}.js": {
       "maxDuration": 30
     },
     "api/ventures/social-today.js": {
       "maxDuration": 30
     },
-    "api/cron-verify-zernio-deliveries.js": {
-      "maxDuration": 60
-    },
-    "api/cron-pull-post-analytics.js": {
+    "api/{cron-cron-fire-verifier,cron-pull-post-analytics,cron-customer-view-digest,cron-reconcile-future-builds,cron-self-improvement-daily,cron-regression-suite}.js": {
       "maxDuration": 120
     },
-    "api/cron-sage-intelligence-update.js": {
+    "api/{cron-sage-intelligence-update,cron-sage-research}.js": {
       "maxDuration": 90
     },
-    "api/cron-kpi-drift-detector.js": {
-      "maxDuration": 60
-    },
-    "api/cron-customer-view-digest.js": {
-      "maxDuration": 120
-    },
-    "api/cron-affiliate-qualify-referrals.js": {
-      "maxDuration": 60
-    },
-    "api/cron-staging-watcher.js": {
-      "maxDuration": 30
-    },
-    "api/cron-send-outbound-emails.js": {
-      "maxDuration": 30
-    },
-    "api/cron-daily-debrief.js": {
-      "maxDuration": 60
-    },
-    "api/cron-sage-research.js": {
-      "maxDuration": 90
-    },
-    "api/cron-dossie-full-diagnostic.js": {
+    "api/{cron-dossie-full-diagnostic,system-diagnostics-trigger,dossiesign-auto-map}.js": {
       "maxDuration": 300
-    },
-    "api/system-diagnostics-trigger.js": {
-      "maxDuration": 300
-    },
-    "api/cron-reconcile-future-builds.js": {
-      "maxDuration": 120
-    },
-    "api/cron-fanout-builds-to-agent-queues.js": {
-      "maxDuration": 60
-    },
-    "api/cron-agent-queue-orphan-reset.js": {
-      "maxDuration": 30
-    },
-    "api/cole-enqueue.js": {
-      "maxDuration": 10
     },
     "api/cron-codebase-facts-indexer.js": {
       "maxDuration": 60,
@@ -388,67 +331,21 @@
       "maxDuration": 300,
       "includeFiles": "{vercel.json,docs/**/*.md}"
     },
-    "api/cron-autonomous-daily-digest.js": {
-      "maxDuration": 60
-    },
     "api/cron-dossie-sign-completion-loop.js": {
       "maxDuration": 300,
       "includeFiles": "docs/**/*.md"
-    },
-    "api/cron-self-improvement-daily.js": {
-      "maxDuration": 120
-    },
-    "api/dossiesign-auto-map.js": {
-      "maxDuration": 300
-    },
-    "api/cron-inbox-scan.js": {
-      "maxDuration": 60
-    },
-    "api/cron-support-ticket-alert.js": {
-      "maxDuration": 60
-    },
-    "api/cron-apply-approved-improvements.js": {
-      "maxDuration": 60
-    },
-    "api/cron-friday-action-summary.js": {
-      "maxDuration": 30
-    },
-    "api/cron-stale-action-escalation.js": {
-      "maxDuration": 30
     },
     "api/cron-cold-email-daily-batch.js": {
       "maxDuration": 60,
       "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
     },
-    "api/cron-warm-touch-queue.js": {
+    "api/{cron-warm-touch-queue,cron-warm-touch-populate}.js": {
       "maxDuration": 30,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
-    },
-    "api/cron-regression-suite.js": {
-      "maxDuration": 120
     },
     "api/cron-generate-pages.js": {
       "maxDuration": 60,
       "includeFiles": "marketing/{guides-data,features-data,answers-data}/*.json"
-    },
-    "api/cron-content-pipeline-review.js": {
-      "maxDuration": 30
-    },
-    "api/cron-content-pipeline-promote.js": {
-      "maxDuration": 30
-    },
-    "api/admin-migrate-content-pipeline-queue.js": {
-      "maxDuration": 30
-    },
-    "api/cron-cold-email-followup.js": {
-      "maxDuration": 30
-    },
-    "api/cron-warm-touch-populate.js": {
-      "maxDuration": 30,
-      "includeFiles": "data/sa-realtor-leads-final-v2.csv"
-    },
-    "api/cron-generate-heath-linkedin.js": {
-      "maxDuration": 60
     }
   },
   "crons": [
