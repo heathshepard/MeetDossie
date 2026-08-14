@@ -1,0 +1,29 @@
+{
+  "slug": "can-seller-accept-backup-offer-under-contract-texas",
+  "title": "Can a Texas Seller Accept a Backup Offer While Already Under Contract?",
+  "title_html": "Can a Texas Seller Accept a <em>Backup Offer</em> While Already Under Contract?",
+  "meta_title": "Can a Texas Seller Accept a Backup Offer? — TREC 11-9 in Plain English",
+  "meta_description": "Yes — a Texas seller can sign a second, binding contract while under contract with a buyer, using TREC's Addendum for \"Back-Up\" Contract (TREC 11-9). Here's the short version.",
+  "deck": "Short answer: yes, and TREC built a form for exactly this. Here's the two-minute version.",
+  "updated_at": "2026-08-13",
+  "tldr": "Yes. A Texas seller can sign a second contract on the same property while still under contract with a first buyer, as long as the second contract has the Addendum for \"Back-Up\" Contract (TREC No. 11-9, effective 05-04-2026) attached. The back-up contract is binding the moment both parties sign it, but neither side has to perform while it's contingent on the first contract dying. If the first deal falls apart, the seller delivers notice using TREC No. 62-0 and the back-up contract's own deadlines start running from that notice date.",
+  "body_html": "<h2>Yes — this is a standard, TREC-supported move</h2><p>A seller isn't stuck waiting to see if a buyer performs before lining up a second option. TREC publishes a form for exactly this situation: the <strong>Addendum for \"Back-Up\" Contract (TREC No. 11-9)</strong>, effective 05-04-2026 and replacing the prior 11-8 version. It attaches to a second, fully executed contract on a property that already has a live first contract, so the two deals don't legally conflict.</p><h2>The back-up contract is real from day one — just not active</h2><p>Paragraph A of TREC 11-9 says the back-up contract is <strong>binding upon execution</strong>. The back-up buyer still delivers earnest money and any option fee under Paragraph 5 of that contract, plus a negotiated additional earnest money and additional option fee within a set number of days after the \"Amended Effective Date\" (more on that below). But Paragraph G makes clear the whole thing is contingent on the first contract terminating — and while that contingency is in place, neither the seller nor the back-up buyer has to actually perform.</p><h2>What happens when the first deal falls through</h2><p>If the original contract terminates, the seller has to tell the back-up buyer right away. That notice is now its own form: <strong>TREC No. 62-0</strong>, the Seller's Notice to Buyer of Removal of Contingency Under Addendum for \"Back-Up\" Contract, also effective 05-04-2026. It states three things — the first contract is terminated, the contingency in Paragraph G is removed, and the date on the notice becomes the back-up contract's <strong>Amended Effective Date</strong>. That's the date the back-up contract's own option period, financing deadline, and closing timeline start counting from — not the date it was originally signed.</p><div class=\"callout\"><strong>One thing this doesn't cover:</strong> an amendment to the first contract does not terminate it under Paragraph I of TREC 11-9 — so a routine amendment on the first deal (say, a repair credit) doesn't trigger the back-up contract into place. It has to actually terminate.</div><p>For the full paragraph-by-paragraph mechanics — the additional earnest money timing, weekend rollover, and how the buyer's unrestricted termination window interacts with the Amended Effective Date — see the full <a href=\"/guides/texas-back-up-contract-addendum-guide\">Texas Back-Up Contract Addendum guide</a>.</p>",
+  "faq": [
+    {
+      "q": "Does the seller need the first buyer's permission to accept a backup offer?",
+      "a": "No. TREC 11-9 doesn't require the first buyer's consent — the seller and the back-up buyer sign a separate, second contract. The first buyer typically never sees it unless the deal collapses and the property goes back on the market."
+    },
+    {
+      "q": "Is the backup buyer's earnest money at risk while the first contract is still active?",
+      "a": "The back-up buyer delivers earnest money and any option fee under Paragraph 5 of their own contract per Paragraph A of TREC 11-9. If the first contract never terminates by the deadline stated in Paragraph H, the back-up contract terminates and that earnest money is refunded to the buyer."
+    },
+    {
+      "q": "What form does a seller use to activate a backup contract in Texas?",
+      "a": "TREC No. 62-0, the Seller's Notice to Buyer of Removal of Contingency Under Addendum for \"Back-Up\" Contract. It confirms the first contract terminated, removes the Paragraph G contingency, and sets the Amended Effective Date."
+    },
+    {
+      "q": "Can more than one backup contract be signed on the same property?",
+      "a": "TREC 11-9 doesn't cap the number of back-up contracts a seller can line up, but each one needs its own addendum identifying which prior contract it's contingent behind. Stacking multiple back-up contracts gets procedurally complex fast — that's a scenario worth running past a Texas real estate attorney or broker before using it."
+    }
+  ]
+}
