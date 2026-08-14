@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TREC Rule 535.2 Broker Responsibility Guide | Dossie</title>
+<meta name="description" content="What 22 TAC §535.2 actually makes a Texas broker responsible for when a sponsored agent or an unlicensed assistant/TC makes a mistake, and where the line sits.">
+<link rel="canonical" href="https://meetdossie.com/guides/trec-rule-535-2-broker-responsibility-guide">
+<meta name="author" content="Heath Shepard, Texas REALTOR®">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TREC Rule 535.2: What a Broker Is Responsible for When an Agent or TC Makes a Mistake">
+<meta property="og:description" content="What 22 TAC §535.2 actually makes a Texas broker responsible for when a sponsored agent or an unlicensed assistant/TC makes a mistake, and where the line sits.">
+<meta property="og:url" content="https://meetdossie.com/guides/trec-rule-535-2-broker-responsibility-guide">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/calculator-widget.css">
+<script src="/assets/posthog-loader.js"></script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"TREC Rule 535.2: What a Broker Is Responsible for When an Agent or TC Makes a Mistake","description":"What 22 TAC §535.2 actually makes a Texas broker responsible for when a sponsored agent or an unlicensed assistant/TC makes a mistake, and where the line sits.","author":{"@type":"Person","name":"Heath Shepard","jobTitle":"Texas REALTOR®"},"publisher":{"@type":"Organization","name":"Dossie","url":"https://meetdossie.com"},"mainEntityOfPage":"https://meetdossie.com/guides/trec-rule-535-2-broker-responsibility-guide","datePublished":"2026-05-05","dateModified":"2026-08-13"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://meetdossie.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://meetdossie.com/guides/"},{"@type":"ListItem","position":3,"name":"TREC Rule 535.2: What a Broker Is Responsible for When an Agent or TC Makes a Mistake","item":"https://meetdossie.com/guides/trec-rule-535-2-broker-responsibility-guide"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is a Texas broker automatically liable if a TC miscounts an option period deadline?","acceptedAnswer":{"@type":"Answer","text":"Not automatically in the sense of strict liability, but Rule 535.2 puts the broker’s name on the file either way. If the TC stayed inside the Rule 535.5 permitted-task list (like data entry and deadline tracking as directed), it’s a supervision issue the broker is professionally and contractually responsible for through the brokerage. Whether it also creates personal civil liability for the broker is a fact-specific negligence question under Texas law that needs a licensed Texas attorney, not a rule citation."}},{"@type":"Question","name":"Does TREC directly regulate transaction coordinators?","acceptedAnswer":{"@type":"Answer","text":"Not if the TC is unlicensed and stays within the tasks Rule 535.5 exempts from licensure (scheduling, data entry as directed, bookkeeping, tracking deadlines, distributing executed documents). TREC’s authority reaches the TC directly only if the TC crosses into activity that requires a license under TRELA §1101.002(1)(A) — at that point it becomes an unlicensed-practice issue for the TC and a supervision issue for the broker who allowed or paid for it."}},{"@type":"Question","name":"Can a broker hand off Rule 535.2 responsibility entirely to a team lead or office manager?","acceptedAnswer":{"@type":"Answer","text":"Not entirely. Rule 535.2(e) allows a broker to delegate supervisory duties to another license holder in writing, and any team lead or manager doing that job must be formally delegated. But the rule is explicit that the broker cannot relinquish overall responsibility for supervision — delegation shares the day-to-day work, it doesn’t transfer the regulatory responsibility away from the broker."}},{"@type":"Question","name":"What’s the actual penalty if an unlicensed assistant or TC does something that requires a license?","acceptedAnswer":{"@type":"Answer","text":"Acting as a broker or sales agent without a license is a Class A misdemeanor under Tex. Occ. Code §1101.758, carrying up to a $4,000 fine, up to a year of confinement, or both, under the general Class A misdemeanor penalty in Tex. Penal Code §12.21. TREC can separately issue a cease-and-desist order under §1101.759 against the unlicensed person and pursue license discipline against a broker who knowingly paid or associated with them for that activity."}},{"@type":"Question","name":"Does using TC software change what a broker is responsible for under Rule 535.2?","acceptedAnswer":{"@type":"Answer","text":"No — Rule 535.2’s responsibilities attach to the broker and the sponsoring relationship regardless of what tools the office uses. What good TC software changes is the evidence: an automatically calculated deadline and a timestamped record of who sent what, when, is a much stronger position in a dispute than an unlogged manual process, and it directly supports the recordkeeping the rule already requires under 535.2(h)."}}]}</script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #FDFCFA; --bg-warm: #F9F6F1; --bg-card: #FFFFFF;
+  --border: #E8E2D9; --border-light: #F0EBE3;
+  --text-primary: #2D2A26; --text-secondary: #7A7468; --text-light: #A39E94;
+  --blush: #D4A0A0; --blush-light: #F2E4E4; --blush-deep: #C08080;
+  --sage: #8FAF8F; --sage-light: #E4EDE2; --sage-deep: #6B8E68;
+  --gold: #C9A84C; --gold-light: #F5EDD8; --gold-deep: #A48531;
+  --coral: #E8836B; --coral-light: #FCE4DC; --coral-deep: #C9624A;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: var(--coral-deep); }
+
+nav { position: sticky; top: 0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 100; background: rgba(253,252,250,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-light); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-mark { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--gold) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
+.nav-name { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
+.nav-cta { display: inline-flex; align-items: center; padding: 10px 18px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 8px 20px rgba(232,131,107,0.28); }
+.nav-cta:hover { background: var(--coral-deep); }
+
+.crumbs { max-width: 760px; margin: 32px auto 0; padding: 0 24px; font-size: 12px; color: var(--text-light); letter-spacing: 0.4px; }
+.crumbs a { color: var(--text-secondary); text-decoration: none; }
+
+.article-hero { padding: 32px 24px 24px; max-width: 760px; margin: 0 auto; }
+.article-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--gold-deep); }
+.article-hero h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(34px, 5.4vw, 52px); font-weight: 600; line-height: 1.05; letter-spacing: -1px; color: var(--text-primary); margin-top: 10px; }
+.article-hero h1 em { font-style: italic; color: var(--blush-deep); }
+.article-hero .deck { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--blush-deep); margin-top: 12px; }
+.article-meta { font-size: 13px; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.article-meta strong { color: var(--text-primary); font-weight: 700; }
+
+.listen-btn { margin-top: 18px; display: inline-flex; align-items: center; gap: 10px; padding: 11px 20px 11px 16px; border: 1px solid var(--blush); border-radius: 999px; background: var(--blush-light); color: var(--blush-deep); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.listen-btn:hover { background: var(--blush); color: #fff; transform: translateY(-1px); }
+.listen-icon { display: inline-flex; width: 16px; height: 16px; }
+.listen-spin { animation: listen-spin 0.9s linear infinite; }
+@keyframes listen-spin { to { transform: rotate(360deg); } }
+
+main.article { max-width: 760px; margin: 0 auto; padding: 24px; }
+main.article h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(24px, 3.6vw, 34px); font-weight: 600; line-height: 1.2; color: var(--text-primary); margin: 36px 0 14px; letter-spacing: -0.4px; }
+main.article h3 { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 28px 0 10px; }
+main.article p { font-size: 16px; color: var(--text-primary); margin: 12px 0; line-height: 1.75; }
+main.article ul, main.article ol { margin: 12px 0 12px 22px; }
+main.article li { margin: 6px 0; line-height: 1.7; font-size: 16px; }
+main.article strong { color: var(--text-primary); font-weight: 700; }
+main.article blockquote { margin: 18px 0; padding: 16px 20px; border-left: 3px solid var(--blush); background: var(--bg-warm); border-radius: 0 12px 12px 0; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--text-primary); }
+.callout { margin: 22px 0; padding: 18px 22px; background: var(--blush-light); border-radius: 14px; font-size: 15.5px; line-height: 1.65; color: var(--text-primary); border: 1px solid var(--blush); }
+.callout strong { color: var(--blush-deep); }
+
+.compare-wrap { margin: 28px 0; overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 14px; overflow: hidden; }
+.compare-table th { background: var(--bg-warm); font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: var(--text-primary); text-align: left; padding: 14px 16px; }
+.compare-table td { padding: 14px 16px; border-top: 1px solid var(--border-light); color: var(--text-secondary); vertical-align: top; }
+
+.calc-section { max-width: 1080px; margin: 56px auto 0; padding: 0 24px; }
+.calc-section .section-h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(26px, 4vw, 36px); font-weight: 600; color: var(--text-primary); }
+.calc-section .section-sub { font-size: 15px; color: var(--text-secondary); margin: 8px 0 24px; max-width: 640px; line-height: 1.7; }
+
+.cta-block { margin: 56px auto 0; max-width: 760px; padding: 36px 28px; background: linear-gradient(180deg, var(--bg-card) 0%, var(--blush-light) 220%); border: 1px solid var(--blush); border-radius: 22px; text-align: center; }
+.cta-block h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 3.4vw, 30px); font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.2; }
+.cta-block p { color: var(--text-secondary); font-size: 15px; max-width: 580px; margin: 0 auto 18px; }
+.cta-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 999px; background: var(--coral); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 30px rgba(232,131,107,0.28); transition: transform 0.15s, background 0.15s; }
+.cta-btn:hover { transform: translateY(-1px); background: var(--coral-deep); }
+
+.faq-section { max-width: 760px; margin: 56px auto 0; padding: 0 24px; }
+.faq-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.faq-item { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; }
+.faq-item[open] { border-color: var(--blush); }
+.faq-q { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 22px; cursor: pointer; font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-primary); list-style: none; }
+.faq-q::-webkit-details-marker { display: none; }
+.faq-toggle { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-warm); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-secondary); flex-shrink: 0; transition: transform 0.2s, background 0.2s; }
+.faq-item[open] .faq-toggle { transform: rotate(45deg); background: var(--coral-light); color: var(--coral-deep); }
+.faq-a { padding: 0 22px 20px; font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; }
+
+.related { max-width: 1080px; margin: 64px auto 0; padding: 0 24px; }
+.related h2 { font-family: 'Cormorant Garamond', serif; font-size: clamp(24px, 3.4vw, 32px); font-weight: 600; color: var(--text-primary); }
+.related-grid { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.related-card { display: block; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 22px 22px 26px; text-decoration: none; color: var(--text-primary); transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.related-card:hover { transform: translateY(-2px); border-color: var(--blush); box-shadow: 0 14px 32px rgba(45,42,38,0.06); }
+.related-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; color: var(--text-primary); line-height: 1.25; margin-bottom: 6px; }
+.related-card p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
+.related-arrow { display: inline-block; margin-top: 8px; font-size: 14px; color: var(--coral-deep); font-weight: 700; }
+
+.legal { padding: 24px; text-align: center; font-size: 12px; color: var(--text-light); line-height: 1.6; max-width: 760px; margin: 32px auto 0; }
+.legal a { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo"><span class="nav-mark">D</span><span class="nav-name">Dossie</span></a>
+  <a href="/app" class="nav-cta">Get Started</a>
+</nav>
+
+<div class="crumbs">
+  <a href="/">Home</a> · <a href="/calculator">Calculator</a> · <span>TREC Rule 535.2: What a Broker Is Responsible for When an Agent or TC Makes a Mistake</span>
+</div>
+
+<header class="article-hero">
+  <div class="article-eyebrow">Broker Supervision</div>
+  <h1>TREC Rule 535.2: What a Broker Is Responsible for When an Agent or TC Makes a Mistake</h1>
+  <p class="deck">Every Texas broker sponsoring agents or using a TC has heard “the buck stops with you.” Rule 535.2 is more specific than that — here’s exactly what it says, and what it doesn’t.</p>
+  <div class="article-meta">
+    <span>By <strong>Heath Shepard</strong>, Texas REALTOR®</span>
+    <span>Updated 2026-08-13</span>
+  </div>
+  <button id="dossie-listen-btn" class="listen-btn" type="button" data-type="guide" data-slug="trec-rule-535-2-broker-responsibility-guide" data-idle-label="Listen to this guide">
+    <span class="listen-icon"></span>
+    <span class="listen-label">Listen to this guide</span>
+  </button>
+  <audio id="dossie-listen-audio" preload="none"></audio>
+</header>
+
+<main class="article">
+<p>“The broker is responsible for everything” is the line every TC and every new sales agent hears. It’s close, but it’s not what 22 Tex. Admin. Code §535.2 (<strong>Broker Responsibility</strong>) actually says — and the gap between the folklore version and the rule’s actual text matters if a deadline gets miscounted or a document goes out wrong.</p>
+
+<h2>What Rule 535.2 says, subsection by subsection</h2>
+<p>22 TAC §535.2 runs from subsection (a) through (m). The pieces that matter most for a broker working with sponsored agents and a transaction coordinator (licensed or not):</p>
+<ul>
+<li><strong>(a)</strong> — a broker must notify each sponsored sales agent, in writing, of the scope of that agent’s authorized activities. Unless that scope is limited or revoked in writing, the broker is responsible for the agent’s <em>authorized</em> acts — without being required to supervise the agent directly, day to day.</li>
+<li><strong>(e)</strong> — a broker may delegate supervisory responsibility to another license holder in writing, but cannot hand off <em>overall</em> responsibility for supervision. Anyone who leads, supervises, or manages a team must be delegated as a supervisor in writing, and if that delegation runs longer than three consecutive months, the broker must report it to TREC within 30 days.</li>
+<li><strong>(h)</strong> — the broker must keep records for at least four years: disclosures, commission agreements, communications, offers, contracts, and sponsorship agreements among them.</li>
+<li><strong>(i)</strong> — the broker must maintain current written office policies covering, among other things, how sponsored agents are trained on new activities, how advertising is reviewed, and how trust funds and records are handled.</li>
+<li><strong>(j)</strong> and <strong>(k)</strong> — the broker (or a delegated supervisor) must respond to a sponsored agent within two calendar days, and get Commission correspondence to the relevant agent within three calendar days of receipt.</li>
+</ul>
+<p>Two things Rule 535.2 explicitly does <em>not</em> do: it doesn’t require a broker to personally re-check every file (that’s what the delegation language in (e) is for), and per subsection (m), it doesn’t create or require an employer-employee relationship between a broker and a sponsored sales agent. Most Texas sales agents are independent contractors for tax and employment-law purposes even though the broker carries regulatory responsibility for their authorized acts.</p>
+
+<h2>The word doing the real work: “authorized”</h2>
+<p>Subsection (a)’s responsibility is tied to acts the broker put in writing as within the agent’s authorized scope. An agent who does exactly what the brokerage’s written scope of activity allows, and gets a fact wrong or misses a step, is acting within that authorized scope — the broker’s regulatory responsibility under (a) is squarely engaged. An agent who goes outside that written scope entirely is a murkier case that TREC and, separately, Texas agency/tort law would look at on its own facts. That written-scope document (a broker policy manual, an office procedures memo, a delegation letter) is the thing that actually defines the line, and it’s worth having current and specific rather than boilerplate.</p>
+
+<h2>Where an unlicensed TC fits — a different rule, not 535.2</h2>
+<p>Rule 535.2 governs the broker’s responsibility for <em>sponsored sales agents</em> — license holders. An unlicensed transaction coordinator isn’t a sponsored agent, so 535.2 doesn’t directly reach them. The relevant framework is TRELA §1101.002(1)(A) (which defines the activities that require a license), TRELA §1101.351 (which prohibits engaging in brokerage activity without one), and TREC Rules 535.4 and 535.5, which spell out what does and doesn’t require a license.</p>
+<p>Per TREC’s own guidance, an unlicensed assistant or TC generally <strong>can</strong>: schedule showings and inspections, confirm already-advertised property facts, enter data into a contract only as specifically directed by a license holder, track deadlines, distribute copies of executed documents, handle bookkeeping, and communicate purely factual information between parties.</p>
+<p>An unlicensed assistant or TC generally <strong>cannot</strong>: solicit new listings or business, show property or host an open house, independently review or interpret a contract, negotiate any term, or give an opinion on value or on how to handle a contractual decision. Title (“transaction coordinator,” “admin,” “showing assistant”) doesn’t change the analysis — license status does.</p>
+
+<h2>Two very different kinds of TC mistake</h2>
+<p>This is the distinction that actually drives what a broker is on the hook for:</p>
+<div class="callout"><strong>Administrative mistake, inside the permitted-task list.</strong> A TC miscounts an option period, mistypes a deadline, or sends the wrong version of a form — while staying within the Rule 535.5 list above. This isn’t an unlicensed-practice problem. It’s a supervision and quality-control problem, and under Rule 535.2 the broker carries professional and contractual responsibility to the client for it, through the sponsoring relationship and the brokerage’s own agreements with that client — the way any principal is answerable for an agent or staff member’s error made in the course of authorized work. Whether that specific mistake also creates <em>civil</em> liability (negligence, breach of fiduciary duty, an E&amp;O claim) is a fact-specific question under Texas agency and tort law that a licensed Texas attorney needs to evaluate on the actual file — that determination doesn’t come from Rule 535.2 itself.</div>
+<div class="callout"><strong>The TC (or a mistake) crosses into licensed activity.</strong> If a TC negotiates a repair credit, advises a client on whether to accept an offer, or independently interprets contract language, that’s brokerage activity requiring a license under TRELA §1101.002(1)(A). Engaging in that activity without a license — or a broker knowingly paying or associating with someone who does — is a Class A misdemeanor under Tex. Occ. Code §1101.758 (up to a $4,000 fine, up to one year confinement, or both, under the general Class A misdemeanor penalty at Tex. Penal Code §12.21). TREC can also issue a cease-and-desist order under §1101.759 and pursue separate license discipline against the broker for permitting it.</div>
+
+<h2>What actually protects a broker</h2>
+<p>None of this is theoretical risk-avoidance filler — it maps directly onto Rule 535.2’s own requirements:</p>
+<ul>
+<li><strong>Written scope of authority</strong> for every sponsored agent (535.2(a)) and a written job description for every unlicensed TC that tracks the Rule 535.5 permitted list, not a vague “handles the file” description.</li>
+<li><strong>Written delegation</strong> if a team lead or office manager is doing day-to-day supervision (535.2(e)), with the 30-day TREC notice if that delegation runs past three months.</li>
+<li><strong>Written office policies</strong> (535.2(i)) that specifically address how new agents and TCs are trained on deadline tracking, document handling, and advertising review — not a generic manual that hasn’t been touched since the brokerage opened.</li>
+<li><strong>A documented, time-stamped record</strong> of who tracked which deadline and when (supports the 535.2(h) four-year retention requirement and is the difference between “the TC’s word against the client’s” and an actual audit trail if a deadline dispute ever comes up).</li>
+</ul>
+<p>This is exactly the gap a structured TC workflow closes: instead of a deadline living in one person’s memory or a sticky note, the effective date, option period, and financing deadlines get calculated and logged automatically, with a timestamped record of what was sent to whom and when.</p>
+
+<p><em>This page is general information about how TREC’s rule is structured, not legal advice about a specific broker-agent-TC situation. If a mistake has already happened and money or a license is on the line, that fact pattern needs review by a licensed Texas attorney — not a guide page.</em></p>
+</main>
+
+
+    <section class="calc-section" aria-labelledby="calc-title">
+      <h2 class="section-h2" id="calc-title">Try the calculator</h2>
+      <p class="section-sub">A miscounted deadline is one of the most common TC mistakes brokers get pulled into. Dossie’s TREC deadline calculator and option-period tools build the count automatically from the effective date, so it isn’t riding on one person’s math.</p>
+      <div id="dossie-calculator"></div>
+    </section>
+
+<section class="cta-block">
+  <h2>Stop tracking deadlines manually.</h2>
+  <p>Dossie tracks every TREC deadline for every active deal — plus follow-ups, document QA, and contract scanning. Built for Texas agents.</p>
+  <a class="cta-btn" href="/app">Start for $149/mo →</a>
+</section>
+
+
+<section class="faq-section">
+  <h2 class="section-h2">Frequently asked</h2>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary class="faq-q">Is a Texas broker automatically liable if a TC miscounts an option period deadline? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Not automatically in the sense of strict liability, but Rule 535.2 puts the broker’s name on the file either way. If the TC stayed inside the Rule 535.5 permitted-task list (like data entry and deadline tracking as directed), it’s a supervision issue the broker is professionally and contractually responsible for through the brokerage. Whether it also creates personal civil liability for the broker is a fact-specific negligence question under Texas law that needs a licensed Texas attorney, not a rule citation.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Does TREC directly regulate transaction coordinators? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Not if the TC is unlicensed and stays within the tasks Rule 535.5 exempts from licensure (scheduling, data entry as directed, bookkeeping, tracking deadlines, distributing executed documents). TREC’s authority reaches the TC directly only if the TC crosses into activity that requires a license under TRELA §1101.002(1)(A) — at that point it becomes an unlicensed-practice issue for the TC and a supervision issue for the broker who allowed or paid for it.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Can a broker hand off Rule 535.2 responsibility entirely to a team lead or office manager? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Not entirely. Rule 535.2(e) allows a broker to delegate supervisory duties to another license holder in writing, and any team lead or manager doing that job must be formally delegated. But the rule is explicit that the broker cannot relinquish overall responsibility for supervision — delegation shares the day-to-day work, it doesn’t transfer the regulatory responsibility away from the broker.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">What’s the actual penalty if an unlicensed assistant or TC does something that requires a license? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">Acting as a broker or sales agent without a license is a Class A misdemeanor under Tex. Occ. Code §1101.758, carrying up to a $4,000 fine, up to a year of confinement, or both, under the general Class A misdemeanor penalty in Tex. Penal Code §12.21. TREC can separately issue a cease-and-desist order under §1101.759 against the unlicensed person and pursue license discipline against a broker who knowingly paid or associated with them for that activity.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Does using TC software change what a broker is responsible for under Rule 535.2? <span class="faq-toggle">+</span></summary>
+      <div class="faq-a">No — Rule 535.2’s responsibilities attach to the broker and the sponsoring relationship regardless of what tools the office uses. What good TC software changes is the evidence: an automatically calculated deadline and a timestamped record of who sent what, when, is a much stronger position in a dispute than an unlogged manual process, and it directly supports the recordkeeping the rule already requires under 535.2(h).</div>
+    </details></div>
+</section>
+
+<section class="related"><h2>Related guides</h2><div class="related-grid"><a class="related-card" href="/guides/texas-tc-license-requirements-guide"><h3>Does a Texas Transaction Coordinator Need a Real Estate License?</h3><p>What a Texas TC can do without a license, what crosses into brokerage activity, and the statute numbers behind each line.</p><span class="related-arrow">→</span></a><a class="related-card" href="/guides/what-does-a-tc-do-texas"><h3>What Does a Transaction Coordinator Do in Texas?</h3><p>What a transaction coordinator actually does for a Texas agent — and where the cost goes.</p><span class="related-arrow">→</span></a><a class="related-card" href="/guides/ai-transaction-coordinator-texas"><h3>AI Transaction Coordinator for Texas Agents</h3><p>AI transaction coordination for Texas — what&#39;s automated and what still needs a human.</p><span class="related-arrow">→</span></a></div></section>
+
+<p class="legal">
+  This guide is provided as-is for educational purposes. It is not legal advice. Always verify deadlines and contract interpretations against your executed contract and confer with your broker or a Texas real estate attorney for binding interpretations. <a href="/">meetdossie.com</a>
+</p>
+
+<script src="/assets/trec-engine.js"></script>
+<script src="/assets/calculator-widget.js"></script>
+<script src="/assets/article-audio.js" defer></script>
+
+<script>
+// Analytics: fire guide_page_viewed with page_type/slug so Pierce can compare
+// which guides actually get traffic. Wrapped in posthog:ready — see
+// founding.html for why (pre-boot stub queue isn't reliably read by array.js).
+(function () {
+  try {
+    document.addEventListener('posthog:ready', function () {
+      try {
+        window.posthog.capture('guide_page_viewed', {
+          page_type: 'guide',
+          page_slug: "trec-rule-535-2-broker-responsibility-guide",
+        });
+      } catch (_) { /* analytics never load-bearing */ }
+    });
+  } catch (err) { /* analytics is never load-bearing */ }
+})();
+</script>
+
+</body>
+</html>
