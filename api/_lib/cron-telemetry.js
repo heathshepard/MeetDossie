@@ -96,6 +96,22 @@ function withTelemetry(cronName, handler) {
 
     async function finalizeAndPassThrough(passThrough) {
       const code = (res && typeof res.statusCode === 'number') ? res.statusCode : 0;
+      // 401 = the auth gate rejected this specific caller, not "the cron ran
+      // and failed." A real cron trigger (Vercel's own x-vercel-cron header,
+      // or a correct manual Bearer CRON_SECRET) never gets a 401 from its own
+      // endpoint — only an unauthenticated/misauthenticated caller does
+      // (health-check bots, scanners, a stray curl without the secret, etc).
+      // Recording those into cron_runs overwrote the real last-known-good
+      // status for low-frequency crons (e.g. once-daily) with a false
+      // "persistently failing" signal that could sit there for up to 24h
+      // until the next legitimate run. Root cause of the 2026-08-14
+      // cron-followup false alarm (http_401 was a stray unauthenticated hit,
+      // not a scheduler failure — confirmed the endpoint returns 200 with the
+      // correct CRON_SECRET). Skip telemetry entirely for 401s; still record
+      // everything else (2xx, and genuine errors from an authenticated run).
+      if (code === 401) {
+        return passThrough();
+      }
       const status = code >= 400 ? 'error' : 'ok';
       const extra = code >= 400 ? { error: `http_${code}` } : {};
       await record(status, extra);
