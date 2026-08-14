@@ -622,6 +622,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron-esign-events",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron-support-ticket-alert",
       "schedule": "*/30 * * * *"
     },
