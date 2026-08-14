@@ -540,6 +540,50 @@ async function handler(req, res) {
 
   const deals = await loadActiveDeals(userId);
 
+  // Dry run: parse and report what WOULD happen, writing nothing. Provider
+  // email layouts change without notice and are the most likely thing to break
+  // this pipeline silently, so keeping a first-class way to inspect the real
+  // parse is worth more than the few lines it costs.
+  // CRON_SECRET-gated, same as the live path.
+  if (req.query && (req.query.dry === '1' || req.query.dry === 'true')) {
+    const out = [];
+    for (const messageId of ids.slice(0, 12)) {
+      try {
+        const msg = await gmail(`messages/${messageId}`, { format: 'full' });
+        const hdr = headerMap(msg?.payload?.headers);
+        const { email: fromEmail } = parseFrom(hdr['from']);
+        const subject = hdr['subject'] || '';
+        const body = bodyOfMessage(msg);
+        const parsed = parseEsignNotification({ fromEmail, subject, body });
+        const match = parsed ? matchToDeal(parsed, deals) : null;
+        out.push({
+          messageId,
+          from: fromEmail,
+          subject,
+          attachments: findPdfAttachments(msg).map((a) => ({ name: a.filename, size: a.size })),
+          parsed: parsed && {
+            provider: parsed.provider,
+            action: parsed.action,
+            documentName: parsed.documentName,
+            participantName: parsed.participantName,
+            isCompletion: parsed.isCompletion,
+            linkCount: (parsed.documentLinks || []).length,
+          },
+          match: match && { dealAddress: match.deal ? match.deal.address : null, confidence: match.confidence, reason: match.reason },
+          bodyExcerpt: String(body).replace(/\s+/g, ' ').slice(0, 700),
+        });
+      } catch (err) {
+        out.push({ messageId, error: String(err.message).slice(0, 160) });
+      }
+    }
+    return res.status(200).json({
+      ok: true,
+      status: 'dry_run',
+      activeDeals: deals.map((d) => d.address),
+      messages: out,
+    });
+  }
+
   for (const messageId of ids) {
     try {
       if (await alreadyProcessed(userId, messageId)) continue;
