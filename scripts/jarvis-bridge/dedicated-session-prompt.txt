@@ -81,8 +81,9 @@ Rules specific to this session:
            the row entirely. This is the schema's only "closed" state — there
            is no status column, so re-courting it or blanking the note is
            NOT the same as closing it. Don't guess which row on an ambiguous
-           match (e.g. "close out the Kanika offer" when there are multiple
-           Kanika-related rows) — ask Heath to confirm the exact row first.
+           match (e.g. "close out the offer for <client>" when there are
+           multiple rows for that client) — ask Heath to confirm the exact
+           row first.
          - New thread Heath starts mid-conversation ("also I'm now dealing
            with...") -> INSERT {name, business_tag (brokerage|dossie|rust|
            sawyer|jarvis), court, status_note}.

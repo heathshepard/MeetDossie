@@ -16,9 +16,10 @@
 //      on anything that fails this.
 //   4. Build the relevance context fresh each run: active (non-closed)
 //      transactions for Heath's own KW account (property + buyer/seller
-//      names), a small static known-clients list, and the Dossie/MeetDossie
-//      allow-list (brand terms + known customer emails/domains, kept in sync
-//      with docs/CUSTOMERS.md by hand).
+//      names), the standing client/customer watchlist from the
+//      RELEVANCE_WATCHLIST_JSON env var, and the Dossie/MeetDossie brand
+//      terms. No client names or customer addresses live in this file — the
+//      repo is public. See loadWatchlist() below.
 //   5. ONE claude-haiku-4-5 call per surviving candidate — classify relevant
 //      y/n, matched deal/person, <=2 sentence reason. No agentic loop, no
 //      multi-turn, no big model. Cost discipline is deliberate here — see
@@ -73,38 +74,69 @@ const MAX_CANDIDATES = 50;      // Gmail messages.list cap per run
 const MAX_CLASSIFY_CALLS = 25;  // hard ceiling on Haiku calls per run, cost guardrail
 
 // --------------------------------------------------------------------------
-// Known-clients / business allow-list — static, hand-maintained.
+// Known-clients / customer allow-list — read from env, NOT from source.
 //
-// Deals are NOT hardcoded here (they change) — those come live from the
-// transactions table each run. This list is for people/entities that matter
-// to Heath but may not always have an open transactions row: named clients
-// he's asked to be watched for, and the Dossie/MeetDossie business itself
-// (customer support, sales inquiries). Keep in sync with docs/CUSTOMERS.md
-// when the roster changes.
+// THIS DATA IS NOT ALLOWED BACK IN THIS FILE. Until 2026-08-15 it was two
+// hardcoded arrays right here: real client names, the client relationship,
+// the property they bought, and the paying-customer roster with personal
+// email addresses. heathshepard/MeetDossie is a PUBLIC repo — that was live
+// client PII sitting in public source. It now comes from the
+// RELEVANCE_WATCHLIST_JSON env var in Vercel (Production + Preview), same as
+// any other secret-ish value. If you find yourself typing a client name into
+// this file, stop.
+//
+// Shape (single-line JSON, both keys optional):
+//   {
+//     "clients":   [ { "name": "Jane Doe", "note": "buyer, closed 123 Example St 2024" } ],
+//     "customers": [ { "label": "Jane Doe (Example Realty)", "match": "@examplerealty.com" } ]
+//   }
+// `match` is either an exact address or a whole domain starting with "@".
+// Company-domain customers should use the domain (catches any address there);
+// gmail-based customers must use the exact address — a bare "gmail.com" entry
+// would match nearly everything and defeat the prefilter.
+//
+// To change the roster: update the env var in Vercel (all environments you
+// care about) — it takes effect on the next deploy. Keep it in sync with
+// docs/CUSTOMERS.md by hand, same as the old array was.
+//
+// Deals are deliberately NOT in here either (they change constantly) — those
+// come live from the transactions table each run. This list is only for
+// people/entities that matter to Heath but may not always have an open
+// transactions row.
+//
+// Failure mode is deliberate: if the var is unset or malformed, the cron logs
+// a warning and keeps going with live deals + brand terms only. Losing the
+// static roster costs recall; it does not break the run.
 // --------------------------------------------------------------------------
-const STATIC_KNOWN_CLIENTS = [
-  { name: 'Kanika Jain', note: 'STR investor client, bought 9210 Serene Creek 2024, back for a second property' },
-  { name: 'Ketan Thakkar', note: 'STR investor client, same household as Kanika Jain' },
-];
 
 const DOSSIE_BUSINESS_TERMS = ['Dossie', 'MeetDossie', 'meetdossie.com'];
 
-// docs/CUSTOMERS.md roster, 2026-08-04 snapshot. Company-domain customers
-// listed by domain (catches any address at that domain); gmail-based
-// customers listed by exact address (a bare "gmail.com" allow-list would
-// match nearly everything and defeat the point of prefiltering).
-const KNOWN_CUSTOMER_CONTACTS = [
-  { label: 'Brittney YBarbo (SETX Realty)', match: '@setxrealty.com' },
-  { label: 'Suzanne Page', match: 'k.suzanne.page@gmail.com' },
-  { label: 'Miki Mccarthy', match: 'mikirgvrealtor@gmail.com' },
-  { label: 'Cecilia Whitley (Sterling & Associates)', match: '@sterlingassociatesre.com' },
-  { label: 'Terry Katz', match: 'michellesellshouston@gmail.com' },
-  { label: 'Amanda Nuckles', match: '@amandanuckles.com' },
-  { label: 'Zelda Cain (A2Z Real Estate Consultants)', match: '@a2zrealestateconsultants.com' },
-  { label: 'Natalie Megerson (Local Choice Group)', match: '@localchoicegroup.com' },
-  { label: 'Jennifer Beltran (Casa Mia)', match: 'jenn.casamiateam@gmail.com' },
-  { label: 'Lisa Nilsson (Premier Hill Country Properties)', match: 'lisanilssontx@gmail.com' },
-];
+const EMPTY_WATCHLIST = { clients: [], customers: [] };
+
+function loadWatchlist() {
+  const raw = process.env.RELEVANCE_WATCHLIST_JSON;
+  if (!raw || !raw.trim()) {
+    console.warn('[cron-relevance-watcher] RELEVANCE_WATCHLIST_JSON unset — classifying on live deals only');
+    return EMPTY_WATCHLIST;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.warn('[cron-relevance-watcher] RELEVANCE_WATCHLIST_JSON is not valid JSON — ignoring', err.message);
+    return EMPTY_WATCHLIST;
+  }
+  const clients = Array.isArray(parsed?.clients) ? parsed.clients : [];
+  const customers = Array.isArray(parsed?.customers) ? parsed.customers : [];
+  return {
+    clients: clients
+      .filter((c) => c && typeof c.name === 'string' && c.name.trim())
+      .map((c) => ({ name: c.name.trim(), note: typeof c.note === 'string' ? c.note.trim() : '' })),
+    customers: customers
+      .filter((c) => c && typeof c.match === 'string' && c.match.trim())
+      .map((c) => ({ label: (typeof c.label === 'string' && c.label.trim()) || c.match.trim(), match: c.match.trim() })),
+  };
+}
 
 // --------------------------------------------------------------------------
 // Cheap bulk-mail prefilter — runs before any model call.
@@ -312,7 +344,8 @@ function parseFromHeader(fromHeader) {
 // Relevance classification — one Haiku call per surviving candidate.
 // --------------------------------------------------------------------------
 
-function buildContextBlock(deals) {
+function buildContextBlock(deals, watchlist) {
+  const { clients, customers } = watchlist || EMPTY_WATCHLIST;
   const dealLines = deals.length
     ? deals.map((d) => {
         const bits = [d.address, d.buyer && `buyer: ${d.buyer}`, d.seller && `seller: ${d.seller}`, d.client_names && `client: ${d.client_names}`, d.stage && `stage: ${d.stage}`]
@@ -321,8 +354,12 @@ function buildContextBlock(deals) {
       }).join('\n')
     : '- (no active deals in Dossie right now)';
 
-  const clientLines = STATIC_KNOWN_CLIENTS.map((c) => `- ${c.name} (${c.note})`).join('\n');
-  const customerLines = KNOWN_CUSTOMER_CONTACTS.map((c) => `- ${c.label}: ${c.match}`).join('\n');
+  const clientLines = clients.length
+    ? clients.map((c) => `- ${c.name}${c.note ? ` (${c.note})` : ''}`).join('\n')
+    : '- (no standing client watchlist configured)';
+  const customerLines = customers.length
+    ? customers.map((c) => `- ${c.label}: ${c.match}`).join('\n')
+    : '- (no customer roster configured)';
 
   return [
     'Heath Shepard is a Texas REALTOR (heath.shepard@kw.com) and also built a product called Dossie/MeetDossie.',
@@ -454,6 +491,8 @@ async function handler(req, res) {
     relevant_hits: 0,
     classify_errors: 0,
     insert_failures: 0,
+    watchlist_clients: 0,
+    watchlist_customers: 0,
   };
 
   let checkpoint;
@@ -519,9 +558,12 @@ async function handler(req, res) {
   try {
     deals = await loadActiveDeals();
   } catch (err) {
-    console.warn('[cron-relevance-watcher] deal load failed, continuing with static context only', err.message);
+    console.warn('[cron-relevance-watcher] deal load failed, continuing with watchlist context only', err.message);
   }
-  const contextBlock = buildContextBlock(deals);
+  const watchlist = loadWatchlist();
+  stats.watchlist_clients = watchlist.clients.length;
+  stats.watchlist_customers = watchlist.customers.length;
+  const contextBlock = buildContextBlock(deals, watchlist);
 
   let newestSeenIso = checkpoint;
   let classifyCallsUsed = 0;

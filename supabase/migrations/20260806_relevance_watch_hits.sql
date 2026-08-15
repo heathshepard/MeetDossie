@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.relevance_watch_hits (
   from_name text,
   subject text,
   snippet text,
-  matched_deal_or_person text,             -- e.g. "104 Wild Cherry Ln" or "Kanika Jain" or "Dossie/MeetDossie"
+  matched_deal_or_person text,             -- e.g. "123 Example St" or "Jane Doe" or "Dossie/MeetDossie"
   reason text,                             -- <=2 sentence Haiku explanation
   notified boolean NOT NULL DEFAULT false, -- flips true once/if a live notify step ships
   created_at timestamptz NOT NULL DEFAULT now()

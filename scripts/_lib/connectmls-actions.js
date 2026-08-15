@@ -4,11 +4,11 @@
 //
 // Shared, condition-based connectMLS interaction helpers. Companion to
 // brokerage-browser.js (which only launches the profile/context — it has
-// no workflow logic). Every brokerage-kanika-search*.js / brokerage-connectmls-*.js
-// script to date hand-rolled its own copy of this login-check + SmartBar-search
-// sequence using fixed `page.waitForTimeout(Nms)` padding (2500 / 4000 / 1200 /
-// 3500ms per script, every time, whether the page needed it or not). Confirmed
-// 2026-08-07: one script alone (brokerage-kanika-search50-fulltext.js) burned
+// no workflow logic). Every per-client brokerage-*-search*.js /
+// brokerage-connectmls-*.js script to date hand-rolled its own copy of this
+// login-check + SmartBar-search sequence using fixed `page.waitForTimeout(Nms)`
+// padding (2500 / 4000 / 1200 / 3500ms per script, every time, whether the page
+// needed it or not). Confirmed 2026-08-07: one search script alone burned
 // 11.2s of pure blind sleep in its first ~35 lines. Across 628 waitForTimeout
 // calls in scripts/brokerage-*.js that's ~1600s (~27min) of artificial padding
 // accumulated in one-off scripts that already ran and won't be reused as-is.
@@ -23,13 +23,31 @@
 // expired.jsp), clicking the "Click here" SSO re-auth link does not just
 // navigate the page — it kills the entire Playwright BrowserContext (Chrome
 // process exits). `context.pages()` goes to 0 and `context.newPage()` fails.
-// This is NOT something a longer wait fixes — it's connectMLS bouncing to
-// its full SSO+MFA flow, which per brokerage-login-setup.js cannot be
-// scripted and requires Heath to complete it by hand, once, in a visible
-// window. So `ensureSignedIn` below detects this fast (via the page 'close'
-// event) and throws a clear, actionable error instead of limping forward
-// into a confusing generic "Target page ... has been closed" crash several
-// awaits later. Run `node scripts/brokerage-login-setup.js` to recover.
+// This is NOT something a longer wait fixes — Heath needs to complete a
+// fresh sign-in by hand, once, in a visible window via
+// `node scripts/brokerage-login-setup.js`.
+//
+// CORRECTION 2026-08-13: earlier drafts of this comment (and of
+// brokerage-login-setup.js) characterized this as an "MFA" wall that
+// "cannot be scripted." Partially wrong. Checked live 2026-08-13 with a
+// one-off login probe (kept under .tmp/brokerage-work/, gitignored —
+// per-client scratch scripts don't belong in this public repo): the re-auth
+// redirect lands on
+// sabor.mysolidearth.com/authenticate, which offers TWO paths —
+// Username/Password fields (no OTP/second-factor field — this part CAN be
+// scripted given real credentials), OR "Sign in with Passkey". Heath
+// confirmed 2026-08-13 he doesn't know his connectMLS password and always
+// uses the Passkey path — which on this IdP is a QR-code, cross-device
+// WebAuthn flow (scan with phone, phone approves). That IS genuinely
+// unscriptable (needs Heath's physical phone) and is the real reason his
+// own everyday login "just works" with no typed credential at all — the
+// approval mints what appears to be a long-lived trusted-device cookie
+// (confirmed empirically: it survived independently across a fresh
+// Playwright context loading nothing but the saved cookie snapshot, no
+// re-scan needed). So: this is not MFA in the OTP sense, and not a plain
+// password wall either — it's passkey/WebAuthn device pairing. Automation
+// can't complete a fresh pairing; it CAN reuse the resulting cookie once
+// Heath pairs by hand, via BROKERAGE_STATE_FILE (see brokerage-browser.js).
 //
 // Usage:
 //   const { launchBrokerageContext } = require('./_lib/brokerage-browser');
@@ -85,7 +103,18 @@ async function waitForAppReady(page, timeoutMs = 20000) {
  */
 async function ensureSignedIn(page, context, timeoutMs = 20000) {
   const state = await waitForAppReady(page, timeoutMs);
-  if (state === 'smartbar') return;
+  if (state === 'smartbar') {
+    // Already signed in (profile-level cookie or our own re-hydrated
+    // snapshot did its job). Opportunistically refresh the saved snapshot
+    // so it stays warm — cheap, and keeps BROKERAGE_STATE_FILE from going
+    // stale between the rare manual logins. See brokerage-browser.js header
+    // comment for why this can't just rely on Chrome's own persistence.
+    try {
+      const { saveBrokerageState } = require('./brokerage-browser');
+      await saveBrokerageState(context, 'ensureSignedIn');
+    } catch {}
+    return;
+  }
 
   // state === 'signin' — click it and watch for the context dying, which is
   // the real, observed behavior on a fully expired app session (see module
@@ -111,13 +140,20 @@ async function ensureSignedIn(page, context, timeoutMs = 20000) {
 
   page.off('close', onPageClose);
 
-  if (outcome === 'ok') return;
+  if (outcome === 'ok') {
+    try {
+      const { saveBrokerageState } = require('./brokerage-browser');
+      await saveBrokerageState(context, 'ensureSignedIn');
+    } catch {}
+    return;
+  }
 
   if (outcome === 'context-died' || contextDied) {
     throw new Error(
       'connectmls-actions.ensureSignedIn: connectMLS app session is fully expired and the SSO re-auth redirect ' +
-      'killed the browser context (this cannot be scripted through — MFA required). ' +
-      'Recovery: run `node scripts/brokerage-login-setup.js` in a visible window and log in by hand, then retry.'
+      'killed the browser context. This is a silent re-auth screen requiring real credentials (see module header ' +
+      'comment — NOT MFA, no OTP/second-factor field). Recovery: run `node scripts/brokerage-login-setup.js` in a ' +
+      'visible window and log in by hand once, then retry — the login will now persist via BROKERAGE_STATE_FILE.'
     );
   }
 
