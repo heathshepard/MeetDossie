@@ -230,3 +230,12 @@ __pycache__/
 # Archived one-off debug/exploration scripts + Playwright run artifacts —
 # throwaway, never worth tracking, but kept on disk (not deleted)
 scripts/_archive/
+
+# Local-only phone/SMS sync pipeline. Single-machine scripts: they hardcode
+# WSL-absolute paths and personal identifiers, so they are useless in a deploy
+# and unsafe in a public repo. This repo is public and git history is permanent
+# — a revert would not undo the exposure. Keep these on disk, never staged.
+scripts/import-phone-link.py
+scripts/import-sms.py
+scripts/run-sms-poller.sh
+scripts/register-sms-poller.ps1
