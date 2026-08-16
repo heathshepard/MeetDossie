@@ -322,7 +322,7 @@
     "api/{cron-send-engagement-approvals,cron-engagement-summary,cron-send-to-sage,cron-heath-publish-digest,cron-morning-ops-digest,cron-platform-health-checker,cron-account-session-monitor}.js": {
       "maxDuration": 30
     },
-    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation,cron-content-pipeline-review,cron-content-pipeline-promote}.js": {
+    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation,cron-content-pipeline-review,cron-content-pipeline-promote,cron-cold-email-review}.js": {
       "maxDuration": 30
     },
     "api/{admin-migrate-content-pipeline-queue,cron-cold-email-followup}.js": {
@@ -673,6 +673,10 @@
     {
       "path": "/api/cron-cold-email-followup",
       "schedule": "0 15 * * 1-5"
+    },
+    {
+      "path": "/api/cron-cold-email-review",
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-warm-touch-populate",

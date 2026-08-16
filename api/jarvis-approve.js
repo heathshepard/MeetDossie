@@ -146,6 +146,21 @@ export default async function handler(req, res) {
         const row = Array.isArray(rows) ? rows[0] : null;
         if (!row) return res.status(404).json({ ok: false, error: 'row_not_found' });
 
+        // Human-approval gate (Carter, 2026-08-16, post 8/13 incident). Rows
+        // tagged requires_approval=true (cold-email daily-batch + followup)
+        // must clear the cron-cold-email-review Telegram Approve tap first —
+        // a one-off Jarvis HUD tap on an individual row can't route around
+        // that batch review, even though this endpoint sends immediately for
+        // every other outbound_email row.
+        if (row.metadata && row.metadata.requires_approval === true &&
+            row.metadata.approval_status !== 'approved') {
+          return res.status(409).json({
+            ok: false,
+            error: 'not_yet_batch_approved',
+            detail: 'This row is part of a cold-email batch awaiting the Telegram approval card (cron-cold-email-review). Approve/reject the batch there, not per-row.',
+          });
+        }
+
         if (row.status !== 'pending') {
           // Already actioned (sent/cancelled/failed elsewhere) — idempotent,
           // don't double-send. Report current state so the UI can settle.

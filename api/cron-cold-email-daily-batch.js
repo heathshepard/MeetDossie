@@ -554,6 +554,13 @@ async function handler(req, res) {
             email_source: lead.email_source,
             queued_by: 'cron-cold-email-daily-batch',
             override: 'kw-only-touch2',
+            // Human-approval gate (Carter, 2026-08-16, post 8/13 unattended-send
+            // incident). Rows sit inert until cron-cold-email-review sends Heath
+            // a Telegram card and he taps Approve. cron-send-outbound-emails and
+            // jarvis-approve both refuse to send while approval_status !=
+            // 'approved', regardless of how either endpoint is triggered.
+            requires_approval: true,
+            approval_status: 'pending_approval',
           },
         };
         if (forceDryRun) { result.queued += 1; continue; }
@@ -645,6 +652,9 @@ async function handler(req, res) {
           email_source: lead.email_source,
           queued_by: 'cron-cold-email-daily-batch',
           week_num: cadence.week_num,
+          // Human-approval gate (Carter, 2026-08-16) — see note above.
+          requires_approval: true,
+          approval_status: 'pending_approval',
         },
       };
       if (forceDryRun) { result.queued += 1; continue; }

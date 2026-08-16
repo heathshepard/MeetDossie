@@ -806,6 +806,56 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Cold-email batch approval flow: coldemail_approve_<batchId> /
+  // coldemail_reject_<batchId>. Built 2026-08-16 after the 8/13 unattended-
+  // send incident (49 real emails fired via a direct Bearer hit to
+  // cron-send-outbound-emails while its schedule was parked). Approve/reject
+  // acts on the WHOLE batch (all outbound_email_queue rows sharing
+  // metadata.batch), not a single row — see cron-cold-email-review.js.
+  const coldemail = data.match(/^coldemail_(approve|reject)_(.+)$/);
+  if (coldemail) {
+    const action = coldemail[1];
+    const batchId = coldemail[2];
+    const originalBody = String(message?.text || '');
+
+    const { data: batchRows } = await supabaseFetch(
+      `/rest/v1/outbound_email_queue?metadata->>batch=eq.${encodeURIComponent(batchId)}&metadata->>approval_status=eq.pending_approval&select=id,metadata`,
+    );
+    const rowsToActOn = Array.isArray(batchRows) ? batchRows : [];
+    if (rowsToActOn.length === 0) {
+      if (callbackId) await answerCallback(callbackId, 'Already actioned or batch not found');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    let failures = 0;
+    for (const row of rowsToActOn) {
+      const patchBody = action === 'approve'
+        ? { metadata: { ...row.metadata, approval_status: 'approved', approved_at: now } }
+        : { metadata: { ...row.metadata, approval_status: 'rejected', rejected_at: now }, status: 'skipped', error_text: 'heath_rejected_via_telegram_batch_review' };
+      const patch = await supabaseFetch(`/rest/v1/outbound_email_queue?id=eq.${encodeURIComponent(row.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify(patchBody),
+      });
+      if (!patch.ok) failures += 1;
+    }
+
+    const count = rowsToActOn.length;
+    if (action === 'approve') {
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED — ${count} email(s) will send starting at their scheduled time.${failures ? ` (${failures} failed to update — check logs)` : ''}`);
+      }
+      if (callbackId) await answerCallback(callbackId, failures ? `Approved with ${failures} error(s)` : 'Approved');
+    } else {
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ REJECTED — ${count} email(s) discarded, none will send.${failures ? ` (${failures} failed to update — check logs)` : ''}`);
+      }
+      if (callbackId) await answerCallback(callbackId, failures ? `Rejected with ${failures} error(s)` : 'Rejected');
+    }
+    return;
+  }
+
   // Check for retry button
   const retry = data.match(/^retry_(.+)$/);
   if (retry) {

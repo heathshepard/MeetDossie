@@ -105,6 +105,20 @@ async function fetchPending() {
         continue;
       }
     }
+    // Human-approval gate (Carter, 2026-08-16, post 8/13 incident). Rows
+    // tagged requires_approval=true (cold-email daily-batch + followup) are
+    // structurally un-sendable until a Telegram Approve tap flips
+    // metadata.approval_status to 'approved'. This check lives INSIDE the
+    // sender itself — not in whether the generator cron's own schedule ran
+    // — so a direct authenticated Bearer hit to this endpoint (the exact
+    // 8/13 mechanism) still can't send an unapproved row. Rows that never
+    // set requires_approval (legacy/manual queue-outbound-email.js sends,
+    // one-off agent sends) are unaffected and keep working as before.
+    if (row && row.metadata && row.metadata.requires_approval === true &&
+        row.metadata.approval_status !== 'approved') {
+      continue;
+    }
+
     ready.push(row);
     if (ready.length >= MAX_PER_RUN) break;
   }

@@ -231,6 +231,11 @@ async function handler(req, res) {
             city,
             brokerage: prev.metadata?.brokerage || '',
             queued_by: 'cron-cold-email-followup',
+            // Human-approval gate (Carter, 2026-08-16) — see
+            // cron-cold-email-daily-batch.js for the full note. Same gate
+            // applies to every touch, not just touch 1.
+            requires_approval: true,
+            approval_status: 'pending_approval',
           },
         };
 
