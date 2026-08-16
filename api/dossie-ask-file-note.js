@@ -247,8 +247,9 @@ module.exports = async function handler(req, res) {
 
   let userId;
   try {
-    const decoded = await verifySupabaseToken(req);
-    userId = decoded.sub;
+    // _middleware/auth returns { userId, email } — NOT a raw JWT claims object.
+    const auth = await verifySupabaseToken(req);
+    userId = auth.userId;
   } catch (err) {
     return res
       .status(err instanceof AuthError && err.status ? err.status : 401)
