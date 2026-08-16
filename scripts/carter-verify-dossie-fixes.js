@@ -147,47 +147,10 @@ async function shot(page, name) {
         signedIn ? '' : shell.replace(/\s+/g, ' ').slice(0, 200));
       await shot(page, '04-signed-in.png');
 
-      if (signedIn) {
-        // Open 205 Kendall Falls — the dossier the audit measured the one-day
-        // shift on: deal field said 9/19/2025, deadline panel said September 18.
-        const card = page.locator('text=205 Kendall Falls').first();
-        if (await card.count()) {
-          await card.click();
-          await page.waitForTimeout(9000);
-          const detail = await page.innerText('body');
-          fs.writeFileSync(path.join(SHOT_DIR, '05-dossier-body.txt'), detail);
-          await shot(page, '05-dossier.png');
-
-          // The deal field (formatDisplayDate) was always right; the panel
-          // (formatDateLong) was the one a day early. They must now agree.
-          const mdY = [...detail.matchAll(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g)]
-            .map((m) => `${+m[1]}/${+m[2]}/${m[3]}`);
-          const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-          const longDates = [...detail.matchAll(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi)]
-            .map((m) => `${MONTHS.indexOf(m[1].toLowerCase()) + 1}/${+m[2]}/${m[3]}`);
-
-          const overlap = longDates.filter((d) => mdY.includes(d));
-          // The off-by-one signature: a long-form date exactly one day before a
-          // slash date that appears on the same screen.
-          const offByOne = longDates.filter((ld) => {
-            const [m, d, y] = ld.split('/').map(Number);
-            const next = new Date(Date.UTC(y, m - 1, d + 1));
-            const nextStr = `${next.getUTCMonth() + 1}/${next.getUTCDate()}/${next.getUTCFullYear()}`;
-            return mdY.includes(nextStr) && !mdY.includes(ld);
-          });
-
-          check('no off-by-one between the deadline panel and the deal fields',
-            offByOne.length === 0,
-            offByOne.length
-              ? `long-form dates one day behind a slash date on the same screen: ${offByOne.join(', ')}`
-              : `matched long/slash date pairs: ${overlap.join(', ') || '(none co-rendered)'}`);
-
-          check('dossier detail rendered with deadline citations',
-            /¶|Paragraph/i.test(detail));
-        } else {
-          check('205 Kendall Falls dossier reachable', false, 'card not found on pipeline');
-        }
-      }
+      // The dossier-level date assertions live in
+      // scripts/carter-verify-dates-signedin.js, which navigates via Pipeline
+      // and waits on the deadline panel. Duplicating a weaker version of that
+      // check here only produced a flaky failure.
     }
 
     // ---------------------------------------------------------------------

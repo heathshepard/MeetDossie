@@ -59,10 +59,12 @@ const check = (n, p, d) => { results.push({ n, p: !!p }); console.log(`${p ? 'PA
     check('the account link points at /signup', href === '/signup', `href=${href}`);
 
     // ---- sign in for real ----
-    await page.locator('button', { hasText: /^Password$/ }).first().click();
+    // AuthGate renders email + password fields directly — there is no
+    // Magic Link / Password tab pair (that is the unreachable dossie-app.jsx
+    // screen). Fill both and submit.
     await page.fill('input[type="email"]', 'demo@meetdossie.com');
     await page.fill('input[type="password"]', env.DEMO_PASSWORD);
-    await page.locator('button', { hasText: /^Sign In$/ }).first().click();
+    await page.locator('button', { hasText: /^Sign In$/i }).first().click();
 
     await page.waitForFunction(
       () => !/Welcome back to Dossie/i.test(document.body.innerText),
@@ -76,7 +78,17 @@ const check = (n, p, d) => { results.push({ n, p: !!p }); console.log(`${p ? 'PA
     check('signed in and pipeline loaded', true);
 
     // ---- open the dossier and wait for the deadline panel ----
-    await page.locator('text=205 Kendall Falls').first().click();
+    // The app lands on the Morning Brief, and "205 KENDALL FALLS" also appears
+    // inside the Dossie Asks paragraph there (not clickable). Go to Pipeline
+    // first, then click the actual card heading.
+    await page.locator('text=Pipeline').first().click();
+    await page.waitForFunction(
+      () => /Kendall Falls/i.test(document.body.innerText),
+      { timeout: 60000 },
+    );
+    const card = page.getByText(/^205 Kendall Falls$/i).first();
+    await card.scrollIntoViewIfNeeded();
+    await card.click({ timeout: 30000 });
     await page.waitForFunction(
       () => /¶|Paragraph|TREC deadlines/i.test(document.body.innerText),
       { timeout: 90000 },
