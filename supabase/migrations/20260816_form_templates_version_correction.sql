@@ -5,6 +5,16 @@
 -- Apply with: psql "$POSTGRES_URL_NON_POOLING" -f <this file>
 --         or: the api/admin-migrate-* endpoint pattern, gated by CRON_SECRET.
 --
+-- !! ORDERING PREREQUISITE (added 2026-08-16 CARTER) !!
+-- Run 20260816_form_templates_repoint_before_deactivate.sql FIRST.
+-- Deactivating a form_templates row is not inert: resolve-blank-template-pdf.js,
+-- form-packages.js and form-templates.js all filter `is_active = true`.
+-- Production currently has 50 blank-template `documents` rows (32 on the 20-18
+-- row, 18 on the mislabeled 'Seller Disclosure' row) and 3 form_package_items
+-- pointing at the two rows steps 1 and 2 below deactivate. Applying this file
+-- alone makes those 50 documents fail to resolve their PDF bytes and quietly
+-- shortens two form packages.
+--
 -- WHY
 -- ---
 -- 1. Both TREC 20-18 and 20-19 were is_active, with identical display names, so

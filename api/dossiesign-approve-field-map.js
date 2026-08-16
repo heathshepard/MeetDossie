@@ -1,244 +1,70 @@
-/**
- * api/dossiesign-approve-field-map.js
- *
- * POST /api/dossiesign-approve-field-map
- * {
- *   "job_id": "uuid"
- * }
- *
- * Takes the approved fields from dossiesign_auto_map_runs, creates a DocuSeal
- * template, and saves the template_id back.
- *
- * Auth: Bearer <supabase user JWT>. User must own the job or be admin.
- */
+// api/dossiesign-approve-field-map.js — RETIRED 2026-08-16.
+//
+// POST /api/dossiesign-approve-field-map now returns 410 Gone.
+//
+// This endpoint never worked. Three independent defects, each fatal on its
+// own, verified against the working DocuSeal integration in esign-create.js /
+// esign-download.js / esign-webhook.js / fill-form-via-docuseal.js:
+//
+//   1. Wrong host. It called `https://api.docuseal.co`. Every working caller
+//      uses `https://api.docuseal.com`.
+//   2. Wrong auth header. It sent `Authorization: Bearer <key>`. DocuSeal
+//      authenticates with `X-Auth-Token`, which is what every working caller
+//      sends.
+//   3. Wrong coordinate contract. It passed x_pct/w_pct (0-100 percentages) as
+//      top-level `x`/`width`. DocuSeal wants 0-1 fractions inside an `areas[]`
+//      array.
+//
+// So no field map has ever reached DocuSeal through this path. Repairing it
+// would only restore a route whose upstream input — Fable5's model-estimated
+// coordinates — we are deliberately abandoning (see below).
+//
+// WHAT REPLACES IT
+// ----------------
+// Field geometry is deterministic now: AcroForm widget rects extracted by
+// scripts/extract-acroform-fields.js into api/_assets/*-coords.json. Field
+// semantics live in api/_lib/trec-20-19-transaction-field-map.js, reviewed by
+// a human and versioned. Sending goes through api/esign-create.js.
+//
+// Kept as a 410 rather than deleted so a stale cached bundle calling this URL
+// gets an explanation instead of a bare 404.
 
-const { createClient } = require('@supabase/supabase-js');
-const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
-const https = require('https');
+const ALLOWED_ORIGINS = new Set([
+  'https://meetdossie.com',
+  'https://www.meetdossie.com',
+  'https://staging.meetdossie.com',
+]);
+const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
-const DOCUSEAL_API_URL = 'https://api.docuseal.co';
-
-async function createDocuSealTemplate(pdfUrl, fields) {
-  const typeMap = {
-    text: 'text',
-    checkbox: 'checkbox',
-    date: 'date',
-    signature: 'signature',
-    initial: 'initials',
-    initials: 'initials',
-    radio: 'radio',
-  };
-
-  // Group radio fields by radio_group_name so DocuSeal receives a single
-  // multi-option radio widget instead of independent boxes.
-  const radioGroups = {};
-  const radioProcessed = new Set();
-  fields.forEach((f) => {
-    if (f.type === 'radio' && f.radio_group_name) {
-      if (!radioGroups[f.radio_group_name]) radioGroups[f.radio_group_name] = [];
-      radioGroups[f.radio_group_name].push(f);
+function applyCors(req, res) {
+  const origin = (req && req.headers && req.headers.origin) || '';
+  let allowOrigin = null;
+  if (typeof origin === 'string' && origin.length > 0) {
+    if (
+      ALLOWED_ORIGINS.has(origin)
+      || LOCALHOST_ORIGIN_RE.test(origin)
+      || origin.endsWith('.vercel.app')
+      || origin.endsWith('.meetdossie.com')
+    ) {
+      allowOrigin = origin;
     }
-  });
-
-  const docusealFields = [];
-  fields.forEach((f) => {
-    if (f.type === 'radio' && f.radio_group_name) {
-      if (radioProcessed.has(f.radio_group_name)) return;
-      const group = radioGroups[f.radio_group_name];
-      const options = group
-        .map((g) => ({
-          value: g.name,
-          label: g.name,
-          x: g.x_pct,
-          y: g.y_pct,
-        }))
-        .sort((a, b) => a.y - b.y);
-      docusealFields.push({
-        uuid: f.id,
-        name: f.radio_group_name,
-        type: 'radio',
-        x: f.x_pct,
-        y: f.y_pct,
-        width: f.w_pct,
-        height: f.h_pct,
-        page: f.page,
-        required: f.required !== false,
-        options,
-      });
-      radioProcessed.add(f.radio_group_name);
-      return;
-    }
-
-    docusealFields.push({
-      uuid: f.id,
-      name: f.name,
-      type: typeMap[f.type] || 'text',
-      x: f.x_pct,
-      y: f.y_pct,
-      width: f.w_pct,
-      height: f.h_pct,
-      page: f.page,
-      required: f.required !== false,
-    });
-  });
-
-  const payload = {
-    name: 'Auto-mapped Document',
-    pdf_url: pdfUrl,
-    fields: docusealFields,
-  };
-
-  return new Promise((resolve, reject) => {
-    const url = new URL(`${DOCUSEAL_API_URL}/api/v1/templates`);
-    const postData = JSON.stringify(payload);
-
-    const options = {
-      hostname: url.hostname,
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length,
-        'Authorization': `Bearer ${DOCUSEAL_API_KEY}`,
-      },
-      timeout: 30000,
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(json);
-          } else {
-            reject(new Error(`DocuSeal API error ${res.statusCode}: ${json.error || data}`));
-          }
-        } catch (e) {
-          reject(new Error(`Failed to parse DocuSeal response: ${e.message}`));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('DocuSeal API timeout'));
-    });
-
-    req.write(postData);
-    req.end();
-  });
+  }
+  if (allowOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowOrigin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  return Boolean(allowOrigin) || !origin;
 }
 
-async function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'Method not allowed. Use POST.' });
-  }
-
-  let user;
-  try {
-    user = await verifySupabaseToken(req);
-  } catch (err) {
-    if (err instanceof AuthError) {
-      return res.status(err.status || 401).json({ ok: false, error: err.message });
-    }
-    return res.status(500).json({ ok: false, error: 'Auth error' });
-  }
-
-  let body = req.body;
-  if (typeof body === 'string') {
-    try {
-      body = JSON.parse(body);
-    } catch {
-      body = {};
-    }
-  }
-  body = body || {};
-
-  const jobId = body.job_id;
-
-  if (!jobId) {
-    return res.status(400).json({ ok: false, error: 'job_id required' });
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
+module.exports = async function handler(req, res) {
+  const corsAllowed = applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(corsAllowed ? 204 : 403).end();
+  return res.status(410).json({
+    ok: false,
+    error: 'Field-map approval has been retired. Form geometry now comes from the '
+      + 'deterministic AcroForm coordinate maps, not from an approved model estimate.',
+    retired: '2026-08-16',
   });
-
-  try {
-    // Fetch the existing row
-    const { data, error: fetchErr } = await supabase
-      .from('dossiesign_auto_map_runs')
-      .select('id, fields, pdf_url, created_by')
-      .eq('id', jobId)
-      .maybeSingle();
-
-    if (fetchErr) {
-      return res.status(500).json({ ok: false, error: fetchErr.message });
-    }
-
-    if (!data) {
-      return res.status(404).json({ ok: false, error: 'Job not found' });
-    }
-
-    // Auth check
-    const isAdmin = user.email === 'heath.shepard@kw.com';
-    if (data.created_by && data.created_by !== user.id && !isAdmin) {
-      return res.status(403).json({ ok: false, error: 'Unauthorized' });
-    }
-
-    if (!data.fields || data.fields.length === 0) {
-      return res.status(400).json({ ok: false, error: 'No fields to approve' });
-    }
-
-    if (!data.pdf_url) {
-      return res.status(400).json({ ok: false, error: 'No PDF URL found' });
-    }
-
-    // Create DocuSeal template
-    const templateResult = await createDocuSealTemplate(data.pdf_url, data.fields);
-    const templateId = templateResult.uuid || templateResult.id;
-
-    if (!templateId) {
-      return res.status(500).json({ ok: false, error: 'DocuSeal template creation failed' });
-    }
-
-    // Update the row with template_id and approve status
-    // Note: dossiesign_auto_map_runs has no updated_at column; qa_reviewed_at
-    // records when the map was signed off.
-    const { error: updateErr } = await supabase
-      .from('dossiesign_auto_map_runs')
-      .update({
-        template_id: templateId,
-        qa_status: 'approved',
-        qa_reviewed_at: new Date().toISOString(),
-        qa_reviewed_by: user.id,
-      })
-      .eq('id', jobId);
-
-    if (updateErr) {
-      return res.status(500).json({ ok: false, error: updateErr.message });
-    }
-
-    return res.status(200).json({
-      ok: true,
-      job_id: jobId,
-      template_id: templateId,
-      status: 'approved',
-    });
-  } catch (err) {
-    console.error('[dossiesign-approve-field-map]', err);
-    return res.status(500).json({ ok: false, error: err.message });
-  }
-}
-
-module.exports = handler;
+};

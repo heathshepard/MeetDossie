@@ -362,7 +362,7 @@ function normalizePartyForEditor(fable5Party) {
  * Enrich a single Fable5 row into the editor's field object.
  * Returns null if the row should be excluded (headers, signatures, etc.).
  */
-function enrichFable5Field(fable5Field, currentValue) {
+function enrichFable5Field(fable5Field, currentValue, provenanceInfo) {
   if (!shouldIncludeField(fable5Field)) return null;
 
   const name = fable5Field.name;
@@ -397,6 +397,19 @@ function enrichFable5Field(fable5Field, currentValue) {
     value: currentValue == null ? '' : String(currentValue),
     autoFilledValue: currentValue == null ? null : String(currentValue),
     source: currentValue == null || currentValue === '' ? 'blank' : 'auto',
+    // Provenance — how this value got here, so the editor can show the agent
+    // what came off their dossier versus what was computed. Never blank-labels
+    // an empty field.
+    //   'agent'   - the agent typed it (restored draft)
+    //   'record'  - copied verbatim from one dossier column
+    //   'derived' - computed from dossier columns (basis names them)
+    //   'assumed' - NOT produced here; see extract-form-fields `_assumed`
+    provenance: (currentValue == null || currentValue === '')
+      ? null
+      : ((provenanceInfo && provenanceInfo.provenance) || 'record'),
+    provenance_basis: (currentValue == null || currentValue === '')
+      ? null
+      : ((provenanceInfo && provenanceInfo.provenanceBasis) || null),
   };
 }
 
