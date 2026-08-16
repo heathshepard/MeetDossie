@@ -1131,17 +1131,70 @@ async function sendForAcknowledgment({ doc, userId, transactionId, formType, buy
   return { submissionId, signerRows, templateId };
 }
 
+// Record the envelope.
+//
+// ORDERING NOTE — this runs AFTER the DocuSeal submission exists and AFTER the
+// signing emails have gone out. Until 2026-08-16 a failure here threw, the
+// handler's catch turned it into a bare 500, and the agent was told
+// "Could not send document for signature. Try again." while the envelope was
+// live and the client already had a signing link in their inbox. Retrying then
+// sends the client a SECOND envelope. That is the worst failure mode this
+// endpoint has.
+//
+// Two real causes seen in production:
+//   1. signature_requests.transaction_id has a FK to transactions, but
+//      documents.transaction_id does not — a document whose dossier was
+//      deleted still carries the dead id, and the insert dies on
+//      23503 foreign_key_violation.
+//   2. Any other transient PostgREST failure.
+//
+// So: on a FK violation, retry once WITHOUT transaction_id. A signature
+// request that is not linked to a dossier is far better than no record of an
+// envelope that is already out. Returns { row, warning } and never throws.
 async function insertSignatureRequest(row) {
-  const res = await supa('signature_requests', {
-    method: 'POST',
-    body: JSON.stringify(row),
-  });
-  if (!res.ok) {
+  const attempt = async (payload) => {
+    const res = await supa('signature_requests', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      return { ok: true, row: Array.isArray(rows) ? rows[0] : rows };
+    }
     const text = await res.text().catch(() => '');
-    throw new Error(`signature_requests insert failed (${res.status}): ${text.slice(0, 300)}`);
+    return { ok: false, status: res.status, text };
+  };
+
+  const first = await attempt(row);
+  if (first.ok) return { row: first.row, warning: null };
+
+  const isFkViolation = first.text.includes('23503')
+    || /foreign key constraint/i.test(first.text);
+
+  if (isFkViolation && row.transaction_id) {
+    console.warn('[esign-create] signature_requests FK violation on transaction_id=%s — '
+      + 'retrying unlinked so the envelope is still recorded.', row.transaction_id);
+    const retry = await attempt({ ...row, transaction_id: null });
+    if (retry.ok) {
+      return {
+        row: retry.row,
+        warning: 'Sent, but I could not link this to the dossier — its record is missing. '
+          + 'The signature request is saved and tracking will still work.',
+      };
+    }
+    console.error('[esign-create] signature_requests retry failed (%s): %s',
+      retry.status, retry.text.slice(0, 300));
+  } else {
+    console.error('[esign-create] signature_requests insert failed (%s): %s',
+      first.status, first.text.slice(0, 300));
   }
-  const rows = await res.json();
-  return Array.isArray(rows) ? rows[0] : rows;
+
+  // Never throw. The document IS sent; refusing to say so is the bigger harm.
+  return {
+    row: null,
+    warning: 'Sent, but I could not save the tracking record for it. '
+      + 'Do not send it again — check DocuSeal before re-sending.',
+  };
 }
 
 module.exports = async function handler(req, res) {
@@ -1256,9 +1309,10 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         submissionId,
-        signatureRequestId: inserted?.id || null,
+        signatureRequestId: inserted.row?.id || null,
         signers: signerRows,
         docusealTemplateId: createdTemplateId,
+        ...(inserted.warning ? { warning: inserted.warning } : {}),
       });
     }
 
@@ -1561,8 +1615,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       submissionId,
-      signatureRequestId: inserted?.id || null,
+      signatureRequestId: inserted.row?.id || null,
       signers: signerRows,
+      ...(inserted.warning ? { warning: inserted.warning } : {}),
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -1575,8 +1630,27 @@ module.exports = async function handler(req, res) {
       if (error.retryAfterSeconds) res.setHeader('Retry-After', String(error.retryAfterSeconds));
       return res.status(429).json({ ok: false, error: 'Too many requests. Try again later.' });
     }
-    console.error('[esign-create] error:', error && error.message ? error.message : error);
-    return res.status(500).json({ ok: false, error: 'Could not send document for signature. Try again.' });
+    // "Try again" was the only thing an agent ever saw here, and retrying a
+    // send is exactly the wrong move when the envelope may already be out.
+    // Log the real cause and give the agent a short, non-sensitive hint so a
+    // support ticket is actionable instead of a mystery.
+    const raw = (error && error.message) ? String(error.message) : String(error);
+    console.error('[esign-create] error:', raw);
+    let hint = 'Something failed on my side before it went out.';
+    if (/signature_requests insert/i.test(raw) || /23503|foreign key/i.test(raw)) {
+      hint = 'The document may have been sent but I could not record it. '
+        + 'Check DocuSeal before sending it again.';
+    } else if (/storage|download|no storage path/i.test(raw)) {
+      hint = 'I could not read that document\'s file.';
+    } else if (/docuseal/i.test(raw)) {
+      hint = 'The e-signature provider rejected the document.';
+    } else if (/resend|email/i.test(raw)) {
+      hint = 'The envelope was created but the notification email failed.';
+    }
+    return res.status(500).json({
+      ok: false,
+      error: `Could not send that for signature. ${hint}`,
+    });
   }
 };
 
