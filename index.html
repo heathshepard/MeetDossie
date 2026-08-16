@@ -115,6 +115,7 @@ nav { position: fixed; top: var(--banner-h); left: 0; right: 0; padding: 14px 28
 .proof-num { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--text-primary); line-height: 1; }
 .proof-label { font-size: 12px; color: var(--text-light); margin-top: 4px; font-weight: 500; }
 .proof-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; font-weight: 500; opacity: 0.85; }
+.proof-foot { max-width: 620px; margin: 20px auto 0; font-size: 11.5px; line-height: 1.6; color: var(--text-light); text-align: center; }
 
 .tagline-section { padding: 80px 28px; text-align: center; border-top: 1px solid var(--border-light); background: var(--bg-warm); }
 .tagline { font-family: 'Cormorant Garamond', serif; font-size: clamp(20px, 3vw, 34px); font-weight: 500; font-style: italic; color: var(--text-secondary); max-width: 620px; margin: 0 auto; line-height: 1.5; }
@@ -158,7 +159,9 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 .showcase-hero-caption h3 { font-family: 'Cormorant Garamond', serif; font-size: clamp(22px, 2.6vw, 30px); font-weight: 600; letter-spacing: -0.3px; color: var(--text-primary); line-height: 1.25; margin-bottom: 14px; }
 .showcase-hero-caption p { font-size: 14.5px; color: var(--text-secondary); line-height: 1.75; }
 
-.showcase-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1180px; margin: 0 auto; }
+.showcase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1180px; margin: 0 auto; }
+.showcase-foot { max-width: 1180px; margin: 28px auto 0; font-size: 12px; color: var(--text-light); text-align: center; }
+.showcase-foot a { color: var(--text-secondary); }
 .showcase-card .browser-frame { border-radius: 14px; margin-bottom: 16px; }
 .showcase-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
 .showcase-card p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
@@ -210,9 +213,9 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
    <div class="door-title">I want to run my own transactions</div>
    <p class="door-desc">Take control of your deals without hiring a TC. Dossie handles the deadlines, follow-ups, and paperwork — you focus on clients and closings.</p>
    <ul class="door-benefits">
-    <li><span class="door-check">✓</span> Save $350–500 per transaction</li>
-    <li><span class="door-check">✓</span> Dossie fills TREC contracts by voice</li>
-    <li><span class="door-check">✓</span> Automated follow-ups from your email</li>
+    <li><span class="door-check">✓</span> Costs less per month than one TC file fee</li>
+    <li><span class="door-check">✓</span> She reads your contract and pulls every field</li>
+    <li><span class="door-check">✓</span> Follow-up emails drafted and waiting for you</li>
     <li><span class="door-check">✓</span> Morning Brief every single day</li>
    </ul>
    <span class="door-cta">I’m an Agent →</span>
@@ -222,22 +225,23 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
    <span class="door-tag"><span class="door-tag-dot"></span>For Transaction Coordinators</span>
    <span class="door-emoji">📋</span>
    <div class="door-title">I want to scale my TC business</div>
-   <p class="door-desc">Handle 3x the transactions with the same team. Dossie automates the follow-ups, deadline tracking, and admin that caps your capacity.</p>
+   <p class="door-desc">Take the admin off your plate. Dossie reads every contract, does the deadline math, and drafts the follow-ups — so more of your day goes to the work only you can do.</p>
    <ul class="door-benefits">
-    <li><span class="door-check">✓</span> Triple your transaction capacity</li>
-    <li><span class="door-check">✓</span> Automated follow-up sequences</li>
-    <li><span class="door-check">✓</span> Never miss another deadline</li>
-    <li><span class="door-check">✓</span> Keep disorganized agents in line</li>
+    <li><span class="door-check">✓</span> Every file's dates read straight from the contract</li>
+    <li><span class="door-check">✓</span> Follow-up emails drafted for each stage</li>
+    <li><span class="door-check">✓</span> One board for every active file</li>
+    <li><span class="door-check">✓</span> Missing documents flagged, not chased</li>
    </ul>
    <span class="door-cta">I’m a TC →</span>
   </a>
  </div>
 
  <div class="proof-bar">
-  <div class="proof-item"><div class="proof-num">96%</div><div class="proof-label">Cost savings vs. human TC</div></div>
-  <div class="proof-item"><div class="proof-num">3x</div><div class="proof-label">TC capacity increase</div></div>
-  <div class="proof-item"><div class="proof-num">0</div><div class="proof-label">Missed deadlines</div></div>
+  <div class="proof-item"><div class="proof-num">63%</div><div class="proof-label">Less than a $400/file TC</div><div class="proof-sub">at one file a month</div></div>
+  <div class="proof-item"><div class="proof-num">6</div><div class="proof-label">TREC form packages built in</div></div>
+  <div class="proof-item"><div class="proof-num">¶</div><div class="proof-label">Every deadline cited to its paragraph</div></div>
  </div>
+ <p class="proof-foot">Solo is $149/mo for unlimited files. Measured against the commonly cited freelance TC rate of $400 a file: one file a month costs 63% less, two files a month 81% less. Existing subscribers keep their prior rate.</p>
 </section>
 
 <section class="showcase">
@@ -287,15 +291,8 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
    <h4>Deadline Tracking</h4>
    <p>TREC dates, computed and watched automatically.</p>
   </div>
-  <div class="showcase-card">
-   <div class="browser-frame">
-    <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
-    <img src="/assets/product/esign.jpg" alt="Sending a document for e-signature directly from Dossie" loading="lazy" width="1440" height="900">
-   </div>
-   <h4>E-Signature</h4>
-   <p>Send for signature in two clicks. No extra software.</p>
-  </div>
  </div>
+ <p class="showcase-foot">E-signatures are still in the works — see <a href="/features/how-dossie-handles-esignatures">what's coming</a>.</p>
 </section>
 
 <div class="tagline-section">

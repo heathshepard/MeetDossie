@@ -279,7 +279,7 @@ ${f.faq && f.faq.length ? `
 ${renderRelated(f.related_features, allFeatures)}
 
 <p class="legal">
-  Screenshots shown are real Dossie product screens, not mockups. This page is provided as-is for informational purposes. <a href="/">meetdossie.com</a>
+  ${escapeHtml(f.legal_note || 'Screenshots shown are real Dossie product screens, not mockups.')} This page is provided as-is for informational purposes. <a href="/">meetdossie.com</a>
 </p>
 
 <script src="/assets/article-audio.js" defer></script>

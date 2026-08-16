@@ -1,43 +1,52 @@
 {
   "slug": "how-dossie-handles-esignatures",
-  "title": "How Dossie Handles E-Signatures",
-  "title_html": "How Dossie Handles <em>E-Signatures</em>",
-  "meta_title": "How Dossie Sends Documents for E-Signature — Dossie",
-  "meta_description": "Send a document for signature without leaving Dossie. Role-based prefill puts the right fields in front of the buyer's agent or seller's agent automatically.",
-  "eyebrow": "Product feature",
-  "deck": "Send for signature without leaving Dossie. Role-based prefill means the right fields land in front of the right party, every time.",
+  "title": "E-Signatures Are Coming to Dossie",
+  "title_html": "E-Signatures Are <em>Coming</em> to Dossie",
+  "meta_title": "E-Signatures in Dossie — Coming Soon — Dossie",
+  "meta_description": "E-signatures are on the Dossie roadmap for a Q2 2026 beta. Here's what's being built: send for signature inside the dossier, with role-based prefill.",
+  "eyebrow": "Product roadmap · Coming soon",
+  "deck": "Not shipped yet. E-signatures are on the roadmap for a Q2 2026 beta — here's what she'll do when they land.",
   "image": "/assets/product/esign.jpg",
   "image_alt": "Sending a document for e-signature directly from Dossie",
-  "image_caption": "The Send for Signature modal, mid-flow — recipients and fields already placed.",
+  "image_caption": "A design preview of the Send for Signature flow. Not yet available in your account.",
   "updated_at": "2026-08-07",
-  "related_blurb": "Send for Signature in two clicks, with role-based prefill for buyer's agent vs. seller's agent.",
-  "intro_html": "<p>Once a document needs a signature, Dossie sends it — no separate e-sign tool, no exporting and re-uploading. Recipients and signature fields are placed automatically based on their role in the deal.</p>",
+  "related_blurb": "Coming soon: send for signature inside the dossier, with role-based prefill. Q2 2026 beta.",
+  "intro_html": "<p><strong>E-signatures are not live yet.</strong> They're listed on Dossie's roadmap as a Q2 2026 beta, and nothing on this page is available in your account today. It's here so you know what's being built and can tell us whether it's the right shape. Until it ships, Dossie files the signed copies you send through your existing e-sign tool.</p>",
   "steps": [
     {
       "h": "1. Pick the document",
-      "p": "Any document already in the dossier — amendment, addendum, disclosure — can be sent for signature directly, in the same place it lives."
+      "p": "The plan: any document already in the dossier — amendment, addendum, disclosure — gets sent for signature from the same place it lives, instead of exporting it first."
     },
     {
       "h": "2. Role-based prefill",
-      "p": "Dossie knows who's the buyer's agent and who's the seller's agent on this file, and prefills the right recipient with the right fields — no manually dragging signature boxes onto a PDF."
+      "p": "Dossie already knows who's the buyer's agent and who's the seller's agent on a file, so the intent is to prefill the right recipient with the right fields rather than dragging signature boxes onto a PDF by hand."
     },
     {
-      "h": "3. Send, track, done",
-      "p": "The signed document lands back in the dossier automatically once every party has signed — no separate download-and-reupload step."
+      "h": "3. Send, track, file",
+      "p": "The goal is for the executed copy to land back in the dossier on its own once every party has signed — no download-and-reupload step."
     }
   ],
-  "callout": "Field placement follows the role, not a template guess — the buyer's agent and seller's agent each get exactly the fields that belong to them.",
-  "cta_title": "Stop juggling a separate e-sign tool.",
-  "cta_sub": "Dossie sends, tracks, and files signed documents without ever leaving the dossier. Built for Texas agents.",
+  "callout": "Timing: Q2 2026 beta, priced at $0.50 per envelope as an add-on. Dates on a roadmap are intentions, not commitments — we'll say so plainly here if they move.",
+  "cta_title": "Dossie is worth having before e-sign lands.",
+  "cta_sub": "Contract scanning, TREC deadlines cited to the paragraph, and drafted follow-ups all work today. E-signatures join them in the Q2 2026 beta.",
   "faq": [
     {
-      "q": "Do I need a separate e-signature account to use this?",
-      "a": "No — Send for Signature runs inside Dossie. There's no separate tool to log into or export documents to."
+      "q": "Can I send a document for signature in Dossie today?",
+      "a": "No. E-signatures are not released yet — they're on the roadmap for a Q2 2026 beta. Keep using your current e-sign tool and upload the executed copy to the dossier; Dossie files and reads it like any other document."
     },
     {
-      "q": "How does role-based prefill work?",
-      "a": "Dossie already knows who's the buyer's agent and who's the seller's agent on a file, so it prefills the correct recipient and signature fields automatically instead of requiring manual field placement."
+      "q": "When will e-signatures be available?",
+      "a": "The current target is a Q2 2026 beta, offered as a $0.50-per-envelope add-on. That's a plan, not a promise — if the date moves, this page moves with it."
+    },
+    {
+      "q": "Will I need a separate e-signature account?",
+      "a": "The intent is no — Send for Signature is being built to run inside Dossie, so there's no second tool to log into. That's the design goal, not a shipped feature."
     }
   ],
-  "related_features": ["how-dossie-handles-contract-scanning", "how-dossie-handles-deadline-tracking", "how-dossie-handles-closing-milestones"]
+  "related_features": [
+    "how-dossie-handles-contract-scanning",
+    "how-dossie-handles-deadline-tracking",
+    "how-dossie-handles-closing-milestones"
+  ],
+  "legal_note": "The screen shown here is a design preview of an unreleased feature, not a shipped Dossie screen. E-signatures are not available in Dossie today."
 }
