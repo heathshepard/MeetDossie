@@ -22,7 +22,10 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 const FROM_EMAIL = 'heath@meetdossie.com';
 const REPLY_TO = 'heath@meetdossie.com';
-const FOUNDING_URL = 'https://meetdossie.com/founding?utm_source=cold-email&utm_medium=email&utm_content=followup';
+// Founding closed to new signups 2026-08-04 (CLAUDE.md Section 5) -- /founding
+// now 301s to /signup. Point straight at signup; current price is Solo
+// $149/mo (was $29/mo founding, no longer true -- fixed 2026-08-16).
+const SIGNUP_URL = 'https://meetdossie.com/signup?utm_source=cold-email&utm_medium=email&utm_content=followup';
 const UNSUB_URL = 'https://meetdossie.com/unsubscribe';
 const NW_ADDRESS = 'Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731';
 
@@ -48,9 +51,9 @@ function touch2Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `Hey — following up on my note about TC costs.
 
-Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $29/mo flat. 10 Texas agents pay for her right now.
+Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $149/mo flat. 10 Texas agents pay for her right now.
 
-Worth 2 minutes if you're doing 2+ deals a month: ${FOUNDING_URL}
+Worth 2 minutes if you're doing 2+ deals a month: ${SIGNUP_URL}
 
 Not your thing? Just reply and I'll stop.
 
@@ -67,9 +70,9 @@ function touch2Html(city, email) {
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
 <p>Hey &mdash; following up on my note about TC costs.</p>
 
-<p>Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $29/mo flat. 10 Texas agents pay for her right now.</p>
+<p>Short version: I built an AI transaction coordinator. Does what a $400/file TC does. $149/mo flat. 10 Texas agents pay for her right now.</p>
 
-<p>Worth 2 minutes if you're doing 2+ deals a month: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>Worth 2 minutes if you're doing 2+ deals a month: <a href="${SIGNUP_URL}">meetdossie.com/signup</a></p>
 
 <p>Not your thing? Just reply and I'll stop.</p>
 
@@ -96,7 +99,7 @@ That's the agent Dossie was built for. She knows TREC deadlines. Drafts the amen
 
 You review what she drafted. Hit send. Done.
 
-If the paperwork side is eating your time: ${FOUNDING_URL}
+If the paperwork side is eating your time: ${SIGNUP_URL}
 
 Heath
 
@@ -115,7 +118,7 @@ function touch3Html(city, email) {
 
 <p>You review what she drafted. Hit send. Done.</p>
 
-<p>If the paperwork side is eating your time: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>If the paperwork side is eating your time: <a href="${SIGNUP_URL}">meetdossie.com/signup</a></p>
 
 <p>Heath</p>
 
@@ -136,7 +139,7 @@ function touch4Text(city, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `Hey — last one from me on this.
 
-If you ever want an AI TC that handles the paperwork side for $29/mo, link's here: ${FOUNDING_URL}
+If you ever want an AI TC that handles the paperwork side for $149/mo, link's here: ${SIGNUP_URL}
 
 Not following up again. If it ever makes sense, you know where I am.
 
@@ -153,7 +156,7 @@ function touch4Html(city, email) {
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
 <p>Hey &mdash; last one from me on this.</p>
 
-<p>If you ever want an AI TC that handles the paperwork side for $29/mo, link's here: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>If you ever want an AI TC that handles the paperwork side for $149/mo, link's here: <a href="${SIGNUP_URL}">meetdossie.com/signup</a></p>
 
 <p>Not following up again. If it ever makes sense, you know where I am.</p>
 

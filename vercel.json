@@ -568,7 +568,7 @@
     },
     {
       "path": "/api/cron-send-outbound-emails",
-      "schedule": "0 0 1 1 *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron-agent-queue-tick",
@@ -664,7 +664,7 @@
     },
     {
       "path": "/api/cron-cold-email-daily-batch",
-      "schedule": "0 0 1 1 *"
+      "schedule": "0 14 * * 1-5"
     },
     {
       "path": "/api/cron-warm-touch-queue",

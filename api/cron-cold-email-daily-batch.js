@@ -45,7 +45,10 @@ const CRON_SECRET               = process.env.CRON_SECRET;
 const FROM_EMAIL   = 'heath@meetdossie.com';
 const REPLY_TO     = 'heath@meetdossie.com';
 const SUBJECT      = '$400 per file?';
-const FOUNDING_URL = 'https://meetdossie.com/founding?utm_source=cold-email&utm_medium=email';
+// Founding closed to new signups 2026-08-04 (CLAUDE.md Section 5) -- /founding
+// now 301s to /signup. Point cold-email CTAs straight at signup so the link
+// text and destination match; no extra hop.
+const SIGNUP_URL = 'https://meetdossie.com/signup?utm_source=cold-email&utm_medium=email';
 const UNSUB_URL    = 'https://meetdossie.com/unsubscribe';
 const NW_ADDRESS   = 'Dossie LLC, 5900 Balcones Drive STE 100, Austin, TX 78731';
 
@@ -178,8 +181,9 @@ function loadKwLeads(dateKey) {
 }
 
 // KW touch-2 copy — Heath's approved final wording locked 2026-07-09 17:35 CDT.
-// Numbers: 11 Texas REALTORS paying / 14 founding seats remaining / 25 cap /
-// $29/mo LOCKED FOR LIFE / Solo goes $149 on July 31.
+// PRICING FIXED 2026-08-16: founding closed 2026-08-04 (was $29/mo, 25-seat
+// cap); current public price is Solo $149/mo, no seats/cap. Copy below
+// updated to match -- do not reintroduce founding/$29 language here.
 function buildKwText(firstName, email) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `Hey ${firstName},
@@ -192,7 +196,7 @@ I got tired of it. So I built Dossie - one app for TX REALTORs that auto-picks t
 
 Bonus: DocuSign leaves KW Monday. Dossie has e-sign built in.
 
-Founding: $29/mo for LIFE. 14 seats left. Solo goes $149 on July 31.
+Solo is $149/mo, no seat limit, no waitlist -- start anytime.
 
 Reply 'demo' for a 5-min video + a call.
 
@@ -219,13 +223,13 @@ function buildKwHtml(firstName, email) {
 
 <p>Bonus: DocuSign leaves KW Monday. Dossie has e-sign built in.</p>
 
-<p>Founding: $29/mo for LIFE. 14 seats left. Solo goes $149 on July 31.</p>
+<p>Solo is $149/mo, no seat limit, no waitlist -- start anytime.</p>
 
 <p>Reply 'demo' for a 5-min video + a call.</p>
 
 <p>Heath Shepard<br>
 KW City View, SA<br>
-Founder, <a href="${FOUNDING_URL}">Dossie</a></p>
+Founder, <a href="${SIGNUP_URL}">Dossie</a></p>
 
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0 12px;">
 <p style="font-size: 11px; color: #888;">
@@ -256,9 +260,9 @@ function buildText(city, email, foundingRemaining) {
   const unsub = `${UNSUB_URL}?email=${encodeURIComponent(email)}`;
   return `Hey — what do you pay per file for TC work? $350? $400?
 
-I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails — $29/mo flat, unlimited files.
+I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails — $149/mo flat, unlimited files.
 
-If that math works: ${FOUNDING_URL}
+If that math works: ${SIGNUP_URL}
 
 Not interested? Reply and I won't email again.
 
@@ -275,9 +279,9 @@ function buildHtml(city, email, foundingRemaining) {
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #1a1a1a; max-width: 560px;">
 <p>Hey &mdash; what do you pay per file for TC work? $350? $400?</p>
 
-<p>I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails &mdash; $29/mo flat, unlimited files.</p>
+<p>I'm an agent in ${city}. Got tired of that math so I built an AI that does it. Her name's Dossie. TREC forms, amendments, deadline tracking, follow-up emails &mdash; $149/mo flat, unlimited files.</p>
 
-<p>If that math works: <a href="${FOUNDING_URL}">meetdossie.com/founding</a></p>
+<p>If that math works: <a href="${SIGNUP_URL}">meetdossie.com/signup</a></p>
 
 <p>Not interested? Reply and I won't email again.</p>
 
