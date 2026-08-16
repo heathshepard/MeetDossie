@@ -164,7 +164,17 @@ async function loadUserDealData(userId, todayYMD) {
   const r = await supaFetch(
     `/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&or=(status.is.null,status.neq.closed)&select=${cols}`,
   );
-  if (!r.ok) return { transactions: [], todayDeadlines: [], closingThisWeek: [] };
+  // NEVER degrade a failed read into "no deals". Returning empty arrays here fed
+  // straight into "Your pipeline is clear today." — telling an agent with an
+  // option expiring in hours that they had nothing on. logSend then recorded
+  // transaction_count: 0, so the audit trail corroborated the false statement.
+  // Throwing lets the per-customer catch skip this brief and record a real error;
+  // no brief at all is strictly safer than a confidently wrong one.
+  if (!r.ok) {
+    throw new Error(
+      `transactions fetch failed (${r.status}) for user ${userId} — brief suppressed rather than reporting an empty pipeline`,
+    );
+  }
 
   const txs = r.data || [];
   const sevenDaysOut = addDaysYMD(todayYMD, 7);

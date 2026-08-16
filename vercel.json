@@ -4,14 +4,30 @@
   "redirects": [
     {
       "source": "/founding",
-      "destination": "/app",
-      "permanent": true
+      "destination": "/signup",
+      "permanent": false
     }
   ],
   "rewrites": [
     {
       "destination": "/index.html",
       "source": "/"
+    },
+    {
+      "source": "/get-started",
+      "destination": "/signup.html"
+    },
+    {
+      "source": "/join",
+      "destination": "/signup.html"
+    },
+    {
+      "source": "/apply",
+      "destination": "/signup.html"
+    },
+    {
+      "source": "/signup",
+      "destination": "/signup.html"
     },
     {
       "source": "/welcome",

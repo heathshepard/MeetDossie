@@ -180,6 +180,12 @@ const BRAND_NAVY = '#1C2B3A';
 const BRAND_TEXT_SOFT = '#5C6B7A';
 const BRAND_CORAL = '#E8927C';
 const BRAND_MUTED = '#9CA8B4';
+// Was `${BRAND.border}` with no BRAND object in scope — a ReferenceError thrown
+// while building the welcome email. Because that call sits in the main try block
+// AFTER the auth user is created but BEFORE the set-password link is generated,
+// every onboarding since 2026-06-12 (c203bdd6) returned HTTP 500 and the
+// customer never received a password email. Fail-loud check added below.
+const BRAND_BORDER = '#E8E2DA';
 
 function welcomeEmailHtml(fullName) {
   const name = (fullName || '').trim().split(' ')[0] || 'there';
@@ -208,7 +214,7 @@ function welcomeEmailHtml(fullName) {
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <hr style="border: none; border-top: 1px solid ${BRAND.border}; margin: 24px 0;">
+  <hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
   <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
 </div>`;
 }
@@ -253,7 +259,7 @@ async function sendEmail({ to, subject, html }) {
   }
 }
 
-async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom }) {
+async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom, passwordEmailSent }) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[complete-onboarding] Telegram not configured — skipping notification');
     return;
@@ -264,7 +270,10 @@ async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, he
   // which fires only after a successful Stripe payment. Heath flagged 2026-05-23
   // that the prior duplicate wording made it impossible to tell at a glance
   // whether a notification meant "they paid" vs "they made an account."
-  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>`;
+  const pwLine = passwordEmailSent === false
+    ? '\n\n🚨 <b>PASSWORD EMAIL DID NOT SEND — they cannot sign in. Send them a set-password link manually.</b>'
+    : '';
+  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>${pwLine}`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -434,29 +443,66 @@ module.exports = async function handler(req, res) {
       console.warn('[complete-onboarding] no stripe_subscription_id on session — fell back to PATCH by customer_id for', email);
     }
 
-    // Send welcome email
-    await sendEmail({
-      to: email,
-      subject: 'Welcome to Dossie — let\'s get you set up',
-      html: welcomeEmailHtml(name),
-    });
-
-    // Generate recovery link and send password-set email
-    const actionLink = await generateRecoveryLink(email);
-    if (actionLink) {
+    // Send welcome email. Isolated: this is a nice-to-have marketing email, and
+    // a failure here must never prevent the password link below — without that
+    // link the customer has paid and literally cannot sign in.
+    let welcomeEmailSent = false;
+    try {
       await sendEmail({
         to: email,
-        subject: 'Welcome to Dossie — Set Your Password',
-        html: setPasswordEmailHtml(actionLink),
+        subject: 'Welcome to Dossie — let\'s get you set up',
+        html: welcomeEmailHtml(name),
       });
-    } else {
-      console.error('[complete-onboarding] no action_link returned for', email);
+      welcomeEmailSent = true;
+    } catch (err) {
+      console.error('[complete-onboarding] welcome email failed (non-fatal):', err && err.message);
+    }
+
+    // Generate recovery link and send password-set email. This one IS critical —
+    // it is the customer's only way into the account they just paid for. If it
+    // does not go out we say so loudly instead of returning a cheerful 200.
+    let passwordEmailSent = false;
+    try {
+      const actionLink = await generateRecoveryLink(email);
+      if (actionLink) {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to Dossie — Set Your Password',
+          html: setPasswordEmailHtml(actionLink),
+        });
+        passwordEmailSent = true;
+      } else {
+        console.error('[complete-onboarding] no action_link returned for', email);
+      }
+    } catch (err) {
+      console.error('[complete-onboarding] password-set email failed:', err && err.message);
     }
 
     // Notify Heath via Telegram
-    await notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom });
+    await notifyHeathOnTelegram({
+      name, email, phone, brokerage, market, heardFrom,
+      passwordEmailSent,
+    });
 
-    res.status(200).json({ ok: true, message: 'Onboarding complete.' });
+    if (!passwordEmailSent) {
+      // The account exists and the subscription is active, but the customer
+      // cannot get in. Report the real state rather than "Onboarding complete."
+      res.status(500).json({
+        ok: false,
+        account_created: true,
+        password_email_sent: false,
+        welcome_email_sent: welcomeEmailSent,
+        error: 'Your account was created, but we could not send your password link. Email heath@meetdossie.com and he will send it manually.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      ok: true,
+      message: 'Onboarding complete.',
+      welcome_email_sent: welcomeEmailSent,
+      password_email_sent: true,
+    });
   } catch (err) {
     console.error('[complete-onboarding] error:', err && err.message);
     res.status(500).json({

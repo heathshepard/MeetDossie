@@ -231,7 +231,13 @@ async function loadOpenTransactions(userId) {
   const r = await supabaseFetch(
     `/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&or=(status.is.null,status.neq.closed)&select=${fields}`,
   );
-  if (!r.ok) return [];
+  // A failed read is NOT "this customer has no open deadlines". Swallowing it
+  // here meant a DB blip produced a clean run summary — ok:true, 0 reminders,
+  // no errors — on a day an option period expired. Throw so the per-customer
+  // handler records a real error and the run reports it.
+  if (!r.ok) {
+    throw new Error(`transactions fetch failed (${r.status}) for user ${userId}`);
+  }
   return r.data || [];
 }
 
@@ -240,7 +246,11 @@ async function loadFiredReminders(transactionId) {
   const r = await supabaseFetch(
     `/rest/v1/deadline_reminders?transaction_id=eq.${encodeURIComponent(transactionId)}&select=deadline_type,days_out`,
   );
-  if (!r.ok) return new Set();
+  // Failing open here would re-send every reminder already delivered for this
+  // transaction. Throw instead of guessing "nothing sent yet".
+  if (!r.ok) {
+    throw new Error(`deadline_reminders fetch failed (${r.status}) for transaction ${transactionId}`);
+  }
   const set = new Set();
   for (const row of (r.data || [])) {
     set.add(`${row.deadline_type}|${row.days_out}`);
@@ -308,6 +318,9 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
     };
 
     for (const cust of customers) {
+      // Per-customer isolation: one customer's read failure must neither abort
+      // the whole run for everyone else nor vanish into a clean summary.
+      try {
       const transactions = await loadOpenTransactions(cust.user_id);
       summary.transactions_scanned += transactions.length;
 
@@ -882,9 +895,22 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           }
         }
       }
+      } catch (custErr) {
+        console.error('[deadline-reminders] error for', cust.email, custErr && custErr.message);
+        summary.errors.push({
+          user_id: cust.user_id,
+          email: cust.email,
+          error: custErr && custErr.message,
+        });
+      }
     }
 
-    return res.status(200).json(summary);
+    // ok reflects whether the run actually did its job. Reporting ok:true while
+    // customers were skipped by read failures is how a missed option deadline
+    // gets logged as a healthy night.
+    if (summary.errors.length) summary.ok = false;
+
+    return res.status(summary.ok ? 200 : 500).json(summary);
   } catch (err) {
     console.error('[deadline-reminders] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });

@@ -239,3 +239,4 @@ scripts/import-phone-link.py
 scripts/import-sms.py
 scripts/run-sms-poller.sh
 scripts/register-sms-poller.ps1
+scripts/.demo-cleanup-protected.json

@@ -570,50 +570,86 @@ Extract the form fields. Use ONLY field names from the template above.`;
 // ---------------------------------------------------------------------------
 // Post-process: calculate derived fields and apply defaults
 // ---------------------------------------------------------------------------
+// Provenance for invented values.
+//
+// These defaults exist because a blank field on a TREC form can be worse than a
+// guess (a blank §2.A approval-days voids the buyer's financing contingency).
+// But every one of them is a BINDING CONTRACT TERM once the form is signed, and
+// until now they were written into the field set indistinguishably from values
+// the agent actually stated. An agent reviewing a filled 20-18 had no way to
+// tell "you told me $9,500 earnest" from "nobody said, so I put 1% of price."
+//
+// postProcess now records each invented value in `_assumed` so the caller can
+// surface them distinctly before signature. Severity:
+//   'material' — money, dates, obligations, which addenda attach. Must be shown.
+//   'derived'  — arithmetic from values the agent did supply.
+const MATERIAL = 'material';
+const DERIVED = 'derived';
+
 function postProcess(formType, fields, message) {
   const fv = { ...fields };
   const today = new Date();
+  const assumed = [];
+
+  // Record an invented value. Returns the value so call sites stay readable.
+  const assume = (field, value, basis, severity) => {
+    fv[field] = value;
+    assumed.push({ field, value, basis, severity: severity || MATERIAL });
+    return value;
+  };
 
   // Calculate closing_date from close_in_days
   if (!fv.closing_date && fv.close_in_days) {
     const cd = new Date(today);
     cd.setDate(cd.getDate() + Number(fv.close_in_days));
-    fv.closing_date = cd.toISOString().slice(0, 10);
+    assume('closing_date', cd.toISOString().slice(0, 10),
+      `computed as today + ${Number(fv.close_in_days)} days; no explicit closing date was stated`, MATERIAL);
   }
 
   // Default earnest_money = 1% of sale_price (use sale_price key to match fill-form.js)
   if (!fv.earnest_money && fv.sale_price) {
-    fv.earnest_money = Math.round(Number(fv.sale_price) * 0.01);
+    assume('earnest_money', Math.round(Number(fv.sale_price) * 0.01),
+      'no earnest money stated; defaulted to 1% of sale price', MATERIAL);
   }
 
   // Default option_fee = $100 for purchase contracts (resale, land, new home, farm-ranch)
   const purchaseForms = new Set(['resale-contract', 'unimproved-property', 'new-home-incomplete', 'new-home-complete', 'farm-ranch']);
   if (!fv.option_fee && purchaseForms.has(formType)) {
-    fv.option_fee = 100;
+    assume('option_fee', 100, 'no option fee stated; defaulted to $100', MATERIAL);
   }
 
   // Calculate loan_amount from down_payment
   if (!fv.loan_amount && fv.sale_price) {
     if (fv.down_payment_amt) {
-      fv.loan_amount = Number(fv.sale_price) - Number(fv.down_payment_amt);
+      assume('loan_amount', Number(fv.sale_price) - Number(fv.down_payment_amt),
+        'computed as sale price minus stated down payment', DERIVED);
     } else if (fv.down_payment_pct) {
-      fv.down_payment_amt = Math.round(Number(fv.sale_price) * Number(fv.down_payment_pct) / 100);
-      fv.loan_amount = Number(fv.sale_price) - fv.down_payment_amt;
+      assume('down_payment_amt', Math.round(Number(fv.sale_price) * Number(fv.down_payment_pct) / 100),
+        `computed as ${Number(fv.down_payment_pct)}% of sale price`, DERIVED);
+      assume('loan_amount', Number(fv.sale_price) - Number(fv.down_payment_amt),
+        'computed as sale price minus down payment', DERIVED);
     }
   }
 
   // Default financing_type from message
   if (!fv.financing_type) {
     const msg = String(message || '').toLowerCase();
-    if (/\bcash\b/.test(msg)) fv.financing_type = 'cash';
-    else if (/\bfha\b/.test(msg)) fv.financing_type = 'fha';
-    else if (/\bva\b/.test(msg)) fv.financing_type = 'va';
-    else if (/\busda\b/.test(msg)) fv.financing_type = 'usda';
-    else if (/\bconventional\b/.test(msg) || fv.loan_amount) fv.financing_type = 'conventional';
+    let guess = null;
+    if (/\bcash\b/.test(msg)) guess = 'cash';
+    else if (/\bfha\b/.test(msg)) guess = 'fha';
+    else if (/\bva\b/.test(msg)) guess = 'va';
+    else if (/\busda\b/.test(msg)) guess = 'usda';
+    else if (/\bconventional\b/.test(msg) || fv.loan_amount) guess = 'conventional';
+    if (guess) {
+      assume('financing_type', guess,
+        'financing type was not stated as a field; inferred from wording in the request', MATERIAL);
+    }
   }
 
   // Default possession
-  if (!fv.possession) fv.possession = 'closing';
+  if (!fv.possession) {
+    assume('possession', 'closing', 'no possession term stated; defaulted to §10.A upon closing and funding', MATERIAL);
+  }
 
   // §6.C survey default — when nothing is set, prefer §6C(1) existing-or-seller-pays with
   // seller-pays-fallback. Master prompt "seller will provide T-47/survey. If not available seller
@@ -623,13 +659,18 @@ function postProcess(formType, fields, message) {
   if (fv.survey_existing_or_seller_pays !== true &&
       fv.survey_buyer_obtains !== true &&
       fv.survey_seller_new !== true) {
-    fv.survey_existing_or_seller_pays = true;
-    if (fv.survey_seller_pays_fallback === undefined) fv.survey_seller_pays_fallback = true;
+    assume('survey_existing_or_seller_pays', true,
+      'no §6C survey option was stated; defaulted to §6C(1) Seller furnishes existing survey', MATERIAL);
+    if (fv.survey_seller_pays_fallback === undefined) {
+      assume('survey_seller_pays_fallback', true,
+        'no survey-fallback payer stated; defaulted to Seller pays for a new survey if none exists', MATERIAL);
+    }
   }
   // If §6C(1) is chosen and fallback preference isn't explicit, default to Seller pays (matches
   // v3-FHA master prompt intent "seller will pay for a new one if none available").
   if (fv.survey_existing_or_seller_pays === true && fv.survey_seller_pays_fallback === undefined) {
-    fv.survey_seller_pays_fallback = true;
+    assume('survey_seller_pays_fallback', true,
+      'no survey-fallback payer stated; defaulted to Seller pays', MATERIAL);
   }
 
   // §21 seller notice fallback — when seller's mailing address is unknown at contract time,
@@ -638,7 +679,10 @@ function postProcess(formType, fields, message) {
     const brokerParts = [];
     if (fv.listing_broker_firm) brokerParts.push('c/o ' + String(fv.listing_broker_firm));
     if (fv.listing_broker_address) brokerParts.push(String(fv.listing_broker_address));
-    if (brokerParts.length > 0) fv.seller_notice_address = brokerParts.join(', ');
+    if (brokerParts.length > 0) {
+      assume('seller_notice_address', brokerParts.join(', '),
+        "Seller's §21 notice address was unknown; defaulted to c/o the listing broker", MATERIAL);
+    }
   }
   // Buyer notice fallback — if not extracted, use city_state_zip prefixed with property_address.
   if (formType === 'resale-contract' && !fv.buyer_notice_address && fv.buyer_name) {
@@ -648,10 +692,14 @@ function postProcess(formType, fields, message) {
 
   // §2.A financing-addendum defaults — leaving these blank voids the buyer's contingency.
   if (formType === 'financing-addendum') {
-    if (!fv.buyer_approval_days) fv.buyer_approval_days = 21;
+    if (!fv.buyer_approval_days) {
+      assume('buyer_approval_days', 21,
+        "no §2.A loan-approval window stated; defaulted to 21 days (a blank here voids the buyer's financing contingency)", MATERIAL);
+    }
     // FHA-specific rate cap default (per Hadley 40-11 KB: blank voids §1.C contingency)
     if ((String(fv.financing_type || '').toLowerCase() === 'fha') && !fv.fha_interest_rate_cap && !fv.interest_rate_max) {
-      fv.fha_interest_rate_cap = 8.0;
+      assume('fha_interest_rate_cap', 8.0,
+        'no FHA interest-rate cap stated; defaulted to 8.0% (a blank here voids the §1.C contingency)', MATERIAL);
     }
     // Ensure property_full has city/state/zip for the page-2 header widget.
     if (!fv.property_full) {
@@ -665,38 +713,47 @@ function postProcess(formType, fields, message) {
   // Auto-detect HOA from message context (Cibolo Canyons, mandatory membership, dues mentioned)
   if (fv.hoa_exists === undefined || fv.hoa_exists === null) {
     if (fv.hoa_name || fv.hoa_monthly_dues || fv.hoa_transfer_fee) {
-      fv.hoa_exists = true;
+      assume('hoa_exists', true, 'inferred from the HOA name/dues/fee supplied', DERIVED);
     } else {
       const msg = String(message || '').toLowerCase();
-      if (/\bhoa\b|homeowners?\s+association|mandatory\s+membership|cibolo\s+canyons/i.test(msg)) {
-        fv.hoa_exists = true;
-      } else {
-        fv.hoa_exists = false;
-      }
+      const hit = /\bhoa\b|homeowners?\s+association|mandatory\s+membership/i.test(msg);
+      assume('hoa_exists', hit,
+        hit ? 'HOA not stated as a field; inferred from wording in the request'
+            : 'HOA not mentioned; assumed no mandatory owners association', MATERIAL);
     }
   }
 
-  // Auto-derive addendum flags for §22 checkboxes on TREC 20-18
+  // Auto-derive addendum flags for §22 checkboxes on TREC 20-18. These decide
+  // which addenda attach to the contract — materially binding.
   if (fv.addendum_financing === undefined) {
-    fv.addendum_financing = !!(fv.loan_amount && Number(fv.loan_amount) > 0);
+    assume('addendum_financing', !!(fv.loan_amount && Number(fv.loan_amount) > 0),
+      'not stated; derived from whether a loan amount is present', MATERIAL);
   }
   if (fv.addendum_hoa === undefined) {
-    fv.addendum_hoa = !!fv.hoa_exists;
+    assume('addendum_hoa', !!fv.hoa_exists, 'not stated; derived from the HOA determination above', MATERIAL);
   }
   if (fv.addendum_lead_paint === undefined) {
-    fv.addendum_lead_paint = !!(fv.property_built_year && Number(fv.property_built_year) < 1978);
+    assume('addendum_lead_paint', !!(fv.property_built_year && Number(fv.property_built_year) < 1978),
+      fv.property_built_year
+        ? `not stated; derived from year built ${Number(fv.property_built_year)}`
+        : 'not stated and year built is unknown, so lead-paint addendum was left OFF — verify if the home predates 1978',
+      MATERIAL);
   }
 
   // Default contract_effective_date = today if not set
   if (!fv.contract_effective_date) {
-    fv.contract_effective_date = today.toISOString().slice(0, 10);
+    assume('contract_effective_date', today.toISOString().slice(0, 10),
+      'no effective date stated; defaulted to today — every TREC deadline is counted from this date', MATERIAL);
   }
 
   // Default §7.D As-Is = true unless repairs explicitly stated
   if (fv.as_is === undefined && fv.as_is_with_repairs !== true) {
-    fv.as_is = true;
+    assume('as_is', true, 'no repair terms stated; defaulted to §7.D Buyer accepts the property As Is', MATERIAL);
   }
 
+  // Non-enumerable so the assumption ledger cannot be mistaken for a form field
+  // by anything that iterates field_values (e.g. the PDF filler).
+  Object.defineProperty(fv, '_assumed', { value: assumed, enumerable: false });
   return fv;
 }
 
@@ -752,9 +809,26 @@ module.exports = async function handler(req, res) {
     // Post-process and apply defaults
     const fieldValues = postProcess(formType, rawFields, message);
 
+    // Every value Dossie invented, returned separately from the field set so the
+    // UI can mark them before anything is signed. `assumed_material` is the list
+    // that changes what the contract obligates — never bury these.
+    const assumed = fieldValues._assumed || [];
+    const assumedMaterial = assumed.filter((a) => a.severity === MATERIAL);
+
+    if (assumedMaterial.length) {
+      console.warn('[extract-form-fields] assumed %d material term(s) for %s: %s',
+        assumedMaterial.length, formType, assumedMaterial.map((a) => a.field).join(', '));
+    }
+
     return res.status(200).json({
       ok: true,
       field_values: fieldValues,
+      assumed,
+      assumed_fields: assumed.map((a) => a.field),
+      assumed_material: assumedMaterial,
+      // True when Dossie invented at least one binding term. The caller must show
+      // these to the agent before the form is sent for signature.
+      requires_review: assumedMaterial.length > 0,
     });
 
   } catch (error) {

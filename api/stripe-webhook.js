@@ -357,6 +357,10 @@ const BRAND_NAVY = '#1C2B3A';
 const BRAND_TEXT_SOFT = '#5C6B7A';
 const BRAND_CORAL = '#E8927C';
 const BRAND_MUTED = '#9CA8B4';
+// See complete-onboarding.js — same undefined `BRAND.border` reference. Here the
+// welcome-email call is individually try/caught, so the throw only silently
+// suppressed the welcome email rather than breaking the flow.
+const BRAND_BORDER = '#E8E2DA';
 
 function welcomeEmailHtml(fullName) {
   const name = (fullName || '').trim().split(' ')[0] || 'there';
@@ -385,7 +389,7 @@ function welcomeEmailHtml(fullName) {
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <hr style="border: none; border-top: 1px solid ${BRAND.border}; margin: 24px 0;">
+  <hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
   <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
 </div>`;
 }

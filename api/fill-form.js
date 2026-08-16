@@ -38,7 +38,12 @@ const TREC_TERMINATION_B64 = require('./_assets/trec-termination-base64.js');
 const TAR_WIRE_FRAUD_B64 = require('./_assets/tar-wire-fraud-base64.js');
 const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-36-11-base64.js');
 const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
-const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-base64.js');
+// TREC 55-1 (current). Was 55-0, while _lib/resolve-blank-template-pdf.js already
+// served 55-1 — so the blank template an agent previewed and the filled document
+// were different revisions of the same form. Verified before switching: 55-1's
+// AcroForm is a strict superset of 55-0's (all 179 of 55-0's field names present,
+// plus 7 new), so every field this module writes still resolves.
+const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-55-1-base64.js');
 const TREC_39_11_B64 = require('./_assets/trec-amendment-39-11-base64.js');
 const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
@@ -120,9 +125,9 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_LEAD_PAINT_B64,
     documentType: 'lead_paint_addendum',
   },
-  // Seller's Disclosure Notice (TREC 55-0)
+  // Seller's Disclosure Notice (TREC 55-1)
   'sellers-disclosure': {
-    name: "Seller's Disclosure Notice (TREC 55-0)",
+    name: "Seller's Disclosure Notice (TREC 55-1)",
     shortName: 'TREC-55-SDN',
     getBase64: () => TREC_SELLERS_DISCLOSURE_B64,
     documentType: 'sellers_disclosure',
@@ -375,24 +380,75 @@ async function supabaseStorageRemove(storagePath) {
   }).catch(function() {});
 }
 
+// Write ledger. safeSetText/safeCheck swallow every pdf-lib error, which is the
+// right call for optional fields but meant a template field-name drift produced a
+// completely blank PDF and an HTTP 200 — nothing in the product could tell you
+// the document came out empty. Each attempted write is now recorded and verified
+// by reading the value back off the form, so the handler can refuse to call a
+// document "filled" when the writes did not land. Reset per request.
+let fillLedger = { attempted: 0, written: 0, failures: [] };
+
+function resetFillLedger() {
+  fillLedger = { attempted: 0, written: 0, failures: [] };
+  return fillLedger;
+}
+
+function getFillLedger() {
+  return fillLedger;
+}
+
+function recordFillFailure(kind, name, reason) {
+  // Cap the retained detail; a drifted template can fail hundreds of fields.
+  if (fillLedger.failures.length < 60) {
+    fillLedger.failures.push({ kind, field: String(name), reason: String(reason || 'unknown') });
+  }
+}
+
 function safeSetText(form, name, value) {
+  // Blank/absent values are not "writes" — don't count them for or against.
+  const raw = value == null ? '' : String(value);
+  if (raw === '') return;
+  fillLedger.attempted++;
   try {
     const field = form.getTextField(name);
-    if (!field) return;
+    if (!field) {
+      recordFillFailure('text', name, 'field not found on template');
+      return;
+    }
     const max = field.getMaxLength();
-    let v = String(value == null ? '' : value);
+    let v = raw;
     if (max && v.length > max) v = v.slice(0, max);
     field.setText(v);
+    // Read-back: confirm the value is actually on the form, not merely that
+    // setText did not throw.
+    const readBack = field.getText();
+    if (readBack === v || (v && readBack && readBack.indexOf(v.slice(0, 8)) === 0)) {
+      fillLedger.written++;
+    } else {
+      recordFillFailure('text', name, `read-back mismatch (wrote ${JSON.stringify(v.slice(0, 24))}, read ${JSON.stringify(String(readBack).slice(0, 24))})`);
+    }
   } catch (e) {
+    recordFillFailure('text', name, e && e.message);
     console.warn('[fill-form] could not set text field', JSON.stringify(name), ':', e && e.message);
   }
 }
 
 function safeCheck(form, name) {
+  fillLedger.attempted++;
   try {
     const box = form.getCheckBox(name);
-    if (box) box.check();
+    if (!box) {
+      recordFillFailure('checkbox', name, 'field not found on template');
+      return;
+    }
+    box.check();
+    if (box.isChecked()) {
+      fillLedger.written++;
+    } else {
+      recordFillFailure('checkbox', name, 'read-back shows unchecked after check()');
+    }
   } catch (e) {
+    recordFillFailure('checkbox', name, e && e.message);
     console.warn('[fill-form] could not check box', JSON.stringify(name), ':', e && e.message);
   }
 }
@@ -2161,7 +2217,7 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// SELLER'S DISCLOSURE NOTICE (TREC 55-0) — 179 AcroForm fields (XFA stripped)
+// SELLER'S DISCLOSURE NOTICE (TREC 55-1) — 186 AcroForm fields (XFA stripped)
 // Field map verified via scripts/inspect_all_fields.js.
 //
 // This form is an Adobe XFA dynamic PDF. pdf-lib strips XFA and writes the AcroForm
@@ -3813,6 +3869,8 @@ module.exports = async function handler(req, res) {
   }
 
   let storagePathForCleanup = null;
+  // Fresh write ledger per request (module-scope, and Vercel reuses instances).
+  resetFillLedger();
 
   try {
     const ip = clientIpFromReq(req);
@@ -4053,6 +4111,33 @@ module.exports = async function handler(req, res) {
     const filledBytes = await fillForm(resolvedFormType, mergedFields);
     const buffer = Buffer.from(filledBytes);
 
+    // Read-back gate. Every write above was verified by reading the value back
+    // off the AcroForm. If a template revision drifts and the field names stop
+    // resolving, this is what stops us from storing a blank PDF, attaching it to
+    // the dossier and returning 200 as though the document were filled.
+    const ledger = getFillLedger();
+    if (ledger.attempted > 0 && ledger.written === 0) {
+      console.error('[fill-form] ABORT — 0 of %d field writes landed on %s. Template drift?',
+        ledger.attempted, resolvedFormType, JSON.stringify(ledger.failures.slice(0, 10)));
+      return res.status(500).json({
+        ok: false,
+        error: 'The form template did not accept any of the values for this document, so nothing was saved. This is a template problem on our side, not your data — heath@meetdossie.com has been notified.',
+        fill_report: {
+          form_type: resolvedFormType,
+          fields_attempted: ledger.attempted,
+          fields_written: 0,
+          sample_failures: ledger.failures.slice(0, 10),
+        },
+      });
+    }
+    // Partial drift: the document is usable but incomplete. Surface it rather
+    // than let the agent assume every value made it onto the page.
+    const fillRate = ledger.attempted ? ledger.written / ledger.attempted : 1;
+    if (ledger.failures.length) {
+      console.warn('[fill-form] %d of %d field writes failed on %s',
+        ledger.attempted - ledger.written, ledger.attempted, resolvedFormType);
+    }
+
     const ts = Date.now();
     const config = FORM_CONFIGS[resolvedFormType];
     const safeName = config.shortName + '-' + ts + '.pdf';
@@ -4113,6 +4198,16 @@ module.exports = async function handler(req, res) {
       formName: config.name,
       formType: resolvedFormType,
       validation: validationReport, // null unless strict_validate was true
+      // Verified write counts, not "we called setText and it didn't throw".
+      fill_report: {
+        fields_attempted: ledger.attempted,
+        fields_written: ledger.written,
+        fields_failed: ledger.attempted - ledger.written,
+        complete: ledger.attempted === ledger.written,
+        sample_failures: ledger.failures.slice(0, 10),
+      },
+      // True when some values did not make it onto the page — show the agent.
+      partial_fill: fillRate < 1,
     });
 
   } catch (error) {
