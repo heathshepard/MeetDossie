@@ -263,7 +263,7 @@ function tcCostComparison() {
       },
       {
         name: 'AI (Dossie)',
-        cost_range: '$29/month flat (founding rate)',
+        cost_range: '$149/month flat (Solo plan)',
         best_for: 'Any volume',
       },
     ],
@@ -276,12 +276,19 @@ function dossieInfo() {
     product: 'Dossie',
     tagline: 'AI transaction coordinator for Texas real estate agents',
     pricing: {
-      founding_member: {
-        price_usd_per_month: 29,
-        note: 'Locked in for life',
+      solo: {
+        price_usd_per_month: 149,
+        note: 'Per agent',
+      },
+      team: {
+        price_usd_per_month: 349,
+        note: '3 seats, max 8 at $35/seat',
+      },
+      brokerage: {
+        note: 'Custom pricing',
       },
     },
-    founding_url: 'https://meetdossie.com/founding',
+    signup_url: 'https://meetdossie.com/signup',
     learn_more: {
       calculator: 'https://meetdossie.com/calculator',
       guides: 'https://meetdossie.com/guides/',

@@ -121,7 +121,7 @@ Heath's voice: warm, casual, genuine, first-person. Sounds like a working agent,
 
 Rules:
 - Be genuinely helpful first
-- One sentence about Dossie max, then meetdossie.com/founding only if relevant
+- One sentence about Dossie max, then meetdossie.com/signup only if relevant
 - Pain point or TC software question: empathize + mention Dossie naturally
 - No clear opening for Dossie: return SKIP
 - Max 3 sentences. Plain ASCII only.`;

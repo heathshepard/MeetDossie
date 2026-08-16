@@ -1,6 +1,6 @@
 // Vercel Serverless Function: /api/cron-deadline-reminders
 // Daily cron. For every calculator_signups row with a deadline 3 days from
-// now, send a Resend email with the deadline + a CTA to /founding. Tracks
+// now, send a Resend email with the deadline + a CTA to /signup. Tracks
 // reminders_sent JSONB so we don't double-fire.
 //
 // Auth:     Authorization: Bearer ${CRON_SECRET}
@@ -59,7 +59,7 @@ function deadlineCopy(deadline, daysOut) {
     ``,
     `If you'd rather not track this manually for every deal, Dossie does it automatically — every dossier in your pipeline gets the same TREC engine, plus reminders, follow-up emails, document QA, and contract scanning.`,
     ``,
-    `Founding membership is $29/month for life: <a href="https://meetdossie.com/founding">meetdossie.com/founding</a>`,
+    `Solo pricing is $149/month: <a href="https://meetdossie.com/signup">meetdossie.com/signup</a>`,
     ``,
     `— Heath Shepard, REALTOR®`,
     `Founder, Dossie`,

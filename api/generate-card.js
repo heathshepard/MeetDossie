@@ -25,50 +25,13 @@ const PLATFORM_DIMS = {
   facebook: { width: 1200, height: 630 },
 };
 
-// Founding cohort is CAPPED AT 25 spots for LIFE of membership.
-// Canonical per CLAUDE.md Section 5 and memory feedback_founding_25_locked_forever.
-// Do NOT change this number without an explicit instruction from Heath.
-const FOUNDING_COHORT_CAP = 25;
-
-/**
- * Query live founding member count from Supabase
- */
-async function getFoundingMemberCount() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.warn('Cannot query founding count - Supabase not configured');
-    return { count: 0, remaining: FOUNDING_COHORT_CAP };
-  }
-
-  try {
-    const response = await retryFetch(
-      `${supabaseUrl}/rest/v1/subscriptions?plan=eq.founding&status=eq.active&select=id`,
-      {
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`,
-        },
-      },
-      { name: 'Supabase-founding-count', maxAttempts: 3, baseDelay: 500 }
-    );
-
-    if (!response.ok) {
-      console.warn('Failed to query founding count:', response.status);
-      return { count: 0, remaining: FOUNDING_COHORT_CAP };
-    }
-
-    const data = await response.json();
-    const count = Array.isArray(data) ? data.length : 0;
-    const remaining = Math.max(0, FOUNDING_COHORT_CAP - count);
-
-    return { count, remaining };
-  } catch (error) {
-    console.warn('Error querying founding count:', error.message);
-    return { count: 0, remaining: FOUNDING_COHORT_CAP };
-  }
-}
+// Founding pricing CLOSED PERMANENTLY 2026-08-04 (CLAUDE.md Section 5) — no new
+// signups accepted, ever. The card badge no longer references founding spots;
+// getFoundingMemberCount() was removed 2026-08-16 along with the "Founding ·
+// N spots left" pill (it was live-querying and stamping a dead offer onto
+// every rendered social card). Current sellable pricing is Solo $149/mo,
+// Team $349/mo.
+const CARD_BADGE_TEXT = 'Texas REALTORS';
 
 /**
  * Upload buffer to Supabase Storage
@@ -108,7 +71,7 @@ async function uploadToStorage(buffer, objectPath) {
 /**
  * Build HTML for the card
  */
-function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemaining }) {
+function buildCardHTML({ platform, hook, content, stat, statLabel }) {
   const dims = PLATFORM_DIMS[platform];
   const { width: W, height: H } = dims;
   const isInstagram = platform === 'instagram';
@@ -125,7 +88,7 @@ function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemai
   const actualStatLabel = escape((statLabel || 'transactions per year').trim());
   const actualHook = escape((hook || '').trim());
   const bodyText = escape((content || '').trim());
-  const pillText = `Founding · ${foundingRemaining} spots left`;
+  const pillText = CARD_BADGE_TEXT;
 
   return `
 <!DOCTYPE html>
@@ -219,7 +182,7 @@ function buildCardHTML({ platform, hook, content, stat, statLabel, foundingRemai
     </div>
     <div class="bottom-row">
       <div class="pill">${pillText}</div>
-      <div class="url">meetdossie.com/founding</div>
+      <div class="url">meetdossie.com/signup</div>
     </div>
   </div>
 </body>
@@ -238,9 +201,6 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     throw new Error('HCTI_USER_ID / HCTI_API_KEY not configured');
   }
 
-  // Get live founding count
-  const { remaining: foundingRemaining } = await getFoundingMemberCount();
-
   // Build HTML
   const html = buildCardHTML({
     platform,
@@ -248,7 +208,6 @@ async function renderCard({ platform, hook, content, stat, statLabel }) {
     content,
     stat,
     statLabel,
-    foundingRemaining,
   });
 
   // Call htmlcsstoimage API with retry.

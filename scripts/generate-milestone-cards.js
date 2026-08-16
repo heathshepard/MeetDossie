@@ -181,7 +181,7 @@ function buildMilestoneCardHTML(stage, cityState) {
     <div class="footer">
       <div class="footer-left">
         <div class="handled-by">Handled by Dossie</div>
-        <div class="url">meetdossie.com/founding</div>
+        <div class="url">meetdossie.com/signup</div>
       </div>
       <div class="mark">
         <div class="mark-d">D</div>

@@ -49,7 +49,7 @@ function buildMilestoneCardHTML(stage, cityState) {
   <div style="position:absolute;bottom:80px;left:80px;right:80px;display:flex;justify-content:space-between;align-items:center;">
     <div>
       <div style="font-size:20px;color:#7A7468;margin-bottom:8px;">Handled by Dossie</div>
-      <div style="font-size:18px;font-weight:bold;color:#A48531;">meetdossie.com/founding</div>
+      <div style="font-size:18px;font-weight:bold;color:#A48531;">meetdossie.com/signup</div>
     </div>
     <div style="width:110px;height:110px;border-radius:50%;background:#C9A96E;display:flex;align-items:center;justify-content:center;border:3px solid white;">
       <div style="font-size:70px;font-weight:bold;color:white;">D</div>

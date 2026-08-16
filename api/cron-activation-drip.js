@@ -26,7 +26,9 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 const FROM_EMAIL = 'heath@meetdossie.com';
 const APP_URL = 'https://meetdossie.com/app';
-const FOUNDING_URL = 'https://meetdossie.com/founding';
+// Founding closed permanently 2026-08-04 (CLAUDE.md Section 5) — referrals now
+// go to the live signup page at current Solo/Team pricing, never to /founding.
+const SIGNUP_URL = 'https://meetdossie.com/signup';
 
 // ---------------------------------------------------------------------------
 // Supabase helpers
@@ -177,56 +179,19 @@ function buildEmail3(profile) {
   };
 }
 
-// Returns the number of real paying founding spots remaining (excludes demos,
-// heath.shepard@* accounts, and the $1 founding-friend Suzanne Page).
-// Mirrors the logic in founding-count.js and cron-generate-posts.js.
-const FOUNDING_FRIEND_EMAILS_DRIP = new Set(['k.suzanne.page@gmail.com']);
-const FOUNDING_TOTAL_DRIP = 25; // cohort cap dropped from 50 → 25 on 2026-07-09
+// Founding pricing CLOSED PERMANENTLY 2026-08-04 (CLAUDE.md Section 5) — no new
+// signups, ever. getFoundingRemainingCount() and the "spots left" pitch were
+// removed 2026-08-16; the referral email now points friends at Solo pricing
+// ($149/mo) via /signup instead of a dead founding offer.
 
-async function getFoundingRemainingCount() {
-  try {
-    const subRes = await supaJson(
-      'subscriptions?select=user_id&plan=eq.founding&status=eq.active'
-    );
-    if (!subRes.ok || !Array.isArray(subRes.data)) return null;
-    const userIds = subRes.data.map((s) => s.user_id).filter(Boolean);
-    if (userIds.length === 0) return FOUNDING_TOTAL_DRIP;
-
-    const profFilter = userIds.map((id) => `"${id}"`).join(',');
-    const profRes = await supaJson(
-      `profiles?id=in.(${profFilter})&select=id,email,is_demo`
-    );
-    if (!profRes.ok || !Array.isArray(profRes.data)) return null;
-
-    const profilesById = new Map(profRes.data.map((p) => [p.id, p]));
-    let taken = 0;
-    for (const uid of userIds) {
-      const p = profilesById.get(uid);
-      if (!p || p.is_demo) continue;
-      const e = (p.email || '').toLowerCase();
-      if (e.startsWith('heath.shepard@') || FOUNDING_FRIEND_EMAILS_DRIP.has(e)) continue;
-      taken += 1;
-    }
-    return Math.max(0, FOUNDING_TOTAL_DRIP - taken);
-  } catch (err) {
-    console.warn('[cron-activation-drip] getFoundingRemainingCount failed:', err && err.message);
-    return null;
-  }
-}
-
-function buildReferralEmail(profile, remaining) {
+function buildReferralEmail(profile) {
   const name = firstName(profile.full_name);
-  const spotsText = (typeof remaining === 'number')
-    ? `There are ${remaining} founding spots left at $29/month -- that number is real and it's going down.`
-    : 'Founding spots are going fast -- that number is real and it\'s going down.';
   return {
     subject: 'Know another agent who needs this?',
     html: `
 <p>Hey ${name} --</p>
 
-<p>You've been running deals through Dossie for a couple weeks now. If you know another agent who's still paying $400 a file or dealing with TC headaches, send them here: <a href="${FOUNDING_URL}">${FOUNDING_URL}</a></p>
-
-<p>${spotsText}</p>
+<p>You've been running deals through Dossie for a couple weeks now. If you know another agent who's still paying $400 a file or dealing with TC headaches, send them here: <a href="${SIGNUP_URL}">${SIGNUP_URL}</a></p>
 
 <p>No referral program or commissions -- just thought you'd want to share if it's been helpful.</p>
 
@@ -391,9 +356,6 @@ module.exports = withTelemetry('cron-activation-drip', async function handler(re
   // Members who HAVE uploaded a doc, signed up 14-21 days ago, no referral ask yet
   // -------------------------------------------------------------------------
 
-  // Fetch live remaining spot count before sending referral emails.
-  const foundingRemaining = await getFoundingRemainingCount();
-
   const windowStart = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString();
   const windowEnd = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -447,7 +409,7 @@ module.exports = withTelemetry('cron-activation-drip', async function handler(re
         continue;
       }
 
-      const email = buildReferralEmail(p, foundingRemaining);
+      const email = buildReferralEmail(p);
       const sent = await sendEmail({ to: p.email, ...email });
       if (sent.ok) {
         await markEmailSent(p.id, 'referral_ask_sent_at');

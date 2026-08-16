@@ -291,8 +291,8 @@ ${platformRules}
 
 BRAND CONTEXT:
 - Dossie is an AI transaction coordinator for Texas real estate agents.
-- Founding-member pricing is $29/month, locked while subscription stays active.
-- Sign up: meetdossie.com/founding
+- Current pricing for new customers: Solo $149/month, Team $349/month, Brokerage custom. Founding pricing ($29/mo) is CLOSED PERMANENTLY as of 2026-08-04 — never pitch it to a prospect.
+- Sign up: meetdossie.com/signup
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect.
 
 PERSONA VOICE - CRITICAL:
@@ -318,9 +318,9 @@ Return STRICT JSON only. No markdown fences. No commentary.
   "card_body": "<MAX 50 WORDS. Punchy standalone text for image card. 2-3 short sentences.>",
   "caption": "<full post text for social media, include CTA and hashtags at end>",
   "hook": "<5-8 words max, pattern-interrupting opener>",
-  "cta": "<CTA line referencing meetdossie.com/founding>",
+  "cta": "<CTA line referencing meetdossie.com/signup>",
   "hashtags": ["hashtag1", "hashtag2"],
-  "stat": "<bold anchor, max 10 chars, e.g. '$29/mo' or '80+'>",
+  "stat": "<bold anchor, max 10 chars, e.g. '$149/mo' or '80+'>",
   "stat_label": "<descriptive phrase, max 50 chars>"
 }`;
 }

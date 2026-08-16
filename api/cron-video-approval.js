@@ -169,7 +169,7 @@ module.exports = withTelemetry('cron-video-approval', async function handler(req
     const skitId = skit.id;
     const topic = skit.topic || skitId;
     const videoUrl = skit.video_url;
-    const caption = skit.caption || `Reel: ${topic} - meetdossie.com/founding`;
+    const caption = skit.caption || `Reel: ${topic} - meetdossie.com/signup`;
 
     if (!videoUrl) {
       console.warn(`[cron-video-approval] Skit ${skitId} has no video_url — skipping`);

@@ -107,7 +107,7 @@ If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are va
 - Dossier pipeline view with deal cards + deadline badges
 - Talk-to-Dossie voice/text chat
 - Natural-language deadlines throughout
-- Founding application flow + Stripe checkout
+- Signup flow + Stripe checkout
 - Share Dossie button (desktop sidebar + mobile bottom nav)
 - TREC deadline calculator at meetdossie.com/calculator
 - 10 SEO guide pages + 5 AEO answer pages
@@ -150,15 +150,15 @@ If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are va
 
 If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm debug session", "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it"), flag as red — those are invented.
 
-### Pricing (locked, real)
-- Founding: $29/mo (25 spots total, __FOUNDING_COUNT__ taken, __FOUNDING_REMAINING__ remaining) — cap reduced from 50 → 25 on 2026-07-09, locked
-- Solo: $149/mo, Team: $349/mo, Brokerage: custom
+### Pricing (locked, real) — CURRENT SELLABLE OFFER for prospects is Solo/Team only
+- Founding: CLOSED PERMANENTLY 2026-08-04 — no new signups, ever. __FOUNDING_COUNT__ existing members remain locked for life at $29/mo per Terms of Service §4. This is a historical fact about existing customers only — NEVER offer or imply it's available to a new signup.
+- Solo: $149/mo, Team: $349/mo (3 seats, max 8 at $35/seat), Brokerage: custom — these are the ONLY prices to pitch a prospective customer. Sign up at meetdossie.com/signup.
 
 ## What to flag
 
 🔴 RED (highest severity — verdict MUST be needs_revision):
 - Founding member numbers past __FOUNDING_COUNT__
-- Hardcoded founding SPOT COUNT in post body text — any phrasing like "12 of 25 spots taken", "twelve of twenty-five founding spots", "only 13 spots left", "37 spots left", "40 spots left", or any variant with a specific number of spots taken/remaining. The count changes daily; hardcoding any number makes it stale the moment a new member signs up. The ONLY acceptable founding pricing language is: "Founding pricing is $29/month" or "Founding member pricing at meetdossie.com/founding" with no spot count. (Cohort cap is 25 total, locked 2026-07-09 — never say 50.)
+- Any language pitching founding membership, founding pricing ($29/mo), spot counts/scarcity ("X spots left", "X of 25 taken"), or meetdossie.com/founding as available to a NEW customer. Founding CLOSED PERMANENTLY 2026-08-04 — no new signups exist or will ever exist again. The ONLY acceptable pricing pitch to a prospect is "Solo pricing is $149/month" or "Team pricing is $349/month" with signup at meetdossie.com/signup. Referencing the 10 existing founding members as a historical fact (e.g. "our first 10 members locked in early access at $29/mo for life") is fine — inviting a NEW signup into founding pricing or spots is always a red flag.
 - Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
 - Customer names + events not in the verified list above
 - Features claimed as live from the NOT-yet-built list
@@ -299,8 +299,8 @@ const PERSONAS = {
 const TOPICS = [
   {
     key: 'cost_math',
-    label: 'The cost math (current TC cost vs Dossie at $29/mo)',
-    angle: 'Compare what an agent currently spends on TC services to Dossie\'s $29/mo founding-member price. Use real numbers. Avoid generic "save money!" framing — show the actual delta.',
+    label: 'The cost math (current TC cost vs Dossie at $149/mo)',
+    angle: 'Compare what an agent currently spends on TC services to Dossie\'s $149/mo Solo price. Use real numbers. Avoid generic "save money!" framing — show the actual delta.',
   },
   {
     key: 'pain_points',
@@ -325,7 +325,7 @@ const TOPICS = [
   {
     key: 'build_in_public',
     label: 'Build in Public — show the behind-the-scenes work',
-    angle: 'Share what Heath is actively building right now. Code commits, feature decisions, late-night debugging sessions, customer feedback that shaped a feature. Make it personal and transparent. Show the human builder behind Dossie, not a faceless company. Examples: "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it", "Just shipped voice transcription for Talk to Dossie — here\'s why it took 3 weeks", "Founding member #12 asked for bulk email drafts. Built it in 48 hours."',
+    angle: 'Share what Heath is actively building right now. Code commits, feature decisions, late-night debugging sessions, customer feedback that shaped a feature. Make it personal and transparent. Show the human builder behind Dossie, not a faceless company. Examples: "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it", "Just shipped voice transcription for Talk to Dossie — here\'s why it took 3 weeks", "A customer asked for a specific workflow tweak. Shipped it in 48 hours."',
   },
   {
     key: 'feature_reveal',
@@ -335,7 +335,7 @@ const TOPICS = [
   {
     key: 'community_movement',
     label: 'Community/Movement — highlight The Founding Files and the collective',
-    angle: 'Emphasize that founding members aren\'t just subscribers — they\'re part of a movement. Highlight The Founding Files private community, feature voting, early access, member stories, the "first 25" exclusivity. Examples: "A founding member voted for pipeline drag-and-drop. It shipped today.", "The Founding Files isn\'t a Facebook group. It\'s where Dossie gets built.", "Founding pricing is $29/month — locked for life while your subscription stays active." NEVER write a specific spot count number ("48 spots left", "13 spots left", etc.) — the count changes daily and any hardcoded number becomes stale immediately.',
+    angle: 'Emphasize The Founding Files as the private community for Dossie\'s original members — feature voting, early access, member stories. This celebrates the first members who joined before founding pricing closed permanently (2026-08-04) — it is NOT an invitation for new members to join founding. Examples: "A founding member voted for pipeline drag-and-drop. It shipped today.", "The Founding Files isn\'t a Facebook group. It\'s where Dossie gets built." NEVER pitch founding pricing, a spot count, or meetdossie.com/founding as available — founding is closed, no exceptions. If the post needs a CTA for new readers, point them to Solo pricing ($149/month) at meetdossie.com/signup instead.',
   },
 ];
 
@@ -389,7 +389,7 @@ const PLATFORM_RULES = {
     hook_rule: "First sentence must hook the viewer in under 10 words — state the specific problem or outcome. YouTube viewers decide in the first 3 seconds. Examples: 'Your option period deadline is 8 days away.' or 'Most Texas agents miss this TREC rule.'",
     length_rule: "Description: 150-300 words. The voiceover_script should target 60-90 seconds spoken (550-800 chars) — longer than TikTok/Instagram, educational depth expected. YouTube rewards watch time, not brevity.",
     format_rule: "Description uses short paragraphs. Voiceover is conversational and structured: intro problem, explain the rule or feature, show the solution, CTA. No bullet points in voiceover — write for ears, not eyes.",
-    cta_rule: "End description with 'Subscribe for more Texas real estate tips + Link: meetdossie.com/founding'. Voiceover ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.'",
+    cta_rule: "End description with 'Subscribe for more Texas real estate tips + Link: meetdossie.com/signup'. Voiceover ends with 'This is Dossie. Texas agents - meetdossie.com slash signup.'",
     timing: "Best performing: 9AM-12PM CST (14:00-17:00 UTC). Post 1/day max.",
     hashtags: "REQUIRED: 3-5 hashtags at end of description. Use: #texasrealestate #realtortips #trec #transactioncoordinator #realestateagent",
   },
@@ -771,7 +771,7 @@ const PLATFORM_NATIVE_FORMAT = {
    - Emotional storytelling. Write like a real agent posting from their personal page, not a brand account.
    - 3-5 sentences max for the opening hook before a line break. Then continue the story in 2-3 more short paragraphs.
    - Conversational tone, like a post from a friend who happens to know real estate inside out.
-   - End with a soft, natural CTA — not a sales pitch. "If you're still doing this manually, meetdossie.com/founding is worth 2 minutes."
+   - End with a soft, natural CTA — not a sales pitch. "If you're still doing this manually, meetdossie.com/signup is worth 2 minutes."
    - NO HASHTAGS. Facebook hashtags add zero distribution value and look spammy. Hard rule.`,
 
   twitter: `   TWITTER/X WRITING STYLE — native format:
@@ -807,9 +807,9 @@ const PLATFORM_NATIVE_FORMAT = {
    - This is the description field. It supports the video — write for someone who just watched and wants to learn more or take action.
    - Open with 1-2 punchy sentences restating the core value of the video. Then expand with context (1-2 short paragraphs).
    - YouTube description is read AFTER the video, not instead of it — don't repeat the voiceover verbatim. Complement it.
-   - Include a clear CTA paragraph: "Try Dossie free: meetdossie.com/founding" + "Subscribe for more Texas real estate tips."
+   - Include a clear CTA paragraph: "Try Dossie: meetdossie.com/signup" + "Subscribe for more Texas real estate tips."
    - 3-5 relevant hashtags at the end.
-   VOICEOVER NOTE: For YouTube, the voiceover_script should be 60-90 seconds (550-800 chars). More educational depth than TikTok. Structure: state the problem -> explain the TREC rule or feature with one concrete example -> show how Dossie handles it -> CTA. Conversational, not scripted. End with "This is Dossie. Texas agents - meetdossie.com slash founding."`,
+   VOICEOVER NOTE: For YouTube, the voiceover_script should be 60-90 seconds (550-800 chars). More educational depth than TikTok. Structure: state the problem -> explain the TREC rule or feature with one concrete example -> show how Dossie handles it -> CTA. Conversational, not scripted. End with "This is Dossie. Texas agents - meetdossie.com slash signup."`,
 };
 
 function buildPlatformNativeBlock(platform) {
@@ -845,12 +845,12 @@ ${buildPlatformNativeBlock(platform)}
    Platform: ${platform}
    ${notes}
    STRUCTURE: feature name -> what it does -> one concrete outcome -> CTA
-   EXAMPLE CAPTION: "Dossie scans a TREC contract in about 8 seconds. Deadlines auto-calculated, paragraph cited. No math. No spreadsheet. $29/month founding pricing at meetdossie.com/founding"
+   EXAMPLE CAPTION: "Dossie scans a TREC contract in about 8 seconds. Deadlines auto-calculated, paragraph cited. No math. No spreadsheet. $149/month at meetdossie.com/signup"
    ALLOWED FEATURES (shipped, safe to claim): TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only - agent reviews and sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines.
    EMAIL DRAFT QUEUE ACCURACY: The email draft queue does NOT auto-write emails when deadlines hit. Agents build draft templates in the queue, review them, and send manually. NEVER write "Dossie writes your emails", "Dossie drafts follow-ups automatically when a deadline approaches", or "Dossie sends follow-ups" — any automation claim on email drafting is false and triggers verifier rejection. Correct framing: "Dossie's email draft queue keeps follow-ups ready to review and send" or "Follow-up drafts queued — you review, you send."
    DO NOT claim any unshipped feature. Keep it to ONE feature per post — do not stack multiple capabilities into one claim.
    SINGLE FEATURE HARD RULE: The length target for LinkedIn (1300-2000 chars) is achieved by telling a DEEPER STORY about ONE feature — more context, a concrete agent scenario, the before/after, the why it matters. It is NEVER achieved by listing or describing additional features. If you run out of depth on one feature, pick a different feature. Stacking features ("Dossie does X and Y and Z") always triggers a verifier rejection. Write ONE feature. Go deep.
-   FOUNDING COUNT HARD RULE: Never write a specific founding member number (e.g. "12 of 50", "eleven of fifty", "only 38 spots left"). The count changes daily and any hardcoded number becomes a stale fabrication. Instead, write: "Founding pricing is $29/month, locked while your subscription stays active" or "Founding member pricing is available now at meetdossie.com/founding" — no count, no specific spot number.
+   PRICING HARD RULE: Founding membership is CLOSED PERMANENTLY (2026-08-04) — never pitch founding pricing, a spot count, or meetdossie.com/founding as available to a new customer. The only current, sellable pricing is Solo $149/month or Team $349/month. Write: "Solo pricing is $149/month" or "Get started at meetdossie.com/signup" — no founding language, no spot numbers.
    Set "persona" in the output JSON to "dossie" for this slot.
 ${buildPlatformRulesBlock(platform)}
 ${buildPlatformNativeBlock(platform)}
@@ -866,7 +866,7 @@ ${buildPlatformNativeBlock(platform)}
    Platform: ${platform}
    ${notes}
    STRUCTURE: TREC fact/rule -> why it matters to the agent -> how Dossie handles it -> CTA
-   EXAMPLE CAPTION: "Option period in Texas runs from executed date plus N days. Miss the termination deadline by one minute and the right is gone. Dossie calculates it automatically and flags it in your morning brief. meetdossie.com/founding"
+   EXAMPLE CAPTION: "Option period in Texas runs from executed date plus N days. Miss the termination deadline by one minute and the right is gone. Dossie calculates it automatically and flags it in your morning brief. meetdossie.com/signup"
    PRE-VERIFIED TREC FACTS (safe to reference — pick one per post):
    - Option period: buyer's right to terminate, runs from execution date; one-minute miss eliminates the right
    - Earnest money: typically due within 3 days of contract execution to title company
@@ -960,7 +960,7 @@ You may ONLY reference verified real facts about Dossie. Hallucinated specifics 
 
 ALLOWED specifics:
 - The founder pain stories saved verbatim in CLAUDE.md and the memory file \`project_heath_founder_pain_stories.md\` (TC quit while Heath was in Italy with deals in escrow; $400/file and still waking at 4:30am wondering if the option fee receipt was sent; "vacation is the stress test your systems fail" reframe; Brittney's "control freak / visibility problem" insight)
-- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members). NEVER write a specific spot count in any caption — the founding cap is 25, count changes daily, hardcoded numbers become stale immediately. Say "Founding pricing is $29/month" with no spot count.
+- Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members, referenced as historical fact only). Founding pricing is CLOSED PERMANENTLY (2026-08-04) — NEVER pitch founding pricing, a spot count, or meetdossie.com/founding to a prospect. The only pricing to offer a prospect is "Solo pricing is $149/month" or "Team pricing is $349/month".
 - Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
 
 FORBIDDEN specifics:
@@ -984,16 +984,16 @@ ${topic.angle}
 
 BRAND CONTEXT
 - Dossie is an AI transaction coordinator for Texas real estate agents.
-- Founding-member pricing is $29/month, locked while subscription stays active.
-- Sign up: meetdossie.com/founding
+- Current pricing for new customers: Solo $149/month, Team $349/month (3 seats), Brokerage custom. Founding pricing ($29/mo) is CLOSED PERMANENTLY as of 2026-08-04 — it is not offered to new signups and must never appear as a pitch.
+- Sign up: meetdossie.com/signup
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect. No hashtag-stuffing. No "🔥💯🚀" emoji-spam. No "Game changer!" or "Stop scrolling!" hooks.
 ${personaVoiceSection}${brandVoiceSection}
 NUMBERS & CLAIMS
 - Any number used in a post (deals/year, $/file, etc.) is fictional and MUST be framed as a hypothetical or example. Use phrasing like "agents doing 50+ deals a year", "if you're paying around $400 a file", "say you do 10-12 deals a year".
 - Do NOT present specific numbers as if they're real stats about the agent or about Dossie's user base. Never write "54 deals" as if reporting fact — write "50+ deals a year" or "an agent doing 50 a year" instead.
 - No claims about user counts, subscriber counts, or comparative metrics ("X% faster", "$Y saved last year") — Dossie is brand new and those numbers don't exist yet.
-- The $29/month founding price IS real — that one specific number is fine to state directly.
-- FOUNDING MEMBER COUNT — NEVER write a specific founding spot count or taken count in any post. Never write "12 of 50 spots taken", "eleven of fifty", "38 spots left", or any variant with a specific number. The count changes daily — any hardcoded number becomes stale the moment someone new signs up and triggers a verifier rejection. Write "Founding pricing is $29/month, locked while your subscription stays active" or "Founding member pricing at meetdossie.com/founding" — no count ever.
+- The $149/month Solo price and $349/month Team price ARE real — these are the only prices fine to state directly to a prospective customer.
+- FOUNDING IS CLOSED — NEVER pitch founding pricing ($29/mo), a spot count, "founding member spots open", or meetdossie.com/founding to a prospective customer. Founding closed permanently 2026-08-04; no new signups exist or ever will again. Write "Solo pricing is $149/month" or "Get started at meetdossie.com/signup" instead.
 
 TIMEFRAMES & DOSSIE-USAGE DURATION
 - Dossie launched recently. When a persona references how long they've been using Dossie, use "recently" or "over the last few weeks" — NEVER "a few months ago", "for the past year", "since last summer", or any phrasing that implies they've used Dossie for longer than a few weeks.
@@ -1016,13 +1016,13 @@ Return STRICT JSON only. No markdown fences. No commentary before or after. Form
       "format": "CAPABILITY_ONELINER" | "TREC_EDUCATION" | "FOUNDER_STORY",
       "persona": "dossie",
       "platform": "linkedin" | "facebook" | "instagram" | "tiktok" | "twitter" | "youtube",
-      "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash founding.' Never use special characters. Approx 400-500 chars.>",
+      "voiceover_script": "<35-45 second spoken script for ElevenLabs TTS. Conversational, present-tense, no em-dashes. Ends with 'This is Dossie. Texas agents - meetdossie.com slash signup.' Never use special characters. Approx 400-500 chars.>",
       "card_body": "<MAX 50 WORDS. Punchy, standalone body text for the image card (instagram + facebook only). 2-3 short sentences. Must work visually on the card without the full caption. Example: 'You already answered that. Yesterday. In writing. But here you are, fielding the same question again because your TC has no system.'>",
       "caption": "<the full post text for social media — can be longer, tell the full story, include CTA and hashtags at the end>",
       "hook": "<punchy, pattern-interrupting opening — 5-8 words MAXIMUM. Examples: 'Your TC just quit. Now what?', '80 transactions. Zero TC.', 'She closed 6 deals this month.' Start with a question, number, or provocative statement — never generic 'Real talk' openers.>",
-      "cta": "<the CTA line — should naturally include meetdossie.com/founding or 'founding member spots open' or similar>",
+      "cta": "<the CTA line — should naturally include meetdossie.com/signup or 'Solo pricing at $149/month' or similar>",
       "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
-      "stat": "<bold anchor — single value, max 10 characters. Examples: '$29/mo', '80+', '$8,000', '9:47pm'. Pulled directly from the post — no new claims.>",
+      "stat": "<bold anchor — single value, max 10 characters. Examples: '$149/mo', '80+', '$8,000', '9:47pm'. Pulled directly from the post — no new claims.>",
       "stat_label": "<plain descriptive phrase, max 50 characters. Examples: 'per year for a solo TC', 'deals this month', 'what the stress costs'>"
     }
   ]
@@ -1043,7 +1043,7 @@ Rules:
   something the post actually says — never invent a new number.
 - VOICEOVER SCRIPT: "voiceover_script" is the spoken narration for ElevenLabs TTS, used to
   build the Creatomate video. Conversational, present-tense. Must end with
-  "This is Dossie. Texas agents - meetdossie.com slash founding." No em-dashes,
+  "This is Dossie. Texas agents - meetdossie.com slash signup." No em-dashes,
   no curly quotes, no special characters. Approx 400-500 chars (35-45s at natural pace).
 - CARD BODY: "card_body" is ONLY for the image card (instagram + facebook). Max 50 words. 2-3 punchy
   sentences that work standalone visually. No long-form storytelling. Keep it tight and card-friendly.

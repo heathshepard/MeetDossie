@@ -13,7 +13,7 @@ const CRON_SECRET          = process.env.CRON_SECRET;
 const STUDIO_PASSWORD      = process.env.STUDIO_PASSWORD;
 
 async function generateCaption(stem) {
-  const fallback = 'Your transactions, handled. meetdossie.com/founding';
+  const fallback = 'Your transactions, handled. meetdossie.com/signup';
 
   if (!ANTHROPIC_API_KEY) {
     console.log('[register-video] No ANTHROPIC_API_KEY — using fallback caption');
@@ -24,7 +24,7 @@ async function generateCaption(stem) {
     `Generate a 1-2 sentence social media caption for a Dossie video. ` +
     `Topic: ${stem}. ` +
     `Brand: warm AI transaction coordinator for Texas real estate agents. ` +
-    `End with: meetdossie.com/founding. Max 150 chars. Plain ASCII only.`;
+    `End with: meetdossie.com/signup. Max 150 chars. Plain ASCII only.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -56,7 +56,7 @@ async function generateCaption(stem) {
 
     // Enforce 150 char limit
     if (caption.length > 150) {
-      const url = 'meetdossie.com/founding';
+      const url = 'meetdossie.com/signup';
       if (!caption.includes(url)) {
         caption = caption.slice(0, 120) + '... ' + url;
       } else {

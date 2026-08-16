@@ -43,7 +43,7 @@ const CAPABILITY_BANNED_PHRASES = [
   'download dossie',
 ];
 
-const CTA_REQUIRED_SUBSTRING = 'meetdossie.com slash founding';
+const CTA_REQUIRED_SUBSTRING = 'meetdossie.com slash signup';
 
 // Topic rotation — 7 topics, pick by week_of_year % 7
 const SKIT_TOPICS = [
@@ -63,7 +63,7 @@ Every skit must hit these four beats in order:
   Beat 1 (PAIN): Show the specific moment of agent pain. A real, vivid scenario.
   Beat 2 (COST): Make the cost of that pain feel concrete (lost deal, wrecked vacation, angry client).
   Beat 3 (CAPABILITY): One declarative narrator line that NAMES what Dossie does. THIS BEAT IS THE WHOLE POINT.
-  Beat 4 (CTA): Bill closes with "Texas agents - meetdossie.com slash founding."
+  Beat 4 (CTA): Bill closes with "Texas agents - meetdossie.com slash signup."
 
 THE CAPABILITY BEAT (Beat 3) - HARD RULES
 This is the line that turns the skit from "funny meme" into "ad that sells software." It is the single line a viewer must remember. It is also the line every previous skit got wrong.
@@ -108,7 +108,7 @@ VISUAL RULES (Kling scene prompts)
 DIALOGUE RULES
   - Voices available: charlie (agent male), luna (TC female), bill (narrator/deadpan).
   - Bill speaks the capability beat AND the CTA.
-  - CTA must be exactly: "Texas agents - meetdossie.com slash founding."
+  - CTA must be exactly: "Texas agents - meetdossie.com slash signup."
   - Audio target: 28-44 seconds (~130 words/min, so ~60-95 words total across all lines).
   - Third person only. Personas illustrate pain - they are not speaking AS Dossie.
   - Plain ASCII only. No em-dashes (use plain "-"), no curly quotes.
@@ -117,7 +117,7 @@ DIALOGUE RULES
 Return ONLY valid JSON with this exact structure:
 {
   "topic": "short_slug_no_spaces",
-  "caption": "Instagram/TikTok caption for this skit, max 150 chars, end with meetdossie.com/founding",
+  "caption": "Instagram/TikTok caption for this skit, max 150 chars, end with meetdossie.com/signup",
   "scenes": [
     {"type": "character", "role": "agent_stressed_female", "NO_PERSON": false, "prompt": "...warm cinematic lighting, shallow depth of field, golden hour tones, 9:16 vertical aspect ratio, photorealistic"},
     {"type": "environment", "role": null, "NO_PERSON": true, "prompt": "Close-up shot, NO people in frame - ...warm cinematic lighting, shallow depth of field, golden hour tones, 9:16 vertical aspect ratio, photorealistic"},
@@ -128,7 +128,7 @@ Return ONLY valid JSON with this exact structure:
     ["charlie", "Pain line..."],
     ["bill", "Cost line..."],
     ["bill", "Dossie [capability verb] [specific thing]."],
-    ["bill", "Texas agents - meetdossie.com slash founding."]
+    ["bill", "Texas agents - meetdossie.com slash signup."]
   ]
 }`;
 

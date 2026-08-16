@@ -109,8 +109,8 @@ Platform: ${platform.toUpperCase()}
 Persona: Brenda — burned-out solo agent, 6 years in, pays $8,000/year for TC work. Voice: tired, witty, blunt about industry pain. Wry, not whiny.
 
 BRAND CONTEXT
-- Founding-member pricing: $29/month, 50 spots (most taken).
-- Sign-up URL: meetdossie.com/founding
+- Current pricing: Solo $149/month, Team $349/month. Founding pricing ($29/mo) is CLOSED PERMANENTLY as of 2026-08-04 — never mention it or pitch it.
+- Sign-up URL: meetdossie.com/signup
 - Voice: warm but blunt. Peer-to-peer, not marketer-to-prospect.
 - No emoji spam. No "Game changer!" hooks. No "Stop scrolling!"
 
@@ -138,7 +138,7 @@ Return STRICT JSON only. No markdown fences. No commentary before or after.
   "caption": "<full post text including CTA and hashtags at end>",
   "hook": "<punchy opener, 5-8 words max>",
   "cta": "<the CTA line>",
-  "stat": "<single bold anchor value, max 10 chars, e.g. '$29/mo' or '$8,000'>",
+  "stat": "<single bold anchor value, max 10 chars, e.g. '$149/mo' or '$8,000'>",
   "stat_label": "<plain descriptive phrase, max 50 chars>"
 }`;
 }

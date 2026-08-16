@@ -391,7 +391,7 @@ async function generateIntelligenceBrief(analytics, inventory, trendBrief) {
 
 Content pillars in order of proven effectiveness:
 1. Control - "you stay in the loop without doing the work" (strongest for high-volume agents)
-2. Cost - "$400/file vs $29/month" (works for agents who've used TCs)
+2. Cost - "$400/file vs $149/month" (works for agents who've used TCs)
 3. Visibility - "know exactly where every deal stands" (team leads + brokers)
 4. Speed - "Dossie handles follow-ups so you don't have to" (part-timers)
 
@@ -459,7 +459,7 @@ async function sendLowMaterialAlert(inventory, analytics) {
   const topPillar = analytics.topPillar || 'control';
   const PILLAR_TO_FEATURE = {
     control:    'the pipeline dashboard showing all deadlines at once',
-    cost:       'the founding pricing page at meetdossie.com/founding',
+    cost:       'the pricing page at meetdossie.com/signup',
     visibility: 'the Morning Brief audio feature',
     speed:      'Talk to Dossie - the voice/text deal update feature',
   };

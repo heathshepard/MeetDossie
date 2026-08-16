@@ -28,7 +28,7 @@ Like I know what I'm supposed to be tracking. I know the deadlines. But I'm also
 I had a deal where I miscalculated the option period end date by one day. One day. My client almost lost $2,500 in option fee money.
 
 How are y'all tracking these? Still spreadsheets? Your brokerage system? Something else? Genuinely curious what's working.`,
-      first_comment: `For anyone who asked - I built something specifically for this. It's called Dossie. AI transaction coordinator, auto-calculates every TREC deadline from contract date, sends me reminders, tracks all the documents. Texas agents only right now. meetdossie.com/founding - first 50 agents get in at founding pricing.`,
+      first_comment: `For anyone who asked - I built something specifically for this. It's called Dossie. AI transaction coordinator, auto-calculates every TREC deadline from contract date, sends me reminders, tracks all the documents. Texas agents only right now. meetdossie.com/signup if you want to see it.`,
     },
     {
       id: 'A-2',
@@ -42,7 +42,7 @@ At $300-400/file, if you're doing 15 deals a year, you're spending $4,500-6,000 
 The agents I see thriving solo have systems, not staff. They know exactly where every deal stands without calling anyone to ask.
 
 Curious if others see it this way or if I'm completely off base.`,
-      first_comment: `A few people asked what system I use - meetdossie.com/founding is where I'm telling people right now. AI does the tracking, the deadline math, the follow-up sequencing. Founding pricing is still open for a few more spots.`,
+      first_comment: `A few people asked what system I use - meetdossie.com/signup is where I'm telling people right now. AI does the tracking, the deadline math, the follow-up sequencing.`,
     },
     {
       id: 'A-3',
@@ -54,7 +54,7 @@ I was in back-to-back showings. The request came in at 10am, I didn't see it unt
 Fixed it - she stayed - but I spent that week rethinking how I track in-flight deals. There's a lot of visibility problems hiding in every transaction that just don't surface until they explode.
 
 Anyone else had a close call like that? What did you change after?`,
-      first_comment: `Fwiw - what I changed: meetdossie.com/founding. Dossie pings me on pending docs, tracks every deadline automatically, sends me a morning brief on what's due that day. Pretty much eliminated the 18-hour blackout problem.`,
+      first_comment: `Fwiw - what I changed: meetdossie.com/signup. Dossie pings me on pending docs, tracks every deadline automatically, sends me a morning brief on what's due that day. Pretty much eliminated the 18-hour blackout problem.`,
     },
     {
       id: 'A-4',
@@ -69,7 +69,7 @@ C) A physical calendar or notes app
 D) I have a TC who handles it
 
 Genuinely curious - I've been rethinking my whole setup lately and want to hear what's actually working for people.`,
-      first_comment: `Love seeing these answers - the spread is wild. I built Dossie for exactly this - it auto-calculates every TREC deadline from the contract date and sends me a morning brief on what's due. meetdossie.com/founding if you're in the B or C camp and want to try it.`,
+      first_comment: `Love seeing these answers - the spread is wild. I built Dossie for exactly this - it auto-calculates every TREC deadline from the contract date and sends me a morning brief on what's due. meetdossie.com/signup if you're in the B or C camp and want to try it.`,
     },
   ],
   trec_education: [
@@ -85,7 +85,7 @@ But here's the part that trips people up: the deadline math in the new forms wor
 If your brokerage system hasn't updated its form templates yet - check now, not June 30.
 
 Anyone's brokerage already using the new versions? Curious who's ahead of it.`,
-      first_comment: `I use Dossie for deadline tracking - it'll be updated to the new form versions before July 1. meetdossie.com/founding if you want to see it.`,
+      first_comment: `I use Dossie for deadline tracking - it'll be updated to the new form versions before July 1. meetdossie.com/signup if you want to see it.`,
     },
     {
       id: 'B-2',
@@ -99,7 +99,7 @@ I ask because TREC is very specific that the option period begins at the time of
 Learned this the hard way watching a deal almost unravel because of a "what time did you drop off the check" argument between the buyer's agent and the title company.
 
 What's your process for documenting option fee receipt?`,
-      first_comment: `Dossie tracks document uploads with timestamps - I use it for exactly this reason. meetdossie.com/founding`,
+      first_comment: `Dossie tracks document uploads with timestamps - I use it for exactly this reason. meetdossie.com/signup`,
     },
     {
       id: 'B-3',
@@ -111,7 +111,7 @@ The new OP-H Seller's Disclosure adds four new categories: insurance issues, pri
 For sellers who have properties with none of these - do you walk them through each item anyway and document the conversation, or do you consider a clean N/A column sufficient?
 
 I'm asking because I'm updating my transaction checklist and I want to make sure I'm not creating a gap for my sellers.`,
-      first_comment: `For what it's worth, I built Dossie to auto-map TREC form versions to transactions - July 1 updates are already in the system. Happy to share what I've found on the new disclosures if useful. meetdossie.com/founding`,
+      first_comment: `For what it's worth, I built Dossie to auto-map TREC form versions to transactions - July 1 updates are already in the system. Happy to share what I've found on the new disclosures if useful. meetdossie.com/signup`,
     },
   ],
   hyperlocal: [
@@ -123,7 +123,7 @@ I'm asking because I'm updating my transaction checklist and I want to make sure
 I'm working a deal near Boerne right now where the buyer came back asking for $11k in credits on a $485k house after a pretty clean inspection. Two years ago that request gets laughed at. This month the seller caved.
 
 Feels like the leverage is shifting. Curious if others in this market are seeing the same thing or if this was just a motivated seller situation.`,
-      first_comment: `I've been tracking my deals more granularly since I started using Dossie - helps me see patterns across transactions. meetdossie.com/founding if you're curious.`,
+      first_comment: `I've been tracking my deals more granularly since I started using Dossie - helps me see patterns across transactions. meetdossie.com/signup if you're curious.`,
     },
     {
       id: 'C-2',
@@ -138,7 +138,7 @@ C) 30-45 days
 D) 45+ (title is a mess right now)
 
 Feels like things have stretched out lately. Curious if that's market-wide or just my pipeline.`,
-      first_comment: `I track my close timelines in Dossie - the pipeline view makes it easy to spot which title companies are running slow. meetdossie.com/founding if you want to see it.`,
+      first_comment: `I track my close timelines in Dossie - the pipeline view makes it easy to spot which title companies are running slow. meetdossie.com/signup if you want to see it.`,
     },
     {
       id: 'C-3',
@@ -160,7 +160,7 @@ At what transaction volume does it stop making sense to manage deals yourself an
 I've watched agents at 30+ deals/year burn out not because they can't sell, but because they're doing the same administrative work 30 separate times. The ceiling isn't sales skill - it's process leverage.
 
 What does your ops setup look like at scale? Still using TCs per file? In-house TC? Something else?`,
-      first_comment: `For what it's worth - I built Dossie to handle the ops layer for solo agents. meetdossie.com/founding - Texas agents, founding pricing still open.`,
+      first_comment: `For what it's worth - I built Dossie to handle the ops layer for solo agents. meetdossie.com/signup - Texas agents.`,
     },
     {
       id: 'D-2',
@@ -172,7 +172,7 @@ A typical residential transaction involves 87+ deadline-sensitive touchpoints fr
 The agents who scale aren't necessarily the best salespeople - they're the ones who've systemized everything below the relationship layer.
 
 What's the thing you've systemized that made the biggest difference in your business?`,
-      first_comment: `I built Dossie specifically to handle the ops layer - deadline tracking, document management, daily deal briefs. meetdossie.com/founding if you want to see how it works.`,
+      first_comment: `I built Dossie specifically to handle the ops layer - deadline tracking, document management, daily deal briefs. meetdossie.com/signup if you want to see how it works.`,
     },
     {
       id: 'D-3',
@@ -194,7 +194,7 @@ Trying to understand what accountability structures actually work at the brokera
 For me it's chasing document signatures. I can spend 45 minutes of a day just following up on things that should take 5.
 
 Curious what yours is.`,
-      first_comment: `I built Dossie to handle this for myself - she auto-calculates TREC deadlines, sends morning briefs, and chases document signatures. meetdossie.com/founding`,
+      first_comment: `I built Dossie to handle this for myself - she auto-calculates TREC deadlines, sends morning briefs, and chases document signatures. meetdossie.com/signup`,
     },
     {
       id: 'E-2',
@@ -204,7 +204,7 @@ Curious what yours is.`,
 The market punishes agents with high fixed costs in slow years. The ones with lean operations and good systems survive every cycle.
 
 Agree/disagree?`,
-      first_comment: `For what it's worth - I built Dossie to handle my transaction ops. meetdossie.com/founding if you're curious what that looks like.`,
+      first_comment: `For what it's worth - I built Dossie to handle my transaction ops. meetdossie.com/signup if you're curious what that looks like.`,
     },
   ],
   buyer_seller: [],
@@ -293,7 +293,7 @@ C. FORBIDDEN phrasings — do not use any of these:
    - "AI handling my [anything]"
    - any framing that describes Dossie without naming it
 D. Tone: still casual and in Heath's voice. Naming Dossie is required; sounding corporate is not.
-E. Include "meetdossie.com/founding" at the end of the first comment if (and only if) the scaffold's first_comment includes a URL.
+E. Include "meetdossie.com/signup" at the end of the first comment if (and only if) the scaffold's first_comment includes a URL.
 
 Return STRICT JSON only. No markdown. No commentary.
 
