@@ -48,10 +48,14 @@ const FOUNDING_TOTAL_SPOTS = 25;
 // TODO: when admin-dashboard.js expense numbers drift, update both places.
 const FIXED_MONTHLY_EXPENSES = 18 + 18.33 + 12; // Zernio + ElevenLabs + Submagic = $48.33
 
-// TODO (v2): replace the hardcoded Suzanne-is-$1 rule with a metadata flag
-// on the subscription row (e.g. subscriptions.metadata->>'is_friend' = 'true'
-// or a 'founding_friend' plan value). For v1 we hardcode by email.
-const FOUNDING_FRIEND_EMAILS = new Set(['k.suzanne.page@gmail.com']);
+// Founding-friend pricing ($1/mo rather than $29) is read from
+// profiles.is_founding_friend, which is already populated in production.
+//
+// This used to be a hardcoded Set containing a live customer's personal email
+// address. MeetDossie is a PUBLIC repo, so that published a paying customer's
+// email to anyone who cloned it. Never identify a customer by literal value in
+// this repo — key off a database flag or an env var. (Resolves the v2 TODO that
+// sat above the old constant.)
 
 // ─── Supabase REST helper ────────────────────────────────────────────────
 
@@ -346,9 +350,9 @@ function isExcludedEmail(email) {
   return false;
 }
 
-function priceForCustomer({ email, plan }) {
+function priceForCustomer({ plan, isFoundingFriend }) {
   if (plan === 'founding') {
-    return FOUNDING_FRIEND_EMAILS.has((email || '').toLowerCase()) ? 1 : 29;
+    return isFoundingFriend ? 1 : 29;
   }
   if (plan === 'solo') return 79;
   if (plan === 'team') return 199;
@@ -394,7 +398,7 @@ async function buildBrief() {
     // Fetch matching profiles.
     const profFilter = userIds.map((id) => `"${id}"`).join(',');
     const profResp = await supabaseFetch(
-      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email,full_name,is_demo,is_founder`,
+      `/rest/v1/profiles?id=in.(${profFilter})&select=id,email,full_name,is_demo,is_founder,is_founding_friend`,
     );
     if (!profResp.ok) throw new Error(`profiles fetch ${profResp.status}`);
     const profilesById = new Map((profResp.data || []).map((p) => [p.id, p]));
@@ -433,6 +437,9 @@ async function buildBrief() {
         name: p.full_name || (p.email ? p.email.split('@')[0] : 'Unknown'),
         plan: s.plan,
         stripe_price_id: s.stripe_price_id,
+        // Drives $1 vs $29 founding pricing. Read from the profile flag rather
+        // than matching a customer's email against a literal in this repo.
+        isFoundingFriend: p.is_founding_friend === true,
         created_at: new Date(s.created_at),
         last_sign_in_at: lastSignInByUserId.get(s.user_id) ?? null,
       });

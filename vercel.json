@@ -6,6 +6,11 @@
       "source": "/founding",
       "destination": "/signup",
       "permanent": false
+    },
+    {
+      "source": "/founding.html",
+      "destination": "/signup",
+      "permanent": false
     }
   ],
   "rewrites": [
