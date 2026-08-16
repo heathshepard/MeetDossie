@@ -2,17 +2,23 @@
 // Called from BOTH /api/admin-approve-founding (Bearer-CRON_SECRET, used for
 // programmatic / one-shot triggers) and /api/telegram-webhook (Heath taps an
 // inline button on the application notification). Keeping the body in one
-// place means the email + checkout URL + DB updates can never drift between
-// the two entry points.
+// place means the email + DB updates can never drift between the two entry
+// points.
 //
-// Checkout uses a permanent Stripe Payment Link (STRIPE_FOUNDING_PAYMENT_LINK)
-// instead of generated Checkout Sessions. Payment Links never expire, so the
-// same URL works for every approved applicant. The applicant's email is
-// pre-filled via the ?prefilled_email= query param.
+// FOUNDING CLOSED 2026-08-04 — no new signups, ever. This flow is still live
+// today: api/signup.js's "REQUEST ACCESS" path (no invite code) writes into
+// this same founding_applications table and pings Heath on Telegram with the
+// same Approve/Reject buttons this file handles. Before 2026-08-13 this
+// function auto-emailed EVERY approved applicant a live Stripe Payment Link
+// for the closed $29/mo-forever founding rate — a real bypass of "closed,"
+// found during the pricing sweep. There is no live Stripe price ID for Solo
+// or Team yet (see api/signup.js), so there is nothing valid to auto-sell
+// on approval. Approve now just marks the row approved and tells Heath to
+// follow up personally (send a manual Stripe payment link once Solo/Team
+// prices exist, or a comp'd invite code). Nobody gets a checkout link they
+// weren't supposed to have.
 
 const { captureServerEvent } = require('./posthog');
-
-const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
 
 async function supabaseGet(path) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
@@ -56,17 +62,10 @@ async function loadApplication(applicationId) {
   return rows[0];
 }
 
-function buildFoundingCheckoutUrl(paymentLink, email) {
-  const url = new URL(paymentLink);
-  if (email) {
-    url.searchParams.set('prefilled_email', email);
-  }
-  return url.toString();
-}
-
-function approvalEmailHtml({ firstName, checkoutUrl }) {
+// Founding is closed — there is no checkout link to build anymore. Approval
+// now just tells the applicant Heath is setting up their account personally.
+function approvalEmailHtml({ firstName }) {
   const safeName = String(firstName || 'there').replace(/[<>]/g, '');
-  const safeUrl = String(checkoutUrl).replace(/[<>"]/g, '');
   return `
 <!doctype html>
 <html lang="en">
@@ -74,13 +73,7 @@ function approvalEmailHtml({ firstName, checkoutUrl }) {
   <div style="max-width:560px;margin:0 auto;padding:32px 24px;">
     <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;line-height:1.3;margin:0 0 24px;">${safeName},</p>
     <p style="font-size:16px;line-height:1.6;margin:0 0 18px;">You're in. I read your application and it's exactly the kind of agent Dossie was built for.</p>
-    <p style="font-size:16px;line-height:1.6;margin:0 0 18px;">As a founding member you're locked in at <strong>$29/month for life</strong>. That price never goes up, even when we raise it for everyone else later this year.</p>
-    <p style="font-size:16px;line-height:1.6;margin:0 0 28px;">Tap below to claim your spot. Takes about a minute.</p>
-    <p style="text-align:center;margin:0 0 32px;">
-      <a href="${safeUrl}" style="display:inline-block;background:#E8836B;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:16px;padding:14px 32px;border-radius:10px;">Claim my founding spot</a>
-    </p>
-    <p style="font-size:14px;line-height:1.6;color:#7A7468;margin:0 0 6px;">Or paste this link into your browser:</p>
-    <p style="font-size:13px;line-height:1.5;color:#7A7468;margin:0 0 32px;word-break:break-all;"><a href="${safeUrl}" style="color:#7A7468;">${safeUrl}</a></p>
+    <p style="font-size:16px;line-height:1.6;margin:0 0 18px;">I'm setting your account up personally — I'll follow up directly in the next day or two with next steps to get you started.</p>
     <p style="font-size:16px;line-height:1.6;margin:0 0 6px;">Reply to this email if anything sticks. I read every one.</p>
     <p style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;line-height:1.4;margin:24px 0 0;">— Heath, founder of Dossie</p>
   </div>
@@ -88,10 +81,10 @@ function approvalEmailHtml({ firstName, checkoutUrl }) {
 </html>`.trim();
 }
 
-async function sendApprovalEmail({ resendKey, email, name, checkoutUrl, heardFrom }) {
+async function sendApprovalEmail({ resendKey, email, name, heardFrom }) {
   if (!resendKey) throw new Error('RESEND_API_KEY missing');
   const firstName = String(name || '').trim().split(/\s+/)[0] || '';
-  const html = approvalEmailHtml({ firstName, checkoutUrl });
+  const html = approvalEmailHtml({ firstName });
   const heardSlug = String(heardFrom || 'unknown').toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 64) || 'unknown';
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -103,13 +96,13 @@ async function sendApprovalEmail({ resendKey, email, name, checkoutUrl, heardFro
       from: 'Heath at Dossie <heath@meetdossie.com>',
       to: [email],
       reply_to: 'heath@meetdossie.com',
-      subject: "You're in — claim your Dossie founding spot",
+      subject: "You're in — welcome to Dossie",
       html,
       bcc: ['heath@meetdossie.com'],
       // Tags surface in the Resend dashboard so Heath can slice approval-email
       // sends by acquisition channel without joining back to the DB.
       tags: [
-        { name: 'category', value: 'founding_approval' },
+        { name: 'category', value: 'application_approval' },
         { name: 'heard_from', value: heardSlug },
       ],
       headers: {
@@ -144,15 +137,15 @@ function prettyHeardFrom(v) {
   return HEARD_FROM_LABELS[String(v).toLowerCase()] || String(v);
 }
 
-async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUrl, emailId }) {
+async function sendHeathTelegramConfirmation({ botToken, chatId, app, emailId }) {
   if (!botToken || !chatId) return;
   const text = [
-    '✅ <b>Founding approval sent</b>',
+    '✅ <b>Application approved</b>',
     '',
     `<b>Name:</b> ${app.name}`,
     `<b>Email:</b> ${app.email}`,
     `<b>How they found us:</b> ${prettyHeardFrom(app.heard_from)}`,
-    `<b>Checkout URL:</b> ${checkoutUrl}`,
+    '<b>Founding is closed</b> — no checkout link was sent. Follow up personally to get them set up (comp invite code, or a manual Stripe link once Solo/Team prices exist).',
     `<b>Resend message id:</b> ${emailId || '—'}`,
   ].join('\n');
   await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -168,14 +161,15 @@ async function sendHeathTelegramConfirmation({ botToken, chatId, app, checkoutUr
 }
 
 // Top-level entry point. Idempotent — safe to call twice on the same row;
-// the second call re-sends the approval email with the same Payment Link.
+// the second call re-sends the approval email.
+//
+// Founding is closed, so this no longer sends a Stripe checkout/payment
+// link. It marks the application approved, emails the applicant that Heath
+// is setting them up personally, and tells Heath (via Telegram) to follow
+// up manually — same human-in-the-loop guarantee as before ("nobody gets an
+// account without Heath saying yes"), just without an accidental founding
+// price offer attached.
 async function approveFoundingApplication({ applicationId, env, opts = {} }) {
-  // Fail fast before touching Supabase: if the Payment Link isn't configured,
-  // no amount of DB work will produce a working approval email.
-  if (!env.STRIPE_FOUNDING_PAYMENT_LINK) {
-    return { ok: false, error: 'STRIPE_FOUNDING_PAYMENT_LINK not configured' };
-  }
-
   const app = await loadApplication(applicationId);
   if (!app) {
     return { ok: false, error: `application ${applicationId} not found` };
@@ -188,8 +182,6 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
     { status: 'approved', decision: 'approved', reviewed_at: now },
   );
 
-  const checkoutUrl = buildFoundingCheckoutUrl(env.STRIPE_FOUNDING_PAYMENT_LINK, app.email);
-
   let emailId = null;
   let emailError = null;
   try {
@@ -197,7 +189,6 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
       resendKey: env.RESEND_API_KEY,
       email: app.email,
       name: app.name,
-      checkoutUrl,
       heardFrom: app.heard_from,
     });
     emailId = emailResp?.id || null;
@@ -210,7 +201,6 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
     botToken: env.TELEGRAM_BOT_TOKEN || env.TELEGRAM_MARKETING_BOT_TOKEN,
     chatId: env.TELEGRAM_CHAT_ID,
     app,
-    checkoutUrl,
     emailId,
   });
 
@@ -233,7 +223,6 @@ async function approveFoundingApplication({ applicationId, env, opts = {} }) {
   return {
     ok: true,
     application: { id: app.id, name: app.name, email: app.email },
-    checkoutUrl,
     emailId,
     emailError,
   };
@@ -262,5 +251,4 @@ async function rejectFoundingApplication({ applicationId }) {
 module.exports = {
   approveFoundingApplication,
   rejectFoundingApplication,
-  FOUNDING_PRICE_ID,
 };

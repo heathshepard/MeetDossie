@@ -10,7 +10,8 @@
 // URLs (locked):
 //   https://meetdossie.com
 //   https://meetdossie.com/app
-//   https://meetdossie.com/founding
+//   https://meetdossie.com/signup (was /founding — founding closed 2026-08-04,
+//     /founding just redirects here now; swapped 2026-08-13 pricing sweep)
 //   https://meetdossie.com/faq
 //   https://meetdossie.com/coordinators
 //
@@ -40,7 +41,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const URLS = [
   { url: 'https://meetdossie.com',             slug: 'home' },
   { url: 'https://meetdossie.com/app',         slug: 'app' },
-  { url: 'https://meetdossie.com/founding',    slug: 'founding' },
+  { url: 'https://meetdossie.com/signup',      slug: 'signup' },
   { url: 'https://meetdossie.com/faq',         slug: 'faq' },
   { url: 'https://meetdossie.com/coordinators',slug: 'coordinators' },
 ];

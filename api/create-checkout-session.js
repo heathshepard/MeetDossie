@@ -1,29 +1,16 @@
 // Vercel Serverless Function: /api/create-checkout-session
-// Creates a Stripe Checkout Session for the Dossie Founding Member subscription.
-// POST { email? } -> { ok: true, url }
+// CLOSED 2026-08-13 — Founding Member ($29/mo) closed permanently 2026-08-04,
+// no new signups. This endpoint used to create a Stripe Checkout Session for
+// that price with zero gating (no cap check, no auth) — anyone who POSTed to
+// it directly (bypassing the UI) could still buy the closed $29/mo-for-life
+// rate. Found during the 2026-08-13 pricing sweep; disabled rather than
+// repointed because Solo/Team have no live Stripe price IDs yet (see
+// api/signup.js) — there is nothing valid to sell here until Heath creates
+// those prices.
 //
-// Environment:
-//   STRIPE_SECRET_KEY  — Stripe secret API key (LIVE mode in production)
-//
-// Hard-coded price: price_1TPxxNL920SKTEEiN7Gphq8T (Founding Member, $29/mo).
+// POST -> 410 { ok: false, error: 'Founding membership is closed. ...' }
 
-const Stripe = require('stripe');
-const {
-  validateEmail,
-  sanitizeString,
-  ValidationError,
-} = require('./_middleware/validate');
-const {
-  checkRateLimit,
-  RateLimitError,
-  clientIpFromReq,
-} = require('./_middleware/rateLimit');
-const { captureServerEvent } = require('./_lib/posthog');
 const { applyCorsHeaders } = require('./_middleware/cors');
-
-const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
-const SUCCESS_URL = 'https://meetdossie.com/welcome.html?session_id={CHECKOUT_SESSION_ID}';
-const CANCEL_URL = 'https://meetdossie.com/founding.html';
 
 function applyCors(req, res) {
   return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' });
@@ -48,87 +35,8 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    console.error('[create-checkout-session] STRIPE_SECRET_KEY is not set.');
-    res.status(500).json({ ok: false, error: 'Checkout is temporarily unavailable.' });
-    return;
-  }
-
-  try {
-    const ip = clientIpFromReq(req);
-    await checkRateLimit(ip, 'create-checkout-session', 20, 60 * 60 * 1000);
-
-    const body = req.body || {};
-    let customerEmail = null;
-    let affiliateRef = null;
-
-    if (body.email !== undefined && body.email !== null && body.email !== '') {
-      const cleaned = sanitizeString(body.email, { maxLength: 320 });
-      const lower = cleaned ? cleaned.toLowerCase() : null;
-      if (!lower || !validateEmail(lower)) {
-        throw new ValidationError('That email looks off. Mind double-checking it?');
-      }
-      customerEmail = lower;
-    }
-
-    if (body.affiliate_ref !== undefined && body.affiliate_ref !== null && body.affiliate_ref !== '') {
-      affiliateRef = sanitizeString(body.affiliate_ref, { maxLength: 100 });
-    }
-
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
-
-    const sessionParams = {
-      mode: 'subscription',
-      line_items: [{ price: FOUNDING_PRICE_ID, quantity: 1 }],
-      success_url: SUCCESS_URL,
-      cancel_url: CANCEL_URL,
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
-      metadata: { source: 'founding_landing', ...(affiliateRef ? { affiliate_ref: affiliateRef } : {}) },
-      subscription_data: { metadata: { source: 'founding_landing' } },
-    };
-    if (customerEmail) {
-      sessionParams.customer_email = customerEmail;
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    if (!session || !session.url) {
-      console.error('[create-checkout-session] Stripe returned no session url.');
-      res.status(502).json({ ok: false, error: 'Could not start checkout. Try again in a moment.' });
-      return;
-    }
-
-    // Analytics: funnel event fires here (before redirect). Use email as
-    // distinct_id when available so PostHog can join to the identified
-    // person after login; otherwise fall back to a per-session anon id.
-    // No PII in properties.
-    try {
-      await captureServerEvent({
-        distinctId: customerEmail || `anon_${session.id}`,
-        event: 'checkout_session_created',
-        properties: {
-          source: 'founding_landing',
-          has_email_prefill: Boolean(customerEmail),
-          has_affiliate_ref: Boolean(affiliateRef),
-        },
-      });
-    } catch (_) { /* analytics is never load-bearing */ }
-
-    res.status(200).json({ ok: true, url: session.url });
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      res.status(err.status || 400).json({ ok: false, error: err.message });
-      return;
-    }
-    if (err instanceof RateLimitError) {
-      if (err.retryAfterSeconds) res.setHeader('Retry-After', String(err.retryAfterSeconds));
-      res.status(429).json({ ok: false, error: 'Too many checkout attempts. Try again in a few minutes.' });
-      return;
-    }
-
-    console.error('[create-checkout-session] Stripe error:', err && err.message ? err.message : err);
-    res.status(500).json({ ok: false, error: 'Could not start checkout. Try again in a moment.' });
-  }
+  res.status(410).json({
+    ok: false,
+    error: 'Founding membership is closed — no new signups. See meetdossie.com/signup for current pricing.',
+  });
 };

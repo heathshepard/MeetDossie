@@ -27,7 +27,8 @@
 //
 // Diagnostic steps (screenshot each, capture console errors throughout):
 //   1. Landing page (/) loads
-//   2. /founding renders
+//   2. /signup renders (was /founding — founding closed 2026-08-04, /founding
+//      now just redirects here; step renamed 2026-08-13 pricing sweep)
 //   3. Sign-in flow completes
 //   4. Morning Brief / app renders after sign-in
 //   5. Open a dossier from Pipeline or Closed
@@ -42,7 +43,7 @@
 //   - HEAD-check each unique URL for 404s
 //
 // API probes:
-//   - /api/health, /api/waitlist-count, /api/founding-slot-count,
+//   - /api/health, /api/waitlist-count, /api/founding-count,
 //     /api/dossier-count (if exists)
 //
 // Failure handling:
@@ -543,15 +544,15 @@ async function runDiagnostic(runId, injectMode) {
     });
 
     // ========================================================================
-    // Step 2 — /founding renders
+    // Step 2 — /signup renders (was /founding — founding closed 2026-08-04)
     // ========================================================================
-    await step('founding', '/founding page renders', async () => {
-      const resp = await page.goto(`${PROD_ORIGIN}/founding`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await step('signup', '/signup page renders', async () => {
+      const resp = await page.goto(`${PROD_ORIGIN}/signup`, { waitUntil: 'domcontentloaded', timeout: 30000 });
       if (!resp || !resp.ok()) throw new Error(`http ${resp ? resp.status() : 'no-response'}`);
       await page.waitForTimeout(1200);
-      // Sentinel — founding-specific button or copy
+      // Sentinel — signup-form button or copy
       const cta = await page.$('a, button');
-      if (!cta) throw new Error('no button/link sentinel on /founding');
+      if (!cta) throw new Error('no button/link sentinel on /signup');
     });
 
     // ========================================================================

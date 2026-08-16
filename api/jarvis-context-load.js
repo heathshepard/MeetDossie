@@ -125,14 +125,14 @@ You can spawn these specialists in the background:
 - Two-door: (A) agents replacing a TC ($400/file -> $29-49/mo), (B) TCs scaling solo (3x files).
 - Architecture: vertical-agnostic AI core + Texas-TREC config layer. Acquisition story: 3-10x ARR from Zillow/Lone Wolf/CoStar.
 - Dossie is always "she/her". Warm, capable, never corporate.
-- Pricing (LOCKED): Solo $149/mo or $39/yr. Team $349/mo or $119/yr (3 seats; max 8 at $35/seat). Brokerage custom. Founding Member $29/mo (50 spots).
+- Pricing (LOCKED): Solo $149/mo or $39/yr. Team $349/mo or $119/yr (3 seats; max 8 at $35/seat). Brokerage custom. Founding Member $29/mo CLOSED 2026-08-04 — no new signups, 10 existing members locked for life.
 - Stack: React (Vite) on Vercel, Supabase (project pgwoitbdiyubjugwufhk), Resend, Stripe, Zernio social, HCTI cards, ElevenLabs voice, Creatomate video, Submagic captions, fal.ai b-roll.
 - Two repos: Dossie (build), MeetDossie (deploy). Staging -> main flow. NEVER push direct to main.
 
 == Live URLs ==
 - App: meetdossie.com/app
 - Workspace: meetdossie.com/workspace
-- Founding: meetdossie.com/founding
+- Signup: meetdossie.com/signup (founding is closed — meetdossie.com/founding just redirects here)
 - Agents landing: meetdossie.com/agents
 - Coordinators landing: meetdossie.com/coordinators
 - Calculator: meetdossie.com/calculator
@@ -250,7 +250,7 @@ async function loadLiveContext(tenant, jarvisUser, authUserId) {
   ] = await Promise.all([
     cachedSbGet('heath_todo?select=id,title,detail,action_type,priority,deadline,status,venture&status=in.(pending,snoozed)&order=priority.desc.nullslast&limit=15').catch(() => []),
     cachedSbGet(`jarvis_agent_events?select=agent_name,event_type,summary,created_at${tenantClause ? '&' + tenantClause : ''}&order=created_at.desc&limit=15`).catch(() => []),
-    cachedSbGet('subscriptions?select=id,status,price_id&status=eq.active').catch(() => []),
+    cachedSbGet('subscriptions?select=id,status,plan&status=eq.active').catch(() => []),
     sbGet(`jarvis_conversations?select=id,title,started_at,ended_at${tenantClause ? '&' + tenantClause : ''}&order=started_at.desc&limit=5`).catch(() => []),
     // NEW — heath_actions pending/snoozed. Atlas writes urgent items here
     // (e.g. APK keystore backup), Pierce writes customer approvals, Sage
@@ -267,9 +267,14 @@ async function loadLiveContext(tenant, jarvisUser, authUserId) {
     cachedSbGet(`jarvis_agent_checklist?select=instance_id,status${tenantClause ? '&' + tenantClause : ''}&created_at=gte.${new Date(Date.now() - 36 * 3600 * 1000).toISOString()}&limit=400`).catch(() => []),
   ]);
 
-  // MRR math: Stripe founding price = $29; assume all active = founding for now.
-  // Future: pull price_amount from Stripe and sum.
-  const mrr = subRows.length * 29;
+  // MRR math, per plan. Fixed 2026-08-13 pricing sweep — this was previously
+  // `select=id,status,price_id`, but `subscriptions` has no `price_id` column
+  // (it's `stripe_price_id`), so the query 400'd, the .catch(() => []) ate it
+  // silently, and mrr was always $0. Solo/Team have no live Stripe price IDs
+  // yet either (see api/signup.js), so this is still an approximation, not a
+  // full price_amount lookup — but it no longer silently zeroes out.
+  const PLAN_MRR = { founding: 29, solo: 149, team: 349 };
+  const mrr = subRows.reduce((sum, s) => sum + (PLAN_MRR[s.plan] || 0), 0);
 
   // Latest agent status per agent name (most recent wins)
   const latestPerAgent = {};

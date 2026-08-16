@@ -48,7 +48,9 @@ const APIS = [
   ['api.health.draft_amendment',     '/api/draft-amendment',                  { method: 'POST', body: '{}', expectStatus: (s) => s === 400 || s === 401 || s === 403 || s === 405 }],
   ['api.health.generate_card',       '/api/generate-card',                    { method: 'POST', body: '{}', expectStatus: (s) => s === 400 || s === 401 || s === 403 || s === 405 }],
   ['api.health.generate_broll',      '/api/generate-broll',                   { method: 'POST', body: '{}', expectStatus: (s) => s === 400 || s === 401 || s === 403 || s === 405 }],
-  ['api.health.create_checkout_session', '/api/create-checkout-session',      { method: 'POST', body: '{}', expectStatus: (s) => s === 400 || s === 200 || s === 401 || s === 403 || s === 405 }],
+  // Endpoint closed 2026-08-13 — founding membership is closed, no valid Stripe
+  // price to sell. Expect 410 Gone now, not a live checkout session.
+  ['api.health.create_checkout_session', '/api/create-checkout-session',      { method: 'POST', body: '{}', expectStatus: (s) => s === 410 }],
   ['api.health.stripe_webhook',      '/api/stripe-webhook',                   { expectStatus: (s) => s === 405 || s === 400 || s === 403 }],
   ['api.health.audit_env_vars',      '/api/audit-env-vars',                   { expectStatus: (s) => s === 401 || s === 403 || s === 405 }],
 ];
