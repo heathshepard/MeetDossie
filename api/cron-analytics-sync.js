@@ -17,6 +17,10 @@
 // zernio_post_id we fall back to matching by accountId + posted_at window
 // (+-5 min) in the Zernio paginated response, then back-fill the ID if found.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-analytics-sync');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const { retryFetch } = require('./_lib/retry.js');

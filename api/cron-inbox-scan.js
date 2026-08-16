@@ -31,6 +31,10 @@
 //   INBOX_SCAN_TEST_MODE=1 - Same as DRY_RUN but also relaxes the debounce
 //                            check so a known message can be re-simulated.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-inbox-scan');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;

@@ -17,6 +17,10 @@
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
 // Personas removed 2026-06-14: all content now brand-voice (dossie) only.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-generate-posts');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

@@ -22,6 +22,10 @@
 // Auth: Bearer ${CRON_SECRET}  or  x-vercel-cron: 1
 // Schedule: vercel.json "0 11 * * *" (6 AM CDT)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-kpi-drift-detector');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

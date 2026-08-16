@@ -14,6 +14,10 @@
 //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (Claudy)
 //   CRON_SECRET
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-fb-unlock-alerts');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL              = process.env.SUPABASE_URL;

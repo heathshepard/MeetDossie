@@ -44,6 +44,10 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: vercel.json — every 15 min (matches cron-relevance-watcher.js)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-email-to-dossier');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

@@ -16,6 +16,10 @@
 //   - Telegram message to TELEGRAM_CHAT_ID
 //   - ventures_activity_events log: agent_name='cole', event_type='orchestration'
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-cole-orchestration');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');

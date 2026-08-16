@@ -44,6 +44,10 @@
 // FROZEN FILES: never touch scripts/trec-*, api/_lib/trec-*, api/fill-form*.js
 // =============================================================================
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-dossie-sign-completion-loop');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const fs = require('fs');
 const path = require('path');

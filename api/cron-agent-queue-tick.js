@@ -29,6 +29,10 @@
 //
 // Owner: Atlas (SV-ENG-AGENT-QUEUE / 2026-06-17, watchdog rewrite 2026-06-25)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-agent-queue-tick');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { createClient } = require('@supabase/supabase-js');
 const pausedCrons = require('./_lib/paused-crons.js');

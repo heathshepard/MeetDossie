@@ -23,6 +23,10 @@
 //   TELEGRAM_CHAT_ID             — Heath's Telegram chat ID
 //   CRON_SECRET                  — bearer token for manual auth
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-stripe-reconcile');
+
 const Stripe = require('stripe');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 

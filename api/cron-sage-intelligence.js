@@ -24,6 +24,10 @@
 // Self-report snippet (paste into subagent context to update status):
 //   await fetch('/api/ventures/agent-status', { method: 'POST', headers: { 'Authorization': 'Bearer CRON_SECRET', 'Content-Type': 'application/json' }, body: JSON.stringify({ agent_name: 'sage', status: 'active', task: 'Daily intelligence run', heartbeat: new Date().toISOString() }) });
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-sage-intelligence');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');

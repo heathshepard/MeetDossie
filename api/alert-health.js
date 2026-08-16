@@ -2,6 +2,10 @@
 // We re-probe after 10s and only fire Telegram if BOTH probes show the same service unhealthy.
 // Kills single-blip false positives without adding any state.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('alert-health');
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function probeHealth() {

@@ -31,6 +31,10 @@
 // SCHEDULE: "17 * * * *"  (17 past the hour, every hour)
 // =============================================================================
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-apply-approved-improvements');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { resolveBusinessLine } = require('./_lib/business-line');
 

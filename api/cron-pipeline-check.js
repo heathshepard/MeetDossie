@@ -7,6 +7,10 @@
 // Schedule: vercel.json — 0 11 * * * (same minute as cron-generate-posts;
 // Vercel queues them so both fire at 11:00 UTC without conflict)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-pipeline-check');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

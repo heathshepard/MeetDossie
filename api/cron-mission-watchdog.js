@@ -46,6 +46,10 @@
 //   - Windows Task Scheduler "Dossie Mission Watchdog" (primary, hourly 8-8 CDT).
 //   - vercel.json secondary cron (hourly 13-01 UTC) as belt-and-suspenders.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-mission-watchdog');
+
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');

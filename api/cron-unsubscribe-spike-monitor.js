@@ -9,6 +9,10 @@
 // Auth:     Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 * * * * (hourly on the hour)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-unsubscribe-spike-monitor');
+
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');

@@ -25,6 +25,10 @@
 //
 // Owner: Atlas, 2026-08-11 (SV-ENG-NIGHTLY-CONTENT-PIPELINE)
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-generate-pages');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { loadExistingPages, pickNextCandidate } = require('./_lib/content-pipeline-topics.js');
 

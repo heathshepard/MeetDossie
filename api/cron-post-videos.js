@@ -14,6 +14,10 @@
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — "30 11 * * *"
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-post-videos');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

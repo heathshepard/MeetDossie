@@ -23,6 +23,10 @@
 //   - REFERRAL PIPELINE: pending founding_applications with names
 //   - LOGIN DETECTION FIX: caveat on last_sign_in_at accuracy + is_demo exclusion verified
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-morning-brief');
+
 const { execSync } = require('child_process');
 const nodePath = require('path');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');

@@ -17,6 +17,10 @@
 // Env vars required: FAL_KEY, ELEVENLABS_API_KEY, SHOTSTACK_API_KEY,
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-assemble-skits');
+
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const { fal } = require('@fal-ai/client');

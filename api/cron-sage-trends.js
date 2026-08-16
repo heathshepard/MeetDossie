@@ -19,6 +19,10 @@
 //   { google_count, reddit_count, brief_source, duration_ms, http_status }
 // Ridge alerts when brief_source = 'fallback' for >= 2 consecutive days.
 
+// Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
+// to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
+require('./_lib/telegram-gate').install('cron-sage-trends');
+
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
