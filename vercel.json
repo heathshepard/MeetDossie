@@ -55,6 +55,10 @@
       "destination": "/workspace.html"
     },
     {
+      "source": "/team-dashboard",
+      "destination": "/team-dashboard.html"
+    },
+    {
       "source": "/app",
       "destination": "/app.html"
     },

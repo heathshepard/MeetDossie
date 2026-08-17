@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Dashboard — Dossie</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8927C'/><text y='.9em' font-size='90' x='10'>D</text></svg>">
+<style>
+  :root {
+    --blush: #F5E6E0;
+    --blush-deep: #D4A0A0;
+    --sage: #8BA888;
+    --gold: #C9A96E;
+    --navy: #1A1A2E;
+    --coral: #E8836B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #FDFCFA;
+    color: var(--navy);
+  }
+  header {
+    padding: 20px 24px;
+    background: var(--navy);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .org-name { font-size: 13px; color: var(--blush); opacity: 0.85; }
+  #signOutBtn {
+    background: none; border: 1px solid rgba(255,255,255,0.3); color: white;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: none;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .card {
+    background: white; border: 1px solid #F0EBE3; border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .auth-form input {
+    display: block; width: 100%; padding: 10px 12px; margin-bottom: 10px;
+    border: 1px solid #E0DAD0; border-radius: 8px; font-size: 14px;
+  }
+  .auth-form button {
+    background: var(--coral); color: white; border: none; padding: 10px 16px;
+    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .auth-form button:disabled { opacity: 0.6; cursor: default; }
+  .msg { font-size: 13px; margin-top: 8px; }
+  .msg.err { color: #C0392B; }
+  .msg.ok { color: var(--sage); }
+  .member-row {
+    border: 1px solid #F0EBE3; border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+  }
+  .member-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; cursor: pointer; background: #FBF9F6;
+  }
+  .member-header:hover { background: var(--blush); }
+  .member-name { font-weight: 600; font-size: 14px; }
+  .member-sub { font-size: 12px; color: #8A8378; margin-top: 2px; }
+  .badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: var(--blush); color: var(--navy); margin-left: 6px; text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge.admin { background: var(--gold); color: white; }
+  .badge.tc { background: var(--sage); color: white; }
+  .count-pill {
+    font-size: 12px; background: var(--navy); color: white; border-radius: 999px;
+    padding: 3px 10px; font-weight: 600;
+  }
+  .dossier-list { display: none; padding: 0 16px 14px; }
+  .dossier-list.open { display: block; }
+  .dossier {
+    border-top: 1px solid #F0EBE3; padding: 12px 0; font-size: 13px;
+  }
+  .dossier-addr { font-weight: 600; }
+  .dossier-meta { color: #8A8378; margin-top: 3px; }
+  .flag {
+    display: inline-block; font-size: 11px; color: white; background: var(--coral);
+    border-radius: 6px; padding: 2px 7px; margin-top: 6px; margin-right: 6px;
+  }
+  .empty { color: #8A8378; font-size: 13px; padding: 10px 0; }
+  .team-chip {
+    display: inline-block; font-size: 12px; background: white; border: 1px solid #E0DAD0;
+    border-radius: 999px; padding: 4px 10px; margin: 2px 4px 2px 0;
+  }
+  .gate { text-align: center; padding: 40px 20px; color: #8A8378; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Team Dashboard</h1>
+    <div class="org-name" id="orgNameLabel"></div>
+  </div>
+  <button id="signOutBtn">Sign out</button>
+</header>
+<main>
+  <div class="card" id="authCard">
+    <h2 style="margin-top:0;font-size:15px;">Sign in</h2>
+    <div class="auth-form">
+      <input id="authEmail" type="email" placeholder="Email" autocomplete="username">
+      <input id="authPw" type="password" placeholder="Password" autocomplete="current-password">
+      <button id="authBtn">Sign in</button>
+      <div id="authMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="gateCard" class="card gate" style="display:none;"></div>
+
+  <div id="dashCard" style="display:none;">
+    <div class="card" id="teamsCard" style="display:none;">
+      <h2 style="margin-top:0;font-size:15px;">Teams</h2>
+      <div id="teamsList"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0;font-size:15px;">Members</h2>
+      <div id="membersList"></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+
+  const API_BASE = window.location.origin;
+  let supabase = null;
+  let session = null;
+  let orgContext = null;
+
+  const authCard = document.getElementById('authCard');
+  const gateCard = document.getElementById('gateCard');
+  const dashCard = document.getElementById('dashCard');
+  const authEmail = document.getElementById('authEmail');
+  const authPw = document.getElementById('authPw');
+  const authBtn = document.getElementById('authBtn');
+  const authMsg = document.getElementById('authMsg');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const orgNameLabel = document.getElementById('orgNameLabel');
+  const teamsCard = document.getElementById('teamsCard');
+  const teamsList = document.getElementById('teamsList');
+  const membersList = document.getElementById('membersList');
+
+  async function bootSupabase() {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) throw new Error('config fetch failed');
+    const data = await res.json();
+    const url = data?.supabaseUrl;
+    const key = data?.supabaseKey;
+    if (!url || !key) throw new Error('missing supabase config');
+    supabase = createClient(url, key, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
+  }
+
+  async function getAuthHeader() {
+    const { data } = await supabase.auth.getSession();
+    if (!data || !data.session) throw new Error('Not signed in');
+    session = data.session;
+    return `Bearer ${session.access_token}`;
+  }
+
+  async function apiGet(path) {
+    const authHeader = await getAuthHeader();
+    const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: authHeader } });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.ok) {
+      const err = new Error(json.error || `Request failed (${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+    return json;
+  }
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function renderGate(text) {
+    authCard.style.display = 'none';
+    dashCard.style.display = 'none';
+    gateCard.style.display = 'block';
+    gateCard.textContent = text;
+    signOutBtn.style.display = 'inline-block';
+  }
+
+  function renderDossier(d) {
+    const flags = (d.flags || []).map((f) => `<span class="flag">${escapeHtml(f.replace(/_/g, ' '))}</span>`).join('');
+    return `
+      <div class="dossier">
+        <div class="dossier-addr">${escapeHtml(d.property_address || '(no address yet)')}</div>
+        <div class="dossier-meta">
+          ${escapeHtml(d.transaction_type || '')} &middot; stage: ${escapeHtml(d.stage || d.status || 'unknown')}
+          ${d.closing_date ? ` &middot; closing ${escapeHtml(d.closing_date)}` : ''}
+        </div>
+        <div class="dossier-meta">
+          ${d.buyer_name ? `Buyer: ${escapeHtml(d.buyer_name)}` : ''}
+          ${d.buyer_name && d.seller_name ? ' &middot; ' : ''}
+          ${d.seller_name ? `Seller: ${escapeHtml(d.seller_name)}` : ''}
+        </div>
+        <div>${flags}</div>
+      </div>
+    `;
+  }
+
+  function renderMembers(members) {
+    membersList.innerHTML = '';
+    if (!members.length) {
+      membersList.innerHTML = '<div class="empty">No active members yet.</div>';
+      return;
+    }
+    members.forEach((m) => {
+      const row = document.createElement('div');
+      row.className = 'member-row';
+      const roleBadges = (m.roles || []).map((r) => `<span class="badge ${escapeHtml(r)}">${escapeHtml(r)}</span>`).join('');
+      row.innerHTML = `
+        <div class="member-header">
+          <div>
+            <div class="member-name">${escapeHtml(m.email || m.user_id)} ${roleBadges}</div>
+            <div class="member-sub">${escapeHtml(m.org_name || '')} &middot; joined ${escapeHtml((m.joined_at || '').slice(0,10))}</div>
+          </div>
+          <div class="count-pill">${m.dossier_count} dossier${m.dossier_count === 1 ? '' : 's'}</div>
+        </div>
+        <div class="dossier-list">
+          ${m.dossiers.length ? m.dossiers.map(renderDossier).join('') : '<div class="empty">No dossiers.</div>'}
+        </div>
+      `;
+      const header = row.querySelector('.member-header');
+      const list = row.querySelector('.dossier-list');
+      header.addEventListener('click', () => list.classList.toggle('open'));
+      membersList.appendChild(row);
+    });
+  }
+
+  async function loadDashboard() {
+    // org_id is NEVER taken from the URL or user input — it comes only from
+    // the signed-in caller's own membership, so there is no client-side path
+    // to view another org's data (server-side admin check is the real gate,
+    // this just avoids even offering the affordance).
+    const ctxRes = await apiGet('/api/team/me-context');
+    orgContext = ctxRes.context;
+
+    if (!orgContext) {
+      renderGate("You're not on a Team or Brokerage org yet.");
+      return;
+    }
+    if (!(orgContext.roles || []).includes('admin')) {
+      renderGate('This dashboard is for org admins only. Ask your team admin for access.');
+      return;
+    }
+
+    const data = await apiGet(`/api/team/org-dossiers?org_id=${encodeURIComponent(orgContext.org_id)}`);
+    authCard.style.display = 'none';
+    gateCard.style.display = 'none';
+    dashCard.style.display = 'block';
+    signOutBtn.style.display = 'inline-block';
+    orgNameLabel.textContent = `${data.org.name} (${data.org.tier})`;
+
+    if (data.teams && data.teams.length) {
+      teamsCard.style.display = 'block';
+      teamsList.innerHTML = data.teams.map((t) => `<span class="team-chip">${escapeHtml(t.name)}</span>`).join('');
+    } else {
+      teamsCard.style.display = 'none';
+    }
+
+    renderMembers(data.members || []);
+  }
+
+  async function signIn() {
+    const email = authEmail.value.trim();
+    const password = authPw.value;
+    if (!email || !password) {
+      authMsg.textContent = 'Email and password required.';
+      authMsg.className = 'msg err';
+      return;
+    }
+    authBtn.disabled = true;
+    authMsg.textContent = 'Signing in…';
+    authMsg.className = 'msg';
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        authMsg.textContent = error.message || 'Sign-in failed.';
+        authMsg.className = 'msg err';
+        return;
+      }
+      session = data.session;
+      await loadDashboard();
+    } catch (err) {
+      authMsg.textContent = err.message || 'Something went wrong.';
+      authMsg.className = 'msg err';
+      // If auth failed with 403 (not an admin), still show the gate, not the error box.
+      if (err.status === 403) renderGate('This dashboard is for org admins only.');
+    } finally {
+      authBtn.disabled = false;
+    }
+  }
+
+  authBtn.addEventListener('click', signIn);
+  authPw.addEventListener('keydown', (e) => { if (e.key === 'Enter') signIn(); });
+
+  signOutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    session = null;
+    orgContext = null;
+    dashCard.style.display = 'none';
+    gateCard.style.display = 'none';
+    authCard.style.display = 'block';
+    signOutBtn.style.display = 'none';
+    authEmail.value = '';
+    authPw.value = '';
+    authMsg.textContent = '';
+  });
+
+  (async function init() {
+    try {
+      await bootSupabase();
+      const { data } = await supabase.auth.getSession();
+      if (data && data.session) {
+        session = data.session;
+        await loadDashboard();
+      }
+    } catch (err) {
+      console.error('[team-dashboard] init failed', err);
+    }
+  })();
+</script>
+</body>
+</html>
