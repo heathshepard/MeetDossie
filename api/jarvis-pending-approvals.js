@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     const [socials, emails, outboundEmails, foundings, decisions, hadleyQs] = await Promise.all([
       sbGet(`social_posts?select=id,platform,hook,content,persona,topic,created_at,status,source_type,verifier_result&status=in.(draft,pending_approval)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`email_queue?select=id,to_email,to_name,subject,body,template_type,created_at,status&status=in.(pending,draft)&order=created_at.asc&limit=25`).catch(() => []),
-      sbGet(`outbound_email_queue?select=id,to_email,from_email,subject,body_text,body_html,created_at,status&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
+      sbGet(`outbound_email_queue?select=id,to_email,from_email,subject,body_text,body_html,created_at,status,metadata&status=in.(pending)&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`founding_applications?select=id,name,email,brokerage,market,transactions_12mo,why,created_at,status&status=eq.pending&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`decision_queue?select=id,decision_type,title,description,required_by,created_at,status,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&status=eq.open&order=created_at.asc&limit=25`).catch(() => []),
       sbGet(`hadley_unanswered_questions?select=id,question_text,form_context,asked_at,answered_at,heath_reply_text,heath_reply_at,heath_ask_for_detail_at&answered_at=is.null&order=asked_at.asc&limit=25`).catch(() => []),
@@ -139,12 +139,22 @@ export default async function handler(req, res) {
     }
 
     for (const r of outboundEmails) {
+      // Batch-gated rows (cold-email daily-batch + followup, tagged by
+      // cron-cold-email-review) can't be approved one at a time from here —
+      // /api/jarvis-approve correctly refuses them with 'not_yet_batch_approved'.
+      // Surfacing them as a normal actionable item (2026-08-16 regression) meant
+      // Approve always failed with that raw string. Mark them non-actionable so
+      // the UI can hide the Approve button instead of offering one that fails.
+      const batchGated = !!(r.metadata && r.metadata.requires_approval === true &&
+        r.metadata.approval_status !== 'approved');
       items.push({
         id: `outbound:${r.id}`,
         source: 'outbound_email_queue',
         source_id: r.id,
         title: r.subject || '(no subject)',
-        subtitle: `To: ${r.to_email}`,
+        subtitle: batchGated
+          ? `To: ${r.to_email} · Awaiting batch approval — check Telegram`
+          : `To: ${r.to_email}`,
         agent: 'Cole',
         waiting_minutes: minutesAgo(r.created_at),
         created_at: r.created_at,
@@ -152,6 +162,13 @@ export default async function handler(req, res) {
         approve_payload: { kind: 'outbound_email', id: r.id },
         reply_supported: false,
         ask_detail_supported: true,
+        // actionable=false: hide/disable the Approve action in the UI.
+        // Reject still works per-row (jarvis-approve's outbound_email reject
+        // path doesn't check batch state, it just marks the row 'skipped').
+        actionable: !batchGated,
+        blocked_reason: batchGated
+          ? 'Part of a cold-email batch awaiting the Telegram approval card. Approve/reject the whole batch there — check Telegram.'
+          : null,
         details: {
           to_email: r.to_email,
           from_email: r.from_email,

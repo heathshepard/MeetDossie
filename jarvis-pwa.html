@@ -1717,6 +1717,15 @@
       border-radius: 4px;
     }
     .pending-count-badge.zero { color: var(--ok); border-color: var(--ok); }
+    .pending-blocked-note {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--warn);
+      padding: 8px 4px;
+      border: 1px dashed var(--warn);
+      border-radius: 6px;
+      text-align: center;
+    }
 
     /* ===== PENDING DETAIL MODAL ===== */
     .pending-modal-backdrop {
@@ -6795,6 +6804,12 @@
         const replySupported = it.reply_supported === true;
         const askDetailSupported = it.ask_detail_supported !== false;
         const askedForDetail = !!it.heath_ask_for_detail_at;
+        // actionable=false: the row exists (e.g. it's queued in a cold-email
+        // batch) but a single-item Approve here would fail server-side —
+        // it can only be approved as a whole batch, from Telegram. Show why
+        // instead of a button that's guaranteed to error (Carter, 2026-08-17,
+        // fixing the raw "not_yet_batch_approved" toast Heath hit).
+        const actionable = it.actionable !== false;
         card.className = 'pending-card' + (urgent ? ' urgent' : '') + (askedForDetail ? ' waiting-detail' : '');
         const waitText = wait < 60 ? `${wait}m waiting` : `${Math.floor(wait/60)}h waiting`;
 
@@ -6808,8 +6823,9 @@
           <div class="pending-title" data-title></div>
           <div class="pending-subtitle" data-subtitle></div>
           ${askedForDetail ? `<div class="pending-detail-flag">Asked for detail · waiting for expand</div>` : ''}
+          ${!actionable ? `<div class="pending-blocked-note">${it.blocked_reason || 'Not actionable from here — check Telegram.'}</div>` : ''}
           <div class="pending-actions">
-            <button class="pending-btn approve" data-act="${primaryAct}">${primaryLabel}</button>
+            ${actionable ? `<button class="pending-btn approve" data-act="${primaryAct}">${primaryLabel}</button>` : ''}
             ${askDetailSupported ? `<button class="pending-btn ask-detail" data-act="ask-detail" ${askedForDetail ? 'disabled' : ''}>Ask Detail</button>` : ''}
             <button class="pending-btn" data-act="reject">Reject</button>
             <button class="pending-btn" data-act="details">Details</button>
@@ -6839,10 +6855,12 @@
         };
 
         const primaryBtn = card.querySelector(`[data-act="${primaryAct}"]`);
-        if (primaryAct === 'reply') {
-          primaryBtn.addEventListener('click', openReplyPanel);
-        } else {
-          primaryBtn.addEventListener('click', () => onPendingAction(it, 'approve'));
+        if (primaryBtn) {
+          if (primaryAct === 'reply') {
+            primaryBtn.addEventListener('click', openReplyPanel);
+          } else {
+            primaryBtn.addEventListener('click', () => onPendingAction(it, 'approve'));
+          }
         }
 
         const rejectBtn = card.querySelector('[data-act="reject"]');
@@ -6912,7 +6930,10 @@
         });
         if (!res.ok) {
           const errBody = await res.json().catch(() => ({}));
-          showToast(`Approve failed: ${errBody.error || res.status}`);
+          // Prefer the human-readable `detail` the API sends for known
+          // failure states (e.g. batch-gated rows) over the raw internal
+          // `error` code string, which meant nothing to Heath on its own.
+          showToast(`Approve failed: ${errBody.detail || errBody.error || res.status}`);
           btns.forEach(b => { b.disabled = false; });
           return;
         }
@@ -7099,21 +7120,26 @@
       backdrop.id = 'pending-modal-backdrop';
       const modal = document.createElement('div');
       modal.className = 'pending-modal';
+      const modalActionable = item.actionable !== false;
       modal.innerHTML = `
         <div class="pending-modal-title" data-title></div>
         <div class="pending-modal-body" data-body></div>
+        ${!modalActionable ? `<div class="pending-blocked-note">${item.blocked_reason || 'Not actionable from here — check Telegram.'}</div>` : ''}
         <div class="pending-modal-actions">
-          <button class="pending-btn approve" data-act="approve">Approve</button>
+          ${modalActionable ? `<button class="pending-btn approve" data-act="approve">Approve</button>` : ''}
           <button class="pending-btn" data-act="reject">Reject</button>
           <button class="pending-btn" data-act="close">Close</button>
         </div>
       `;
       modal.querySelector('[data-title]').textContent = item.title || '(item)';
       modal.querySelector('[data-body]').textContent = formatPendingDetails(item);
-      modal.querySelector('[data-act="approve"]').addEventListener('click', async () => {
-        await onPendingAction(item, 'approve');
-        closePendingModal();
-      });
+      const modalApproveBtn = modal.querySelector('[data-act="approve"]');
+      if (modalApproveBtn) {
+        modalApproveBtn.addEventListener('click', async () => {
+          await onPendingAction(item, 'approve');
+          closePendingModal();
+        });
+      }
       modal.querySelector('[data-act="reject"]').addEventListener('click', async () => {
         await onPendingAction(item, 'reject');
         closePendingModal();
