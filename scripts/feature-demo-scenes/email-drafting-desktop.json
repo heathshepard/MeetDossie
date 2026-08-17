@@ -1,0 +1,27 @@
+{
+  "name": "email-drafting",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-email-drafting-desktop-2026-08-17.mp4",
+  "topic": "email_drafting",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "Dossie doesn't wait for you to remember. The moment a file needs a welcome email, a lender introduction, or a title order, she drafts it and queues it — organized by dossier, ready for you to review. Pick a draft, read it, adjust anything you want, then send it your normal way. No blank page. No forgetting the lender intro until day twelve. Just drafts, waiting when you need them.",
+  "caption": "Welcome emails, lender intros, title orders — drafted and queued before you even think to write them.",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Pipeline", "timeout": 20000, "pause": 1200 },
+    { "action": "click_text", "text": "Emails", "exact": true, "pause": 2500 },
+    { "action": "wait_for_text", "text": "Draft queue", "timeout": 10000, "pause": 2000 },
+    { "action": "scroll_by", "y": 400, "pause": 2400 },
+    { "action": "scroll_by", "y": 400, "pause": 2400 },
+    { "action": "scroll_by", "y": 400, "pause": 2400 },
+    { "action": "scroll_to_top", "pause": 1800 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}

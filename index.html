@@ -153,6 +153,13 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
 .browser-url { margin-left: 10px; font-size: 11.5px; color: var(--text-light); background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 100px; padding: 3px 12px; font-weight: 500; }
 .browser-frame img { display: block; width: 100%; height: auto; }
 
+.video-embed { position: relative; background: #000; }
+.video-embed video { display: block; width: 100%; height: auto; cursor: pointer; }
+.video-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 60px; height: 60px; border-radius: 50%; background: rgba(26,26,46,0.78); border: 2px solid rgba(255,255,255,0.85); color: #fff; font-size: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.15s; padding: 0; }
+.video-play-btn::before { content: ''; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent #fff; margin-left: 4px; }
+.video-play-btn:hover { background: var(--coral-deep, #E8836B); transform: translate(-50%,-50%) scale(1.06); }
+.video-embed.is-playing .video-play-btn { display: none; }
+
 .showcase-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; align-items: center; max-width: 1180px; margin: 0 auto 72px; }
 .showcase-hero .browser-frame { border-radius: 20px; }
 .showcase-tag { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; background: var(--blush-light); color: var(--blush-deep); border-radius: 100px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px; }
@@ -257,7 +264,10 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
     <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
     <span class="browser-url">meetdossie.com/workspace</span>
    </div>
-   <img src="/assets/product/contract-scan.jpg" alt="Dossie scanning a TREC contract and flagging missing signatures, initials, and blank required fields" loading="lazy" width="1440" height="900">
+   <div class="video-embed">
+    <video poster="/assets/product/contract-scan.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-contract-scan-desktop-2026-08-17.mp4"></video>
+    <button class="video-play-btn" type="button" aria-label="Play video: Dossie scanning a TREC contract and flagging what's missing"></button>
+   </div>
   </div>
   <div class="showcase-hero-caption">
    <span class="showcase-tag">The 8-second scan</span>
@@ -270,7 +280,10 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="showcase-card">
    <div class="browser-frame">
     <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
-    <img src="/assets/product/morning-brief.jpg" alt="Dossie's Morning Brief showing active dossiers and escalated follow-ups" loading="lazy" width="1440" height="900">
+    <div class="video-embed">
+     <video poster="/assets/product/morning-brief.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-morning-brief-desktop-2026-08-17.mp4"></video>
+     <button class="video-play-btn" type="button" aria-label="Play video: Dossie's Morning Brief"></button>
+    </div>
    </div>
    <h4>Morning Brief</h4>
    <p>Every deal, prioritized, before your coffee's done.</p>
@@ -278,18 +291,24 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <div class="showcase-card">
    <div class="browser-frame">
     <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
-    <img src="/assets/product/pipeline.jpg" alt="Dossie's Pipeline dashboard organized by transaction stage" loading="lazy" width="1440" height="900">
+    <div class="video-embed">
+     <video poster="/assets/product/dossier-detail.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-dossier-detail-desktop-2026-08-17.mp4"></video>
+     <button class="video-play-btn" type="button" aria-label="Play video: opening a dossier's full detail view"></button>
+    </div>
    </div>
-   <h4>Pipeline</h4>
-   <p>Every file, every stage, one board.</p>
+   <h4>Dossier Detail</h4>
+   <p>Deadlines cited to the paragraph, documents tracked automatically.</p>
   </div>
   <div class="showcase-card">
    <div class="browser-frame">
     <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
-    <img src="/assets/product/deadlines.jpg" alt="Dossie tracking TREC deadlines computed automatically from contract dates" loading="lazy" width="1440" height="900">
+    <div class="video-embed">
+     <video poster="/assets/product/email-drafts.png" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-email-drafting-desktop-2026-08-17.mp4"></video>
+     <button class="video-play-btn" type="button" aria-label="Play video: Dossie drafting and queuing emails"></button>
+    </div>
    </div>
-   <h4>Deadline Tracking</h4>
-   <p>TREC dates, computed and watched automatically.</p>
+   <h4>Email Drafting</h4>
+   <p>Welcome emails, lender intros, title orders — drafted before you think to write them.</p>
   </div>
  </div>
  <p class="showcase-foot">E-signatures are still in the works — see <a href="/features/how-dossie-handles-esignatures">what's coming</a>.</p>
@@ -315,6 +334,27 @@ footer { padding: 40px 28px; text-align: center; border-top: 1px solid var(--bor
   <a href="mailto:heath@meetdossie.com" class="footer-link">Contact</a>
  </div>
 </footer>
+
+<script>
+(function() {
+  document.querySelectorAll('.video-embed').forEach(function(embed) {
+    var video = embed.querySelector('video');
+    var btn = embed.querySelector('.video-play-btn');
+    if (!video || !btn) return;
+    function play() {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
+      embed.classList.add('is-playing');
+      video.setAttribute('controls', '');
+      video.muted = false;
+      video.play().catch(function() { /* autoplay-policy fallback: controls are already visible */ });
+    }
+    btn.addEventListener('click', play);
+    video.addEventListener('click', function() {
+      if (!embed.classList.contains('is-playing')) play();
+    });
+  });
+})();
+</script>
 
 </body>
 </html>

@@ -1,0 +1,26 @@
+{
+  "name": "morning-brief",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-morning-brief-desktop-2026-08-17.mp4",
+  "topic": "morning_brief",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "Every morning, before you open a single file, Dossie has already read them all. Your active dossiers, sorted by what actually needs you today. What's escalated, and why. What's moving cleanly and can wait. What's coming up this week so nothing surprises you on a Friday afternoon. Glance at it over coffee, or have her read it out loud. That's the whole morning brief — your business in thirty seconds, not thirty minutes.",
+  "caption": "Every active file, sorted by what needs you today. Dossie's Morning Brief.",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Morning Brief", "timeout": 20000, "pause": 2500 },
+    { "action": "wait_for_text", "text": "Good morning", "timeout": 10000, "pause": 2000 },
+    { "action": "scroll_by", "y": 350, "pause": 2500 },
+    { "action": "scroll_by", "y": 350, "pause": 2500 },
+    { "action": "scroll_by", "y": 350, "pause": 2500 },
+    { "action": "scroll_to_top", "pause": 1800 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}

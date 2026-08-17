@@ -31,7 +31,14 @@ function loadEnv() {
 }
 loadEnv();
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+// SUPABASE_URL is a write-only Vercel var; `vercel env pull` returns the
+// literal string "[SENSITIVE]" locally instead of the real value. Prefer the
+// always-readable NEXT_PUBLIC_ mirror, and skip SUPABASE_URL entirely if it's
+// the placeholder so we don't build a request against a bogus hostname.
+const rawSupabaseUrl = process.env.SUPABASE_URL;
+const SUPABASE_URL = (rawSupabaseUrl && rawSupabaseUrl !== '[SENSITIVE]')
+  ? rawSupabaseUrl
+  : process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

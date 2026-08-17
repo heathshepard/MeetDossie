@@ -1,0 +1,28 @@
+{
+  "name": "contract-scan",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-contract-scan-desktop-2026-08-17.mp4",
+  "topic": "contract_scan",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "Drop in a TREC contract and I read it. Form type, address, buyer, seller, title company, legal description — the fields I can read confidently, filled in for you. Then I tell you what's missing. Missing signatures. Missing initials. Blank required fields, counted for you. And a Third Party Financing Addendum your contract references but nobody attached. That's the part that costs you.",
+  "caption": "Drop in a TREC contract. Dossie fills in what she can read — then tells you exactly what's missing.",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Pipeline", "timeout": 20000, "pause": 1200 },
+    { "action": "click_text", "text": "Pipeline", "exact": true, "pause": 2000 },
+    { "action": "click_text", "text": "789 Ranch Rd", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Deal details", "timeout": 10000, "pause": 1000 },
+    { "action": "click_text", "text": "Deal details", "exact": true, "pause": 3000 },
+    { "action": "scroll_by", "y": 500, "pause": 2200 },
+    { "action": "click_text", "text": "Required documents", "exact": true, "pause": 3000 },
+    { "action": "scroll_by", "y": 250, "pause": 2500 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}

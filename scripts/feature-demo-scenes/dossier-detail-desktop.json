@@ -1,0 +1,29 @@
+{
+  "name": "dossier-detail",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-dossier-detail-desktop-2026-08-17.mp4",
+  "topic": "dossier_detail",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "Open any dossier and you get the whole file in one place. Every TREC deadline, cited to the paragraph it comes from. Every field — buyer, seller, price, title company — editable with one click, saved instantly. The checklist updates for the stage you're actually in, not a generic list. Required documents, tracked automatically as you upload. Nothing lost in an inbox, nothing forgotten in a spreadsheet. Just one dossier that knows the whole file.",
+  "caption": "One dossier, the whole file. Deadlines cited to the paragraph, documents tracked automatically.",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Pipeline", "timeout": 20000, "pause": 1200 },
+    { "action": "click_text", "text": "Pipeline", "exact": true, "pause": 2000 },
+    { "action": "click_text", "text": "321 Oak St", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Deadlines", "timeout": 10000, "pause": 2000 },
+    { "action": "scroll_by", "y": 400, "pause": 2200 },
+    { "action": "click_text", "text": "Deal details", "exact": true, "pause": 2500 },
+    { "action": "scroll_by", "y": 600, "pause": 2200 },
+    { "action": "click_text", "text": "Checklist", "exact": true, "pause": 2500 },
+    { "action": "scroll_by", "y": 500, "pause": 2200 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}

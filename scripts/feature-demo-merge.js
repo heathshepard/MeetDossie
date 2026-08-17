@@ -43,35 +43,61 @@ fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // ─── ffmpeg / ffprobe locators ────────────────────────────────────────────────
 
-function findFfmpeg() {
-  const check = spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' });
-  if (check.status === 0) return 'ffmpeg';
-  const winget = path.join(
-    process.env.LOCALAPPDATA || '',
-    'Microsoft', 'WinGet', 'Packages',
-    'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe',
-    'ffmpeg-8.1-full_build', 'bin', 'ffmpeg.exe'
-  );
-  if (fs.existsSync(winget)) return winget;
-  throw new Error('ffmpeg not found. Install via: winget install Gyan.FFmpeg');
+// Resolves an ffmpeg-suite binary. Prefers one already on PATH; otherwise
+// locates the winget install. Version-agnostic (globs `ffmpeg-*-full_build`
+// rather than pinning a version) and works under WSL, where LOCALAPPDATA is
+// unset and the Windows profile is reachable only via /mnt/c.
+function findFfBinary(name) {
+  const check = spawnSync(name, ['-version'], { encoding: 'utf8' });
+  if (check.status === 0) return name;
+
+  const WINGET_PKG = 'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe';
+  const roots = [];
+  if (process.env.LOCALAPPDATA) roots.push(process.env.LOCALAPPDATA);
+  // WSL: enumerate Windows profiles under /mnt/c/Users.
+  try {
+    for (const user of fs.readdirSync('/mnt/c/Users')) {
+      roots.push(path.join('/mnt/c/Users', user, 'AppData', 'Local'));
+    }
+  } catch { /* not WSL, or no /mnt/c — fall through */ }
+
+  for (const root of roots) {
+    const pkgDir = path.join(root, 'Microsoft', 'WinGet', 'Packages', WINGET_PKG);
+    let builds;
+    try {
+      builds = fs.readdirSync(pkgDir).filter((d) => /^ffmpeg-.*build$/.test(d));
+    } catch { continue; }
+    // Newest build directory first, so an upgrade is picked up automatically.
+    builds.sort().reverse();
+    for (const build of builds) {
+      const exe = path.join(pkgDir, build, 'bin', `${name}.exe`);
+      if (fs.existsSync(exe)) return exe;
+    }
+  }
+
+  throw new Error(`${name} not found. Install via: winget install Gyan.FFmpeg`);
 }
 
-function findFfprobe() {
-  const check = spawnSync('ffprobe', ['-version'], { encoding: 'utf8' });
-  if (check.status === 0) return 'ffprobe';
-  const winget = path.join(
-    process.env.LOCALAPPDATA || '',
-    'Microsoft', 'WinGet', 'Packages',
-    'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe',
-    'ffmpeg-8.1-full_build', 'bin', 'ffprobe.exe'
-  );
-  if (fs.existsSync(winget)) return winget;
-  throw new Error('ffprobe not found. Install via: winget install Gyan.FFmpeg');
+function findFfmpeg() { return findFfBinary('ffmpeg'); }
+function findFfprobe() { return findFfBinary('ffprobe'); }
+
+// The winget ffmpeg/ffprobe are real Windows binaries. Under WSL, a WSL path
+// like /mnt/c/Users/... means nothing to a Windows .exe — it needs the
+// Windows-style equivalent (C:\Users\...). Only translate when we're
+// actually about to shell out to a .exe; a native Linux ffmpeg on PATH
+// understands WSL paths natively and must NOT be translated.
+function toBinPath(binary, p) {
+  if (!binary.toLowerCase().endsWith('.exe')) return p;
+  if (!p.startsWith('/')) return p; // already a plain filename/flag
+  const res = spawnSync('wslpath', ['-w', p], { encoding: 'utf8' });
+  if (res.status !== 0) throw new Error(`wslpath -w failed on ${p}: ${res.stderr}`);
+  return res.stdout.trim();
 }
 
 function runFfmpeg(ffmpeg, args) {
-  console.log(`[merge] ffmpeg ${args.join(' ')}`);
-  const res = spawnSync(ffmpeg, args, { encoding: 'utf8', maxBuffer: 100 * 1024 * 1024 });
+  const translated = args.map((a) => (a.startsWith('/') ? toBinPath(ffmpeg, a) : a));
+  console.log(`[merge] ffmpeg ${translated.join(' ')}`);
+  const res = spawnSync(ffmpeg, translated, { encoding: 'utf8', maxBuffer: 100 * 1024 * 1024 });
   if (res.status !== 0) throw new Error(`ffmpeg exited ${res.status}: ${res.stderr || res.stdout}`);
   return res;
 }
@@ -81,7 +107,7 @@ function durationSeconds(ffprobe, file) {
     '-v', 'error',
     '-show_entries', 'format=duration',
     '-of', 'default=noprint_wrappers=1:nokey=1',
-    file,
+    toBinPath(ffprobe, file),
   ], { encoding: 'utf8' });
   if (res.status !== 0) throw new Error(`ffprobe failed on ${file}: ${res.stderr}`);
   return parseFloat(res.stdout.trim());

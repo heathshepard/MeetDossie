@@ -52,6 +52,19 @@ async function moveToElement(page, element) {
   await page.waitForTimeout(180);
 }
 
+// Some elements on meetdossie.com/app never pass Playwright's "stable"
+// actionability check (a CSS transition keeps recomputing their box), which
+// hangs a plain .click() indefinitely. Try a normal click first (best for
+// realistic recorded interaction); fall back to a forced click so the scene
+// doesn't stall the whole recording.
+async function clickRobust(loc, opts = {}) {
+  try {
+    await loc.click({ timeout: 6000, ...opts });
+  } catch {
+    await loc.click({ force: true, timeout: 6000, ...opts });
+  }
+}
+
 async function smoothScrollBy(page, y) {
   await page.evaluate((yy) => window.scrollBy({ top: yy, behavior: 'smooth' }), y);
 }
@@ -75,17 +88,17 @@ async function runScene(page, scene, scriptCfg) {
       }
       console.log('  [scene] login_if_visible -> signing in');
       await moveToElement(page, emailLocator);
-      await emailLocator.click();
+      await clickRobust(emailLocator);
       await emailLocator.fill(scriptCfg.demo_account || 'demo@meetdossie.com');
       const passLocator = page.locator(scene.password_selector || "input[type='password']").first();
       await passLocator.waitFor({ state: 'visible' });
       await moveToElement(page, passLocator);
-      await passLocator.click();
+      await clickRobust(passLocator);
       await passLocator.fill(DEMO_PASSWORD);
       const submit = page.locator(scene.submit_selector || "button[type='submit']").first();
       await submit.waitFor({ state: 'visible' });
       await moveToElement(page, submit);
-      await submit.click();
+      await clickRobust(submit);
       break;
     }
     case 'wait_for_text': {
@@ -98,7 +111,7 @@ async function runScene(page, scene, scriptCfg) {
       const loc = page.getByText(scene.text, { exact: scene.exact === true }).first();
       await loc.waitFor({ state: 'visible', timeout: scene.timeout || 10000 });
       await moveToElement(page, loc);
-      await loc.click();
+      await clickRobust(loc);
       break;
     }
     case 'click_selector': {
@@ -106,7 +119,7 @@ async function runScene(page, scene, scriptCfg) {
       const loc = page.locator(scene.selector).first();
       await loc.waitFor({ state: 'visible', timeout: scene.timeout || 10000 });
       await moveToElement(page, loc);
-      await loc.click();
+      await clickRobust(loc);
       break;
     }
     case 'type_into': {
@@ -132,7 +145,7 @@ async function runScene(page, scene, scriptCfg) {
         break;
       }
       await moveToElement(page, close);
-      await close.click();
+      await clickRobust(close);
       break;
     }
     case 'press_key': {
@@ -206,7 +219,7 @@ async function runScene(page, scene, scriptCfg) {
         break;
       }
       await moveToElement(page, card);
-      await card.click();
+      await clickRobust(card);
       break;
     }
     case 'final_pause': {
@@ -230,13 +243,14 @@ async function record(scriptPath) {
   const slowmo = scriptCfg.slowmo_ms || 400;
 
   const { chromium } = require('playwright');
+  // Headless by default — this recorder runs fine without a real display
+  // (Playwright's recordVideo captures composited frames via CDP, not a
+  // screen grab, so headless output is pixel-identical to headed). Set
+  // HEADFUL=1 to watch it run on a machine that actually has a display.
+  const headless = process.env.HEADFUL !== '1';
   const browser = await chromium.launch({
-    headless: false,
+    headless,
     slowMo: slowmo,
-    args: [
-      '--remote-debugging-address=127.0.0.1',
-      '--remote-debugging-port=0',
-    ],
   });
   const context = await browser.newContext({
     viewport,

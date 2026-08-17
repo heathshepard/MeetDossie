@@ -434,6 +434,23 @@ nav {
   align-items: center;
 }
 
+/* ---- Watch her work (feature videos) ---- */
+.watch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
+.watch-card .browser-frame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(26,26,46,0.06); margin-bottom: 14px; }
+.watch-card .browser-chrome { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bg-warm); border-bottom: 1px solid var(--border-light); }
+.watch-card .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.watch-card .dot-r { background: #E8836B; } .watch-card .dot-y { background: #C9A96E; } .watch-card .dot-g { background: #8BA888; }
+.watch-card .video-embed { position: relative; background: #000; }
+.watch-card .video-embed video { display: block; width: 100%; height: auto; cursor: pointer; }
+.watch-card .video-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 52px; height: 52px; border-radius: 50%; background: rgba(26,26,46,0.78); border: 2px solid rgba(255,255,255,0.85); color: #fff; font-size: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s, transform 0.15s; }
+.watch-card .video-play-btn::before { content: ''; width: 0; height: 0; border-style: solid; border-width: 9px 0 9px 14px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
+.watch-card .video-play-btn:hover { background: var(--coral-deep); transform: translate(-50%,-50%) scale(1.06); }
+.watch-card .video-embed.is-playing .video-play-btn { display: none; }
+.watch-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.watch-card p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+@media (max-width: 980px) { .watch-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .watch-grid { grid-template-columns: 1fr; } }
+
 .feature-icon {
   width: 52px; height: 52px;
   border-radius: 14px;
@@ -1093,6 +1110,53 @@ footer {
       </div>
     </div>
   </div>
+
+  <div class="watch-grid">
+    <div class="watch-card">
+      <div class="browser-frame">
+        <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="video-embed">
+          <video poster="/assets/product/contract-scan.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-contract-scan-desktop-2026-08-17.mp4"></video>
+          <button class="video-play-btn" type="button" aria-label="Play video: Contract Scan"></button>
+        </div>
+      </div>
+      <h4>Contract Scan</h4>
+      <p>Drop in a TREC contract. Dossie fills in what she can read, then tells you what's missing.</p>
+    </div>
+    <div class="watch-card">
+      <div class="browser-frame">
+        <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="video-embed">
+          <video poster="/assets/product/morning-brief.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-morning-brief-desktop-2026-08-17.mp4"></video>
+          <button class="video-play-btn" type="button" aria-label="Play video: Morning Brief"></button>
+        </div>
+      </div>
+      <h4>Morning Brief</h4>
+      <p>Every active file, sorted by what needs you today.</p>
+    </div>
+    <div class="watch-card">
+      <div class="browser-frame">
+        <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="video-embed">
+          <video poster="/assets/product/dossier-detail.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-dossier-detail-desktop-2026-08-17.mp4"></video>
+          <button class="video-play-btn" type="button" aria-label="Play video: Dossier Detail"></button>
+        </div>
+      </div>
+      <h4>Dossier Detail</h4>
+      <p>The whole file in one place — deadlines cited to the paragraph.</p>
+    </div>
+    <div class="watch-card">
+      <div class="browser-frame">
+        <div class="browser-chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="video-embed">
+          <video poster="/assets/product/email-drafts.png" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-email-drafting-desktop-2026-08-17.mp4"></video>
+          <button class="video-play-btn" type="button" aria-label="Play video: Auto Follow-Ups email drafting"></button>
+        </div>
+      </div>
+      <h4>Auto Follow-Ups</h4>
+      <p>Welcome emails, lender intros, title orders — drafted and queued.</p>
+    </div>
+  </div>
 </section>
 
 <!-- MORNING BRIEF DEMO -->
@@ -1154,7 +1218,6 @@ footer {
       <div class="price-plan-name">Solo</div>
       <div class="price-plan-for">For individual agents</div>
       <div class="price-amount">$149<span>/mo</span></div>
-      <div class="price-annual" style="color: var(--coral, #E8836B); font-weight: 600;">Existing subscribers from before July 31, 2026 keep their prior rate.</div>
       <ul class="price-features">
         <li><span class="price-check">-</span> 1 seat</li>
         <li><span class="price-check">-</span> Unlimited transactions</li>
@@ -1170,7 +1233,6 @@ footer {
       <div class="price-plan-name">Team</div>
       <div class="price-plan-for">For small teams</div>
       <div class="price-amount">$349<span>/mo</span></div>
-      <div class="price-annual" style="color: var(--coral, #E8836B); font-weight: 600;">Existing subscribers from before July 31, 2026 keep their prior rate.</div>
       <ul class="price-features">
         <li><span class="price-check">-</span> Up to 5 seats</li>
         <li><span class="price-check">-</span> Additional seats: $35/mo</li>
@@ -1313,6 +1375,26 @@ document.querySelectorAll('.feature-card,.compare-card,.brief-demo,.price-card,.
   el.style.transition='opacity 0.7s ease-out,transform 0.7s ease-out';
   _obs.observe(el);
 });
+</script>
+<script>
+(function() {
+  document.querySelectorAll('.video-embed').forEach(function(embed) {
+    var video = embed.querySelector('video');
+    var btn = embed.querySelector('.video-play-btn');
+    if (!video || !btn) return;
+    function play() {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
+      embed.classList.add('is-playing');
+      video.setAttribute('controls', '');
+      video.muted = false;
+      video.play().catch(function() { /* autoplay-policy fallback: controls are already visible */ });
+    }
+    btn.addEventListener('click', play);
+    video.addEventListener('click', function() {
+      if (!embed.classList.contains('is-playing')) play();
+    });
+  });
+})();
 </script>
 <script src="/sales-modal.js"></script>
 </body>
