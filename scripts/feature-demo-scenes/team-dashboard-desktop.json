@@ -1,0 +1,29 @@
+{
+  "name": "team-dashboard",
+  "form_factor": "desktop",
+  "viewport": { "width": 1920, "height": 1080 },
+  "demo_account": "demo-team-lead@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "feature-demo-team-dashboard-desktop-2026-08-17.mp4",
+  "topic": "team_dashboard",
+  "type": "feature_demo",
+  "platforms": ["facebook", "twitter", "linkedin"],
+  "voiceover": "As a team lead, you don't just see your own files, you see everyone's. Sign in to the Team Dashboard and every agent on your team shows up, with how many active dossiers each one is carrying. Open an agent and you see their real deals, the stage each one is actually in, and any deadline that's already been missed, like an option period that expired days ago, or a financing deadline nobody caught. That's the difference Team makes: nothing falls through the cracks, because you're never the last to know.",
+  "caption": "Team Dashboard: your whole team's dossiers, one screen, with the deadlines nobody caught.",
+  "slowmo_ms": 500,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/team-dashboard", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "#authEmail", "password_selector": "#authPw", "submit_selector": "#authBtn", "pause": 2500 },
+    { "action": "wait_for_text", "text": "Whitley Realty Team", "timeout": 20000, "pause": 1500 },
+    { "action": "wait_for_text", "text": "Members", "timeout": 8000, "pause": 1500 },
+    { "action": "click_text", "text": "demo-team-lead@meetdossie.com", "pause": 1800 },
+    { "action": "wait_for_text", "text": "past option expiration", "timeout": 8000, "pause": 2500 },
+    { "action": "click_text", "text": "demo-team-agent2@meetdossie.com", "pause": 1800 },
+    { "action": "wait_for_text", "text": "past loan approval deadline", "timeout": 8000, "pause": 2800 },
+    { "action": "scroll_by", "y": 300, "pause": 2200 },
+    { "action": "click_text", "text": "demo-team-agent1@meetdossie.com", "pause": 1800 },
+    { "action": "scroll_by", "y": 300, "pause": 2200 },
+    { "action": "final_pause", "pause": 2000 }
+  ]
+}

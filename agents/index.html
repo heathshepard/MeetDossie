@@ -451,6 +451,16 @@ nav {
 @media (max-width: 980px) { .watch-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .watch-grid { grid-template-columns: 1fr; } }
 
+/* ---- In-card video (Team pricing card) ---- */
+.price-card-video { margin: 16px 0 6px; }
+.price-card-video .video-embed { position: relative; background: #000; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 20px rgba(26,26,46,0.12); }
+.price-card-video .video-embed video { display: block; width: 100%; height: auto; cursor: pointer; }
+.price-card-video .video-play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(26,26,46,0.78); border: 2px solid rgba(255,255,255,0.85); color: #fff; font-size: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background 0.15s, transform 0.15s; }
+.price-card-video .video-play-btn::before { content: ''; width: 0; height: 0; border-style: solid; border-width: 7px 0 7px 11px; border-color: transparent transparent transparent #fff; margin-left: 2px; }
+.price-card-video .video-play-btn:hover { background: var(--coral-deep); transform: translate(-50%,-50%) scale(1.06); }
+.price-card-video .video-embed.is-playing .video-play-btn { display: none; }
+.price-card-video .video-caption { font-size: 11px; font-weight: 700; color: var(--sage-deep); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 6px; text-align: center; }
+
 .feature-icon {
   width: 52px; height: 52px;
   border-radius: 14px;
@@ -1233,6 +1243,13 @@ footer {
       <div class="price-plan-name">Team</div>
       <div class="price-plan-for">For small teams</div>
       <div class="price-amount">$349<span>/mo</span></div>
+      <div class="price-card-video">
+        <div class="video-embed">
+          <video poster="/assets/product/team-dashboard.jpg" preload="none" playsinline width="1920" height="1080" data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-team-dashboard-desktop-2026-08-17.mp4"></video>
+          <button class="video-play-btn" type="button" aria-label="Play video: Team Dashboard"></button>
+        </div>
+        <div class="video-caption">See the Team Dashboard</div>
+      </div>
       <ul class="price-features">
         <li><span class="price-check">-</span> Up to 5 seats</li>
         <li><span class="price-check">-</span> Additional seats: $35/mo</li>
