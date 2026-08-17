@@ -189,6 +189,7 @@ scripts/.linkedin-seen.json
 scripts/.lead-scraper-seen.json
 scripts/.competitor-monitor-seen.json
 scripts/.reddit-scanner-seen.json
+scripts/.ad-library-cache.json
 
 # Playwright session cookies — contain auth tokens, never commit
 scripts/sessions/

@@ -50,19 +50,72 @@ const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 
 
 const SEEN_FILE = path.join(__dirname, '.lead-scraper-seen.json');
 
-const LEAD_KEYWORDS = [
-  'my tc',
-  'transaction coordinator',
-  'stressed',
-  'overwhelmed with paperwork',
-  'juggling files',
-  'need help with transactions',
-  'looking for a tc',
-  'overwhelmed',
-  'too many files',
-  'behind on paperwork',
-  'tc quit',
-  'can\'t keep up',
+// Broadened 2026-08-17 (Sage). Old list was 11 rigid exact phrases and found
+// 0 leads across 25 real, active groups — the audience wasn't dead, the net
+// was too tight. This is regex-based (word-boundary, case-insensitive) so
+// stems/variants match without hardcoding every inflection ("overwhelmed",
+// "overwhelming" both hit "overwhelm"). Grouped by the real conversation
+// shapes agents actually post in: TC pain, deadline/paperwork overwhelm,
+// wanting to fire/replace a TC, solo-agent burnout, wanting a TREC-forms
+// assistant. Each entry is a regex *source string* (not a RegExp object) —
+// it gets rebuilt inside page.evaluate() since Playwright serializes args
+// as plain data across the browser boundary.
+const LEAD_KEYWORD_PATTERNS = [
+  // ── TC-specific pain: quit, flaked, fired, actively hunting a replacement ──
+  String.raw`\b(my|our|the)\s+(tc|transaction coordinator)\b`,
+  String.raw`\btc\s+(quit|flaked|ghosted|dropped|missed|bailed)`,
+  String.raw`\bcoordinator\s+(quit|flaked|ghosted|dropped|bailed)`,
+  String.raw`\bfir(ed|ing)?\s+(my\s+)?tc\b`,
+  String.raw`\b(looking for|need|recommend|anyone (use|know)|switching)\s+(a\s+)?(new\s+)?tc\b`,
+  String.raw`\btc recommendations?\b`,
+  String.raw`\b(reliable|good|trustworthy) tc\b`,
+
+  // ── Deadline / paperwork overwhelm ──
+  String.raw`\boverwhelm(ed|ing)?\b`,
+  String.raw`\bdrowning in (paperwork|contracts|files|deadlines)\b`,
+  String.raw`\bburied in (paperwork|contracts|files|deadlines)\b`,
+  String.raw`\bbehind on (paperwork|deadlines|contracts|files)\b`,
+  String.raw`\bmissed (a |the )?deadline`,
+  String.raw`\bforgot to (send|submit|file)\b`,
+  String.raw`\bpaperwork (nightmare|is killing me|is a lot|is out of control)\b`,
+  String.raw`\bso much paperwork\b`,
+  String.raw`\bstack of (contracts|paperwork|files)\b`,
+  String.raw`\bjuggling (files|contracts|transactions|deals|deadlines)\b`,
+  String.raw`\btoo many (files|transactions|deals)\b`,
+  String.raw`\bcan\W?t keep up\b`,
+  String.raw`\blosing track of\b`,
+  String.raw`\btracking (deadlines|contracts)\b`,
+  String.raw`\boption period\b`,
+  String.raw`\bearnest money (deadline|due)\b`,
+
+  // ── Solo-agent overwhelm / burnout ──
+  String.raw`\bsolo agent\b`,
+  String.raw`\bdoing (it all|everything) (myself|by myself|on my own)\b`,
+  String.raw`\bno assistant\b`,
+  String.raw`\bcan\W?t afford an assistant\b`,
+  String.raw`\bwearing too many hats\b`,
+  String.raw`\bburnt out\b`,
+  String.raw`\bburned out\b`,
+  String.raw`\bburnout\b`,
+  String.raw`\bso stressed\b`,
+  String.raw`\bstressed (out|about|to the max)\b`,
+  String.raw`\bstressful\b`,
+  String.raw`\bworking (weekends|nights) (again|nonstop)\b`,
+  String.raw`\bno time (for paperwork|to keep up)\b`,
+
+  // ── Wanting a TREC-forms / transaction-paperwork assistant ──
+  String.raw`\btrec forms\b`,
+  String.raw`\btrec deadlines\b`,
+  String.raw`\bcontract deadlines\b`,
+  String.raw`\bhelp with (contracts|transactions|paperwork)\b`,
+  String.raw`\bsomeone to (handle|help with) (paperwork|contracts)\b`,
+  String.raw`\bautomate (my )?paperwork\b`,
+  String.raw`\b(app|software|tool) for (transactions|paperwork|contracts)\b`,
+  String.raw`\btransaction management\b`,
+  String.raw`\bvirtual assistant\b`,
+  String.raw`\bva for real estate\b`,
+  String.raw`\breal estate assistant\b`,
+  String.raw`\bneed help with transactions\b`,
 ];
 
 // ─── Seen dedup ───────────────────────────────────────────────────────────────
@@ -143,14 +196,19 @@ async function scanGroup(page, group, seenIds) {
     await page.waitForLoadState('networkidle').catch(() => {});
   }
 
-  const posts = await page.evaluate((keywords) => {
+  const posts = await page.evaluate((patterns) => {
     const results = [];
+    // Rebuild regex objects in-browser — Playwright serializes args as plain
+    // strings, RegExp objects don't survive the boundary.
+    const regexes = patterns.map(p => new RegExp(p, 'i'));
     const articles = document.querySelectorAll('div[role="article"]');
     for (const article of articles) {
       const text = article.innerText || '';
-      const lowerText = text.toLowerCase();
-      const hasKeyword = keywords.some(kw => lowerText.includes(kw));
-      if (!hasKeyword) continue;
+      let matchedPattern = null;
+      for (let i = 0; i < regexes.length; i++) {
+        if (regexes[i].test(text)) { matchedPattern = patterns[i]; break; }
+      }
+      if (!matchedPattern) continue;
 
       let postUrl = null;
       const links = article.querySelectorAll('a[href*="/groups/"]');
@@ -172,10 +230,11 @@ async function scanGroup(page, group, seenIds) {
         postUrl,
         authorName,
         postId: postUrl ? postUrl.split('/').filter(Boolean).pop() : null,
+        matchedPattern,
       });
     }
     return results;
-  }, LEAD_KEYWORDS);
+  }, LEAD_KEYWORD_PATTERNS);
 
   for (const post of posts) {
     const dedupeKey = post.postId || post.text.slice(0, 80);
@@ -239,6 +298,7 @@ async function main() {
           'WARM LEAD FOUND',
           `Name: ${lead.authorName || 'unknown'}`,
           `Group: ${lead.groupName}`,
+          `Matched: ${lead.matchedPattern || 'n/a'}`,
           `Post: ${lead.text.slice(0, 300)}`,
           lead.postUrl ? `URL: ${lead.postUrl}` : '(no direct URL captured)',
           '',
