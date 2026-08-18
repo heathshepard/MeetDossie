@@ -16,6 +16,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ANTHROPIC_MODEL = 'claude-sonnet-5';
 const VERIFIER_MODEL = 'claude-haiku-4-5-20251001';
@@ -193,6 +195,45 @@ function extractJson(raw) {
   return JSON.parse(s);
 }
 
+// ─── Telegram helpers ────────────────────────────────────────────────────────
+async function sendToTelegram(postContent, postId, topic, dbId) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
+  const preview = postContent.length > 600
+    ? postContent.slice(0, 600) + '...'
+    : postContent;
+  const text = [
+    '<b>LinkedIn Draft (Heath)</b>',
+    `Topic: ${topic}`,
+    '',
+    preview.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+    '',
+    'Auto-approves in 10 min. Tap Reject to veto.',
+  ].join('\n');
+
+  const body = {
+    chat_id: TELEGRAM_CHAT_ID,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+    reply_markup: {
+      inline_keyboard: [[
+        { text: 'Reject', callback_data: `reject_${dbId}` },
+      ]],
+    },
+  };
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('[cron-generate-heath-linkedin] telegram send failed:', err.message);
+    return false;
+  }
+}
+
 // ─── Handler ─────────────────────────────────────────────────────────────────
 module.exports = withTelemetry('cron-generate-heath-linkedin', async function handler(req, res) {
   // Auth
@@ -300,13 +341,30 @@ Write a LinkedIn post. Return ONLY the post text, nothing else. No JSON, no mark
 
   const ins = await supabaseFetch('/rest/v1/social_posts?on_conflict=post_id', {
     method: 'POST',
-    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify(row),
   });
 
   if (!ins.ok) {
     console.error('[cron-generate-heath-linkedin] insert failed:', ins.status, JSON.stringify(ins.data).slice(0, 300));
     return res.status(502).json({ ok: false, error: 'insert failed', detail: ins.status });
+  }
+
+  const dbId = Array.isArray(ins.data) && ins.data[0] ? ins.data[0].id : null;
+
+  // ─── Send to Telegram + set telegram_sent_at (bypass Sage pipeline) ────
+  if (rowStatus === 'draft' && dbId) {
+    const sent = await sendToTelegram(postContent, postId, topic.key, dbId);
+    if (sent) {
+      await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(dbId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ telegram_sent_at: now.toISOString() }),
+      });
+      console.log(`[cron-generate-heath-linkedin] sent to Telegram, telegram_sent_at set`);
+    } else {
+      console.warn(`[cron-generate-heath-linkedin] Telegram send failed — post will be picked up by auto-approve via cron-send-to-sage fallback`);
+    }
   }
 
   console.log(`[cron-generate-heath-linkedin] done — post_id=${postId} status=${rowStatus} topic=${topic.key} words=${postContent.split(/\s+/).length}`);
