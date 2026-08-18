@@ -5,104 +5,237 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Team Dashboard — Dossie</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8927C'/><text y='.9em' font-size='90' x='10'>D</text></svg>">
+<meta name="theme-color" content="#E8836B">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <style>
+  /*
+   * Colors + Pipeline Dashboard card language are copied 1:1 from the BRAND
+   * and APP_STAGES constants + `styles.pipelineGrid/pipelineColumn/dealCard`
+   * block in Dossie/dossie-app.jsx so this admin view matches the real
+   * per-agent dashboard instead of inventing its own look. If APP_STAGES
+   * changes there (stage id/name/icon/color), mirror it here.
+   */
   :root {
-    --blush: #F5E6E0;
-    --blush-deep: #D4A0A0;
+    --bg: #FDFCFA;
+    --surface: #FFFFFF;
+    --blush: #D4A0A0;
+    --blush-light: #F2E4E4;
+    --blush-deep: #C08080;
     --sage: #8BA888;
+    --sage-light: #E4EDE2;
+    --sage-deep: #6B8E68;
     --gold: #C9A96E;
+    --gold-light: #F5EDD8;
     --navy: #1A1A2E;
     --coral: #E8836B;
+    --red: #D95C52;
+    --border: #EAE1D8;
+    --soft-border: #F1EBE4;
+    --text: #2E2A27;
+    --text-soft: #7E776F;
+    --text-muted: #9F988F;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: #FDFCFA;
-    color: var(--navy);
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
   }
+  .serif { font-family: 'Cormorant Garamond', 'Georgia', serif; }
+
   header {
-    padding: 20px 24px;
+    padding: 16px 24px;
     background: var(--navy);
     color: white;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
   }
-  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  header .org-name { font-size: 13px; color: var(--blush); opacity: 0.85; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .nav-mark {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 17px; color: #fff; font-family: 'Cormorant Garamond', serif;
+    flex-shrink: 0;
+  }
+  header h1 { font-family: 'Cormorant Garamond', serif; font-size: 22px; margin: 0; font-weight: 600; letter-spacing: -0.2px; }
+  header .org-name { font-size: 12.5px; color: var(--blush-light); opacity: 0.9; margin-top: 1px; }
   #signOutBtn {
-    background: none; border: 1px solid rgba(255,255,255,0.3); color: white;
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: none;
+    background: none; border: 1px solid rgba(255,255,255,0.28); color: white;
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 12.5px; display: none;
+    font-family: inherit; font-weight: 600;
   }
-  main { max-width: 960px; margin: 0 auto; padding: 24px; }
+  #signOutBtn:hover { background: rgba(255,255,255,0.1); }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
   .card {
-    background: white; border: 1px solid #F0EBE3; border-radius: 12px;
-    padding: 20px; margin-bottom: 16px;
+    background: var(--surface); border: 1px solid var(--soft-border); border-radius: 18px;
+    padding: 22px; margin-bottom: 16px; box-shadow: 0 10px 24px rgba(26,26,46,0.04);
   }
+  .card h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; margin: 0 0 14px; font-weight: 600; color: var(--navy); }
+
+  .auth-form { max-width: 340px; }
   .auth-form input {
-    display: block; width: 100%; padding: 10px 12px; margin-bottom: 10px;
-    border: 1px solid #E0DAD0; border-radius: 8px; font-size: 14px;
+    display: block; width: 100%; padding: 11px 12px; margin-bottom: 10px;
+    border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit;
   }
+  .auth-form input:focus { outline: none; border-color: var(--blush-deep); }
   .auth-form button {
-    background: var(--coral); color: white; border: none; padding: 10px 16px;
-    border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+    background: var(--coral); color: white; border: none; padding: 11px 18px;
+    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit;
   }
+  .auth-form button:hover { background: #DD6F55; }
   .auth-form button:disabled { opacity: 0.6; cursor: default; }
   .msg { font-size: 13px; margin-top: 8px; }
-  .msg.err { color: #C0392B; }
-  .msg.ok { color: var(--sage); }
-  .member-row {
-    border: 1px solid #F0EBE3; border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+  .msg.err { color: var(--red); }
+  .msg.ok { color: var(--sage-deep); }
+
+  .gate { text-align: center; padding: 60px 20px; color: var(--text-soft); font-size: 14px; line-height: 1.7; }
+  .gate::before { content: "🔒"; display: block; font-size: 26px; margin-bottom: 10px; }
+
+  /* --- Stat strip --- */
+  .stat-strip {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
   }
-  .member-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px; cursor: pointer; background: #FBF9F6;
+  .stat-pill {
+    background: var(--blush-light); border-radius: 14px; padding: 12px 18px; flex: 1; min-width: 140px;
   }
-  .member-header:hover { background: var(--blush); }
-  .member-name { font-weight: 600; font-size: 14px; }
-  .member-sub { font-size: 12px; color: #8A8378; margin-top: 2px; }
-  .badge {
-    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
-    background: var(--blush); color: var(--navy); margin-left: 6px; text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .badge.admin { background: var(--gold); color: white; }
-  .badge.tc { background: var(--sage); color: white; }
-  .count-pill {
-    font-size: 12px; background: var(--navy); color: white; border-radius: 999px;
-    padding: 3px 10px; font-weight: 600;
-  }
-  .dossier-list { display: none; padding: 0 16px 14px; }
-  .dossier-list.open { display: block; }
-  .dossier {
-    border-top: 1px solid #F0EBE3; padding: 12px 0; font-size: 13px;
-  }
-  .dossier-addr { font-weight: 600; }
-  .dossier-meta { color: #8A8378; margin-top: 3px; }
-  .flag {
-    display: inline-block; font-size: 11px; color: white; background: var(--coral);
-    border-radius: 6px; padding: 2px 7px; margin-top: 6px; margin-right: 6px;
-  }
-  .empty { color: #8A8378; font-size: 13px; padding: 10px 0; }
+  .stat-pill .num { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .stat-pill .label { font-size: 11.5px; color: var(--text-soft); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+
   .team-chip {
-    display: inline-block; font-size: 12px; background: white; border: 1px solid #E0DAD0;
-    border-radius: 999px; padding: 4px 10px; margin: 2px 4px 2px 0;
+    display: inline-block; font-size: 12px; background: white; border: 1px solid var(--border);
+    color: var(--text-soft); border-radius: 999px; padding: 4px 12px; margin: 2px 6px 2px 0; font-weight: 600;
   }
-  .gate { text-align: center; padding: 40px 20px; color: #8A8378; }
+
+  /* --- Two-pane layout: member selector + selected member's board --- */
+  .dash-layout { display: flex; gap: 18px; align-items: flex-start; }
+
+  .roster-panel {
+    width: 300px; flex-shrink: 0; background: var(--surface); border: 1px solid var(--soft-border);
+    border-radius: 18px; padding: 10px; box-shadow: 0 10px 24px rgba(26,26,46,0.04);
+    max-height: calc(100vh - 200px); overflow-y: auto;
+  }
+  .roster-group-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
+    font-weight: 700; padding: 10px 10px 6px;
+  }
+  .roster-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 10px; border-radius: 12px; border: 1px solid transparent; background: none;
+    cursor: pointer; font-family: inherit; margin-bottom: 4px;
+  }
+  .roster-item:hover { background: var(--bg); }
+  .roster-item.active { background: var(--blush-light); border-color: var(--blush-deep); }
+  .roster-avatar {
+    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
+    color: white; font-weight: 700; font-size: 13px; font-family: 'Cormorant Garamond', serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .roster-text { min-width: 0; flex: 1; }
+  .roster-name { font-weight: 700; font-size: 13.5px; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .roster-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .roster-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .role-badge {
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 2px 7px; border-radius: 999px; color: white;
+  }
+  .role-badge.admin { background: var(--gold); }
+  .role-badge.tc { background: var(--sage); }
+  .role-badge.agent { background: var(--blush-deep); }
+  .roster-count {
+    flex-shrink: 0; min-width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center;
+    background: var(--navy); color: white; font-size: 11px; font-weight: 700; padding: 0 6px;
+  }
+  .empty { color: var(--text-soft); font-size: 13px; padding: 14px 10px; }
+
+  /* --- Selected member board --- */
+  .board-panel { flex: 1; min-width: 0; }
+  .board-header {
+    background: var(--surface); border: 1px solid var(--soft-border); border-radius: 18px;
+    padding: 18px 22px; margin-bottom: 16px; box-shadow: 0 10px 24px rgba(26,26,46,0.04);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  .board-header-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--navy); }
+  .board-header-sub { font-size: 12.5px; color: var(--text-soft); margin-top: 3px; }
+  .board-header-count { text-align: right; }
+  .board-header-count .num { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 700; color: var(--navy); line-height: 1; }
+  .board-header-count .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .pipeline-grid {
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr);
+    gap: 14px; overflow-x: auto; padding-bottom: 10px;
+  }
+  .pipeline-column {
+    background: rgba(255,255,255,0.82); border: 1px solid var(--border); border-radius: 22px;
+    padding: 14px; min-height: 160px;
+  }
+  .pipeline-column-header {
+    border-top: 3px solid transparent; padding-top: 12px; display: flex;
+    justify-content: space-between; align-items: center; margin-bottom: 14px;
+  }
+  .pipeline-column-title { font-weight: 700; font-size: 13.5px; color: var(--navy); }
+  .count-pill {
+    min-width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+    background: var(--blush-light); color: var(--blush-deep); font-size: 12px; font-weight: 700;
+  }
+  .empty-column {
+    color: var(--text-muted); font-size: 12.5px; line-height: 1.6; padding: 14px;
+    border-radius: 16px; background: rgba(255,255,255,0.55); border: 1px dashed var(--soft-border);
+  }
+  .deal-card {
+    background: var(--surface); border: 1px solid var(--soft-border); border-radius: 16px;
+    padding: 13px; margin-bottom: 10px; box-shadow: 0 10px 20px rgba(26,26,46,0.04); position: relative;
+  }
+  .deal-address {
+    font-weight: 800; color: var(--navy); font-size: 12.5px; line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .deal-sub { margin-top: 4px; color: var(--text-soft); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .deal-deadline-row {
+    margin-top: 8px; padding: 5px 9px; border-radius: 10px; font-size: 10.5px; font-weight: 700;
+    background: var(--soft-border); color: var(--text-soft); display: inline-block;
+  }
+  .deal-deadline-row.danger { background: #FCE8E6; color: var(--red); }
+  .deal-deadline-row.warn { background: #FFF1E0; color: #A04924; }
+  .deal-flag {
+    display: inline-block; font-size: 10px; font-weight: 700; color: white; background: var(--coral);
+    border-radius: 999px; padding: 3px 8px; margin-top: 6px; margin-right: 4px;
+  }
+
+  @media (max-width: 780px) {
+    main { padding: 14px; }
+    .dash-layout { flex-direction: column; }
+    .roster-panel {
+      width: 100%; max-height: none; display: flex; overflow-x: auto; overflow-y: hidden;
+      gap: 6px; padding: 10px;
+    }
+    .roster-group-label { display: none; }
+    .roster-item { flex-direction: column; align-items: flex-start; min-width: 150px; margin-bottom: 0; }
+    .board-header { padding: 14px 16px; }
+    .board-header-name { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>Team Dashboard</h1>
-    <div class="org-name" id="orgNameLabel"></div>
+  <div class="brand">
+    <div class="nav-mark">D</div>
+    <div>
+      <h1>Team Dashboard</h1>
+      <div class="org-name" id="orgNameLabel"></div>
+    </div>
   </div>
   <button id="signOutBtn">Sign out</button>
 </header>
 <main>
   <div class="card" id="authCard">
-    <h2 style="margin-top:0;font-size:15px;">Sign in</h2>
+    <h2>Sign in</h2>
     <div class="auth-form">
       <input id="authEmail" type="email" placeholder="Email" autocomplete="username">
       <input id="authPw" type="password" placeholder="Password" autocomplete="current-password">
@@ -114,13 +247,11 @@
   <div id="gateCard" class="card gate" style="display:none;"></div>
 
   <div id="dashCard" style="display:none;">
-    <div class="card" id="teamsCard" style="display:none;">
-      <h2 style="margin-top:0;font-size:15px;">Teams</h2>
-      <div id="teamsList"></div>
-    </div>
-    <div class="card">
-      <h2 style="margin-top:0;font-size:15px;">Members</h2>
-      <div id="membersList"></div>
+    <div class="stat-strip" id="statStrip"></div>
+    <div id="teamsWrap" style="display:none; margin-bottom: 14px;" id="teamsList"></div>
+    <div class="dash-layout">
+      <div class="roster-panel" id="rosterPanel"></div>
+      <div class="board-panel" id="boardPanel"></div>
     </div>
   </div>
 </main>
@@ -128,10 +259,27 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
 
+  // Copied verbatim from Dossie/dossie-app.jsx APP_STAGES — keep in sync if
+  // that file's stage list changes (stage id/name/icon/color).
+  const APP_STAGES = [
+    { id: "pre-listing", name: "Pre-Listing", icon: "💼" },
+    { id: "pre-contract", name: "Pre-Contract", icon: "📝" },
+    { id: "active-listing", name: "Active Listing", icon: "🏡" },
+    { id: "under-contract", name: "Under Contract", icon: "🤝" },
+    { id: "option-period", name: "Option Period", icon: "🔎" },
+    { id: "inspection", name: "Inspection", icon: "🛠️" },
+    { id: "financing", name: "Financing", icon: "🏦" },
+    { id: "title-survey", name: "Title & Survey", icon: "📜" },
+    { id: "clear-to-close", name: "Clear to Close", icon: "✨" },
+    { id: "closed", name: "Closed", icon: "🗂️" },
+  ];
+
   const API_BASE = window.location.origin;
   let supabase = null;
   let session = null;
   let orgContext = null;
+  let allMembers = [];
+  let selectedMemberId = null;
 
   const authCard = document.getElementById('authCard');
   const gateCard = document.getElementById('gateCard');
@@ -142,9 +290,10 @@
   const authMsg = document.getElementById('authMsg');
   const signOutBtn = document.getElementById('signOutBtn');
   const orgNameLabel = document.getElementById('orgNameLabel');
-  const teamsCard = document.getElementById('teamsCard');
-  const teamsList = document.getElementById('teamsList');
-  const membersList = document.getElementById('membersList');
+  const teamsWrap = document.getElementById('teamsWrap');
+  const rosterPanel = document.getElementById('rosterPanel');
+  const boardPanel = document.getElementById('boardPanel');
+  const statStrip = document.getElementById('statStrip');
 
   async function bootSupabase() {
     const res = await fetch(`${API_BASE}/api/config`);
@@ -182,60 +331,186 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
 
+  function initials(email) {
+    if (!email) return '?';
+    const name = email.split('@')[0];
+    const parts = name.split(/[._-]/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  // Parses a date-only 'YYYY-MM-DD' string as a LOCAL calendar date (not UTC),
+  // same fix documented in dossie-app.jsx's parseCalendarDate — comparing a
+  // UTC-parsed date to "today" flagged same-day closings as overdue.
+  function parseCalendarDate(s) {
+    if (!s) return null;
+    const [y, m, d] = String(s).slice(0, 10).split('-').map(Number);
+    if (!y || !m || !d) return null;
+    return new Date(y, m - 1, d);
+  }
+
+  function formatDisplayDate(s) {
+    const d = parseCalendarDate(s);
+    if (!d) return '';
+    return d.toLocaleDateString('en-US');
+  }
+
+  // Picks the nearest upcoming deadline across every date field the API
+  // surfaces; falls back to an overdue closing date if nothing is upcoming.
+  function getNextDeadline(dossier) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const candidates = [
+      { key: 'option_expiration_date', label: 'Option ends' },
+      { key: 'loan_approval_deadline', label: 'Loan approval' },
+      { key: 'appraisal_deadline', label: 'Appraisal due' },
+      { key: 'survey_deadline', label: 'Survey due' },
+      { key: 'closing_date', label: 'Closing' },
+    ];
+    let best = null;
+    candidates.forEach((c) => {
+      const val = dossier[c.key];
+      const dt = parseCalendarDate(val);
+      if (!dt) return;
+      const daysUntil = Math.round((dt - today) / 86400000);
+      if (daysUntil >= 0 && (!best || daysUntil < best.daysUntil)) {
+        best = { label: c.label, date: val, daysUntil, overdue: false };
+      }
+    });
+    if (best) return best;
+    if (dossier.closing_date) {
+      const dt = parseCalendarDate(dossier.closing_date);
+      if (dt) {
+        const daysUntil = Math.round((dt - today) / 86400000);
+        if (daysUntil < 0) return { label: 'Closing', date: dossier.closing_date, daysUntil, overdue: true };
+      }
+    }
+    return null;
+  }
+
+  function renderDealCard(d) {
+    const nextDeadline = getNextDeadline(d);
+    let deadlineHtml = '';
+    if (nextDeadline) {
+      const tone = nextDeadline.overdue ? 'danger' : nextDeadline.daysUntil <= 3 ? 'danger' : nextDeadline.daysUntil <= 7 ? 'warn' : '';
+      const label = nextDeadline.overdue ? `Overdue ${nextDeadline.label.toLowerCase()}` : nextDeadline.label;
+      deadlineHtml = `<div class="deal-deadline-row ${tone}">${escapeHtml(label)} · ${escapeHtml(formatDisplayDate(nextDeadline.date))}</div>`;
+    }
+    const flags = (d.flags || []).map((f) => `<span class="deal-flag">${escapeHtml(f.replace(/_/g, ' '))}</span>`).join('');
+    const sub = d.transaction_type === 'listing'
+      ? (d.seller_name || 'Listing property')
+      : (d.buyer_name || d.seller_name || 'Party');
+    return `
+      <div class="deal-card">
+        <div class="deal-address">${escapeHtml(d.property_address || 'Untitled dossier')}</div>
+        <div class="deal-sub">${escapeHtml(sub)}</div>
+        <div>${deadlineHtml}</div>
+        <div>${flags}</div>
+      </div>
+    `;
+  }
+
+  function renderBoard(member) {
+    if (!member) {
+      boardPanel.innerHTML = '<div class="card"><div class="empty">Select a team member to view their dossiers.</div></div>';
+      return;
+    }
+    const roleBadges = (member.roles || []).map((r) => `<span class="role-badge ${escapeHtml(r)}">${escapeHtml(r)}</span>`).join('');
+    const columnsHtml = APP_STAGES.map((stage) => {
+      const stageDeals = (member.dossiers || []).filter((d) => d.stage === stage.id);
+      const cardsHtml = stageDeals.length
+        ? stageDeals.map(renderDealCard).join('')
+        : `<div class="empty-column">No files in this stage.</div>`;
+      return `
+        <div class="pipeline-column">
+          <div class="pipeline-column-header">
+            <div class="pipeline-column-title">${stage.icon} ${escapeHtml(stage.name)}</div>
+            <div class="count-pill">${stageDeals.length}</div>
+          </div>
+          ${cardsHtml}
+        </div>
+      `;
+    }).join('');
+
+    boardPanel.innerHTML = `
+      <div class="board-header">
+        <div>
+          <div class="board-header-name">${escapeHtml(member.email || member.user_id)} ${roleBadges}</div>
+          <div class="board-header-sub">${escapeHtml(member.org_name || '')} &middot; joined ${escapeHtml((member.joined_at || '').slice(0,10))}</div>
+        </div>
+        <div class="board-header-count">
+          <div class="num">${member.dossier_count}</div>
+          <div class="label">Dossier${member.dossier_count === 1 ? '' : 's'}</div>
+        </div>
+      </div>
+      <div class="pipeline-grid">${columnsHtml}</div>
+    `;
+  }
+
+  function selectMember(userId) {
+    selectedMemberId = userId;
+    const member = allMembers.find((m) => m.user_id === userId);
+    renderBoard(member);
+    rosterPanel.querySelectorAll('.roster-item').forEach((el) => {
+      el.classList.toggle('active', el.dataset.userId === userId);
+    });
+  }
+
+  function renderRoster(members) {
+    allMembers = members;
+    rosterPanel.innerHTML = '';
+    if (!members.length) {
+      rosterPanel.innerHTML = '<div class="empty">No active members yet.</div>';
+      boardPanel.innerHTML = '';
+      return;
+    }
+    // Group by org_name so a brokerage roll-up shows each team as its own
+    // section instead of one flat list.
+    const groups = {};
+    members.forEach((m) => {
+      const key = m.org_name || '';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
+    Object.keys(groups).forEach((groupName) => {
+      if (Object.keys(groups).length > 1) {
+        const label = document.createElement('div');
+        label.className = 'roster-group-label';
+        label.textContent = groupName;
+        rosterPanel.appendChild(label);
+      }
+      groups[groupName].forEach((m) => {
+        const roleBadges = (m.roles || []).map((r) => `<span class="role-badge ${escapeHtml(r)}">${escapeHtml(r)}</span>`).join('');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'roster-item';
+        btn.dataset.userId = m.user_id;
+        btn.innerHTML = `
+          <div class="roster-avatar">${initials(m.email)}</div>
+          <div class="roster-text">
+            <div class="roster-name">${escapeHtml(m.email || m.user_id)}</div>
+            <div class="roster-sub">${m.dossier_count} dossier${m.dossier_count === 1 ? '' : 's'}</div>
+            <div class="roster-badges">${roleBadges}</div>
+          </div>
+          <div class="roster-count">${m.dossier_count}</div>
+        `;
+        btn.addEventListener('click', () => selectMember(m.user_id));
+        rosterPanel.appendChild(btn);
+      });
+    });
+
+    // Keep the same member selected across refreshes when possible, else
+    // default to the first member in the roster.
+    const stillPresent = members.find((m) => m.user_id === selectedMemberId);
+    selectMember(stillPresent ? selectedMemberId : members[0].user_id);
+  }
+
   function renderGate(text) {
     authCard.style.display = 'none';
     dashCard.style.display = 'none';
     gateCard.style.display = 'block';
     gateCard.textContent = text;
     signOutBtn.style.display = 'inline-block';
-  }
-
-  function renderDossier(d) {
-    const flags = (d.flags || []).map((f) => `<span class="flag">${escapeHtml(f.replace(/_/g, ' '))}</span>`).join('');
-    return `
-      <div class="dossier">
-        <div class="dossier-addr">${escapeHtml(d.property_address || '(no address yet)')}</div>
-        <div class="dossier-meta">
-          ${escapeHtml(d.transaction_type || '')} &middot; stage: ${escapeHtml(d.stage || d.status || 'unknown')}
-          ${d.closing_date ? ` &middot; closing ${escapeHtml(d.closing_date)}` : ''}
-        </div>
-        <div class="dossier-meta">
-          ${d.buyer_name ? `Buyer: ${escapeHtml(d.buyer_name)}` : ''}
-          ${d.buyer_name && d.seller_name ? ' &middot; ' : ''}
-          ${d.seller_name ? `Seller: ${escapeHtml(d.seller_name)}` : ''}
-        </div>
-        <div>${flags}</div>
-      </div>
-    `;
-  }
-
-  function renderMembers(members) {
-    membersList.innerHTML = '';
-    if (!members.length) {
-      membersList.innerHTML = '<div class="empty">No active members yet.</div>';
-      return;
-    }
-    members.forEach((m) => {
-      const row = document.createElement('div');
-      row.className = 'member-row';
-      const roleBadges = (m.roles || []).map((r) => `<span class="badge ${escapeHtml(r)}">${escapeHtml(r)}</span>`).join('');
-      row.innerHTML = `
-        <div class="member-header">
-          <div>
-            <div class="member-name">${escapeHtml(m.email || m.user_id)} ${roleBadges}</div>
-            <div class="member-sub">${escapeHtml(m.org_name || '')} &middot; joined ${escapeHtml((m.joined_at || '').slice(0,10))}</div>
-          </div>
-          <div class="count-pill">${m.dossier_count} dossier${m.dossier_count === 1 ? '' : 's'}</div>
-        </div>
-        <div class="dossier-list">
-          ${m.dossiers.length ? m.dossiers.map(renderDossier).join('') : '<div class="empty">No dossiers.</div>'}
-        </div>
-      `;
-      const header = row.querySelector('.member-header');
-      const list = row.querySelector('.dossier-list');
-      header.addEventListener('click', () => list.classList.toggle('open'));
-      membersList.appendChild(row);
-    });
   }
 
   async function loadDashboard() {
@@ -263,13 +538,21 @@
     orgNameLabel.textContent = `${data.org.name} (${data.org.tier})`;
 
     if (data.teams && data.teams.length) {
-      teamsCard.style.display = 'block';
-      teamsList.innerHTML = data.teams.map((t) => `<span class="team-chip">${escapeHtml(t.name)}</span>`).join('');
+      teamsWrap.style.display = 'block';
+      teamsWrap.innerHTML = data.teams.map((t) => `<span class="team-chip">${escapeHtml(t.name)}</span>`).join('');
     } else {
-      teamsCard.style.display = 'none';
+      teamsWrap.style.display = 'none';
     }
 
-    renderMembers(data.members || []);
+    const members = data.members || [];
+    const totalDossiers = members.reduce((sum, m) => sum + m.dossier_count, 0);
+    statStrip.innerHTML = `
+      <div class="stat-pill"><div class="num">${members.length}</div><div class="label">Members</div></div>
+      <div class="stat-pill"><div class="num">${totalDossiers}</div><div class="label">Active dossiers</div></div>
+      <div class="stat-pill"><div class="num">${data.org.tier}</div><div class="label">Org tier</div></div>
+    `;
+
+    renderRoster(members);
   }
 
   async function signIn() {
@@ -309,6 +592,8 @@
     await supabase.auth.signOut();
     session = null;
     orgContext = null;
+    selectedMemberId = null;
+    allMembers = [];
     dashCard.style.display = 'none';
     gateCard.style.display = 'none';
     authCard.style.display = 'block';
