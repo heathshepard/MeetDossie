@@ -11,6 +11,7 @@
 require('./_lib/telegram-gate').install('cron-send-for-approval');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -340,6 +341,17 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
       }
     }
     const scoreLine = formatScoreLine(scoreData);
+
+    // ─── Vision claim-match gate ──────────────────────────────────────────
+    // Before any approval card with a media_url goes out, confirm the image
+    // genuinely depicts what the caption claims (2026-08-18, after a wrong
+    // screenshot went out for the team-dashboard post). Mismatch holds the
+    // row and alerts Heath directly instead of sending the card.
+    const gateOk = await gateBeforeApprovalSend(post);
+    if (!gateOk) {
+      console.warn('[cron-send-for-approval] held on image mismatch:', post.id);
+      continue;
+    }
 
     // Message 1: Card image (if available) + short caption preview
     const shortCaption = formatShortCaption(post);

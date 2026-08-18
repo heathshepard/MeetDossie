@@ -20,6 +20,7 @@ const {
 
 const { handleGroupPostCallback } = require('./group-post-callback');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
+const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -371,6 +372,15 @@ function extractRegenJson(raw) {
 // Send the replacement post to Telegram for approval (same 2-message pattern
 // as cron-send-for-approval: image card first, full content + buttons second).
 async function sendReplacementToTelegram(chatId, post) {
+  // Vision claim-match gate — same check as cron-send-for-approval.js.
+  // Mismatch holds the row (status='image_mismatch_hold') and alerts Heath
+  // directly instead of sending an approval card. See api/_lib/verify-image-match.js.
+  const gateOk = await gateBeforeApprovalSend(post);
+  if (!gateOk) {
+    console.warn('[telegram-webhook] sendReplacementToTelegram held on image mismatch:', post.id);
+    return;
+  }
+
   const platform = post.platform || 'unknown';
   const persona = post.persona || 'unknown';
   const hook = String(post.hook || '').trim();
