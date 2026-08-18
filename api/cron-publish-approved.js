@@ -302,6 +302,24 @@ async function lookupZernioAccountId(platform, owner = 'dossie') {
   return null;
 }
 
+// Facebook Page routing (Atlas, 2026-08-18 — see
+// 20260818_zernio_accounts_page_id.sql). MeetDossie's Page and Heath's
+// personal realtor Page (@HeathShepardRealtor) are both reachable through
+// the SAME zernio_account_id — Zernio disambiguates which Page a post
+// lands on via platforms[].platformSpecificData.pageId, not via a second
+// connected account. Look up the real Facebook Page ID for this post's
+// target_owner so we always publish to the intended Page regardless of
+// whatever Page happens to be selected on Zernio's dashboard toggle.
+async function lookupZernioPageId(platform, owner = 'dossie') {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/zernio_accounts?platform=eq.${encodeURIComponent(platform)}&owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=page_id&limit=1`
+    );
+    if (ok && Array.isArray(data) && data.length > 0) return data[0].page_id || null;
+  } catch (_) { /* swallow */ }
+  return null;
+}
+
 async function pushToZernio(post) {
   if (!post.zernio_account_id) {
     // Try inline fallback lookup before failing (Atlas 2026-07-11).
@@ -329,6 +347,20 @@ async function pushToZernio(post) {
     platform: post.platform,
     accountId: post.zernio_account_id,
   };
+
+  // Facebook: pin the exact Page this post targets (see lookupZernioPageId
+  // above). Covers both owners explicitly — dossie rows get MeetDossie's
+  // own Page ID pinned too, so behavior no longer silently depends on
+  // whichever Page happens to be selected on Zernio's dashboard toggle.
+  if (post.platform === 'facebook') {
+    const pageId = await lookupZernioPageId('facebook', post.target_owner || 'dossie');
+    if (pageId) {
+      platformBlock.platformSpecificData = { ...(platformBlock.platformSpecificData || {}), pageId };
+      console.log(`[zernio-facebook-page] post ${post.id}: target_owner=${post.target_owner || 'dossie'} pageId=${pageId}`);
+    } else {
+      console.log(`[zernio-facebook-page] post ${post.id}: no page_id found for target_owner=${post.target_owner || 'dossie'} — Zernio will use its dashboard-selected Page`);
+    }
+  }
 
   let topContent = text;
   let topMediaItems;
