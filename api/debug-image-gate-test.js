@@ -47,12 +47,14 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
 
-  if (req.query && req.query.full === '1') {
-    // Full end-to-end test: insert a disposable social_posts row with the
-    // REAL wrong image + REAL caption, run the actual gateBeforeApprovalSend
-    // used by both send paths, confirm it flips status to HOLD_STATUS and
-    // sends the plain Telegram alert (labeled TEST so it's unambiguous in
-    // Heath's chat), then clean up the disposable row.
+  if (req.query && (req.query.full === '1' || req.query.full === 'match')) {
+    // Full end-to-end test: insert a disposable social_posts row, run the
+    // actual gateBeforeApprovalSend used by both send paths, check what
+    // happened to the row, then clean up.
+    //   full=1     -> REAL wrong image (mismatch): expect held + Telegram alert
+    //   full=match -> REAL correct image (match): expect NOT held, row untouched
+    const isMatchMode = req.query.full === 'match';
+    const mediaUrl = isMatchMode ? RIGHT_IMAGE : WRONG_IMAGE;
     const testId = `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`;
     const insert = await supabaseFetch('/rest/v1/social_posts', {
       method: 'POST',
@@ -66,7 +68,7 @@ module.exports = async (req, res) => {
         status: 'draft',
         persona: 'heath',
         topic: 'team_dashboard_launch',
-        media_url: WRONG_IMAGE,
+        media_url: mediaUrl,
         source_type: 'debug_image_gate_test',
       }]),
     });
@@ -79,7 +81,7 @@ module.exports = async (req, res) => {
       platform: 'facebook',
       topic: 'team_dashboard_launch',
       content: `[TEST — image gate QA, safe to ignore] ${REAL_CAPTION}`,
-      media_url: WRONG_IMAGE,
+      media_url: mediaUrl,
     });
 
     const check = await supabaseFetch(`/rest/v1/social_posts?id=eq.${testId}&select=id,status,rejection_reason`);
@@ -88,15 +90,19 @@ module.exports = async (req, res) => {
     // Cleanup — delete the disposable row either way.
     await supabaseFetch(`/rest/v1/social_posts?id=eq.${testId}`, { method: 'DELETE' }).catch(() => {});
 
+    const expectedGateReturned = isMatchMode ? true : false;
+    const expectedRowStatus = isMatchMode ? 'draft' : HOLD_STATUS;
+
     return res.status(200).json({
       ok: true,
+      mode: isMatchMode ? 'match' : 'mismatch',
       full_gate_test: {
         gate_returned: gateResult,
-        expected_gate_returned: false,
+        expected_gate_returned: expectedGateReturned,
         row_status_after: rowAfter && rowAfter.status,
-        expected_row_status: HOLD_STATUS,
+        expected_row_status: expectedRowStatus,
         row_rejection_reason: rowAfter && rowAfter.rejection_reason,
-        passed: gateResult === false && rowAfter && rowAfter.status === HOLD_STATUS,
+        passed: gateResult === expectedGateReturned && rowAfter && rowAfter.status === expectedRowStatus,
       },
     });
   }
