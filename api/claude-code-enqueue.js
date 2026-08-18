@@ -71,6 +71,12 @@ const VALID_TASK_TYPES = new Set([
   // which calls the Anthropic API server-side, this runs Claude Code on
   // Heath's PC, so it can actually read and change the repos.
   'jarvis_chat',
+  // Engagement-queue manual-post handoff (Atlas, 2026-08-18) — best-effort
+  // UX convenience only. Pops the DossieBot Chrome profile to a permalink so
+  // Heath doesn't have to copy/paste a link into a browser. Never posts,
+  // types, or clicks anything -- see scripts/claude-code-task-handlers/
+  // open_url_local.js for the exact scope (facebook.com URLs only).
+  'open_url_local',
 ]);
 
 // Valid queue agents. We default to 'atlas' since the worker is Atlas-owned

@@ -867,11 +867,18 @@ async function handleCallbackQuery(cb) {
   }
 
   // Engagement-queue approval flow: engage_approve_<id> / engage_reject_<id>
-  // (Sage, 2026-08-17). See supabase/migrations/20260817_engagement_queue.sql.
-  // Approve marks the drafted reply cleared to post -- it does NOT auto-post
-  // a comment as Heath. Posting the approved comment is a separate,
-  // deliberate step (never automatic, same posture as group_approve above).
-  const engage = data.match(/^engage_(approve|reject)_(.+)$/);
+  // / engage_posted_<id> (Sage 2026-08-17, reworked to a manual-post handoff
+  // by Atlas 2026-08-18 per Heath's directive). Approve NEVER triggers a
+  // script to post a comment as Heath -- zero code-driven posting action on
+  // the personal profile, full stop. Instead Approve immediately sends a
+  // SECOND Telegram message with the thread permalink + the drafted reply
+  // ready to copy-paste, and status moves to 'awaiting_manual_post' (not
+  // 'approved', which used to mean "the poster script will pick this up" --
+  // that script no longer exists). 'posted' is only reached when Heath taps
+  // "Mark Posted" on that handoff card to confirm he pasted it himself; that
+  // tap also writes an engagement_post_log row for audit purposes.
+  // See supabase/migrations/20260818_engagement_queue_manual_post_handoff.sql.
+  const engage = data.match(/^engage_(approve|reject|posted)_(.+)$/);
   if (engage) {
     const action = engage[1];
     const rowId = engage[2];
@@ -885,21 +892,118 @@ async function handleCallbackQuery(cb) {
       if (callbackId) await answerCallback(callbackId, 'Item not found');
       return;
     }
+
+    if (action === 'posted') {
+      // Confirmation tap on the handoff card -- Heath is telling us he
+      // pasted + posted the reply himself. Idempotent: a row already at
+      // 'posted' just re-acknowledges instead of double-logging.
+      if (row.status === 'posted') {
+        if (callbackId) await answerCallback(callbackId, 'Already logged as posted');
+        return;
+      }
+      if (row.status !== 'awaiting_manual_post' && row.status !== 'approved') {
+        if (callbackId) await answerCallback(callbackId, `Can't mark posted from status=${row.status}`);
+        return;
+      }
+      const postedAt = new Date().toISOString();
+      await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'posted', posted_at: postedAt, updated_at: postedAt }),
+      });
+      await supabaseFetch('/rest/v1/engagement_post_log', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          engagement_queue_id: row.id,
+          group_name: row.group_name,
+          permalink: row.permalink,
+          drafted_reply: row.drafted_reply,
+          posted_at: postedAt,
+          confirmed_via: 'telegram_button',
+        }),
+      });
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ LOGGED -- marked posted at ${postedAt}.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Logged as posted');
+      return;
+    }
+
     if (row.status !== 'pending_review') {
       if (callbackId) await answerCallback(callbackId, `Already ${row.status}`);
       return;
     }
 
     if (action === 'approve') {
+      const reviewedAt = new Date().toISOString();
       await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'approved', reviewed_at: new Date().toISOString() }),
+        body: JSON.stringify({ status: 'awaiting_manual_post', reviewed_at: reviewedAt }),
       });
       if (chatId && messageId) {
-        await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED -- draft cleared to post. Posting it is still a separate manual step.`);
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED -- see next message to paste + post it yourself.`);
       }
       if (callbackId) await answerCallback(callbackId, 'Approved');
+
+      // Handoff card: permalink + copy-pasteable reply text, plus a Mark
+      // Posted button for the audit log. This is the minimum viable
+      // deliverable of the whole flow -- it must send even if the nicer-UX
+      // Chrome-popping enqueue below fails.
+      const handoffText = [
+        'PASTE + POST THIS YOURSELF',
+        '',
+        `Group: ${row.group_name}`,
+        row.permalink ? `Thread: ${row.permalink}` : '(no permalink captured -- find the thread manually)',
+        '',
+        '--- Reply text (copy this) ---',
+        row.drafted_reply,
+      ].join('\n');
+      const handoffResult = await tgCall('sendMessage', {
+        chat_id: chatId,
+        text: handoffText,
+        disable_web_page_preview: true,
+        reply_markup: {
+          inline_keyboard: [[{ text: '✅ Mark Posted', callback_data: `engage_posted_${rowId}` }]],
+        },
+      });
+      const handoffMessageId = handoffResult?.data?.result?.message_id || null;
+      await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ handoff_message_id: handoffMessageId, handoff_sent_at: new Date().toISOString() }),
+      });
+
+      // Best-effort nicer UX: pop the DossieBot Chrome profile straight to
+      // the thread on Heath's PC via the existing claude-code-worker task
+      // dispatch (scripts/claude-code-task-handlers/open_url_local.js).
+      // Never blocks or fails the handoff above -- the Telegram card is the
+      // real deliverable regardless of whether this succeeds.
+      if (row.permalink) {
+        try {
+          await fetch(
+            `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://meetdossie.com'}/api/claude-code-enqueue`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.CRON_SECRET}`,
+              },
+              body: JSON.stringify({
+                task_type: 'open_url_local',
+                payload: { url: row.permalink },
+                agent_name: 'atlas',
+                priority: 2,
+                title: `Open engagement thread for manual post (${row.group_name})`,
+                idempotency_key: `engage-open-${row.id}`,
+              }),
+            },
+          );
+        } catch (err) {
+          console.warn('[telegram-webhook] open_url_local enqueue non-fatal:', err.message);
+        }
+      }
     } else {
       await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
         method: 'PATCH',

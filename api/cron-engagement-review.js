@@ -2,13 +2,15 @@
 
 // Vercel Serverless Function: /api/cron-engagement-review
 //
-// Human-approval gate for FB-group engagement drafts (Sage, 2026-08-17).
+// Human-approval gate for FB-group engagement drafts (Sage, 2026-08-17;
+// posting flow reworked to a manual handoff by Atlas 2026-08-18).
 // scripts/fb-engagement-scraper.js finds a real, relevant comment/post in a
 // target group and drafts a genuine reply in Heath's voice -- this cron
 // surfaces each pending_review row from engagement_queue to Heath via
-// Telegram with Approve/Reject buttons. Nothing here ever posts a comment
-// as Heath; Approve only marks the draft usable for a separate, deliberate
-// posting step.
+// Telegram with Approve/Reject buttons. Nothing here ever posts a comment as
+// Heath; Approve triggers api/telegram-webhook.js to send a follow-up
+// message with the thread permalink + reply text for Heath to paste and
+// post himself -- no script ever drives the post.
 //
 // Mirrors api/cron-content-pipeline-review.js's per-row pattern (one item ->
 // one Telegram card -> Approve/Reject -> telegram-webhook.js callback).
@@ -89,7 +91,7 @@ function formatMessage(row) {
     '--- Drafted reply (your voice) ---',
     truncate(row.drafted_reply, 500),
     '',
-    'Approve = draft is cleared to post as-is (posting is still a separate manual step, never automatic).',
+    'Approve = you get a follow-up message with the thread link + text to paste and post yourself. Nothing posts automatically.',
     'Reject = discarded, this thread will not be resurfaced.',
     'Want it different? Reply here in Telegram with the edit and it gets hand-applied.',
   ].join('\n');

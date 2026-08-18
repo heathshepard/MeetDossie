@@ -244,14 +244,29 @@ async function scanGroup(page, group, seenIds) {
   // sparse relative to total group volume. Doubling depth is the lower-risk
   // lever (more content captured per visit) vs. loosening RELEVANCE_PATTERNS
   // (which would risk irrelevant/spammy-looking matches).
+  // Pacing (Heath/Cole directive 2026-08-18, after a 48/25 daily-cap
+  // near-miss): the daily scan cap in scan-caps.js governs total VOLUME of
+  // group-page visits; this loop governs PACING within a single visit, a
+  // separate signal FB's abuse systems watch for independently. Timing was
+  // already randomized (SCROLL_STEP_MS); scroll DISTANCE was not -- a fixed
+  // 900px every step is itself a detectable mechanical fingerprint no real
+  // human produces. Added here: randomized scroll distance per step, plus an
+  // occasional longer "actually reading this" pause (real browsing isn't a
+  // uniform scroll-wait-scroll-wait cadence, it has real stalls).
   for (let i = 0; i < 10; i++) {
     const batch = await extractCandidates(page).catch(() => []);
     for (const item of batch) {
       const key = item.text.slice(0, 80);
       if (!seenThisGroup.has(key)) seenThisGroup.set(key, item);
     }
-    await page.evaluate(() => window.scrollBy(0, 900));
+    const scrollDistance = 500 + Math.floor(Math.random() * 700); // 500-1200px
+    await page.evaluate((dist) => window.scrollBy(0, dist), scrollDistance);
     await page.waitForTimeout(SCROLL_STEP_MS.min + Math.random() * (SCROLL_STEP_MS.max - SCROLL_STEP_MS.min));
+    // ~1 in 4 steps, pause like someone actually stopped to read a post
+    // instead of skimming straight through.
+    if (Math.random() < 0.25) {
+      await page.waitForTimeout(4000 + Math.random() * 5000); // 4-9s
+    }
   }
 
   for (const item of seenThisGroup.values()) {
