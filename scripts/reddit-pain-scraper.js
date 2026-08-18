@@ -263,22 +263,24 @@ async function upsertToSupabase(rows) {
   return { attempted: rows.length, ok };
 }
 
-// ─── Main ───────────────────────────────────────────────────────────────────
-
-async function main() {
-  const dryRun = process.argv.includes('--dry-run');
+// ─── Core scrape (shared by CLI main() and api/admin-run-reddit-pain-scraper.js) ──
+// fetchRssFn(url) -> Promise<string xml>. Defaults to the raw-fetch-with-backoff
+// path (works fine from a residential/task-scheduler IP); the Vercel admin
+// endpoint passes its own egress path, since Reddit blocks bursty requests
+// from this sandbox's specific IP but not necessarily every cloud IP.
+async function scrapeAll({ fetchRssFn = fetchRssWithBackoff, gapMs = 8000, log = console.log, warn = console.warn } = {}) {
   const allMatched = [];
   const scanStats = [];
 
   for (let i = 0; i < SUBREDDITS.length; i++) {
     const sub = SUBREDDITS[i];
     const url = `https://www.reddit.com/r/${sub}/new.rss?limit=${FEED_LIMIT}`;
-    console.log(`[reddit-pain-scraper] Fetching r/${sub}/new.rss (limit=${FEED_LIMIT})`);
+    log(`[reddit-pain-scraper] Fetching r/${sub}/new.rss (limit=${FEED_LIMIT})`);
     let xml;
     try {
-      xml = await fetchRssWithBackoff(url);
+      xml = await fetchRssFn(url);
     } catch (err) {
-      console.warn(`[reddit-pain-scraper] Failed r/${sub}: ${err.message}`);
+      warn(`[reddit-pain-scraper] Failed r/${sub}: ${err.message}`);
       scanStats.push({ sub, scanned: 0, matched: 0, error: err.message });
       continue;
     }
@@ -297,11 +299,11 @@ async function main() {
       });
     }
     scanStats.push({ sub, scanned: posts.length, matched });
-    console.log(`[reddit-pain-scraper]   r/${sub}: ${posts.length} posts scanned, ${matched} pain-language matches`);
+    log(`[reddit-pain-scraper]   r/${sub}: ${posts.length} posts scanned, ${matched} pain-language matches`);
 
     // Space requests out — confirmed 2026-08-18 that <5s gaps trigger 429s.
     if (i < SUBREDDITS.length - 1) {
-      await new Promise((r) => setTimeout(r, 8000));
+      await new Promise((r) => setTimeout(r, gapMs));
     }
   }
 
@@ -314,6 +316,15 @@ async function main() {
     if (!existing || row.rankScore > existing.rankScore) byId.set(row.redditId, row);
   }
   const deduped = [...byId.values()].sort((a, b) => b.rankScore - a.rankScore);
+
+  return { deduped, scanStats };
+}
+
+// ─── Main (CLI) ───────────────────────────────────────────────────────────
+
+async function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  const { deduped } = await scrapeAll();
 
   fs.writeFileSync(
     CACHE_FILE,
@@ -348,7 +359,7 @@ async function main() {
   }
 }
 
-module.exports = { classify, parseRss, computeRankScore, buildRedditPainBlock, PAIN_CATEGORIES };
+module.exports = { classify, parseRss, computeRankScore, buildRedditPainBlock, PAIN_CATEGORIES, scrapeAll, upsertToSupabase, fetchRssWithBackoff };
 
 if (require.main === module) {
   main().catch((err) => {

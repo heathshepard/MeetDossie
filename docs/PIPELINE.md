@@ -18,6 +18,47 @@
 
 ---
 
+## CONTENT FUEL — real-language inputs to the generation prompt
+
+`cron-generate-posts.js` injects three prompt blocks ahead of the topic brief,
+each fed by real data and each failing gracefully to `''` when its source is
+empty:
+
+- `buildSageIntelligenceBlock()` — last 14 days of `post_analytics`, written by
+  `cron-sage-intelligence.js`.
+- `buildTopPerformerBlock()` — top 5 real hooks by `engagement_score` from
+  `post_analytics`.
+- `buildRedditPainLanguageBlock()` — real pain-language from
+  `reddit_pain_language`, kept fresh by `scripts/reddit-pain-scraper.js`
+  (r/realtors, r/RealEstateAgents, r/RealEstateAdvice via Reddit's public RSS
+  feeds — no auth, but Reddit rate-limits/blocks bursty requests from
+  datacenter IPs, so run this from Heath's machine on a schedule, same as
+  `reddit-scanner.js`/`reddit-fetch-new.js`, not from a cloud sandbox).
+
+`scripts/ad-library-scraper.js` (real competitor Ad Library scrape, proven
+working) still has its `buildContentFuelBlock()` output NOT wired into the
+prompt — that splice is the next piece to land alongside these three.
+
+## HOOK-VARIANT TESTING
+
+- `social_posts.hook_variant` — free-text label for an explicit multi-variant
+  test (e.g. `"cost_focus"`, `"urgency_open"`), distinct from `variant`
+  (just the A/B/C/... letter).
+- `POST /api/sage-ab-test?source_id=<id>&variant_count=<2-6>` — generates a
+  cohort of hook variants off one source post, each with its own
+  `hook_variant` label, staggered 24h apart, same `ab_test_group_id`.
+- `cron-analytics-sync.js` copies `hook`, `hook_type`, `cta_type`, and
+  `hook_variant` from `social_posts` into `post_analytics` at sync time
+  (fixed 2026-08-18 — the columns existed since 2026-07-08 but the sync
+  query never selected them, so they were always `NULL`), then flags
+  `ab_test_winner=true` on the highest-scoring variant once **every** member
+  of the `ab_test_group_id` has posted (or terminally failed/rejected) —
+  waits for the full cohort, not just any 2 that happen to be 72h old.
+- `cron-weekly-post-review.js` / `sage_weekly_review.js` already bucket by
+  `hook_variant` — that report only had real data starting 2026-08-18.
+
+---
+
 ## KNOWN ISSUES / WATCH LIST
 
 - TikTok posts sit as `pending_video` — video pipeline separate (inactive until ~May 20).

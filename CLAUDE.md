@@ -498,7 +498,8 @@ Values, Zernio IDs, Stripe details, ImprovMX → `docs/ENV.md`.
 | `calculator_signups` | TREC calc captures (source='calculator') |
 | `dossier_milestones` | Closing cards. **TECH DEBT: `canvas_data_url` in DB; migrate to Storage <50 cust.** |
 | `share_events` | Share button (copy/facebook/sms) |
-| `post_analytics` | Planned Zernio engagement (not built) |
+| `post_analytics` | Real per-post Zernio engagement, synced weekly by `cron-analytics-sync.js`. Also carries `hook_type`/`cta_type`/`hook_variant` for Sage's weekly review (`cron-weekly-post-review.js`). |
+| `reddit_pain_language` | Real pain-language scraped from r/realtors, r/RealEstateAgents, r/RealEstateAdvice (`scripts/reddit-pain-scraper.js`) — injected into `cron-generate-posts.js` as content fuel. |
 
 Storage buckets: `documents` (private), `social-cards` (public, 5MB, image/png+jpeg).
 
