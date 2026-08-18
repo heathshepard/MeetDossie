@@ -125,7 +125,11 @@
   .stat-pill.alert { background: #FCE8E6; }
   .stat-pill.alert .num { color: var(--red); }
   .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-  .analytics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  /* Wrapper (not the table itself) owns the scroll so 4 columns never
+     compress into unreadable/clipped cells on a narrow viewport — same
+     "scroll the overflow, don't shrink it" pattern as .pipeline-grid. */
+  .table-scroll { overflow-x: auto; }
+  .analytics-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px; }
   .analytics-table th {
     text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--text-muted); padding: 8px 10px; border-bottom: 1px solid var(--soft-border);
@@ -640,10 +644,12 @@
       <div class="analytics-grid">
         <div class="card">
           <h2>Per-agent breakdown</h2>
-          <table class="analytics-table">
-            <thead><tr><th>Agent</th><th>Active</th><th>Closed</th><th>Needs attention</th></tr></thead>
-            <tbody>${agentRowsHtml}</tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="analytics-table">
+              <thead><tr><th>Agent</th><th>Active</th><th>Closed</th><th>Needs attention</th></tr></thead>
+              <tbody>${agentRowsHtml}</tbody>
+            </table>
+          </div>
         </div>
         <div class="card">
           <h2>Stage distribution</h2>
