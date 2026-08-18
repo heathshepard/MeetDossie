@@ -86,7 +86,7 @@ const MOBILE_PLATFORMS = new Set(['instagram', 'tiktok']);
 // How many posts to render in one Vercel invocation. Creatomate renders take
 // ~30-60s each; 3 posts = ~3 min, safely under the 90s maxDuration.
 // Remaining posts render on the next scheduled run (or a self-heal pass).
-const MAX_PER_RUN = 3;
+const MAX_PER_RUN = 6;
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -206,18 +206,23 @@ async function uploadToSupabase(bucket, path, dataBuffer, contentType) {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeURIComponent(path)}`;
 }
 
-async function createCreatomateRender(imageUrl, audioUrl, personaName, caption) {
+async function createCreatomateRender(imageUrl, audioUrl, personaName, caption, silent = false) {
   const modifications = {
     'Image-K8V': imageUrl,
     'Persona-Name': personaName,
-    'Caption': caption.slice(0, 200), // card caption — truncated for visual fit
-    'Voiceover.source': audioUrl,
-    'Voiceover.provider': '', // clear ElevenLabs provider; use static audio URL
+    'Caption': caption.slice(0, 200),
   };
+  if (!silent && audioUrl) {
+    modifications['Voiceover.source'] = audioUrl;
+    modifications['Voiceover.provider'] = '';
+  }
   const payload = {
     template_id: CREATOMATE_TEMPLATE_ID,
     modifications,
   };
+  if (silent) {
+    payload.duration = 15;
+  }
   const res = await fetch(CREATOMATE_API_URL, {
     method: 'POST',
     headers: {
@@ -289,8 +294,7 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
     return res.status(200).json({ ok: true, skipped: true, reason: 'CREATOMATE_API_KEY not set' });
   }
   if (!ELEVENLABS_API_KEY) {
-    console.error('[cron-render-videos] ELEVENLABS_API_KEY not configured — skipping run');
-    return res.status(200).json({ ok: true, skipped: true, reason: 'ELEVENLABS_API_KEY not set' });
+    console.warn('[cron-render-videos] ELEVENLABS_API_KEY not configured — only silent videos (persona=heath) can render');
   }
 
   // Query posts that need a video render.
@@ -336,16 +340,26 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
       const frameUrl = await resolveFrameUrl(recordingFilename);
       console.log(`[cron-render-videos] frame URL: ${frameUrl}`);
 
-      // 3. Generate ElevenLabs audio
-      const voiceId = VOICE_MAP[persona] || VOICE_DEFAULT;
-      const audioBuffer = await generateElevenLabsAudio(voiceoverText, voiceId);
-      const audioFilename = `${post.post_id || postId}-voiceover.mp3`;
-      const audioUrl = await uploadToSupabase('voiceovers', audioFilename, audioBuffer, 'audio/mpeg');
-      console.log(`[cron-render-videos] audio uploaded: ${audioUrl}`);
+      // 3. Generate audio (skip for silent videos — persona='heath')
+      const isSilent = persona === 'heath';
+      let audioUrl = null;
+
+      if (!isSilent) {
+        if (!ELEVENLABS_API_KEY) {
+          throw new Error('ELEVENLABS_API_KEY not configured — needed for voiced video');
+        }
+        const voiceId = VOICE_MAP[persona] || VOICE_DEFAULT;
+        const audioBuffer = await generateElevenLabsAudio(voiceoverText, voiceId);
+        const audioFilename = `${post.post_id || postId}-voiceover.mp3`;
+        audioUrl = await uploadToSupabase('voiceovers', audioFilename, audioBuffer, 'audio/mpeg');
+        console.log(`[cron-render-videos] audio uploaded: ${audioUrl}`);
+      } else {
+        console.log(`[cron-render-videos] silent mode — skipping TTS for persona=heath`);
+      }
 
       // 4. Create Creatomate render
       const personaName = persona.charAt(0).toUpperCase() + persona.slice(1);
-      const renderId = await createCreatomateRender(frameUrl, audioUrl, personaName, caption);
+      const renderId = await createCreatomateRender(frameUrl, audioUrl, personaName, caption, isSilent);
       console.log(`[cron-render-videos] Creatomate render created: ${renderId}`);
 
       // 5. Poll for completion
