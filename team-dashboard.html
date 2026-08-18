@@ -125,10 +125,18 @@
   .stat-pill.alert { background: #FCE8E6; }
   .stat-pill.alert .num { color: var(--red); }
   .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  /* Grid items default to min-width:auto, same automatic-minimum-size trap
+     as flex items — without min-width:0 a card refuses to shrink below its
+     content's intrinsic width and bleeds past the viewport instead of
+     scrolling (and does so silently, clipped invisibly by main's
+     overflow-x:hidden, rather than visibly overflowing). */
+  .analytics-grid .card { min-width: 0; }
   /* Wrapper (not the table itself) owns the scroll so 4 columns never
      compress into unreadable/clipped cells on a narrow viewport — same
-     "scroll the overflow, don't shrink it" pattern as .pipeline-grid. */
-  .table-scroll { overflow-x: auto; }
+     "scroll the overflow, don't shrink it" pattern as .pipeline-grid. Needs
+     an explicit width so ITS OWN box is capped to the card, forcing the
+     wider table to scroll inside it instead of the wrapper growing to fit. */
+  .table-scroll { width: 100%; min-width: 0; overflow-x: auto; }
   .analytics-table { width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px; }
   .analytics-table th {
     text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
