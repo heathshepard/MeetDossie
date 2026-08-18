@@ -209,16 +209,26 @@
   }
 
   @media (max-width: 780px) {
-    main { padding: 14px; }
-    .dash-layout { flex-direction: column; }
+    main { padding: 14px; max-width: 100%; overflow-x: hidden; }
+    /* align-items: flex-start (needed for the desktop row layout so the
+       sidebar and board panel don't stretch to match heights) also makes a
+       column-direction flex container size each child to its own intrinsic
+       content width instead of the container width. .pipeline-grid's 10
+       kanban columns are wide enough that this shrank the whole page
+       horizontally instead of staying inside its own scroll strip — switch
+       to stretch so board/roster panels fill the viewport width and only
+       their own inner overflow-x scrolls. */
+    .dash-layout { flex-direction: column; align-items: stretch; }
     .roster-panel {
       width: 100%; max-height: none; display: flex; overflow-x: auto; overflow-y: hidden;
       gap: 6px; padding: 10px;
     }
     .roster-group-label { display: none; }
     .roster-item { flex-direction: column; align-items: flex-start; min-width: 150px; margin-bottom: 0; }
+    .board-panel { width: 100%; min-width: 0; }
     .board-header { padding: 14px 16px; }
     .board-header-name { font-size: 20px; }
+    .pipeline-grid { width: 100%; }
   }
 </style>
 </head>
