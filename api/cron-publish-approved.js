@@ -49,7 +49,18 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.e
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
-const MAX_PER_RUN = 10; // bumped from 8 to 10 — 9 posts/day with YouTube added (2026-05-29)
+// Bumped 10 -> 30 (Atlas 2026-08-18). Root cause of the Nopalito realtor
+// posts sitting unfired: the approved-and-due queue is ordered
+// approved_at.asc with NO staleness filter, so long-permanently-stuck rows
+// (e.g. 9 tiktok rows from 2026-07-08/09/10 wedged behind a 1/day cap that
+// something else always claims first, plus linkedin_personal rows with no
+// Tuesday schedule) fill every slot in a LIMIT 10 window on every single
+// run, forever. Freshly-approved rows queued behind them never even reach
+// isDueForPublish(). 30 comfortably covers the live backlog without
+// materially increasing per-run Zernio call volume (skips are cheap; only
+// truly-due rows publish). Doesn't fix the zombie rows themselves — flagged
+// separately for cleanup.
+const MAX_PER_RUN = 30;
 
 // YouTube account ID is stored in env var — Heath must add ZERNIO_YOUTUBE_ACCOUNT_ID
 // in Vercel dashboard (Settings -> Environment Variables). Value comes from Zernio
@@ -527,7 +538,13 @@ async function loadSchedules() {
 // We use posted_at for 'posted' rows (accurate timestamp) and created_at as a proxy
 // for 'publishing' rows (publishing_started_at column exists but the check against
 // today's date range on created_at is fine — these are same-day rows by definition).
-async function countPostedToday(platform, tz) {
+// `owner` scopes the count to a single destination (e.g. 'dossie' vs
+// 'heath-realtor') so two accounts on the SAME platform track independent
+// daily caps against the shared posting_schedule slot/cap config. Without
+// this, Heath's realtor Facebook page and Dossie's Facebook page shared one
+// counter and one account's posts could exhaust the other's cap (Atlas
+// 2026-08-18 — Nopalito realtor posts starved behind Dossie's own FB post).
+async function countPostedToday(platform, tz, owner) {
   // Use luxon for proper timezone handling with automatic DST support.
   const now = DateTime.now().setZone(tz);
   const startOfDay = now.startOf('day').toUTC().toJSDate();
@@ -536,10 +553,12 @@ async function countPostedToday(platform, tz) {
   const startOfDayUtc = startOfDay.toISOString();
   const endOfDayUtc = endOfDay.toISOString();
 
-  console.log(`[countPostedToday] ${platform} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
+  const ownerFilter = owner ? `&target_owner=eq.${encodeURIComponent(owner)}` : '';
+
+  console.log(`[countPostedToday] ${platform}/${owner || 'any'} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
   // Count 'posted' rows: use posted_at timestamp (accurate).
-  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
+  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted${ownerFilter}` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id,post_id,posted_at`;
@@ -548,7 +567,7 @@ async function countPostedToday(platform, tz) {
 
   // Count 'publishing' rows: use publishing_started_at timestamp (set when lock acquired).
   // This catches posts currently in-flight during this cron run so the cap blocks them.
-  const publishingFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.publishing` +
+  const publishingFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.publishing${ownerFilter}` +
     `&publishing_started_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&publishing_started_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id,post_id,publishing_started_at`;
@@ -559,7 +578,7 @@ async function countPostedToday(platform, tz) {
   if (count > 0) {
     const postedIds = postedOk && Array.isArray(postedData) ? postedData.map(p => `${p.post_id}(posted)`) : [];
     const publishingIds = publishingOk && Array.isArray(publishingData) ? publishingData.map(p => `${p.post_id}(publishing)`) : [];
-    console.log(`[countPostedToday] ${platform}: found ${count} (${postedCount} posted + ${publishingCount} publishing):`, [...postedIds, ...publishingIds].join(', '));
+    console.log(`[countPostedToday] ${platform}/${owner || 'any'}: found ${count} (${postedCount} posted + ${publishingCount} publishing):`, [...postedIds, ...publishingIds].join(', '));
   }
   return count;
 }
@@ -568,7 +587,7 @@ async function countPostedToday(platform, tz) {
 // current time >= some slot, daily cap not exhausted.
 // Called per-iteration (no caching) so the cap reflects rows freshly posted
 // earlier in the same cron run.
-async function isDueForPublish(platform, schedules) {
+async function isDueForPublish(platform, schedules, owner) {
   // Filter by platform AND current day of week
   const tz = 'America/Chicago'; // Default timezone for day calculation
   const today = nowInTz(tz);
@@ -586,11 +605,15 @@ async function isDueForPublish(platform, schedules) {
     return { due: false, reason: `no slot reached yet (now=${today.hhmm}, next=${slots[0] != null ? Math.floor(slots[0]/60).toString().padStart(2,'0')+':'+(slots[0]%60).toString().padStart(2,'0') : 'none'})` };
   }
 
+  // Cap is tracked per (platform, owner) — see countPostedToday. Two accounts
+  // on the same platform (e.g. dossie's Facebook Page vs Heath's realtor
+  // Facebook Page) share the same time-slot schedule config but each gets
+  // its own independent daily-cap counter (Atlas 2026-08-18).
   const cap = row.max_per_day ?? null;
   if (cap != null) {
-    const already = await countPostedToday(platform, tz);
+    const already = await countPostedToday(platform, tz, owner);
     if (already >= cap) {
-      return { due: false, reason: `daily cap reached (${already}/${cap})` };
+      return { due: false, reason: `daily cap reached for owner=${owner || 'dossie'} (${already}/${cap})` };
     }
   }
   return { due: true, reason: `slot ${passedSlots[passedSlots.length - 1]} passed` };
@@ -939,7 +962,7 @@ module.exports = async function handler(req, res) {
 
     // Schedule gate (time slot + daily cap). Re-evaluated PER ITERATION so
     // posts published earlier in this run count toward the cap. No caching.
-    const decision = await isDueForPublish(post.platform, schedules);
+    const decision = await isDueForPublish(post.platform, schedules, post.target_owner || 'dossie');
     if (!decision.due) {
       skippedSchedule++;
       skips.push({ id: post.id, platform: post.platform, reason: decision.reason });
