@@ -38,6 +38,14 @@
 | Threads | @meetdossie | not automated |
 | LinkedIn | linkedin.com/company/meetdossie | ✅ connected ✅ active (live since 2026-05-07) |
 
+**Heath's personal realtor Page** — facebook.com/HeathShepardRealtor — NOT
+YET connected to Zernio. Blocked on Heath's manual OAuth re-auth click
+(genuinely human-only step). `scripts/finish-realtor-page-zernio-setup.js`
+(Atlas, 2026-08-17) is the ready-to-run finish once that grant exists — run
+`--discover` first, read the header comment before touching it. Weekly
+posting cadence for this Page (once connected) is drafted in
+`docs/REALTOR-PAGE-CADENCE.md`.
+
 ---
 
 ## ZERNIO ACCOUNT IDs
@@ -49,3 +57,53 @@
 | twitter | `69f255c6985e734bf3d90ba1` | ✅ |
 | linkedin | `69fccd7392b3d8e85f8f12be` | ✅ (URN `urn:li:organization:115997183`) |
 | tiktok | `69f15791985e734bf3d13b89` | ✅ |
+
+---
+
+## FACEBOOK GROUP ENGAGEMENT PIPELINE (read-only scan -> draft -> Heath approves)
+
+Separate from the Zernio auto-post pipeline above. This is DossieBot's Chrome
+profile scanning real FB groups for genuine engagement opportunities (TC-pain
+posts, real-estate-practice questions) and drafting a reply — never auto-posts.
+
+1. `scripts/fb-group-discovery.js` — one-off/periodic. Searches FB's own group
+   search across a broad query set (statewide, TREC, TC-specific, hyperlocal
+   metro+county, brokerage-specific, mastermind/networking), verifies each
+   candidate (real navigation, member count 300-300k, Public group), dedupes
+   against `group_registry`, inserts survivors. Never posts/joins/comments.
+2. `scripts/fb-engagement-scraper.js` — the daily driver. Loads groups from
+   `group_registry` (oldest-scanned-first), extracts BEFORE each scroll step
+   (FB virtualizes content that scrolls out of view — extracting only once at
+   the end silently loses text), matches TC-pain + genuine-practice-question
+   patterns, drafts a reply via Sonnet in Heath's voice, inserts into
+   `engagement_queue` at `status='pending_review'`.
+3. `api/cron-engagement-review.js` surfaces `engagement_queue` pending rows to
+   Heath via Telegram for approve/reject.
+
+### Anti-ban pacing — `scripts/_lib/scan-caps.js` (scanning) + `scripts/_lib/comment-caps.js` (posting/commenting)
+
+Two separate ceilings because they're different actions from FB's side:
+
+**Scanning (read-only page visits)** — `scan-caps.js`, state in
+`scripts/.scan-caps-state.json` (local file, no DB migration needed):
+- **25 group pages/day**, hard cap, shared across `fb-engagement-scraper.js`
+  and `fb-group-discovery.js` combined. Reasoning: a genuinely active solo
+  agent might browse 15-25 groups in a day hunting for something specific —
+  that's the plausible human ceiling this should look like from FB's side.
+- Randomized dwell between group-to-group navigations (2.5-6s) and between
+  scroll steps within a page (1.4-3.2s) — no mechanical/metronomic interval.
+
+**Posting/commenting** — `comment-caps.js` (existing, Heath-approved
+2026-06-10, tightened post-shadowban 2026-07-01):
+- Facebook 5/day, Instagram 5/day, LinkedIn 3/day, Reddit 3/day, Twitter
+  5/day. **21/day hard ceiling across all platforms combined.**
+- Min gap between comments: FB 45min, IG 20min, Twitter 45min, LinkedIn
+  90min, Reddit 60min.
+- 1 comment per thread (2 if the thread @-mentions Dossie/Heath), 7-day
+  cooldown before commenting on the same author again, 80-char substance
+  floor on any drafted comment.
+- **`engagement_queue` backlog building (fb-engagement-scraper.js runs) is
+  NOT gated by comment-caps** — that cap only fires at actual-post time.
+  Building a large reviewable backlog is fine; the ceiling is on what
+  actually goes out to FB in a day, not on how much sits in the queue
+  waiting for Heath's approval.

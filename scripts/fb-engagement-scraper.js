@@ -32,6 +32,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const { canScan, recordScan, SCAN_DWELL_MS, SCROLL_STEP_MS, randDelay } = require('./_lib/scan-caps');
 
 try {
   const envPath = path.join(__dirname, '..', '.env.local');
@@ -44,7 +45,7 @@ try {
       if (eq < 0) continue;
       const key = trimmed.slice(0, eq).trim();
       const val = trimmed.slice(eq + 1).trim().replace(/^"(.*)"$/, '$1');
-      if (!process.env[key]) process.env[key] = val;
+      if (!process.env[key] || process.env[key] === '[SENSITIVE]') process.env[key] = val;
     }
   }
 } catch (e) { /* non-fatal */ }
@@ -121,7 +122,7 @@ async function supabaseFetch(urlPath, init = {}) {
 
 async function loadGroups() {
   const { ok, data } = await supabaseFetch(
-    `/rest/v1/group_registry?select=id,group_name,group_url&order=last_posted_at.asc.nullsfirst&limit=${MAX_GROUPS}`
+    `/rest/v1/group_registry?select=id,group_name,group_url&skip=eq.false&order=last_posted_at.asc.nullsfirst&limit=${MAX_GROUPS}`
   );
   if (!ok || !Array.isArray(data)) return [];
   return data.filter((g) => g.group_url && !g.group_url.includes('PLACEHOLDER'));
@@ -235,14 +236,22 @@ async function scanGroup(page, group, seenIds) {
   // Extract BEFORE each scroll step -- FB virtualizes content that scrolls
   // out of view, so evaluating only once at the end (the old fb-lead-scraper
   // approach) silently loses text. This is the fix confirmed live 2026-08-17.
-  for (let i = 0; i < 5; i++) {
+  // Bumped 5 -> 10 scroll steps 2026-08-18: a full backlog-building run
+  // across 48 registry groups today (post-expansion) found only 1 real
+  // candidate, which turned out to be a duplicate of one already handled.
+  // 5 steps captures roughly the first screenful-and-a-half of a group's
+  // feed -- not enough depth for TC-pain/practice-question posts, which are
+  // sparse relative to total group volume. Doubling depth is the lower-risk
+  // lever (more content captured per visit) vs. loosening RELEVANCE_PATTERNS
+  // (which would risk irrelevant/spammy-looking matches).
+  for (let i = 0; i < 10; i++) {
     const batch = await extractCandidates(page).catch(() => []);
     for (const item of batch) {
       const key = item.text.slice(0, 80);
       if (!seenThisGroup.has(key)) seenThisGroup.set(key, item);
     }
     await page.evaluate(() => window.scrollBy(0, 900));
-    await page.waitForTimeout(1800);
+    await page.waitForTimeout(SCROLL_STEP_MS.min + Math.random() * (SCROLL_STEP_MS.max - SCROLL_STEP_MS.min));
   }
 
   for (const item of seenThisGroup.values()) {
@@ -261,10 +270,24 @@ async function main() {
   }
 
   const { file: seenFile, set: seenIds } = loadSeen();
-  const groups = await loadGroups();
+  let groups = await loadGroups();
   if (!groups.length) {
     console.log('[fb-engagement-scraper] No groups in group_registry');
     return;
+  }
+
+  // Anti-ban pacing gate (scripts/_lib/scan-caps.js): cap how many group
+  // pages get visited today across ALL scanning scripts combined, not just
+  // this run. Truncate rather than abort so a run still does useful work up
+  // to whatever budget remains.
+  const scanGate = canScan(groups.length);
+  if (!scanGate.allowed) {
+    if (scanGate.remaining <= 0) {
+      console.log(`[fb-engagement-scraper] Daily scan cap reached (${scanGate.used}/${scanGate.cap} group pages today) -- skipping run`);
+      return;
+    }
+    console.log(`[fb-engagement-scraper] Daily scan cap: ${scanGate.used}/${scanGate.cap} used, only ${scanGate.remaining} remaining -- trimming ${groups.length} -> ${scanGate.remaining} group(s)`);
+    groups = groups.slice(0, scanGate.remaining);
   }
 
   const { chromium } = require('playwright');
@@ -327,7 +350,18 @@ async function main() {
       }
 
       saveSeen(seenFile, seenIds);
-      await new Promise((r) => setTimeout(r, 1500));
+      recordScan(1);
+      // Mark this group as scanned so the ORDER BY last_posted_at.asc
+      // .nullsfirst above actually rotates through the full registry across
+      // runs instead of re-hitting the same oldest/null-first rows every
+      // time (bug found live 2026-08-17/18: loadGroups() never wrote this
+      // back, so every run pulled an identical set).
+      await supabaseFetch(`/rest/v1/group_registry?id=eq.${encodeURIComponent(group.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ last_posted_at: new Date().toISOString() }),
+      }).catch(() => {});
+      await randDelay(SCAN_DWELL_MS);
     }
   } finally {
     await context.close();
