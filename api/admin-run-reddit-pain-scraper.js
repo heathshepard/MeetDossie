@@ -50,7 +50,8 @@ module.exports = async function handler(req, res) {
   const warn = (...args) => { logs.push('[warn] ' + args.join(' ')); console.warn(...args); };
 
   try {
-    const { deduped, scanStats } = await scrapeAll({ log, warn });
+    const gapMs = parseInt((req.query && req.query.gap_ms) || '', 10) || 20000;
+    const { deduped, scanStats } = await scrapeAll({ log, warn, gapMs });
     const dryRun = req.query && req.query.dry_run === '1';
     let upsert = { attempted: 0, ok: 0 };
     if (!dryRun) {
