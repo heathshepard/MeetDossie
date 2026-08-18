@@ -224,7 +224,10 @@
       gap: 6px; padding: 10px;
     }
     .roster-group-label { display: none; }
-    .roster-item { flex-direction: column; align-items: flex-start; min-width: 150px; margin-bottom: 0; }
+    /* align-items: stretch (not flex-start) so .roster-text fills the card
+       width — otherwise its own text-overflow:ellipsis has no bounded width
+       to truncate against and the name overlaps the next card. */
+    .roster-item { flex-direction: column; align-items: stretch; min-width: 150px; max-width: 150px; margin-bottom: 0; }
     .board-panel { width: 100%; min-width: 0; }
     .board-header { padding: 14px 16px; }
     .board-header-name { font-size: 20px; }
