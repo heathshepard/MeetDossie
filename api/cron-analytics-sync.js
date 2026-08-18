@@ -259,7 +259,7 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
   // Load all posted social_posts rows upfront so we can match by zernio_post_id
   // or by (platform, posted_at) window for rows where zernio_post_id is null.
   const { data: allPosted, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?status=eq.posted&select=id,post_id,platform,zernio_post_id,posted_at,zernio_account_id&order=posted_at.desc&limit=500`,
+    `/rest/v1/social_posts?status=eq.posted&select=id,post_id,platform,zernio_post_id,posted_at,zernio_account_id,persona,topic,hook,hook_type,cta_type,hook_variant&order=posted_at.desc&limit=500`,
   );
   if (!loadOk || !Array.isArray(allPosted)) {
     return res.status(502).json({ ok: false, error: 'failed to load posted rows from Supabase' });
@@ -347,6 +347,14 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
         persona: matchedRow.persona || null,
         topic: matchedRow.topic || null,
         hook: matchedRow.hook || null,
+        // Copy the hook/CTA classification + explicit hook-variant test label
+        // from social_posts so cron-weekly-post-review.js / sage_weekly_review.js
+        // can actually bucket by them. These columns existed since 2026-07-08
+        // (hook_type/cta_type) and hook_variant added 2026-08-18, but were
+        // never copied here — every post_analytics row had them stuck at NULL.
+        hook_type: matchedRow.hook_type || null,
+        cta_type: matchedRow.cta_type || null,
+        hook_variant: matchedRow.hook_variant || null,
         synced_at: new Date().toISOString(),
         sync_date: syncDate,
         ...metrics,
@@ -440,6 +448,19 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
       }
       for (const [groupId, members] of byGroup.entries()) {
         if (members.length < 2) continue;
+
+        // Generalized to N-way variant groups (was A/B-only): before declaring
+        // a winner, confirm every member of this ab_test_group_id has actually
+        // posted. Without this check, a 5-variant group where only 2 of 5 have
+        // published (each individually >=72h old) would get a winner flagged
+        // while 3 variants haven't even run yet.
+        const { ok: groupCheckOk, data: groupRows } = await supabaseFetch(
+          `/rest/v1/social_posts?ab_test_group_id=eq.${encodeURIComponent(groupId)}&select=id,status`,
+        );
+        if (!groupCheckOk || !Array.isArray(groupRows)) continue;
+        const stillPending = groupRows.some((g) => g.status !== 'posted' && g.status !== 'failed' && g.status !== 'rejected');
+        if (stillPending) continue; // wait for the full cohort to publish (or terminally fail/reject)
+
         const score = (r) => (r.likes || 0) * 1 + (r.comments || 0) * 3 + (r.shares || 0) * 5 + (r.clicks || 0) * 2;
         const winner = members.slice().sort((a, b) => score(b) - score(a))[0];
         if (!winner) continue;

@@ -578,6 +578,51 @@ function buildTopPerformerBlock(topHooks) {
   return lines.join('\n');
 }
 
+// ─── Reddit pain-language injection ────────────────────────────────────────
+// Fetches ranked rows from reddit_pain_language (populated by
+// scripts/reddit-pain-scraper.js — real threads from r/realtors,
+// r/RealEstateAgents, r/RealEstateAdvice, no auth needed, run periodically).
+// Same graceful-degradation shape as fetchTopPerformerHooks(): returns []
+// until the table has rows (first run before the scraper's been run, or if
+// the table doesn't exist yet — 404/undefined table is swallowed too).
+async function fetchRedditPainLanguage() {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/reddit_pain_language?select=title,snippet,subreddit,pain_categories,rank_score&order=rank_score.desc&limit=10`,
+    );
+    if (!ok || !Array.isArray(data) || data.length === 0) return [];
+    return data;
+  } catch (err) {
+    console.warn('[cron-generate-posts] fetchRedditPainLanguage failed:', err && err.message);
+    return [];
+  }
+}
+
+// Build the Reddit pain-language block injected into the generation prompt.
+// Returns an empty string when no data is available. Same shape as
+// buildTopPerformerBlock()/buildSageIntelligenceBlock() above and
+// buildRedditPainBlock() in scripts/reddit-pain-scraper.js (kept in sync
+// manually — small enough that a shared import isn't worth the coupling
+// between a Vercel function and a local Node script).
+function buildRedditPainLanguageBlock(rows) {
+  if (!rows || rows.length === 0) return '';
+  const lines = [
+    '',
+    '## REAL AGENT PAIN LANGUAGE (r/realtors, r/RealEstateAgents, r/RealEstateAdvice — real threads, not guessed)',
+    'These are real complaints/questions agents posted, in their own words.',
+    'Study the PHRASING — write hooks that sound like something a real agent',
+    'would actually say, not a marketing paraphrase of the same idea.',
+    'Do not quote these verbatim or reference Reddit/a subreddit in the post.',
+    '',
+  ];
+  for (const row of rows.slice(0, 8)) {
+    const snippet = row.snippet ? ` — "${String(row.snippet).slice(0, 160)}"` : '';
+    lines.push(`- [r/${row.subreddit}] "${row.title}"${snippet}`);
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
 // ─── Hook Rotation System ─────────────────────────────────────────────────
 // Five distinct hook formulas cycle through posts so no two adjacent posts
 // open the same way and the algorithm sees variety across the day's batch.
@@ -922,7 +967,7 @@ ${buildPlatformRulesBlock(platform)}
 ${buildPlatformNativeBlock(platform)}`;
 }
 
-function buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock) {
+function buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock, redditPainBlock) {
   const planLines = plan.map((p, i) => buildSlotBrief(p, i, dayOfYear)).join('\n\n');
 
   // Determine if any persona slots exist in this plan (for persona-voice section)
@@ -954,7 +999,7 @@ DOSSIE BRAND VOICE — for CAPABILITY_ONELINER, TREC_EDUCATION, and FOUNDER_STOR
 - Set "persona" to "dossie" in the JSON output for these slots.
 ` : '';
 
-  return `${sageIntelBlock || ''}${topPerformerBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
+  return `${sageIntelBlock || ''}${topPerformerBlock || ''}${redditPainBlock || ''}## FACTUAL ACCURACY RULES — NON-NEGOTIABLE
 
 You may ONLY reference verified real facts about Dossie. Hallucinated specifics destroy customer trust the moment they're noticed.
 
@@ -1348,6 +1393,15 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     console.log(`[cron-generate-posts] injecting ${topHooks.length} top-performer hooks into prompt`);
   }
 
+  // Fetch real pain-language from reddit_pain_language (written by
+  // scripts/reddit-pain-scraper.js). Fails gracefully until the scraper has
+  // run at least once or the table doesn't exist yet.
+  const redditPain = await fetchRedditPainLanguage();
+  const redditPainBlock = buildRedditPainLanguageBlock(redditPain);
+  if (redditPain.length > 0) {
+    console.log(`[cron-generate-posts] injecting ${redditPain.length} real Reddit pain-language rows into prompt`);
+  }
+
   console.log('[cron-generate-posts] starting batch — topic:', topic.key, 'slots:', plan.map((p) => `${p.format || 'PERSONA_STORY'}/${p.platform}`).join(','), 'force_day:', forceDay, 'founding:', founding.taken, 'remaining:', founding.remaining, 'hooks:', hookAssignments.join(' | '), 'top_performer_hooks:', topHooks.length, 'at', now.toISOString());
 
 // ─── Hook Type Classification ─────────────────────────────────────────────
@@ -1378,7 +1432,7 @@ function classifyCTA(ctaText) {
 
   let raw;
   try {
-    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock), founding));
+    raw = await callAnthropic(applyFoundingCount(buildPrompt(topic, plan, dayOfYear, topPerformerBlock, sageIntelBlock, redditPainBlock), founding));
   } catch (err) {
     console.error('[cron-generate-posts] Anthropic call failed:', err && err.message);
     return res.status(502).json({ ok: false, error: 'content generation failed', detail: err && err.message });
