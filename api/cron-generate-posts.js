@@ -1256,10 +1256,16 @@ async function renderSocialCard({ platform, hook, content, persona, post_id, sta
   return { ok: true, publicUrl: data.publicUrl, size_bytes: data.size_bytes };
 }
 
-async function lookupZernioAccountId(platform) {
+// Owner-scoped (Atlas 2026-08-18). zernio_accounts can now hold more than one
+// active row per platform (e.g. facebook/instagram dossie vs heath-realtor —
+// see 20260817_zernio_accounts_owner.sql). This generator only ever produces
+// Dossie's own content, so it must pin owner='dossie' explicitly — an
+// unscoped `limit=1` with no ORDER BY is not guaranteed to pick the right row
+// once a second owner's row exists on the same platform.
+async function lookupZernioAccountId(platform, owner = 'dossie') {
   const encoded = encodeURIComponent(platform);
   const { data } = await supabaseFetch(
-    `/rest/v1/zernio_accounts?platform=eq.${encoded}&is_active=eq.true&select=zernio_account_id&limit=1`,
+    `/rest/v1/zernio_accounts?platform=eq.${encoded}&owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=zernio_account_id&limit=1`,
   );
   if (Array.isArray(data) && data.length > 0) return data[0].zernio_account_id || null;
   return null;

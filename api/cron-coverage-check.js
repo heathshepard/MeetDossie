@@ -190,10 +190,14 @@ function extractJson(raw) {
   return JSON.parse(s);
 }
 
-async function lookupZernioAccountId(platform) {
+// Owner-scoped (Atlas 2026-08-18) — same fix as cron-generate-posts.js.
+// This generator only ever produces Dossie's own content; pin owner='dossie'
+// so a second active row on the same platform (heath-realtor) can't win an
+// unscoped `limit=1`.
+async function lookupZernioAccountId(platform, owner = 'dossie') {
   const encoded = encodeURIComponent(platform);
   const { data } = await supabaseFetch(
-    `/rest/v1/zernio_accounts?platform=eq.${encoded}&is_active=eq.true&select=zernio_account_id&limit=1`,
+    `/rest/v1/zernio_accounts?platform=eq.${encoded}&owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=zernio_account_id&limit=1`,
   );
   if (Array.isArray(data) && data.length > 0) return data[0].zernio_account_id || null;
   return null;

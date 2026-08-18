@@ -38,17 +38,40 @@
 | Threads | @meetdossie | not automated |
 | LinkedIn | linkedin.com/company/meetdossie | ✅ connected ✅ active (live since 2026-05-07) |
 
-**Heath's personal realtor Page** — facebook.com/HeathShepardRealtor — NOT
-YET connected to Zernio. Blocked on Heath's manual OAuth re-auth click
-(genuinely human-only step). `scripts/finish-realtor-page-zernio-setup.js`
-(Atlas, 2026-08-17) is the ready-to-run finish once that grant exists — run
-`--discover` first, read the header comment before touching it. Weekly
-posting cadence for this Page (once connected) is drafted in
-`docs/REALTOR-PAGE-CADENCE.md`.
+**Heath's personal realtor accounts — "Brokerage" Zernio profile** (Heath
+created 2026-08-18, separate from "Default" which holds MeetDossie's
+connections; profile id `6a8469b3a307bfe9b1958bc4`). Three destinations
+connected directly by Heath in Zernio's dashboard, confirmed live via
+`GET /v1/accounts` (`api/debug-zernio-accounts.js`):
+
+- **Facebook** — facebook.com/HeathShepardRealtor, dedicated `zernio_account_id`
+  `6a8469f177555aae01775798`. Supersedes the earlier workaround where this
+  Page rode MeetDossie's shared connection disambiguated by `page_id` (see
+  `20260817_zernio_accounts_owner.sql` / `20260818_zernio_accounts_page_id.sql`
+  for that history). Now routed through its own dedicated connection —
+  `page_id 102113502016276` is left populated as a harmless belt-and-suspenders
+  pin, not a disambiguation requirement. Migrated via
+  `20260818b_zernio_accounts_brokerage_profile.sql`.
+- **Instagram** — @heathshepardrealtor, `zernio_account_id`
+  `6a8469d677555aae017735a1`. First Instagram destination beyond
+  `@meetdossie`; `owner`/routing pattern extends with no schema gap (partial
+  unique index is already `(platform, owner) WHERE is_active`).
+- **YouTube** — "Shepard Real Estate Solutions" channel, `zernio_account_id`
+  `6a846a0c77555aae017776e3`. Connected and available — **no posting logic
+  wired, no content plan yet.** Not inserted into `zernio_accounts`; noted
+  here for when there's a reason to route to it.
+- (A fourth destination, `metaads` `6a846a2f77555aae01778a01`, also lives
+  under this profile — not social posting, out of scope.)
+
+Both `owner='heath-realtor'` rows are read by `cron-publish-approved.js`
+`pushToZernio()` via `social_posts.target_owner`. Weekly posting cadence
+(when there's content) is drafted in `docs/REALTOR-PAGE-CADENCE.md`.
 
 ---
 
 ## ZERNIO ACCOUNT IDs
+
+**MeetDossie ("Default" profile, `owner='dossie'`)**
 
 | Platform | Account ID | Active |
 |---|---|---|
@@ -57,6 +80,14 @@ posting cadence for this Page (once connected) is drafted in
 | twitter | `69f255c6985e734bf3d90ba1` | ✅ |
 | linkedin | `69fccd7392b3d8e85f8f12be` | ✅ (URN `urn:li:organization:115997183`) |
 | tiktok | `69f15791985e734bf3d13b89` | ✅ |
+
+**Heath's realtor accounts ("Brokerage" profile, `owner='heath-realtor'`)**
+
+| Platform | Account ID | Active |
+|---|---|---|
+| facebook | `6a8469f177555aae01775798` | ✅ (in `zernio_accounts`) |
+| instagram | `6a8469d677555aae017735a1` | ✅ (in `zernio_accounts`) |
+| youtube | `6a846a0c77555aae017776e3` | connected, not wired — no content plan |
 
 ---
 
