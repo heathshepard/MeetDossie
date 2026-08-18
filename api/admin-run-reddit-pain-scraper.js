@@ -19,6 +19,7 @@
 const { scrapeAll, upsertToSupabase, buildRedditPainBlock } = require('../scripts/reddit-pain-scraper');
 
 const CRON_SECRET = process.env.CRON_SECRET;
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
 
 module.exports = async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
@@ -27,6 +28,21 @@ module.exports = async function handler(req, res) {
 
   if (!isVercelCron && !isManualAuth) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
+  // ?probe=1 — single fast no-retry fetch against r/realtors/new.rss to check
+  // whether Vercel's egress IP is blocked by Reddit at all, before spending
+  // the full multi-subreddit + backoff run against the 60s function budget.
+  if (req.query && req.query.probe === '1') {
+    try {
+      const r = await fetch('https://www.reddit.com/r/realtors/new.rss?limit=5', {
+        headers: { 'Accept': 'application/rss+xml, application/xml, text/xml', 'User-Agent': USER_AGENT },
+      });
+      const text = await r.text();
+      return res.status(200).json({ ok: true, probe: true, status: r.status, body_head: text.slice(0, 300) });
+    } catch (err) {
+      return res.status(200).json({ ok: false, probe: true, error: err && err.message });
+    }
   }
 
   const logs = [];
