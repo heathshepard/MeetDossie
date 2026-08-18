@@ -3,19 +3,43 @@
 // api/cron-mls-status-staleness.js
 // =============================================================================
 // Detects one specific, high-confidence staleness condition: a dossier's own
-// tracked stage still shows 'option-period' after that dossier's own
-// option_expiration_date has passed. That mismatch is exactly what happened on
-// 104 Wild Cherry (2026-08-13/2026-08-18 window) — option period ended and the
-// repair amendment was fully executed, but the MLS status sat on "Active
-// Option" for 4 days because nobody was watching the dossier's own facts
-// against its own stage.
+// option period has ended, per its own tracked facts, within roughly the last
+// two weeks — and nothing in Dossie shows the agent confirmed the MLS status
+// was updated to reflect it.
+//
+// VERIFIED AGAINST REAL DATA BEFORE BUILDING THIS: the original hypothesis —
+// "flag when the dossier's own `stage` still reads pre-option-expiration" —
+// does NOT hold. Checked the real 104 Wild Cherry row
+// (42a11919-ba8b-44fa-9b04-ed13563ab888): its Dossie `stage` had already
+// correctly advanced to 'financing' by the time the MLS listing was still
+// sitting on Active Option. Dossie's own stage tracking and the agent's
+// separate act of logging into MLS and flipping the public status are two
+// different systems that can (and did) drift apart independently — Dossie has
+// no visibility into the live MLS record at all, so `stage` can't be used to
+// confirm or deny anything about it. The only real signal Dossie has is the
+// CALENDAR FACT that the option period ended. So this is a pure date check,
+// not a stage comparison — it fires once shortly after every option period
+// ends, regardless of what stage the dossier has since moved to.
+//
+// Also verified: `option_expiration_date` is populated on only a handful of
+// live transactions. Most store `contract_effective_date` + `option_days`
+// instead and leave `option_expiration_date` null. Both are read; the
+// explicit date wins when present, otherwise it's derived.
+//
+// Bounded window (see GRACE_DAYS / MAX_STALE_DAYS below): the live table has
+// transactions whose option period "ended" years ago (old contract dates on
+// still-`active` records). Without an upper bound, the first run would dredge
+// up every one of those as a false "critical" alert. This only flags option
+// periods that ended recently — the exact window where the nudge is still
+// useful — and goes quiet on anything older.
 //
 // THIS IS DETECTION + ALERT ONLY. Dossie has no MLS credentials and never
 // writes to MLS — same principle as the e-sign "verify the document, never
 // the status" rule. The output is a dossie_asks row (urgency: critical,
 // source: 'system:mls-status-stale') that nudges the agent to go make the
 // change themselves. See api/dossie-asks.js + src/components/DossieAsks.jsx
-// (Dossie repo) for the surface this feeds.
+// (Dossie repo) for the surface this feeds — it renders as a pinned,
+// full-bleed alert card above the normal capped feed, not a generic entry.
 //
 // Deliberately narrow: one condition, not a model of every MLS status
 // transition. Broaden only after this one is proven out.
@@ -36,9 +60,17 @@ const CRON_SECRET = process.env.CRON_SECRET;
 // once it's unambiguously been sitting, not on day zero.
 const GRACE_DAYS = 1;
 
+// Past this many days, assume the moment has passed (either it was handled
+// quietly, or flagging something this old is no longer useful) — do not open
+// new asks for option periods that ended long ago. Keeps the first run (and
+// every run against real historical data) from dredging up years-old
+// transactions as fresh "critical" alerts.
+const MAX_STALE_DAYS = 14;
+
 // If a prior ask on this exact condition was resolved or dismissed and the
-// underlying mismatch is STILL true, re-raise after this many days rather
-// than assuming a dismissal means it was actually fixed in MLS.
+// underlying mismatch is STILL true (still inside the window above), re-raise
+// after this many days rather than assuming a dismissal means it was actually
+// fixed in MLS.
 const RE_RAISE_DAYS = 3;
 
 const SOURCE = 'system:mls-status-stale';
@@ -77,6 +109,16 @@ function todayChicagoYMD() {
   return fmt.format(new Date());
 }
 
+function addDaysYMD(ymd, n) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
 function daysBetweenYMD(earlierYMD, laterYMD) {
   const a = new Date(`${earlierYMD}T00:00:00Z`).getTime();
   const b = new Date(`${laterYMD}T00:00:00Z`).getTime();
@@ -93,6 +135,33 @@ function friendlyDate(ymd) {
 function dealLabel(address) {
   if (!address || typeof address !== 'string') return 'this dossier';
   return address.split(',')[0].trim();
+}
+
+// Placeholder / garbage dates seen in live data (unset fields defaulted to
+// year 1 instead of null) — never treat these as a real contract date.
+function isRealYMD(ymd) {
+  if (!ymd || typeof ymd !== 'string') return false;
+  const year = Number(ymd.slice(0, 4));
+  return Number.isFinite(year) && year > 1900;
+}
+
+// The one calendar fact this whole check runs on: when did the option period
+// actually end, per THIS dossier's own record. Explicit field wins; otherwise
+// derive from contract_effective_date + option_days. Returns null when there
+// is not enough real data to compute it (no option period tracked, or dates
+// are placeholder/missing) — those transactions are silently skipped, not
+// guessed at.
+function computeOptionEndYMD(tx) {
+  if (tx.option_expiration_date) {
+    const explicit = String(tx.option_expiration_date).slice(0, 10);
+    if (isRealYMD(explicit)) return explicit;
+  }
+  const days = Number(tx.option_days);
+  const effective = tx.contract_effective_date ? String(tx.contract_effective_date).slice(0, 10) : null;
+  if (Number.isFinite(days) && days > 0 && isRealYMD(effective)) {
+    return addDaysYMD(effective, days);
+  }
+  return null;
 }
 
 // Same customer exclusions as cron-deadline-reminders.js: skip demo accounts,
@@ -138,19 +207,19 @@ async function loadMostRecentAsk(transactionId) {
   return (r.data || [])[0] || null;
 }
 
-async function createAsk({ userId, transactionId, address, expirationYMD, staleDays }) {
+async function createAsk({ userId, transactionId, address, endYMD, staleDays }) {
   const label = dealLabel(address);
-  const niceDate = friendlyDate(expirationYMD);
+  const niceDate = friendlyDate(endYMD);
   const payload = {
     user_id: userId,
     transaction_id: transactionId,
     urgency: 'critical',
     title: 'Your MLS status may be behind',
     body:
-      `The option period on ${label} ended ${niceDate} (${staleDays} day${staleDays === 1 ? '' : 's'} ago), ` +
-      `but this dossier still shows Option Period as the stage. If the MLS listing still reads Active Option, ` +
-      `that's stale for anyone looking at the listing and a real flag if your broker or TREC ever reviews the ` +
-      `file. Want to jump into MLS and update the status now?`,
+      `The option period on ${label} ended ${niceDate} (${staleDays} day${staleDays === 1 ? '' : 's'} ago). ` +
+      `Dossie can't see your actual MLS listing, so this is a nudge, not a confirmation either way — but if ` +
+      `the status still reads Active Option, that's stale for anyone browsing it and a real flag if your ` +
+      `broker or TREC ever reviews the file. Want to jump into MLS and update the status now?`,
     due_at: null,
     due_label: `Option ended ${niceDate}`,
     suggested_actions: [
@@ -187,17 +256,17 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
     return res.status(500).json({ ok: false, error: 'customer_load_failed', detail: String(err && err.message) });
   }
 
-  // Candidates: open dossiers still tracked as 'option-period' with a real
-  // option_expiration_date on file. forceTxId bypasses the customer filter so
-  // a specific transaction can be smoke-tested without touching real
-  // subscription state.
+  // Candidates: every open dossier that tracks an option period at all
+  // (option_days > 0). Staleness itself is computed in JS since the true
+  // option-end date is frequently derived, not stored. forceTxId bypasses the
+  // customer filter so a specific transaction can be smoke-tested without
+  // touching real subscription state.
   let query =
-    `/rest/v1/transactions?select=id,user_id,property_address,option_expiration_date,stage,status` +
-    `&stage=eq.option-period` +
-    `&option_expiration_date=not.is.null` +
+    `/rest/v1/transactions?select=id,user_id,property_address,option_expiration_date,contract_effective_date,option_days,stage,status` +
+    `&option_days=gt.0` +
     `&or=(status.is.null,status.neq.closed)`;
   if (forceTxId) {
-    query = `/rest/v1/transactions?select=id,user_id,property_address,option_expiration_date,stage,status&id=eq.${encodeURIComponent(forceTxId)}`;
+    query = `/rest/v1/transactions?select=id,user_id,property_address,option_expiration_date,contract_effective_date,option_days,stage,status&id=eq.${encodeURIComponent(forceTxId)}`;
   }
 
   const txRes = await supabaseFetch(query);
@@ -211,10 +280,13 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
 
   for (const tx of (txRes.data || [])) {
     if (!forceTxId && !activeCustomerIds.has(tx.user_id)) continue;
+    if (tx.stage === 'closed' || tx.stage === 'terminated') continue;
 
-    const expirationYMD = String(tx.option_expiration_date).slice(0, 10);
-    const staleDays = daysBetweenYMD(expirationYMD, today);
-    if (staleDays < GRACE_DAYS) continue; // not yet stale enough to flag
+    const endYMD = computeOptionEndYMD(tx);
+    if (!endYMD) continue; // no usable option-period data on this dossier
+
+    const staleDays = daysBetweenYMD(endYMD, today);
+    if (staleDays < GRACE_DAYS || staleDays > MAX_STALE_DAYS) continue;
 
     flagged++;
 
@@ -242,7 +314,7 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
     }
 
     if (dryRun) {
-      results.push({ transaction_id: tx.id, would_create: true, stale_days: staleDays, property_address: tx.property_address });
+      results.push({ transaction_id: tx.id, would_create: true, stale_days: staleDays, property_address: tx.property_address, option_end: endYMD });
       continue;
     }
 
@@ -250,11 +322,11 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
       userId: tx.user_id,
       transactionId: tx.id,
       address: tx.property_address,
-      expirationYMD,
+      endYMD,
       staleDays,
     });
     if (ok) created++;
-    results.push({ transaction_id: tx.id, created: ok, stale_days: staleDays, property_address: tx.property_address });
+    results.push({ transaction_id: tx.id, created: ok, stale_days: staleDays, property_address: tx.property_address, option_end: endYMD });
   }
 
   return res.status(200).json({
