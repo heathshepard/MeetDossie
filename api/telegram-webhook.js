@@ -856,6 +856,54 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Engagement-queue approval flow: engage_approve_<id> / engage_reject_<id>
+  // (Sage, 2026-08-17). See supabase/migrations/20260817_engagement_queue.sql.
+  // Approve marks the drafted reply cleared to post -- it does NOT auto-post
+  // a comment as Heath. Posting the approved comment is a separate,
+  // deliberate step (never automatic, same posture as group_approve above).
+  const engage = data.match(/^engage_(approve|reject)_(.+)$/);
+  if (engage) {
+    const action = engage[1];
+    const rowId = engage[2];
+    const originalBody = String(message?.text || '');
+
+    const { data: rows } = await supabaseFetch(
+      `/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}&limit=1`,
+    );
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!row) {
+      if (callbackId) await answerCallback(callbackId, 'Item not found');
+      return;
+    }
+    if (row.status !== 'pending_review') {
+      if (callbackId) await answerCallback(callbackId, `Already ${row.status}`);
+      return;
+    }
+
+    if (action === 'approve') {
+      await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'approved', reviewed_at: new Date().toISOString() }),
+      });
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED -- draft cleared to post. Posting it is still a separate manual step.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Approved');
+    } else {
+      await supabaseFetch(`/rest/v1/engagement_queue?id=eq.${encodeURIComponent(rowId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'rejected', reviewed_at: new Date().toISOString() }),
+      });
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ REJECTED -- discarded, this thread will not be resurfaced.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Rejected');
+    }
+    return;
+  }
+
   // Check for retry button
   const retry = data.match(/^retry_(.+)$/);
   if (retry) {
