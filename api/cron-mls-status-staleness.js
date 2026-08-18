@@ -164,33 +164,27 @@ function computeOptionEndYMD(tx) {
   return null;
 }
 
-// Same customer exclusions as cron-deadline-reminders.js: skip demo accounts,
-// Heath's own login, and anyone without an active subscription.
+// NOTE: this deliberately does NOT reuse the "active paying subscription"
+// customer filter from the outbound-email crons (cron-deadline-reminders.js
+// etc). Those intentionally skip Heath's own login because they send
+// customer-facing emails he shouldn't receive about himself. This is an
+// in-app surface, not an email — and Heath's own 104 Wild Cherry dossier
+// (subscriptions.status='pending_onboarding', not 'active') is the exact
+// case that motivated this feature. Verified: gating on an active
+// subscription would have silently excluded the one real incident this cron
+// exists to catch. So the only exclusion here is demo accounts, to keep test
+// data out of a real user's alert feed.
 function isExcludedEmail(email) {
   if (!email) return true;
-  const e = email.toLowerCase();
-  if (e.startsWith('heath.shepard@')) return true;
-  if (e.includes('demo')) return true;
-  return false;
+  return email.toLowerCase().includes('demo');
 }
 
-async function loadActiveCustomerIds() {
-  const subResp = await supabaseFetch('/rest/v1/subscriptions?status=eq.active&select=user_id');
-  if (!subResp.ok) throw new Error(`subscriptions fetch ${subResp.status}`);
-  const userIds = (subResp.data || []).map((s) => s.user_id).filter(Boolean);
-  if (userIds.length === 0) return new Set();
-
-  const filter = userIds.map((id) => `"${id}"`).join(',');
-  const profResp = await supabaseFetch(
-    `/rest/v1/profiles?id=in.(${filter})&select=id,email,is_demo`,
-  );
+async function loadDemoUserIds() {
+  const profResp = await supabaseFetch('/rest/v1/profiles?select=id,email,is_demo');
   if (!profResp.ok) throw new Error(`profiles fetch ${profResp.status}`);
-
   const out = new Set();
   for (const p of (profResp.data || [])) {
-    if (p.is_demo) continue;
-    if (isExcludedEmail(p.email)) continue;
-    out.add(p.id);
+    if (p.is_demo || isExcludedEmail(p.email)) out.add(p.id);
   }
   return out;
 }
@@ -249,11 +243,11 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
 
   const today = todayChicagoYMD();
 
-  let activeCustomerIds;
+  let demoUserIds;
   try {
-    activeCustomerIds = await loadActiveCustomerIds();
+    demoUserIds = await loadDemoUserIds();
   } catch (err) {
-    return res.status(500).json({ ok: false, error: 'customer_load_failed', detail: String(err && err.message) });
+    return res.status(500).json({ ok: false, error: 'profiles_load_failed', detail: String(err && err.message) });
   }
 
   // Candidates: every open dossier that tracks an option period at all
@@ -279,7 +273,7 @@ module.exports = withTelemetry('cron-mls-status-staleness', async function handl
   let created = 0;
 
   for (const tx of (txRes.data || [])) {
-    if (!forceTxId && !activeCustomerIds.has(tx.user_id)) continue;
+    if (!forceTxId && demoUserIds.has(tx.user_id)) continue;
     if (tx.stage === 'closed' || tx.stage === 'terminated') continue;
 
     const endYMD = computeOptionEndYMD(tx);
