@@ -335,6 +335,9 @@
     "api/ventures/social-today.js": {
       "maxDuration": 30
     },
+    "api/admin-run-reddit-pain-scraper.js": {
+      "maxDuration": 60
+    },
     "api/{cron-cron-fire-verifier,cron-pull-post-analytics,cron-customer-view-digest,cron-reconcile-future-builds,cron-self-improvement-daily,cron-regression-suite}.js": {
       "maxDuration": 120
     },
