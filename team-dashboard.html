@@ -112,6 +112,40 @@
     color: var(--text-soft); border-radius: 999px; padding: 4px 12px; margin: 2px 6px 2px 0; font-weight: 600;
   }
 
+  /* --- Top-level view tabs (Members / Analytics) --- */
+  .view-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .view-tab {
+    padding: 9px 20px; border-radius: 999px; border: 1px solid var(--border); background: white;
+    color: var(--text-soft); font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .view-tab:hover { background: var(--bg); }
+  .view-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  /* --- Analytics view --- */
+  .stat-pill.alert { background: #FCE8E6; }
+  .stat-pill.alert .num { color: var(--red); }
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .analytics-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .analytics-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted); padding: 8px 10px; border-bottom: 1px solid var(--soft-border);
+  }
+  .analytics-table td { padding: 10px; border-bottom: 1px solid var(--soft-border); vertical-align: middle; }
+  .analytics-table tr:last-child td { border-bottom: none; }
+  .analytics-table .agent-name { font-weight: 700; color: var(--navy); }
+  .analytics-table .num-cell { font-weight: 700; color: var(--navy); }
+  .analytics-table .num-cell.flagged { color: var(--red); }
+  .stage-dist-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .stage-dist-label { width: 150px; flex-shrink: 0; font-size: 12.5px; font-weight: 600; color: var(--navy); }
+  .stage-dist-bar-wrap { flex: 1; background: var(--soft-border); border-radius: 999px; height: 10px; overflow: hidden; }
+  .stage-dist-bar { height: 100%; background: linear-gradient(90deg, var(--blush) 0%, var(--sage) 100%); border-radius: 999px; }
+  .stage-dist-count { width: 26px; flex-shrink: 0; text-align: right; font-size: 12.5px; font-weight: 700; color: var(--navy); }
+
+  @media (max-width: 780px) {
+    .analytics-grid { grid-template-columns: 1fr; }
+    .stage-dist-label { width: 110px; font-size: 11.5px; }
+  }
+
   /* --- Two-pane layout: member selector + selected member's board --- */
   .dash-layout { display: flex; gap: 18px; align-items: flex-start; }
 
@@ -262,10 +296,15 @@
   <div id="dashCard" style="display:none;">
     <div class="stat-strip" id="statStrip"></div>
     <div id="teamsWrap" style="display:none; margin-bottom: 14px;" id="teamsList"></div>
-    <div class="dash-layout">
+    <div class="view-tabs">
+      <button type="button" class="view-tab active" id="tabMembers">Members</button>
+      <button type="button" class="view-tab" id="tabAnalytics">Analytics</button>
+    </div>
+    <div id="membersView" class="dash-layout">
       <div class="roster-panel" id="rosterPanel"></div>
       <div class="board-panel" id="boardPanel"></div>
     </div>
+    <div id="analyticsView" style="display:none;"></div>
   </div>
 </main>
 
@@ -307,6 +346,11 @@
   const rosterPanel = document.getElementById('rosterPanel');
   const boardPanel = document.getElementById('boardPanel');
   const statStrip = document.getElementById('statStrip');
+  const tabMembers = document.getElementById('tabMembers');
+  const tabAnalytics = document.getElementById('tabAnalytics');
+  const membersView = document.getElementById('membersView');
+  const analyticsView = document.getElementById('analyticsView');
+  let lastOrgData = null;
 
   async function bootSupabase() {
     const res = await fetch(`${API_BASE}/api/config`);
@@ -518,6 +562,109 @@
     selectMember(stillPresent ? selectedMemberId : members[0].user_id);
   }
 
+  // Pure aggregation over the already-fetched org-dossiers payload — no
+  // extra API call, no new fields needed. status='closed' dossiers are
+  // excluded from the active count + stage distribution (mirrors the real
+  // Pipeline Dashboard's own APP_STAGES.filter(id !== "closed")) but still
+  // count toward "needs attention" if the API flagged them (e.g. missing_address).
+  function computeAnalytics(members) {
+    let activeCount = 0;
+    let closedCount = 0;
+    let flaggedCount = 0;
+    const stageCounts = {};
+    const perAgent = members.map((m) => {
+      let mActive = 0;
+      let mClosed = 0;
+      let mFlagged = 0;
+      (m.dossiers || []).forEach((d) => {
+        if (d.status === 'closed') {
+          mClosed++;
+        } else {
+          mActive++;
+          stageCounts[d.stage] = (stageCounts[d.stage] || 0) + 1;
+        }
+        if ((d.flags || []).length) mFlagged++;
+      });
+      activeCount += mActive;
+      closedCount += mClosed;
+      flaggedCount += mFlagged;
+      return { email: m.email || m.user_id, roles: m.roles || [], active: mActive, closed: mClosed, flagged: mFlagged };
+    });
+    perAgent.sort((a, b) => b.active - a.active);
+    const avgPerMember = members.length ? Math.round((activeCount / members.length) * 10) / 10 : 0;
+    return { activeCount, closedCount, flaggedCount, avgPerMember, perAgent, stageCounts, totalMembers: members.length };
+  }
+
+  function renderAnalytics(members) {
+    const a = computeAnalytics(members);
+
+    const statsHtml = `
+      <div class="stat-strip">
+        <div class="stat-pill"><div class="num">${a.activeCount}</div><div class="label">Active dossiers</div></div>
+        <div class="stat-pill ${a.flaggedCount ? 'alert' : ''}"><div class="num">${a.flaggedCount}</div><div class="label">Needs attention</div></div>
+        <div class="stat-pill"><div class="num">${a.closedCount}</div><div class="label">Closed dossiers</div></div>
+        <div class="stat-pill"><div class="num">${a.avgPerMember}</div><div class="label">Avg active / member</div></div>
+        <div class="stat-pill"><div class="num">${a.totalMembers}</div><div class="label">Team members</div></div>
+      </div>
+    `;
+
+    const agentRowsHtml = a.perAgent.length
+      ? a.perAgent.map((p) => {
+          const roleBadges = (p.roles || []).map((r) => `<span class="role-badge ${escapeHtml(r)}">${escapeHtml(r)}</span>`).join(' ');
+          return `
+            <tr>
+              <td><span class="agent-name">${escapeHtml(p.email)}</span> ${roleBadges}</td>
+              <td class="num-cell">${p.active}</td>
+              <td class="num-cell">${p.closed}</td>
+              <td class="num-cell ${p.flagged ? 'flagged' : ''}">${p.flagged}</td>
+            </tr>
+          `;
+        }).join('')
+      : `<tr><td colspan="4"><div class="empty">No members yet.</div></td></tr>`;
+
+    const maxStage = Math.max(1, ...APP_STAGES.filter((s) => s.id !== 'closed').map((s) => a.stageCounts[s.id] || 0));
+    const stageRowsHtml = APP_STAGES.filter((s) => s.id !== 'closed').map((stage) => {
+      const count = a.stageCounts[stage.id] || 0;
+      const pct = Math.round((count / maxStage) * 100);
+      return `
+        <div class="stage-dist-row">
+          <div class="stage-dist-label">${stage.icon} ${escapeHtml(stage.name)}</div>
+          <div class="stage-dist-bar-wrap"><div class="stage-dist-bar" style="width:${count ? Math.max(pct, 6) : 0}%;"></div></div>
+          <div class="stage-dist-count">${count}</div>
+        </div>
+      `;
+    }).join('');
+
+    analyticsView.innerHTML = `
+      ${statsHtml}
+      <div class="analytics-grid">
+        <div class="card">
+          <h2>Per-agent breakdown</h2>
+          <table class="analytics-table">
+            <thead><tr><th>Agent</th><th>Active</th><th>Closed</th><th>Needs attention</th></tr></thead>
+            <tbody>${agentRowsHtml}</tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Stage distribution</h2>
+          <div class="sectionSub" style="font-size:12.5px;color:var(--text-soft);margin-bottom:10px;">Active dossiers team-wide, by pipeline stage.</div>
+          ${stageRowsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function setView(view) {
+    const isMembers = view === 'members';
+    membersView.style.display = isMembers ? '' : 'none';
+    analyticsView.style.display = isMembers ? 'none' : 'block';
+    tabMembers.classList.toggle('active', isMembers);
+    tabAnalytics.classList.toggle('active', !isMembers);
+    if (!isMembers && lastOrgData) renderAnalytics(lastOrgData.members || []);
+  }
+  tabMembers.addEventListener('click', () => setView('members'));
+  tabAnalytics.addEventListener('click', () => setView('analytics'));
+
   function renderGate(text) {
     authCard.style.display = 'none';
     dashCard.style.display = 'none';
@@ -558,6 +705,7 @@
     }
 
     const members = data.members || [];
+    lastOrgData = data;
     const totalDossiers = members.reduce((sum, m) => sum + m.dossier_count, 0);
     statStrip.innerHTML = `
       <div class="stat-pill"><div class="num">${members.length}</div><div class="label">Members</div></div>
@@ -566,6 +714,7 @@
     `;
 
     renderRoster(members);
+    setView('members');
   }
 
   async function signIn() {
@@ -607,6 +756,7 @@
     orgContext = null;
     selectedMemberId = null;
     allMembers = [];
+    lastOrgData = null;
     dashCard.style.display = 'none';
     gateCard.style.display = 'none';
     authCard.style.display = 'block';
