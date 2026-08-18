@@ -286,10 +286,16 @@ function buildPostBody(post) {
 
 // Fallback account lookup — Phase 5/6 seeders sometimes ship rows without
 // zernio_account_id populated. Query zernio_accounts by platform + is_active.
-async function lookupZernioAccountId(platform) {
+//
+// `owner` disambiguates two destinations on the same platform (e.g. Dossie's
+// Facebook Page vs Heath's personal realtor Facebook Page — see
+// 20260817_zernio_accounts_owner.sql). Defaults to 'dossie', so every
+// existing call site (cron-generate-posts.js, cron-coverage-check.js, and
+// this file's own default-arg calls) keeps resolving exactly as before.
+async function lookupZernioAccountId(platform, owner = 'dossie') {
   try {
     const { data, ok } = await supabaseFetch(
-      `/rest/v1/zernio_accounts?platform=eq.${encodeURIComponent(platform)}&is_active=eq.true&select=zernio_account_id&limit=1`
+      `/rest/v1/zernio_accounts?platform=eq.${encodeURIComponent(platform)}&owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=zernio_account_id&limit=1`
     );
     if (ok && Array.isArray(data) && data.length > 0) return data[0].zernio_account_id || null;
   } catch (_) { /* swallow */ }
@@ -299,7 +305,9 @@ async function lookupZernioAccountId(platform) {
 async function pushToZernio(post) {
   if (!post.zernio_account_id) {
     // Try inline fallback lookup before failing (Atlas 2026-07-11).
-    const fallback = await lookupZernioAccountId(post.platform);
+    // target_owner comes from social_posts (default 'dossie' — see
+    // 20260817_social_posts_target_owner.sql); most rows never set it.
+    const fallback = await lookupZernioAccountId(post.platform, post.target_owner || 'dossie');
     if (fallback) {
       console.log(`[zernio-account-fallback] post ${post.id} (${post.platform}): using ${fallback} from zernio_accounts table`);
       post.zernio_account_id = fallback;
