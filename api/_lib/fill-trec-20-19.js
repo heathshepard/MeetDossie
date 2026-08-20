@@ -369,7 +369,40 @@ async function fillTrec2019(pdfDoc, fv) {
   // bug. Do not re-add a second draw call for either of these two fields.
 
   // ¶8 Broker relationship disclosure
-  drawFieldText('broker_relationship_disclosure', fv.broker_relationship_disclosure || '');
+  // 2026-08-20 CARTER — the editor now sends this as a real, sometimes-long
+  // sentence (concatenation of its own broker_disclosure_line1/2 fields via
+  // trec-20-19-editor-field-translate.js), where previously the field was
+  // effectively never populated. drawFieldText() has no wrap/clip logic, so
+  // an unbounded string ran straight off the right edge of the page — found
+  // in real-browser verification (real click-through + rendered PNG of the
+  // downloaded PDF), not code review. Root cause: the stored coord's
+  // maxWidth (200pt) is simply wrong for this field's x position (497.43pt
+  // on a 612pt-wide page — only ~106pt of real room exists, not 200). Rather
+  // than trust that stale value, clamp to the PAGE'S ACTUAL width at fill
+  // time (provably correct) and truncate there, same "abbreviate rather
+  // than write off the form" rule already used for the escrow address.
+  // KNOWN FOLLOW-UP: this form's printed ¶8A has two additional blank
+  // continuation lines below this one with no coordinates mapped yet for
+  // them — a long disclosure still truncates to one line rather than
+  // wrapping onto them. Needs the same bbox-verification pass the other
+  // 2026-08-19 checkbox fixes used before adding new coordinates; not done
+  // here since that would be guessing, not verifying.
+  {
+    const brokerDisclosureText = fv.broker_relationship_disclosure || '';
+    if (brokerDisclosureText) {
+      const coord = coordMap.broker_relationship_disclosure;
+      const fontSize = (coord && coord.fontSize) || 9;
+      const storedMaxWidth = (coord && coord.maxWidth) || 200;
+      const pageForField = coord && coord.page >= 1 && coord.page <= pages.length
+        ? pages[coord.page - 1] : null;
+      const realRoom = (pageForField && coord)
+        ? Math.max(0, pageForField.getWidth() - coord.x - 8)
+        : storedMaxWidth;
+      const maxWidth = Math.min(storedMaxWidth, realRoom);
+      const [firstLine] = wrapTextToWidth(brokerDisclosureText, fontSize, maxWidth);
+      drawFieldText('broker_relationship_disclosure', firstLine);
+    }
+  }
 
   // CLOSING (Section 9)
   const closingDate = fv.closing_date ? formatDate(fv.closing_date) : '';
