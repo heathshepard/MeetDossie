@@ -43,14 +43,23 @@
       "align": "left",
       "notes": "¶2A Block number (right of \"Block\", extends to \",\")"
     },
-    "addition_name": {
+    "city_name": {
       "page": 1,
       "x": 158.72,
       "y": 605.98,
       "fontSize": 10,
       "maxWidth": 164.95,
       "align": "left",
-      "notes": "¶2A City name (between \"City of\" and \", County of\")"
+      "notes": "¶2A City name (between \"City of\" and \", County of\"). RENAMED 2026-08-19 from 'addition_name' -- this coordinate was always physically the City blank; the JS field key just had the wrong name, which is the root cause of the legal-description/city swap bug (the addition/subdivision text was being drawn here instead of the city)."
+    },
+    "addition_name": {
+      "page": 1,
+      "x": 312,
+      "y": 616.66,
+      "fontSize": 10,
+      "maxWidth": 269,
+      "align": "left",
+      "notes": "¶2A Addition/subdivision name -- tail of the \"Lot ___ Block ___,\" line, continuing to the right margin before \"Addition,\" wraps onto the next line. NEW 2026-08-19 (bbox-verified against blank template): there was previously no coordinate at all for the real addition-name blank; the 'addition_name' key was pointing at the City blank instead (see 'city_name' above)."
     },
     "county": {
       "page": 1,
@@ -120,9 +129,18 @@
       "x": 400.69,
       "y": 706.78,
       "fontSize": 10,
-      "maxWidth": 165,
+      "maxWidth": 158,
       "align": "left",
-      "notes": "¶5A Escrow Agent address (right of \"(Escrow Agent) at\")"
+      "notes": "¶5A Escrow Agent address (right of \"(Escrow Agent) at\"). Real AcroForm field rect (garbled name, page-2 dump 2026-08-19): x~404 w~158 y~705. maxWidth corrected from 165 -> 158 to match."
+    },
+    "escrow_agent_address_line2": {
+      "page": 2,
+      "x": 75.26,
+      "y": 696.1,
+      "fontSize": 10,
+      "maxWidth": 150,
+      "align": "left",
+      "notes": "¶5A Escrow Agent address, CONTINUATION line (the blank before \"(address):\" on the printed line directly below \"...(Escrow Agent) at ___\"). Real AcroForm field rect: x~75 w~151 y~695 -- confirms maxWidth 150 is correct. 2026-08-19 FIX: fillTrec2019() now wraps the line1 remainder AGAINST this maxWidth too (and drops anything past it) instead of drawing the full unwrapped remainder here, which used to run straight through the printed \"(address): $\" text and the earnest-money/option-fee amounts next to it -- there is no third blank on the real form to overflow onto."
     },
     "earnest_money": {
       "page": 2,
@@ -518,7 +536,7 @@
       "fontSize": 9,
       "maxWidth": 60,
       "align": "left",
-      "notes": "¶10A POSSESSION annotation (\"Upon Closing\" or \"Lease\"), right of section title"
+      "notes": "DEPRECATED 2026-08-19 -- do not draw. Not a real field; confirmed against both the blank template and a real zipForm rendering that \"10. POSSESSION:\" goes straight into \"A. BUYER'S POSSESSION: ... [ ] upon closing and funding [ ] according to a temporary residential lease...\" with no annotation blank in between. The real election is the checkbox pair handled by applyResaleContractCheckboxes() (RESALE_CHECKBOX.possession_closing / possession_temp_lease); this text used to render as a stray floating word next to the heading, redundant with that checkbox. fillTrec2019() no longer calls drawFieldText('possession', ...) -- must not be reintroduced."
     },
     "hoa_exists": {
       "page": 3,
@@ -536,7 +554,7 @@
       "fontSize": 6,
       "maxWidth": 480,
       "align": "left",
-      "notes": "¶2 HOA association name (footer margin annotation — HOA name properly lives on HOA Addendum, this is documentation only)"
+      "notes": "DEPRECATED 2026-08-19 -- do not draw. Not a real field; there is no free-text HOA-name blank anywhere on the TREC 20-19 base contract (confirmed against both the blank template and a real zipForm rendering). ¶6E(2) is checkboxes only (is/is-not subject to mandatory membership); the HOA's actual name belongs on the separate HOA Addendum (TREC 36-11). This coordinate (footer margin, y=8) sits outside the form's printed border. fillTrec2019() no longer calls drawFieldText('hoa_description', ...) -- left here only so the coordinate exists if some other caller references it, but it must not be reintroduced into the main fill pass."
     },
     "city_state_zip": {
       "page": 1,
@@ -581,7 +599,7 @@
       "fontSize": 7,
       "maxWidth": 260,
       "align": "left",
-      "notes": "¶6A Title Company address annotation (bottom margin — value primarily consumed via escrow_agent_address_line1 fallback; documentation coord)"
+      "notes": "DEPRECATED 2026-08-19 -- do not draw. Not a real field; ¶6A only prints \"...issued by ___ (Title Company)\" (name only, confirmed against a real zipForm rendering) -- there is no separate Title Company ADDRESS blank on this form at all. This coordinate (bottom margin, y=45) sits in the page footer and collided with \"Initialed for identification by Buyer___ and Seller___ / TREC NO. 20-19\" whenever a value was supplied. The value is already carried through the escrow_agent_address_line1/line2 fallback chain (Title Company is almost always the Escrow Agent). fillTrec2019() no longer calls drawFieldText('title_company_address', ...) -- must not be reintroduced into the main fill pass."
     },
     "funding_notice_days": {
       "page": 1,

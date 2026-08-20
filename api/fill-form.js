@@ -1781,58 +1781,145 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     // not specified. Per Hadley 40-11 KB gotcha #1: leaving §1.C rate cap blank VOIDS the
     // FHA financing contingency. Round-2 shipped this field blank.
     safeSetText(form, 'years with interest not to exceed_2', fv.fha_interest_rate_cap || fv.interest_rate_max || fv.interest_rate_cap || '8.0');
-    safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.fha_origination_cap || '1.00');
+    // 2026-08-19 BROKERAGE FIX -- FHA rate-cap PERIOD ("per annum for the
+    // first ___ year(s)") was never wired at all (field 'Text1', bbox-
+    // verified 2026-08-19 against the blank template -- it's the blank at
+    // the start of the "year(s) of the loan with Origination Charges..."
+    // wrap line). VA/USDA already default this same blank to 30; FHA now
+    // matches for consistency.
+    safeSetText(form, 'Text1', fv.fha_rate_cap_period || '30');
+    // 2026-08-19 BROKERAGE FIX -- root cause of "1.00" rendering on the
+    // E. USDA line instead of FHA's own §1.C origination-charges-% blank.
+    // The field this used to target here ('Charges as shown on Buyers
+    // Loan Estimate for the loan not to exceed') is bbox-verified (see
+    // the VA/USDA/Reverse comment block below) to be USDA's real loan-
+    // amount blank, not FHA's origination-charges %. FHA's real
+    // origination-%  blank is field 'not to exceed' (the very last blank
+    // in the FHA paragraph, right before "% of the loan.") -- confirmed
+    // via a live test render + bbox cross-reference, 2026-08-19.
+    safeSetText(form, 'not to exceed', fv.fha_origination_cap || '1.00');
+    // 2026-08-19 BROKERAGE FIX -- REMOVED the fha_conversion_amount sub-
+    // block that used to run here. It wrote to 'Conversion Mortgage loan
+    // in the original principal amount of' (which this file's own D9-fix
+    // comment on the VA block already documents as a MISLABELED widget
+    // that's really the page-2 §2.A buyer-approval-days blank, not
+    // anything on page 1) and to a second, now-redundant use of 'not to
+    // exceed' (FHA's real origination-% blank, wired correctly just
+    // above -- firing this block would have overwritten it with an
+    // unrelated value). fv.fha_conversion_amount is not used anywhere in
+    // Brokerage's real FHA offer workflow; removed rather than re-mapped
+    // since there is no confirmed real blank on this form for an
+    // FHA-to-HECM conversion feature to re-target.
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.fha_appraised_value != null && fv.fha_appraised_value !== '' ? formatMoney(fv.fha_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
-    if (fv.fha_conversion_amount) {
-      safeSetText(form, 'Conversion Mortgage loan in the original principal amount of', formatMoney(fv.fha_conversion_amount));
-      safeSetText(form, 'not to exceed', fv.fha_conversion_not_exceed || '');
-    }
   }
 
+  // 2026-08-19 BROKERAGE FIX -- MAJOR. The D. VA / E. USDA / F. REVERSE
+  // MORTGAGE sections were CYCLICALLY MISMAPPED: every checkbox and every
+  // numeric field for these three loan types was actually positioned on a
+  // DIFFERENT one of the three paragraphs than its own name/the code
+  // claimed. Verified via a full bbox cross-reference (pdftotext -bbox
+  // against the real printed paragraph text, cross-referenced with each
+  // AcroForm field's real Rect) of the blank live asset, 2026-08-19 --
+  // confirmed by a live test render (VA financing selected, $360,000 loan,
+  // 6.5% rate) that showed every VA figure rendering inside the E. USDA
+  // paragraph instead of the D. VA paragraph. The pattern: field named
+  // "4 VA Guaranteed Financing..." is really the E. USDA checkbox; field
+  // named "5 USDA Guaranteed Financing..." is really the F. REVERSE
+  // MORTGAGE checkbox; field named "6 Reverse Mortgage Financing..." is
+  // really the D. VA checkbox -- and each type's numeric fields (loan
+  // amount, years, interest-rate cap, rate-cap period, origination %)
+  // follow that SAME one-paragraph-forward rotation. Every field name
+  // below is bbox-verified against the actual printed line/paragraph it
+  // sits on; do not trust this asset's own field names for this section.
   if (ft === 'va' || fv.financing_va === true) {
-    safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
-    safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    // D9 fix: Use loan_term_years as fallback, default to 30
-    safeSetText(form, 'years', fv.va_amortization_years || fv.loan_term_years || '30');
-    // D9 fix: Use interest_rate_cap as fallback
-    safeSetText(form, 'with interest not to exceed', fv.va_interest_rate_cap || fv.interest_rate_cap || '');
-    // D9 fix: Default rate cap period to 30 years
-    safeSetText(form, 'per annum for the first_4', fv.va_per_annum_first || '30');
-    // D9 fix: Default origination cap to 1.00
-    safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.va_origination_cap || '1.00');
+    // Real VA checkbox (mislabeled "6 Reverse Mortgage...").
+    safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
+    // Real VA loan-amount blank ("...loan of not less than $___").
+    safeSetText(form, 'excluding_2', loanAmt);
+    // Real VA years blank ("...for not less than ___ years,").
+    safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', fv.va_amortization_years || fv.loan_term_years || '30');
+    // Real VA interest-rate-cap blank ("interest not to exceed ___%").
+    safeSetText(form, 'not to exceed_2', fv.va_interest_rate_cap || fv.interest_rate_cap || '');
+    // Real VA rate-cap-period blank ("per annum for the first ___ year(s)").
+    safeSetText(form, 'per annum for the first_3', fv.va_per_annum_first || '30');
+    // Real VA origination-charges-% blank (last blank in the paragraph).
+    // 2026-08-19 BROKERAGE FIX -- the AcroForm field named 'Text2' is a
+    // genuine DUPLICATE-NAME collision on this asset: it has two separate
+    // widgets, one at VA's real origination-% blank (rect y=311) and a
+    // second, unrelated one at G. OTHER FINANCING's own origination-%
+    // blank (rect y=130) -- confirmed via a direct widget dump against the
+    // blank template, 2026-08-19. safeSetText(form, 'Text2', ...) sets the
+    // field's one shared value, which pdf-lib then renders into BOTH
+    // widgets -- so filling VA's origination cap was also silently
+    // stamping an unrelated, unexplained number onto the G. OTHER
+    // FINANCING paragraph even when Other Financing was never selected
+    // (confirmed via a live VA-only test render). Drawing raw text at
+    // VA's specific widget rect instead of going through the shared named
+    // field avoids touching the G. OTHER widget at all.
+    try {
+      pdfDoc.getPages()[0].drawText(String(fv.va_origination_cap || '1.00'), { x: 90, y: 313, size: 9 });
+    } catch (e) {
+      console.warn('[fill-form] VA origination-cap raw draw failed:', e && e.message);
+    }
     // D7 fix: Populate FHA/VA appraised value floor with sale_price fallback
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
   }
 
   if (ft === 'usda' || fv.financing_usda === true) {
-    safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
-    safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', loanAmt);
-    // D10 NOTE: USDA term, rate cap %, rate cap period years, and origination cap % fields
-    // are NOT YET ENUMERATED in trec-40-raw.pdf AcroForm. These fields need to be added to
-    // the PDF template before they can be wired. Once added, wire:
-    // - USDA term-years → fv.financing_usda_term_years || fv.loan_term_years || '30'
-    // - USDA rate cap % → fv.financing_usda_rate_cap || fv.interest_rate_cap || ''
-    // - USDA rate cap period → fv.financing_usda_rate_cap_period || '30'
-    // - USDA origination cap % → fv.financing_usda_origination_cap || '1.00'
+    // Real USDA checkbox (mislabeled "4 VA Guaranteed...").
+    safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
+    // Real USDA loan-amount blank.
+    safeSetText(form, 'Charges as shown on Buyers Loan Estimate for the loan not to exceed', loanAmt);
+    // Real USDA years blank. D10's prior note claiming these USDA fields
+    // "are NOT YET ENUMERATED in trec-40-raw.pdf AcroForm" was wrong --
+    // they exist, they were just never bbox-verified before this pass
+    // (the field names just don't say "USDA" anywhere on them).
+    safeSetText(form, 'years', fv.financing_usda_term_years || fv.loan_term_years || '30');
+    // Real USDA interest-rate-cap blank.
+    safeSetText(form, 'with interest not to exceed', fv.financing_usda_rate_cap || fv.interest_rate_cap || '');
+    // Real USDA rate-cap-period blank.
+    safeSetText(form, 'excluding any financed Funding Fee amortizable monthly for not less than', fv.financing_usda_rate_cap_period || '30');
+    // Real USDA origination-charges-% blank.
+    safeSetText(form, 'Estimate for the loan not to exceed', fv.financing_usda_origination_cap || '1.00');
   }
 
   if (ft === 'reverse' || fv.financing_reverse === true) {
-    safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
-    safeSetText(form, 'excluding_2', fv.reverse_exclusion || '');
-    safeSetText(form, 'not to exceed_2', fv.reverse_not_exceed || '');
-    safeSetText(form, 'any financed Funding Fee amortizable monthly for not less than', loanAmt);
-    safeSetText(form, 'per annum for the first_3', fv.reverse_per_annum || '');
-    // D11 fix: Wire Reverse Mortgage "will/will not FHA insured" paired checkboxes
+    // Real Reverse Mortgage checkbox (mislabeled "5 USDA Guaranteed...").
+    safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
+    // Real Reverse loan-amount blank ("...principal amount of $___").
+    safeSetText(form, 'per annum for the first_4', fv.reverse_exclusion || loanAmt || '');
+    // Real Reverse interest-rate-cap blank.
+    safeSetText(form, 'any financed PMI premium or other costs with interest not to exceed', fv.reverse_not_exceed || fv.interest_rate_cap || '');
+    // Real Reverse rate-cap-period blank. Defaulted to 30 for the same
+    // reason VA/USDA default this blank -- leaving it blank is inert but
+    // an unfilled rate-cap PERIOD makes the rate-cap dollar figure above
+    // ambiguous on the executed document.
+    safeSetText(form, 'for the first', fv.reverse_per_annum || '30');
+    // Real Reverse origination-charges-% blank.
+    safeSetText(form, 'Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed', fv.reverse_origination_cap || '1.00');
+    // 2026-08-19 BROKERAGE FIX -- 'will' and 'will not be an FHA insured
+    // loan' are SWAPPED on this asset, confirmed via a direct widget-rect
+    // dump against the blank template: the field named 'will' (x=88.8,
+    // y=180.6) sits at the printed "[ ] will not be an FHA insured loan."
+    // checkbox position, and the field named 'will not be an FHA insured
+    // loan' (x=526.6, y=196.1) sits at the printed "...reverse mortgage
+    // loan [ ] will" (be FHA insured) position -- confirmed by a live test
+    // render (fv.financing_reverse_fha_insured=true rendered "will not"
+    // checked and "will" empty, the exact inverse of what was requested).
+    // The 'will-1'/'will-2' unchecks are no-ops here (those two fields are
+    // actually G. OTHER FINANCING's "does/does not waive Paragraph 2B"
+    // checkboxes, unrelated to this paragraph) but are left in place since
+    // they're harmless and pre-existing.
     if (fv.financing_reverse_fha_insured === true) {
-      safeCheck(form, 'will');
-      safeUncheck(form, 'will-1');
-      safeUncheck(form, 'will-2');
-      safeUncheck(form, 'will not be an FHA insured loan');
-    } else if (fv.financing_reverse_fha_insured === false) {
-      safeUncheck(form, 'will');
-      safeUncheck(form, 'will-1');
-      safeUncheck(form, 'will-2');
       safeCheck(form, 'will not be an FHA insured loan');
+      safeUncheck(form, 'will-1');
+      safeUncheck(form, 'will-2');
+      safeUncheck(form, 'will');
+    } else if (fv.financing_reverse_fha_insured === false) {
+      safeUncheck(form, 'will not be an FHA insured loan');
+      safeUncheck(form, 'will-1');
+      safeUncheck(form, 'will-2');
+      safeCheck(form, 'will');
     }
   }
 
@@ -2278,9 +2365,20 @@ async function fillSellersDisclosure(pdfDoc, fv) {
     safeSetText(form, 'form1[0].#subform[0].TextField3[34]', String(fv.year_built).slice(0, 5));
   }
 
-  // SELLER NAMES
-  safeSetText(form, 'form1[0].#subform[0].TextField4[0]', fv.seller_name_1 || fv.seller_name || '');
-  safeSetText(form, 'form1[0].#subform[0].TextField4[1]', fv.seller_name_2 || '');
+  // 2026-08-19 BROKERAGE FIX -- these two fields are NOT seller names.
+  // Verified via a widget-rect + bbox cross-reference against the blank
+  // TREC 55-1 template, 2026-08-19: 'TextField4[0]' (rect x=109.8,
+  // w=237.8) sits directly on the "Roof Type: ___" blank, and
+  // 'TextField4[1]' (rect x=373.5, w=118.2, same row) sits on the
+  // "Age: ___ (approx.)" blank right after it. Writing fv.seller_name
+  // here (as the old "SELLER NAMES" mapping did) put the seller's name
+  // into the Roof Type blank on every render -- confirmed via a live test
+  // fill. TREC 55-1 has no separate printed "Seller Name" line on page 1
+  // at all (unlike TXR-1406's grid-table format); the seller's printed
+  // name belongs on the signature block on a later page, which was not
+  // re-derived in this pass -- left unmapped rather than guessed.
+  safeSetText(form, 'form1[0].#subform[0].TextField4[0]', fv.roof_type || '');
+  safeSetText(form, 'form1[0].#subform[0].TextField4[1]', fv.roof_age || '');
 
   // SELLER NOTES
   safeSetText(form, 'form1[0].#subform[0].TextField3[31]', fv.seller_notes || '');
@@ -2616,10 +2714,19 @@ async function fillAppraisalTermination(pdfDoc, fv) {
       safeSetText(form, 'than', formatMoney(fv.sales_price));
     }
   } else if (fv.appraisal_additional === true) {
+    // 2026-08-19 BROKERAGE FIX: verified via pdf-lib field-rect dump against
+    // the blank TREC 49-1 asset (.tmp/brokerage-work/dump-49-1-fields.js) --
+    // 'ii the opinion of value is' (rect y=398, ABOVE the Option (3)
+    // checkbox at y=341) is actually Option (2) PARTIAL WAIVER's "or more"
+    // dollar blank, not Option (3)'s. Writing a dollar amount into it while
+    // only Option (3) is checked put a stray, unexplained dollar figure
+    // next to the UNCHECKED Option (2) clause on every prior render. Option
+    // (3)'s own two blanks (both BELOW its checkbox, matching the printed
+    // "...terminate the contract within ___ days after the Effective Date
+    // if (i) the appraised value...is less than $___" text) are
+    // 'days after the Effective Date if' and 'than' -- both correctly
+    // named as-is. Do NOT also write 'ii the opinion of value is' here.
     safeCheck(form, '3 ADDITIONAL');
-    if (fv.appraised_value != null && fv.appraised_value !== '') {
-      safeSetText(form, 'ii the opinion of value is', formatMoney(fv.appraised_value));
-    }
     if (fv.appraisal_days_after_effective) {
       safeSetText(form, 'days after the Effective Date if', String(fv.appraisal_days_after_effective));
     }
@@ -3758,82 +3865,34 @@ async function fillForm(formType, fieldValues) {
   // The form widgets remain interactive in viewers that support them, but the
   // appearance streams are baked so the values are visible in any PDF viewer
   // (including pdftoppm, browser PDF render, print, etc.).
+  // 2026-08-19 BROKERAGE FIX -- root cause of "checkbox shows BOTH an
+  // outline AND a separate X mark overlapping". The three 2026-06-28
+  // passes below were stacked on top of each other over one day, each
+  // added because the previous one "didn't render everywhere", but none
+  // of the earlier ones were ever removed:
+  //   1. updateFieldAppearances() -- bakes a REAL native appearance into
+  //      each checked box's /AP /N /On stream (confirmed by direct
+  //      inspection: a proper ZapfDingbats checkmark glyph, sized to the
+  //      widget's own Rect). This is standard, spec-correct PDF and
+  //      renders in every viewer that was actually tested (Acrobat,
+  //      Chrome, Preview, pdftoppm/poppler).
+  //   2. NeedAppearances=true -- tells spec-compliant viewers to DISCARD
+  //      the appearance just baked in step 1 and regenerate their own
+  //      checkbox glyph from scratch at render time instead.
+  //   3. A manual "X" drawn as literal page content directly on top of
+  //      the same widget rect, regardless of what steps 1/2 produce.
+  // In a Chromium-based renderer (Playwright, used for real-browser
+  // verification), step 2 makes Chrome draw its own mark AND step 3 draws
+  // a second, separate mark on top of it -- the actual doubled/overlapping
+  // mark Heath saw. Steps 2 and 3 are REMOVED; step 1 alone is the one
+  // consistent method now. Re-verified visually (pdftoppm render) after
+  // removal that checkboxes still show a single clean mark -- see
+  // .tmp/brokerage-work/*/screenshots-final-v3 remake for the properties
+  // this touched (Old Homestead / Low Oak / Royal Crescent).
   try {
     pdfDoc.getForm().updateFieldAppearances();
   } catch (e) {
     console.warn('[fill-form] updateFieldAppearances failed:', e && e.message);
-  }
-  // ATLAS 2026-06-28 EOD pivot: set /NeedAppearances=true on the AcroForm so PDF
-  // viewers that ignore baked appearance streams (poppler, some Acrobat configs,
-  // browser PDF renderers) will recompute appearances at render time. TREC's
-  // original PDFs DON'T set this flag, so without this override every checkbox
-  // value silently fails to render anywhere except in Acrobat-full.
-  try {
-    const { PDFName, PDFBool } = require('pdf-lib');
-    pdfDoc.getForm().acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
-  } catch (e) {
-    console.warn('[fill-form] NeedAppearances flag set failed:', e && e.message);
-  }
-
-  // ATLAS 2026-06-28 BULLETPROOF X-OVERLAY: For every checked checkbox, draw a
-  // literal "X" character at the widget's rectangle position. This works in
-  // EVERY PDF viewer (Adobe, Chrome, Firefox, pdftoppm, Telegram preview, mobile,
-  // PWA) because it's just page-level text drawn at exact widget coordinates —
-  // no font tricks, no /AP appearance stream voodoo, no /NeedAppearances flag
-  // dependency. The widget's /V is still set so the form value persists when
-  // editing in Acrobat; the overlay just guarantees visible rendering everywhere.
-  try {
-    const { PDFName } = require('pdf-lib');
-    const form = pdfDoc.getForm();
-    const pages = pdfDoc.getPages();
-    // Build a map from PDFRef -> pageIndex for fast lookup
-    const widgetRefToPage = new Map();
-    for (let pi = 0; pi < pages.length; pi++) {
-      const annots = pages[pi].node.Annots();
-      if (!annots || !annots.asArray) continue;
-      const arr = annots.asArray();
-      for (const annRef of arr) {
-        widgetRefToPage.set(annRef, pi);
-      }
-    }
-    const checkboxes = form.getFields().filter(function(f) { return f.constructor.name === 'PDFCheckBox'; });
-    let overlayCount = 0;
-    for (const cb of checkboxes) {
-      let isChecked = false;
-      try { isChecked = cb.isChecked(); } catch (e) { continue; }
-      if (!isChecked) continue;
-      const widgets = cb.acroField.getWidgets();
-      for (const w of widgets) {
-        const dict = w.dict;
-        const rect = dict.get(PDFName.of('Rect'));
-        if (!rect || !rect.asArray) continue;
-        const r = rect.asArray().map(function(n) { return n.numberValue || 0; });
-        const x0 = r[0], y0 = r[1], x1 = r[2], y1 = r[3];
-        const w_ = x1 - x0, h_ = y1 - y0;
-        // Find which page contains this widget annotation
-        let pageIdx = -1;
-        for (const [ref, pi] of widgetRefToPage.entries()) {
-          const annDict = pdfDoc.context.lookup(ref);
-          if (annDict === dict) { pageIdx = pi; break; }
-        }
-        if (pageIdx < 0) continue;
-        const page = pages[pageIdx];
-        // Draw a bold X centered in the widget rect. Font size is min(w,h) scaled
-        // so the X visually fills the box. The page-level drawing covers any
-        // missing appearance stream rendering — pdftoppm/Chrome/Adobe all show it.
-        const fontSize = Math.max(6, Math.min(w_, h_) * 1.0);
-        // Center horizontally: x = x0 + (w - charWidth)/2; charWidth ~= fontSize*0.5 for X
-        const cx = x0 + (w_ - fontSize * 0.5) / 2;
-        const cy = y0 + (h_ - fontSize * 0.72) / 2;
-        try {
-          page.drawText('X', { x: cx, y: cy, size: fontSize });
-          overlayCount++;
-        } catch (e) { /* drawText can fail if font missing; ignore */ }
-      }
-    }
-    console.log('[fill-form] drew X overlay on ' + overlayCount + ' checked widgets');
-  } catch (e) {
-    console.warn('[fill-form] X-overlay pass failed:', e && e.message);
   }
   // FLATTEN REMOVED 2026-06-28 — pdf-lib's flatten() bug strips checkbox X marks.
 
