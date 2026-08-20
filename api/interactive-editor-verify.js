@@ -34,6 +34,7 @@ const { applyCorsHeaders } = require('./_middleware/cors');
 // fillTrec2019 pipeline as /api/interactive-editor-download-pdf so the
 // hashed bytes match what the agent previewed.
 const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
+const { translateEditorFieldNames } = require('./_lib/trec-20-19-editor-field-translate');
 const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -149,7 +150,11 @@ module.exports = async function handler(req, res) {
     // fill server-side and hash it so the legal trail row is never NULL.
     if (!pdfHash && formNumber === '20-19') {
       try {
-        const merged = mergeTxnAndSnapshot(txnRow, fieldValues);
+        // 2026-08-20 CARTER — Quinn QA fix. Same translation as
+        // interactive-editor-download-pdf.js so the hash matches what the
+        // agent actually previewed/downloaded. See
+        // _lib/trec-20-19-editor-field-translate.js.
+        const merged = translateEditorFieldNames(mergeTxnAndSnapshot(txnRow, fieldValues));
         pdfHash = await computeFilledPdfSha256(merged);
       } catch (hashErr) {
         console.warn('[interactive-editor-verify] pdf_hash compute failed:', hashErr && hashErr.message);

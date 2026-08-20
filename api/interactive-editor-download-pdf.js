@@ -27,6 +27,7 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
+const { translateEditorFieldNames } = require('./_lib/trec-20-19-editor-field-translate');
 
 const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
@@ -155,7 +156,13 @@ module.exports = async function handler(req, res) {
       snapshot = await loadLatestVerificationSnapshot(transactionId, formNumber);
     }
 
-    const merged = mergeFieldValues(txn, snapshot);
+    // 2026-08-20 CARTER — Quinn QA fix. The editor's field_values snapshot
+    // still uses the pre-2026-08-19 Fable5 key names for several sections
+    // (survey, title expense, HOA, as-is, possession, broker disclosure);
+    // translate them onto the keys fill-trec-20-19.js now reads. See
+    // _lib/trec-20-19-editor-field-translate.js for the full mapping +
+    // known gaps.
+    const merged = translateEditorFieldNames(mergeFieldValues(txn, snapshot));
 
     // Render the filled PDF.
     let buffer;
