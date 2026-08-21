@@ -4,6 +4,12 @@
 //   CRON_SECRET also accepted (so Cole/agents can drive the HUD via cron too).
 // - pickNext(supabase): the picker. Reads heath_todo_ready view, returns the
 //   single highest-priority oldest item, or null. Includes computed age_minutes.
+// - pickList(supabase, limit): same ordering/eligibility as pickNext, but
+//   returns the FULL ready backlog (up to limit) instead of just item #1.
+//   Added 2026-08-21 — the HUD's To-Do card was silently hiding every item
+//   past the first one; queue_count was also always undefined because
+//   heath-todo-next.js never computed it. Both fixed by having the card read
+//   the real list instead of a single-item view.
 //
 // Owner: Atlas (SV-ENG-HEATH-TODO / 2026-06-17)
 
@@ -63,10 +69,36 @@ async function pickNext(supabase) {
   };
 }
 
+// Returns the full ready backlog (same ordering/eligibility as pickNext),
+// up to `limit` rows. Each row shaped like pickNext's single return value.
+async function pickList(supabase, limit = 50) {
+  const { data, error } = await supabase
+    .from('heath_todo_ready')
+    .select('id, title, detail, action_type, priority, deadline, venture, created_at, created_by, metadata')
+    .order('priority', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) throw new Error(`pickList failed: ${error.message}`);
+
+  const now = Date.now();
+  return (data || []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    detail: row.detail,
+    action_type: row.action_type,
+    priority: row.priority,
+    deadline: row.deadline,
+    venture: row.venture,
+    created_by: row.created_by,
+    age_minutes: Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 60000)),
+  }));
+}
+
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type');
 }
 
-module.exports = { authorizeHeath, pickNext, cors };
+module.exports = { authorizeHeath, pickNext, pickList, cors };

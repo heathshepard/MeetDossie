@@ -1296,10 +1296,10 @@
     .todo-btn:disabled { opacity: 0.5; cursor: wait; }
 
     /* ===== JARVIS TO-DO LIST PANEL (jarvis_todos table, 2026-08-12) =====
-       Separate from the heath_todo / .todo-* styles above (single-item agent
-       work queue) -- this is the real, multi-item, manually + voice editable
-       to-do list Heath asked for. Prefixed jt- throughout to avoid colliding
-       with the existing .todo-* classes. */
+       Separate from the heath_todo / .todo-* styles above (agent-populated
+       backlog, full list as of 2026-08-21) -- this is the real, multi-item,
+       manually + voice editable to-do list Heath asked for. Prefixed jt-
+       throughout to avoid colliding with the existing .todo-* classes. */
     .jt-add-row { display: flex; gap: 8px; }
     .jt-add-input {
       flex: 1; min-width: 0;
@@ -3286,15 +3286,20 @@
             <!-- Renamed from generic "To-Do" (Carter, 2026-08-13) -- Heath flagged
                  confusion between this and the jarvis-todos-panel TO-DO above:
                  same word, two different tables. This one is heath_todo, an
-                 AGENT-populated single-item-at-a-time queue (cron-daily-debrief,
-                 cron-codebase-facts-indexer, etc. feed it) -- Heath doesn't add to
-                 it directly and it's not what Jarvis writes to conversationally.
-                 Left as a separate table on purpose: it also feeds
-                 jarvis-context-load / jarvis-voice-brief / jarvis-mark-complete,
-                 so merging it into jarvis_todos is a real migration, not a rename
-                 -- flagged as a follow-up, not done here. -->
+                 AGENT-populated backlog (cron-daily-debrief, cron-codebase-facts-
+                 indexer, etc. feed it) -- Heath doesn't add to it directly and
+                 it's not what Jarvis writes to conversationally.
+                 Fixed 2026-08-21 (Carter): the card used to render only the
+                 single highest-priority item and hide the rest of the real
+                 backlog behind a blank "queued" count -- /api/heath-todo-next
+                 now returns the full ready list + a real queue_count, and this
+                 card renders one .todo-card per row. Left as a separate table
+                 on purpose: it also feeds jarvis-context-load / jarvis-voice-
+                 brief / jarvis-mark-complete, so merging it into jarvis_todos
+                 is a real migration, not a rename -- still a follow-up, not
+                 done here. -->
             <div class="subpanel-header"><span>Agent Queue</span><span class="subpanel-count" id="todo-meta">—</span></div>
-            <div class="venture-untracked-note" style="margin-bottom:8px;">Auto-queued by other agents (Cole, crons) — one at a time. Not the same list as TO-DO above.</div>
+            <div class="venture-untracked-note" style="margin-bottom:8px;">Auto-queued by other agents (Cole, crons) — full backlog, priority order. Not the same list as TO-DO above.</div>
             <div id="todo-body" class="todo-body">
               <div class="todo-empty">Loading…</div>
             </div>
@@ -5825,9 +5830,14 @@
     });
 
     // ===== TO-DO panel =====
-    // Single-task focus: shows the highest-priority pending item w/ Done/Skip/Snooze.
-    // Calls /api/heath-todo-next, /api/heath-todo-complete, /api/heath-todo-skip, /api/heath-todo-snooze.
-    let currentTodo = null;
+    // Full-backlog view: shows every ready item (priority/age ordered), each
+    // with its own Done/Skip/Snooze. Calls /api/heath-todo-next (now returns
+    // the full `items` list + a real `queue_count`, not just item #1) and
+    // /api/heath-todo-complete, /api/heath-todo-skip, /api/heath-todo-snooze.
+    // Fixed 2026-08-21 — this card used to render exactly one task no matter
+    // how many were queued, and the "N queued" label was always blank because
+    // the API never sent queue_count.
+    let currentTodoItems = [];
     async function loadTodo() {
       const body = document.getElementById('todo-body');
       const meta = document.getElementById('todo-meta');
@@ -5843,10 +5853,12 @@
           return;
         }
         const data = await res.json();
-        renderTodo(data.task);
+        const items = Array.isArray(data.items) ? data.items : (data.task ? [data.task] : []);
+        renderTodoList(items);
         renderedOk = true;
-        if (meta && typeof data.queue_count === 'number') {
-          meta.textContent = data.queue_count ? `${data.queue_count} queued` : '';
+        if (meta) {
+          const count = typeof data.queue_count === 'number' ? data.queue_count : items.length;
+          meta.textContent = count ? `${count} queued` : 'All clear';
         }
       } catch (err) {
         console.warn('[jarvis] loadTodo failed', err && err.message ? err.message : err);
@@ -5856,51 +5868,61 @@
       }
     }
 
-    function renderTodo(task) {
+    function renderTodoList(items) {
       const body = document.getElementById('todo-body');
-      currentTodo = task;
-      if (!task) {
+      currentTodoItems = items || [];
+      if (!currentTodoItems.length) {
         body.innerHTML = `<div class="todo-empty">All clear. No pending tasks.</div>`;
         return;
       }
-      const prio = Number(task.priority) || 3;
-      const prioClass = prio <= 2 ? 'p1' : (prio === 3 ? 'p2' : 'p3');
-      const prioLabel = prio <= 2 ? 'URGENT' : (prio === 3 ? 'NORMAL' : 'LATER');
-      const venture = task.venture ? String(task.venture).toUpperCase() : '';
-      const detail = task.detail ? task.detail : '';
-      body.innerHTML = `
-        <div class="todo-card">
-          <div class="todo-priority-row">
-            <span class="todo-prio-badge ${prioClass}">${prioLabel}</span>
-            <span>${venture}</span>
+      body.innerHTML = currentTodoItems.map((task) => {
+        const prio = Number(task.priority) || 3;
+        const prioClass = prio <= 2 ? 'p1' : (prio === 3 ? 'p2' : 'p3');
+        const prioLabel = prio <= 2 ? 'URGENT' : (prio === 3 ? 'NORMAL' : 'LATER');
+        const venture = task.venture ? String(task.venture).toUpperCase() : '';
+        return `
+          <div class="todo-card" data-id="${task.id}">
+            <div class="todo-priority-row">
+              <span class="todo-prio-badge ${prioClass}">${prioLabel}</span>
+              <span>${venture}</span>
+            </div>
+            <div class="todo-title"></div>
+            ${task.detail ? '<div class="todo-detail"></div>' : ''}
+            <div class="todo-actions">
+              <button class="todo-btn done" data-act="done" data-id="${task.id}">Done</button>
+              <button class="todo-btn" data-act="snooze" data-id="${task.id}">Snooze 2h</button>
+              <button class="todo-btn" data-act="skip" data-id="${task.id}">Skip</button>
+            </div>
           </div>
-          <div class="todo-title"></div>
-          ${detail ? '<div class="todo-detail"></div>' : ''}
-          <div class="todo-actions">
-            <button class="todo-btn done" data-act="done">Done</button>
-            <button class="todo-btn" data-act="snooze">Snooze 2h</button>
-            <button class="todo-btn" data-act="skip">Skip</button>
-          </div>
-        </div>
-      `;
-      body.querySelector('.todo-title').textContent = task.title || '(untitled)';
-      const detailEl = body.querySelector('.todo-detail');
-      if (detailEl) detailEl.textContent = detail;
+        `;
+      }).join('');
+
+      // Fill title/detail via textContent (not template-interpolated) so a
+      // title/detail containing HTML-ish text can never inject markup.
+      currentTodoItems.forEach((task) => {
+        const card = body.querySelector(`.todo-card[data-id="${task.id}"]`);
+        if (!card) return;
+        const titleEl = card.querySelector('.todo-title');
+        if (titleEl) titleEl.textContent = task.title || '(untitled)';
+        const detailEl = card.querySelector('.todo-detail');
+        if (detailEl) detailEl.textContent = task.detail || '';
+      });
+
       body.querySelectorAll('.todo-btn').forEach(btn => {
-        btn.addEventListener('click', () => onTodoAction(btn.dataset.act, btn));
+        btn.addEventListener('click', () => onTodoAction(btn.dataset.act, btn.dataset.id, btn));
       });
     }
 
-    async function onTodoAction(act, btn) {
-      if (!currentTodo) return;
-      const id = currentTodo.id;
+    async function onTodoAction(act, id, btn) {
+      if (!id) return;
       const endpoint = act === 'done'   ? '/api/heath-todo-complete'
                      : act === 'skip'   ? '/api/heath-todo-skip'
                      : act === 'snooze' ? '/api/heath-todo-snooze'
                      : null;
       if (!endpoint) return;
-      const btns = document.querySelectorAll('.todo-btn');
-      btns.forEach(b => { b.disabled = true; });
+      const card = btn ? btn.closest('.todo-card') : null;
+      const cardBtns = card ? card.querySelectorAll('.todo-btn') : [];
+      cardBtns.forEach(b => { b.disabled = true; });
       try {
         const payload = { id };
         if (act === 'snooze') {
@@ -5916,23 +5938,16 @@
         });
         if (!res.ok) {
           showToast(`Todo ${act} failed (${res.status})`);
-          btns.forEach(b => { b.disabled = false; });
+          cardBtns.forEach(b => { b.disabled = false; });
           return;
         }
-        // Most endpoints return the next task in `next`; fall back to a fresh load.
-        const data = await res.json().catch(() => ({}));
-        if (data && Object.prototype.hasOwnProperty.call(data, 'next')) {
-          renderTodo(data.next || null);
-          const meta = document.getElementById('todo-meta');
-          if (meta && typeof data.queue_count === 'number') {
-            meta.textContent = data.queue_count ? `${data.queue_count} queued` : '';
-          }
-        } else {
-          await loadTodo();
-        }
+        // The action endpoints only ever hand back a single `next` item, which
+        // isn't enough to keep a multi-card list in sync — reload the real
+        // backlog instead so every remaining item (and the count) is correct.
+        await loadTodo();
       } catch (err) {
         console.warn('[jarvis] todo action failed', err);
-        btns.forEach(b => { b.disabled = false; });
+        cardBtns.forEach(b => { b.disabled = false; });
       }
     }
 
