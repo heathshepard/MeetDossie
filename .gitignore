@@ -241,3 +241,11 @@ scripts/import-sms.py
 scripts/run-sms-poller.sh
 scripts/register-sms-poller.ps1
 scripts/.demo-cleanup-protected.json
+
+# SABOR agent-roster scrape state (2026-08-21) — contains Heath's own home
+# address (addr1/city/zip) + TREC license + phone, plus likely other agents'
+# PII, pulled during the SA realtor scraper build. Untracked going forward;
+# already-committed copy on origin/main (commit aa645f3f) still needs a
+# decision from Heath on git-filter-repo + force-push before it's fully gone
+# from public history. Kept on disk, never staged again.
+scripts/.sa-realtor-v3-state.json
