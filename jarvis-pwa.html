@@ -2451,14 +2451,16 @@
 
     /* ===== BACKGROUND JOBS STRIP (2026-08-22) =====
        Persistent, unobtrusive, top-of-screen. Compact pills, not a full
-       panel — sits above the venture strip and collapses to nothing when
-       .hidden is set (no empty box). */
+       panel — a sibling of <header>/<main> (see placement note on the
+       markup itself for why), so its own horizontal margin has to match
+       .main's 16px padding by hand instead of inheriting the grid gap.
+       Collapses to nothing when .hidden is set (no empty box). */
     .bg-jobs-strip {
       background: var(--glass);
       border: 1px solid var(--line);
       border-radius: 10px;
       padding: 7px 12px;
-      margin-bottom: 10px;
+      margin: 10px 16px 0;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -2977,35 +2979,47 @@
       </div>
     </header>
 
-    <main class="main">
-      <!-- BACKGROUND JOBS STRIP — persistent, top-of-screen, live list of
-           Dossie's currently-running automated background work. Added
-           2026-08-22 per Heath's ask (via jarvis-bridge) for a live "what's
-           actually running" indicator, in place of a bare mid-task ack.
-           Reuses the exact /api/jarvis-in-flight-work data + poll/realtime
-           refresh already driving the (buried) IN-FLIGHT WORK panel below —
-           no new fetch, no new endpoint, no new polling load.
-           SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
-           status=in_progress) is genuinely live for Dossie's autonomous
-           cron/poller pipeline (fanout builds, TikTok trending-audio scans,
-           etc.). It does NOT reflect this live voice session's own
-           Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
-           querying agent_queue while a real subagent was actively running
-           and finding zero in_progress rows. cole-dispatch-start.js /
-           cole-dispatch-complete.js exist for exactly that gap but nothing
-           in Cole's actual interactive Agent-tool dispatch flow calls them
-           today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
-           this strip as "what Cole is doing for you right now" until that's
-           fixed; it would misrepresent the data. Hidden entirely (no empty
-           box) when nothing is active. -->
-      <div class="bg-jobs-strip hidden" id="bg-jobs-strip">
-        <div class="bg-jobs-strip-header">
-          <span class="bg-jobs-dot"></span>
-          <span>ACTIVE BACKGROUND JOBS</span>
-        </div>
-        <div class="bg-jobs-list" id="bg-jobs-list"></div>
-      </div>
+    <!-- BACKGROUND JOBS STRIP — persistent, top-of-screen, live list of
+         Dossie's currently-running automated background work. Added
+         2026-08-22 per Heath's ask (via jarvis-bridge) for a live "what's
+         actually running" indicator, in place of a bare mid-task ack.
+         Reuses the exact /api/jarvis-in-flight-work data + poll/realtime
+         refresh already driving the (buried) IN-FLIGHT WORK panel below —
+         no new fetch, no new endpoint, no new polling load.
+         SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
+         status=in_progress) is genuinely live for Dossie's autonomous
+         cron/poller pipeline (fanout builds, TikTok trending-audio scans,
+         etc.). It does NOT reflect this live voice session's own
+         Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
+         querying agent_queue while a real subagent was actively running
+         and finding zero in_progress rows. cole-dispatch-start.js /
+         cole-dispatch-complete.js exist for exactly that gap but nothing
+         in Cole's actual interactive Agent-tool dispatch flow calls them
+         today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
+         this strip as "what Cole is doing for you right now" until that's
+         fixed; it would misrepresent the data. Hidden entirely (no empty
+         box) when nothing is active.
 
+         PLACEMENT: deliberately a sibling of <main>, NOT a child of it.
+         .main uses CSS grid-template-areas with all 4 rows already named
+         (venture/voice/primary/secondary) and no spare "auto" row — an
+         unnamed 5th child there gets auto-placed into the same grid cell
+         as the venture strip and is rendered fully hidden underneath it
+         (found this the hard way: DOM/classList looked correct, itemFound
+         was true, but every real-browser screenshot showed nothing —
+         Playwright's DOM assertions don't catch grid-overlap invisibility,
+         only a visual check does). #app has no grid-template-areas, just
+         plain row sizing, so an extra child here safely lands in its own
+         auto-generated row above <main>. -->
+    <div class="bg-jobs-strip hidden" id="bg-jobs-strip">
+      <div class="bg-jobs-strip-header">
+        <span class="bg-jobs-dot"></span>
+        <span>ACTIVE BACKGROUND JOBS</span>
+      </div>
+      <div class="bg-jobs-list" id="bg-jobs-list"></div>
+    </div>
+
+    <main class="main">
       <!-- VENTURE ROLLUP STRIP (mission-control consolidation, item 7) — top-level,
            always visible. Dossie = real data (money pulse, populated by renderMoney()
            inside loadTickers()). Rust/Sawyer/Brokerage = honest "not tracked yet"
