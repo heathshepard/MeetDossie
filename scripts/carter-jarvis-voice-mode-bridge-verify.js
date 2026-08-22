@@ -83,7 +83,8 @@ async function mintHeathSession() {
 async function signIn(page) {
   const session = await mintHeathSession();
   const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL.match(/https:\/\/([^.]+)\./)[1];
-  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.goto(URL, { waitUntil: 'commit', timeout: 20000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 20000 }).catch(() => {});
   await page.evaluate(({ key, sessionObj }) => {
     const payload = {
       access_token: sessionObj.access_token,
@@ -98,7 +99,8 @@ async function signIn(page) {
     // make it explicit rather than relying on the default.
     localStorage.setItem('jarvis:replyMode', 'voice');
   }, { key: `sb-${projectRef}-auth-token`, sessionObj: session });
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.reload({ waitUntil: 'commit', timeout: 20000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 20000 }).catch(() => {});
   await page.waitForFunction(() => {
     const gate = document.getElementById('auth-gate');
     const gateHidden = !gate || window.getComputedStyle(gate).display === 'none';

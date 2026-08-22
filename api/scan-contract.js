@@ -764,6 +764,30 @@ function safeParseJson(text) {
   }
 }
 
+// 2026-08-22 — Structured buyer2Name/seller2Name, captured at scan time.
+// TREC contracts print multi-person parties as one combined string on the
+// signature line ("Chelsea Linton, Thomas Linton" or "Kathleen Champie and
+// Clark Champie"). buyerName/sellerName stay as that combined string
+// (unchanged — emailTemplates.js, net-sheet.js, download-zip.js, chat.js and
+// the PDF fill pipeline all read it as one display string and must keep
+// working), but Dossie's actual party model caps at two people per side
+// (buyer_1/buyer_2, seller_1/seller_2 — see
+// Dossie/src/components/dossieSign/partyConstants.js — and the
+// buyer2_name/seller2_name transactions columns added by the 2026-08-06
+// migration). Previously that second slot was blank until an agent manually
+// retyped it; EsignModal's splitPartyName() re-split the combined string
+// client-side as a stopgap for its own signer-prefill only. Splitting once,
+// deterministically, here means every consumer (Deal Details card, signer
+// prefill, anywhere else that reads buyer2Name/seller2Name) gets the real
+// second person straight from the scan. A rare 3rd+ name stays folded into
+// the unchanged combined string, same as before this change.
+function splitPartyNames(combined) {
+  return String(combined || '')
+    .split(/\s*(?:,|&|\band\b)\s*/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
 function emptyResult(warning) {
   return {
     extracted: {
@@ -771,6 +795,8 @@ function emptyResult(warning) {
       cityStateZip: null,
       buyerName: null,
       sellerName: null,
+      buyer2Name: null,
+      seller2Name: null,
       salePrice: null,
       earnestMoney: null,
       optionFee: null,
@@ -988,6 +1014,16 @@ async function scanContract(pdfBase64) {
   if (!extracted.lenderName && extracted.parties && typeof extracted.parties.lender === 'string' && extracted.parties.lender.trim()) {
     extracted.lenderName = extracted.parties.lender;
   }
+  // Deterministic split of buyerName/sellerName into a second-party slot —
+  // see splitPartyNames() comment above. Always recomputed here (never taken
+  // from the model) so it can't drift from the combined string it's derived
+  // from.
+  {
+    const buyerParts = splitPartyNames(extracted.buyerName);
+    const sellerParts = splitPartyNames(extracted.sellerName);
+    extracted.buyer2Name = buyerParts[1] || null;
+    extracted.seller2Name = sellerParts[1] || null;
+  }
   const addDays = (isoDate, days) => {
     if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
     const t = new Date(isoDate);
@@ -1174,6 +1210,18 @@ async function scanContract(pdfBase64) {
   }
 
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
+
+  // buyer2Name/seller2Name are derived deterministically from buyerName/
+  // sellerName (splitPartyNames above), not independently read from the
+  // page, so they inherit that same field's confidence rather than
+  // defaulting to 0 and getting silently dropped by the frontend's
+  // confidence gate.
+  if (extracted.buyer2Name && typeof confidence.buyerName === 'number') {
+    confidence.buyer2Name = confidence.buyerName;
+  }
+  if (extracted.seller2Name && typeof confidence.sellerName === 'number') {
+    confidence.seller2Name = confidence.sellerName;
+  }
 
   // Set confidence to 1.0 for auto-populated possessionDate (derived from closingDate)
   if (possessionAutoPopulated && extracted.possessionDate) {
