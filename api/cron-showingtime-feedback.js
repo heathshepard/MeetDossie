@@ -205,7 +205,7 @@ function parseShowingTimeFeedback({ subject, body }) {
 // Per-customer run
 // --------------------------------------------------------------------------
 
-async function runForCustomer({ userId, googleEmail }, { dryRun } = {}) {
+async function runForCustomer({ userId, googleEmail }, { dryRun, debugBody } = {}) {
   const stats = { candidates: 0, feedback_emails: 0, filed: 0, matched_listing: 0, unparseable: 0 };
   const details = [];
 
@@ -251,6 +251,7 @@ async function runForCustomer({ userId, googleEmail }, { dryRun } = {}) {
         details.push({
           messageId, subject, parsed,
           matchedListing: listing ? listing.address : null,
+          bodyExcerpt: debugBody ? String(body).slice(0, 3000) : undefined,
         });
         continue;
       }
@@ -343,7 +344,8 @@ async function handler(req, res) {
   const results = [];
   for (const customer of scoped) {
     try {
-      results.push(await runForCustomer(customer, { dryRun }));
+      const debugBody = dryRun && !!(req.query && req.query.debug_body === '1');
+      results.push(await runForCustomer(customer, { dryRun, debugBody }));
     } catch (err) {
       console.error('[cron-showingtime-feedback] customer run failed', customer.userId, err && err.message);
       results.push({ ok: false, status: 'unhandled_error', userId: customer.userId, error: String(err && err.message || err) });
