@@ -165,22 +165,30 @@ function parseShowingTimeFeedback({ subject, body }) {
     if (addrMatch && addrMatch[1]) address = addrMatch[1].trim().replace(/[.!]+$/, '');
   }
 
-  // Buyer's agent name + brokerage — real format has NO label separator
-  // ("Buyer's Agent Details Craig Browning Phyllis Browning Company (210)..."),
-  // so this captures name+brokerage together up to the first phone number
-  // rather than trying to split them (not reliably separable by regex).
-  const agentMatch = body.match(/buyer'?s?\s*agent\s*details\s*([A-Za-z0-9.,&'\- ]{2,90}?)\s*\(\d{3}\)/i);
-  const agentName = agentMatch ? agentMatch[1].trim() : null;
+  // Buyer's agent name + brokerage — real format has "Buyer's Agent Details"
+  // as its own label, then a LARGE whitespace gap (Gmail preserves the
+  // original HTML table's indentation as literal newlines/spaces), THEN
+  // "Craig Browning   Phyllis Browning Company   tel:2103167842 (210)...".
+  // Capture everything up to the first "tel:" or "mailto:" marker (reliable
+  // — always precedes contact info) rather than trying to bound on a phone
+  // number directly, and collapse the captured whitespace afterward.
+  const agentMatch = body.match(/buyer'?s?\s*agent\s*details\s*([\s\S]{2,400}?)(?:tel:|mailto:)/i);
+  const agentName = agentMatch ? agentMatch[1].replace(/\s+/g, ' ').trim() : null;
 
   const emailMatch = body.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
   const agentEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
 
-  // Rating: "2. Please rate your overall experience at this showing. Excellent"
-  const ratingMatch = body.match(/overall experience at this showing\.?\s*([A-Za-z ]{2,20}?)(?:\s{2,}|&nbsp;|3\.|$)/i);
+  // Rating: "2. Please rate your overall experience at this showing." then a
+  // whitespace-heavy gap (\s matches the \r\n padding fine), then the
+  // single-word-or-two answer on its own line, e.g. "Excellent".
+  const ratingMatch = body.match(/overall experience at this showing\.?\s*([A-Za-z]+(?:\s[A-Za-z]+)?)/i);
   const rating = ratingMatch ? ratingMatch[1].trim() : null;
 
-  // Comments: "5. COMMENTS / RECOMMENDATIONS: <text> Publish to Seller"
-  const commentsMatch = body.match(/comments\s*\/\s*recommendations\s*:\s*([\s\S]{1,800}?)(?:publish to seller|manage feedback|appointment details|$)/i);
+  // Comments: "5. COMMENTS / RECOMMENDATIONS:" then the free-text block, then
+  // eventually "Publish to Seller" / "Manage Feedback" / "Appointment
+  // Details" (each repeated twice in the real template, plus more whitespace
+  // padding than a normal paragraph — 4000 chars of slack, not 800).
+  const commentsMatch = body.match(/comments\s*\/\s*recommendations\s*:\s*([\s\S]{1,4000}?)(?:publish to seller|manage feedback|appointment details|$)/i);
   const feedbackText = commentsMatch ? commentsMatch[1].replace(/\s+/g, ' ').trim() : null;
 
   // Showing date: "Showing Thu, August 20, 2026 3:15 PM - 4:15 PM"
