@@ -42,6 +42,12 @@ const PRICE_TIERS = {
   [FOUNDING_PRICE_ID]: 'founding',
 };
 
+// Email Integration add-on (2026-08-22, renamed + expanded from "Reply
+// Monitoring"). A SECOND, small subscription on an existing customer — never
+// touches the base-plan provisioning path above. See
+// api/create-addon-checkout-session.js for how the Checkout Session is built.
+const ADDON_EMAIL_INTEGRATION_PRICE_ID = process.env.ADDON_EMAIL_INTEGRATION_PRICE_ID;
+
 // Stripe checkout names arrive in whatever case the customer typed
 // ("heath Shepard", "HEATH SHEPARD"). Normalize on the way in so the Settings
 // page and email greetings never display a mid-cap or shouting name.
@@ -1005,6 +1011,19 @@ async function handleSubscriptionDeleted(subscription, eventId) {
     return;
   }
 
+  // Add-on subscriptions are handled entirely by handleAddonSubscriptionDeleted
+  // (unsets email_integration_enabled only). This function marks the whole
+  // profile/base-plan as cancelled — must NOT run for an add-on-only
+  // cancellation, or a customer cancelling just the add-on would incorrectly
+  // lose their base plan.
+  const priceIdForGuard = subscription?.items?.data?.[0]?.price?.id || null;
+  const isAddonSubGuard = (ADDON_EMAIL_INTEGRATION_PRICE_ID && priceIdForGuard === ADDON_EMAIL_INTEGRATION_PRICE_ID)
+    || (subscription.metadata && subscription.metadata.addon === 'email_integration');
+  if (isAddonSubGuard) {
+    console.log('[stripe-webhook] subscription.deleted: add-on subscription, base-plan cancellation logic skipped. sub=', subscription.id);
+    return;
+  }
+
   // Idempotency check
   const isNew = await isEventNew(eventId, 'customer.subscription.deleted', subscription.id);
   if (!isNew) {
@@ -1225,6 +1244,75 @@ async function handleSubscriptionUpdated(stripe, subscription, eventId) {
   }
 }
 
+// --------------------------------------------------------------------------
+// Email Integration add-on — separate, small subscription on an EXISTING
+// customer. Never creates an auth user/profile (that's the base-plan path
+// above); only flips subscriptions.email_integration_enabled for a user_id we
+// already know (client_reference_id / metadata.user_id set by
+// create-addon-checkout-session.js).
+// --------------------------------------------------------------------------
+
+async function handleAddonCheckoutCompleted(session) {
+  const userId = session.client_reference_id || (session.metadata && session.metadata.user_id) || null;
+  const stripeSubscriptionId = typeof session.subscription === 'string'
+    ? session.subscription
+    : (session.subscription && session.subscription.id) || null;
+
+  if (!userId) {
+    console.error('[stripe-webhook] addon checkout.session.completed with no user_id in client_reference_id/metadata — cannot flip entitlement. session=', session.id);
+    return;
+  }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping addon entitlement flip.');
+    return;
+  }
+
+  try {
+    await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        email_integration_enabled: true,
+        email_integration_stripe_sub_id: stripeSubscriptionId,
+      }),
+    });
+    console.log('[stripe-webhook] addon checkout.session.completed: email_integration_enabled=true for user_id=', userId, 'sub=', stripeSubscriptionId);
+  } catch (err) {
+    console.error('[stripe-webhook] addon entitlement flip failed:', err && err.message, '| userId=', userId);
+  }
+
+  try {
+    await captureServerEvent({
+      distinctId: userId,
+      event: 'addon_purchased',
+      properties: { addon: 'email_integration', stripe_subscription_id: stripeSubscriptionId },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
+}
+
+// customer.subscription.deleted for the ADD-ON subscription specifically
+// (identified by price id, since Stripe's deleted-subscription payload may
+// not carry our metadata reliably through every cancellation path). Unsets
+// the entitlement flag — does NOT touch the base-plan subscription row.
+async function handleAddonSubscriptionDeleted(subscription) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+  const priceId = subscription?.items?.data?.[0]?.price?.id || null;
+  const isAddonSub = (ADDON_EMAIL_INTEGRATION_PRICE_ID && priceId === ADDON_EMAIL_INTEGRATION_PRICE_ID)
+    || (subscription.metadata && subscription.metadata.addon === 'email_integration');
+  if (!isAddonSub) return;
+
+  try {
+    await supabaseFetch(`/rest/v1/subscriptions?email_integration_stripe_sub_id=eq.${encodeURIComponent(subscription.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ email_integration_enabled: false }),
+    });
+    console.log('[stripe-webhook] addon subscription.deleted: email_integration_enabled=false for sub=', subscription.id);
+  } catch (err) {
+    console.error('[stripe-webhook] addon subscription.deleted patch failed:', err && err.message);
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Stripe reaches this from its own infrastructure, not a browser, so CORS
   // is permissive. Browser callers are not expected to hit this endpoint.
@@ -1263,7 +1351,12 @@ module.exports = async function handler(req, res) {
 
   try {
     if (event.type === 'checkout.session.completed') {
-      await handleCheckoutSessionCompleted(stripe, event.data.object);
+      const session = event.data.object;
+      if (session.metadata && session.metadata.addon === 'email_integration') {
+        await handleAddonCheckoutCompleted(session);
+      } else {
+        await handleCheckoutSessionCompleted(stripe, session);
+      }
     } else if (event.type === 'invoice.paid') {
       await handleInvoicePaid(stripe, event.data.object, event.id);
     } else if (event.type === 'invoice.payment_failed') {
@@ -1273,6 +1366,7 @@ module.exports = async function handler(req, res) {
     } else if (event.type === 'customer.subscription.updated') {
       await handleSubscriptionUpdated(stripe, event.data.object, event.id);
     } else if (event.type === 'customer.subscription.deleted') {
+      await handleAddonSubscriptionDeleted(event.data.object);
       await handleSubscriptionDeleted(event.data.object, event.id);
     }
     res.status(200).json({ ok: true, received: event.type });

@@ -31,7 +31,17 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: vercel.json — every 15 min
 //
-// Owner: Carter, 2026-08-14 (SV-ENG-ESIGN-COMPLETION)
+// MULTI-TENANT + ENTITLEMENT GATE (2026-08-22): this is capability #2 of the
+// paid "Email Integration" add-on (renamed + expanded from "Reply
+// Monitoring"). Previously ran unconditionally for Heath's own account with
+// zero gating. Now loops over every customer who has BOTH email connected
+// (user_integrations) AND subscriptions.email_integration_enabled — see
+// api/_lib/email-integration-customers.js. Gmail OAuth is shared with
+// cron-email-to-dossier.js and cron-showingtime-feedback.js via
+// api/_lib/gmail-oauth.js.
+//
+// Owner: Carter, 2026-08-14 (SV-ENG-ESIGN-COMPLETION); multi-tenant rewrite
+// Carter, 2026-08-22 (SV-ENG-EMAIL-INTEGRATION-ADDON)
 // =============================================================================
 
 'use strict';
@@ -39,6 +49,8 @@
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { parseEsignNotification, matchToDeal } = require('./_lib/esign-notification-parser');
 const { verifyExecutedPdf, VERDICT } = require('./_lib/signature-verifier');
+const { listEmailIntegrationCustomers } = require('./_lib/email-integration-customers');
+const { loadGoogleTokensForUser, makeGmailClient, headerMap, parseFromHeader, bodyOfMessage } = require('./_lib/gmail-oauth');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -47,8 +59,6 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
-const GMAIL_ACCOUNT = 'heath.shepard@kw.com';
-const HEATH_KW_USER_ID = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
 const BUCKET = 'documents';
 
 // Gmail search across the provider allowlist. Kept in sync with
@@ -113,113 +123,14 @@ async function alreadyProcessed(userId, messageId) {
 }
 
 // --------------------------------------------------------------------------
-// Gmail — same OAuth row as kw-mail.py / cron-email-to-dossier.js
+// Gmail — shared OAuth client (api/_lib/gmail-oauth.js), same OAuth row as
+// kw-mail.py / cron-email-to-dossier.js / cron-showingtime-feedback.js.
+// loadGoogleTokensForUser / makeGmailClient / headerMap / bodyOfMessage are
+// imported above. parseFrom below is a thin local alias so the rest of this
+// file (written before the extraction) doesn't need every call site renamed.
 // --------------------------------------------------------------------------
 
-async function loadGoogleTokens() {
-  const { ok, data } = await sb(
-    `user_integrations?select=access_token,refresh_token&google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}&limit=1`,
-  );
-  if (!ok || !Array.isArray(data) || !data.length) throw new Error('no_google_integration_row');
-  return data[0];
-}
-
-async function refreshGoogleToken(refreshToken) {
-  const body = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
-    refresh_token: refreshToken,
-    grant_type: 'refresh_token',
-  });
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok || !data?.access_token) {
-    const err = new Error(`google_refresh_failed:${data?.error || res.status}`);
-    err.isInvalidGrant = data?.error === 'invalid_grant';
-    throw err;
-  }
-  return data;
-}
-
-function makeGmail(tokens) {
-  let accessToken = tokens.access_token;
-
-  async function raw(path, params = {}) {
-    const qs = new URLSearchParams(params).toString();
-    const url = `https://gmail.googleapis.com/gmail/v1/users/me/${path}${qs ? `?${qs}` : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) {
-      const err = new Error(`gmail_failed:${path}:${res.status}`);
-      err.status = res.status;
-      throw err;
-    }
-    return res.json();
-  }
-
-  return async function gmail(path, params) {
-    try {
-      return await raw(path, params);
-    } catch (err) {
-      if (err.status === 401) {
-        const refreshed = await refreshGoogleToken(tokens.refresh_token);
-        accessToken = refreshed.access_token;
-        await sb(`user_integrations?google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`, {
-          method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({
-            access_token: accessToken,
-            expires_at: new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString(),
-          }),
-        }).catch(() => {});
-        return raw(path, params);
-      }
-      throw err;
-    }
-  };
-}
-
-function headerMap(headers) {
-  const m = {};
-  for (const h of headers || []) m[String(h.name).toLowerCase()] = h.value || '';
-  return m;
-}
-
-function parseFrom(fromHeader) {
-  const m = String(fromHeader || '').match(/^(?:"?([^"<]+?)"?\s*)?<?([^<>\s]+@[^<>\s]+)>?$/);
-  if (!m) return { name: '', email: String(fromHeader || '').trim().toLowerCase() };
-  return { name: (m[1] || '').trim(), email: (m[2] || '').trim().toLowerCase() };
-}
-
-function bodyOfMessage(msg) {
-  const plain = [];
-  const html = [];
-  const walk = (part) => {
-    if (!part) return;
-    const data = part.body && part.body.data;
-    if (data) {
-      let txt = '';
-      try { txt = Buffer.from(data, 'base64url').toString('utf-8'); } catch (_) { txt = ''; }
-      if (part.mimeType === 'text/plain') plain.push(txt);
-      else if (part.mimeType === 'text/html') html.push(txt);
-    }
-    (part.parts || []).forEach(walk);
-  };
-  walk(msg.payload);
-  if (plain.length) return plain.join('\n');
-  if (html.length) {
-    // Keep href targets — the document link often only exists as an anchor.
-    return html.join('\n')
-      .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi, ' $1 ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&');
-  }
-  return msg.snippet || '';
-}
+const parseFrom = parseFromHeader;
 
 // Find PDF attachments on the notification email. This is the MOST RELIABLE
 // retrieval path — no expiring link, no auth wall.
@@ -504,17 +415,12 @@ function authorized(req) {
   return !!(CRON_SECRET && auth === `Bearer ${CRON_SECRET}`);
 }
 
-async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
-  if (!authorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
-  }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(200).json({ ok: true, status: 'skipped', reason: 'google_oauth_env_missing' });
-  }
-
-  const userId = HEATH_KW_USER_ID;
+// Runs the full watch → parse → retrieve → verify → file → ask pipeline for
+// ONE entitled + connected customer. Returns a plain result object (never
+// touches `res` directly) so the outer handler can loop over every customer
+// and aggregate. dryRun mirrors the old query-param dry run, scoped to
+// whichever customer the outer handler is currently processing.
+async function runForCustomer({ userId, googleEmail }, { dryRun } = {}) {
   const stats = {
     candidates: 0, esign: 0, new: 0, completions: 0,
     filed: 0, retrieval_failures: 0, verified_signed: 0, flagged: 0, asks: 0, errors: 0,
@@ -523,16 +429,18 @@ async function handler(req, res) {
 
   let gmail;
   try {
-    gmail = makeGmail(await loadGoogleTokens());
+    const tokens = await loadGoogleTokensForUser(userId);
+    if (!tokens) throw new Error('no_google_integration_row');
+    gmail = makeGmailClient({ userId, tokens });
   } catch (err) {
-    return res.status(200).json({ ok: false, status: 'no_google_integration', error: String(err.message) });
+    return { ok: false, status: 'no_google_integration', userId, googleEmail, error: String(err.message) };
   }
 
   let list;
   try {
     list = await gmail('messages', { q: `${PROVIDER_QUERY} ${LOOKBACK}`, maxResults: String(MAX_MESSAGES) });
   } catch (err) {
-    return res.status(200).json({ ok: false, status: 'gmail_list_failed', error: String(err.message) });
+    return { ok: false, status: 'gmail_list_failed', userId, googleEmail, error: String(err.message) };
   }
 
   const ids = (list.messages || []).map((m) => m.id);
@@ -545,7 +453,7 @@ async function handler(req, res) {
   // this pipeline silently, so keeping a first-class way to inspect the real
   // parse is worth more than the few lines it costs.
   // CRON_SECRET-gated, same as the live path.
-  if (req.query && (req.query.dry === '1' || req.query.dry === 'true')) {
+  if (dryRun) {
     const out = [];
     for (const messageId of ids.slice(0, 12)) {
       try {
@@ -576,12 +484,14 @@ async function handler(req, res) {
         out.push({ messageId, error: String(err.message).slice(0, 160) });
       }
     }
-    return res.status(200).json({
+    return {
       ok: true,
       status: 'dry_run',
+      userId,
+      googleEmail,
       activeDeals: deals.map((d) => d.address),
       messages: out,
-    });
+    };
   }
 
   for (const messageId of ids) {
@@ -767,11 +677,57 @@ async function handler(req, res) {
       });
     } catch (err) {
       stats.errors++;
-      console.error('[cron-esign-events] message failed', messageId, err && err.message);
+      console.error('[cron-esign-events] message failed', userId, messageId, err && err.message);
     }
   }
 
-  return res.status(200).json({ ok: true, status: 'complete', stats, details });
+  return { ok: true, status: 'complete', userId, googleEmail, stats, details };
+}
+
+// --------------------------------------------------------------------------
+// Outer handler — entitlement gate + per-customer loop
+// --------------------------------------------------------------------------
+
+async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!authorized(req)) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
+  }
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.status(200).json({ ok: true, status: 'skipped', reason: 'google_oauth_env_missing' });
+  }
+
+  let customers = [];
+  try {
+    customers = await listEmailIntegrationCustomers();
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: 'entitlement_lookup_failed', detail: String(err.message || err) });
+  }
+
+  if (!customers.length) {
+    return res.status(200).json({ ok: true, status: 'complete', customers: 0, results: [] });
+  }
+
+  const dryRun = !!(req.query && (req.query.dry === '1' || req.query.dry === 'true'));
+  // ?dry=1 with no user_id scopes the dry run to the FIRST entitled customer
+  // (keeps the diagnostic cheap); ?dry=1&user_id=<uuid> targets one directly.
+  const targetUserId = req.query && req.query.user_id;
+  const scoped = dryRun
+    ? (targetUserId ? customers.filter((c) => c.userId === targetUserId) : customers.slice(0, 1))
+    : customers;
+
+  const results = [];
+  for (const customer of scoped) {
+    try {
+      results.push(await runForCustomer(customer, { dryRun }));
+    } catch (err) {
+      console.error('[cron-esign-events] customer run failed', customer.userId, err && err.message);
+      results.push({ ok: false, status: 'unhandled_error', userId: customer.userId, error: String(err && err.message || err) });
+    }
+  }
+
+  return res.status(200).json({ ok: true, status: dryRun ? 'dry_run' : 'complete', customers: customers.length, results });
 }
 
 module.exports = withTelemetry('cron-esign-events', handler);

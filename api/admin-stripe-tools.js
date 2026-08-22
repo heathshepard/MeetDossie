@@ -1,7 +1,7 @@
 // Vercel Serverless Function: /api/admin-stripe-tools
 // Tiny operations endpoint for inspecting and configuring our Stripe account.
-// Two actions for now:
 //   GET  ?action=get_price&price_id=<id> → unit_amount/currency/recurring
+//   POST { action: "create_price", product_name, unit_amount, currency?, interval, nickname? }
 //   POST { action: "create_coupon", id, percent_off?, amount_off?, currency?, duration }
 //
 // Auth: Bearer ${CRON_SECRET}. A short-lived ONE_SHOT_TOKEN is also accepted
@@ -64,6 +64,33 @@ module.exports = async function handler(req, res) {
       }
       const coupon = await stripe.coupons.create(params);
       return res.status(200).json({ ok: true, coupon });
+    }
+
+    if (action === 'create_price') {
+      // Creates a Product + Price together — used once per new sellable
+      // thing (e.g. the Email Integration add-on, 2026-08-22). Idempotent by
+      // product name: if a product with this exact name already exists and
+      // is active, reuses it instead of creating a duplicate.
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      body = body || {};
+      const { product_name, unit_amount, currency, interval, nickname } = body;
+      if (!product_name || unit_amount == null || !interval) {
+        return res.status(400).json({ ok: false, error: 'product_name, unit_amount, interval required' });
+      }
+      const existingProducts = await stripe.products.search({ query: `name:"${product_name}" AND active:"true"` }).catch(() => ({ data: [] }));
+      let product = (existingProducts.data || [])[0];
+      if (!product) {
+        product = await stripe.products.create({ name: product_name });
+      }
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Number(unit_amount),
+        currency: currency || 'usd',
+        recurring: { interval },
+        nickname: nickname || undefined,
+      });
+      return res.status(200).json({ ok: true, product: { id: product.id, name: product.name }, price: { id: price.id, unit_amount: price.unit_amount, currency: price.currency, recurring: price.recurring } });
     }
 
     if (action === 'get_coupon') {
@@ -214,7 +241,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }
