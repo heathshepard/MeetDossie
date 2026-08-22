@@ -91,20 +91,29 @@ async function sb(pathAndQuery, init = {}) {
 }
 
 async function loadActiveDeals(userId) {
-  const { ok, data } = await sb(
+  const { ok, data, status, text } = await sb(
     `transactions?user_id=eq.${encodeURIComponent(userId)}&status=neq.closed` +
-    `&select=id,property_address,stage,parties,notes_log,option_period_end,` +
+    `&select=id,property_address,stage,parties,notes_log,option_expiration_date,` +
     `other_agent_email_addr,other_agent_name,listing_agent_email_addr,` +
     `buyer_email,seller_email,buyer2_email,seller2_email`,
   );
-  if (!ok || !Array.isArray(data)) return [];
+  if (!ok || !Array.isArray(data)) {
+    // BUG FIX 2026-08-22 (Quinn QA): this used to select a column
+    // (option_period_end) that does not exist on transactions, so PostgREST
+    // 400'd on every call and this silently returned [] — meaning e-sign
+    // completions could NEVER be matched to a deal, for any customer, ever.
+    // Log loudly instead of swallowing so a future schema drift is visible
+    // in Vercel logs instead of masquerading as "no active deals".
+    console.error('[cron-esign-events] loadActiveDeals query failed for user', userId, 'status=', status, 'body=', String(text).slice(0, 300));
+    return [];
+  }
   return data.map((r) => ({
     id: r.id,
     address: r.property_address,
     stage: r.stage,
     parties: r.parties || {},
     notesLog: Array.isArray(r.notes_log) ? r.notes_log : [],
-    optionPeriodEnd: r.option_period_end || null,
+    optionPeriodEnd: r.option_expiration_date || null,
     otherAgentEmail: r.other_agent_email_addr || null,
     otherAgentName: r.other_agent_name || null,
     listingAgentEmail: r.listing_agent_email_addr || null,
