@@ -2,11 +2,14 @@
 // scripts/carter-jarvis-bgjobs-strip-verify.js
 //
 // Real-browser verification (per CLAUDE.md "VERIFY IN A REAL BROWSER BEFORE
-// HANDOFF") for the 2026-08-22 BACKGROUND JOBS STRIP build in jarvis-pwa.html.
+// HANDOFF") for the 2026-08-22 BACKGROUND JOBS STRIP build in jarvis-pwa.html,
+// extended 2026-08-22 PM for the "persist until dismissed" revision.
 //
 // Inserts a real agent_queue row (status=in_progress) via the service-role
 // key, confirms the strip renders it with a ticking elapsed timer, then
-// flips the row to completed and confirms it fades to "done" and is removed.
+// flips the row to completed and confirms it fades to "done" — and, per the
+// PM revision, STAYS visible (no more 4s auto-removal) until the per-row X
+// dismiss control is clicked, at which point it disappears.
 //
 // Usage: node scripts/carter-jarvis-bgjobs-strip-verify.js <BASE_URL>
 
@@ -181,10 +184,15 @@ async function sbDeleteQueueRow(id) {
   try {
     // Strip polls every 45s but also debounce-refreshes off the agent_queue
     // realtime channel (~400ms) — allow generous margin for CI/preview latency.
-    await page.waitForFunction(() => {
+    // NOTE 2026-08-22 PM: Cole's cole-dispatch-start stopgap now also writes
+    // real in_progress rows with agent_name='carter' (confirmed live in DB),
+    // so a bare "list contains 'carter'" check can resolve true from THOSE
+    // rows before our own test row has actually loaded — wait on our
+    // test-specific subject string instead.
+    await page.waitForFunction((subj) => {
       const list = document.getElementById('bg-jobs-list');
-      return list && list.textContent && list.textContent.includes('carter');
-    }, { timeout: 20000 }).catch(() => {});
+      return list && list.textContent && list.textContent.includes(subj);
+    }, testSubject, { timeout: 20000 }).catch(() => {});
 
     const afterInsert = await page.evaluate((subj) => {
       const strip = document.getElementById('bg-jobs-strip');
@@ -236,17 +244,60 @@ async function sbDeleteQueueRow(id) {
     report('row flips to faded "done" state on completion', doneState.found && doneState.done, JSON.stringify(doneState));
     await page.screenshot({ path: path.join(OUT, '03-item-done.png'), fullPage: false });
 
-    // Wait past the 4s fade-removal window and confirm it's gone.
-    await page.waitForTimeout(5000);
-    const afterRemoval = await page.evaluate((subj) => {
+    // 2026-08-22 PM revision: completed items must STAY visible (no more
+    // 4s auto-removal) until Heath dismisses them himself. Wait well past
+    // the old 4s window and confirm the row is still there and still
+    // marked done.
+    await page.waitForTimeout(6000);
+    const stillThere = await page.evaluate((subj) => {
+      const list = document.getElementById('bg-jobs-list');
+      const item = list ? Array.from(list.querySelectorAll('.bg-jobs-item')).find((el) => el.getAttribute('title') === subj) : null;
+      return { found: !!item, done: item ? item.classList.contains('done') : null };
+    }, testSubject);
+    report('completed row STAYS in the list past the old 4s auto-removal window', stillThere.found && stillThere.done, JSON.stringify(stillThere));
+    await page.screenshot({ path: path.join(OUT, '04-still-visible-after-6s.png'), fullPage: false });
+
+    // Dismiss control: per-row X only on done items.
+    const dismissBtnFound = await page.evaluate((subj) => {
+      const list = document.getElementById('bg-jobs-list');
+      const item = Array.from(list.querySelectorAll('.bg-jobs-item')).find((el) => el.getAttribute('title') === subj);
+      const btn = item ? item.querySelector('.bg-jobs-dismiss') : null;
+      return !!btn;
+    }, testSubject);
+    report('done row shows a dismiss (X) control', dismissBtnFound);
+
+    // Click it and confirm it disappears — but ONLY because of the click,
+    // not a timer (no waitForTimeout before this, straight to the click).
+    await page.evaluate((subj) => {
+      const list = document.getElementById('bg-jobs-list');
+      const item = Array.from(list.querySelectorAll('.bg-jobs-item')).find((el) => el.getAttribute('title') === subj);
+      item.querySelector('.bg-jobs-dismiss').click();
+    }, testSubject);
+    await page.waitForTimeout(300);
+    const afterDismiss = await page.evaluate((subj) => {
       const list = document.getElementById('bg-jobs-list');
       const item = list ? Array.from(list.querySelectorAll('.bg-jobs-item')).find((el) => el.getAttribute('title') === subj) : null;
       const strip = document.getElementById('bg-jobs-strip');
       return { itemGone: !item, stripHiddenAgain: !strip || strip.classList.contains('hidden') };
     }, testSubject);
-    report('row is removed from DOM ~4s after completion', afterRemoval.itemGone, JSON.stringify(afterRemoval));
-    report('strip hides again once nothing is active (empty state)', afterRemoval.stripHiddenAgain, JSON.stringify(afterRemoval));
-    await page.screenshot({ path: path.join(OUT, '04-after-removal.png'), fullPage: false });
+    report('row disappears ONLY after the explicit dismiss click', afterDismiss.itemGone, JSON.stringify(afterDismiss));
+    await page.screenshot({ path: path.join(OUT, '05-after-dismiss.png'), fullPage: false });
+
+    // Empty-state check: this preview shares live prod data (Cole's
+    // cole-dispatch-start stopgap has genuine in_progress rows running
+    // right now — see api/jarvis-in-flight-work.js and agent_queue), so
+    // the strip legitimately staying visible after our test item is
+    // dismissed is CORRECT if other real items remain, not a bug. Only
+    // fail this if the strip is visible with zero rows in it.
+    const remainingCount = await page.evaluate(() => {
+      const list = document.getElementById('bg-jobs-list');
+      return list ? list.querySelectorAll('.bg-jobs-item').length : 0;
+    });
+    if (remainingCount === 0) {
+      report('strip hides once list is genuinely empty (empty state)', afterDismiss.stripHiddenAgain, JSON.stringify(afterDismiss));
+    } else {
+      report(`strip correctly stays visible — ${remainingCount} other real in-flight/done item(s) still present (not our test row)`, true);
+    }
   } finally {
     await sbDeleteQueueRow(row.id).catch(() => {});
   }
