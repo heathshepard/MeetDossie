@@ -7307,6 +7307,23 @@
           } catch (err) {
             console.warn('[jarvis] quick action failed', err);
             showToast('Quick action failed');
+            // 2026-08-22: if runLegacyChatTTS already called
+            // setPttState('speaking') (right before firing the TTS fetch)
+            // and then THAT fetch itself threw — no audio element ever got
+            // created, so none of the settle()/onended/duration-timer
+            // recovery paths inside runLegacyChatTTS are armed. The finally
+            // block below can't tell that apart from a real still-speaking
+            // state (its guard skips reset whenever pttState === 'speaking'),
+            // so without this the UI is stuck on "TAP TO INTERRUPT" forever.
+            // Reset explicitly here instead of trusting that guard.
+            // resumeListening() itself no-ops (leaves pttState untouched) when
+            // conversationActive is false, so cover that case with a direct
+            // setPttState('idle') too — otherwise the finally block's guard
+            // below would still skip reset and leave it stuck.
+            if (pttState === 'speaking') {
+              if (conversationActive) { try { await resumeListening(); } catch {} }
+              else { try { setPttState('idle'); } catch {} }
+            }
           } finally {
             chip.classList.remove('firing');
             bar.querySelectorAll('.qa-chip').forEach((c) => { c.disabled = false; });
@@ -7792,6 +7809,15 @@
         } catch (err) {
           console.warn('[jarvis] chat send failed', err);
           showToast(`Send failed: ${err.message}`);
+          // 2026-08-22: same "stuck on speaking" gap as wireQuickActions —
+          // if runLegacyChatTTS's own TTS fetch threw right after it called
+          // setPttState('speaking') but before any audio element/settle()
+          // recovery existed, the finally guard below skips reset because
+          // pttState === 'speaking'. Reset explicitly instead of trusting it.
+          if (pttState === 'speaking') {
+            if (conversationActive) { try { await resumeListening(); } catch {} }
+            else { try { setPttState('idle'); } catch {} }
+          }
         } finally {
           sendBtn.disabled = false;
           textInput.disabled = false;
