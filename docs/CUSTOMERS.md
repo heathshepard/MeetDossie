@@ -1,8 +1,8 @@
 # Current Customers
 
-**MRR: $291/month** (10 founding @ $29 + 1 friend @ $1) — corrected 2026-08-04.
+**MRR: $262/month** (9 founding @ $29 + Suzanne @ $1 founding friend = 10 active). Corrected 2026-08-22 — Jennifer Beltrán's 2026-08-05 cancellation had never been reflected here (Zelda Cain's 2026-08-04 cancellation already was). Verified live against `subscriptions` table: 10 rows with `plan='founding'` and `status='active'`, 2 real customer cancellations (Zelda, Jennifer — a 3rd cancelled row is Heath's own 2026-05-01 test account, not a customer), 1 `pending_onboarding` (approved, not yet paying, doesn't count toward the 10).
 
-Update this file on every onboard or cancel. Static count in CLAUDE.md (Section 5 Founding spots) must stay in sync.
+Update this file on every onboard or cancel. Static count in CLAUDE.md (Section 5 Founding spots) must stay in sync — as of 2026-08-22 both already say 10 members, closed 2026-08-04.
 
 | # | Name | Email | Plan | Notes |
 |---|---|---|---|---|
@@ -16,7 +16,7 @@ Update this file on every onboard or cancel. Static count in CLAUDE.md (Section 
 | 8 | Amanda Nuckles | amanda@amandanuckles.com | $29/mo founding | Central TX. 2026-05-20. All City Real Estate. 5127340036. First to use new onboarding form. Heard: Facebook group (specific TBD). |
 | 9 | Zelda Cain | zelda@a2zrealestateconsultants.com | **CANCELLED 2026-08-04** (was $29/mo founding) | Houston. 2026-05-21. A2Z Real Estate Consultants LLC. (281) 813-6887. Heard: friend/colleague (possibly Terry, 2nd Houston). First word-of-mouth. Had been flagged past_due with no dunning process in place — see `no-dunning-process-failed-payments` memory; this may be that situation resolving into a churn rather than a fresh cancellation. Founding is closed permanently (2026-08-04) — her cancellation does NOT reopen a spot; if she comes back it would be at current Solo/Team pricing. |
 | 10 | Natalie Megerson | natalie@localchoicegroup.com | $29/mo founding | SA+Austin+San Marcos multi-market. 2026-05-22 04:10 UTC. REAL Broker. 5125575549. Heard: Facebook. **HOT TEAM-tier LEAD** — DM'd same morning re "large team in San Marcos". First multi-seat opportunity. Founding is closed — pitch her team on current Team pricing ($349/mo, 3 seats, $35/seat up to 8), not founding. |
-| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | $29/mo founding | Casa Mia Real Estate LLC. 9568671723. Paid 2026-05-22 14:27 CDT, webhook never provisioned — manual 2026-05-24 after she messaged. **2ND webhook-gap** (after Terry). Password recovery sent 2026-05-24. |
+| 11 | Jennifer Beltrán | jenn.casamiateam@gmail.com | **CANCELLED 2026-08-05** (was $29/mo founding) | Casa Mia Real Estate LLC. 9568671723. Paid 2026-05-22 14:27 CDT, webhook never provisioned — manual 2026-05-24 after she messaged. **2ND webhook-gap** (after Terry). Password recovery sent 2026-05-24. Cancellation confirmed live in `subscriptions` (`canceled_at` 2026-08-05T20:29:29Z). Founding is closed permanently — does not reopen a spot. |
 | 12 | Lisa Nilsson | lisanilssontx@gmail.com | $29/mo founding | Boerne/Hill Country SA. 2026-05-28. Premier Hill Country Properties. 210-288-4476. Heard: friend/colleague. Manually provisioned (3rd webhook-gap: Terry, Jennifer, Lisa). |
 
 ---

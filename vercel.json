@@ -374,6 +374,10 @@
     "api/cron-generate-pages.js": {
       "maxDuration": 60,
       "includeFiles": "marketing/{guides-data,features-data,answers-data}/*.json"
+    },
+    "api/jarvis-session-log.js": {
+      "maxDuration": 10,
+      "includeFiles": "SESSION-DIARY.md"
     }
   },
   "crons": [

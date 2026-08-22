@@ -4,6 +4,70 @@ One entry per session. Plain English. Focus: people mentioned, decisions made, o
 
 ---
 
+## 2026-08-22 (Saturday) — Jarvis bridge fully fixed + Email Integration shipped + a full day of real dispatches
+
+Long single session, all via jarvis-bridge voice. Heath's own framing partway through: "We've talked about more but I don't see where it all went" — this entry plus the new in-app "Today" panel (see bottom of this entry) exist because of that.
+
+**The big fix — Jarvis↔Cole bridge, broken "not just today, try a month" (Heath's words).**
+Five independent root causes, all found and fixed, all merged to production, all verified with real Playwright browser sessions signed in as heath.shepard@kw.com — not backend-only checks:
+1. Desktop launcher pointed at a OneDrive-redirected, stale copy of the Desktop folder — fixed with a symlink to the real one.
+2. Typed text in the Jarvis PWA never reached the live Cole session — it fell through to the old API-only backend (`runTextOnlyChat` / `/api/jarvis-voice?op=chat`). Fixed by routing typed chat through the real bridge (`runBridgeChat`) unconditionally.
+3. Voice input had the same bug, worse — the real bridge-connected voice function already existed in the code but had been dead/disconnected since 2026-08-13. Reconnected it.
+4. Interim "still working" audio could play over or after the real spoken answer landed. Fixed with a generation-counter so a stale interim ack can't clobber a fresh final reply.
+5. Speech-to-text was mis-detecting spoken English as other languages sometimes. Fixed by forcing `language_code:'en'` on both STT providers.
+Also fixed along the way: two separate "stuck on tap to interrupt" bugs, and built real voice barge-in (talk over Jarvis mid-sentence to interrupt it).
+Full technical writeup already lives in memory file `jarvis-claude-code-bridge.md` under "RESOLVED 2026-08-22" — reference that, this is the summary.
+
+**Email Integration — new paid Dossie add-on, shipped end to end.**
+Renamed and expanded "Reply Monitoring" into "Email Integration": deal-email flagging + e-sign completion detection + a new ShowingTime feedback watcher, bundled as one add-on. Real Stripe billing wired: $15/mo full price, $7.50/mo for founding members — exactly 50% off. Worth recording why that math mattered: Heath's first proposed pricing ($20 for founding, $15 for everyone else — founding paying MORE) would have breached a real, binding ToS §4.2 clause that guarantees founding members 50% off all add-ons. Caught and corrected before anything was built. Shipped: checkout session creation, a cancellation flow that takes effect at the next billing cycle (not immediate — Heath's explicit call), a status endpoint, terms.html updated, `docs/PRICING-HISTORY.md` and `docs/CUSTOMERS.md` updated. QA caught and fixed a real production bug in the same loop — e-sign completion matching had been failing 100% of the time for roughly a week — before this was called done.
+
+**TAR 1101 Listing Agreement — new template asset.**
+Pulled Heath's real blank TAR 1101 form out of his own zipForm account. It came RC4-encrypted with an empty password; no `qpdf`/`pikepdf` available in this sandbox, so the decryption was implemented directly rather than blocked on tooling. Wired into Dossie's fill engine as a new template.
+
+**Real client work — Kanika Jain & Ketan Thakkar (STR investors).**
+Corrected a factual error from an earlier pass: an initial "no 1975 deed restriction found" claim on the Low Oak property was wrong — the real document had been sitting in the original search results the whole time, just never opened. Sent Ketan/Kanika a full correction email same day with the actual document attached. Groundwater disclosure for Low Oak: downloaded, initial/signature fields added in zipForm, screenshots sent to Heath — STILL AWAITING HIS APPROVAL TO SEND, not yet sent. A text to listing agent Deleigh Hermes re: 827 Briarcliff Dr (asking about the gas-vs-water line photo and copper-vs-galvanized plumbing) was drafted only — Cole has no direct SMS-send capability, so this is not confirmed sent. Kanika's newest ask, a second look at 12914 Queens Forest St and 827 Briarcliff Dr, has been surfaced but not yet acted on.
+
+**Rust fitness app — real production bug fixed and deployed.**
+Logging a set on an out-of-order exercise was force-navigating the UI back to the plan's original-sequence exercise instead of staying where the user actually was. Fixed in `Workout.tsx`, committed, and — because Rust deploys direct-to-main rather than staging-first like Dossie — merged straight to Rust's production. Confirmed fixed.
+
+**Cold email queue — a real months-old stuck bug found and fixed.**
+42 rows had been stuck roughly 124 hours with zero Telegram approval cards ever sent, because `cron-cold-email-followup.js` never stamped the `metadata.batch` tag the review cron needed to group them. Fixed and merged to main, tagged `GOLD-2026-08-22-v5-cold-email-followup-batch-fix`. Real end-to-end confirmation is deferred to Monday since the cron only runs weekdays.
+
+**Buyer/seller structured party data — done on staging, not yet merged.**
+`scan-contract.js` now derives `buyer2Name`/`seller2Name` structurally at scan time instead of leaving the second party blank until an agent retypes it. Wired into both the new-dossier and scan-into-existing-dossier paths, and into e-sign signer prefill. Verified against the real Wild Cherry contract (Linton/Champie) and in a real browser against the staging preview. Backward-compatible — older deals still work via the existing regex-split fallback.
+
+**Documentation hygiene.**
+`docs/CUSTOMERS.md` was stale — it hadn't caught up to the corrected $262 MRR / 10-active-customer figure that CLAUDE.md already carried after a missed Jennifer Beltrán cancellation. Corrected and brought back in sync.
+
+**A 5-item batch Heath approved for autonomous handling:**
+- Zoom 1-on-1 presentation deck — built (`marketing/agent-1on1-zoom-deck.html`).
+- Rust Stripe-vs-Google-Play-Billing compliance research — found Rust's current Android checkout (Stripe-only) is genuinely non-compliant post Epic-v-Google settlement unless formally enrolled in Google's Alternative Billing program. Reported to Heath, not yet resolved — his call which path to take.
+- Rust content-rating-form resubmission — confirmed impossible from this sandbox, needs Heath's own login. Exact click path already handed to him.
+- Buyer/seller structured party data fix — done, see above.
+- Always-on SMS-watcher feasibility — scoped only. The one real option is a sideloaded Android app with a genuine battery-optimization tradeoff. Heath hasn't said go/no-go.
+
+**Push notifications for Jarvis replies.**
+Dispatched after Heath asked "if I click away or turn my screen off does this stop? Is there a way to work around it" — real Web Push so replies reach his phone with the screen off or the tab backgrounded. Was still in progress as of this write-up — check with Cole/Heath for final status, don't assume done.
+
+**Still explicitly open / blocked — not part of today's "done" list:**
+- Truck Bluetooth audio-cutoff fix — built, currently reverted OFF production (see the close-call note below). Sitting on staging only, blocked on Heath answering whether he uses the installed Jarvis app or a plain Chrome tab in his truck.
+- Groundwater disclosure send (Low Oak) — never explicitly approved.
+- Briarcliff outreach text to Deleigh Hermes — never confirmed sent.
+- Kanika's newest property-recheck request (Queens Forest + Briarcliff) — not yet started.
+- zipForm plaintext password sitting in the repo — flagged as a real exposure. Heath never said whether to fix it.
+- A destructive git-history scrub (home address exposure) — still needs Heath's explicit authorization. Nothing done.
+- `fill-form.js` serving a stale PDF revision on one auto-fill path — flagged, needs Heath's call on which revision is authoritative.
+- Smarter interim-ack wording — built, needs Heath to manually restart the local `jarvis-bridge` process on his PC to take effect.
+- SMS watcher — scoped only, no build decision yet.
+
+**A real cross-session close call, worth recording.** An unrelated/overlapping session merged `staging` → `main` including the NOT-yet-authorized Bluetooth fix, bypassing an explicit instruction to hold it. Caught via a live production screenshot and cleanly reverted. Reinforces the standing rule: always re-verify prod state after any merge, never assume a merge did only what was asked.
+
+**Operating-rule corrections Heath gave live today** (now standing practice, already saved to memory — noting only that they happened): self-verify UI/voice fixes with Playwright instead of asking Heath to test-and-report; delegate long verify loops to an agent rather than blocking the main session; confirm receipt out loud on every voice reply to an instruction; never narrate reply-delivery plumbing/errors, just deliver the content; register every real dispatch via `cole-dispatch-start`/`cole-dispatch-complete` so the live status view stays accurate; stay maximally responsive by dispatching fast rather than doing long work in the foreground.
+
+**Visibility fix, same ask that produced this entry.** Built a persistent "Today" panel inside `jarvis-pwa.html` (new button next to the header, opens a dismiss-on-click panel) backed by a new `api/jarvis-session-log.js` endpoint that reads this file and returns the most recent entry as JSON — so a day like this one is actually readable from Heath's phone, not just a file on disk he has to know to ask about.
+
+---
+
 ## 2026-07-14 (Tuesday) — Dossie Sign Phase A + B + C — 36/45 combinations PASS end-to-end
 
 **Continuation of prior 2026-07-13 autonomous run (7/7 Template mode PASS on prod).**

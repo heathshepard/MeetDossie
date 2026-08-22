@@ -2845,6 +2845,62 @@
       stroke-width: 1.6;
     }
 
+    /* ===== SESSION LOG ("Today") BUTTON + PANEL (2026-08-22) =====
+       Persistent header entry point per Heath's ask ("make it all visible
+       so I can see it") — a real, always-there button, not tucked into a
+       submenu, not auto-hiding. Reuses the existing .modal-overlay/.modal-card
+       chrome (same visual language as the email approval modal) so this
+       didn't need new base modal styling. Dismiss-on-click-X only, same
+       persistent-until-manually-dismissed pattern as the bg-jobs strip. */
+    .session-log-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--cyan-bright);
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      display: inline-flex; align-items: center; gap: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .session-log-btn:hover,
+    .session-log-btn:focus-visible {
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 12px var(--cyan-dim);
+      outline: none;
+    }
+    .session-log-btn svg { width: 15px; height: 15px; stroke: var(--cyan-bright); fill: none; stroke-width: 1.8; flex-shrink: 0; }
+    .session-log-card { max-width: 640px; }
+    .session-log-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .session-log-close {
+      background: transparent; border: none; color: var(--txt-faint);
+      font-size: 18px; line-height: 1; cursor: pointer; padding: 4px;
+    }
+    .session-log-close:hover { color: var(--fail); }
+    .session-log-body {
+      font-size: 13px; line-height: 1.6; color: var(--txt-primary);
+      max-height: 70vh; overflow-y: auto;
+    }
+    .session-log-body h1, .session-log-body h2, .session-log-body h3 {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: var(--cyan-bright);
+      margin: 14px 0 6px;
+      letter-spacing: 0.02em;
+    }
+    .session-log-body h2:first-child, .session-log-body h3:first-child { margin-top: 0; }
+    .session-log-body ul { margin: 4px 0 10px 18px; padding: 0; }
+    .session-log-body li { margin: 3px 0; }
+    .session-log-body p { margin: 6px 0; }
+    .session-log-body strong { color: var(--txt-primary); }
+    .session-log-body hr { border: none; border-top: 1px solid var(--line); margin: 14px 0; }
+    .session-log-empty { color: var(--txt-mute); font-size: 12px; padding: 10px 0; }
+
     /* Audio Settings modal */
     .audio-modal-backdrop {
       position: fixed; inset: 0;
@@ -3021,6 +3077,17 @@
           <span class="heartbeat-dot" id="heartbeat-dot"></span>
           <span id="heartbeat-text">LIVE</span>
         </span>
+        <!-- SESSION LOG ("Today") button (Carter, 2026-08-22) — persistent
+             entry point to the most recent SESSION-DIARY.md entry. See
+             #session-log-overlay near the email modal markup, and
+             api/jarvis-session-log.js. -->
+        <button id="session-log-btn" class="session-log-btn" type="button" aria-label="Today's session log" title="What's happened this session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          <span>Today</span>
+        </button>
         <!-- Audio settings cogwheel (atlas_3, 2026-06-20). -->
         <button id="audio-settings-btn" class="audio-settings-btn" type="button" aria-label="Audio settings" title="Audio devices (mic + speaker)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -3529,6 +3596,25 @@
       <div class="modal-buttons">
         <button class="modal-btn send" id="modal-send-btn">Send</button>
         <button class="modal-btn cancel" id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION LOG ("Today") MODAL (Carter, 2026-08-22) — opened by
+       #session-log-btn in the header. Fetches api/jarvis-session-log.js
+       (most recent SESSION-DIARY.md entry) and renders it via a tiny
+       hand-rolled markdown-to-HTML converter (renderSessionLogMarkdown in
+       the script below) — no library, consistent with this file's existing
+       CSP posture. Stays open until Heath clicks the X, same pattern as
+       the bg-jobs strip's per-row dismiss. -->
+  <div id="session-log-overlay" class="modal-overlay hidden">
+    <div class="modal-card session-log-card">
+      <div class="session-log-header">
+        <div class="modal-title" id="session-log-title">Today's Session Log</div>
+        <button class="session-log-close" id="session-log-close-btn" aria-label="Close">&times;</button>
+      </div>
+      <div class="session-log-body" id="session-log-body">
+        <div class="session-log-empty">Loading…</div>
       </div>
     </div>
   </div>
@@ -6220,6 +6306,104 @@
       if (modal) {
         modal.addEventListener('click', (e) => {
           if (e.target === modal) closeEmailModal();
+        });
+      }
+    });
+
+    // ===== SESSION LOG ("Today") panel (Carter, 2026-08-22) =====
+    // Persistent, always-visible entry point per Heath's ask over
+    // jarvis-bridge — "make it all visible so I can see it" — after the
+    // ACTIVE BACKGROUND JOBS strip (a different, current-work-only feature,
+    // do not conflate the two) turned out to only show what's running right
+    // now, with no record of everything finished earlier the same session.
+    // Fetches api/jarvis-session-log.js, which returns the single most
+    // recent SESSION-DIARY.md entry, and renders it with a tiny hand-rolled
+    // markdown-to-HTML converter (no library — consistent with this file's
+    // existing CSP posture elsewhere). Stays open until Heath clicks the X;
+    // no auto-dismiss, matching the bg-jobs strip's own dismiss pattern.
+    function escapeHtmlSessionLog(s) {
+      return String(s || '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]));
+    }
+
+    // Deliberately minimal: headers (## / ### ), bold (**x**), bullet lists
+    // (- x), horizontal rules (---), blank-line-separated paragraphs. That
+    // covers everything SESSION-DIARY.md actually uses. Anything fancier
+    // (nested lists, links, code blocks) just falls through as plain text —
+    // acceptable for a diary reader, not worth pulling in a library for.
+    function renderSessionLogMarkdown(md) {
+      const lines = String(md || '').split('\n');
+      const htmlParts = [];
+      let listOpen = false;
+      const closeList = () => { if (listOpen) { htmlParts.push('</ul>'); listOpen = false; } };
+      const inline = (text) => escapeHtmlSessionLog(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+      for (const rawLine of lines) {
+        const line = rawLine.replace(/\r$/, '');
+        if (/^\s*$/.test(line)) { closeList(); continue; }
+        if (/^---+\s*$/.test(line)) { closeList(); htmlParts.push('<hr>'); continue; }
+        const h2 = line.match(/^##\s+(.*)$/);
+        if (h2) { closeList(); htmlParts.push(`<h2>${inline(h2[1])}</h2>`); continue; }
+        const h3 = line.match(/^###\s+(.*)$/);
+        if (h3) { closeList(); htmlParts.push(`<h3>${inline(h3[1])}</h3>`); continue; }
+        const li = line.match(/^\s*[-*]\s+(.*)$/);
+        if (li) {
+          if (!listOpen) { htmlParts.push('<ul>'); listOpen = true; }
+          htmlParts.push(`<li>${inline(li[1])}</li>`);
+          continue;
+        }
+        closeList();
+        htmlParts.push(`<p>${inline(line)}</p>`);
+      }
+      closeList();
+      return htmlParts.join('\n');
+    }
+
+    async function loadSessionLog() {
+      const body = document.getElementById('session-log-body');
+      const title = document.getElementById('session-log-title');
+      if (!body) return;
+      body.innerHTML = '<div class="session-log-empty">Loading…</div>';
+      try {
+        const res = await fetch(`${API_BASE}/api/jarvis-session-log`, {
+          headers: { Authorization: await getAuthHeader() },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) {
+          body.innerHTML = `<div class="session-log-empty">Couldn't load session log (${res.status}).</div>`;
+          return;
+        }
+        if (title) title.textContent = data.date ? `Session Log — ${data.date}` : 'Session Log';
+        body.innerHTML = data.markdown
+          ? renderSessionLogMarkdown(data.markdown)
+          : '<div class="session-log-empty">No entries yet.</div>';
+      } catch (err) {
+        console.warn('[jarvis] loadSessionLog failed', err);
+        body.innerHTML = '<div class="session-log-empty">Offline.</div>';
+      }
+    }
+
+    function openSessionLogModal() {
+      const overlay = document.getElementById('session-log-overlay');
+      if (!overlay) return;
+      overlay.classList.remove('hidden');
+      loadSessionLog();
+    }
+    function closeSessionLogModal() {
+      const overlay = document.getElementById('session-log-overlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('session-log-btn');
+      const overlay = document.getElementById('session-log-overlay');
+      const closeBtn = document.getElementById('session-log-close-btn');
+      if (btn) btn.addEventListener('click', openSessionLogModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeSessionLogModal);
+      if (overlay) {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeSessionLogModal();
         });
       }
     });
@@ -9477,7 +9661,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-web-push-v12').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-session-log-v13').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);

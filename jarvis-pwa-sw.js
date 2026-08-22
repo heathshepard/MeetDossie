@@ -89,8 +89,14 @@
  * showNotification() icon support for SVG is inconsistent, PNG is not.
  * Added `tag`+`renotify` so a second push for the same turn (shouldn't
  * happen, but defensive) replaces rather than stacks.
+ *
+ * 2026-08-22 PM (Carter): cache key bumped to v13 for the new "Today"
+ * session-log panel (header button + api/jarvis-session-log.js) -- per this
+ * file's own documented recurring bug above, an already-open tab or
+ * installed PWA will keep running stale JS and never show a brand-new
+ * button unless the cache key changes.
  */
-const CACHE = 'jarvis-pwa-v12-2026-08-22-web-push';
+const CACHE = 'jarvis-pwa-v13-2026-08-22-session-log';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
