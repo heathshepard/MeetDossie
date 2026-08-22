@@ -2498,6 +2498,21 @@
     }
     .bg-jobs-item .bg-jobs-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
     .bg-jobs-item .bg-jobs-elapsed { color: var(--txt-faint); font-variant-numeric: tabular-nums; }
+    /* Dismiss control (2026-08-22 PM revision) — only rendered on .done
+       items; an in-progress job isn't dismissible, it's still running.
+       Same visual language as .jb-del-btn elsewhere in this file. */
+    .bg-jobs-item .bg-jobs-dismiss {
+      background: transparent;
+      border: none;
+      color: var(--txt-faint);
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 2px;
+      flex-shrink: 0;
+    }
+    .bg-jobs-item .bg-jobs-dismiss:hover { color: var(--fail); }
 
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
@@ -2989,16 +3004,27 @@
          SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
          status=in_progress) is genuinely live for Dossie's autonomous
          cron/poller pipeline (fanout builds, TikTok trending-audio scans,
-         etc.). It does NOT reflect this live voice session's own
-         Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
-         querying agent_queue while a real subagent was actively running
-         and finding zero in_progress rows. cole-dispatch-start.js /
-         cole-dispatch-complete.js exist for exactly that gap but nothing
-         in Cole's actual interactive Agent-tool dispatch flow calls them
-         today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
-         this strip as "what Cole is doing for you right now" until that's
-         fixed; it would misrepresent the data. Hidden entirely (no empty
-         box) when nothing is active.
+         etc.). Originally it did NOT reflect this live voice session's own
+         Carter/Atlas/Brokerage/Quinn subagent dispatches — cole-dispatch-
+         start.js / cole-dispatch-complete.js existed for exactly that gap
+         but nothing in Cole's interactive Agent-tool dispatch flow called
+         them. Cole has since started calling them manually as a stopgap
+         around its own dispatches (agent_name='carter',
+         venture='shepard-ventures') — re-verified 2026-08-22 PM, two real
+         rows landed in agent_queue this way and flow straight through this
+         same query with no code change needed here. Still not fully wired
+         (Cole calling it manually per-dispatch, not automatically), so
+         don't relabel this strip as guaranteed-complete "everything Cole is
+         doing" yet — but it's no longer cron/poller-only. Hidden entirely
+         (no empty box) when nothing is active or pending dismissal.
+
+         COMPLETION LIFECYCLE (revised 2026-08-22 PM, per Heath): a job that
+         drops out of the in_progress poll flips to a greyed "done" pill and
+         STAYS in the list — no auto-removal timer. Heath clears it with the
+         per-row X once he's actually seen it. See the BG_JOBS_* constants
+         and dismissBgJob() near syncBgJobsStrip() in the script for the
+         cap/dismiss logic — dismissal is client-side/in-session only, no
+         backend table for it.
 
          PLACEMENT: deliberately a sibling of <main>, NOT a child of it.
          .main uses CSS grid-template-areas with all 4 rows already named
@@ -6993,20 +7019,56 @@
       });
     }
 
-    // ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+    // ===== BACKGROUND JOBS STRIP (2026-08-22, revised 2026-08-22 PM) =====
     // Fed by the same inFlightCache as the IN-FLIGHT WORK panel above — see
     // syncBgJobsStrip() call inside loadInFlightWork(). No separate fetch.
-    // A row that drops out of a poll (job finished) flips to a faded "done"
-    // pill for 4s before being removed, instead of vanishing instantly.
+    //
+    // Lifecycle, per Heath's ask: a row that drops out of a poll (job
+    // finished — /api/jarvis-in-flight-work only ever returns
+    // status=in_progress rows, so "no longer in the response" IS the
+    // completion signal) flips to a greyed "done" pill and STAYS in the
+    // list — no auto-removal. Heath clears it himself with the per-row X
+    // (rendered only on done items; an in-progress job isn't dismissible,
+    // it's still running). Dismissal is client-side only (no backend
+    // "dismissed" flag/table) — same in-memory-only scope as this strip's
+    // other state (elapsed timers etc.), so it resets on a hard reload.
+    // That matches how nothing else on this strip persists across reloads
+    // either; adding real persistence would mean a new table for a strip
+    // that's explicitly meant to be "what's happened in this session."
+    //
+    // Unbounded-growth guard: completed items are capped at
+    // BG_JOBS_DONE_CAP (most-recently-completed kept) and
+    // BG_JOBS_DONE_MAX_AGE_MS (24h) — both generous relative to a normal
+    // session's dispatch volume, so "stays until manually cleared" holds in
+    // practice; this only silently prunes items old enough that Heath has
+    // genuinely moved on.
     const bgJobsById = new Map(); // id -> { item, doneAt: number|null }
     let bgJobsTickTimer = null;
+    let bgJobsListenerAttached = false;
+    const BG_JOBS_DONE_CAP = 20;
+    const BG_JOBS_DONE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+    function pruneBgJobsDone() {
+      const now = Date.now();
+      const done = [...bgJobsById.entries()].filter(([, e]) => e.doneAt != null);
+      done.sort((a, b) => b[1].doneAt - a[1].doneAt); // newest-completed first
+      done.forEach(([id, entry], idx) => {
+        const tooOld = now - entry.doneAt > BG_JOBS_DONE_MAX_AGE_MS;
+        const overCap = idx >= BG_JOBS_DONE_CAP;
+        if (tooOld || overCap) bgJobsById.delete(id);
+      });
+    }
+
+    function dismissBgJob(id) {
+      bgJobsById.delete(id);
+      renderBgJobsStrip();
+    }
 
     function syncBgJobsStrip(items) {
       const liveIds = new Set((items || []).map((it) => String(it.id)));
       bgJobsById.forEach((entry, id) => {
         if (!liveIds.has(id) && entry.doneAt == null) {
           entry.doneAt = Date.now();
-          setTimeout(() => { bgJobsById.delete(id); renderBgJobsStrip(); }, 4000);
         }
       });
       (items || []).forEach((it) => {
@@ -7015,6 +7077,7 @@
         if (existing) { existing.item = it; existing.doneAt = null; }
         else bgJobsById.set(id, { item: it, doneAt: null });
       });
+      pruneBgJobsDone();
       renderBgJobsStrip();
       if (!bgJobsTickTimer) {
         // Ticks the visible elapsed-time text every second between polls —
@@ -7039,6 +7102,18 @@
       const strip = document.getElementById('bg-jobs-strip');
       const list = document.getElementById('bg-jobs-list');
       if (!strip || !list) return;
+      if (!bgJobsListenerAttached) {
+        // Delegated — the list's innerHTML is fully replaced every render
+        // (including every 1s tick), so a listener bound to an individual
+        // button would be gone on the next render. Bind once on the
+        // container instead.
+        list.addEventListener('click', (e) => {
+          const btn = e.target.closest('.bg-jobs-dismiss');
+          if (!btn) return;
+          dismissBgJob(btn.dataset.dismissId);
+        });
+        bgJobsListenerAttached = true;
+      }
       if (bgJobsById.size === 0) {
         strip.classList.add('hidden');
         list.innerHTML = '';
@@ -7046,7 +7121,12 @@
       }
       strip.classList.remove('hidden');
       const rows = [...bgJobsById.entries()].sort((a, b) => {
-        if (!!a[1].doneAt !== !!b[1].doneAt) return a[1].doneAt ? 1 : -1;
+        const aDone = !!a[1].doneAt, bDone = !!b[1].doneAt;
+        if (aDone !== bDone) return aDone ? 1 : -1;
+        // Both done — most recently completed first, so a fresh completion
+        // lands right after the active jobs instead of at the far end.
+        if (aDone && bDone) return b[1].doneAt - a[1].doneAt;
+        // Both active — oldest-running first (unchanged from original).
         const aStart = new Date(a[1].item.started_at || a[1].item.created_at).getTime();
         const bStart = new Date(b[1].item.started_at || b[1].item.created_at).getTime();
         return aStart - bStart;
@@ -7054,13 +7134,14 @@
       list.innerHTML = rows.map(([id, entry]) => {
         const it = entry.item;
         const isDone = !!entry.doneAt;
-        const elapsed = isDone ? 'done' : fmtBgElapsed(it.started_at || it.created_at);
+        const elapsed = isDone ? '✓ done' : fmtBgElapsed(it.started_at || it.created_at);
         const rawTitle = it.title || '(no description)';
         const title = rawTitle.length > 46 ? rawTitle.slice(0, 45) + '…' : rawTitle;
         return `<span class="bg-jobs-item${isDone ? ' done' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(rawTitle)}">
           <span class="bg-jobs-agent">${escapeHtml(it.agent || '?')}</span>
           <span class="bg-jobs-title">${escapeHtml(title)}</span>
           <span class="bg-jobs-elapsed">${escapeHtml(elapsed)}</span>
+          ${isDone ? `<button class="bg-jobs-dismiss" data-dismiss-id="${escapeHtml(id)}" title="Clear" aria-label="Clear completed job">✕</button>` : ''}
         </span>`;
       }).join('');
     }
