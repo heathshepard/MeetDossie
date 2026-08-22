@@ -4822,6 +4822,10 @@
         await resumeListening();
       }
     }
+    // Debug/verify hook, same pattern as window.__jarvisResumeListening below
+    // — lets a real-browser E2E check drive the exact mic-completion code
+    // path (STT -> routing -> bridge) without needing an actual microphone.
+    try { window.__jarvisHandleUtteranceBlob = handleUtteranceBlob; } catch {}
 
     // ====================================================================
     // STREAMING CHAT + TTS pipeline
