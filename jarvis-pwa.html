@@ -4695,41 +4695,26 @@
       vadState.lastVoiceAt = 0;
     }
 
-    // ===== Conversational routing — restored 2026-08-13 =====
+    // ===== Conversational routing history =====
     // 2026-08-10 (commit 6e4340a9) forced EVERY voice/text turn through the
-    // live jarvis-bridge Claude Code session (askBridge/runBridgeVoiceChat),
-    // for continuity with the terminal session. Real cost, measured live
-    // 2026-08-13: a turn requiring no real tool work at all still took the
-    // live Opus session ~20s just to send an interim ack (jarvis-bridge
-    // Storage turn na4fon06), and a turn that did real multi-step Supabase
-    // lookups inline took 5m21s end-to-end (turn 5tdiewke) — both far past
-    // the ~2-3s a live voice exchange needs to feel like a conversation, not
-    // a support ticket. That's inherent to routing simple chat through a
-    // full-context, full-tool-surface CLI agent turn, not fixable by prompt
-    // tuning.
+    // live jarvis-bridge Claude Code session. 2026-08-13 reverted that for
+    // BOTH voice and Quick Actions onto this TOOL_INTENT_RE fast/slow split
+    // against the old API-only /api/jarvis-voice backend, for latency
+    // (~1.0-1.5s streaming / ~500ms non-streaming tool-use vs the live
+    // session's measured 20s-5m21s per turn — turns na4fon06, 5tdiewke).
     //
-    // This restores the routing logic that shipped 2026-06-21 (commits
-    // 9178819f + the TOOL_INTENT_RE heuristic below), measured then at
-    // ~1.0-1.5s to first audio for the streaming path and a ~500ms penalty
-    // for the non-streaming tool-use path — before it was replaced wholesale
-    // by the bridge-only routing. The one piece NOT restored: the old manual
-    // "Build mode" UI toggle (removed 2026-08-10, no live remnant) that let
-    // Heath force a turn to the real live session. Dropped rather than
-    // guessed back in — /api/jarvis-voice's own tool-use loop already covers
-    // real work via its `spawn_agent` tool (same agent_queue dispatch
-    // mechanism Cole itself uses), so the fast path isn't just Q&A, it can
-    // queue Carter/Atlas/etc for anything needing real file/code access.
-    // Flag to Heath: if there's a real remaining need to talk to the live
-    // Cole session specifically (not just "get real work done"), that needs
-    // an explicit way back in — not re-guessed here.
-    // Extended 2026-08-13 with build/deploy/agent-queue terms — the original
-    // 2026-06-21 list predates the merge queue dashboard and today's
-    // agent_queue-driven work; without these, real work-status questions
-    // ("why isn't the merge queue showing X", "what are the work items")
-    // would silently fall to the no-tools streaming path and get answered
-    // from guesswork instead of a real lookup. Evidenced by the two real
-    // queries that motivated this fix (turns na4fon06 and 5tdiewke) — the
-    // first wouldn't have matched the old list at all.
+    // 2026-08-22: discovered that revert silently orphaned the mic/voice
+    // loop from the live bridge entirely — /api/jarvis-voice has no
+    // filesystem/tool/live-session access, so every spoken request for real
+    // work (as opposed to canned Q&A) was answered by a disconnected
+    // assistant no matter how many times the TYPED-text routing got fixed
+    // earlier the same day. handleUtteranceBlob's default routing now goes
+    // straight to runBridgeVoiceChat (the live bridge) unconditionally,
+    // same as typed chat (sendNow) — TOOL_INTENT_RE below is no longer used
+    // there. It's kept only for Quick Actions (wireQuickActions, canned
+    // status/brief/lookup chips) where the original latency tradeoff still
+    // applies and wasn't the bug reported. If Quick Actions turn out to need
+    // the live bridge too, that's a separate call, not assumed here.
     const TOOL_INTENT_RE = /\b(mrr|customers?|subscribers?|brittney|miki|search|google|browse|telegram|sms|message|email|spawn|atlas|carter|hadley|pierce|sage|quinn|ridge|sterling|jarvis|remind|reminder|todo|calendar|schedule|today|brief|dashboard|status|posts?|pending|approve|approval|how many|how much|what's our|when did|find|look up|check on|merge|queue|deploy|commit|push|build|rust|dossie|dossier|work\s*items?|agents?|schema|cron|repo|branch|staging|production)\b/i;
 
     async function handleUtteranceBlob(blob) {
@@ -4807,42 +4792,28 @@
         appendMessage('user', transcript);
         pttStatus.textContent = 'Thinking…';
 
-        // ===== Route: tool-likely turn -> non-streaming chat (tool_use); else stream =====
-        // See "Conversational routing" comment above handleUtteranceBlob.
-        // Streaming endpoint doesn't support tool_use — if the message hints
-        // at needing a tool (incl. spawn_agent for real work), route to the
-        // non-streaming /op=chat full tool-use loop. ~500ms latency penalty
-        // vs streaming, still far below the live-bridge path.
-        const isToolIntent = TOOL_INTENT_RE.test(transcript);
-        if (isToolIntent) {
-          console.log('[jarvis] tool-intent detected -> non-streaming chat');
-          try {
-            await runLegacyChatTTS(transcript);
-          } catch (err) {
-            console.error('[jarvis] non-streaming chat failed:', err);
-            speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
-          }
-          return;
-        }
-
-        // ===== STREAMING chat + TTS pipeline (default) =====
-        // First audio typically starts ~1.0-1.5s after the user finishes
-        // speaking — see runStreamingChatTTS.
+        // ===== Route: live jarvis-bridge Cole session (2026-08-22) =====
+        // Spoken input now goes through the SAME live bridge session as
+        // typed chat (see sendNow's 2026-08-22 fix) instead of the old
+        // API-only /api/jarvis-voice backend. That backend has no
+        // filesystem/tool/live-session access — the real root cause of why
+        // voice-driven requests for real work never worked, no matter how
+        // many times the typed-text routing got fixed. The old
+        // TOOL_INTENT_RE fast/slow split (still used by Quick Actions
+        // below) doesn't apply here anymore: every spoken turn needs the
+        // live session regardless of content, same reasoning already
+        // applied to typed chat. Heath's explicit call 2026-08-22:
+        // being connected to the real session matters more than shaving
+        // response time, given this has been the core complaint driving
+        // his whole day. runBridgeVoiceChat speaks a short interim ack
+        // aloud (speakInterimAck) while the bridge works so there's no
+        // dead silence during the longer wait, then speaks the real reply
+        // via speakBridgeAnswer — same helper sendNow uses for typed chat
+        // in voice reply mode.
         try {
-          const streamResult = await runStreamingChatTTS({ conversationId, transcript });
-          if (streamResult.fallback) {
-            console.warn('[jarvis] streaming failed, using legacy path:', streamResult.error);
-            await runLegacyChatTTS(transcript).catch(async (err) => {
-              console.error('[jarvis] legacy fallback also failed:', err);
-              speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
-            });
-          } else if (streamResult.conversationId) {
-            conversationId = streamResult.conversationId;
-            convIdDisp.textContent = `session · ${conversationId.slice(0, 8)}`;
-            lsSetLastConv(conversationId);
-          }
+          await runBridgeVoiceChat(transcript);
         } catch (err) {
-          console.error('[jarvis] streaming chat failed:', err);
+          console.error('[jarvis] bridge voice chat failed:', err);
           speakFallback('Connection hiccup, sir. Try again.', /*resume*/true);
         }
         return;
@@ -7268,10 +7239,13 @@
     }
 
     // ===== QUICK ACTIONS (Tier 1 Widget #4) =====
-    // Tap a chip -> fires that prompt through the same voice pipeline that
-    // typed/spoken messages use (runStreamingChatTTS). Skip mic capture.
-    // The chip's data-prompt becomes the user "message" and is rendered into
-    // the scrollback as a user bubble.
+    // Tap a chip -> fires that prompt through the fast TOOL_INTENT_RE-routed
+    // /api/jarvis-voice pipeline (runStreamingChatTTS/runLegacyChatTTS), NOT
+    // the live jarvis-bridge session that typed chat and the mic loop now
+    // both use (2026-08-22) — see the "Conversational routing history"
+    // comment above handleUtteranceBlob. Skip mic capture. The chip's
+    // data-prompt becomes the user "message" and is rendered into the
+    // scrollback as a user bubble.
     function wireQuickActions() {
       const bar = document.getElementById('quick-actions');
       if (!bar) return;
@@ -7510,10 +7484,17 @@
       await audio.play();
     }
 
-    // Voice path into BUILD mode. Mirrors runLegacyChatTTS's shape (single
-    // non-streaming answer -> op=tts -> play -> resumeListening) rather than
+    // Voice path into the live jarvis-bridge Cole session. Single
+    // non-streaming answer -> op=tts -> play -> resumeListening, rather than
     // the sentence-by-sentence streaming pipeline, since Claude Code returns
     // one full answer at the end, not a token stream to interleave with TTS.
+    // Was dead code from 2026-08-13 (when the mic loop's default routing was
+    // swapped onto runStreamingChatTTS/runLegacyChatTTS for latency) until
+    // 2026-08-22, when it was wired back in as handleUtteranceBlob's ONLY
+    // routing target — that latency swap is exactly why voice input never
+    // reached the live session despite typed-text fixes earlier the same
+    // day. See the "Route: live jarvis-bridge Cole session" comment above
+    // handleUtteranceBlob.
     async function runBridgeVoiceChat(transcript) {
       const answer = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
       appendMessage('assistant', answer);
@@ -8880,7 +8861,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-typed-text-bridge-fix-v10').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-voice-mode-bridge-fix-v11').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
