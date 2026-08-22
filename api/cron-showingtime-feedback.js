@@ -251,7 +251,11 @@ async function runForCustomer({ userId, googleEmail }, { dryRun, debugBody } = {
         details.push({
           messageId, subject, parsed,
           matchedListing: listing ? listing.address : null,
-          bodyExcerpt: debugBody ? String(body).slice(-4000) : undefined,
+          bodyExcerpt: debugBody ? (() => {
+            const s = String(body);
+            const idx = s.search(/comments|buyer|feedback received/i);
+            return idx >= 0 ? s.slice(Math.max(0, idx - 200), idx + 2500) : s.slice(0, 2500);
+          })() : undefined,
         });
         continue;
       }
