@@ -251,7 +251,7 @@ async function runForCustomer({ userId, googleEmail }, { dryRun, debugBody } = {
         details.push({
           messageId, subject, parsed,
           matchedListing: listing ? listing.address : null,
-          bodyExcerpt: debugBody ? String(body).slice(0, 3000) : undefined,
+          bodyExcerpt: debugBody ? String(body).slice(-4000) : undefined,
         });
         continue;
       }
