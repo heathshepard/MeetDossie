@@ -37,6 +37,7 @@ const FORM_TEMPLATE_B64 = {
   'sellers-disclosure':    () => require('../_assets/trec-sellers-disclosure-55-1-base64.js'),
   'amendment':             () => require('../_assets/trec-amendment-39-11-base64.js'),
   'buyer-rep-agreement':   () => require('../_assets/tar-buyer-rep-base64.js'),
+  'listing-agreement':     () => require('../_assets/tar-listing-agreement-base64.js'),
   'appraisal-termination': () => require('../_assets/trec-49-1-base64.js'),
   't47-affidavit':         () => require('../_assets/t47-affidavit-base64.js'),
   'unimproved-property':   () => require('../_assets/trec-unimproved-property-base64.js'),
@@ -83,6 +84,7 @@ const SHORT_NAME_TO_FORM_TYPE = {
   'TAR 1501':                      'buyer-rep-agreement',
   'TAR 2001':                      'residential-leases',
   'TAR 2517':                      'wire-fraud-warning',
+  'TAR 1101':                      'listing-agreement',
   // 2026-07-14 — Wire canonical TREC forms whose short_names existed in
   // form_templates but had no SHORT_NAME_TO_FORM_TYPE mapping. Every mapping
   // has a corresponding FORM_TEMPLATE_B64 entry.
