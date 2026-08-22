@@ -5481,7 +5481,7 @@
       // channel — see the "Live session bridge" comment above askBridge().
       let reply = '';
       try {
-        reply = await askBridge(transcript, { statusVerb: 'Thinking' });
+        reply = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
       } catch (err) {
         console.error('[jarvis] bridge chat failed (walkie-talkie):', err);
         setPttState('error');
@@ -5544,6 +5544,45 @@
         console.warn(err);
         if (resumeAfter && conversationActive) resumeListening();
         else setPttState('idle');
+      }
+    }
+
+    // Speaks a short interim ack ("On it, give me a sec") the moment the
+    // bridge session is too busy to answer right away — added 2026-08-20 as
+    // the real mitigation for Jarvis going silent behind a long tool-call
+    // chain (the documented 7+ minute incident). Deliberately does NOT touch
+    // pttState/conversationActive/resumeListening the way speakFallback does:
+    // this fires mid-wait, while askBridge()'s poll loop is still running and
+    // will itself drive pttStatus to 'speaking' once the real answer lands.
+    // Fire-and-forget by design — if this fails, the interim status text
+    // already visible from askBridge's own pttStatus updates is enough of a
+    // fallback; a failed ack must never surface as a user-facing error or
+    // interrupt the wait for the real answer.
+    async function speakInterimAck(text) {
+      try {
+        const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: await getAuthHeader() },
+          body: JSON.stringify({ text }),
+        });
+        if (!ttsRes.ok) {
+          const errBody = await ttsRes.json().catch(() => ({}));
+          if (errBody.fallback === 'speech-synthesis' && 'speechSynthesis' in window) {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.0;
+            utter.pitch = 1.0;
+            speechSynthesis.speak(utter);
+          }
+          return;
+        }
+        const audioBlob = await ttsRes.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.onended = () => URL.revokeObjectURL(audioUrl);
+        audio.onerror = () => URL.revokeObjectURL(audioUrl);
+        await audio.play();
+      } catch (err) {
+        console.warn('[jarvis] speakInterimAck failed (non-fatal):', err);
       }
     }
 
@@ -7337,6 +7376,10 @@
       const MAX_WAIT_MS = 9 * 60 * 1000;
       const startedAt = Date.now();
       let toldOffline = false;
+      // Dedup so a repeated 'working' poll doesn't re-fire the same ack
+      // every 1.5s until the real answer lands — see onInterim callers
+      // (speakInterimAck / appendMessage) for what actually happens with it.
+      let lastInterim = null;
 
       while (Date.now() - startedAt < MAX_WAIT_MS) {
         await new Promise((r) => setTimeout(r, POLL_MS));
@@ -7352,6 +7395,12 @@
         if (poll.status === 'error' || poll.status === 'expired') {
           throw new Error(poll.error || 'The live session did not answer in time.');
         }
+        if (poll.status === 'working' && poll.interim && poll.interim !== lastInterim) {
+          lastInterim = poll.interim;
+          if (typeof opts.onInterim === 'function') {
+            try { opts.onInterim(poll.interim); } catch (err) { console.warn('[jarvis] onInterim handler failed:', err); }
+          }
+        }
         if (poll.bridge_offline && !toldOffline) {
           toldOffline = true;
           try { pttStatus.textContent = "Cole's terminal isn't running right now — will answer once it's back…"; } catch {}
@@ -7366,7 +7415,12 @@
     }
 
     async function runBridgeChat(message, opts = {}) {
-      const answer = await askBridge(message, opts);
+      const answer = await askBridge(message, {
+        ...opts,
+        // Text mode: show the interim ack as its own message bubble rather
+        // than speaking it — no TTS in this path today.
+        onInterim: (t) => { appendMessage('assistant', t); },
+      });
       appendMessage('assistant', answer);
     }
 
@@ -7375,7 +7429,7 @@
     // the sentence-by-sentence streaming pipeline, since Claude Code returns
     // one full answer at the end, not a token stream to interleave with TTS.
     async function runBridgeVoiceChat(transcript) {
-      const answer = await askBridge(transcript, { statusVerb: 'Thinking' });
+      const answer = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
       appendMessage('assistant', answer);
 
       setPttState('speaking');
@@ -7705,10 +7759,14 @@
           const bridgeOpts = imageBase64 ? { imageBase64, imageMediaType } : {};
           const isToolIntent = TOOL_INTENT_RE.test(message);
           if (getReplyMode() === 'text') {
-            // Text-only — no TTS, no mic resume. Non-streaming path already
-            // does the full tool-use loop regardless of intent match, so no
-            // routing split needed here.
-            await runTextOnlyChat(message, bridgeOpts);
+            // Text-only — no TTS, no mic resume. Routed through the live
+            // jarvis-bridge Cole session (same one voice/PTT already use via
+            // askBridge) rather than the old API-only /api/jarvis-voice?op=chat
+            // path, so typed text has the same filesystem/repo/tool access as
+            // everything else instead of landing in a separate backend that
+            // never touches the bridge. Fixed 2026-08-21 — a typed "hello"
+            // was silently going to the old path and never reaching Cole.
+            await runBridgeChat(message, bridgeOpts);
           } else if (isToolIntent) {
             console.log('[jarvis] tool-intent detected -> non-streaming chat (typed)');
             await runLegacyChatTTS(message);

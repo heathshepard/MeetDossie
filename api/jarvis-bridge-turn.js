@@ -30,7 +30,18 @@
 //
 // GET /api/jarvis-bridge-turn?id=<turn_id>
 //   Authorization: Bearer <supabase user JWT>
-//   -> { ok, status: pending|delivered|answered|expired, reply? }
+//   -> { ok, status: pending|delivered|working|answered|expired, reply?, interim? }
+//   interim (status==='working' only) is the model's (or the channel
+//   process's own synthetic) early ack text — e.g. "Got it, mid-task, give
+//   me a sec". Added 2026-08-20: this field did not exist before, so every
+//   final:false interim ack the model ever sent (scripts/jarvis-bridge/
+//   server.ts's `reply` tool has supported this since before this date) was
+//   silently dropped right here — written to Storage, never returned to the
+//   phone. jarvis-pwa.html's poll loop only checked for status==='answered',
+//   so even if this field had been present, nothing consumed it either;
+//   see that file for the matching client-side fix. Net effect until now:
+//   Heath never once actually heard an interim ack, despite the mechanism
+//   existing on both ends independently.
 //
 // Deliberately asynchronous, same reasoning as jarvis-claude-code.js: the
 // live session can take anywhere from a second to several minutes to answer
@@ -199,6 +210,12 @@ module.exports = async function handler(req, res) {
     if (turn.status === 'pending' && ageMs > PICKUP_TIMEOUT_MS) {
       // Nobody's polling the bucket — the local channel process is down.
       return res.status(200).json({ ok: true, status: 'pending', bridge_offline: true, waiting_ms: ageMs });
+    }
+    if (turn.status === 'working') {
+      // See the file-header note above — this is the field that was
+      // missing. reply_text on a 'working' turn is a non-final interim ack,
+      // never the real answer; the client must keep polling after reading it.
+      return res.status(200).json({ ok: true, status: 'working', interim: turn.reply_text || null, waiting_ms: ageMs });
     }
     return res.status(200).json({ ok: true, status: turn.status, waiting_ms: ageMs });
   }

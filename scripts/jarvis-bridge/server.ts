@@ -50,7 +50,33 @@ import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
-import { findYoutubeVideoId, buildYoutubeContextBlock } from './youtube-context.js'
+
+// youtube-context.ts was never actually committed to the repo (confirmed via
+// `git ls-files scripts/jarvis-bridge/` 2026-08-20 — only server.ts and
+// dedicated-session-prompt.txt are tracked) even though this file has always
+// imported from it. That made this ENTIRE channel process fail to start —
+// `bun scripts/jarvis-bridge/server.ts` throws on the unresolved import
+// before a single line of the poll loop below ever runs — for every Claude
+// Code session launched from this repo (.mcp.json wires this in
+// unconditionally), independent of anything to do with the launcher/channels
+// flags. Degrading this to an optional dynamic import instead of a hard
+// top-level one: if the file is present (recreated later), YouTube-link
+// enrichment works as documented below; if it's absent, the process still
+// boots and every OTHER feature (voice/text turns, images, ambient DB
+// awareness, the busy-ack fix) works — a message with a YouTube link in it
+// just doesn't get the extra transcript context, no different from typing
+// a link with youtube-context.ts never having existed.
+let findYoutubeVideoId: (text: string) => string | null = () => null
+let buildYoutubeContextBlock: (message: string, elevenLabsKey?: string) => Promise<string | null> = async () => null
+try {
+  const yt = await import('./youtube-context.js')
+  findYoutubeVideoId = yt.findYoutubeVideoId
+  buildYoutubeContextBlock = yt.buildYoutubeContextBlock
+} catch (err) {
+  process.stderr.write(
+    `jarvis-bridge channel: scripts/jarvis-bridge/youtube-context.ts not found — YouTube-link enrichment disabled, everything else still works: ${err}\n`,
+  )
+}
 
 const STATE_DIR = process.env.JARVIS_BRIDGE_STATE_DIR ?? join(homedir(), '.claude', 'channels', 'jarvis-bridge')
 const ENV_FILE = join(STATE_DIR, '.env')
@@ -510,6 +536,29 @@ const deliveredAt = new Map<string, number>()
 const nudged = new Set<string>()
 const NUDGE_DELAY_MS = Math.max(10000, parseInt(process.env.JARVIS_BRIDGE_NUDGE_MS || '45000', 10))
 
+// Synthetic busy-ack (Atlas, 2026-08-20). Separate problem from the
+// reply-reliability nudge above: that one exists for when the model saw the
+// turn and dropped it; this one exists for when the model hasn't even had a
+// turn yet because this session is mid a long tool-call chain and control
+// hasn't returned to the model at all — the documented 7+min-silence
+// incident (Jarvis merged into the main terminal session, 2026-08-20,
+// launcher.bat). A model-driven `reply(final:false)` ack can't fire in that
+// case by definition; this process CAN, since it's a separate poller not
+// blocked by the CLI's tool-call loop. If a turn sits 'delivered' for
+// ACK_DELAY_MS with no status change, write 'working' directly — bypassing
+// the model and the `reply` tool entirely — with a canned busy message. When
+// the model eventually does get a turn, it still calls `reply` normally
+// (blocked only on 'answered', see the tool handler above) and overwrites
+// this. The other half of this fix is surfacing `reply_text` on a 'working'
+// turn back to the phone at all (api/jarvis-bridge-turn.js) and actually
+// speaking/showing it there (jarvis-pwa.html) — before 2026-08-20 neither of
+// those existed, so even the model's own interim acks were silently dropped
+// end-to-end; this was never actually heard by Heath despite the mechanism
+// existing on the model side already.
+const synthAcked = new Set<string>()
+const ACK_DELAY_MS = Math.max(2000, parseInt(process.env.JARVIS_BRIDGE_ACK_MS || '8000', 10))
+const SYNTH_ACK_TEXT = "Got it — I'm mid-task right now, give me a moment and I'll get back to you."
+
 async function tick(): Promise<void> {
   if (shuttingDown) return
   let entries: { name: string }[]
@@ -604,6 +653,27 @@ async function tick(): Promise<void> {
           process.stderr.write(`jarvis-bridge channel: failed to deliver inbound to Claude: ${err}\n`)
         })
       continue
+    }
+
+    // status === 'delivered' — synthetic busy-ack. See ACK_DELAY_MS comment
+    // above for why this exists separately from the nudge below. Same
+    // `delivering` guard as the nudge: skip while a still-in-flight tick is
+    // building enriched content (YouTube transcript etc.) and hasn't
+    // actually notified the model yet.
+    if (turn.status === 'delivered' && !synthAcked.has(id) && !delivering.has(id)) {
+      const deliveredMsForAck = deliveredAt.get(id) ?? new Date(turn.delivered_at || turn.created_at || 0).getTime()
+      if (Date.now() - deliveredMsForAck > ACK_DELAY_MS) {
+        synthAcked.add(id)
+        putTurn(id, {
+          ...turn,
+          status: 'working',
+          reply_text: SYNTH_ACK_TEXT,
+          progress_at: new Date().toISOString(),
+        }).catch(err => {
+          process.stderr.write(`jarvis-bridge channel: synthetic ack write failed for ${id}: ${err}\n`)
+          synthAcked.delete(id) // allow a retry on a later tick instead of giving up silently
+        })
+      }
     }
 
     // status === 'delivered' — reply-reliability watchdog. Skipped while
