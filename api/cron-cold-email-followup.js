@@ -236,6 +236,13 @@ async function handler(req, res) {
             // applies to every touch, not just touch 1.
             requires_approval: true,
             approval_status: 'pending_approval',
+            // BUG FIX (Atlas, 2026-08-22): this cron never set metadata.batch,
+            // which cron-cold-email-review.js's grouping requires to send a
+            // Telegram approval card at all (`if (!batchId) continue;`). Every
+            // row this cron ever queued was silently skipped forever — 42 rows
+            // sat pending_approval for 5 days with zero Telegram notification.
+            // Tag with a daily batch id so the review cron can see them.
+            batch: `followup-${new Date().toISOString().slice(0, 10)}`,
           },
         };
 
