@@ -131,10 +131,18 @@ function bodyOfMessage(msg) {
   walk(msg.payload);
   if (plain.length) return plain.join('\n');
   if (html.length) {
+    // Entity decode order matters: &amp; must run LAST, or "&amp;#x27;" (a
+    // double-encoded apostrophe some ESPs send, ShowingTime included) would
+    // decode to a literal "&#x27;" instead of "'". Confirmed against real
+    // ShowingTime feedback emails 2026-08-22 — "Buyer&#x27;s Agent Details"
+    // was breaking cron-showingtime-feedback.js's agent-name regex until this
+    // was added.
     return html.join('\n')
       .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi, ' $1 ')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&nbsp;/g, ' ')
+      .replace(/&#x27;|&#39;/g, "'")
+      .replace(/&quot;/g, '"')
       .replace(/&amp;/g, '&');
   }
   return msg.snippet || '';

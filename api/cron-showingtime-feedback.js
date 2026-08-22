@@ -131,39 +131,63 @@ async function appendNote(listing, entry) {
 // null (not a feedback email, or unparseable) rather than guessing.
 // --------------------------------------------------------------------------
 
+// Patterns below were reverse-engineered against REAL ShowingTime notification
+// emails pulled live from heath.shepard@kw.com on 2026-08-22 (via
+// scripts/kw-mail.py), not guessed. Real subject/body seen:
+//   Subject: "FEEDBACK RECEIVED | 23 Nopalito, San Antonio, TX 78261"
+//   Body (after HTML-strip): "...Feedback Received for 23 Nopalito San
+//     Antonio, TX 78261 $1,195,000 | PRICE CHANGE | ID# 1916402
+//     1. Is your client interested in this listing? Maybe
+//     2. Please rate your overall experience at this showing. Excellent
+//     3. Your (and your client's) opinion of the price: Just right
+//     4. Please rate this listing (5=Best; 1=Worst): 5(Best)
+//     5. COMMENTS / RECOMMENDATIONS: <free text> Publish to Seller ...
+//     ...Buyer's Agent Details Craig Browning Phyllis Browning Company
+//     (210) 316-7842 ... teambrowning@phyllisbrowning.com
+//     ...Showing Thu, August 20, 2026 3:15 PM - 4:15 PM..."
+// "FEEDBACK REQUESTED" subjects are a distinct, earlier email (asking the
+// showing agent to submit feedback) and legitimately carry no rating/comments
+// yet — correctly parsed as address+agent only, filed=false until (if ever)
+// a matching RECEIVED email arrives.
 function parseShowingTimeFeedback({ subject, body }) {
   const text = `${subject}\n${body}`;
   const isFeedback = /feedback/i.test(subject) && /showing/i.test(text);
   if (!isFeedback) return null;
 
-  // Subject patterns seen in the wild: "Feedback Received for 123 Main St",
-  // "New Showing Feedback: 123 Main St", "Feedback for your listing at 123 Main St".
+  // Subject is consistently "FEEDBACK REQUESTED|RECEIVED | <address>" — the
+  // part after the pipe IS the address, cleanly, no guessing needed.
   let address = null;
-  const addrMatch = subject.match(/feedback\s*(?:received\s*)?(?:for|on|:)?\s*(?:your listing at\s*)?(.+)$/i);
-  if (addrMatch && addrMatch[1]) address = addrMatch[1].trim().replace(/[.!]+$/, '');
+  const pipeIdx = subject.indexOf('|');
+  if (pipeIdx >= 0) {
+    address = subject.slice(pipeIdx + 1).trim().replace(/[.!]+$/, '');
+  } else {
+    const addrMatch = subject.match(/feedback\s*(?:received|requested)?\s*(?:for|on|:)?\s*(?:your listing at\s*)?(.+)$/i);
+    if (addrMatch && addrMatch[1]) address = addrMatch[1].trim().replace(/[.!]+$/, '');
+  }
 
-  // Agent name: "Agent: Jane Doe" or "Showing Agent: Jane Doe" lines are the
-  // most stable pattern ShowingTime uses in the notification body.
-  const agentMatch = body.match(/(?:showing\s*)?agent\s*[:\-]\s*([A-Za-z.'\- ]{2,60})/i);
+  // Buyer's agent name + brokerage — real format has NO label separator
+  // ("Buyer's Agent Details Craig Browning Phyllis Browning Company (210)..."),
+  // so this captures name+brokerage together up to the first phone number
+  // rather than trying to split them (not reliably separable by regex).
+  const agentMatch = body.match(/buyer'?s?\s*agent\s*details\s*([A-Za-z0-9.,&'\- ]{2,90}?)\s*\(\d{3}\)/i);
   const agentName = agentMatch ? agentMatch[1].trim() : null;
 
   const emailMatch = body.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
   const agentEmail = emailMatch ? emailMatch[0].toLowerCase() : null;
 
-  // Rating: ShowingTime's canned scale — "Excellent / Good / Average / Fair / Poor"
-  // — appears as a standalone label near "Overall" or "Rating".
-  const ratingMatch = body.match(/(?:overall\s*)?rating\s*[:\-]?\s*(Excellent|Very Good|Good|Average|Fair|Poor)/i);
-  const rating = ratingMatch ? ratingMatch[1] : null;
+  // Rating: "2. Please rate your overall experience at this showing. Excellent"
+  const ratingMatch = body.match(/overall experience at this showing\.?\s*([A-Za-z ]{2,20}?)(?:\s{2,}|&nbsp;|3\.|$)/i);
+  const rating = ratingMatch ? ratingMatch[1].trim() : null;
 
-  // Comments: the free-text block, usually after a "Comments:" label.
-  const commentsMatch = body.match(/comments?\s*[:\-]\s*([\s\S]{1,800}?)(?:\n\s*\n|$)/i);
+  // Comments: "5. COMMENTS / RECOMMENDATIONS: <text> Publish to Seller"
+  const commentsMatch = body.match(/comments\s*\/\s*recommendations\s*:\s*([\s\S]{1,800}?)(?:publish to seller|manage feedback|appointment details|$)/i);
   const feedbackText = commentsMatch ? commentsMatch[1].replace(/\s+/g, ' ').trim() : null;
 
-  // Showing date: "Showing Date: 08/20/2026" or similar.
-  const dateMatch = body.match(/showing\s*date\s*[:\-]\s*([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4})/i);
+  // Showing date: "Showing Thu, August 20, 2026 3:15 PM - 4:15 PM"
+  const dateMatch = body.match(/showing\s+\w+,\s*([A-Za-z]+ \d{1,2},\s*\d{4})\s+(\d{1,2}:\d{2}\s*[AP]M)/i);
   let showingDateIso = null;
   if (dateMatch) {
-    const d = new Date(dateMatch[1]);
+    const d = new Date(`${dateMatch[1]} ${dateMatch[2]}`);
     if (!isNaN(d.getTime())) showingDateIso = d.toISOString();
   }
 
