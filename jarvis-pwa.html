@@ -5530,6 +5530,45 @@
       }
     }
 
+    // --- Interim-ack / final-answer audio coordination (2026-08-22) ---
+    // speakInterimAck and speakBridgeAnswer each used to create their own
+    // isolated Audio object with zero awareness of the other, so a slow
+    // interim-ack fetch could still be mid-playback when the real answer's
+    // audio started — genuine, audible overlap Heath reported live. Fixed
+    // with a single shared "generation" counter + a reference to whichever
+    // interim-ack Audio is currently playing:
+    //   - __interimAckGen is bumped every time a NEW interim ack starts
+    //     (superseding any earlier one) and every time the final answer's
+    //     audio is about to play (via stopInterimAck(), called from
+    //     speakBridgeAnswer). speakInterimAck re-checks its own generation
+    //     token after every await; a stale generation means either a newer
+    //     interim ack or the real answer has since taken over, so it bails
+    //     out WITHOUT calling .play() at all — this is what prevents a
+    //     late-arriving fetch from starting audio after the real answer
+    //     already landed.
+    //   - __interimAckAudio is the live handle to whatever's currently
+    //     playing so it can be paused from outside speakInterimAck.
+    // Design call on multiple interim acks in one turn: only the MOST
+    // RECENT interim ack should ever be audible — a new one arriving stops
+    // whatever interim ack was still playing, same as the real answer does.
+    // lastInterim's dedup in askBridge already guarantees each onInterim
+    // call carries genuinely new status text, so there's no risk of a
+    // legitimate ack being skipped, only stale/superseded ones.
+    let __interimAckGen = 0;
+    let __interimAckAudio = null;
+
+    // Stops any interim-ack audio that's currently playing AND invalidates
+    // any interim-ack fetch/decode still in flight so it won't start
+    // playing once it resolves. Called from speakBridgeAnswer right before
+    // the real answer's own audio plays.
+    function stopInterimAck() {
+      __interimAckGen++;
+      if (__interimAckAudio) {
+        try { __interimAckAudio.pause(); } catch {}
+        __interimAckAudio = null;
+      }
+    }
+
     // Speaks a short interim ack ("On it, give me a sec") the moment the
     // bridge session is too busy to answer right away — added 2026-08-20 as
     // the real mitigation for Jarvis going silent behind a long tool-call
@@ -5540,14 +5579,21 @@
     // Fire-and-forget by design — if this fails, the interim status text
     // already visible from askBridge's own pttStatus updates is enough of a
     // fallback; a failed ack must never surface as a user-facing error or
-    // interrupt the wait for the real answer.
+    // interrupt the wait for the real answer. Playback IS coordinated
+    // though — see the block above this function.
     async function speakInterimAck(text) {
+      const myGen = ++__interimAckGen; // supersedes any still-playing/in-flight ack
+      if (__interimAckAudio) {
+        try { __interimAckAudio.pause(); } catch {}
+        __interimAckAudio = null;
+      }
       try {
         const ttsRes = await fetch(`${API_BASE}/api/jarvis-voice?op=tts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: await getAuthHeader() },
           body: JSON.stringify({ text }),
         });
+        if (myGen !== __interimAckGen) return; // superseded while fetching
         if (!ttsRes.ok) {
           const errBody = await ttsRes.json().catch(() => ({}));
           if (errBody.fallback === 'speech-synthesis' && 'speechSynthesis' in window) {
@@ -5559,15 +5605,25 @@
           return;
         }
         const audioBlob = await ttsRes.blob();
+        if (myGen !== __interimAckGen) return; // superseded while decoding blob
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
-        audio.onended = () => URL.revokeObjectURL(audioUrl);
-        audio.onerror = () => URL.revokeObjectURL(audioUrl);
+        audio.onended = () => { URL.revokeObjectURL(audioUrl); if (__interimAckAudio === audio) __interimAckAudio = null; };
+        audio.onerror = () => { URL.revokeObjectURL(audioUrl); if (__interimAckAudio === audio) __interimAckAudio = null; };
+        if (myGen !== __interimAckGen) { URL.revokeObjectURL(audioUrl); return; } // superseded right before play
+        __interimAckAudio = audio;
         await audio.play();
       } catch (err) {
         console.warn('[jarvis] speakInterimAck failed (non-fatal):', err);
       }
     }
+    // Debug/verify hooks, same pattern as window.__jarvisHandleUtteranceBlob
+    // above — let a real-browser E2E check drive speakInterimAck and
+    // speakBridgeAnswer directly with controlled timing, to reproduce and
+    // confirm the fix for the 2026-08-22 interim-ack/final-answer audio
+    // overlap bug without depending on live jarvis-bridge round-trip timing.
+    try { window.__jarvisSpeakInterimAck = speakInterimAck; } catch {}
+    try { window.__jarvisStopInterimAck = stopInterimAck; } catch {}
 
     // ===== ACTIONS FOR HEATH panel =====
     // Lists all pending/snoozed actions grouped by priority (urgent, soon, whenever).
@@ -7437,6 +7493,11 @@
     // (2026-08-22) so both paths share one playback/interrupt
     // implementation instead of drifting copies.
     async function speakBridgeAnswer(answer) {
+      // Stop any interim ack still playing (or in flight) before the real
+      // answer's own audio starts — see the interim-ack coordination block
+      // above speakInterimAck for the full mechanism. No-op if no interim
+      // ack was ever played this turn (e.g. sendNow's typed-chat path).
+      stopInterimAck();
       setPttState('speaking');
       pttLabel.textContent = 'TAP TO INTERRUPT';
       pttStatus.textContent = 'Speaking… (tap to cut in)';
@@ -7487,6 +7548,9 @@
       };
       await audio.play();
     }
+    // Debug/verify hook — see the matching __jarvisSpeakInterimAck hook
+    // above speakInterimAck.
+    try { window.__jarvisSpeakBridgeAnswer = speakBridgeAnswer; } catch {}
 
     // Voice path into the live jarvis-bridge Cole session. Single
     // non-streaming answer -> op=tts -> play -> resumeListening, rather than
