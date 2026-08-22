@@ -3809,16 +3809,24 @@
     // — while giving speech a real margin over a normal breath pause instead
     // of sitting right at/below one. Not the 1500ms Heath already rejected as
     // too slow.
+    // Raised again 2026-08-22: Heath still getting cut off mid-sentence on
+    // longer pauses (thinking through phrasing, not just a breath) at 900ms.
+    // quiet -> 1300ms, noisy -> 1600ms. Still short of the 1500ms ceiling
+    // Heath rejected in 2026-06-21 for the quiet profile specifically — that
+    // rejection was measured against the FAST direct-Sonnet backend, and
+    // total perceived latency has moved around a lot since (see the
+    // 2026-08-10/08-13 live-bridge note above), so re-tune this again if it
+    // now feels slow rather than assuming 1500 is still off-limits.
     const VAD_PROFILES = {
       quiet: {
-        silenceMs:     900,
+        silenceMs:    1300,
         minSpeechMs:   180,
         threshold:   0.020,
         pollMs:         50,
         maxUtteranceMs: 30000,
       },
       noisy: {
-        silenceMs:    1200, // need a longer pause to commit (ambient noise spikes)
+        silenceMs:    1600, // need a longer pause to commit (ambient noise spikes)
         minSpeechMs:   500, // need 500ms+ of sustained speech (filters short clicks/cabin pops)
         threshold:   0.040, // RMS gate doubled — quieter ambient noise stays below
         pollMs:         50,
