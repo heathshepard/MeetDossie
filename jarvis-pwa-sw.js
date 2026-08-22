@@ -79,7 +79,7 @@
  * or a hard refresh if running it as a browser tab instead of the installed
  * PWA.
  */
-const CACHE = 'jarvis-pwa-v10-2026-08-22-typed-text-bridge-fix';
+const CACHE = 'jarvis-pwa-v11-2026-08-22-voice-mode-bridge-fix';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
