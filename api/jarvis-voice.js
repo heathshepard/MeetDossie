@@ -302,6 +302,12 @@ async function logSttDebug(row) {
 async function callElevenLabsSTT(audioBuffer, contentType, filenameHint) {
   const form = new FormData();
   form.append('model_id', 'scribe_v1');
+  // Force English — Heath always speaks English. Without this, scribe_v1
+  // auto-detects language per request and has mis-detected short/ambiguous
+  // clips as German/Slovak/Polish/Spanish, producing garbled non-English
+  // transcripts (confirmed 2026-08-22, historical hits back to 2026-07-07).
+  // ISO-639-1 'en' per ElevenLabs Speech-to-Text API docs.
+  form.append('language_code', 'en');
   const blob = new Blob([audioBuffer], { type: contentType });
   form.append('file', blob, filenameHint);
   const t0 = Date.now();
@@ -342,6 +348,9 @@ async function callWhisperSTT(audioBuffer, contentType, filenameHint) {
   const form = new FormData();
   form.append('model', 'whisper-1');
   form.append('response_format', 'json');
+  // Force English — same rationale as the ElevenLabs primary path above.
+  // OpenAI Whisper expects an ISO-639-1 code in the 'language' field.
+  form.append('language', 'en');
   const blob = new Blob([audioBuffer], { type: contentType });
   form.append('file', blob, filenameHint);
   const t0 = Date.now();
