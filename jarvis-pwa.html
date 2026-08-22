@@ -5133,14 +5133,7 @@
         // can cut Jarvis off mid-word without the buffered PCM continuing
         // to play from the Sony WH.
         try {
-          // Carter 2026-08-22: was a bare reference to nativePlaybackOpen/
-          // nativeStopPlayback, both private to the classic-script IIFE and
-          // invisible to this module — threw ReferenceError instead of
-          // stopping native playback on interrupt. Use the window-exposed
-          // versions, same pattern as isCapacitorNativeCtx's fix above.
-          if (window.__jarvisNativePlaybackOpen && window.__jarvisNativePlaybackOpen()) {
-            window.__jarvisNativeStopPlayback && window.__jarvisNativeStopPlayback().catch(() => {});
-          }
+          if (nativePlaybackOpen) nativeStopPlayback().catch(() => {});
         } catch {}
         try { playbackCompletedResolve && playbackCompletedResolve(); } catch {}
       };
@@ -5220,16 +5213,7 @@
         if (item.native) {
           // Hard ceiling — never sit on a native clip longer than 20s.
           const hardCeiling = setTimeout(() => advance('hard-ceiling-native'), 20000);
-          // Carter 2026-08-22: was a bare call to nativePlayMp3Bytes, private
-          // to the classic-script IIFE and invisible to this module — threw
-          // ReferenceError the instant this branch ran, which the outer
-          // catch below would report as "nativePlayMp3Bytes failed" and
-          // silently fall back to WebView audio EVERY time, meaning the
-          // native A2DP-safe path has likely never actually executed.
-          (window.__jarvisNativePlayMp3Bytes
-            ? window.__jarvisNativePlayMp3Bytes(item.bytes)
-            : Promise.reject(new Error('native playback bridge unavailable'))
-          ).then((durationSec) => {
+          nativePlayMp3Bytes(item.bytes).then((durationSec) => {
             clearTimeout(hardCeiling);
             // AudioTrack.write is blocking — when nativePlayMp3Bytes
             // resolves, all frames are in the track's buffer. Wait for
@@ -5473,10 +5457,8 @@
         try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
         // atlas_11 v4: release the native AudioTrack at end of turn so
         // system audio focus returns to WebView for chimes/etc. Idempotent.
-        // Carter 2026-08-22: bare nativeStopPlayback() reference fixed —
-        // see the matching fix above at the interrupt hook.
         if (useNativeOutput) {
-          try { if (window.__jarvisNativeStopPlayback) await window.__jarvisNativeStopPlayback(); } catch {}
+          try { await nativeStopPlayback(); } catch {}
         }
       }
     }
@@ -7913,81 +7895,6 @@
         }
         throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
       }
-      // 2026-08-22 (Carter): route through the native A2DP-safe AudioTrack
-      // bridge on the Capacitor APK, same mechanism runStreamingChatTTS's
-      // native branch uses (built 2026-07-07, atlas_11 — see the
-      // "audioDevicePickerBoot" IIFE / Sony WH bug comment: a bare WebView
-      // <audio> element can trip Android into MODE_IN_COMMUNICATION, which
-      // drops or truncates A2DP Bluetooth playback mid-clip). speakBridgeAnswer
-      // became the live voice-answer path on 2026-08-22 but never got this
-      // wiring — every truck reply since then has gone out the unprotected
-      // WebView path, which lines up with Heath's live truck report the same
-      // day (delay + mid-word cutoff, Bluetooth-only, intermittent — matching
-      // a route that has to re-establish per reply rather than staying warm).
-      const useNativeOutput = isCapacitorNativeCtx() && isForceNativeOutputOn() && !!window.__jarvisNativePlayMp3Bytes;
-      // Read the body exactly once — arrayBuffer() and blob() can't both be
-      // called on the same Response. Derive both the native Uint8Array and
-      // the WebView-fallback Blob from this single buffer.
-      const ttsArrayBuffer = await ttsRes.arrayBuffer();
-
-      // Carter 2026-08-22: idempotent guard + a hard-ceiling safety net —
-      // Heath's live truck test (same session as the native-bridge fix
-      // above) found the UI stuck on "TAP TO INTERRUPT" after a Bluetooth
-      // cutoff. Root cause: neither the native nor the WebView branch below
-      // had any timeout backstop — both relied ENTIRELY on the platform
-      // firing onended/native-resolve. A hard Bluetooth dropout (OS kills
-      // the audio route mid-clip without the browser/plugin ever surfacing
-      // an error or an end-of-track event) can leave that promise/event
-      // unfired forever. Same class of gap as the wireQuickActions/sendNow
-      // "stuck on speaking" bug fixed today in commit 0d99d109, but that fix
-      // only covered fetch-throws before any audio was armed — this covers
-      // audio that started playing and then silently died. settleBridgeVoice
-      // is now idempotent so a late real onended can't double-fire after the
-      // hard ceiling already recovered the UI.
-      let settled = false;
-      const settleBridgeVoice = async (reason) => {
-        if (settled) return;
-        settled = true;
-        if (reason && reason !== 'ended' && reason !== 'native-resolved') {
-          console.warn(`[jarvis] speakBridgeAnswer settled via ${reason}`);
-        }
-        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
-        // Mirrors the WebView path's atlas_11 "release at end of turn" — see
-        // the matching comment in runStreamingChatTTS.
-        if (useNativeOutput) {
-          try { if (window.__jarvisNativeStopPlayback) await window.__jarvisNativeStopPlayback(); } catch {}
-        }
-        if (conversationActive) { await resumeListening(); }
-        else { try { setPttState('idle'); } catch {} }
-      };
-      // Absolute backstop — never leave Heath staring at "TAP TO INTERRUPT"
-      // longer than this no matter what silently failed above. 60s covers
-      // even a long "walk me through it" answer with real margin.
-      const hardCeiling = setTimeout(() => settleBridgeVoice('hard-ceiling'), 60000);
-
-      if (useNativeOutput) {
-        let bridgeVoiceAborted = false;
-        window.__jarvisInterruptTTS = function bridgeVoiceInterruptNative(reason) {
-          if (bridgeVoiceAborted) return;
-          bridgeVoiceAborted = true;
-          clearTimeout(hardCeiling);
-          console.log(`[jarvis-half-duplex] bridge-reply native TTS interrupt: ${reason || 'unknown'}`);
-          try { window.__jarvisNativeStopPlayback && window.__jarvisNativeStopPlayback(); } catch {}
-        };
-        try {
-          const bytes = new Uint8Array(ttsArrayBuffer);
-          await window.__jarvisNativePlayMp3Bytes(bytes);
-          clearTimeout(hardCeiling);
-          if (bridgeVoiceAborted) return; // don't resume listening — caller's interrupt branch owns that
-          await settleBridgeVoice('native-resolved');
-          return;
-        } catch (err) {
-          console.warn('[jarvis] native bridge-reply TTS failed, falling back to WebView audio:', err && err.message);
-          if (bridgeVoiceAborted) { clearTimeout(hardCeiling); return; }
-          // fall through to the WebView <audio> path below for this answer
-        }
-      }
-
       const audioBlob = await ttsRes.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
@@ -7995,7 +7902,6 @@
       window.__jarvisInterruptTTS = function bridgeVoiceInterrupt(reason) {
         if (bridgeVoiceAborted) return;
         bridgeVoiceAborted = true;
-        clearTimeout(hardCeiling);
         console.log(`[jarvis-half-duplex] bridge-reply TTS interrupt: ${reason || 'unknown'}`);
         try { audio.onended = null; audio.pause(); } catch {}
       };
@@ -8008,32 +7914,16 @@
       // INTERRUPT" forever. Reset explicitly when there's no loop to resume.
       audio.onended = async () => {
         URL.revokeObjectURL(audioUrl);
-        clearTimeout(hardCeiling);
-        await settleBridgeVoice('ended');
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        if (conversationActive) { await resumeListening(); }
+        else { try { setPttState('idle'); } catch {} }
       };
-      audio.addEventListener('ended', () => { clearTimeout(hardCeiling); settleBridgeVoice('ended-listener'); });
       audio.onerror = async () => {
-        clearTimeout(hardCeiling);
-        await settleBridgeVoice('error');
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        if (conversationActive) { await resumeListening(); }
+        else { try { setPttState('idle'); } catch {} }
       };
-      // Duration-based safety — same reasoning as runStreamingChatTTS's
-      // armDurationTimer: onended doesn't reliably fire for every MP3 clip
-      // on Android WebView. Independent of, and tighter than, the 60s hard
-      // ceiling above.
-      let durationTimer = null;
-      const armDurationTimer = () => {
-        const dur = isFinite(audio.duration) ? audio.duration : 0;
-        if (dur > 0 && !durationTimer && !settled) {
-          durationTimer = setTimeout(() => settleBridgeVoice('duration-timeout'), (dur + 1.5) * 1000);
-        }
-      };
-      audio.addEventListener('loadedmetadata', armDurationTimer);
-      audio.addEventListener('canplay', armDurationTimer);
-      audio.play().catch((err) => {
-        console.warn('[jarvis] speakBridgeAnswer audio.play() rejected:', err);
-        clearTimeout(hardCeiling);
-        settleBridgeVoice('play-rejected');
-      });
+      await audio.play();
     }
     // Debug/verify hook — see the matching __jarvisSpeakInterimAck hook
     // above speakInterimAck.
@@ -10525,14 +10415,6 @@
     window.__jarvisNativeStopPlayback   = nativeStopPlayback;
     window.__jarvisNativeGetPlaybackStatus = nativeGetPlaybackStatus;
     window.__jarvisNativePlayMp3Bytes   = nativePlayMp3Bytes;
-    // Carter 2026-08-22: nativePlaybackOpen itself was never exposed, only
-    // the functions were — module-scope code (runStreamingChatTTS) referenced
-    // the bare `nativePlaybackOpen` identifier directly, which is private to
-    // this audioDevicePickerBoot IIFE and invisible to the module the same
-    // way isCapacitorNativeCtx/isForceNativeOutputOn were documented as
-    // invisible above — a real ReferenceError waiting to fire the first time
-    // that branch actually ran on native output.
-    window.__jarvisNativePlaybackOpen   = () => nativePlaybackOpen;
 
     function shouldRouteNative() {
       if (!isCapacitorNativeCtx()) return false;
