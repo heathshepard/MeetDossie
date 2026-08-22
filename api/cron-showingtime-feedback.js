@@ -189,7 +189,13 @@ function parseShowingTimeFeedback({ subject, body }) {
   // Details" (each repeated twice in the real template, plus more whitespace
   // padding than a normal paragraph — 4000 chars of slack, not 800).
   const commentsMatch = body.match(/comments\s*\/\s*recommendations\s*:\s*([\s\S]{1,4000}?)(?:publish to seller|manage feedback|appointment details|$)/i);
-  const feedbackText = commentsMatch ? commentsMatch[1].replace(/\s+/g, ' ').trim() : null;
+  // The "Publish to Seller" / "Manage Feedback" links render (via the shared
+  // href-preserving strip in bodyOfMessage) as bare URLs immediately before
+  // their visible label, so the lazy match above can land just after the
+  // comment text but still swallow that trailing tracking link. Strip it.
+  const feedbackText = commentsMatch
+    ? commentsMatch[1].replace(/\s+/g, ' ').replace(/\s*https?:\/\/\S+\s*$/i, '').trim()
+    : null;
 
   // Showing date: "Showing Thu, August 20, 2026 3:15 PM - 4:15 PM"
   const dateMatch = body.match(/showing\s+\w+,\s*([A-Za-z]+ \d{1,2},\s*\d{4})\s+(\d{1,2}:\d{2}\s*[AP]M)/i);
