@@ -2449,6 +2449,54 @@
     .quick-ask-btn.primary:hover { background: rgba(0, 229, 255, 0.10); }
     .quick-ask-btn:disabled { opacity: 0.5; cursor: wait; }
 
+    /* ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+       Persistent, unobtrusive, top-of-screen. Compact pills, not a full
+       panel — sits above the venture strip and collapses to nothing when
+       .hidden is set (no empty box). */
+    .bg-jobs-strip {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 7px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      backdrop-filter: blur(10px);
+    }
+    .bg-jobs-strip.hidden { display: none; }
+    .bg-jobs-strip-header {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--txt-faint);
+      flex-shrink: 0;
+    }
+    .bg-jobs-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ok);
+      animation: bgJobsPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes bgJobsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .bg-jobs-list { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+    .bg-jobs-item {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid rgba(0, 229, 255, 0.18);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--txt-primary);
+      transition: opacity 0.4s ease, background 0.4s ease, border-color 0.4s ease;
+    }
+    .bg-jobs-item.done {
+      opacity: 0.4;
+      border-color: rgba(139, 168, 136, 0.3);
+      background: rgba(139, 168, 136, 0.06);
+    }
+    .bg-jobs-item .bg-jobs-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
+    .bg-jobs-item .bg-jobs-elapsed { color: var(--txt-faint); font-variant-numeric: tabular-nums; }
+
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
        pulse); Rust/Sawyer/Brokerage are honest "not tracked yet" placeholders — see
@@ -2930,6 +2978,34 @@
     </header>
 
     <main class="main">
+      <!-- BACKGROUND JOBS STRIP — persistent, top-of-screen, live list of
+           Dossie's currently-running automated background work. Added
+           2026-08-22 per Heath's ask (via jarvis-bridge) for a live "what's
+           actually running" indicator, in place of a bare mid-task ack.
+           Reuses the exact /api/jarvis-in-flight-work data + poll/realtime
+           refresh already driving the (buried) IN-FLIGHT WORK panel below —
+           no new fetch, no new endpoint, no new polling load.
+           SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
+           status=in_progress) is genuinely live for Dossie's autonomous
+           cron/poller pipeline (fanout builds, TikTok trending-audio scans,
+           etc.). It does NOT reflect this live voice session's own
+           Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
+           querying agent_queue while a real subagent was actively running
+           and finding zero in_progress rows. cole-dispatch-start.js /
+           cole-dispatch-complete.js exist for exactly that gap but nothing
+           in Cole's actual interactive Agent-tool dispatch flow calls them
+           today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
+           this strip as "what Cole is doing for you right now" until that's
+           fixed; it would misrepresent the data. Hidden entirely (no empty
+           box) when nothing is active. -->
+      <div class="bg-jobs-strip hidden" id="bg-jobs-strip">
+        <div class="bg-jobs-strip-header">
+          <span class="bg-jobs-dot"></span>
+          <span>ACTIVE BACKGROUND JOBS</span>
+        </div>
+        <div class="bg-jobs-list" id="bg-jobs-list"></div>
+      </div>
+
       <!-- VENTURE ROLLUP STRIP (mission-control consolidation, item 7) — top-level,
            always visible. Dossie = real data (money pulse, populated by renderMoney()
            inside loadTickers()). Rust/Sawyer/Brokerage = honest "not tracked yet"
@@ -6828,6 +6904,7 @@
         const data = await res.json();
         inFlightCache = data.items || [];
         renderInFlightWork(inFlightCache, data.git_diffs || []);
+        syncBgJobsStrip(inFlightCache);
         if (badge) badge.textContent = String(data.counts?.total || inFlightCache.length);
       } catch (err) {
         console.warn('[jarvis] loadInFlightWork failed', err);
@@ -6882,6 +6959,78 @@
         if (!it) return;
         row.querySelector('.inflight-item-title').textContent = it.title || '(no description)';
       });
+    }
+
+    // ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+    // Fed by the same inFlightCache as the IN-FLIGHT WORK panel above — see
+    // syncBgJobsStrip() call inside loadInFlightWork(). No separate fetch.
+    // A row that drops out of a poll (job finished) flips to a faded "done"
+    // pill for 4s before being removed, instead of vanishing instantly.
+    const bgJobsById = new Map(); // id -> { item, doneAt: number|null }
+    let bgJobsTickTimer = null;
+
+    function syncBgJobsStrip(items) {
+      const liveIds = new Set((items || []).map((it) => String(it.id)));
+      bgJobsById.forEach((entry, id) => {
+        if (!liveIds.has(id) && entry.doneAt == null) {
+          entry.doneAt = Date.now();
+          setTimeout(() => { bgJobsById.delete(id); renderBgJobsStrip(); }, 4000);
+        }
+      });
+      (items || []).forEach((it) => {
+        const id = String(it.id);
+        const existing = bgJobsById.get(id);
+        if (existing) { existing.item = it; existing.doneAt = null; }
+        else bgJobsById.set(id, { item: it, doneAt: null });
+      });
+      renderBgJobsStrip();
+      if (!bgJobsTickTimer) {
+        // Ticks the visible elapsed-time text every second between polls —
+        // same "ticks every second" behavior as the Instances subpanel.
+        bgJobsTickTimer = setInterval(renderBgJobsStrip, 1000);
+      }
+    }
+
+    function fmtBgElapsed(iso) {
+      if (!iso) return '';
+      const ms = Date.now() - new Date(iso).getTime();
+      if (!Number.isFinite(ms) || ms < 0) return '0s';
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ${s % 60}s`;
+      const h = Math.floor(m / 60);
+      return `${h}h ${m % 60}m`;
+    }
+
+    function renderBgJobsStrip() {
+      const strip = document.getElementById('bg-jobs-strip');
+      const list = document.getElementById('bg-jobs-list');
+      if (!strip || !list) return;
+      if (bgJobsById.size === 0) {
+        strip.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+      }
+      strip.classList.remove('hidden');
+      const rows = [...bgJobsById.entries()].sort((a, b) => {
+        if (!!a[1].doneAt !== !!b[1].doneAt) return a[1].doneAt ? 1 : -1;
+        const aStart = new Date(a[1].item.started_at || a[1].item.created_at).getTime();
+        const bStart = new Date(b[1].item.started_at || b[1].item.created_at).getTime();
+        return aStart - bStart;
+      });
+      list.innerHTML = rows.map(([id, entry]) => {
+        const it = entry.item;
+        const isDone = !!entry.doneAt;
+        const elapsed = isDone ? 'done' : fmtBgElapsed(it.started_at || it.created_at);
+        const rawTitle = it.title || '(no description)';
+        const title = rawTitle.length > 46 ? rawTitle.slice(0, 45) + '…' : rawTitle;
+        return `<span class="bg-jobs-item${isDone ? ' done' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(rawTitle)}">
+          <span class="bg-jobs-agent">${escapeHtml(it.agent || '?')}</span>
+          <span class="bg-jobs-title">${escapeHtml(title)}</span>
+          <span class="bg-jobs-elapsed">${escapeHtml(elapsed)}</span>
+        </span>`;
+      }).join('');
     }
 
     // ===== AGENTS IN FLIGHT (Tier 2 Widget) =====
@@ -8537,10 +8686,21 @@
       instancesRefreshTimer = setTimeout(() => { loadInstances().catch(() => {}); }, 400);
     }
 
+    // Same debounce pattern for the BACKGROUND JOBS STRIP (2026-08-22) — an
+    // agent_queue row flipping in/out of in_progress would otherwise sit up
+    // to 45s (the IN-FLIGHT WORK poll interval) before the top strip caught
+    // up. Piggybacks on the same realtime agent_queue subscription.
+    let inFlightRefreshTimer = null;
+    function scheduleInFlightRefresh() {
+      if (inFlightRefreshTimer) clearTimeout(inFlightRefreshTimer);
+      inFlightRefreshTimer = setTimeout(() => { loadInFlightWork().catch(() => {}); }, 400);
+    }
+
     function onAgentEvent(event) {
       mergeLedgerEvent(event);
       renderAgentRows();
       scheduleInstancesRefresh();
+      scheduleInFlightRefresh();
     }
 
     // Back-compat alias used by some boot paths.

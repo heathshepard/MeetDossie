@@ -132,6 +132,11 @@ export default async function handler(req, res) {
           title: t.task_subject || '(no description)',
           status: t.status,
           created_at: t.created_at,
+          // 2026-08-22: added raw started_at (falls back to created_at) so
+          // clients can tick elapsed time locally every second instead of
+          // only refreshing on each poll — see the BACKGROUND JOBS STRIP in
+          // jarvis-pwa.html. age_minutes (below) stays for existing callers.
+          started_at: t.started_at || t.created_at,
           age_minutes: age,
         };
       })
