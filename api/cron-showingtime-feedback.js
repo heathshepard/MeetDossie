@@ -251,10 +251,20 @@ async function runForCustomer({ userId, googleEmail }, { dryRun, debugBody } = {
         details.push({
           messageId, subject, parsed,
           matchedListing: listing ? listing.address : null,
-          bodyExcerpt: debugBody ? (() => {
+          commentsExcerpt: debugBody ? (() => {
             const s = String(body);
-            const idx = s.search(/comments|buyer|feedback received/i);
-            return idx >= 0 ? s.slice(Math.max(0, idx - 200), idx + 2500) : s.slice(0, 2500);
+            const idx = s.search(/comments/i);
+            return idx >= 0 ? s.slice(Math.max(0, idx - 100), idx + 1200) : '(no "comments" match)';
+          })() : undefined,
+          agentExcerpt: debugBody ? (() => {
+            const s = String(body);
+            const idx = s.search(/agent details/i);
+            return idx >= 0 ? s.slice(Math.max(0, idx - 100), idx + 800) : '(no "agent details" match)';
+          })() : undefined,
+          ratingExcerpt: debugBody ? (() => {
+            const s = String(body);
+            const idx = s.search(/overall experience/i);
+            return idx >= 0 ? s.slice(Math.max(0, idx - 50), idx + 400) : '(no "overall experience" match)';
           })() : undefined,
         });
         continue;
