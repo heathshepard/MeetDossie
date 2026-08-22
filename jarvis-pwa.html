@@ -2449,6 +2449,56 @@
     .quick-ask-btn.primary:hover { background: rgba(0, 229, 255, 0.10); }
     .quick-ask-btn:disabled { opacity: 0.5; cursor: wait; }
 
+    /* ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+       Persistent, unobtrusive, top-of-screen. Compact pills, not a full
+       panel — a sibling of <header>/<main> (see placement note on the
+       markup itself for why), so its own horizontal margin has to match
+       .main's 16px padding by hand instead of inheriting the grid gap.
+       Collapses to nothing when .hidden is set (no empty box). */
+    .bg-jobs-strip {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 7px 12px;
+      margin: 10px 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      backdrop-filter: blur(10px);
+    }
+    .bg-jobs-strip.hidden { display: none; }
+    .bg-jobs-strip-header {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--txt-faint);
+      flex-shrink: 0;
+    }
+    .bg-jobs-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ok);
+      animation: bgJobsPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes bgJobsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .bg-jobs-list { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+    .bg-jobs-item {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0, 229, 255, 0.06);
+      border: 1px solid rgba(0, 229, 255, 0.18);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--txt-primary);
+      transition: opacity 0.4s ease, background 0.4s ease, border-color 0.4s ease;
+    }
+    .bg-jobs-item.done {
+      opacity: 0.4;
+      border-color: rgba(139, 168, 136, 0.3);
+      background: rgba(139, 168, 136, 0.06);
+    }
+    .bg-jobs-item .bg-jobs-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
+    .bg-jobs-item .bg-jobs-elapsed { color: var(--txt-faint); font-variant-numeric: tabular-nums; }
+
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
        pulse); Rust/Sawyer/Brokerage are honest "not tracked yet" placeholders — see
@@ -2928,6 +2978,46 @@
         </button>
       </div>
     </header>
+
+    <!-- BACKGROUND JOBS STRIP — persistent, top-of-screen, live list of
+         Dossie's currently-running automated background work. Added
+         2026-08-22 per Heath's ask (via jarvis-bridge) for a live "what's
+         actually running" indicator, in place of a bare mid-task ack.
+         Reuses the exact /api/jarvis-in-flight-work data + poll/realtime
+         refresh already driving the (buried) IN-FLIGHT WORK panel below —
+         no new fetch, no new endpoint, no new polling load.
+         SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
+         status=in_progress) is genuinely live for Dossie's autonomous
+         cron/poller pipeline (fanout builds, TikTok trending-audio scans,
+         etc.). It does NOT reflect this live voice session's own
+         Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
+         querying agent_queue while a real subagent was actively running
+         and finding zero in_progress rows. cole-dispatch-start.js /
+         cole-dispatch-complete.js exist for exactly that gap but nothing
+         in Cole's actual interactive Agent-tool dispatch flow calls them
+         today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
+         this strip as "what Cole is doing for you right now" until that's
+         fixed; it would misrepresent the data. Hidden entirely (no empty
+         box) when nothing is active.
+
+         PLACEMENT: deliberately a sibling of <main>, NOT a child of it.
+         .main uses CSS grid-template-areas with all 4 rows already named
+         (venture/voice/primary/secondary) and no spare "auto" row — an
+         unnamed 5th child there gets auto-placed into the same grid cell
+         as the venture strip and is rendered fully hidden underneath it
+         (found this the hard way: DOM/classList looked correct, itemFound
+         was true, but every real-browser screenshot showed nothing —
+         Playwright's DOM assertions don't catch grid-overlap invisibility,
+         only a visual check does). #app has no grid-template-areas, just
+         plain row sizing, so an extra child here safely lands in its own
+         auto-generated row above <main>. -->
+    <div class="bg-jobs-strip hidden" id="bg-jobs-strip">
+      <div class="bg-jobs-strip-header">
+        <span class="bg-jobs-dot"></span>
+        <span>ACTIVE BACKGROUND JOBS</span>
+      </div>
+      <div class="bg-jobs-list" id="bg-jobs-list"></div>
+    </div>
 
     <main class="main">
       <!-- VENTURE ROLLUP STRIP (mission-control consolidation, item 7) — top-level,
@@ -3837,6 +3927,64 @@
     // place when the user toggles Noisy Mode mid-conversation.
     const VAD = { ...VAD_PROFILES.quiet };
 
+    // ===== TRUE BARGE-IN (Carter, 2026-08-22) =====
+    // Lets Heath just start talking to cut Jarvis off mid-sentence instead of
+    // requiring a manual tap on the orb. Reuses the SAME mic stream + analyser
+    // the normal VAD loop already runs (startVadLoop) — no separate audio-level
+    // detection code. See startVadLoop's interval callback for where this
+    // branches off from the normal utterance-finalize path.
+    //
+    // Real risk, called out explicitly by Heath before this was built: the
+    // half-duplex mic-mute design (setMicTrackEnabled, 2026-06-28) exists
+    // BECAUSE Jarvis's own TTS played back through the speaker was getting
+    // picked up by the mic and mis-read as Heath talking (Bug 4 — see the
+    // half-duplex comment block above). True barge-in requires re-enabling
+    // the mic track while Jarvis is speaking, which reopens exactly that
+    // failure mode unless AEC (echoCancellation:true, already on in
+    // ensureMic) actually cancels the played-back TTS out of the captured
+    // signal. AEC quality is NOT uniform: the codebase's own Android-WebView
+    // notes (see ensureMic / pickRecorderMime comments) document AEC as
+    // unreliable there, which is why a native audio-output bridge exists as
+    // a workaround for a DIFFERENT bug. There is no way to verify true
+    // acoustic self-echo behavior from this sandbox (no real speaker->mic
+    // loopback hardware) — only Heath's real device can confirm this doesn't
+    // self-interrupt. Two safety valves as a result:
+    //   1. Forced OFF entirely inside the Capacitor Android app
+    //      (isCapacitorNativeCtx()) — the one runtime with a documented AEC
+    //      reliability problem in this repo.
+    //   2. A stricter threshold (BARGE_IN.thresholdMult) + longer sustained-
+    //      speech requirement (BARGE_IN.minSpeechMs) than normal listening,
+    //      so a brief AEC-imperfect bleed spike doesn't trip it — plus an
+    //      instant kill switch: ?bargein=0 in the URL, or
+    //      localStorage['jarvis:bargeIn']='0', both checked live (no reload
+    //      of app logic needed beyond a page refresh).
+    // If Heath ever reports Jarvis interrupting itself, the fix is
+    // localStorage.setItem('jarvis:bargeIn','0') (or add ?bargein=0 to the
+    // URL) — not a code change.
+    const BARGE_IN = {
+      thresholdMult: 2.2,  // multiplies VAD.threshold — real speech has to clear a materially higher bar than normal listening before it's treated as an interrupt
+      minSpeechMs: 450,    // sustained time above that raised threshold before triggering — filters single-frame bleed spikes
+    };
+    const BARGE_IN_LS_KEY = 'jarvis:bargeIn';
+    function isBargeInEnabled() {
+      // Android WebView AEC is documented elsewhere in this file as
+      // unreliable — don't risk Jarvis hearing itself there.
+      if (isCapacitorNativeCtx()) return false;
+      try {
+        const qp = new URLSearchParams(location.search).get('bargein');
+        if (qp === '0') return false;
+        if (qp === '1') return true;
+      } catch {}
+      try {
+        if (localStorage.getItem(BARGE_IN_LS_KEY) === '0') return false;
+      } catch {}
+      return true; // default ON for browser/PWA contexts
+    }
+    // Separate from vadState (the normal utterance-capture state machine) so
+    // barge-in tracking never pollutes/gets polluted by the real
+    // utterance-finalize bookkeeping — see startVadLoop.
+    let bargeInState = { speaking: false, speechStartedAt: 0 };
+
     // ===== NOISY MODE STATE =====
     const NOISY_MODE_LS_KEY = 'jarvis:noisyMode';
     let noisyModeOn = false;
@@ -3987,12 +4135,26 @@
       pttLabel.textContent = label || labels[s] || 'TAP';
       if (s === 'idle') pttStatus.textContent = '';
 
+      // Barge-in (Carter 2026-08-22): fresh bookkeeping every time we enter
+      // 'speaking' so a stale speechStartedAt from a prior turn can't
+      // immediately fire on the next one.
+      if (s === 'speaking') {
+        bargeInState = { speaking: false, speechStartedAt: 0 };
+      }
+
       // Half-duplex mic gate (Atlas 2026-06-28). Only 'listening' enables
-      // audio capture. Every other state zeros the mic track so echoed TTS
-      // can't round-trip into STT and so Heath talking over Jarvis won't
-      // collide. setMicTrackEnabled is a no-op when micStream is null
+      // audio capture — EXCEPT 'speaking', which also stays live when
+      // barge-in is enabled so the VAD loop can hear a real interrupt (see
+      // BARGE_IN block above). No MediaRecorder is ever active during
+      // 'speaking' (finalizeUtteranceIfReady already stops it before
+      // 'thinking' begins), so unmuting here only feeds the analyser, not
+      // an STT upload — the barge-in branch in startVadLoop is the only
+      // thing reading it. Every other state zeros the mic track so echoed
+      // TTS can't round-trip into STT and so Heath talking over Jarvis
+      // won't collide. setMicTrackEnabled is a no-op when micStream is null
       // (idle / error after teardown) so it's safe to call unconditionally.
-      setMicTrackEnabled(s === 'listening');
+      const bargeInLive = (s === 'speaking') && isBargeInEnabled();
+      setMicTrackEnabled(s === 'listening' || bargeInLive);
     }
 
     // Inserts a message bubble at the TOP of the scrollback. Newest-at-top
@@ -4398,6 +4560,30 @@
         return null;
       }
     }
+    // Debug/verify hooks (Carter 2026-08-22) — same pattern as the existing
+    // __jarvisHandleUtteranceBlob / __jarvisSpeakBridgeAnswer hooks. Lets a
+    // real-browser E2E test drive the barge-in path with a controlled fake
+    // mic device (Chromium --use-file-for-fake-audio-capture) without
+    // needing a full onPttClick() conversation start, which would also kick
+    // off real STT/bridge traffic from the same fake audio.
+    try { window.__jarvisEnsureMic = ensureMic; } catch {}
+    try { window.__jarvisGetPttState = () => pttState; } catch {}
+
+    // Atlas 2026-06-28: interrupt path, factored out (Carter 2026-08-22) so
+    // both the manual tap-to-interrupt handler and the barge-in VAD trigger
+    // (see triggerBargeIn above) share one implementation instead of two
+    // copies drifting apart. Aborts the TTS chain, unmutes the mic, flips
+    // back to listening.
+    async function interruptAndResume(reason) {
+      try {
+        if (typeof window.__jarvisInterruptTTS === 'function') {
+          window.__jarvisInterruptTTS(reason);
+        }
+      } catch (e) {
+        console.warn('[jarvis-half-duplex] interrupt handler threw:', e);
+      }
+      try { await resumeListening(); } catch (e) { console.warn('[jarvis-half-duplex] resumeListening after interrupt threw:', e); }
+    }
 
     // ====================================================================
     // CONTINUOUS CONVERSATION MODE — main click handler
@@ -4412,14 +4598,7 @@
       // double-tap could end the conversation in a future build; for now
       // the existing "TAP TO END" affordance is preserved for idle state.
       if (conversationActive && (pttState === 'speaking' || pttState === 'thinking')) {
-        try {
-          if (typeof window.__jarvisInterruptTTS === 'function') {
-            window.__jarvisInterruptTTS('user-tap');
-          }
-        } catch (e) {
-          console.warn('[jarvis-half-duplex] interrupt handler threw:', e);
-        }
-        try { await resumeListening(); } catch (e) { console.warn('[jarvis-half-duplex] resumeListening after interrupt threw:', e); }
+        await interruptAndResume('user-tap');
         return;
       }
 
@@ -4516,6 +4695,38 @@
         }
         const rms = Math.sqrt(sumSq / buf.length);
         const now = Date.now();
+
+        // Barge-in branch (Carter 2026-08-22): while Jarvis is speaking, this
+        // is the ONLY thing allowed to read the analyser — deliberately
+        // separate from vadState below so a barge-in check can never leave
+        // stale speechStartedAt/lastVoiceAt bookkeeping that the real
+        // utterance-capture logic would trip over on the next turn. See the
+        // BARGE_IN block above VAD_PROFILES for the threshold reasoning.
+        if (pttState === 'speaking') {
+          if (isBargeInEnabled()) {
+            const bargeAbove = rms > (VAD.threshold * BARGE_IN.thresholdMult);
+            if (bargeAbove) {
+              if (!bargeInState.speaking) {
+                bargeInState.speaking = true;
+                bargeInState.speechStartedAt = now;
+              } else if ((now - bargeInState.speechStartedAt) >= BARGE_IN.minSpeechMs) {
+                bargeInState.speaking = false; // consume — don't re-fire every tick
+                triggerBargeIn();
+              }
+            } else {
+              bargeInState.speaking = false;
+            }
+          }
+          return; // never fall through to the normal utterance state machine while speaking
+        }
+
+        // Normal utterance capture only runs while actually listening — the
+        // mic track is silenced by setPttState in every other state (except
+        // the barge-in case handled above), so this would just see RMS≈0 the
+        // rest of the time anyway; the explicit gate makes that guarantee
+        // instead of relying on it.
+        if (pttState !== 'listening') return;
+
         const above = rms > VAD.threshold;
 
         if (above) {
@@ -4546,6 +4757,18 @@
           }
         }
       }, VAD.pollMs);
+    }
+    // Debug/verify hook — see __jarvisEnsureMic above for why this exists.
+    try { window.__jarvisStartVadLoop = startVadLoop; } catch {}
+
+    // Real-speech-while-speaking detected by the barge-in branch above.
+    // Reuses the EXACT same interrupt path a manual tap uses (see
+    // interruptAndResume, called from onPttClick) — stop the current TTS
+    // audio and resume listening, no separate code path.
+    function triggerBargeIn() {
+      if (pttState !== 'speaking') return;
+      console.log('[jarvis-barge-in] real speech detected while Jarvis speaking — interrupting');
+      interruptAndResume('barge-in').catch((e) => console.warn('[jarvis-barge-in] interrupt failed:', e));
     }
 
     function stopVadLoop() {
@@ -6695,6 +6918,7 @@
         const data = await res.json();
         inFlightCache = data.items || [];
         renderInFlightWork(inFlightCache, data.git_diffs || []);
+        syncBgJobsStrip(inFlightCache);
         if (badge) badge.textContent = String(data.counts?.total || inFlightCache.length);
       } catch (err) {
         console.warn('[jarvis] loadInFlightWork failed', err);
@@ -6749,6 +6973,78 @@
         if (!it) return;
         row.querySelector('.inflight-item-title').textContent = it.title || '(no description)';
       });
+    }
+
+    // ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+    // Fed by the same inFlightCache as the IN-FLIGHT WORK panel above — see
+    // syncBgJobsStrip() call inside loadInFlightWork(). No separate fetch.
+    // A row that drops out of a poll (job finished) flips to a faded "done"
+    // pill for 4s before being removed, instead of vanishing instantly.
+    const bgJobsById = new Map(); // id -> { item, doneAt: number|null }
+    let bgJobsTickTimer = null;
+
+    function syncBgJobsStrip(items) {
+      const liveIds = new Set((items || []).map((it) => String(it.id)));
+      bgJobsById.forEach((entry, id) => {
+        if (!liveIds.has(id) && entry.doneAt == null) {
+          entry.doneAt = Date.now();
+          setTimeout(() => { bgJobsById.delete(id); renderBgJobsStrip(); }, 4000);
+        }
+      });
+      (items || []).forEach((it) => {
+        const id = String(it.id);
+        const existing = bgJobsById.get(id);
+        if (existing) { existing.item = it; existing.doneAt = null; }
+        else bgJobsById.set(id, { item: it, doneAt: null });
+      });
+      renderBgJobsStrip();
+      if (!bgJobsTickTimer) {
+        // Ticks the visible elapsed-time text every second between polls —
+        // same "ticks every second" behavior as the Instances subpanel.
+        bgJobsTickTimer = setInterval(renderBgJobsStrip, 1000);
+      }
+    }
+
+    function fmtBgElapsed(iso) {
+      if (!iso) return '';
+      const ms = Date.now() - new Date(iso).getTime();
+      if (!Number.isFinite(ms) || ms < 0) return '0s';
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ${s % 60}s`;
+      const h = Math.floor(m / 60);
+      return `${h}h ${m % 60}m`;
+    }
+
+    function renderBgJobsStrip() {
+      const strip = document.getElementById('bg-jobs-strip');
+      const list = document.getElementById('bg-jobs-list');
+      if (!strip || !list) return;
+      if (bgJobsById.size === 0) {
+        strip.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+      }
+      strip.classList.remove('hidden');
+      const rows = [...bgJobsById.entries()].sort((a, b) => {
+        if (!!a[1].doneAt !== !!b[1].doneAt) return a[1].doneAt ? 1 : -1;
+        const aStart = new Date(a[1].item.started_at || a[1].item.created_at).getTime();
+        const bStart = new Date(b[1].item.started_at || b[1].item.created_at).getTime();
+        return aStart - bStart;
+      });
+      list.innerHTML = rows.map(([id, entry]) => {
+        const it = entry.item;
+        const isDone = !!entry.doneAt;
+        const elapsed = isDone ? 'done' : fmtBgElapsed(it.started_at || it.created_at);
+        const rawTitle = it.title || '(no description)';
+        const title = rawTitle.length > 46 ? rawTitle.slice(0, 45) + '…' : rawTitle;
+        return `<span class="bg-jobs-item${isDone ? ' done' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(rawTitle)}">
+          <span class="bg-jobs-agent">${escapeHtml(it.agent || '?')}</span>
+          <span class="bg-jobs-title">${escapeHtml(title)}</span>
+          <span class="bg-jobs-elapsed">${escapeHtml(elapsed)}</span>
+        </span>`;
+      }).join('');
     }
 
     // ===== AGENTS IN FLIGHT (Tier 2 Widget) =====
@@ -8404,10 +8700,21 @@
       instancesRefreshTimer = setTimeout(() => { loadInstances().catch(() => {}); }, 400);
     }
 
+    // Same debounce pattern for the BACKGROUND JOBS STRIP (2026-08-22) — an
+    // agent_queue row flipping in/out of in_progress would otherwise sit up
+    // to 45s (the IN-FLIGHT WORK poll interval) before the top strip caught
+    // up. Piggybacks on the same realtime agent_queue subscription.
+    let inFlightRefreshTimer = null;
+    function scheduleInFlightRefresh() {
+      if (inFlightRefreshTimer) clearTimeout(inFlightRefreshTimer);
+      inFlightRefreshTimer = setTimeout(() => { loadInFlightWork().catch(() => {}); }, 400);
+    }
+
     function onAgentEvent(event) {
       mergeLedgerEvent(event);
       renderAgentRows();
       scheduleInstancesRefresh();
+      scheduleInFlightRefresh();
     }
 
     // Back-compat alias used by some boot paths.

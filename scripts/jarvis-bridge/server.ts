@@ -245,7 +245,7 @@ const mcp = new Server(
       '',
       'MANDATORY: call the reply tool at least once for every inbound message here, with chat_id set exactly as given in the tag — no exceptions for trivial, throwaway, or meta requests ("just say X back", "repeat this word"). Your transcript output is never seen or heard by Heath; reply is the ONLY channel back to him. Finishing your reasoning without calling reply means the turn is NOT done, even for a one-word answer.',
       '',
-      'Long task (dispatching Carter/Atlas/etc)? Send a brief early ack with final:false ("On it, give me a sec") — Jarvis keeps listening on that same turn. When the real result is ready, call reply again on the SAME chat_id with final:true (or omit final) and the actual answer. Never leave a turn parked on an ack — the ack is not the answer, and Jarvis stops listening the moment you send final:true, so only send it when you mean it.',
+      'Long task (dispatching Carter/Atlas/etc)? Send a brief early ack with final:false, naming the actual thing happening ("Dispatching Carter to fix the staging build") not a generic "on it" — Jarvis keeps listening on that same turn. When the real result is ready, call reply again on the SAME chat_id with final:true (or omit final) and the actual answer. Never leave a turn parked on an ack.',
       '',
       'If a later <channel> message is tagged as a reply reminder for a chat_id you already saw, your first pass dropped the reply call — call reply immediately with your best answer, don\'t second-guess whether it\'s "worth" one.',
       '',
@@ -263,7 +263,7 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
         'REQUIRED: call this tool at least once for every jarvis-bridge turn, with NO exceptions for trivial, one-word, or meta requests ("just say X back", "repeat this word") — those still need a real reply call, not just transcript text. ' +
         'Nothing else you output reaches Heath; skipping this tool means total silence on his end, not a harmless no-op. ' +
         'Pass chat_id exactly as given in the inbound <channel chat_id="..."> tag. ' +
-        'Set final:false for an early ack while you dispatch a background agent — Jarvis keeps polling that SAME turn (up to 9 min) instead of hanging up, and you can call reply again later on the same chat_id with the real answer. Only set final:true (or omit final — it defaults true) when you are done talking for this turn; that ends Jarvis\'s polling, so a second reply after that point goes nowhere.',
+        'Set final:false for an early ack while you dispatch a background agent — Jarvis keeps polling that SAME turn (up to 9 min) instead of hanging up, and you can call reply again later on the same chat_id with the real answer. Make the ack text specific to what you\'re actually doing ("Checking the Rust build status", "Dispatching Atlas to post the FB group content") rather than a generic "on it" — Heath hears this spoken aloud, a real status beats filler. Only set final:true (or omit final — it defaults true) when you are done talking for this turn; that ends Jarvis\'s polling, so a second reply after that point goes nowhere.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -557,7 +557,22 @@ const NUDGE_DELAY_MS = Math.max(10000, parseInt(process.env.JARVIS_BRIDGE_NUDGE_
 // existing on the model side already.
 const synthAcked = new Set<string>()
 const ACK_DELAY_MS = Math.max(2000, parseInt(process.env.JARVIS_BRIDGE_ACK_MS || '8000', 10))
+// Fallback generic text — used only when turn.user_message is empty (shouldn't
+// happen in practice, api/jarvis-bridge-turn.js rejects an empty message).
 const SYNTH_ACK_TEXT = "Got it — I'm mid-task right now, give me a moment and I'll get back to you."
+// 2026-08-22 (Carter): this fires from the CHANNEL PROCESS, not the model —
+// it's the ACK_DELAY_MS safety net for when Cole hasn't even started
+// responding yet (status still 'delivered'), so there's no tool/agent
+// context to report ("what's actually running" doesn't exist yet). The one
+// thing we DO already have at this point is what Heath actually asked —
+// echo a short snippet of it back so the ack isn't pure boilerplate, rather
+// than a generic "give me a moment" with no connection to the request.
+function buildSynthAckText(userMessage: string): string {
+  const trimmed = (userMessage || '').trim()
+  if (!trimmed) return SYNTH_ACK_TEXT
+  const snippet = trimmed.length > 60 ? `${trimmed.slice(0, 57)}...` : trimmed
+  return `Got it — still working on "${snippet}", give me a moment.`
+}
 
 async function tick(): Promise<void> {
   if (shuttingDown) return
@@ -667,7 +682,7 @@ async function tick(): Promise<void> {
         putTurn(id, {
           ...turn,
           status: 'working',
-          reply_text: SYNTH_ACK_TEXT,
+          reply_text: buildSynthAckText(turn.user_message),
           progress_at: new Date().toISOString(),
         }).catch(err => {
           process.stderr.write(`jarvis-bridge channel: synthetic ack write failed for ${id}: ${err}\n`)
