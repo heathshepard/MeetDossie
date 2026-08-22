@@ -2,6 +2,8 @@
 // Nightly safety net: reconciles active Stripe founding subscriptions against
 // the Supabase subscriptions table. Any customer who paid but was never
 // provisioned (webhook gap) gets a subscription row created automatically.
+// Phase 3 (Atlas, 2026-08-22) extends the same safety net to the Email
+// Integration add-on's separate subscription — see that section below for why.
 //
 // Logic:
 //   1. Fetch all active Stripe subscriptions with price_id = FOUNDING_PRICE_ID.
@@ -9,6 +11,9 @@
 //   3. If missing: look up or create the auth user, then insert the row.
 //   4. Send a Telegram alert to Heath listing every gap fixed (or "all clear").
 //   5. Log each gap to ventures_activity_events for audit trail.
+//   6. (Phase 3) Same gap-heal, scoped to ADDON_EMAIL_INTEGRATION_PRICE_ID,
+//      flipping subscriptions.email_integration_enabled instead of creating a
+//      new row (the addon rides on an existing base-plan customer).
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 // Schedule: NOT in vercel.json crons array — trigger via cron-job.org at
@@ -16,12 +21,15 @@
 //           Bearer $CRON_SECRET" https://meetdossie.com/api/cron-stripe-reconcile
 //
 // Environment:
-//   STRIPE_SECRET_KEY            — Stripe secret key
-//   SUPABASE_URL                 — Supabase project URL
-//   SUPABASE_SERVICE_ROLE_KEY    — service-role JWT
-//   TELEGRAM_BOT_TOKEN           — Claudy bot token for Heath alerts
-//   TELEGRAM_CHAT_ID             — Heath's Telegram chat ID
-//   CRON_SECRET                  — bearer token for manual auth
+//   STRIPE_SECRET_KEY               — Stripe secret key
+//   SUPABASE_URL                    — Supabase project URL
+//   SUPABASE_SERVICE_ROLE_KEY       — service-role JWT
+//   TELEGRAM_BOT_TOKEN              — Claudy bot token for Heath alerts
+//   TELEGRAM_CHAT_ID                — Heath's Telegram chat ID
+//   CRON_SECRET                     — bearer token for manual auth
+//   ADDON_EMAIL_INTEGRATION_PRICE_ID — Stripe price id for the Email
+//                                      Integration add-on; Phase 3 is skipped
+//                                      (logged, not an error) if unset.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -38,6 +46,7 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
+const ADDON_EMAIL_INTEGRATION_PRICE_ID = process.env.ADDON_EMAIL_INTEGRATION_PRICE_ID;
 
 // ---------------------------------------------------------------------------
 // Supabase helpers — direct REST fetch, no supabase-js
@@ -464,6 +473,127 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     console.warn('[cron-stripe-reconcile] Phase 2 drift check failed:', err && err.message);
   }
 
+  // ---------------------------------------------------------------------------
+  // Phase 3 (NEW 2026-08-22, Atlas): Email Integration add-on reconciliation.
+  // Flagged by Quinn's 2026-08-22 QA pass — the addon's webhook
+  // (handleAddonCheckoutCompleted in stripe-webhook.js) had no self-healer if
+  // it silently failed, unlike the base plan handled above. The addon is a
+  // SECOND Stripe subscription on an existing customer (never a new auth
+  // user/profile), so healing means flipping
+  // subscriptions.email_integration_enabled + email_integration_stripe_sub_id
+  // on the row that already exists, matched via the subscription's
+  // metadata.user_id (set at checkout by create-addon-checkout-session.js) or,
+  // failing that, stripe_customer_id.
+  //
+  // Mirrors Phase 1/2's split: auto-heal the "paid but not enabled" gap
+  // (same failure mode as the base plan). The reverse case — DB shows
+  // enabled=true but the recorded Stripe sub is no longer active — is
+  // flagged only, not auto-disabled, same conservative policy as Phase 2's
+  // base-plan drift (Heath reviews before anything gets revoked).
+  // ---------------------------------------------------------------------------
+  const addonGaps = [];
+  const addonErrors = [];
+  let addonAlreadyProvisioned = 0;
+  let addonDrift = [];
+
+  if (!ADDON_EMAIL_INTEGRATION_PRICE_ID) {
+    console.log('[cron-stripe-reconcile] ADDON_EMAIL_INTEGRATION_PRICE_ID not configured — skipping addon reconciliation (Phase 3)');
+  } else {
+    const allAddonSubs = [];
+    try {
+      let addonStartingAfter;
+      while (true) {
+        const params = { price: ADDON_EMAIL_INTEGRATION_PRICE_ID, status: 'active', limit: 100 };
+        if (addonStartingAfter) params.starting_after = addonStartingAfter;
+        const list = await stripe.subscriptions.list(params);
+        allAddonSubs.push(...list.data);
+        if (!list.has_more) break;
+        addonStartingAfter = list.data[list.data.length - 1].id;
+      }
+    } catch (err) {
+      console.error('[cron-stripe-reconcile] addon subscriptions.list failed:', err && err.message);
+      addonErrors.push({ error: 'Failed to fetch addon subscriptions: ' + String(err && err.message || err) });
+    }
+
+    console.log(`[cron-stripe-reconcile] total active addon subscriptions in Stripe: ${allAddonSubs.length}`);
+
+    for (const sub of allAddonSubs) {
+      const stripeSubscriptionId = sub.id;
+      const stripeCustomerId = typeof sub.customer === 'string' ? sub.customer : (sub.customer && sub.customer.id) || null;
+      const metaUserId = (sub.metadata && sub.metadata.user_id) || null;
+
+      let row = null;
+      try {
+        if (metaUserId) {
+          const r = await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(metaUserId)}&select=user_id,email_integration_enabled,email_integration_stripe_sub_id&limit=1`);
+          if (r.ok && Array.isArray(r.data) && r.data.length > 0) row = r.data[0];
+        }
+        if (!row && stripeCustomerId) {
+          const r = await supabaseFetch(`/rest/v1/subscriptions?stripe_customer_id=eq.${encodeURIComponent(stripeCustomerId)}&select=user_id,email_integration_enabled,email_integration_stripe_sub_id&limit=1`);
+          if (r.ok && Array.isArray(r.data) && r.data.length > 0) row = r.data[0];
+        }
+      } catch (err) {
+        console.warn('[cron-stripe-reconcile] addon row lookup failed for', stripeSubscriptionId, ':', err && err.message);
+      }
+
+      if (!row) {
+        const errMsg = `Active addon sub ${stripeSubscriptionId} (customer ${stripeCustomerId}) matches no subscriptions row — cannot self-heal without a user_id`;
+        console.error('[cron-stripe-reconcile]', errMsg);
+        addonErrors.push({ stripeSubscriptionId, stripeCustomerId, error: errMsg });
+        continue;
+      }
+
+      if (row.email_integration_enabled && row.email_integration_stripe_sub_id === stripeSubscriptionId) {
+        addonAlreadyProvisioned += 1;
+        continue;
+      }
+
+      try {
+        const patch = await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(row.user_id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ email_integration_enabled: true, email_integration_stripe_sub_id: stripeSubscriptionId }),
+        });
+        if (!patch.ok) {
+          const errMsg = `Addon patch failed status=${patch.status} body=${JSON.stringify(patch.data).slice(0, 200)}`;
+          console.error('[cron-stripe-reconcile]', errMsg, 'for user', row.user_id);
+          addonErrors.push({ stripeSubscriptionId, userId: row.user_id, error: errMsg });
+          continue;
+        }
+        console.log('[cron-stripe-reconcile] addon GAP fixed: enabled email_integration for user_id=', row.user_id, 'sub=', stripeSubscriptionId);
+        addonGaps.push({ stripeSubscriptionId, stripeCustomerId, userId: row.user_id });
+        await logActivity({
+          summary: `Addon reconcile gap fixed: email_integration for user ${row.user_id} (sub ${stripeSubscriptionId})`,
+          detail: { stripeSubscriptionId, stripeCustomerId, userId: row.user_id },
+        });
+      } catch (err) {
+        const errMsg = `Addon patch threw: ${err && err.message}`;
+        console.error('[cron-stripe-reconcile]', errMsg, 'for user', row.user_id);
+        addonErrors.push({ stripeSubscriptionId, userId: row.user_id, error: errMsg });
+      }
+    }
+
+    // Reverse drift: DB says enabled, but the recorded sub_id isn't active in Stripe.
+    try {
+      const activeAddonSubIds = new Set(allAddonSubs.map((s) => s.id));
+      const enabledRows = await supabaseFetch(
+        `/rest/v1/subscriptions?email_integration_enabled=eq.true&select=user_id,email_integration_stripe_sub_id`,
+      );
+      if (enabledRows.ok && Array.isArray(enabledRows.data)) {
+        for (const row of enabledRows.data) {
+          if (!row.email_integration_stripe_sub_id) continue; // enabled by hand, not Stripe-tracked
+          if (!activeAddonSubIds.has(row.email_integration_stripe_sub_id)) {
+            addonDrift.push({ userId: row.user_id, stale_sub_id: row.email_integration_stripe_sub_id });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[cron-stripe-reconcile] addon drift check failed:', err && err.message);
+    }
+
+    console.log(`[cron-stripe-reconcile] addon done — ${addonAlreadyProvisioned} already provisioned, ${addonGaps.length} gaps fixed, ${addonErrors.length} errors, ${addonDrift.length} drift rows`);
+  }
+
   console.log(`[cron-stripe-reconcile] done — ${alreadyProvisioned} already provisioned, ${gaps.length} gaps fixed, ${skippedDemoAccounts} demo/test accounts skipped, ${errors.length} real errors, ${dbDrift.length} drift rows`);
 
   // Send Telegram alert.
@@ -498,6 +628,28 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     lines.push('', `🚨 DB DRIFT (${dbDrift.length}) — DB shows active but Stripe sub is not active. Manual review:`, driftLines);
   }
 
+  if (ADDON_EMAIL_INTEGRATION_PRICE_ID) {
+    const addonVerifiedTotal = addonAlreadyProvisioned + addonGaps.length;
+    lines.push(
+      '',
+      `<b>Email Integration add-on</b>`,
+      `✅ ${addonVerifiedTotal} verified enabled (${addonGaps.length} newly fixed, ${addonAlreadyProvisioned} already on file)`,
+      `⚠ ${addonErrors.length} real errors`,
+    );
+    if (addonGaps.length > 0) {
+      const addonGapLines = addonGaps.map((g) => `  - user ${g.userId} (sub ${g.stripeSubscriptionId})`).join('\n');
+      lines.push('', 'Addon gaps fixed:', addonGapLines);
+    }
+    if (addonErrors.length > 0) {
+      const addonErrLines = addonErrors.map((e) => `  - ${e.userId || e.stripeCustomerId || e.stripeSubscriptionId || 'unknown'}: ${e.error}`).join('\n');
+      lines.push('', 'Addon errors (need investigation):', addonErrLines);
+    }
+    if (addonDrift.length > 0) {
+      const addonDriftLines = addonDrift.map((d) => `  - user ${d.userId}: DB enabled=true but sub=${d.stale_sub_id} not active in Stripe`).join('\n');
+      lines.push('', `🚨 ADDON DRIFT (${addonDrift.length}) — enabled in DB but Stripe sub inactive. Manual review:`, addonDriftLines);
+    }
+  }
+
   const telegramText = lines.join('\n');
 
   await sendTelegramAlert(telegramText);
@@ -515,5 +667,14 @@ module.exports = withTelemetry('cron-stripe-reconcile', async function handler(r
     error_details: errors,
     db_drift_count: dbDrift.length,
     db_drift: dbDrift,
+    addon_configured: Boolean(ADDON_EMAIL_INTEGRATION_PRICE_ID),
+    addon_total_stripe_subs: addonGaps.length + addonAlreadyProvisioned,
+    addon_already_enabled: addonAlreadyProvisioned,
+    addon_gaps_fixed: addonGaps.length,
+    addon_real_errors: addonErrors.length,
+    addon_gaps: addonGaps,
+    addon_error_details: addonErrors,
+    addon_drift_count: addonDrift.length,
+    addon_drift: addonDrift,
   });
 });
