@@ -78,8 +78,19 @@
  * process kill (Android Settings > Apps > Jarvis > Force stop, then reopen)
  * or a hard refresh if running it as a browser tab instead of the installed
  * PWA.
+ *
+ * 2026-08-22 (Carter): cache key bumped to v12 for real Web Push. The `push`
+ * / `notificationclick` listeners below already existed as a stub ("Session
+ * 2 will hook real subscriptions") -- this pass is that Session 2: real
+ * VAPID keys, api/jarvis-push-subscribe.js storing the subscription,
+ * api/jarvis-push-send.js sending from the server the moment
+ * scripts/jarvis-bridge/server.ts's `reply` tool goes final. Notification
+ * icon switched from the SVG to the PNG (192px) -- Chrome/Android's
+ * showNotification() icon support for SVG is inconsistent, PNG is not.
+ * Added `tag`+`renotify` so a second push for the same turn (shouldn't
+ * happen, but defensive) replaces rather than stacks.
  */
-const CACHE = 'jarvis-pwa-v11-2026-08-22-voice-mode-bridge-fix';
+const CACHE = 'jarvis-pwa-v12-2026-08-22-web-push';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
@@ -146,17 +157,24 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Listen for push notifications (Session 2 will hook real subscriptions)
+// Real Web Push — api/jarvis-push-send.js sends the payload shape this
+// expects: { title, body, data: { url, tag } }. Fired the moment a live
+// bridge reply goes final (scripts/jarvis-bridge/server.ts's `reply` tool),
+// so this is what reaches Heath when the Jarvis tab is backgrounded/suspended
+// and can't finish its own client-side poll loop.
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   let payload;
   try { payload = event.data.json(); } catch { payload = { title: 'Jarvis', body: event.data.text() }; }
+  const data = payload.data || {};
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Jarvis', {
       body: payload.body || '',
-      icon: '/jarvis-pwa-icon.svg',
-      badge: '/jarvis-pwa-icon.svg',
-      data: payload.data || {},
+      icon: '/jarvis-pwa-icon-192.png',
+      badge: '/jarvis-pwa-icon-192.png',
+      tag: data.tag || 'jarvis-reply',
+      renotify: true,
+      data,
     })
   );
 });

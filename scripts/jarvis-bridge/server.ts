@@ -122,6 +122,17 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 // Optional — only needed for the YouTube audio-transcription fallback path
 // (youtube-context.ts Path B). Captions-only path (Path A) doesn't need it.
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
+// Web Push trigger (2026-08-22) — fired after every FINAL reply (never an
+// interim ack) so Heath gets a real OS-level notification when the Jarvis
+// tab is backgrounded/suspended and can't finish its own client-side poll.
+// The actual send (VAPID keys, subscription lookup) lives server-side in
+// api/jarvis-push-send.js on Vercel — this process only makes an outbound
+// HTTPS call to it, same trust boundary as everything else here.
+// Auth is SUPABASE_SERVICE_ROLE_KEY as bearer: this process already holds
+// that key (needed for the Storage calls above), so reusing it here needs
+// no new secret provisioned in ${ENV_FILE}. Overridable via
+// JARVIS_PUSH_URL for local/staging testing; defaults to production.
+const JARVIS_PUSH_URL = process.env.JARVIS_PUSH_URL || 'https://meetdossie.com/api/jarvis-push-send'
 const BUCKET = 'jarvis-bridge'
 const PREFIX = 'turns/'
 const POLL_MS = Math.max(500, parseInt(process.env.JARVIS_BRIDGE_POLL_MS || '1500', 10))
@@ -223,6 +234,30 @@ async function deleteTurn(id: string): Promise<void> {
   await fetch(sb(`object/${BUCKET}/${PREFIX}${id}.json`), { method: 'DELETE', headers: authHeaders() }).catch(() => {})
 }
 
+// Fire-and-forget Web Push after a FINAL reply. Never throws into the
+// caller — a push failure (no subscriptions yet, VAPID env not deployed,
+// Vercel hiccup) must never make the `reply` tool itself fail; Heath still
+// gets the answer via the normal client-side poll whenever the tab is
+// actually running.
+function notifyPush(chatId: string, text: string): void {
+  fetch(JARVIS_PUSH_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({ title: 'Jarvis', body: text, url: '/myjarvis', tag: chatId }),
+  })
+    .then(async res => {
+      if (!res.ok) {
+        process.stderr.write(`jarvis-bridge channel: push send failed: ${res.status} ${await res.text().catch(() => '')}\n`)
+      }
+    })
+    .catch(err => {
+      process.stderr.write(`jarvis-bridge channel: push send unreachable: ${err}\n`)
+    })
+}
+
 const mcp = new Server(
   { name: 'jarvis-bridge', version: '1.0.0' },
   {
@@ -308,6 +343,9 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
           reply_text: text,
           ...(final ? { answered_at: new Date().toISOString() } : { progress_at: new Date().toISOString() }),
         })
+        // Web Push — ONLY on the real final answer, never an interim ack.
+        // Fire-and-forget: does not block or fail this tool call either way.
+        if (final) notifyPush(chat_id, text)
         return { content: [{ type: 'text', text: final ? 'sent' : 'sent (interim — turn stays open for a follow-up reply)' }] }
       }
       default:

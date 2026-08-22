@@ -484,6 +484,43 @@
       background: var(--gold);
       box-shadow: 0 0 8px var(--gold);
     }
+    /* Contextual "enable notifications" banner — shown inline above the chat
+       input dock the first time an assistant reply lands in a session,
+       never on cold load. Dismissed permanently (localStorage) once Heath
+       either enables push or explicitly closes it. See pushUI below. */
+    .push-notify-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: var(--txt-dim, #9aa5b8);
+      background: rgba(201, 169, 110, 0.08);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+    }
+    .push-notify-banner.show { display: flex; }
+    .push-notify-banner .push-notify-text { flex: 1 1 auto; line-height: 1.4; }
+    .push-notify-banner button {
+      flex: 0 0 auto;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: transparent;
+    }
+    .push-notify-banner .push-notify-enable {
+      color: var(--gold);
+      border: 1px solid var(--gold);
+    }
+    .push-notify-banner .push-notify-enable:hover { background: rgba(201, 169, 110, 0.16); }
+    .push-notify-banner .push-notify-dismiss {
+      color: var(--txt-faint);
+      border: 1px solid transparent;
+    }
     /* Small status chip shown in the ptt-status row when noisy mode is on. */
     .noisy-chip {
       display: inline-block;
@@ -3193,6 +3230,11 @@
                convenient. Voice/Text toggle controls whether Jarvis speaks aloud.
                Pinned at TOP of panel so it never gets pushed down as chat grows. -->
           <div class="chat-input-bar" id="chat-input-bar">
+            <div id="push-notify-banner" class="push-notify-banner">
+              <span class="push-notify-text">Get a real notification when Jarvis replies while this tab is backgrounded.</span>
+              <button type="button" id="push-notify-enable-btn" class="push-notify-enable">ENABLE</button>
+              <button type="button" id="push-notify-dismiss-btn" class="push-notify-dismiss" aria-label="Dismiss">×</button>
+            </div>
             <div id="chat-attachment-row" class="hidden"></div>
             <div class="chat-input-row">
               <button id="chat-attach-btn" class="chat-attach-btn" aria-label="Attach a file" title="Attach a file">
@@ -4201,6 +4243,11 @@
       messages.insertBefore(el, messages.firstChild);
       // Keep the newest message in view (scrollTop=0 = top of the list).
       messages.scrollTop = 0;
+      // First real assistant reply in this session = the in-context moment
+      // to offer push notifications (never on cold load — see pushUI below).
+      if (role === 'assistant' && typeof pushUI !== 'undefined') {
+        try { pushUI.maybeShowBanner(); } catch (err) { console.warn('[jarvis] pushUI banner check failed', err); }
+      }
     }
 
     // ===== Supabase boot — fetch publishable key from API to avoid hard-coding =====
@@ -4219,6 +4266,9 @@
             });
             window.__JARVIS_SB_URL = url;
             window.__JARVIS_SB_KEY = key;
+            // Non-secret by design — see api/config.js comment. Used by
+            // pushUI.enable() below to call PushManager.subscribe().
+            if (data?.vapidPublicKey) window.__JARVIS_VAPID_PUBLIC_KEY = data.vapidPublicKey;
             return;
           }
         }
@@ -9427,7 +9477,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-voice-mode-bridge-fix-v11').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-22-web-push-v12').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
@@ -9440,6 +9490,103 @@
         });
       });
     }
+
+    // ===== PWA: Web Push (2026-08-22) =====
+    // Real notifications reaching Heath even when this tab is backgrounded
+    // or (Android) fully suspended — the existing client-side poll loop in
+    // askBridge() only works while the tab is actually running JS.
+    //
+    // UX: never prompt for Notification permission on cold load. The banner
+    // (#push-notify-banner, above the chat input dock) only appears the
+    // first time an assistant reply lands in THIS session (hooked in
+    // appendMessage above) — the literal moment a real notification would
+    // have helped — and never again once Heath enables push or dismisses it
+    // (localStorage, both permanent).
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
+    }
+
+    const pushUI = {
+      DISMISS_KEY: 'jarvis_push_banner_dismissed',
+      banner: null,
+      shownThisSession: false,
+
+      init() {
+        this.banner = document.getElementById('push-notify-banner');
+        const enableBtn = document.getElementById('push-notify-enable-btn');
+        const dismissBtn = document.getElementById('push-notify-dismiss-btn');
+        if (enableBtn) enableBtn.addEventListener('click', () => this.enable());
+        if (dismissBtn) dismissBtn.addEventListener('click', () => this.dismiss());
+      },
+
+      // Called from appendMessage() on every assistant message — cheap to
+      // call repeatedly, only actually shows once per session at most.
+      maybeShowBanner() {
+        if (this.shownThisSession) return;
+        if (!this.banner) return;
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        if (Notification.permission !== 'default') return; // already granted or denied — nothing to offer
+        if (localStorage.getItem(this.DISMISS_KEY) === '1') return;
+        this.shownThisSession = true;
+        this.banner.classList.add('show');
+      },
+
+      dismiss() {
+        localStorage.setItem(this.DISMISS_KEY, '1');
+        if (this.banner) this.banner.classList.remove('show');
+      },
+
+      async enable() {
+        const enableBtn = document.getElementById('push-notify-enable-btn');
+        if (enableBtn) { enableBtn.disabled = true; enableBtn.textContent = 'ENABLING…'; }
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            // Treat a denial the same as a dismiss — asking again mid-session
+            // is exactly the "annoying" UX Heath asked to avoid.
+            this.dismiss();
+            return;
+          }
+          const vapidKey = window.__JARVIS_VAPID_PUBLIC_KEY;
+          if (!vapidKey) throw new Error('VAPID public key not loaded — /api/config missing vapidPublicKey');
+
+          const reg = await navigator.serviceWorker.ready;
+          let sub = await reg.pushManager.getSubscription();
+          if (!sub) {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            });
+          }
+
+          const res = await fetch(`${API_BASE}/api/jarvis-push-subscribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: await getAuthHeader(),
+            },
+            body: JSON.stringify({ subscription: sub.toJSON(), user_agent: navigator.userAgent }),
+          });
+          if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.error || `Subscribe failed (${res.status})`);
+          }
+
+          this.dismiss(); // reuse: hides banner + remembers "don't show again"
+          try { pttStatus.textContent = 'Notifications enabled.'; setTimeout(() => { if (pttStatus.textContent === 'Notifications enabled.') pttStatus.textContent = ''; }, 3000); } catch {}
+        } catch (err) {
+          console.error('[jarvis] push enable failed', err);
+          if (enableBtn) { enableBtn.disabled = false; enableBtn.textContent = 'ENABLE'; }
+          try { pttStatus.textContent = `Couldn't enable notifications: ${err.message}`; } catch {}
+        }
+      },
+    };
+    pushUI.init();
 
     // ============================================================================
     // PENDING APPROVALS PANEL (heath_actions approval UI — 2026-06-25)
