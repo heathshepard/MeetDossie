@@ -49,8 +49,37 @@
  * the app (or a hard refresh) is still the immediate unblock -- the v8 shell
  * policy already fetches fresh content on that next real load regardless of
  * this SW's own version.
+ *
+ * 2026-08-22 (Atlas): cache key bumped to v10 for the typed-text-bridge fix
+ * (9dc6d5df, merged to main + verified live 2026-08-21). Same recurrence as
+ * v9: Heath's already-open Jarvis PWA tab kept POSTing typed text through the
+ * old API-only path -- confirmed directly via the jarvis-bridge Storage
+ * bucket showing no new turn landed after the fix shipped. Asking Heath to
+ * manually close/reopen the app TWICE did not unblock it this time, which
+ * contradicts the v9 comment's claim that the v8 network-only shell policy
+ * alone is enough on next real load. Re-read the fetch handler below to
+ * confirm it's not regressed: it is not -- SHELL paths (including
+ * /jarvis-pwa.html) still get a genuine `fetch(req, {cache:'no-store'})`,
+ * bypassing both this SW's cache and the HTTP cache. The policy is correctly
+ * implemented. The gap is upstream of it: on Android, "closing" an installed
+ * PWA from the recent-apps switcher backgrounds/suspends the WebView instead
+ * of tearing it down, and reopening it resumes the SAME in-memory page --
+ * no new navigation, no new HTTP request, so this SW's fetch handler (and the
+ * jarvis-pwa.html <script> that calls navigator.serviceWorker.register(),
+ * ~line 8843) never re-runs at all. The stale inline JS just keeps executing
+ * in place. A cache-key bump only forces the fix once a REAL navigation
+ * happens (the browser's install/activate/controllerchange/reload cycle,
+ * jarvis-pwa.html ~line 8849, needs an actual page load to fire). Bumping
+ * this file is still correct and necessary -- it's what lets the very next
+ * real load (or a force-stop of the app in Android Settings, not just
+ * swipe-away) pick up the fix and self-heal without Heath doing anything
+ * else. But if a swipe-close/reopen alone doesn't trigger a real navigation
+ * on his device, that step will not be enough by itself -- he needs a true
+ * process kill (Android Settings > Apps > Jarvis > Force stop, then reopen)
+ * or a hard refresh if running it as a browser tab instead of the installed
+ * PWA.
  */
-const CACHE = 'jarvis-pwa-v9-2026-08-13-latency-fix-propagation';
+const CACHE = 'jarvis-pwa-v10-2026-08-22-typed-text-bridge-fix';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
