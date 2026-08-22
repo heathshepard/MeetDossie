@@ -51,7 +51,7 @@ async function main() {
     const bodyText = await page.evaluate(() => document.body.innerText);
     console.log('has "Connect Gmail" button text:', /Connect Gmail/.test(bodyText));
     console.log('has stale "Gmail connect coming soon" toast copy anywhere:', /Gmail connect coming soon/.test(bodyText));
-    console.log('Reply Monitoring section present:', /Reply Monitoring/.test(bodyText));
+    console.log('Email Integration section present:', /Email Integration/.test(bodyText));
 
     // Click Connect Gmail (demo account is NOT connected -> should hit the
     // real /api/google-oauth-init endpoint and redirect toward Google).
