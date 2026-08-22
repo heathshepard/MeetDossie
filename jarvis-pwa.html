@@ -2498,6 +2498,21 @@
     }
     .bg-jobs-item .bg-jobs-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
     .bg-jobs-item .bg-jobs-elapsed { color: var(--txt-faint); font-variant-numeric: tabular-nums; }
+    /* Dismiss control (2026-08-22 PM revision) — only rendered on .done
+       items; an in-progress job isn't dismissible, it's still running.
+       Same visual language as .jb-del-btn elsewhere in this file. */
+    .bg-jobs-item .bg-jobs-dismiss {
+      background: transparent;
+      border: none;
+      color: var(--txt-faint);
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 2px;
+      flex-shrink: 0;
+    }
+    .bg-jobs-item .bg-jobs-dismiss:hover { color: var(--fail); }
 
     /* ===== VENTURE ROLLUP STRIP (mission-control consolidation, 2026-08-06) =====
        Full-width bar above the two-column layout. Dossie is real data (money
@@ -2989,16 +3004,27 @@
          SCOPE, VERIFIED 2026-08-22: this table (agent_queue,
          status=in_progress) is genuinely live for Dossie's autonomous
          cron/poller pipeline (fanout builds, TikTok trending-audio scans,
-         etc.). It does NOT reflect this live voice session's own
-         Carter/Atlas/Brokerage/Quinn subagent dispatches — confirmed by
-         querying agent_queue while a real subagent was actively running
-         and finding zero in_progress rows. cole-dispatch-start.js /
-         cole-dispatch-complete.js exist for exactly that gap but nothing
-         in Cole's actual interactive Agent-tool dispatch flow calls them
-         today — that's a Cole-side wiring gap, not a UI gap. Do not relabel
-         this strip as "what Cole is doing for you right now" until that's
-         fixed; it would misrepresent the data. Hidden entirely (no empty
-         box) when nothing is active.
+         etc.). Originally it did NOT reflect this live voice session's own
+         Carter/Atlas/Brokerage/Quinn subagent dispatches — cole-dispatch-
+         start.js / cole-dispatch-complete.js existed for exactly that gap
+         but nothing in Cole's interactive Agent-tool dispatch flow called
+         them. Cole has since started calling them manually as a stopgap
+         around its own dispatches (agent_name='carter',
+         venture='shepard-ventures') — re-verified 2026-08-22 PM, two real
+         rows landed in agent_queue this way and flow straight through this
+         same query with no code change needed here. Still not fully wired
+         (Cole calling it manually per-dispatch, not automatically), so
+         don't relabel this strip as guaranteed-complete "everything Cole is
+         doing" yet — but it's no longer cron/poller-only. Hidden entirely
+         (no empty box) when nothing is active or pending dismissal.
+
+         COMPLETION LIFECYCLE (revised 2026-08-22 PM, per Heath): a job that
+         drops out of the in_progress poll flips to a greyed "done" pill and
+         STAYS in the list — no auto-removal timer. Heath clears it with the
+         per-row X once he's actually seen it. See the BG_JOBS_* constants
+         and dismissBgJob() near syncBgJobsStrip() in the script for the
+         cap/dismiss logic — dismissal is client-side/in-session only, no
+         backend table for it.
 
          PLACEMENT: deliberately a sibling of <main>, NOT a child of it.
          .main uses CSS grid-template-areas with all 4 rows already named
@@ -5107,7 +5133,14 @@
         // can cut Jarvis off mid-word without the buffered PCM continuing
         // to play from the Sony WH.
         try {
-          if (nativePlaybackOpen) nativeStopPlayback().catch(() => {});
+          // Carter 2026-08-22: was a bare reference to nativePlaybackOpen/
+          // nativeStopPlayback, both private to the classic-script IIFE and
+          // invisible to this module — threw ReferenceError instead of
+          // stopping native playback on interrupt. Use the window-exposed
+          // versions, same pattern as isCapacitorNativeCtx's fix above.
+          if (window.__jarvisNativePlaybackOpen && window.__jarvisNativePlaybackOpen()) {
+            window.__jarvisNativeStopPlayback && window.__jarvisNativeStopPlayback().catch(() => {});
+          }
         } catch {}
         try { playbackCompletedResolve && playbackCompletedResolve(); } catch {}
       };
@@ -5187,7 +5220,16 @@
         if (item.native) {
           // Hard ceiling — never sit on a native clip longer than 20s.
           const hardCeiling = setTimeout(() => advance('hard-ceiling-native'), 20000);
-          nativePlayMp3Bytes(item.bytes).then((durationSec) => {
+          // Carter 2026-08-22: was a bare call to nativePlayMp3Bytes, private
+          // to the classic-script IIFE and invisible to this module — threw
+          // ReferenceError the instant this branch ran, which the outer
+          // catch below would report as "nativePlayMp3Bytes failed" and
+          // silently fall back to WebView audio EVERY time, meaning the
+          // native A2DP-safe path has likely never actually executed.
+          (window.__jarvisNativePlayMp3Bytes
+            ? window.__jarvisNativePlayMp3Bytes(item.bytes)
+            : Promise.reject(new Error('native playback bridge unavailable'))
+          ).then((durationSec) => {
             clearTimeout(hardCeiling);
             // AudioTrack.write is blocking — when nativePlayMp3Bytes
             // resolves, all frames are in the track's buffer. Wait for
@@ -5431,8 +5473,10 @@
         try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
         // atlas_11 v4: release the native AudioTrack at end of turn so
         // system audio focus returns to WebView for chimes/etc. Idempotent.
+        // Carter 2026-08-22: bare nativeStopPlayback() reference fixed —
+        // see the matching fix above at the interrupt hook.
         if (useNativeOutput) {
-          try { await nativeStopPlayback(); } catch {}
+          try { if (window.__jarvisNativeStopPlayback) await window.__jarvisNativeStopPlayback(); } catch {}
         }
       }
     }
@@ -6975,20 +7019,56 @@
       });
     }
 
-    // ===== BACKGROUND JOBS STRIP (2026-08-22) =====
+    // ===== BACKGROUND JOBS STRIP (2026-08-22, revised 2026-08-22 PM) =====
     // Fed by the same inFlightCache as the IN-FLIGHT WORK panel above — see
     // syncBgJobsStrip() call inside loadInFlightWork(). No separate fetch.
-    // A row that drops out of a poll (job finished) flips to a faded "done"
-    // pill for 4s before being removed, instead of vanishing instantly.
+    //
+    // Lifecycle, per Heath's ask: a row that drops out of a poll (job
+    // finished — /api/jarvis-in-flight-work only ever returns
+    // status=in_progress rows, so "no longer in the response" IS the
+    // completion signal) flips to a greyed "done" pill and STAYS in the
+    // list — no auto-removal. Heath clears it himself with the per-row X
+    // (rendered only on done items; an in-progress job isn't dismissible,
+    // it's still running). Dismissal is client-side only (no backend
+    // "dismissed" flag/table) — same in-memory-only scope as this strip's
+    // other state (elapsed timers etc.), so it resets on a hard reload.
+    // That matches how nothing else on this strip persists across reloads
+    // either; adding real persistence would mean a new table for a strip
+    // that's explicitly meant to be "what's happened in this session."
+    //
+    // Unbounded-growth guard: completed items are capped at
+    // BG_JOBS_DONE_CAP (most-recently-completed kept) and
+    // BG_JOBS_DONE_MAX_AGE_MS (24h) — both generous relative to a normal
+    // session's dispatch volume, so "stays until manually cleared" holds in
+    // practice; this only silently prunes items old enough that Heath has
+    // genuinely moved on.
     const bgJobsById = new Map(); // id -> { item, doneAt: number|null }
     let bgJobsTickTimer = null;
+    let bgJobsListenerAttached = false;
+    const BG_JOBS_DONE_CAP = 20;
+    const BG_JOBS_DONE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+    function pruneBgJobsDone() {
+      const now = Date.now();
+      const done = [...bgJobsById.entries()].filter(([, e]) => e.doneAt != null);
+      done.sort((a, b) => b[1].doneAt - a[1].doneAt); // newest-completed first
+      done.forEach(([id, entry], idx) => {
+        const tooOld = now - entry.doneAt > BG_JOBS_DONE_MAX_AGE_MS;
+        const overCap = idx >= BG_JOBS_DONE_CAP;
+        if (tooOld || overCap) bgJobsById.delete(id);
+      });
+    }
+
+    function dismissBgJob(id) {
+      bgJobsById.delete(id);
+      renderBgJobsStrip();
+    }
 
     function syncBgJobsStrip(items) {
       const liveIds = new Set((items || []).map((it) => String(it.id)));
       bgJobsById.forEach((entry, id) => {
         if (!liveIds.has(id) && entry.doneAt == null) {
           entry.doneAt = Date.now();
-          setTimeout(() => { bgJobsById.delete(id); renderBgJobsStrip(); }, 4000);
         }
       });
       (items || []).forEach((it) => {
@@ -6997,6 +7077,7 @@
         if (existing) { existing.item = it; existing.doneAt = null; }
         else bgJobsById.set(id, { item: it, doneAt: null });
       });
+      pruneBgJobsDone();
       renderBgJobsStrip();
       if (!bgJobsTickTimer) {
         // Ticks the visible elapsed-time text every second between polls —
@@ -7021,6 +7102,18 @@
       const strip = document.getElementById('bg-jobs-strip');
       const list = document.getElementById('bg-jobs-list');
       if (!strip || !list) return;
+      if (!bgJobsListenerAttached) {
+        // Delegated — the list's innerHTML is fully replaced every render
+        // (including every 1s tick), so a listener bound to an individual
+        // button would be gone on the next render. Bind once on the
+        // container instead.
+        list.addEventListener('click', (e) => {
+          const btn = e.target.closest('.bg-jobs-dismiss');
+          if (!btn) return;
+          dismissBgJob(btn.dataset.dismissId);
+        });
+        bgJobsListenerAttached = true;
+      }
       if (bgJobsById.size === 0) {
         strip.classList.add('hidden');
         list.innerHTML = '';
@@ -7028,7 +7121,12 @@
       }
       strip.classList.remove('hidden');
       const rows = [...bgJobsById.entries()].sort((a, b) => {
-        if (!!a[1].doneAt !== !!b[1].doneAt) return a[1].doneAt ? 1 : -1;
+        const aDone = !!a[1].doneAt, bDone = !!b[1].doneAt;
+        if (aDone !== bDone) return aDone ? 1 : -1;
+        // Both done — most recently completed first, so a fresh completion
+        // lands right after the active jobs instead of at the far end.
+        if (aDone && bDone) return b[1].doneAt - a[1].doneAt;
+        // Both active — oldest-running first (unchanged from original).
         const aStart = new Date(a[1].item.started_at || a[1].item.created_at).getTime();
         const bStart = new Date(b[1].item.started_at || b[1].item.created_at).getTime();
         return aStart - bStart;
@@ -7036,13 +7134,14 @@
       list.innerHTML = rows.map(([id, entry]) => {
         const it = entry.item;
         const isDone = !!entry.doneAt;
-        const elapsed = isDone ? 'done' : fmtBgElapsed(it.started_at || it.created_at);
+        const elapsed = isDone ? '✓ done' : fmtBgElapsed(it.started_at || it.created_at);
         const rawTitle = it.title || '(no description)';
         const title = rawTitle.length > 46 ? rawTitle.slice(0, 45) + '…' : rawTitle;
         return `<span class="bg-jobs-item${isDone ? ' done' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(rawTitle)}">
           <span class="bg-jobs-agent">${escapeHtml(it.agent || '?')}</span>
           <span class="bg-jobs-title">${escapeHtml(title)}</span>
           <span class="bg-jobs-elapsed">${escapeHtml(elapsed)}</span>
+          ${isDone ? `<button class="bg-jobs-dismiss" data-dismiss-id="${escapeHtml(id)}" title="Clear" aria-label="Clear completed job">✕</button>` : ''}
         </span>`;
       }).join('');
     }
@@ -7814,6 +7913,81 @@
         }
         throw new Error(errBody.error || `TTS failed (${ttsRes.status})`);
       }
+      // 2026-08-22 (Carter): route through the native A2DP-safe AudioTrack
+      // bridge on the Capacitor APK, same mechanism runStreamingChatTTS's
+      // native branch uses (built 2026-07-07, atlas_11 — see the
+      // "audioDevicePickerBoot" IIFE / Sony WH bug comment: a bare WebView
+      // <audio> element can trip Android into MODE_IN_COMMUNICATION, which
+      // drops or truncates A2DP Bluetooth playback mid-clip). speakBridgeAnswer
+      // became the live voice-answer path on 2026-08-22 but never got this
+      // wiring — every truck reply since then has gone out the unprotected
+      // WebView path, which lines up with Heath's live truck report the same
+      // day (delay + mid-word cutoff, Bluetooth-only, intermittent — matching
+      // a route that has to re-establish per reply rather than staying warm).
+      const useNativeOutput = isCapacitorNativeCtx() && isForceNativeOutputOn() && !!window.__jarvisNativePlayMp3Bytes;
+      // Read the body exactly once — arrayBuffer() and blob() can't both be
+      // called on the same Response. Derive both the native Uint8Array and
+      // the WebView-fallback Blob from this single buffer.
+      const ttsArrayBuffer = await ttsRes.arrayBuffer();
+
+      // Carter 2026-08-22: idempotent guard + a hard-ceiling safety net —
+      // Heath's live truck test (same session as the native-bridge fix
+      // above) found the UI stuck on "TAP TO INTERRUPT" after a Bluetooth
+      // cutoff. Root cause: neither the native nor the WebView branch below
+      // had any timeout backstop — both relied ENTIRELY on the platform
+      // firing onended/native-resolve. A hard Bluetooth dropout (OS kills
+      // the audio route mid-clip without the browser/plugin ever surfacing
+      // an error or an end-of-track event) can leave that promise/event
+      // unfired forever. Same class of gap as the wireQuickActions/sendNow
+      // "stuck on speaking" bug fixed today in commit 0d99d109, but that fix
+      // only covered fetch-throws before any audio was armed — this covers
+      // audio that started playing and then silently died. settleBridgeVoice
+      // is now idempotent so a late real onended can't double-fire after the
+      // hard ceiling already recovered the UI.
+      let settled = false;
+      const settleBridgeVoice = async (reason) => {
+        if (settled) return;
+        settled = true;
+        if (reason && reason !== 'ended' && reason !== 'native-resolved') {
+          console.warn(`[jarvis] speakBridgeAnswer settled via ${reason}`);
+        }
+        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
+        // Mirrors the WebView path's atlas_11 "release at end of turn" — see
+        // the matching comment in runStreamingChatTTS.
+        if (useNativeOutput) {
+          try { if (window.__jarvisNativeStopPlayback) await window.__jarvisNativeStopPlayback(); } catch {}
+        }
+        if (conversationActive) { await resumeListening(); }
+        else { try { setPttState('idle'); } catch {} }
+      };
+      // Absolute backstop — never leave Heath staring at "TAP TO INTERRUPT"
+      // longer than this no matter what silently failed above. 60s covers
+      // even a long "walk me through it" answer with real margin.
+      const hardCeiling = setTimeout(() => settleBridgeVoice('hard-ceiling'), 60000);
+
+      if (useNativeOutput) {
+        let bridgeVoiceAborted = false;
+        window.__jarvisInterruptTTS = function bridgeVoiceInterruptNative(reason) {
+          if (bridgeVoiceAborted) return;
+          bridgeVoiceAborted = true;
+          clearTimeout(hardCeiling);
+          console.log(`[jarvis-half-duplex] bridge-reply native TTS interrupt: ${reason || 'unknown'}`);
+          try { window.__jarvisNativeStopPlayback && window.__jarvisNativeStopPlayback(); } catch {}
+        };
+        try {
+          const bytes = new Uint8Array(ttsArrayBuffer);
+          await window.__jarvisNativePlayMp3Bytes(bytes);
+          clearTimeout(hardCeiling);
+          if (bridgeVoiceAborted) return; // don't resume listening — caller's interrupt branch owns that
+          await settleBridgeVoice('native-resolved');
+          return;
+        } catch (err) {
+          console.warn('[jarvis] native bridge-reply TTS failed, falling back to WebView audio:', err && err.message);
+          if (bridgeVoiceAborted) { clearTimeout(hardCeiling); return; }
+          // fall through to the WebView <audio> path below for this answer
+        }
+      }
+
       const audioBlob = await ttsRes.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
@@ -7821,6 +7995,7 @@
       window.__jarvisInterruptTTS = function bridgeVoiceInterrupt(reason) {
         if (bridgeVoiceAborted) return;
         bridgeVoiceAborted = true;
+        clearTimeout(hardCeiling);
         console.log(`[jarvis-half-duplex] bridge-reply TTS interrupt: ${reason || 'unknown'}`);
         try { audio.onended = null; audio.pause(); } catch {}
       };
@@ -7833,16 +8008,32 @@
       // INTERRUPT" forever. Reset explicitly when there's no loop to resume.
       audio.onended = async () => {
         URL.revokeObjectURL(audioUrl);
-        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
-        if (conversationActive) { await resumeListening(); }
-        else { try { setPttState('idle'); } catch {} }
+        clearTimeout(hardCeiling);
+        await settleBridgeVoice('ended');
       };
+      audio.addEventListener('ended', () => { clearTimeout(hardCeiling); settleBridgeVoice('ended-listener'); });
       audio.onerror = async () => {
-        try { if (window.__jarvisInterruptTTS) window.__jarvisInterruptTTS = null; } catch {}
-        if (conversationActive) { await resumeListening(); }
-        else { try { setPttState('idle'); } catch {} }
+        clearTimeout(hardCeiling);
+        await settleBridgeVoice('error');
       };
-      await audio.play();
+      // Duration-based safety — same reasoning as runStreamingChatTTS's
+      // armDurationTimer: onended doesn't reliably fire for every MP3 clip
+      // on Android WebView. Independent of, and tighter than, the 60s hard
+      // ceiling above.
+      let durationTimer = null;
+      const armDurationTimer = () => {
+        const dur = isFinite(audio.duration) ? audio.duration : 0;
+        if (dur > 0 && !durationTimer && !settled) {
+          durationTimer = setTimeout(() => settleBridgeVoice('duration-timeout'), (dur + 1.5) * 1000);
+        }
+      };
+      audio.addEventListener('loadedmetadata', armDurationTimer);
+      audio.addEventListener('canplay', armDurationTimer);
+      audio.play().catch((err) => {
+        console.warn('[jarvis] speakBridgeAnswer audio.play() rejected:', err);
+        clearTimeout(hardCeiling);
+        settleBridgeVoice('play-rejected');
+      });
     }
     // Debug/verify hook — see the matching __jarvisSpeakInterimAck hook
     // above speakInterimAck.
@@ -10334,6 +10525,14 @@
     window.__jarvisNativeStopPlayback   = nativeStopPlayback;
     window.__jarvisNativeGetPlaybackStatus = nativeGetPlaybackStatus;
     window.__jarvisNativePlayMp3Bytes   = nativePlayMp3Bytes;
+    // Carter 2026-08-22: nativePlaybackOpen itself was never exposed, only
+    // the functions were — module-scope code (runStreamingChatTTS) referenced
+    // the bare `nativePlaybackOpen` identifier directly, which is private to
+    // this audioDevicePickerBoot IIFE and invisible to the module the same
+    // way isCapacitorNativeCtx/isForceNativeOutputOn were documented as
+    // invisible above — a real ReferenceError waiting to fire the first time
+    // that branch actually ran on native output.
+    window.__jarvisNativePlaybackOpen   = () => nativePlaybackOpen;
 
     function shouldRouteNative() {
       if (!isCapacitorNativeCtx()) return false;
