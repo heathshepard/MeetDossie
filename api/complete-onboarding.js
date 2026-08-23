@@ -13,6 +13,7 @@
 const Stripe = require('stripe');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { tierForPriceId } = require('./_lib/pricing-tiers');
+const { createOrgWithFounder } = require('./_lib/team-org');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -269,7 +270,7 @@ async function sendEmail({ to, subject, html }) {
   }
 }
 
-async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom, passwordEmailSent }) {
+async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom, passwordEmailSent, teamOrgError }) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[complete-onboarding] Telegram not configured — skipping notification');
     return;
@@ -283,7 +284,10 @@ async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, he
   const pwLine = passwordEmailSent === false
     ? '\n\n🚨 <b>PASSWORD EMAIL DID NOT SEND — they cannot sign in. Send them a set-password link manually.</b>'
     : '';
-  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>${pwLine}`;
+  const teamOrgLine = teamOrgError
+    ? `\n\n🚨 <b>TEAM ORG CREATION FAILED</b> — they paid for Team but have no org. Create one manually via /team or the create_org_with_founder RPC. Error: ${teamOrgError}`
+    : '';
+  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>${pwLine}${teamOrgLine}`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -460,6 +464,71 @@ module.exports = async function handler(req, res) {
       console.warn('[complete-onboarding] no stripe_subscription_id on session — fell back to PATCH by customer_id for', email);
     }
 
+    // Team tier: auto-create the org for the buyer so team-lead features are
+    // live on their existing profile immediately — no separate /team visit
+    // required. Closes the DOD-O-1 gap: Stripe's Team price went live
+    // 2026-08-22 but nothing in the checkout-completion path called
+    // create_org_with_founder until now, so a Team buyer paid and got no
+    // roster/org at all.
+    let teamOrgId = null;
+    let teamOrgError = null;
+    if (plan === 'team') {
+      try {
+        // Already on an org (e.g. re-submitted this form, or somehow already
+        // provisioned)? create_org_with_founder rejects a founder who's
+        // already a member of another active org — check first so this is a
+        // clean skip instead of a raw RPC error surfacing to Heath.
+        let alreadyOnOrg = false;
+        try {
+          const existingMembership = await supabaseFetch(`/rest/v1/organization_members?user_id=eq.${encodeURIComponent(userId)}&removed_at=is.null&select=id&limit=1`);
+          alreadyOnOrg = Array.isArray(existingMembership) && existingMembership.length > 0;
+        } catch (err) {
+          console.warn('[complete-onboarding] existing-membership check failed:', err && err.message);
+        }
+
+        if (alreadyOnOrg) {
+          console.log('[complete-onboarding] plan=team but user already on an org — skipping create_org_with_founder for', email);
+        } else {
+          // Solo->Team upgrade detection: does this user already have real
+          // solo history (dossiers) to carry forward into the new org? A
+          // genuinely brand-new Team signup's auth user has zero rows here —
+          // it was either just created above or created moments ago as a bare
+          // placeholder by stripe-webhook's checkout.session.completed
+          // handler, with no product usage yet. An existing solo customer
+          // upgrading has real transactions tied to their user_id already.
+          let hasExistingData = false;
+          try {
+            const existingTx = await supabaseFetch(`/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&org_id=is.null&select=id&limit=1`);
+            hasExistingData = Array.isArray(existingTx) && existingTx.length > 0;
+          } catch (err) {
+            console.warn('[complete-onboarding] existing-transactions check failed (defaulting to no backfill):', err && err.message);
+          }
+
+          // No UI prompt exists mid-checkout (this is a webhook-adjacent
+          // flow, not an interactive form) — default to "{first name}'s
+          // Team", renameable later. No rename endpoint exists yet in
+          // api/team/* or TeamView.jsx as of 2026-08-23 — follow-up gap, not
+          // built here (out of scope for this fix).
+          const firstName = (name || '').trim().split(' ')[0] || 'My';
+          const orgName = `${firstName}'s Team`;
+
+          teamOrgId = await createOrgWithFounder(supabaseFetch, {
+            name: orgName,
+            tier: 'team',
+            founderUserId: userId,
+            founderRoles: ['agent', 'admin'],
+            upgradeFromSolo: hasExistingData,
+            stripeCustomerId,
+            actingUserId: userId,
+          });
+          console.log('[complete-onboarding] team org created for', email, 'org_id=', teamOrgId, 'upgrade_from_solo=', hasExistingData);
+        }
+      } catch (err) {
+        teamOrgError = (err && err.message) || String(err);
+        console.error('[complete-onboarding] team org creation FAILED for', email, ':', teamOrgError);
+      }
+    }
+
     // Send welcome email. Isolated: this is a nice-to-have marketing email, and
     // a failure here must never prevent the password link below — without that
     // link the customer has paid and literally cannot sign in.
@@ -499,6 +568,7 @@ module.exports = async function handler(req, res) {
     await notifyHeathOnTelegram({
       name, email, phone, brokerage, market, heardFrom,
       passwordEmailSent,
+      teamOrgError,
     });
 
     if (!passwordEmailSent) {
@@ -509,6 +579,7 @@ module.exports = async function handler(req, res) {
         account_created: true,
         password_email_sent: false,
         welcome_email_sent: welcomeEmailSent,
+        team_org_created: plan === 'team' ? Boolean(teamOrgId) : undefined,
         error: 'Your account was created, but we could not send your password link. Email heath@meetdossie.com and he will send it manually.',
       });
       return;
@@ -519,6 +590,7 @@ module.exports = async function handler(req, res) {
       message: 'Onboarding complete.',
       welcome_email_sent: welcomeEmailSent,
       password_email_sent: true,
+      team_org_created: plan === 'team' ? Boolean(teamOrgId) : undefined,
     });
   } catch (err) {
     console.error('[complete-onboarding] error:', err && err.message);
