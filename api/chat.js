@@ -11,6 +11,7 @@ const {
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { messagesCreateCached } = require('./_lib/spawn-with-cache');
+const { getTeamChatContext } = require('./_lib/team-chat-context');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -439,8 +440,30 @@ const TOOLS = [
   },
 ];
 
-const buildActionSystemPrompt = (deals, today) => {
+const buildTeamContextBlock = (teamContext) => {
+  if (!teamContext) return '';
+  const orgName = teamContext.org && teamContext.org.name ? teamContext.org.name : 'this team';
+  const missingJson = JSON.stringify(teamContext.missing_disclosures || [], null, 2);
+  const overdueJson = JSON.stringify(teamContext.overdue_action_items || [], null, 2);
+  const flagsJson = JSON.stringify(teamContext.deadline_flags || [], null, 2);
+  const agentsJson = JSON.stringify(teamContext.agents || [], null, 2);
+  return `
+
+TEAM CONTEXT — this agent is a TEAM LEAD / ADMIN on "${orgName}". In addition to their own deals above, you have real team-wide data pulled fresh from every agent's dossiers on their roster. Use it to answer risk-triage and oversight questions about the WHOLE TEAM, not just their own files — e.g. "which files across my team are at risk right now", "what's overdue team-wide, oldest first", "who hasn't touched a file in over 3 days", "show me everything missing a disclosure". Always answer with answer_question, quoting real facts (agent name, property address, exact due date / days overdue) from the data below — NEVER invent an agent, address, or figure that isn't in this data. If a list below is empty, say plainly that nothing is flagged in that category — do not fabricate a problem to sound helpful. If the agent asks about their OWN deals specifically, answer from AGENT'S ACTIVE DEALS as normal, not this section.
+
+TEAM_MISSING_DISCLOSURES (non-closed files missing a required disclosure/signature): ${missingJson}
+
+TEAM_OVERDUE_ACTION_ITEMS (oldest due_date first, team-wide): ${overdueJson}
+
+TEAM_DEADLINE_FLAGS (option/loan/appraisal/survey/closing dates already past on an open file): ${flagsJson}
+
+TEAM_AGENT_ACTIVITY (per-agent active file count + days since last touch, from transactions.updated_at): ${agentsJson}
+`;
+};
+
+const buildActionSystemPrompt = (deals, today, teamContext) => {
   const dealsJson = JSON.stringify(deals || [], null, 2);
+  const teamBlock = buildTeamContextBlock(teamContext);
   return `You are Dossie, an elite AI transaction coordinator for Texas real estate agents. You are warm, sharp, and completely reliable. You work 24/7/365 — nights, weekends, holidays. You never miss a deadline and never drop the ball.
 
 NAME RULES: Your name is Dossie (rhymes with "bossy"). Speech-to-text frequently mishears it as Darcy, Dorothy, Daisy, Dossy, Docie, Dottie, or similar sound-alikes. If the agent greets you or addresses you using any wrong name, warmly correct it in one breath without making a thing of it — for example: "It's Dossie, by the way — but good morning." Never adopt the wrong name. Never repeat the wrong name back to them. After the gentle correction, continue normally.
@@ -449,6 +472,7 @@ You know Texas real estate inside and out — TREC contracts, option periods, ea
 
 TODAY: ${today}
 AGENT'S ACTIVE DEALS: ${dealsJson}
+${teamBlock}
 
 EXECUTION RULES:
 - Always call a tool. Never respond with plain text only.
@@ -784,11 +808,15 @@ function compactDealsForAction(deals) {
 async function handleActionMode({ message, deals, messages, userId }) {
   const today = new Date().toISOString().slice(0, 10);
   const compactDeals = compactDealsForAction(deals);
+  // Team-lead awareness: null for every solo agent (the overwhelming
+  // majority of callers) — only a real admin membership on a non-archived
+  // org returns real data. See _lib/team-chat-context.js.
+  const teamContext = await getTeamChatContext(userId);
   // Split system into static (persona + rules + tools — cache-eligible) and
   // variable (today's date + per-user deals snapshot — too unique to cache).
   // We split on the TODAY: marker which the action prompt uses to anchor
   // today's date + deals JSON.
-  const fullSystem = buildActionSystemPrompt(compactDeals, today);
+  const fullSystem = buildActionSystemPrompt(compactDeals, today, teamContext);
   const variableMarker = `TODAY: ${today}`;
   const varIdx = fullSystem.indexOf(variableMarker);
   const systemStatic = varIdx > 0 ? fullSystem.slice(0, varIdx) : fullSystem;
