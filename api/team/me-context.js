@@ -3,7 +3,13 @@
 // Used by the React app to know which org (if any) to scope to and what roles
 // to show in the UI.
 //
-// Returns: { ok, context: { member_id, org_id, org_name, org_tier, parent_org_id, roles[], joined_at } | null }
+// Returns: { ok, context: { member_id, org_id, org_name, org_tier, parent_org_id, roles[], joined_at, lead_name } | null }
+//
+// lead_name (added 2026-08-23, first-run welcome banner): only populated when
+// the caller does NOT hold 'admin' themselves — the org's own founder/lead
+// doesn't need to be told who their lead is. Best-effort (profiles.full_name,
+// falling back to email); a lookup failure never blocks the base context
+// response since it's cosmetic-only.
 
 const { preflight, verifyBearer, getServiceClient, sendError } = require('../_lib/team-auth');
 
@@ -42,6 +48,29 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, context: null });
     }
 
+    const activeRoles = active.roles || [];
+    let leadName = null;
+    if (!activeRoles.includes('admin')) {
+      try {
+        const { data: rosterRows } = await supabase
+          .from('organization_members_with_roles')
+          .select('user_id, roles')
+          .eq('org_id', active.org_id)
+          .is('removed_at', null);
+        const adminMember = (rosterRows || []).find((r) => Array.isArray(r.roles) && r.roles.includes('admin'));
+        if (adminMember) {
+          const { data: profileRow } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', adminMember.user_id)
+            .maybeSingle();
+          leadName = (profileRow && (profileRow.full_name || profileRow.email)) || null;
+        }
+      } catch (err) {
+        console.warn('[me-context] lead_name lookup failed (non-blocking):', err && err.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       context: {
@@ -50,8 +79,9 @@ module.exports = async function handler(req, res) {
         org_name: active.organizations.name,
         org_tier: active.organizations.tier,
         parent_org_id: active.organizations.parent_org_id,
-        roles: active.roles || [],
+        roles: activeRoles,
         joined_at: active.joined_at,
+        lead_name: leadName,
       },
     });
   } catch (err) {

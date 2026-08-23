@@ -1,8 +1,11 @@
 // api/_lib/team-chat-context.js
 //
 // Gives api/chat.js's action-mode assistant real team-wide data when the
-// caller is a team-lead / broker-owner (an active 'admin' member of a
-// non-archived org) — the missing piece flagged in
+// caller is a team-lead / broker-owner OR a TC (an active 'admin' or 'tc'
+// member of a non-archived org — 2026-08-23: TC gets the same read-only
+// team-wide awareness as admin here, matching org-dossiers.js /
+// org-risk-overview.js's _mt_user_is_org_admin_or_tc gate) — the missing
+// piece flagged in
 // dossie-agent-capability-spec.md §12: "the missing piece is a team-wide
 // rollup layer plus giving Dossie's chat context the awareness that it's
 // talking to a team-lead account so it reaches for team-scoped answers
@@ -50,13 +53,13 @@ async function getTeamChatContext(userId) {
 
     if (error || !rows) return null;
 
-    const adminRow = rows.find((r) => {
+    const adminOrTcRow = rows.find((r) => {
       const roles = Array.isArray(r.roles) ? r.roles : [];
-      return roles.includes('admin') && r.organizations && !r.organizations.archived_at;
+      return (roles.includes('admin') || roles.includes('tc')) && r.organizations && !r.organizations.archived_at;
     });
-    if (!adminRow) return null; // solo agent, or a non-admin team member — no team context
+    if (!adminOrTcRow) return null; // solo agent, or a plain agent-only team member — no team context
 
-    const rollup = await buildTeamRiskRollup(supabase, adminRow.org_id);
+    const rollup = await buildTeamRiskRollup(supabase, adminOrTcRow.org_id);
     if (!rollup.ok) {
       console.error('[team-chat-context] rollup failed:', rollup.error);
       return null;

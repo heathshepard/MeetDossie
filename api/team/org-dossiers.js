@@ -5,11 +5,14 @@
 // (banded per-agent + $300/mo admin fee) tiers: an org admin can see every
 // member's dossiers by name, not just roster/billing/audit-log.
 //
-// Security model (mirrors roster.js / billing.js exactly):
+// Security model:
 //   - Caller must present a valid Supabase bearer token (verifyBearer).
-//   - Caller must hold an ACTIVE 'admin' role on the org_id requested,
-//     checked via the same _mt_user_is_org_admin RPC used by every other
-//     /api/team/* endpoint. No admin on org_id => 403, full stop.
+//   - Caller must hold an ACTIVE 'admin' OR 'tc' role on the org_id
+//     requested, checked via _mt_user_is_org_admin_or_tc (2026-08-23: TC
+//     role gets real team-wide read visibility, same as admin, WITHOUT
+//     admin-only write capabilities — invite/remove/rename/billing endpoints
+//     still use the strict _mt_user_is_org_admin-only check). No admin/tc on
+//     org_id => 403, full stop.
 //   - All data reads use the service-role client AFTER that check passes —
 //     RLS on transactions/documents/action_items already restricts org-admin
 //     SELECT to org_id IS NOT NULL AND is_org_admin(org_id) (see
@@ -54,6 +57,30 @@ const SUMMARY_COLUMNS = [
   'created_at', 'updated_at',
 ].join(', ');
 
+// Per-agent closings this month vs last month — the historical/trend view
+// the risk rollup's current-snapshot agent summary doesn't cover. Reuses
+// transactions.status='closed' + transactions.closing_date, both already
+// fetched in SUMMARY_COLUMNS above — no new query, no new tracking table.
+function computeMonthlyClosings(userTx) {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth(); // 0-indexed
+  const pad = (n) => String(n).padStart(2, '0');
+  const thisMonthStart = `${y}-${pad(m + 1)}-01`;
+  const lastMonthDate = new Date(Date.UTC(y, m - 1, 1));
+  const lastMonthStart = `${lastMonthDate.getUTCFullYear()}-${pad(lastMonthDate.getUTCMonth() + 1)}-01`;
+  // Exclusive upper bound = first day of the current month (lastMonthEnd < thisMonthStart).
+  let closingsThisMonth = 0;
+  let closingsLastMonth = 0;
+  userTx.forEach((tx) => {
+    if (tx.status !== 'closed' || !tx.closing_date) return;
+    const d = String(tx.closing_date).slice(0, 10);
+    if (d >= thisMonthStart) closingsThisMonth += 1;
+    else if (d >= lastMonthStart && d < thisMonthStart) closingsLastMonth += 1;
+  });
+  return { closings_this_month: closingsThisMonth, closings_last_month: closingsLastMonth };
+}
+
 function computeFlags(tx) {
   const flags = [];
   const today = new Date().toISOString().slice(0, 10);
@@ -85,19 +112,17 @@ module.exports = async function handler(req, res) {
 
     const supabase = getServiceClient();
 
-    // Hard gate FIRST, before any data is touched. Same RPC every other
-    // /api/team/* admin endpoint uses — a non-admin (or an admin of a
-    // different org) gets 403 here and nothing further executes.
-    const { data: isAdmin, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin', {
+    // Hard gate FIRST, before any data is touched — admin OR tc.
+    const { data: isAdminOrTc, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin_or_tc', {
       p_user_id: caller.id,
       p_org_id: orgId,
     });
     if (adminErr) {
-      console.error('[org-dossiers] admin check error:', adminErr.message);
+      console.error('[org-dossiers] admin/tc check error:', adminErr.message);
       return res.status(500).json({ ok: false, error: 'authorization check failed' });
     }
-    if (!isAdmin) {
-      return res.status(403).json({ ok: false, error: 'not an admin on this org' });
+    if (!isAdminOrTc) {
+      return res.status(403).json({ ok: false, error: 'not an admin or TC on this org' });
     }
 
     // Org row (also confirms org_id actually exists / isn't archived).
@@ -192,6 +217,7 @@ module.exports = async function handler(req, res) {
 
     const enrichedMembers = (members || []).map((m) => {
       const dossiers = dossiersByUser[m.user_id] || [];
+      const { closings_this_month, closings_last_month } = computeMonthlyClosings(dossiers);
       return {
         member_id: m.member_id,
         user_id: m.user_id,
@@ -202,6 +228,8 @@ module.exports = async function handler(req, res) {
         org_id: m.org_id,
         org_name: orgNameById[m.org_id] || null,
         dossier_count: dossiers.length,
+        closings_this_month,
+        closings_last_month,
         dossiers,
       };
     });

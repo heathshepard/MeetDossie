@@ -8,8 +8,9 @@
 //
 // Security model (identical gate to org-dossiers.js):
 //   - Caller must present a valid Supabase bearer token.
-//   - Caller must hold an ACTIVE 'admin' role on org_id, checked via
-//     _mt_user_is_org_admin. No admin on org_id => 403 before any data query.
+//   - Caller must hold an ACTIVE 'admin' OR 'tc' role on org_id, checked via
+//     _mt_user_is_org_admin_or_tc (2026-08-23). No admin/tc on org_id => 403
+//     before any data query.
 //   - The requested transaction_id must belong to org_id (or, for a
 //     brokerage-tier org_id, to one of its child team orgs) — otherwise 404.
 //     This stops an admin of Org A from probing an arbitrary transaction_id
@@ -57,16 +58,16 @@ module.exports = async function handler(req, res) {
     const supabase = getServiceClient();
 
     // Hard gate FIRST, before any data is touched — same RPC as org-dossiers.js.
-    const { data: isAdmin, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin', {
+    const { data: isAdminOrTc, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin_or_tc', {
       p_user_id: caller.id,
       p_org_id: orgId,
     });
     if (adminErr) {
-      console.error('[org-dossier-detail] admin check error:', adminErr.message);
+      console.error('[org-dossier-detail] admin/tc check error:', adminErr.message);
       return res.status(500).json({ ok: false, error: 'authorization check failed' });
     }
-    if (!isAdmin) {
-      return res.status(403).json({ ok: false, error: 'not an admin on this org' });
+    if (!isAdminOrTc) {
+      return res.status(403).json({ ok: false, error: 'not an admin or TC on this org' });
     }
 
     const { data: org, error: orgErr } = await supabase
