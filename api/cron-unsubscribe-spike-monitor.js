@@ -8,12 +8,26 @@
 //
 // Auth:     Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 * * * * (hourly on the hour)
+//
+// ALSO PIGGYBACKS an unrelated hourly job (Carter, 2026-08-23): real-time
+// push alerts for team risk-triage (api/_lib/team-risk-alerts-runner.js).
+// This is deliberate, not scope creep — vercel.json's `crons` array is
+// hard-capped at 100 items by Vercel and this project was already AT that
+// cap, so a genuinely-new hourly cron cannot be added as its own top-level
+// entry (confirmed live: "`crons` should NOT have more than 100 items"
+// rejected the deploy). No existing cron was dead/removable to free a slot.
+// This is the standard workaround: call the other job in-process at the end
+// of an already-hourly cron, fully isolated in its own try/catch (see
+// runPiggybackedTeamRiskAlerts below) so it can NEVER affect this cron's own
+// response, status code, or telemetry. That job's own standalone endpoint
+// (api/cron-hourly-team-risk-alerts.js) still exists for manual verification.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
 require('./_lib/telegram-gate').install('cron-unsubscribe-spike-monitor');
 
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const { runHourlyTeamRiskAlerts } = require('./_lib/team-risk-alerts-runner.js');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -108,6 +122,19 @@ async function logAlert(unsubCount, latestEmails, messageSent) {
   });
 }
 
+// Fully isolated — a failure here is logged to its own telemetry row and
+// otherwise swallowed. Never throws, never touches this file's own
+// request/response.
+async function runPiggybackedTeamRiskAlerts() {
+  try {
+    const result = await runHourlyTeamRiskAlerts();
+    recordCronRun('cron-hourly-team-risk-alerts', 'ok', result).catch(() => {});
+  } catch (err) {
+    console.error('[unsub-spike] piggybacked team-risk-alerts run failed', err && err.message);
+    recordCronRun('cron-hourly-team-risk-alerts', 'error', { error: (err && err.message) || 'crash' }).catch(() => {});
+  }
+}
+
 async function handler(req, res) {
   const forceRun    = req.query && (req.query.force === '1' || req.query.force === 'true');
   const forceIgnore = req.query && (req.query.ignore_dedup === '1');
@@ -124,6 +151,8 @@ async function handler(req, res) {
   const startedAt = Date.now();
   const now = new Date();
   const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+
+  await runPiggybackedTeamRiskAlerts();
 
   try {
     const { count, latest } = await countSince(dayAgo);

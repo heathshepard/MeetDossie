@@ -338,6 +338,9 @@
     "api/cron-hourly-team-risk-alerts.js": {
       "maxDuration": 30
     },
+    "api/cron-unsubscribe-spike-monitor.js": {
+      "maxDuration": 30
+    },
     "api/ventures/social-today.js": {
       "maxDuration": 30
     },
@@ -518,10 +521,6 @@
     {
       "path": "/api/cron-weekly-team-risk-digest",
       "schedule": "0 13 * * 1"
-    },
-    {
-      "path": "/api/cron-hourly-team-risk-alerts",
-      "schedule": "5 * * * *"
     },
     {
       "path": "/api/cron-reddit-scanner",
