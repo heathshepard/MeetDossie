@@ -335,6 +335,12 @@
     "api/cron-weekly-team-risk-digest.js": {
       "maxDuration": 30
     },
+    "api/cron-hourly-team-risk-alerts.js": {
+      "maxDuration": 30
+    },
+    "api/cron-unsubscribe-spike-monitor.js": {
+      "maxDuration": 30
+    },
     "api/ventures/social-today.js": {
       "maxDuration": 30
     },

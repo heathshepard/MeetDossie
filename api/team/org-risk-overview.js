@@ -13,8 +13,9 @@
 //
 // Security model — identical gate to org-dossiers.js / org-dossier-detail.js:
 //   - Caller must present a valid Supabase bearer token.
-//   - Caller must hold an ACTIVE 'admin' role on org_id, checked via
-//     _mt_user_is_org_admin. No admin on org_id => 403 before any data query.
+//   - Caller must hold an ACTIVE 'admin' OR 'tc' role on org_id, checked via
+//     _mt_user_is_org_admin_or_tc (2026-08-23). No admin/tc on org_id => 403
+//     before any data query.
 //   - RLS on transactions/documents/action_items independently restricts
 //     org-admin SELECT the same way org-dossiers.js documents.
 //
@@ -43,16 +44,16 @@ module.exports = async function handler(req, res) {
     const supabase = getServiceClient();
 
     // Hard gate FIRST, before any data is touched.
-    const { data: isAdmin, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin', {
+    const { data: isAdminOrTc, error: adminErr } = await supabase.rpc('_mt_user_is_org_admin_or_tc', {
       p_user_id: caller.id,
       p_org_id: orgId,
     });
     if (adminErr) {
-      console.error('[org-risk-overview] admin check error:', adminErr.message);
+      console.error('[org-risk-overview] admin/tc check error:', adminErr.message);
       return res.status(500).json({ ok: false, error: 'authorization check failed' });
     }
-    if (!isAdmin) {
-      return res.status(403).json({ ok: false, error: 'not an admin on this org' });
+    if (!isAdminOrTc) {
+      return res.status(403).json({ ok: false, error: 'not an admin or TC on this org' });
     }
 
     const rollup = await buildTeamRiskRollup(supabase, orgId);

@@ -119,7 +119,21 @@ async function inviteTeamMember(supabase, { orgId, email, roles, callerId }) {
   }
 
   if (!inviteeUserId) {
-    const redirectTo = `https://meetdossie.com/app?invited_to_org=${encodeURIComponent(orgId)}`;
+    // 2026-08-23 fix (verified broken via real Playwright trace): this used
+    // to redirect to `/app?invited_to_org=...`, but dossie-app.jsx's
+    // Supabase client uses flowType:'pkce' + detectSessionInUrl:true, which
+    // only consumes a `?code=` param — Supabase's invite link instead lands
+    // with `#access_token=...&refresh_token=...&type=invite` in the URL
+    // HASH (implicit-flow style), which the app never reads. A real invitee
+    // landed on a bare "Sign In" screen with an inert, unusable token in the
+    // URL and NO password ever set on the account — completely stuck.
+    // set-password.html already exists and is the established pattern for
+    // exactly this (api/signup.js, api/complete-onboarding.js,
+    // forgot-password.html all use it): it manually parses the hash tokens,
+    // calls setSession + updateUser({password}), then sends them to
+    // /workspace.html with a real, working session. Reusing it here instead
+    // of inventing a second path.
+    const redirectTo = 'https://meetdossie.com/set-password.html';
     const { data: inviteResult, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(emailRaw, {
       redirectTo,
     });
