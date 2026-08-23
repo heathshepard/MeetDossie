@@ -93,6 +93,16 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, product: { id: product.id, name: product.name }, price: { id: price.id, unit_amount: price.unit_amount, currency: price.currency, recurring: price.recurring } });
     }
 
+    if (action === 'deactivate_price') {
+      // Archives a mis-created Price object (active:false) so it can never be
+      // selected by a checkout session again. Does not delete — Stripe prices
+      // are immutable/permanent once used, this just retires it.
+      const priceId = req.query?.price_id || (req.body && req.body.price_id);
+      if (!priceId) return res.status(400).json({ ok: false, error: 'price_id required' });
+      const price = await stripe.prices.update(priceId, { active: false });
+      return res.status(200).json({ ok: true, price: { id: price.id, active: price.active } });
+    }
+
     if (action === 'get_coupon') {
       const couponId = req.query?.id || (req.body && req.body.id);
       if (!couponId) return res.status(400).json({ ok: false, error: 'id required' });
@@ -241,7 +251,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }

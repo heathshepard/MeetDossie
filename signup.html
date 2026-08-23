@@ -88,6 +88,24 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
 .done p { font-size: 16px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 10px; }
 .legal { font-size: 12.5px; color: var(--text-light); line-height: 1.6; text-align: center; margin-top: 18px; }
 .legal a { color: var(--text-secondary); }
+
+.plans-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: 0 2px 18px rgba(45,42,38,0.04); margin-bottom: 28px; }
+.billing-toggle { display: inline-flex; background: var(--bg-warm); border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+.billing-toggle button { border: none; background: transparent; padding: 9px 18px; border-radius: 999px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: background .15s, color .15s; }
+.billing-toggle button.active { background: #fff; color: var(--text-primary); box-shadow: 0 1px 4px rgba(45,42,38,0.1); }
+.plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 560px) { .plan-grid { grid-template-columns: 1fr; } }
+.plan-tile { border: 1px solid var(--border); border-radius: 16px; padding: 22px 20px; display: flex; flex-direction: column; }
+.plan-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+.plan-price { font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.plan-price span { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+.plan-note { font-size: 12.5px; color: var(--text-light); margin-bottom: 14px; min-height: 32px; }
+.plan-cta { margin-top: auto; width: 100%; padding: 13px; font: inherit; font-size: 14.5px; font-weight: 700; color: #fff; background: var(--coral); border: none; border-radius: 999px; cursor: pointer; transition: background .18s; }
+.plan-cta:hover:not(:disabled) { background: var(--coral-deep); }
+.plan-cta:disabled { opacity: .6; cursor: not-allowed; }
+.plans-error { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; background: var(--coral-light); color: var(--coral-deep); border: 1px solid #F0C4B7; }
+.plans-error.is-visible { display: block; }
+.or-divider { text-align: center; color: var(--text-light); font-size: 13px; margin: 0 0 24px; }
 </style>
 </head>
 <body>
@@ -109,6 +127,30 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
     Dossie reads your contract, pulls every TREC deadline with the paragraph it came from,
     and keeps the file in order. Built by a licensed Texas REALTOR, for Texas REALTORS.
   </p>
+
+  <div class="plans-card">
+    <div class="billing-toggle" id="billing-toggle">
+      <button type="button" class="active" data-period="monthly">Monthly</button>
+      <button type="button" data-period="annual">Annual <span style="opacity:.75;">(save 2 months+)</span></button>
+    </div>
+    <div class="plan-grid">
+      <div class="plan-tile">
+        <div class="plan-name">Solo</div>
+        <div class="plan-price" data-plan-price="solo">$149<span>/mo</span></div>
+        <div class="plan-note" data-plan-note="solo">Unlimited active files, one agent.</div>
+        <button type="button" class="plan-cta" data-plan="solo">Get Solo</button>
+      </div>
+      <div class="plan-tile">
+        <div class="plan-name">Team</div>
+        <div class="plan-price" data-plan-price="team">$349<span>/mo</span></div>
+        <div class="plan-note" data-plan-note="team">3 seats included, up to 8 at $35/seat.</div>
+        <button type="button" class="plan-cta" data-plan="team">Get Team</button>
+      </div>
+    </div>
+    <div class="plans-error" id="plans-error"></div>
+  </div>
+
+  <p class="or-divider">— or, if you have an invite code —</p>
 
   <div class="card">
     <form id="signup-form" novalidate>
@@ -205,6 +247,86 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
 <script>
 (function () {
   "use strict";
+
+  // Plan checkout — Solo / Team, monthly or annual. Posts straight to
+  // /api/create-checkout-session and redirects to Stripe; does not touch
+  // /api/signup or its invite-code/request-access paths below.
+  var PRICES = {
+    solo: { monthly: "$149", monthlySuffix: "/mo", annual: "$39", annualSuffix: "/mo billed annually ($468/yr)" },
+    team: { monthly: "$349", monthlySuffix: "/mo", annual: "$119", annualSuffix: "/mo billed annually ($1,428/yr)" }
+  };
+  var NOTES = {
+    solo: "Unlimited active files, one agent.",
+    team: "3 seats included, up to 8 at $35/seat."
+  };
+  var currentPeriod = "monthly";
+  var toggleButtons = document.querySelectorAll("#billing-toggle button");
+  var plansError = document.getElementById("plans-error");
+
+  function renderPlanPrices() {
+    ["solo", "team"].forEach(function (plan) {
+      var el = document.querySelector('[data-plan-price="' + plan + '"]');
+      var noteEl = document.querySelector('[data-plan-note="' + plan + '"]');
+      if (!el) return;
+      var p = PRICES[plan];
+      if (currentPeriod === "monthly") {
+        el.innerHTML = p.monthly + "<span>" + p.monthlySuffix + "</span>";
+        if (noteEl) noteEl.textContent = NOTES[plan];
+      } else {
+        el.innerHTML = p.annual + "<span>" + p.annualSuffix + "</span>";
+        if (noteEl) noteEl.textContent = NOTES[plan];
+      }
+    });
+  }
+
+  toggleButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      currentPeriod = btn.getAttribute("data-period");
+      toggleButtons.forEach(function (b) { b.classList.toggle("active", b === btn); });
+      renderPlanPrices();
+      try { if (window.posthog) window.posthog.capture("signup_billing_period_toggled", { period: currentPeriod }); } catch (e) {}
+    });
+  });
+  renderPlanPrices();
+
+  document.querySelectorAll(".plan-cta").forEach(function (btn) {
+    btn.addEventListener("click", async function () {
+      var plan = btn.getAttribute("data-plan");
+      plansError.className = "plans-error";
+      plansError.textContent = "";
+      btn.disabled = true;
+      var originalText = btn.textContent;
+      btn.textContent = "Opening checkout…";
+      try {
+        if (window.posthog && window.posthog.capture) {
+          window.posthog.capture("checkout_started", { plan: plan, billing_period: currentPeriod });
+        }
+      } catch (e) {}
+      try {
+        var res = await fetch("/api/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: plan, billing_period: currentPeriod })
+        });
+        var out = null;
+        try { out = await res.json(); } catch (e) { out = null; }
+        if (!res.ok || !out || !out.ok || !out.url) {
+          var msg = (out && out.error) || "Couldn't open checkout. Try again or email heath@meetdossie.com.";
+          plansError.textContent = msg;
+          plansError.className = "plans-error is-visible";
+          btn.disabled = false;
+          btn.textContent = originalText;
+          return;
+        }
+        window.location.href = out.url;
+      } catch (err) {
+        plansError.textContent = "Couldn't reach the server. Try again or email heath@meetdossie.com.";
+        plansError.className = "plans-error is-visible";
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  });
 
   var form = document.getElementById("signup-form");
   var statusEl = document.getElementById("status");

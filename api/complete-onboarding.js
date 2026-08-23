@@ -12,6 +12,7 @@
 
 const Stripe = require('stripe');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { tierForPriceId } = require('./_lib/pricing-tiers');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -156,7 +157,7 @@ async function updateSubscriptionByCustomerId(stripeCustomerId, patch) {
 // the webhook — ensures the row always exists and is 'active' when the customer
 // completes their onboarding form.
 async function upsertSubscriptionBySubId({
-  userId, stripeCustomerId, stripeSubscriptionId, stripePriceId,
+  userId, stripeCustomerId, stripeSubscriptionId, stripePriceId, plan,
   currentPeriodStart, currentPeriodEnd,
 }) {
   await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
@@ -167,7 +168,7 @@ async function upsertSubscriptionBySubId({
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: stripePriceId || null,
-      plan: 'founding',
+      plan: plan || 'founding',
       status: 'active',
       current_period_start: currentPeriodStart || null,
       current_period_end: currentPeriodEnd || null,
@@ -187,13 +188,17 @@ const BRAND_MUTED = '#9CA8B4';
 // customer never received a password email. Fail-loud check added below.
 const BRAND_BORDER = '#E8E2DA';
 
-function welcomeEmailHtml(fullName) {
+function welcomeEmailHtml(fullName, plan) {
   const name = (fullName || '').trim().split(' ')[0] || 'there';
+  const isFounding = plan === 'founding';
+  const introLine = isFounding
+    ? "You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else."
+    : "Your Dossie subscription is active — you're all set.";
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">${name},</h1>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Heath here — founder of Dossie, and a licensed Texas REALTOR myself.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${introLine}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I want to ask one specific thing in the next 60 seconds: open Dossie, pull up any deal you're working — even a closed one from last month — and drop the contract in.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">She reads it, pulls every TREC deadline with the paragraph it came from, and you'll see your option period, financing contingency, and closing date sitting on the page in clean order. That's the moment most agents text me back saying "okay, I see what this is now."</p>
   <div style="margin: 28px 0; text-align: center;">
@@ -211,19 +216,24 @@ function welcomeEmailHtml(fullName) {
     <li><strong>Compliance Vault</strong> — your brokerage's required docs organized in one place.</li>
   </ol>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Reply to this email any time. I read every one personally, usually within the hour.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${isFounding
+    ? "AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up."
+    : "AI is hitting transaction coordination fast. My take: don't fight it, be part of it — glad you're in."}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
-  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
+  ${isFounding ? `<hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
+  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>` : ''}
 </div>`;
 }
 
-function setPasswordEmailHtml(actionLink) {
+function setPasswordEmailHtml(actionLink, plan) {
+  const accessLine = plan === 'founding'
+    ? 'Your founding member access is confirmed. Click below to set your password and get started.'
+    : 'Your Dossie access is confirmed. Click below to set your password and get started.';
   return `<div style="font-family: 'Cormorant Garamond', Georgia, serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; line-height: 1.15; margin: 0 0 16px; color: ${BRAND_NAVY};">Welcome to Dossie.</h1>
-  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">Your founding member access is confirmed. Click below to set your password and get started.</p>
+  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">${accessLine}</p>
   <a href="${actionLink}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Set Your Password</a>
   <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it's expired, contact us at heath@meetdossie.com and we'll send a new one. If you didn't request this, ignore this email.</p>
 </div>`;
@@ -395,6 +405,12 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // Resolve the real plan from the price actually purchased — was hardcoded
+    // 'founding' until 2026-08-22, which meant a paying Solo/Team customer's
+    // profile and welcome email both incorrectly claimed a locked $29/mo
+    // founding rate they never got.
+    const { tier: plan } = tierForPriceId(stripePriceId);
+
     // Create Supabase auth user
     const result = await createAuthUser({ email, fullName: name });
     const userId = result.userId;
@@ -412,9 +428,9 @@ module.exports = async function handler(req, res) {
       brokerage,
       market,
       heard_from: heardFrom,
-      subscription_tier: 'founding',
+      subscription_tier: plan,
       subscription_status: 'active',
-      plan: 'founding',
+      plan,
       stripe_customer_id: stripeCustomerId,
     });
 
@@ -429,10 +445,11 @@ module.exports = async function handler(req, res) {
         stripeCustomerId,
         stripeSubscriptionId,
         stripePriceId,
+        plan,
         currentPeriodStart,
         currentPeriodEnd,
       });
-      console.log('[complete-onboarding] subscription upserted by stripe_subscription_id for', email, 'sub=', stripeSubscriptionId);
+      console.log('[complete-onboarding] subscription upserted by stripe_subscription_id for', email, 'sub=', stripeSubscriptionId, 'plan=', plan);
     } else {
       // Fallback: patch by customer ID (works if webhook created the row).
       // If no row exists, this silently does nothing — the reconcile cron will catch it.
@@ -451,7 +468,7 @@ module.exports = async function handler(req, res) {
       await sendEmail({
         to: email,
         subject: 'Welcome to Dossie — let\'s get you set up',
-        html: welcomeEmailHtml(name),
+        html: welcomeEmailHtml(name, plan),
       });
       welcomeEmailSent = true;
     } catch (err) {
@@ -468,7 +485,7 @@ module.exports = async function handler(req, res) {
         await sendEmail({
           to: email,
           subject: 'Welcome to Dossie — Set Your Password',
-          html: setPasswordEmailHtml(actionLink),
+          html: setPasswordEmailHtml(actionLink, plan),
         });
         passwordEmailSent = true;
       } else {
