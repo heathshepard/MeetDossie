@@ -1,0 +1,351 @@
+{
+  "name": "team-sales-demo-2",
+  "form_factor": "desktop",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "demo_account": "demo-team-lead@meetdossie.com",
+  "voice": "luna",
+  "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
+  "filename": "team-sales-demo-2-desktop-2026-08-23.mp4",
+  "topic": "team_sales_demo_2",
+  "type": "sales_asset",
+  "platforms": [],
+  "voiceover": "Every roster card now shows a real name, Marcus Webb, Priya Anand, Jordan Reyes, not a raw email address you have to squint at. And right up here, the numbers a team lead actually needs: seats used, active dossiers, all across the whole team, on one screen. Don't want to click through four boards to find what's wrong? Just ask. Tap Which files across my team are at risk right now, and Dossie pulls the real answer, every flagged file, cited by name and address, not a guess. Marcus's file on Copperfield Way is four days from closing, disclosures filed, survey in, almost every action item checked off. Priya's contract on Alamo Heights is a different story. The Seller's Disclosure Notice was never uploaded, flagged right here, days overdue, exactly the kind of gap a lead needs to catch before it turns into a call from the title company. Bringing someone new onto the team takes one form. Type their email, pick their role, agent, admin, or T C, and send. Removing someone is real, so it's never a single click, you confirm it on purpose, or back out. Rename your team any time, right from the header you're already looking at. And that T C role is real, not cosmetic. Sign in as the T C and you get full visibility, every agent's files, every flag, same as the lead sees, but none of the admin controls. No invite button, no remove, no rename. Oversight without ownership. When an agent goes on leave, or leaves the team entirely, their open files don't have to sit stuck. Reassign a dossier to a teammate in two clicks, and it shows up on their board immediately. Turn on risk alerts and the team lead gets pushed the moment something urgent hits, a blown deadline, a missing disclosure, on top of the weekly digest that already lands in their inbox. Three seats included, up to five more at seventy nine ninety nine each, capped at eight total, because most teams are small. It's still one subscription, still less than a single four hundred dollar a file coordinator, but now it's watching every file, every agent, all at once. This is Dossie.",
+  "caption": "Full Team plan walkthrough for Brittney/Natalie - roster, risk chat, add/remove/rename, TC role, reassignment, alerts, seats.",
+  "slowmo_ms": 380,
+  "scenes": [
+    {
+      "action": "navigate",
+      "url": "https://meet-dossie-dn8g8gmfq-heathshepard-6590s-projects.vercel.app/app",
+      "wait_until": "domcontentloaded",
+      "pause": 600
+    },
+    {
+      "action": "login_if_visible",
+      "email_selector": "input[type='email']",
+      "password_selector": "input[type='password']",
+      "submit_selector": "button[type='submit']",
+      "pause": 1500
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Pipeline",
+      "timeout": 20000,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "Team",
+      "exact": true,
+      "pause": 1000
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Whitley Realty Team",
+      "timeout": 20000,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Marcus Webb",
+      "timeout": 8000,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Priya Anand",
+      "timeout": 8000,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Jordan Reyes",
+      "timeout": 8000,
+      "pause": 1800
+    },
+    {
+      "action": "click_text",
+      "text": "Which files across my team are at risk right now?",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Thinking...",
+      "timeout": 8000,
+      "pause": 300
+    },
+    {
+      "action": "wait_for_text_gone",
+      "text": "Thinking...",
+      "timeout": 30000,
+      "pause": 2300
+    },
+    {
+      "action": "click_text",
+      "text": "Close Dossie",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "Marcus Webb",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "214 Copperfield Way",
+      "timeout": 10000,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "214 Copperfield Way",
+      "pause": 400
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Send closing day confirmation to buyer",
+      "timeout": 8000,
+      "pause": 1500
+    },
+    {
+      "action": "click_text",
+      "text": "214 Copperfield Way",
+      "pause": 300
+    },
+    {
+      "action": "click_text",
+      "text": "Priya Anand",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "930 Alamo Heights Blvd",
+      "timeout": 10000,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "930 Alamo Heights Blvd",
+      "pause": 400
+    },
+    {
+      "action": "wait_for_text",
+      "text": "MISSING",
+      "timeout": 8000,
+      "pause": 2300
+    },
+    {
+      "action": "click_text",
+      "text": "930 Alamo Heights Blvd",
+      "pause": 300
+    },
+    {
+      "action": "click_text",
+      "text": "Add team member",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "type_into",
+      "selector": "input[placeholder='name@brokerage.com']",
+      "value": "demo-team-tc@meetdossie.com",
+      "pause": 400
+    },
+    {
+      "action": "click_text",
+      "text": "Agent",
+      "exact": true,
+      "pause": 300
+    },
+    {
+      "action": "click_text",
+      "text": "TC",
+      "exact": true,
+      "pause": 400
+    },
+    {
+      "action": "click_text",
+      "text": "Send invite",
+      "exact": true,
+      "pause": 800
+    },
+    {
+      "action": "wait_for_text",
+      "text": "added to the team",
+      "timeout": 10000,
+      "pause": 800
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Casey Nolan",
+      "timeout": 8000,
+      "pause": 1500
+    },
+    {
+      "action": "click_button_in_row",
+      "row_text": "Casey Nolan",
+      "button_text": "Remove",
+      "pause": 500
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Yes, remove",
+      "timeout": 5000,
+      "pause": 1400
+    },
+    {
+      "action": "click_text",
+      "text": "Cancel",
+      "exact": true,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "Rename",
+      "exact": true,
+      "pause": 500
+    },
+    {
+      "action": "type_into",
+      "selector": "input[type='text']",
+      "value": "Whitley Realty Group (DEMO)",
+      "clear_first": true,
+      "pause": 400
+    },
+    {
+      "action": "click_text",
+      "text": "Save",
+      "exact": true,
+      "pause": 800
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Whitley Realty Group (DEMO)",
+      "timeout": 8000,
+      "pause": 1500
+    },
+    {
+      "action": "switch_account",
+      "email": "demo-team-tc@meetdossie.com",
+      "pause": 1300
+    },
+    {
+      "action": "wait_for_text",
+      "text": "You're part of",
+      "timeout": 15000,
+      "pause": 2000
+    },
+    {
+      "action": "click_text",
+      "text": "Team",
+      "exact": true,
+      "pause": 900
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Whitley Realty Group",
+      "timeout": 15000,
+      "pause": 1300
+    },
+    {
+      "action": "scroll_to_top",
+      "pause": 2000
+    },
+    {
+      "action": "switch_account",
+      "email": "demo-team-lead@meetdossie.com",
+      "pause": 1300
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Pipeline",
+      "timeout": 15000,
+      "pause": 500
+    },
+    {
+      "action": "click_text",
+      "text": "Team",
+      "exact": true,
+      "pause": 900
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Jordan Reyes",
+      "timeout": 15000,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "Jordan Reyes",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "88 Meadowlark Lane",
+      "timeout": 10000,
+      "pause": 600
+    },
+    {
+      "action": "click_text",
+      "text": "88 Meadowlark Lane",
+      "pause": 400
+    },
+    {
+      "action": "select_option",
+      "selector": "select",
+      "label": "Marcus Webb",
+      "pause": 400
+    },
+    {
+      "action": "click_text",
+      "text": "Reassign",
+      "exact": true,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "Reassigned.",
+      "timeout": 8000,
+      "pause": 1300
+    },
+    {
+      "action": "click_text",
+      "text": "Marcus Webb",
+      "exact": false,
+      "pause": 600
+    },
+    {
+      "action": "wait_for_text",
+      "text": "88 Meadowlark Lane",
+      "timeout": 10000,
+      "pause": 1500
+    },
+    {
+      "action": "click_text",
+      "text": "Enable risk alerts",
+      "exact": false,
+      "pause": 1000
+    },
+    {
+      "action": "wait_for_text_gone",
+      "text": "Enable risk alerts",
+      "timeout": 10000,
+      "pause": 1300
+    },
+    {
+      "action": "scroll_to_top",
+      "pause": 800
+    },
+    {
+      "action": "final_pause",
+      "pause": 3000
+    }
+  ]
+}

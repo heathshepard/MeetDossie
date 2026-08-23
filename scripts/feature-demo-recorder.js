@@ -41,6 +41,34 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const RAW_DIR = path.join(__dirname, '..', 'Media', 'feature-demos', 'raw');
 fs.mkdirSync(RAW_DIR, { recursive: true });
 
+// ─── Session-mint helper (for mid-recording account switches) ────────────────
+//
+// Same magiclink-mint pattern as scripts/carter-jarvis-typed-text-bridge-
+// bridge-verify.js and friends, generalized to any email + reusable mid-scene
+// (the "switch_account" action below) rather than only at sign-in. Needed for
+// the 2026-08-23 TC-role beat: showing the SAME roster/dossier data through a
+// different member's restricted (no admin controls) view means actually
+// becoming that user, not narrating over a screenshot.
+async function mintSessionFor(email) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { createClient } = require('@supabase/supabase-js');
+  const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+  if (error) throw new Error(`generateLink failed for ${email}: ${error.message}`);
+  const hashedToken = data.properties && data.properties.hashed_token;
+  if (!hashedToken) throw new Error(`generateLink returned no hashed_token for ${email}`);
+  const verifyRes = await fetch(`${url}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: anonKey },
+    body: JSON.stringify({ type: 'magiclink', token_hash: hashedToken }),
+  });
+  const verifyData = await verifyRes.json();
+  if (!verifyRes.ok) throw new Error(`verify failed for ${email}: ${verifyRes.status} ${JSON.stringify(verifyData)}`);
+  return { access_token: verifyData.access_token, refresh_token: verifyData.refresh_token, user: verifyData.user };
+}
+
 // ─── Mouse helpers ────────────────────────────────────────────────────────────
 
 async function moveToElement(page, element) {
@@ -106,6 +134,58 @@ async function runScene(page, scene, scriptCfg) {
       await page.waitForSelector(`text=${scene.text}`, { timeout: scene.timeout || 15000 });
       break;
     }
+    case 'wait_for_text_gone': {
+      // Waits for a transient state indicator (e.g. a chat "Thinking..."
+      // bubble) to disappear — the inverse of wait_for_text. Added for the
+      // team-sales-demo-2 recording (2026-08-23), which needs to wait out a
+      // real LLM chat response before moving on, and has no stable
+      // className/testid to hook a "response arrived" check to instead.
+      console.log(`  [scene] wait_for_text_gone -> "${scene.text}"`);
+      const loc = page.getByText(scene.text, { exact: scene.exact === true }).first();
+      await loc.waitFor({ state: 'hidden', timeout: scene.timeout || 30000 }).catch(() => {
+        console.log(`    (still visible after timeout — continuing anyway)`);
+      });
+      break;
+    }
+    case 'switch_account': {
+      // Mid-recording context switch to a different real account (mints a
+      // fresh session, overwrites the storageKey dossie-app.jsx actually
+      // reads, reloads). See carter-email-integration-merge-verify.js for
+      // why the key is 'supabase.auth.token', not the sb-<ref>-auth-token
+      // library default.
+      console.log(`  [scene] switch_account -> ${scene.email}`);
+      const session = await mintSessionFor(scene.email);
+      await page.evaluate(({ key, sessionObj }) => {
+        localStorage.setItem(key, JSON.stringify({
+          access_token: sessionObj.access_token, refresh_token: sessionObj.refresh_token,
+          token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600,
+          user: sessionObj.user,
+        }));
+      }, { key: 'supabase.auth.token', sessionObj: session });
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+      break;
+    }
+    case 'select_option': {
+      console.log(`  [scene] select_option -> ${scene.selector} = "${scene.label}"`);
+      const loc = page.locator(scene.selector).first();
+      await loc.waitFor({ state: 'visible', timeout: scene.timeout || 10000 });
+      await moveToElement(page, loc);
+      await loc.selectOption({ label: scene.label });
+      break;
+    }
+    case 'click_button_in_row': {
+      // Scopes a click to the specific roster/list row containing row_text,
+      // then clicks button_text within that row — needed once a page has
+      // multiple identical-text buttons (e.g. every roster row has its own
+      // "Remove" button). TeamView.jsx's roster rows are role="button" divs.
+      console.log(`  [scene] click_button_in_row -> row="${scene.row_text}" button="${scene.button_text}"`);
+      const row = page.locator('[role="button"]').filter({ hasText: scene.row_text }).first();
+      await row.waitFor({ state: 'visible', timeout: scene.timeout || 10000 });
+      const btn = row.getByText(scene.button_text, { exact: scene.exact === true }).first();
+      await moveToElement(page, btn);
+      await clickRobust(btn);
+      break;
+    }
     case 'click_text': {
       console.log(`  [scene] click_text -> "${scene.text}"`);
       const loc = page.getByText(scene.text, { exact: scene.exact === true }).first();
@@ -127,6 +207,13 @@ async function runScene(page, scene, scriptCfg) {
       const loc = page.locator(scene.selector).first();
       await loc.waitFor({ state: 'visible', timeout: scene.timeout || 10000 });
       await loc.focus();
+      // clear_first: needed for pre-filled controlled inputs (e.g. the
+      // rename field, which starts populated with the current org name) —
+      // without it, typing just appends after the existing value.
+      if (scene.clear_first) {
+        await page.keyboard.press('ControlOrMeta+A');
+        await page.keyboard.press('Backspace');
+      }
       // Use page.keyboard so we get realistic per-char typing
       await page.keyboard.type(scene.value, { delay: scene.delay_ms || 60 });
       break;
@@ -255,6 +342,11 @@ async function record(scriptPath) {
   const context = await browser.newContext({
     viewport,
     recordVideo: { dir: RAW_DIR, size: viewport },
+    // Pre-grant notification permission so a scene that clicks "Enable risk
+    // alerts" (RiskAlertsToggle.jsx's real Notification.requestPermission()
+    // call) resolves to 'granted' immediately instead of hanging on a
+    // permission prompt headless Chromium never surfaces interactively.
+    permissions: ['notifications'],
   });
 
   // Stamp the recording session start so we can find the new webm afterward.
