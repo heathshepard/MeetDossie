@@ -12,6 +12,8 @@ const {
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { messagesCreateCached } = require('./_lib/spawn-with-cache');
 const { getTeamChatContext } = require('./_lib/team-chat-context');
+const { inviteTeamMember, EMAIL_RE: TEAM_INVITE_EMAIL_RE } = require('./_lib/team-invite-core');
+const { getServiceClient: getTeamAuthServiceClient } = require('./_lib/team-auth');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -438,6 +440,23 @@ const TOOLS = [
       required: ['response'],
     },
   },
+  {
+    name: 'add_team_member',
+    description: 'Add a new member to the agent\'s team — sends a REAL invite. Only usable when the agent is a team lead/admin (enforced server-side by the system, not by you). Use when the agent says things like: add someone to my team, invite X as an agent, give Dossie the order to add a team member, add X at their email as an admin/TC. REQUIRES a real email address. If the agent has NOT given an email (e.g. "add Jordan to my team" with no email), do NOT call this tool — use answer_question to ask them for the email instead. Never guess or invent an email.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: "The new member's name, if given — used only to personalize the confirmation, not stored anywhere." },
+        email: { type: 'string', description: "The new member's email address, exactly as given. Required." },
+        roles: {
+          type: 'array',
+          items: { type: 'string', enum: ['agent', 'admin', 'tc'] },
+          description: 'Roles to grant. Default to ["agent"] if the agent does not specify a role. "TC" means transaction coordinator.',
+        },
+      },
+      required: ['email'],
+    },
+  },
 ];
 
 const buildTeamContextBlock = (teamContext) => {
@@ -537,6 +556,7 @@ INTENT MAPPING:
 - We got an offer/received an offer/offer came in/buyer submitted/got a bid = log_offer (seller-side)
 - Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
 - Ask Hadley/what does TREC say/explain paragraph/is the seller required to/walk me through paragraph/what's the rule on/is this enforceable/define [TREC term] = ask_hadley (Hadley is Dossie's in-house general counsel; pass the agent's question verbatim and the form/paragraph if mentioned)
+- Add/invite [name] to my team/give them agent access/add a new team member = add_team_member (team leads only — the system enforces this, you don't need to check; ALWAYS require a real email before calling this tool — if none was given, ask for it with answer_question instead)
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
@@ -805,6 +825,55 @@ function compactDealsForAction(deals) {
     }));
 }
 
+// Executes the add_team_member tool server-side (the actual invite call),
+// then returns a plain answer_question-shaped result so the client needs no
+// new dispatch case — it just displays/speaks whatever text comes back, same
+// as every other conversational reply.
+//
+// Hard gate: teamContext must be non-null (resolved by getTeamChatContext,
+// which itself re-derives admin status from the DB — never trust the model's
+// tool choice as proof of authorization). A solo agent or non-admin team
+// member can ask for this all day; it never reaches inviteTeamMember.
+async function executeAddTeamMember({ teamContext, userId, params }) {
+  if (!teamContext) {
+    return "I can't add team members from your account — that needs team-lead/admin access on a Team or Brokerage org.";
+  }
+
+  const nameGiven = typeof params.name === 'string' ? params.name.trim() : '';
+  const emailRaw = typeof params.email === 'string' ? params.email.trim().toLowerCase() : '';
+  if (!emailRaw || !TEAM_INVITE_EMAIL_RE.test(emailRaw)) {
+    return nameGiven
+      ? `I don't have a valid email for ${nameGiven} yet — what's the email address I should invite them at?`
+      : "I need a real email address before I can invite them — what's the email?";
+  }
+
+  const requestedRoles = Array.isArray(params.roles)
+    ? params.roles.filter((r) => ['agent', 'admin', 'tc'].includes(r))
+    : [];
+  const roles = requestedRoles.length > 0 ? requestedRoles : ['agent'];
+  const roleLabel = roles.join('/');
+  const label = nameGiven ? `${nameGiven} at ${emailRaw}` : emailRaw;
+
+  try {
+    const supabase = getTeamAuthServiceClient();
+    const result = await inviteTeamMember(supabase, {
+      orgId: teamContext.org.id,
+      email: emailRaw,
+      roles,
+      callerId: userId,
+    });
+    if (!result.ok) {
+      return `Adding ${label} as ${roleLabel} — sending the invite now... that failed: ${result.error}.`;
+    }
+    return result.was_existing_user
+      ? `Adding ${label} as ${roleLabel} — sending the invite now. Done — they're on the team.`
+      : `Adding ${label} as ${roleLabel} — sending the invite now. Done — the invite is on its way to ${emailRaw}.`;
+  } catch (err) {
+    console.error('[add_team_member] error:', err && err.message);
+    return `Adding ${label} as ${roleLabel} — sending the invite now... something went wrong on my end, try that again in a moment.`;
+  }
+}
+
 async function handleActionMode({ message, deals, messages, userId }) {
   const today = new Date().toISOString().slice(0, 10);
   const compactDeals = compactDealsForAction(deals);
@@ -844,6 +913,15 @@ async function handleActionMode({ message, deals, messages, userId }) {
   const content = response.content || [];
   const toolUse = content.find((b) => b.type === 'tool_use');
   const textBlock = content.find((b) => b.type === 'text');
+
+  if (toolUse && toolUse.name === 'add_team_member') {
+    const resultMessage = await executeAddTeamMember({ teamContext, userId, params: toolUse.input || {} });
+    return {
+      action: 'answer_question',
+      params: { response: resultMessage },
+      message: resultMessage,
+    };
+  }
 
   if (toolUse) {
     return {
