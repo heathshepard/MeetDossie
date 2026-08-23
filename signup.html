@@ -106,6 +106,7 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
 .plans-error { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; background: var(--coral-light); color: var(--coral-deep); border: 1px solid #F0C4B7; }
 .plans-error.is-visible { display: block; }
 .or-divider { text-align: center; color: var(--text-light); font-size: 13px; margin: 0 0 24px; }
+.plan-value { font-size: 12px; font-weight: 600; color: var(--sage-deep); margin-bottom: 12px; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -138,12 +139,14 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
         <div class="plan-name">Solo</div>
         <div class="plan-price" data-plan-price="solo">$149<span>/mo</span></div>
         <div class="plan-note" data-plan-note="solo">Unlimited active files, one agent.</div>
+        <div class="plan-value" data-plan-value="solo"></div>
         <button type="button" class="plan-cta" data-plan="solo">Get Solo</button>
       </div>
       <div class="plan-tile">
         <div class="plan-name">Team</div>
         <div class="plan-price" data-plan-price="team">$349<span>/mo</span></div>
         <div class="plan-note" data-plan-note="team">3 seats included, up to 8 at $35/seat.</div>
+        <div class="plan-value" data-plan-value="team"></div>
         <button type="button" class="plan-cta" data-plan="team">Get Team</button>
       </div>
     </div>
@@ -263,23 +266,34 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
     solo: "Unlimited active files, one agent.",
     team: "3 seats included, up to 8 at $35/seat."
   };
-  var currentPeriod = "monthly";
-  var toggleButtons = document.querySelectorAll("#billing-toggle button");
-  var plansError = document.getElementById("plans-error");
+  // Measured against the commonly cited freelance TC rate of $400 a file —
+  // same comparison Dossie already uses on the homepage. Monthly: less than
+  // one file's TC cost. Annual: the $400-file-equivalent that total buys.
+  var VALUE_LINES = {
+    solo: {
+      monthly: "Less than the cost of one $400 TC file — your first closing that month already saves $251.",
+      annual: "Equivalent to about 3.8 $400 TC files a year — pays for itself past ~4 closings."
+    },
+    team: {
+      monthly: "Still under one $400 TC file — saves $51 on the first closing alone.",
+      annual: "Equivalent to about 8.9 $400 TC files a year."
+    }
+  };
 
   function renderPlanPrices() {
     ["solo", "team"].forEach(function (plan) {
       var el = document.querySelector('[data-plan-price="' + plan + '"]');
       var noteEl = document.querySelector('[data-plan-note="' + plan + '"]');
+      var valueEl = document.querySelector('[data-plan-value="' + plan + '"]');
       if (!el) return;
       var p = PRICES[plan];
       if (currentPeriod === "monthly") {
         el.innerHTML = p.monthly + "<span>" + p.monthlySuffix + "</span>";
-        if (noteEl) noteEl.textContent = NOTES[plan];
       } else {
         el.innerHTML = p.annual + "<span>" + p.annualSuffix + "</span>";
-        if (noteEl) noteEl.textContent = NOTES[plan];
       }
+      if (noteEl) noteEl.textContent = NOTES[plan];
+      if (valueEl) valueEl.textContent = VALUE_LINES[plan][currentPeriod];
     });
   }
 
