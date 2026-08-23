@@ -32,10 +32,11 @@ async function createOrgWithFounder(supabaseFetchFn, {
     p_tier: tier,
     p_founder_user_id: founderUserId,
     p_founder_roles: founderRoles,
-    // Matches api/team/create-org.js's own default: $35/seat overage above
-    // the 3 included Team seats (CLAUDE.md Section 5). Was 7900 ($79/seat)
-    // until 2026-08-23 — a real pricing bug, fixed everywhere it appeared.
-    p_seat_price_cents: seatPriceCents != null ? seatPriceCents : (tier === 'team' ? 3500 : 0),
+    // Matches api/team/create-org.js's own default: $79.99/seat overage
+    // above the 3 included Team seats (CLAUDE.md Section 5). Was 7900
+    // ($79/seat, a bug), briefly 3500 ($35/seat), then Heath's explicit
+    // pricing decision 2026-08-23 raised it to 7999 — see docs/PRICING-HISTORY.md.
+    p_seat_price_cents: seatPriceCents != null ? seatPriceCents : (tier === 'team' ? 7999 : 0),
     p_parent_org_id: parentOrgId,
     p_upgrade_from_solo: upgradeFromSolo === true,
     p_stripe_customer_id: stripeCustomerId,

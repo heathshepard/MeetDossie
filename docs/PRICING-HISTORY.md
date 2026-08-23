@@ -46,7 +46,7 @@ Current pricing lives in CLAUDE.md Section 5. This file = history + rationale on
 - `api/_lib/pricing-tiers.js` is now the single price-ID→plan map, used by the webhook, checkout, and onboarding endpoints. Fixed a real bug found in the process: `api/complete-onboarding.js` was hardcoding every paying customer's plan to `'founding'` and sending them a welcome email claiming a locked $29/mo rate, regardless of what they actually bought — would have mis-tagged every Solo/Team signup and sent a false pricing promise.
 - `signup.html` now has a Solo/Team plan card (monthly/annual toggle) that posts to create-checkout-session and redirects to Stripe. Invite-code/request-access paths unchanged.
 
-**Team seat overage** ($35/seat above the 3 included, up to 8) is handled by the existing org/seat billing system (`api/team/billing.js`, `api/team/create-org.js`) — not touched by this change. `api/team/create-org.js` still defaults `seat_price_cents` to 7900 (the old $79 Solo rate) rather than 3500 — flagged, not fixed, out of scope for this pass.
+**Team seat overage** (then $35/seat above the 3 included, up to 8 — see the 2026-08-23 entries below for the full history of this figure, now $79.99/seat) is handled by the existing org/seat billing system (`api/team/billing.js`, `api/team/create-org.js`) — not touched by this change. `api/team/create-org.js` at the time still defaulted `seat_price_cents` to 7900 (the old $79 Solo rate) rather than 3500 — flagged, not fixed, out of scope for this pass. Fixed the same day; see below.
 
 ---
 
@@ -64,6 +64,23 @@ Current pricing lives in CLAUDE.md Section 5. This file = history + rationale on
 - Updated `STRIPE_PRICE_SOLO_ANNUAL` / `STRIPE_PRICE_TEAM_ANNUAL` in Vercel (Prod+Preview) to the new price IDs — `api/_lib/pricing-tiers.js` and everything downstream (checkout, webhook, onboarding) picks these up automatically since nothing else hardcodes the price ID.
 - `signup.html`'s Annual toggle display updated: "$126.65/mo billed annually ($1,519.80/yr)" for Solo, "$296.65/mo billed annually ($3,559.80/yr)" for Team. Toggle badge changed from "(save 2 months+)" to "(save 15%)".
 - CLAUDE.md Section 5 Annual column updated to the real totals with the 15%-off math spelled out.
+
+---
+
+## 2026-08-23 — Team seat overage: $79/seat bug fixed to $35/seat, then Heath's considered decision raised it to $79.99/seat
+
+**Part 1 — bug fix.** `api/team/create-org.js` and `api/_lib/team-org.js` had hardcoded `p_seat_price_cents: 7900` — a stray $79 (the old Solo rate) never corrected when the real Team seat-overage price ($35, see the 2026-05-15 entry above) was set. `api/team/billing.js` also fell back to the same wrong 7900 when an org's `seat_price_cents` was unset, and separately was multiplying the per-seat price by *every* paid seat with no 3-seat subtraction — a second, independent bug. Both fixed same-day: seat price corrected to 3500 ($35/seat) everywhere it appeared, `billing.js`'s overage math corrected to `max(0, paid_seats - 3) * seat_price_cents`. Also built, same session: a hard 8-seat cap (nothing enforced the max before) and real Stripe billing sync — a subscription item on the team lead's existing Team subscription, quantity = seats beyond the 3 included, kept in sync on invite/remove/role-change via `api/_lib/team-seat-billing.js`. Stripe price `price_1U7fH9L920SKTEEifvTGxkrO` created at $35/mo for this.
+
+**Part 2 — Heath's pricing decision, same day, right after Part 1 landed on staging.** Raised the extra-seat price from $35/mo to **$79.99/mo**. This is a considered pricing call, not a bug fix — still well under both the $149 Solo standalone price and the $400/file value comparison Dossie is sold against. Since no real Team subscription has ever existed (confirmed directly against the DB before this change), there was no paying customer to grandfather — clean cutover, unlike the Solo/Team base-price increase (`existing subs unaffected` carve-out on 2026-07-31) which had real subscribers to protect.
+
+**What changed:**
+- Deactivated the $35/mo price (`price_1U7fH9L920SKTEEifvTGxkrO`, never used by a real subscription) via `deactivate_price`.
+- Created a new live price on the same product (`prod_V7v7HDeXudL03W`, "Dossie Team — Extra Seat"): `price_1U7fS6L920SKTEEix5vP4FVd` at $79.99/mo.
+- Updated `STRIPE_PRICE_TEAM_EXTRA_SEAT` in Vercel (Prod+Preview) to the new price ID.
+- Updated every hardcoded `3500`/`"$35/seat"` reference: `api/team/create-org.js`, `api/_lib/team-org.js`, `api/_lib/team-seat-count.js` (now the single seat-pricing source of truth), the two seat-cap error messages (`team-invite-core.js`, `update-roles.js` — made these compute the dollar figure from `seat_price_cents` instead of a hardcoded string, so a future price change doesn't require finding these again), `signup.html`'s Team plan-note copy, and the pricing-context strings in `api/cron-generate-posts.js`, `api/jarvis-context-load.js`, `api/mcp.js`, `api/_lib/sage-verified-facts.js`, `docs/CUSTOMERS.md` (Natalie Megerson lead note).
+- New migration correcting the `create_org_with_founder` RPC's SQL default a second time (7900 → 3500 → 7999) — added as a new migration rather than editing the 3500 one, since migration history should read forward, not be rewritten, even though (as of this writing) no migration in this chain has actually been applied to the live DB yet (no DB credential available in the agent session that built this — flagged separately, not a pricing question).
+- CLAUDE.md Section 5 Team row updated: "max 8 at $79.99/seat".
+- Re-verified via `preview_invoice` (non-committal, no real subscription created) that the new rate flows through correctly: base $349.00, +1 extra seat $428.99, ..., 5-seat/8-total cap $748.95 ($349 + 5×$79.99). Exact figures logged in the session that made this change.
 
 ---
 

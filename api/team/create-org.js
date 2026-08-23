@@ -43,10 +43,12 @@ module.exports = async function handler(req, res) {
       p_tier: tier,
       p_founder_user_id: user.id,
       p_founder_roles: roles,
-      // $35/seat overage above the 3 included Team seats, per CLAUDE.md
-      // Section 5. Was hardcoded to 7900 ($79/seat) until 2026-08-23 — a
-      // real pricing bug, not a placeholder that happened to be unused.
-      p_seat_price_cents: tier === 'team' ? 3500 : 0,
+      // $79.99/seat overage above the 3 included Team seats, per CLAUDE.md
+      // Section 5. History: hardcoded 7900 ($79/seat) until 2026-08-23,
+      // fixed to 3500 ($35/seat) same day, then Heath's explicit pricing
+      // decision the same day raised it to 7999 ($79.99/seat) — see
+      // docs/PRICING-HISTORY.md.
+      p_seat_price_cents: tier === 'team' ? 7999 : 0,
       p_parent_org_id: null,
       p_upgrade_from_solo: upgrade,
       p_stripe_customer_id: null,

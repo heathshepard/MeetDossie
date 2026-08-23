@@ -282,7 +282,7 @@ function dossieInfo() {
       },
       team: {
         price_usd_per_month: 349,
-        note: '3 seats, max 8 at $35/seat',
+        note: '3 seats, max 8 at $79.99/seat',
       },
       brokerage: {
         note: 'Custom pricing',
