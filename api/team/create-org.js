@@ -43,7 +43,10 @@ module.exports = async function handler(req, res) {
       p_tier: tier,
       p_founder_user_id: user.id,
       p_founder_roles: roles,
-      p_seat_price_cents: tier === 'team' ? 7900 : 0,
+      // $35/seat overage above the 3 included Team seats, per CLAUDE.md
+      // Section 5. Was hardcoded to 7900 ($79/seat) until 2026-08-23 — a
+      // real pricing bug, not a placeholder that happened to be unused.
+      p_seat_price_cents: tier === 'team' ? 3500 : 0,
       p_parent_org_id: null,
       p_upgrade_from_solo: upgrade,
       p_stripe_customer_id: null,
