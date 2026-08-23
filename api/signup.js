@@ -15,11 +15,11 @@
 //      flow that already exists (api/admin-approve-founding.js). Nobody gets an
 //      account without Heath saying yes.
 //
-// There is deliberately NO paid self-serve checkout here. The only Stripe price
-// in this project is the founding $29/mo, which closed 2026-08-04. Solo ($79)
-// and Team ($199) have no price IDs in Stripe or in env, and inventing them
-// would silently sell at a price that does not exist. That path needs Heath to
-// create the prices first.
+// Paid self-serve checkout lives on signup.html itself (added 2026-08-22), not
+// in this endpoint — the Solo/Team plan buttons POST straight to
+// /api/create-checkout-session and redirect to Stripe. This endpoint still
+// only handles the two free/comped paths below. See api/_lib/pricing-tiers.js
+// for the live Solo/Team price IDs.
 //
 // POST { name, email, phone, city, trec_license, deals, heard_from,
 //        brokerage?, access_code? }

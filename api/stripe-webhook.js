@@ -24,6 +24,7 @@
 
 const Stripe = require('stripe');
 const { captureServerEvent } = require('./_lib/posthog');
+const { FOUNDING_PRICE_ID, PRICE_TIERS } = require('./_lib/pricing-tiers');
 
 // Stripe requires the raw request body for signature verification, so disable
 // Vercel's default JSON parser on this route.
@@ -37,10 +38,10 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const FOUNDING_PRICE_ID = 'price_1TPxxNL920SKTEEiN7Gphq8T';
-const PRICE_TIERS = {
-  [FOUNDING_PRICE_ID]: 'founding',
-};
+// FOUNDING_PRICE_ID and PRICE_TIERS now come from ./_lib/pricing-tiers —
+// PRICE_TIERS also carries the live Solo/Team price IDs (added 2026-08-22)
+// so handleCheckoutSessionCompleted's `tier` lookup below resolves them
+// correctly instead of silently defaulting to 'founding'.
 
 // Email Integration add-on (2026-08-22, renamed + expanded from "Reply
 // Monitoring"). A SECOND, small subscription on an existing customer — never
@@ -457,6 +458,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   let currentPeriodStart = null;
   let currentPeriodEnd = null;
   let priceId = null;
+  let amountCents = null;
   if (stripeSubscriptionId) {
     try {
       const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -467,6 +469,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
         currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
       }
       priceId = sub?.items?.data?.[0]?.price?.id || null;
+      amountCents = sub?.items?.data?.[0]?.price?.unit_amount ?? null;
     } catch (err) {
       console.warn('[stripe-webhook] subscriptions.retrieve failed:', err && err.message);
     }
@@ -539,7 +542,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       properties: {
         stripe_subscription_id: stripeSubscriptionId,
         plan: tier,
-        amount_cents: 2900,
+        amount_cents: amountCents != null ? amountCents : 2900,
         source: 'checkout_session',
       },
     });

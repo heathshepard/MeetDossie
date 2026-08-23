@@ -70,7 +70,7 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
 <main class="shell">
   <div class="card">
     <div class="mark">D</div>
-    <div class="eyebrow">🔒 Founding Member</div>
+    <div class="eyebrow" id="plan-eyebrow">Welcome</div>
     <h1>Welcome to Dossie. <em>You're in.</em></h1>
     <p class="sub">Your payment is confirmed. Complete your profile below and we'll send your login credentials within a few minutes.</p>
 
@@ -189,6 +189,9 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
   var sessionFetched = false;
 
   // Start the fetch
+  var planEyebrow = document.getElementById("plan-eyebrow");
+  var PLAN_LABELS = { founding: "🔒 Founding Member", solo: "Dossie Solo", team: "Dossie Team" };
+
   var fetchPromise = fetch("/api/get-checkout-session?session_id=" + encodeURIComponent(sessionId))
     .then(function(res) { return res.json(); })
     .then(function(sessionData) {
@@ -199,6 +202,9 @@ footer { padding: 32px 28px; text-align: center; border-top: 1px solid var(--bor
         if (sessionData.name) {
           nameInput.value = sessionData.name;
         }
+      }
+      if (sessionData.ok && sessionData.plan && PLAN_LABELS[sessionData.plan]) {
+        planEyebrow.textContent = PLAN_LABELS[sessionData.plan];
       }
     })
     .catch(function(err) {

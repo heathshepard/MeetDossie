@@ -7,6 +7,7 @@
 
 const Stripe = require('stripe');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { tierForPriceId } = require('./_lib/pricing-tiers');
 
 function applyCors(req, res) {
   return applyCorsHeaders(req, res, { methods: 'GET, OPTIONS', headers: 'Content-Type' });
@@ -58,10 +59,23 @@ module.exports = async function handler(req, res) {
       || null;
     const name = (session.customer_details && session.customer_details.name) || null;
 
+    // Plan drives welcome.html's copy (e.g. don't show the "Founding Member"
+    // badge to a Solo/Team customer). Best-effort — line_items requires an
+    // expand, so a lookup failure here just falls back to the generic copy.
+    let plan = null;
+    try {
+      const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 1 });
+      const priceId = lineItems?.data?.[0]?.price?.id || null;
+      if (priceId) plan = tierForPriceId(priceId).tier;
+    } catch (err) {
+      console.warn('[get-checkout-session] listLineItems failed:', err && err.message);
+    }
+
     res.status(200).json({
       ok: true,
       email: email ? String(email).toLowerCase() : null,
       name: name ? String(name) : null,
+      plan,
     });
   } catch (err) {
     console.error('[get-checkout-session] Stripe error:', err && err.message);
