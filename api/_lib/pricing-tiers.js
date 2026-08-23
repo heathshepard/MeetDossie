@@ -29,9 +29,12 @@ if (TEAM_MONTHLY_PRICE_ID) PRICE_TIERS[TEAM_MONTHLY_PRICE_ID] = 'team';
 if (TEAM_ANNUAL_PRICE_ID) PRICE_TIERS[TEAM_ANNUAL_PRICE_ID] = 'team';
 
 // What create-checkout-session.js sells. billing_period 'annual' means a
-// single once-a-year charge (Solo $468/yr, Team $1428/yr) — the "$39/month
-// billed annually" marketing copy is a monthly-equivalent display of that
-// annual total, not a discounted $39/mo recurring charge.
+// single once-a-year charge: 15% off the annualized monthly rate (Heath's
+// explicit call, 2026-08-23 — NOT the $39/$119-derived totals this map
+// shipped with for a few hours, which were wrong and got deactivated).
+//   Solo:  $149/mo x 12 = $1,788/yr annualized -> 15% off = $1,519.80/yr
+//   Team:  $349/mo x 12 = $4,188/yr annualized -> 15% off = $3,559.80/yr
+// See docs/PRICING-HISTORY.md for the correction record.
 const CHECKOUT_PRICE_IDS = {
   solo: { monthly: SOLO_MONTHLY_PRICE_ID, annual: SOLO_ANNUAL_PRICE_ID },
   team: { monthly: TEAM_MONTHLY_PRICE_ID, annual: TEAM_ANNUAL_PRICE_ID },

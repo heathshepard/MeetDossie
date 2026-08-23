@@ -131,7 +131,7 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
   <div class="plans-card">
     <div class="billing-toggle" id="billing-toggle">
       <button type="button" class="active" data-period="monthly">Monthly</button>
-      <button type="button" data-period="annual">Annual <span style="opacity:.75;">(save 2 months+)</span></button>
+      <button type="button" data-period="annual">Annual <span style="opacity:.75;">(save 15%)</span></button>
     </div>
     <div class="plan-grid">
       <div class="plan-tile">
@@ -251,9 +251,13 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
   // Plan checkout — Solo / Team, monthly or annual. Posts straight to
   // /api/create-checkout-session and redirects to Stripe; does not touch
   // /api/signup or its invite-code/request-access paths below.
+  // Annual = 15% off the annualized monthly rate (Heath's call, 2026-08-23),
+  // shown here as a monthly-equivalent with the real yearly total alongside —
+  // Solo $149/mo x 12 = $1,788/yr, 15% off = $1,519.80/yr ($126.65/mo).
+  // Team $349/mo x 12 = $4,188/yr, 15% off = $3,559.80/yr ($296.65/mo).
   var PRICES = {
-    solo: { monthly: "$149", monthlySuffix: "/mo", annual: "$39", annualSuffix: "/mo billed annually ($468/yr)" },
-    team: { monthly: "$349", monthlySuffix: "/mo", annual: "$119", annualSuffix: "/mo billed annually ($1,428/yr)" }
+    solo: { monthly: "$149", monthlySuffix: "/mo", annual: "$126.65", annualSuffix: "/mo billed annually ($1,519.80/yr)" },
+    team: { monthly: "$349", monthlySuffix: "/mo", annual: "$296.65", annualSuffix: "/mo billed annually ($3,559.80/yr)" }
   };
   var NOTES = {
     solo: "Unlimited active files, one agent.",
