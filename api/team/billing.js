@@ -1,10 +1,17 @@
 // GET /api/team/billing?org_id=...
 // DOD-B-4: returns paid seat count, free seat count, per-seat price, vault info.
 //
-// This is a READ endpoint — Stripe sync (subscription.update on role mutation)
-// is a follow-on item (DOD-B-2/B-3 require a webhook reconciler).
+// Seat counting/overage math now lives in ../_lib/team-seat-count.js — the
+// same function backs the hard cap enforcement in team-invite-core.js and
+// the real Stripe subscription-item sync in team-seat-billing.js, so all
+// three can never disagree on what "paid seat" or "overage" means.
+//
+// Stripe sync (subscription_item quantity updates on invite/remove) is now
+// wired — see api/_lib/team-seat-billing.js, called from invite.js and
+// remove-member.js. This endpoint stays read-only.
 
 const { preflight, verifyBearer, getServiceClient, sendError } = require('../_lib/team-auth');
+const { getSeatCounts } = require('../_lib/team-seat-count');
 
 module.exports = async function handler(req, res) {
   if (preflight(req, res)) return;
@@ -31,37 +38,11 @@ module.exports = async function handler(req, res) {
       .eq('id', orgId)
       .maybeSingle();
 
-    // Member rollup
-    const { data: roster } = await supabase
-      .from('organization_members_with_roles')
-      .select('member_id, roles, removed_at')
-      .eq('org_id', orgId);
-
-    const active = (roster || []).filter((r) => !r.removed_at);
-    const paidSeats = active.filter((r) => (r.roles || []).includes('agent')).length;
-    const freeSeats = active.filter((r) => !(r.roles || []).includes('agent')).length;
-
-    // Team plan (CLAUDE.md Section 5): the base subscription price already
-    // covers 3 agent seats; only seats beyond that are billed per-seat, at
-    // $35/seat (3500 cents), capped at 8 total. This endpoint has no access
-    // to the base subscription price itself (that lives on `subscriptions`,
-    // keyed by the founder's user_id, not on `organizations`) — monthly_cents
-    // here is the OVERAGE charge only, not the full invoice total.
-    //
-    // BUG FIX 2026-08-23: this used to multiply seat_price_cents by every
-    // paid seat with no 3-seat subtraction, AND fell back to a wrong 7900
-    // ($79/seat) constant when seat_price_cents was unset. Both fixed.
-    // NOTE: seat_limit (max 8) is selected above but nothing anywhere in the
-    // codebase — this endpoint, api/team/invite.js, or the
-    // invite_member_with_roles RPC — actually enforces it. An org can invite
-    // past 8 paid seats today with no block and no warning beyond the
-    // `over_seat_limit` flag added below. Flagging as a real gap, not fixing
-    // in this pass (out of scope — pricing-constant fix only).
-    const INCLUDED_SEATS = 3;
-    const MAX_SEATS = 8;
-    const seatPriceCents = (org && org.seat_price_cents) ? org.seat_price_cents : 3500;
-    const overageSeats = Math.max(0, paidSeats - INCLUDED_SEATS);
-    const monthlyCents = overageSeats * seatPriceCents;
+    const counts = await getSeatCounts(supabase, orgId);
+    if (!counts.ok) {
+      return res.status(counts.status || 500).json({ ok: false, error: counts.error });
+    }
+    const monthlyCents = counts.overage * counts.seat_price_cents;
 
     // Vault
     const { data: vault } = await supabase
@@ -75,14 +56,15 @@ module.exports = async function handler(req, res) {
       ok: true,
       org: org || null,
       seats: {
-        paid: paidSeats,
-        free: freeSeats,
-        included: INCLUDED_SEATS,
-        max: MAX_SEATS,
-        overage: overageSeats,
-        seat_price_cents: seatPriceCents,
+        paid: counts.paid,
+        free: counts.free,
+        included: counts.included,
+        max: counts.max,
+        overage: counts.overage,
+        seat_price_cents: counts.seat_price_cents,
         monthly_cents: monthlyCents,
-        over_seat_limit: paidSeats > MAX_SEATS,
+        over_seat_limit: counts.paid > counts.max,
+        at_seat_limit: counts.at_or_over_limit,
       },
       vault: vault || null,
     });

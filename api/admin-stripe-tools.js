@@ -224,6 +224,104 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (action === 'search_products') {
+      // Read-only. Lists products whose name contains the given substring
+      // (case-insensitive), each with its active prices. Used to discover
+      // the real Team/Solo product+price IDs without ever having the raw
+      // Stripe secret key available outside this deployed function — every
+      // env var that carries a live price ID is Vercel-Sensitive/write-only
+      // per CLAUDE.md Section 19, so this is the only way to look one up.
+      const q = ((req.query?.q || (req.body && req.body.q)) || '').toLowerCase();
+      const products = await stripe.products.list({ active: true, limit: 100 });
+      const matches = (products.data || []).filter((p) => !q || p.name.toLowerCase().includes(q));
+      const withPrices = [];
+      for (const p of matches) {
+        const prices = await stripe.prices.list({ product: p.id, active: true, limit: 20 });
+        withPrices.push({
+          product_id: p.id,
+          product_name: p.name,
+          prices: (prices.data || []).map((pr) => ({
+            id: pr.id,
+            unit_amount: pr.unit_amount,
+            currency: pr.currency,
+            recurring: pr.recurring,
+            nickname: pr.nickname,
+          })),
+        });
+      }
+      return res.status(200).json({ ok: true, products: withPrices });
+    }
+
+    if (action === 'preview_invoice') {
+      // Read-only / non-committal. Uses stripe.invoices.createPreview (the
+      // stripe npm v22 replacement for the deprecated retrieveUpcoming) to
+      // show exactly what a subscription with the given line items WOULD
+      // cost, without creating or modifying any real subscription.
+      //
+      // Two modes:
+      //   - { items: [{price, quantity}] } with no customer/subscription:
+      //     creates a throwaway Customer (no payment method — cannot ever be
+      //     charged), previews a hypothetical NEW subscription with those
+      //     items, then deletes the throwaway customer before responding.
+      //   - { subscription_id, items: [{price, quantity}] }: previews what
+      //     changing an EXISTING real subscription's items to the given set
+      //     would cost (proration included) — still does not commit the
+      //     change, stripe.subscriptions.update is never called here.
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      body = body || {};
+      const items = Array.isArray(body.items) ? body.items : null;
+      if (!items || items.length === 0) {
+        return res.status(400).json({ ok: false, error: 'items[] required, e.g. [{"price":"price_...","quantity":1}]' });
+      }
+
+      let throwawayCustomerId = null;
+      try {
+        let previewParams;
+        if (body.subscription_id) {
+          previewParams = {
+            subscription: body.subscription_id,
+            subscription_details: { items },
+          };
+        } else {
+          const customer = await stripe.customers.create({
+            email: 'carter-billing-preview@example.com',
+            name: 'CARTER PREVIEW — safe to delete, no payment method attached',
+            metadata: { purpose: 'invoice_preview_throwaway', created_by: 'admin-stripe-tools' },
+          });
+          throwawayCustomerId = customer.id;
+          previewParams = {
+            customer: throwawayCustomerId,
+            subscription_details: { items },
+          };
+        }
+
+        const preview = await stripe.invoices.createPreview(previewParams);
+        const lines = (preview.lines && preview.lines.data ? preview.lines.data : []).map((l) => ({
+          description: l.description,
+          amount: l.amount,
+          currency: l.currency,
+          price_id: l.pricing?.price_details?.price || l.price?.id || null,
+          quantity: l.quantity,
+        }));
+
+        return res.status(200).json({
+          ok: true,
+          used_throwaway_customer: Boolean(throwawayCustomerId),
+          total: preview.total,
+          subtotal: preview.subtotal,
+          currency: preview.currency,
+          lines,
+        });
+      } finally {
+        if (throwawayCustomerId) {
+          await stripe.customers.del(throwawayCustomerId).catch((e) => {
+            console.warn('[admin-stripe-tools] failed to delete throwaway preview customer', throwawayCustomerId, e.message);
+          });
+        }
+      }
+    }
+
     if (action === 'list_customer_subs') {
       // Read-only: list ALL subscriptions on a customer (any status).
       // Used for reconciliation when a customer's active-in-Stripe sub ID
@@ -251,7 +349,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs | search_products | preview_invoice' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }

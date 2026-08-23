@@ -13,9 +13,36 @@
 // admin — this module re-checks _mt_user_is_org_admin itself as a hard
 // backstop (cheap RPC call) rather than trusting the caller's own gate, the
 // same defense-in-depth pattern as org-dossiers.js / team-risk-rollup.js.
+//
+// Hard seat cap (added 2026-08-23, Heath's direct ask): Team tops out at 8
+// active agent-role seats (3 included + 5 purchasable at $35/seat, CLAUDE.md
+// Section 5). Nothing enforced this anywhere before — an org could invite
+// past 8 with no block. Blocks HERE, once, so both the "Add team member"
+// form (api/team/invite.js) and Dossie's chat-driven add_team_member action
+// (api/chat.js) get the same enforcement automatically — they both call
+// this function, never invite_member_with_roles directly.
+//
+// Real Stripe billing sync (also 2026-08-23): after a successful invite that
+// grants the 'agent' role, syncs the founder's real Stripe subscription's
+// extra-seat line item quantity to match. Non-blocking — a Stripe failure
+// here logs a warning but the invite itself has already succeeded and is
+// not rolled back.
+
+const Stripe = require('stripe');
+const { getSeatCounts } = require('./team-seat-count');
+const { syncTeamSeatBilling } = require('./team-seat-billing');
 
 const VALID_ROLES = new Set(['agent', 'admin', 'tc']);
 const EMAIL_RE = /^[A-Za-z0-9._%+\-]{1,64}@[A-Za-z0-9.\-]{1,253}\.[A-Za-z]{2,}$/;
+
+let _stripe = null;
+function getStripe() {
+  if (_stripe) return _stripe;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  _stripe = new Stripe(key, { apiVersion: '2024-06-20' });
+  return _stripe;
+}
 
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase service-role client
@@ -43,6 +70,24 @@ async function inviteTeamMember(supabase, { orgId, email, roles, callerId }) {
     return { ok: false, status: 500, error: 'authorization check failed' };
   }
   if (!isAdmin) return { ok: false, status: 403, error: 'not an admin on this org' };
+
+  // Hard seat cap — only meaningful when this invite grants 'agent' (the
+  // billed role). A pure admin or pure TC invite doesn't consume a paid
+  // seat, so it's never blocked by this check.
+  if (roleList.includes('agent')) {
+    const counts = await getSeatCounts(supabase, orgId);
+    if (!counts.ok) {
+      console.error('[team-invite-core] seat count check failed:', counts.error);
+      return { ok: false, status: 500, error: 'seat limit check failed' };
+    }
+    if (counts.at_or_over_limit) {
+      return {
+        ok: false,
+        status: 400,
+        error: `Your team is at its ${counts.max}-seat limit (${counts.included} included + ${counts.max - counts.included} extra at $35/seat). Remove a member first, or email heath@meetdossie.com to raise the limit.`,
+      };
+    }
+  }
 
   let inviteeUserId = null;
   let wasExisting = false;
@@ -98,6 +143,25 @@ async function inviteTeamMember(supabase, { orgId, email, roles, callerId }) {
   if (rpcErr) {
     console.error('[team-invite-core] invite_member_with_roles RPC error:', rpcErr.message);
     return { ok: false, status: 400, error: rpcErr.message };
+  }
+
+  // Real Stripe billing sync — non-blocking. The invite already succeeded
+  // (member_id exists); a Stripe hiccup here must not undo it or fail the
+  // caller's response, just log loudly so it's visible in Vercel logs.
+  if (roleList.includes('agent')) {
+    const stripe = getStripe();
+    if (stripe) {
+      try {
+        const billingResult = await syncTeamSeatBilling(supabase, stripe, orgId);
+        if (!billingResult.ok) {
+          console.warn('[team-invite-core] seat billing sync failed after invite:', billingResult.error);
+        } else if (billingResult.synced) {
+          console.log('[team-invite-core] seat billing synced after invite: org=', orgId, 'quantity=', billingResult.quantity);
+        }
+      } catch (err) {
+        console.warn('[team-invite-core] seat billing sync threw after invite:', err && err.message);
+      }
+    }
   }
 
   return { ok: true, member_id: memberId, was_existing_user: wasExisting, invitee_user_id: inviteeUserId };
