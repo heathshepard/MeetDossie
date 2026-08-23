@@ -8,7 +8,9 @@
 // Model (per Heath's direction): one extra subscription ITEM (not a second
 // subscription — that's the different pattern api/create-addon-checkout-session.js
 // uses for Email Integration) on the team lead's EXISTING Team subscription,
-// price = STRIPE_PRICE_TEAM_EXTRA_SEAT ($35/mo), quantity = seats beyond the
+// price = STRIPE_PRICE_TEAM_EXTRA_SEAT ($79.99/mo — Heath's explicit pricing
+// decision 2026-08-23, replacing the $35/mo price created hours earlier;
+// see docs/PRICING-HISTORY.md), quantity = seats beyond the
 // 3 included (0-5, enforced by the 8-seat hard cap in team-invite-core.js).
 // Stripe prorates the quantity change automatically — no proration math here.
 //

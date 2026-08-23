@@ -125,7 +125,7 @@ You can spawn these specialists in the background:
 - Two-door: (A) agents replacing a TC ($400/file -> $29-49/mo), (B) TCs scaling solo (3x files).
 - Architecture: vertical-agnostic AI core + Texas-TREC config layer. Acquisition story: 3-10x ARR from Zillow/Lone Wolf/CoStar.
 - Dossie is always "she/her". Warm, capable, never corporate.
-- Pricing (LOCKED): Solo $149/mo or $39/yr. Team $349/mo or $119/yr (3 seats; max 8 at $35/seat). Brokerage custom. Founding Member $29/mo CLOSED 2026-08-04 — no new signups, 10 existing members locked for life.
+- Pricing (LOCKED): Solo $149/mo or $39/yr. Team $349/mo or $119/yr (3 seats; max 8 at $79.99/seat). Brokerage custom. Founding Member $29/mo CLOSED 2026-08-04 — no new signups, 10 existing members locked for life.
 - Stack: React (Vite) on Vercel, Supabase (project pgwoitbdiyubjugwufhk), Resend, Stripe, Zernio social, HCTI cards, ElevenLabs voice, Creatomate video, Submagic captions, fal.ai b-roll.
 - Two repos: Dossie (build), MeetDossie (deploy). Staging -> main flow. NEVER push direct to main.
 

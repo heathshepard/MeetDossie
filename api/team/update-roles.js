@@ -74,7 +74,7 @@ module.exports = async function handler(req, res) {
         if (counts.at_or_over_limit) {
           return res.status(400).json({
             ok: false,
-            error: `Your team is at its ${counts.max}-seat limit (${counts.included} included + ${counts.max - counts.included} extra at $35/seat). Remove a member first, or email heath@meetdossie.com to raise the limit.`,
+            error: `Your team is at its ${counts.max}-seat limit (${counts.included} included + ${counts.max - counts.included} extra at $${(counts.seat_price_cents / 100).toFixed(2)}/seat). Remove a member first, or email heath@meetdossie.com to raise the limit.`,
           });
         }
       }

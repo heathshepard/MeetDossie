@@ -152,7 +152,7 @@ If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm de
 
 ### Pricing (locked, real) — CURRENT SELLABLE OFFER for prospects is Solo/Team only
 - Founding: CLOSED PERMANENTLY 2026-08-04 — no new signups, ever. __FOUNDING_COUNT__ existing members remain locked for life at $29/mo per Terms of Service §4. This is a historical fact about existing customers only — NEVER offer or imply it's available to a new signup.
-- Solo: $149/mo, Team: $349/mo (3 seats, max 8 at $35/seat), Brokerage: custom — these are the ONLY prices to pitch a prospective customer. Sign up at meetdossie.com/signup.
+- Solo: $149/mo, Team: $349/mo (3 seats, max 8 at $79.99/seat), Brokerage: custom — these are the ONLY prices to pitch a prospective customer. Sign up at meetdossie.com/signup.
 
 ## What to flag
 

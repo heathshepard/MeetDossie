@@ -15,8 +15,8 @@
 // same defense-in-depth pattern as org-dossiers.js / team-risk-rollup.js.
 //
 // Hard seat cap (added 2026-08-23, Heath's direct ask): Team tops out at 8
-// active agent-role seats (3 included + 5 purchasable at $35/seat, CLAUDE.md
-// Section 5). Nothing enforced this anywhere before — an org could invite
+// active agent-role seats (3 included + 5 purchasable at $79.99/seat,
+// CLAUDE.md Section 5). Nothing enforced this anywhere before — an org could invite
 // past 8 with no block. Blocks HERE, once, so both the "Add team member"
 // form (api/team/invite.js) and Dossie's chat-driven add_team_member action
 // (api/chat.js) get the same enforcement automatically — they both call
@@ -84,7 +84,7 @@ async function inviteTeamMember(supabase, { orgId, email, roles, callerId }) {
       return {
         ok: false,
         status: 400,
-        error: `Your team is at its ${counts.max}-seat limit (${counts.included} included + ${counts.max - counts.included} extra at $35/seat). Remove a member first, or email heath@meetdossie.com to raise the limit.`,
+        error: `Your team is at its ${counts.max}-seat limit (${counts.included} included + ${counts.max - counts.included} extra at $${(counts.seat_price_cents / 100).toFixed(2)}/seat). Remove a member first, or email heath@meetdossie.com to raise the limit.`,
       };
     }
   }

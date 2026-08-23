@@ -13,14 +13,17 @@
 // function instead of three copies.
 //
 // Team plan (CLAUDE.md Section 5): 3 seats included in the base price, up to
-// 5 more purchasable at $35/seat, 8 total max. "Seat" = active member
+// 5 more purchasable at $79.99/seat, 8 total max. "Seat" = active member
 // holding the 'agent' role — mirrors billing.js's original paidSeats
 // definition (Stripe billing counts only members with active 'agent' role,
 // per the Phase 1 migration's own header comment).
+// Price history: $79/seat (bug) -> $35/seat -> $79.99/seat, all same day
+// 2026-08-23, the last one Heath's explicit considered pricing decision.
+// See docs/PRICING-HISTORY.md.
 
 const INCLUDED_SEATS = 3;
 const MAX_SEATS = 8;
-const DEFAULT_SEAT_PRICE_CENTS = 3500; // $35/seat overage
+const DEFAULT_SEAT_PRICE_CENTS = 7999; // $79.99/seat overage
 
 /**
  * @param {import('@supabase/supabase-js').SupabaseClient} supabase service-role client
