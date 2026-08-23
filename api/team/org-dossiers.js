@@ -171,13 +171,25 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ ok: false, error: rosterErr.message });
     }
 
-    // Emails
+    // Emails + display names. Heath's flag, 2026-08-23: roster cards showed
+    // raw email as the primary label — the sidebar already shows the
+    // logged-in user's real name from profiles.full_name (same source
+    // team-risk-rollup.js already uses for its agent labels), so use that
+    // here too, falling back to email only when full_name isn't set.
     const userIds = (members || []).map((m) => m.user_id);
     let emailMap = {};
+    let nameMap = {};
     if (userIds.length > 0) {
       const { data: usersData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
       if (usersData && usersData.users) {
         emailMap = Object.fromEntries(usersData.users.map((u) => [u.id, u.email]));
+      }
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+      if (profileRows) {
+        nameMap = Object.fromEntries(profileRows.map((p) => [p.id, p.full_name]));
       }
     }
 
@@ -222,6 +234,7 @@ module.exports = async function handler(req, res) {
         member_id: m.member_id,
         user_id: m.user_id,
         email: emailMap[m.user_id] || null,
+        full_name: nameMap[m.user_id] || null,
         roles: m.roles || [],
         joined_at: m.joined_at,
         removed_at: m.removed_at,

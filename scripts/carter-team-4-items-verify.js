@@ -251,7 +251,7 @@ async function getMemberRow(userId) {
   const reassignVisible = await reassignSelect.isVisible().catch(() => false);
   report('UI: admin sees the Reassign dropdown on an expanded dossier', reassignVisible);
   if (reassignVisible) {
-    await reassignSelect.selectOption({ label: 'demo-team-agent2@meetdossie.com' });
+    await reassignSelect.selectOption(priyaUserId);
     const reassignBtn = danaPage.locator('button', { hasText: 'Reassign' }).last();
     await reassignBtn.click();
     await danaPage.waitForTimeout(2000);
