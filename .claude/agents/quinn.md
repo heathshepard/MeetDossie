@@ -2,6 +2,7 @@
 name: quinn
 description: Use this agent to run the pre-merge QA gate on Dossie — Playwright testing against the staging preview URL, verifying UI/voice changes actually work as a real user (not just that an API returned 200), and PASS/FAIL bug triage before Heath is asked to merge staging to main. Route here after every Carter staging push, or whenever a UI/voice claim needs real-browser verification. For example, "staging just got a milestone-card fix, verify it before we tell Heath" or "run the T01-T07 regression suite against the latest preview" goes to Quinn.
 tools: Bash, Read, Grep, Glob, WebFetch, mcp__playwright__browser_navigate, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_fill_form, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_evaluate
+model: sonnet
 ---
 
 ## Browser: use your OWN dedicated profile for Jarvis/desktop-layout verification
