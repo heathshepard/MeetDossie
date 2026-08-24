@@ -46,7 +46,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, chmodSync, appendFileSync, statSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
@@ -86,6 +86,67 @@ const INBOX_DIR = join(STATE_DIR, 'inbox')
 
 mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 })
 mkdirSync(INBOX_DIR, { recursive: true, mode: 0o700 })
+
+// Persistent log file (Atlas, 2026-08-22). Before this, this process had NO
+// log file anywhere, regardless of how it was spawned — when the parent
+// Claude Code session launches it as an MCP child (the normal path, via
+// --dangerously-load-development-channels server:jarvis-bridge), its stderr
+// goes wherever the parent's channel-loading code sends it, which is not a
+// file on disk (confirmed 2026-08-22 during a real outage: checked
+// /proc/<pid>/fd for anything log-like, found nothing). That made a silent
+// hang — this process alive, sleeping, ticking stopped, no exception thrown —
+// undiagnosable after the fact. Tee every stderr write to a fixed file here,
+// independent of how/by whom this process was started, so the next silent
+// hang leaves a timestamped trail.
+const LOG_FILE = join(STATE_DIR, 'server.log')
+// Rolling cap — this process can run for days between Heath-initiated Claude
+// Code restarts (confirmed: the live instance found 2026-08-22 had been up
+// since 2026-08-21 with no restart), and every stderr line gets teed here.
+// Uncapped, that's an unbounded-growth file on a box nobody's watching disk
+// usage on. Trim from the front (oldest first) once it crosses MAX_LOG_BYTES,
+// keeping the most recent half — cheap check (statSync) on every write,
+// expensive rewrite only on the rare occasion it actually needs to trim.
+const MAX_LOG_BYTES = 5 * 1024 * 1024
+function rotateLogIfNeeded(): void {
+  try {
+    const { size } = statSync(LOG_FILE)
+    if (size <= MAX_LOG_BYTES) return
+    const content = readFileSync(LOG_FILE, 'utf8')
+    const trimmed = content.slice(-Math.floor(MAX_LOG_BYTES / 2))
+    // Drop a possibly-truncated first line so the file always starts clean.
+    const firstNewline = trimmed.indexOf('\n')
+    writeFileSync(LOG_FILE, `[log rotated — earlier entries trimmed]\n${firstNewline >= 0 ? trimmed.slice(firstNewline + 1) : trimmed}`)
+  } catch {}
+}
+const _origStderrWrite = process.stderr.write.bind(process.stderr)
+process.stderr.write = ((chunk: any, ...rest: any[]) => {
+  try {
+    const text = typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk)
+    const stamped = text.endsWith('\n') ? `[${new Date().toISOString()}] ${text}` : `[${new Date().toISOString()}] ${text}\n`
+    appendFileSync(LOG_FILE, stamped)
+    rotateLogIfNeeded()
+  } catch {}
+  return (_origStderrWrite as any)(chunk, ...rest)
+}) as typeof process.stderr.write
+
+// Heartbeat file (Atlas, 2026-08-22 watchdog build). Written on every
+// completed poll-loop tick — proof-of-life for an EXTERNAL monitor
+// (scripts/jarvis-bridge/watchdog.ps1, a Windows Task Scheduler job
+// independent of this process and of the Claude Code session hosting it) to
+// check without needing to parse the growing server.log. A stale heartbeat
+// means either this process died or its poll loop stalled — both cases the
+// external watchdog alerts Heath on. See scripts/jarvis-bridge/WATCHDOG.md.
+const HEARTBEAT_FILE = join(STATE_DIR, 'heartbeat.json')
+function writeHeartbeat(extra: Record<string, unknown> = {}): void {
+  try {
+    writeFileSync(
+      HEARTBEAT_FILE,
+      JSON.stringify({ ts: new Date().toISOString(), pid: process.pid, uptime_s: Math.round(process.uptime()), ...extra }),
+    )
+  } catch (err) {
+    process.stderr.write(`jarvis-bridge channel: heartbeat write failed: ${err}\n`)
+  }
+}
 
 // Load ~/.claude/channels/jarvis-bridge/.env into process.env — THIS FILE
 // always wins for the keys it defines, full stop.
@@ -135,6 +196,16 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const JARVIS_PUSH_URL = process.env.JARVIS_PUSH_URL || 'https://meetdossie.com/api/jarvis-push-send'
 const BUCKET = 'jarvis-bridge'
 const PREFIX = 'turns/'
+// Root cause found 2026-08-22: NONE of the fetch() calls below ever carried a
+// timeout. Bun/Node's global fetch has no default one — if the underlying
+// TCP connection stalls (network blip, WSL interface hiccup, laptop
+// sleep/wake) the promise can hang forever: never resolves, never rejects,
+// nothing to catch, nothing to log. That exactly matches a real outage this
+// date: the process stayed alive, 0% CPU, parked in epoll_wait, ticking
+// stopped for 9+ minutes with zero stderr output. AbortSignal.timeout on
+// every Storage call turns an indefinite hang into a normal, loggable,
+// retried-next-tick failure instead.
+const FETCH_TIMEOUT_MS = Math.max(3000, parseInt(process.env.JARVIS_BRIDGE_FETCH_TIMEOUT_MS || '10000', 10))
 const POLL_MS = Math.max(500, parseInt(process.env.JARVIS_BRIDGE_POLL_MS || '1500', 10))
 const STALE_MS = 60 * 60 * 1000 // clean up abandoned turns after 1h regardless of status
 
@@ -147,11 +218,42 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1)
 }
 
+// Escalation policy (Atlas, 2026-08-22 watchdog build). Before this, both
+// handlers only logged and let the process limp on — fine for a single
+// transient blip, but if either fires repeatedly it means this process is in
+// a state its own author didn't anticipate, and "keep running anyway" is how
+// a silent-zombie outage happens a second time. `fatal()` (defined below,
+// next to notifyPush/writeHeartbeat — hoisted `function`, safe to reference
+// here) pushes an alert to Heath's phone and self-terminates so the parent
+// Claude Code session sees this MCP server disconnect — loud and fast —
+// instead of hanging around broken with nothing surfaced. An external
+// process (scripts/jarvis-bridge/watchdog.ps1) can't safely kill/respawn
+// just this stdio child without tearing down the whole hosting session, so
+// self-termination-on-fatal is the actual mechanism here, not an external
+// kill -9 — see WATCHDOG.md for why.
+let rejectionCount = 0
+let rejectionWindowStart = Date.now()
 process.on('unhandledRejection', err => {
   process.stderr.write(`jarvis-bridge channel: unhandled rejection: ${err}\n`)
+  const now = Date.now()
+  if (now - rejectionWindowStart > 60000) {
+    rejectionWindowStart = now
+    rejectionCount = 0
+  }
+  rejectionCount++
+  // One or two in a minute is noise (a fetch escaping a try/catch somewhere
+  // is still a bug worth fixing, but not proof the process is broken).
+  // Five in under a minute is a different signal — something is failing in
+  // a loop. Don't limp on speculating which turn/table it's corrupting.
+  if (rejectionCount >= 5) {
+    fatal(`${rejectionCount} unhandled rejections in under 60s — treating as unhealthy`)
+  }
 })
 process.on('uncaughtException', err => {
-  process.stderr.write(`jarvis-bridge channel: uncaught exception: ${err}\n`)
+  // Node's own guidance: it is not safe to resume normal operation after an
+  // uncaughtException — the process's internal state is unknown. Continuing
+  // to poll/deliver turns from here would be guessing, not recovering.
+  fatal(`uncaught exception: ${err}`)
 })
 
 type Turn = {
@@ -190,6 +292,7 @@ async function listTurns(): Promise<{ name: string }[]> {
     method: 'POST',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ prefix: PREFIX, limit: 100, sortBy: { column: 'created_at', order: 'asc' } }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) throw new Error(`list failed: ${res.status} ${await res.text()}`)
   return (await res.json()) as { name: string }[]
@@ -211,6 +314,7 @@ async function getTurn(id: string): Promise<Turn | null> {
   const res = await fetch(bust(sb(`object/${BUCKET}/${PREFIX}${id}.json`)), {
     headers: authHeaders({ 'Cache-Control': 'no-cache' }),
     cache: 'no-store',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`get failed: ${res.status} ${await res.text()}`)
@@ -226,12 +330,17 @@ async function putTurn(id: string, turn: Turn): Promise<void> {
       'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
     }),
     body: JSON.stringify(turn),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
   if (!res.ok) throw new Error(`put failed: ${res.status} ${await res.text()}`)
 }
 
 async function deleteTurn(id: string): Promise<void> {
-  await fetch(sb(`object/${BUCKET}/${PREFIX}${id}.json`), { method: 'DELETE', headers: authHeaders() }).catch(() => {})
+  await fetch(sb(`object/${BUCKET}/${PREFIX}${id}.json`), {
+    method: 'DELETE',
+    headers: authHeaders(),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  }).catch(() => {})
 }
 
 // Fire-and-forget Web Push after a FINAL reply. Never throws into the
@@ -247,6 +356,7 @@ function notifyPush(chatId: string, text: string): void {
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     },
     body: JSON.stringify({ title: 'Jarvis', body: text, url: '/myjarvis', tag: chatId }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
     .then(async res => {
       if (!res.ok) {
@@ -256,6 +366,31 @@ function notifyPush(chatId: string, text: string): void {
     .catch(err => {
       process.stderr.write(`jarvis-bridge channel: push send unreachable: ${err}\n`)
     })
+}
+
+// Self-terminate on an unrecoverable condition (Atlas, 2026-08-22 watchdog
+// build). Called from: the uncaughtException/unhandledRejection escalation
+// above, and the poll-loop stall detector further down. Guarded so it only
+// ever runs once — Node fires shutdown handlers/timers in ways that could
+// otherwise call this twice and double-send the alert.
+//
+// Order matters: push BEFORE exiting (this process is the only thing that
+// can tell Heath it's dying — once it's gone, silence is all he gets), then
+// exit(1) shortly after so the parent Claude Code session's MCP connection
+// actually drops instead of this process lingering half-broken. A non-zero
+// exit code + the log line above are also what scripts/jarvis-bridge/
+// watchdog.ps1 (external, OS-level) looks for after the fact via the
+// heartbeat going stale — see WATCHDOG.md for the full recovery story,
+// including the honest limit: this process can alert and die fast, it
+// cannot relaunch itself or the session hosting it (that needs Heath to
+// press Enter on the dev-channels warning — see MeetDossie.bat).
+let fatalCalled = false
+function fatal(reason: string): void {
+  if (fatalCalled) return
+  fatalCalled = true
+  process.stderr.write(`jarvis-bridge channel: FATAL — ${reason} — self-terminating so this doesn't silently hang. Heath: restart Claude Code to restore voice; Telegram/text keeps working in the meantime.\n`)
+  notifyPush('system-fatal', "Jarvis voice channel just crashed and had to shut itself down. Restart Claude Code (the terminal window) to get voice back — text and Telegram still work.")
+  setTimeout(() => process.exit(1), 1500) // give the push fetch + log write a moment to actually leave the process
 }
 
 const mcp = new Server(
@@ -789,9 +924,57 @@ async function tick(): Promise<void> {
   }
 }
 
-setInterval(() => {
-  void tick()
-}, POLL_MS)
-void tick()
+// ---- stall watchdog (Atlas, 2026-08-22) ------------------------------------
+// The 2026-08-22 outage this whole logging/watchdog build exists to catch:
+// tick() hung mid-`await` with no timeout on the fetch it was blocked on —
+// FETCH_TIMEOUT_MS above closes that specific hole, but a stall watchdog is
+// cheap insurance against the NEXT blocking call someone adds without one
+// (a future edit to this file, a dependency's internal fetch, etc). This
+// tracks whether a tick is currently in flight and for how long, independent
+// of what tick() itself is doing — it doesn't need to know WHY a tick is
+// stuck, only THAT it's been stuck too long.
+//
+// runTick() also fixes a latent issue in the original bare
+// `setInterval(() => void tick(), POLL_MS)`: nothing stopped a slow tick from
+// overlapping with the next timer fire, so two tick() runs could race on the
+// same `delivering`/`answered` state. tickRunning guards against that too.
+let tickRunning = false
+let tickStartedAt: number | null = null
+async function runTick(): Promise<void> {
+  if (shuttingDown) return
+  if (tickRunning) return // previous tick still in flight — stall watchdog below is timing it, don't overlap
+  tickRunning = true
+  tickStartedAt = Date.now()
+  try {
+    await tick()
+    writeHeartbeat({ status: 'ok' })
+  } catch (err) {
+    // tick() already try/catches its own Storage calls per-turn — reaching
+    // here means something outside that (a bug in this loop itself) threw.
+    // Log and heartbeat as degraded rather than silently swallowing it; the
+    // process stays up for the next tick unless this recurs enough to trip
+    // the unhandledRejection/uncaughtException escalation above.
+    process.stderr.write(`jarvis-bridge channel: tick() threw unexpectedly: ${err}\n`)
+    writeHeartbeat({ status: 'tick_error', error: String(err) })
+  } finally {
+    tickRunning = false
+    tickStartedAt = null
+  }
+}
 
-process.stderr.write(`jarvis-bridge channel: polling ${BUCKET}/${PREFIX} every ${POLL_MS}ms\n`)
+const STALL_THRESHOLD_MS = Math.max(30000, parseInt(process.env.JARVIS_BRIDGE_STALL_MS || '90000', 10))
+setInterval(() => {
+  if (shuttingDown || fatalCalled) return
+  if (tickStartedAt !== null && Date.now() - tickStartedAt > STALL_THRESHOLD_MS) {
+    const stalledS = Math.round((Date.now() - tickStartedAt) / 1000)
+    fatal(`poll loop stalled — one tick() call has not returned in ${stalledS}s (threshold ${Math.round(STALL_THRESHOLD_MS / 1000)}s), despite every known fetch() carrying a ${FETCH_TIMEOUT_MS}ms timeout — something new is blocking without one`)
+  }
+}, 10000)
+
+setInterval(() => {
+  void runTick()
+}, POLL_MS)
+void runTick()
+writeHeartbeat({ status: 'starting' })
+
+process.stderr.write(`jarvis-bridge channel: polling ${BUCKET}/${PREFIX} every ${POLL_MS}ms — heartbeat: ${HEARTBEAT_FILE}, log: ${LOG_FILE}, stall threshold: ${STALL_THRESHOLD_MS}ms\n`)
