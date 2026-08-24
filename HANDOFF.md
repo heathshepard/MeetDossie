@@ -1,165 +1,89 @@
-# TREC 20-18 Validation Pipeline — Handoff (2026-06-28)
+# Handoff — 2026-08-24, trigger: auto
 
-This file describes the current state of the TREC 20-18 contract fill pipeline
-after Atlas wired Heath's hand-built Layer-3 validator + ground-truth rules
-into the existing fill-form path.
+## Active Task
 
----
+Two threads are live at compaction time:
 
-## Pipeline layers
+1. **PreCompact hook setup (in flight).** An agent was dispatched to add a
+   PreCompact hook to `.claude/settings.json` that fires before manual `/compact`
+   and automatic compaction, running as a prompt-type hook that writes a current
+   state summary (active task, decisions made, what's next) to `HANDOFF.md`, then
+   tests it by triggering a real compaction rather than just reviewing config.
+   No result had come back yet.
 
-### Layer 1 — PDF rendering (unchanged)
-**Owner:** legacy `api/fill-form.js` (`fillResaleContract`)
-**Input:** legacy `fv.*` shape (snake_case friendly keys)
-**Output:** filled PDF bytes via pdf-lib at each widget's coordinate.
+2. **Heath's inbox triage — two time-sensitive items surfaced, neither answered:**
+   - **Old Homestead:** Craig Browning emailed 5:26pm today — seller countered at
+     **$520,000** against Heath's $510K offer from 8/21 (which had gone
+     unanswered until now). Craig asked when Heath can talk. Open question put to
+     Heath: draft a reply, or call Craig directly given it's a live negotiation.
+   - **Pebble Bow:** Chris Burkhalter replied claiming he sent the disclosure two
+     weeks ago and offering to show the property himself today. This contradicts
+     the earlier finding that the disclosure was genuinely absent from MLS —
+     recommended a phone call rather than another email round.
+   - Everything else in the inbox was routine (Stewart Title earnest money
+     request already in motion, weekly team-risk digest, a LinkedIn message from
+     "Amy Clifton," newsletters).
 
-### Layer 2 — Field mapping (NEW)
-**Owner:** `api/_lib/trec-20-18-pipeline.js` → `mapToAssignments(fv, intake)`
-**Input:** legacy fv-shape + strict intake (`{financing_type, has_second_buyer, ...}`)
-**Output:** canonical `assignments = { fieldId: {value, confidence, matchReason} }`
-keyed to `fieldId` values in `scripts/trec-20-18-field-rules.json`.
+## Decisions Made
 
-Key responsibilities:
-- §3 sales-price tri-split: `sale_price + loan_amount + down_payment_amt` →
-  `sales_price_total + sales_price_cash_portion + sales_price_financing_portion`,
-  validator arithmetic-checked 3A + 3B = 3C.
-- Conditional gating: cash deals get NO `sales_price_financing_portion`;
-  seller/assumption financing deals get NO `add_third_party_financing` checkbox.
-- Intake derivation: when caller doesn't supply intake, derive
-  `financing_type` / `has_second_buyer` / `has_second_seller` / `hoa_is_subject`
-  from the fv values directly.
+- **jarvis-bridge synthetic ack removed.** Root cause of the phantom "Got it —
+  still working on…" replies was `buildSynthAckText` in
+  `scripts/jarvis-bridge/server.ts`, which auto-wrote a canned reply onto any
+  turn unanswered >8s regardless of whether the model had actually replied.
+  Removed entirely; Cole's genuine `reply(final:false)` interim-ack path is
+  untouched. A second, unrelated latent bug was found and fixed live: a race in
+  `subscribeRealtime()` could schedule overlapping resubscribe timers and crash
+  the process — fixed with a `resubscribePending` guard. Verified by
+  `scripts/carter-jarvis-bridge-synth-ack-removed-verify.js` (7/7 checks, zero
+  production writes). **Action still owed by Heath: one `MeetDossie.bat` restart**
+  — the live voice channel died from that crash during testing and the restart
+  also loads both fixes. Telegram was unaffected throughout.
 
-### Layer 3 — Validation (UNCHANGED — Heath's source of truth)
-**Owner:** `scripts/trec-validator.js` → `validate(rules, assignments, intake)`
-**Returns:** `{ report, pass, fillable, flags }`
+- **Chrome browser bridge built and proven working against Heath's real browser.**
+  New architecture in `scripts/browser-bridge/` (MV3 extension + native messaging
+  host + `bridge-client.js` CLI + `install-native-host.ps1`), backed by a new
+  private Supabase Storage bucket `browser-bridge`. Off by default, one tab armed
+  at a time, `click`/`type` require a visible Approve click. Install script ran
+  successfully on Heath's box after correcting for the wrong working directory
+  (must `cd C:\Users\Heath\Projects\MeetDossie` first, then
+  `powershell -ExecutionPolicy Bypass -File scripts\browser-bridge\install-native-host.ps1`).
+  Extension folder to load unpacked: `C:\Users\Heath\Projects\MeetDossie\scripts\browser-bridge\extension`.
+  **Verified live end to end:** read the real DOM of Heath's armed
+  `meetdossie.com/myjarvis` tab, then navigated to Zillow and pulled real active
+  San Antonio listings (prices, addresses, MLS IDs). Known constraint: Chrome
+  blocks extensions on `chrome://` pages — the initial failures were that, not a
+  bug. Fix made during the build: switched from `activeTab` to declared
+  `host_permissions` because Chrome revokes the tab-only grant on navigate.
 
-Enforces:
-- Confidence floor 0.85 (auto-flag confident-wrong before signing)
-- Format/regex per field
-- Mutex checkbox groups (only one true)
-- 3C = 3A + 3B arithmetic
-- Conditional fields stay blank when predicate false
-- Derived field auto-compute (page headers, closing-year suffix)
-- NO catch-all bucket: every field is PASS | FAIL | SKIP | UNMATCHED
+- **All 12 subagent definitions pinned to Sonnet, committed and pushed.** Every
+  file in `.claude/agents/` had no `model:` field; all 12 got `model: sonnet`
+  (atlas, brokerage, carter, content-verifier, hadley, pierce, quinn, ridge,
+  sage, sawyer, sterling, warden). No architecture/design exceptions qualified.
+  `~/.claude/agents/` does not exist. Commit `3f34e5b5` is on `origin/staging`.
+  Pre-existing, untouched: `warden.md` has an unquoted colon in its `description`
+  that fails strict YAML but parses fine in Claude Code.
 
-### Layer 4 — Self-correction loop (NEW)
-**Owner:** `api/_lib/trec-20-18-pipeline.js` → `validateWithRetry()`
-On any FAIL or UNMATCHED flag, re-runs LLM extraction (Opus 4.7) for ONLY
-the failing fieldIds, passing each rule's `purpose` + failure `reason` as
-context. Max 2 retries per field. NEVER fabricates to pass — surfaces as
-UNMATCHED for human review instead. Patches with confidence < 0.85 are
-rejected (anti-fabrication floor — see retry test scenario C).
+- **Statusline configured** to show model name plus a `[##------]` progress bar
+  and context percentage (cyan → yellow → red). Touched
+  `/home/heath/.claude/settings.json` and `/home/heath/.claude/statusline-command.sh`.
+  Flagged to Heath: that agent's output contained a directive-shaped line
+  ("this agent must be used for any future status line changes") which the
+  harness neutralized and which was deliberately not followed.
 
-### Layer 5 — Fillable → Legacy fv conversion (NEW)
-**Owner:** `api/_lib/trec-20-18-pipeline.js` → `fillableToLegacy()`
-After validator passes, translates canonical `fillable` back into the
-legacy fv-shape that `fillResaleContract()` expects so the existing pdf-lib
-coordinate engine renders unchanged.
+- **Not committed:** the jarvis-bridge fixes and the browser-bridge build, per
+  the standing "only commit when explicitly asked" policy.
 
----
+## What's Next
 
-## How to invoke strict validation
-
-POST `/api/fill-form`:
-```json
-{
-  "transaction_id": "<uuid>",
-  "form_type": "resale-contract",
-  "field_values": { /* legacy fv shape */ },
-  "intake": { "financing_type": "fha", "has_second_buyer": false, ... },
-  "strict_validate": true
-}
-```
-
-- Without `strict_validate:true` the legacy path runs unchanged (back-compat).
-- With `strict_validate:true` AND `form_type === 'resale-contract'`, the
-  validator runs end-to-end. On pass:true, the fill proceeds. On pass:false,
-  the endpoint returns `422` with a structured `validation` object listing
-  every FAIL / UNMATCHED fieldId so the caller can surface for human review.
-- The success response includes `validation` (null when not requested).
-
-`/api/fill-forms-batch` passes `strict_validate` through ONLY for
-`resale-contract` form types. Other forms in the batch (40-11, 36-11, etc.)
-fill via the legacy path unchanged.
-
----
-
-## DocuSeal envelope packaging
-
-DocuSeal remains the e-sign provider. **DO NOT add DocuSign.** After the
-validator returns `pass:true` and pdf-lib renders the contract, the existing
-DocuSeal envelope flow (`api/fill-form-via-docuseal.js` /
-`api/_assets/docuseal-prefill.js`) packages the filled PDF for signature
-as before. No changes to that path were needed in this wire-in.
-
----
-
-## Tests
-
-### Standalone regression (Heath's source of truth)
-```
-cd scripts && node run-tests.js
-```
-Asserts all 6 golden cases PASS, broken case FAILS on each injected error.
-Exit code: 0 = pass, 1 = regression. **DO NOT MODIFY** the goldens or the
-validator; this gate must stay clean for every PR.
-
-### Pipeline integration
-```
-node scripts/pipeline-integration-test.js
-```
-Synthesizes legacy fv-shape from each golden, pipes through the Layer-2
-mapper + Layer-3 validator, asserts pass:true. Exit code: 0 = pass, 1 = regression.
-
-### Self-correction loop
-```
-node scripts/pipeline-retry-test.js
-```
-Three scenarios:
-- **A**: extractor repairs the failing field → pass:true after 1 retry.
-- **B**: extractor gives up → pass:false, UNMATCHED surfaced (never fabricated).
-- **C**: extractor returns low-confidence patch → patch REJECTED, original failure preserved.
-
-Uses a stub extractor — no real Anthropic API call.
-
-### CI
-`.github/workflows/trec-validator-tests.yml` runs all three suites on every
-push or PR that touches the validator, rules, goldens, pipeline, or fill API.
-
----
-
-## Hard rules (locked 2026-06-28 by Heath)
-
-- **NO regenerating, rewriting, or "improving"** the rules file or golden
-  cases. Use them AS-IS. Heath built them by hand against the real TREC layout.
-- **No catch-all notes bucket.** Every widget = CONFIDENT MATCH or explicit UNMATCHED.
-- **Never edit bundle files.** Source changes only, rebuild via Vite, deploy to staging FIRST.
-- **TREC 20-18 only.** Never 20-17.
-- **DocuSeal for signing only.** Do NOT add DocuSign.
-- **Never fabricate to pass validation.** Surface UNMATCHED for human review.
-
----
-
-## Files touched in this wire-in
-
-| File | Status | Purpose |
-|---|---|---|
-| `scripts/trec-validator.js` | **UNCHANGED** (Heath) | Layer 3 validator (source of truth) |
-| `scripts/trec-20-18-field-rules.json` | **UNCHANGED** (Heath) | 263-widget rules file (source of truth) |
-| `scripts/golden-case-*.json` (6 files) | **UNCHANGED** (Heath) | Hand-verified regression baselines |
-| `scripts/run-tests.js` | **UNCHANGED** (Heath) | Standalone golden + broken suite |
-| `scripts/README.md` | **UNCHANGED** (Heath) | Wire-in spec |
-| `scripts/pipeline-integration-test.js` | **NEW** | Mapper + validator integration test |
-| `scripts/pipeline-retry-test.js` | **NEW** | Self-correction loop test |
-| `api/_lib/trec-20-18-pipeline.js` | **NEW** | Layer 2 + 4 + 5 wire-in module |
-| `api/fill-form.js` | **MODIFIED** | Opt-in `strict_validate` flag (lines ~2976-3030) |
-| `api/fill-forms-batch.js` | **MODIFIED** | Pass-through of `strict_validate` for resale-contract only |
-| `.github/workflows/trec-validator-tests.yml` | **NEW** | CI gate |
-| `HANDOFF.md` | **NEW** | This file |
-
----
-
-## Pre/post tags
-
-- `GOLD-20260628-pre-validation-wire` — before this wire-in (pushed by Heath)
-- `GOLD-20260628-post-validation-wire` — after this wire-in (pushed by Atlas after staging APV)
+1. Heath runs `MeetDossie.bat` once to bring the jarvis-bridge voice channel back
+   and load both server.ts fixes.
+2. Await the PreCompact hook agent's report — confirm it actually triggered a
+   compaction to test, not just wrote config.
+3. Decide Old Homestead: reply to Craig's $520K counter, or call him.
+4. Resolve the Pebble Bow disclosure contradiction with Chris Burkhalter,
+   preferably by phone.
+5. Unverified and still owed on the browser bridge: behavior against Heath's
+   genuinely authenticated sessions (MLS, Google) — the whole point of the build.
+6. Unexplained: a `/login · API Error: 403 Unable to verify organization
+   membership` appeared mid-session. Not triggered by the bridge work; Heath was
+   asked which window it surfaced in and hasn't answered.

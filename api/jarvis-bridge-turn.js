@@ -31,10 +31,10 @@
 // GET /api/jarvis-bridge-turn?id=<turn_id>
 //   Authorization: Bearer <supabase user JWT>
 //   -> { ok, status: pending|delivered|working|answered|expired, reply?, interim? }
-//   interim (status==='working' only) is the model's (or the channel
-//   process's own synthetic) early ack text — e.g. "Got it, mid-task, give
-//   me a sec". Added 2026-08-20: this field did not exist before, so every
-//   final:false interim ack the model ever sent (scripts/jarvis-bridge/
+//   interim (status==='working' only) is a genuine early ack the model sent
+//   via the `reply` tool with final:false — e.g. "Dispatching Atlas to fix
+//   the staging build". Added 2026-08-20: this field did not exist before,
+//   so every final:false interim ack the model ever sent (scripts/jarvis-bridge/
 //   server.ts's `reply` tool has supported this since before this date) was
 //   silently dropped right here — written to Storage, never returned to the
 //   phone. jarvis-pwa.html's poll loop only checked for status==='answered',
@@ -42,6 +42,12 @@
 //   see that file for the matching client-side fix. Net effect until now:
 //   Heath never once actually heard an interim ack, despite the mechanism
 //   existing on both ends independently.
+//   2026-08-24 (Carter): the channel process ALSO used to synthesize its own
+//   canned "Got it — still working on '<echo of Heath's message>'" into this
+//   same field after a few seconds of silence, on every turn regardless of
+//   whether the model sent a real ack — that's gone now (see the removed
+//   synthetic-busy-ack block in scripts/jarvis-bridge/server.ts). This field
+//   only ever carries a real model-authored ack today.
 //
 // Deliberately asynchronous, same reasoning as jarvis-claude-code.js: the
 // live session can take anywhere from a second to several minutes to answer

@@ -9,5 +9,18 @@
       "mcp__claude_ai_Supabase__get_publishable_keys",
       "mcp__claude_ai_Vercel__list_deployments"
     ]
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/precompact-handoff.js",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
   }
 }

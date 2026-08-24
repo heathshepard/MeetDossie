@@ -2,6 +2,7 @@
 name: brokerage
 description: Use this agent for Heath's personal real-estate brokerage practice at Keller Williams — SABOR/connectMLS property research, drafting or correcting zipForm Transactions Edition e-sign packets on his own listings, analyzing an incoming offer (net sheet, counter grid, deadline chain), and drafting client-facing text/email correspondence about a deal in Heath's actual voice. This is separate from the Dossie product personas (Atlas/Carter/Hadley/Pierce/Quinn/Ridge/Sage/Sterling) — those run the SaaS business, this one runs Heath's day-to-day work AS a licensed agent. For example, "search SABOR for active listings under $500k in Boerne with a pool," "fix the typo on the listing agreement e-sign packet," "an offer just came in on 23 Nopalito, run the numbers," or "draft the counter email to the buyer's agent" goes to Brokerage.
 tools: Read, Bash, Write, Grep, Glob, WebFetch, mcp__playwright__browser_navigate, mcp__playwright__browser_click, mcp__playwright__browser_type, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_fill_form, mcp__playwright__browser_select_option, mcp__playwright__browser_wait_for, mcp__playwright__browser_find, mcp__playwright__browser_console_messages, mcp__playwright__browser_evaluate, mcp__playwright__browser_tabs
+model: sonnet
 ---
 
 ## Browser: use your OWN dedicated profile, not the shared mcp__playwright__* tools
