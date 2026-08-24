@@ -270,7 +270,7 @@ async function sendEmail({ to, subject, html }) {
   }
 }
 
-async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom, passwordEmailSent, teamOrgError }) {
+async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, heardFrom, passwordEmailSent, teamOrgError, concurrentSubscription }) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[complete-onboarding] Telegram not configured — skipping notification');
     return;
@@ -287,7 +287,14 @@ async function notifyHeathOnTelegram({ name, email, phone, brokerage, market, he
   const teamOrgLine = teamOrgError
     ? `\n\n🚨 <b>TEAM ORG CREATION FAILED</b> — they paid for Team but have no org. Create one manually via /team or the create_org_with_founder RPC. Error: ${teamOrgError}`
     : '';
-  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>${pwLine}${teamOrgLine}`;
+  // Same real scenario as stripe-webhook.js's notifyHeathConcurrentSubscription
+  // — an existing subscriber (e.g. a founding member) buying a second,
+  // different plan. Access was still granted; the OLD Stripe subscription is
+  // still live and billing unless Heath cancels it manually.
+  const concurrentSubLine = concurrentSubscription
+    ? `\n\n🚨 <b>CONCURRENT SUBSCRIPTION</b> — they already had an active ${concurrentSubscription.plan} subscription (${concurrentSubscription.stripe_subscription_id}) when they bought this one. BOTH are billing in Stripe right now. Cancel the old one manually if this should be a clean upgrade, then fix their subscriptions row.`
+    : '';
+  const text = `📝 <b>ONBOARDING FORM SUBMITTED — not yet paid</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Phone:</b> ${phone || 'unknown'}\n<b>Brokerage:</b> ${brokerage || 'unknown'}\n<b>Market:</b> ${market || 'unknown'}\n<b>Heard from:</b> ${heardFrom || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}\n\n<i>Account exists in Supabase but no Stripe payment yet. A separate 🎉 notification will fire once they actually pay.</i>${pwLine}${teamOrgLine}${concurrentSubLine}`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -438,12 +445,45 @@ module.exports = async function handler(req, res) {
       stripe_customer_id: stripeCustomerId,
     });
 
-    // Upsert subscription row keyed on stripe_subscription_id.
-    // This is the authoritative write: if the webhook already created the row
-    // (status=pending_onboarding), this upgrades it to active and fills in the
-    // user_id. If the webhook never fired, this creates the row from scratch.
-    // Falls back to PATCH by customer_id if we have no subscription_id.
-    if (stripeSubscriptionId) {
+    // CONCURRENT-SUBSCRIPTION GUARD (added 2026-08-23, Heath's ask — verifying
+    // the Solo/Team self-serve upgrade path for real founding members before
+    // pointing them at it). subscriptions has UNIQUE(user_id) — reproduced
+    // live against a disposable test row: POSTing a second stripe_subscription_id
+    // for the same user_id throws Postgres 23505 "duplicate key value violates
+    // unique constraint subscriptions_user_id_key", NOT a clean merge, even
+    // with on_conflict=stripe_subscription_id (that only covers ITS OWN
+    // conflict target, not the other unique constraint). For an existing
+    // founding member (e.g. Brittney YBarbo, Natalie Megerson) buying Team,
+    // this would have thrown here, aborted the ENTIRE handler with a raw 500
+    // AFTER their profile was already partially overwritten to plan='team' —
+    // broken UX for someone who already paid. Detect it first and skip the
+    // upsert instead of crashing; still let the rest of onboarding (org
+    // creation, emails, access) proceed since they DID pay.
+    let concurrentSubscription = null;
+    try {
+      const existingRows = await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=id,stripe_subscription_id,plan,status&limit=1`);
+      const prev = Array.isArray(existingRows) ? existingRows[0] : null;
+      const stillLive = prev && ['active', 'trialing', 'past_due'].includes(prev.status);
+      const differentSub = prev && prev.stripe_subscription_id && stripeSubscriptionId && prev.stripe_subscription_id !== stripeSubscriptionId;
+      const differentPlan = prev && prev.plan && prev.plan !== plan;
+      if (stillLive && differentSub && differentPlan) {
+        concurrentSubscription = prev;
+      }
+    } catch (err) {
+      console.warn('[complete-onboarding] concurrent-subscription check failed (proceeding anyway):', err && err.message);
+    }
+
+    if (concurrentSubscription) {
+      console.error('[complete-onboarding] CONCURRENT SUBSCRIPTION DETECTED for', email,
+        'existing: plan=', concurrentSubscription.plan, 'sub=', concurrentSubscription.stripe_subscription_id,
+        '| new: plan=', plan, 'sub=', stripeSubscriptionId,
+        '— subscriptions row NOT overwritten (would lose the still-active old subscription). Manual reconciliation required.');
+    } else if (stripeSubscriptionId) {
+      // Upsert subscription row keyed on stripe_subscription_id.
+      // This is the authoritative write: if the webhook already created the row
+      // (status=pending_onboarding), this upgrades it to active and fills in the
+      // user_id. If the webhook never fired, this creates the row from scratch.
+      // Falls back to PATCH by customer_id if we have no subscription_id.
       await upsertSubscriptionBySubId({
         userId,
         stripeCustomerId,
@@ -569,6 +609,7 @@ module.exports = async function handler(req, res) {
       name, email, phone, brokerage, market, heardFrom,
       passwordEmailSent,
       teamOrgError,
+      concurrentSubscription,
     });
 
     if (!passwordEmailSent) {
@@ -580,6 +621,7 @@ module.exports = async function handler(req, res) {
         password_email_sent: false,
         welcome_email_sent: welcomeEmailSent,
         team_org_created: plan === 'team' ? Boolean(teamOrgId) : undefined,
+        concurrent_subscription: concurrentSubscription ? true : undefined,
         error: 'Your account was created, but we could not send your password link. Email heath@meetdossie.com and he will send it manually.',
       });
       return;
@@ -591,6 +633,7 @@ module.exports = async function handler(req, res) {
       welcome_email_sent: welcomeEmailSent,
       password_email_sent: true,
       team_org_created: plan === 'team' ? Boolean(teamOrgId) : undefined,
+      concurrent_subscription: concurrentSubscription ? true : undefined,
     });
   } catch (err) {
     console.error('[complete-onboarding] error:', err && err.message);

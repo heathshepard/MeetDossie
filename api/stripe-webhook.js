@@ -212,7 +212,50 @@ async function generateRecoveryLink(email) {
 // New logic: SELECT-first by user_id. If a row exists, UPDATE it by user_id
 // (overwriting stripe_subscription_id + all fields). If not, INSERT with
 // on_conflict=stripe_subscription_id as before.
+//
+// CONCURRENT-SUBSCRIPTION GUARD (added 2026-08-23, Heath's ask — verifying
+// the Solo/Team self-serve upgrade path for real founding members Brittney
+// YBarbo / Natalie Megerson before pointing them at it). The UNIQUE(user_id)
+// constraint means this table can only ever represent ONE subscription per
+// user — but a single Stripe Customer can genuinely hold MULTIPLE active
+// Subscription objects at once (confirmed live: Natalie Megerson's real
+// Stripe customer already has one canceled + one active sub — normal Stripe
+// behavior). Before this guard, an existing founding member buying Team
+// would have their founding row's stripe_subscription_id/plan/status
+// SILENTLY OVERWRITTEN to the new Team subscription by the blanket PATCH
+// below — our DB would lose all record that the $29/mo founding
+// subscription still exists and is STILL ACTIVELY BILLING in real Stripe
+// (nothing anywhere cancels it). That's real, ongoing double-billing our
+// own reconciliation tooling would become blind to.
+//
+// Distinguishing test: the existing row's status is still live (active /
+// trialing / past_due — NOT already cancelled) AND the plan is actually
+// changing (not the July resubscribe case, where the old row is by
+// definition already cancelled before a new checkout happens). If both are
+// true, refuse to overwrite — return a signal instead so the caller can
+// alert Heath and let a human decide (cancel the old sub? something else?)
+// rather than software silently guessing at a real customer's billing.
 async function upsertSubscription(payload) {
+  if (payload && payload.user_id && payload.stripe_subscription_id) {
+    try {
+      const encoded = encodeURIComponent(payload.user_id);
+      const existing = await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encoded}&select=id,stripe_subscription_id,plan,status&limit=1`);
+      const prev = Array.isArray(existing) ? existing[0] : null;
+      const stillLive = prev && ['active', 'trialing', 'past_due'].includes(prev.status);
+      const differentSub = prev && prev.stripe_subscription_id && prev.stripe_subscription_id !== payload.stripe_subscription_id;
+      const differentPlan = prev && prev.plan && payload.plan && prev.plan !== payload.plan;
+      if (stillLive && differentSub && differentPlan) {
+        console.error('[stripe-webhook] CONCURRENT SUBSCRIPTION DETECTED — refusing to overwrite. user_id=', payload.user_id,
+          'existing: plan=', prev.plan, 'sub=', prev.stripe_subscription_id, 'status=', prev.status,
+          '| new: plan=', payload.plan, 'sub=', payload.stripe_subscription_id,
+          '— the existing subscription is still active in Stripe and will keep billing. Manual reconciliation required.');
+        return { skipped: true, reason: 'concurrent_subscription', existing: prev, incoming: payload };
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] upsertSubscription: concurrent-subscription check failed (proceeding anyway):', err && err.message);
+    }
+  }
+
   if (!payload || !payload.user_id) {
     // Fallback path for the rare no-user-id case (kept for safety, though
     // subscriptions.user_id is NOT NULL — this branch shouldn't execute).
@@ -356,6 +399,43 @@ async function notifyHeathOnTelegram({ name, email, source }) {
     }
   } catch (err) {
     console.error('[stripe-webhook] Telegram threw:', err && err.message);
+  }
+}
+
+// Fired when upsertSubscription() detects a customer buying a genuinely
+// second, concurrent, different-tier subscription (e.g. an existing
+// founding member self-serve-checking-out for Team) — added 2026-08-23.
+// The customer's payment succeeded and their new access is NOT blocked by
+// this; what's blocked is silently overwriting/losing the old subscription
+// row. This alert is the human decision point: does Heath cancel the old
+// subscription in Stripe (so they land on Team pricing only, matching the
+// docs/CUSTOMERS.md upsell intent), leave both running, or something else?
+async function notifyHeathConcurrentSubscription({ email, existing, incoming }) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('[stripe-webhook] Telegram not configured — skipping concurrent-subscription alert');
+    return;
+  }
+  const text = `🚨 <b>CONCURRENT SUBSCRIPTION — MANUAL ACTION NEEDED</b>\n\n`
+    + `<b>Customer:</b> ${email || 'unknown'}\n`
+    + `<b>Existing (still active in Stripe):</b> ${existing.plan} — ${existing.stripe_subscription_id}\n`
+    + `<b>Just purchased:</b> ${incoming.plan} — ${incoming.stripe_subscription_id}\n\n`
+    + `Both subscriptions are live in Stripe right now — they will be billed for BOTH unless you cancel the old one. `
+    + `Their new plan/access was still granted (they paid, they're not blocked). `
+    + `The <code>subscriptions</code> table was NOT auto-updated to avoid losing the old subscription's record — reconcile manually: `
+    + `decide whether to cancel ${existing.stripe_subscription_id} in Stripe, then update their subscriptions row.\n\n`
+    + `<b>Time:</b> ${new Date().toISOString()}`;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      console.error('[stripe-webhook] concurrent-subscription Telegram alert failed:', res.status, t.slice(0, 200));
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] concurrent-subscription Telegram alert threw:', err && err.message);
   }
 }
 
@@ -517,7 +597,7 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   }
 
   try {
-    await upsertSubscription({
+    const upsertResult = await upsertSubscription({
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
@@ -527,7 +607,24 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
     });
-    console.log('[stripe-webhook] checkout.session.completed: subscription row upserted for', customerEmail, 'status=pending_onboarding');
+    if (upsertResult && upsertResult.skipped) {
+      // Real, live example: an existing founding member (e.g. Brittney
+      // YBarbo, Natalie Megerson) buying Team through self-serve checkout.
+      // Their payment succeeded and complete-onboarding.js still grants
+      // access — this alert is purely the "does the OLD subscription need
+      // cancelling" decision, which stays a human call.
+      try {
+        await notifyHeathConcurrentSubscription({
+          email: customerEmail,
+          existing: upsertResult.existing,
+          incoming: upsertResult.incoming,
+        });
+      } catch (alertErr) {
+        console.error('[stripe-webhook] notifyHeathConcurrentSubscription threw:', alertErr && alertErr.message);
+      }
+    } else {
+      console.log('[stripe-webhook] checkout.session.completed: subscription row upserted for', customerEmail, 'status=pending_onboarding');
+    }
   } catch (err) {
     console.error('[stripe-webhook] subscription upsert failed:', err && err.message, '| userId=', userId, '| stripeCustomerId=', stripeCustomerId);
   }
