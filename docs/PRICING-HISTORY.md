@@ -15,8 +15,8 @@ Current pricing lives in CLAUDE.md Section 5. This file = history + rationale on
 ## Add-on prices (current)
 
 - Email Integration — $15/mo, $7.50/mo for founding members (exactly 50% off per Terms of Service §4.2). Live 2026-08-22 (renamed + expanded from "Reply Monitoring" — bundles deal-email filing, e-sign completion detection, and ShowingTime feedback ingestion under one entitlement flag). Stripe price `price_1U7FeAL920SKTEEidpJB0D0Z`, founding coupon `founding-addon-50off`.
+- Compliance Vault — $15/mo, $7.50/mo for founding members (same 50% off, same coupon). Live 2026-08-24 for Solo agents — personal search/filter view across their own documents by type (present vs. missing on every open file), the same view already shipped for Team the day before. Stripe price `price_1U7zXXL920SKTEEi70gU4p5o`.
 - AI Autopilot — $15/mo
-- Compliance Vault — $10/mo
 - White Label — $200-500/mo
 - Scans — 5 free, then $1.50 each
 - E-sig — 10 free, then $0.50 each
@@ -81,6 +81,18 @@ Current pricing lives in CLAUDE.md Section 5. This file = history + rationale on
 - New migration correcting the `create_org_with_founder` RPC's SQL default a second time (7900 → 3500 → 7999) — added as a new migration rather than editing the 3500 one, since migration history should read forward, not be rewritten, even though (as of this writing) no migration in this chain has actually been applied to the live DB yet (no DB credential available in the agent session that built this — flagged separately, not a pricing question).
 - CLAUDE.md Section 5 Team row updated: "max 8 at $79.99/seat".
 - Re-verified via `preview_invoice` (non-committal, no real subscription created) that the new rate flows through correctly: base $349.00, +1 extra seat $428.99, ..., 5-seat/8-total cap $748.95 ($349 + 5×$79.99). Exact figures logged in the session that made this change.
+
+---
+
+## 2026-08-24 — Compliance Vault add-on for Solo agents ($15/mo, $7.50/mo founding)
+
+**What changed:** The Team-wide compliance vault (org-documents.js, shipped 2026-08-23) got a Solo-agent personal equivalent, gated behind a new paid add-on — same price point, same 50%-off-founding treatment, and the same reused `founding-addon-50off` coupon as Email Integration (confirmed generic: a plain `percent_off:50/forever` coupon not tied to any specific Stripe price).
+
+**Backend:** New Stripe price `price_1U7zXXL920SKTEEi70gU4p5o` (product `prod_V8G3UpifGtCwyL`, "Dossie Compliance Vault Add-on"), env var `ADDON_COMPLIANCE_VAULT_PRICE_ID`. New `subscriptions.compliance_vault_enabled` + `compliance_vault_stripe_sub_id` columns (`20260824_compliance_vault_addon.sql`). Deliberately a SEPARATE checkout/cancel/status endpoint trio (`create-compliance-vault-checkout-session.js`, `cancel-compliance-vault-subscription.js`, `compliance-vault-addon-status.js`) rather than parameterizing the existing Email Integration ones — those are a live, already-verified payment path; a generalization refactor risked regressing them for a second add-on's sake. `api/stripe-webhook.js`'s add-on-subscription-deleted guard (which protects the base-plan cancellation logic from firing on an add-on-only cancellation) was extended to recognize both add-ons — this guard is load-bearing: missing it would mean cancelling Compliance Vault alone could incorrectly cancel a customer's entire base plan.
+
+**Data endpoint:** `api/solo-documents.js` reuses `api/_lib/team-risk-rollup.js`'s `REQUIRED_DOC_TYPES` (same source of truth as the Team version, never redefined) scoped to `user_id` instead of `org_id` — gated behind the entitlement flag server-side (402 if unpaid), independent of whatever the client UI shows.
+
+**Verification:** real (non-committal) Stripe Checkout Session created and inspected for line items; founding discount math confirmed exactly 50% off ($7.50/mo). No live charge made.
 
 ---
 

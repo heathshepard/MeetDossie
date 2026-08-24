@@ -49,6 +49,11 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 // api/create-addon-checkout-session.js for how the Checkout Session is built.
 const ADDON_EMAIL_INTEGRATION_PRICE_ID = process.env.ADDON_EMAIL_INTEGRATION_PRICE_ID;
 
+// Compliance Vault add-on (2026-08-24, Solo agents). Same "second small
+// subscription" shape as Email Integration above — see
+// api/create-compliance-vault-checkout-session.js.
+const ADDON_COMPLIANCE_VAULT_PRICE_ID = process.env.ADDON_COMPLIANCE_VAULT_PRICE_ID;
+
 // Stripe checkout names arrive in whatever case the customer typed
 // ("heath Shepard", "HEATH SHEPARD"). Normalize on the way in so the Settings
 // page and email greetings never display a mid-cap or shouting name.
@@ -1112,13 +1117,16 @@ async function handleSubscriptionDeleted(subscription, eventId) {
   }
 
   // Add-on subscriptions are handled entirely by handleAddonSubscriptionDeleted
-  // (unsets email_integration_enabled only). This function marks the whole
-  // profile/base-plan as cancelled — must NOT run for an add-on-only
-  // cancellation, or a customer cancelling just the add-on would incorrectly
-  // lose their base plan.
+  // / handleComplianceVaultSubscriptionDeleted (unset their own entitlement
+  // flag only). This function marks the whole profile/base-plan as cancelled
+  // — must NOT run for an add-on-only cancellation, or a customer cancelling
+  // just an add-on would incorrectly lose their base plan. Checks BOTH
+  // add-ons — a Compliance Vault-only cancellation must hit this guard
+  // exactly the same way an Email Integration-only one already does.
   const priceIdForGuard = subscription?.items?.data?.[0]?.price?.id || null;
   const isAddonSubGuard = (ADDON_EMAIL_INTEGRATION_PRICE_ID && priceIdForGuard === ADDON_EMAIL_INTEGRATION_PRICE_ID)
-    || (subscription.metadata && subscription.metadata.addon === 'email_integration');
+    || (ADDON_COMPLIANCE_VAULT_PRICE_ID && priceIdForGuard === ADDON_COMPLIANCE_VAULT_PRICE_ID)
+    || (subscription.metadata && (subscription.metadata.addon === 'email_integration' || subscription.metadata.addon === 'compliance_vault'));
   if (isAddonSubGuard) {
     console.log('[stripe-webhook] subscription.deleted: add-on subscription, base-plan cancellation logic skipped. sub=', subscription.id);
     return;
@@ -1413,6 +1421,69 @@ async function handleAddonSubscriptionDeleted(subscription) {
   }
 }
 
+// --------------------------------------------------------------------------
+// Compliance Vault add-on (2026-08-24, Solo agents) — byte-for-byte the same
+// shape as the Email Integration pair above, own columns
+// (compliance_vault_enabled / compliance_vault_stripe_sub_id).
+// --------------------------------------------------------------------------
+
+async function handleComplianceVaultCheckoutCompleted(session) {
+  const userId = session.client_reference_id || (session.metadata && session.metadata.user_id) || null;
+  const stripeSubscriptionId = typeof session.subscription === 'string'
+    ? session.subscription
+    : (session.subscription && session.subscription.id) || null;
+
+  if (!userId) {
+    console.error('[stripe-webhook] compliance_vault checkout.session.completed with no user_id — cannot flip entitlement. session=', session.id);
+    return;
+  }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[stripe-webhook] Supabase not configured — skipping compliance_vault entitlement flip.');
+    return;
+  }
+
+  try {
+    await supabaseFetch(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        compliance_vault_enabled: true,
+        compliance_vault_stripe_sub_id: stripeSubscriptionId,
+      }),
+    });
+    console.log('[stripe-webhook] compliance_vault checkout.session.completed: compliance_vault_enabled=true for user_id=', userId, 'sub=', stripeSubscriptionId);
+  } catch (err) {
+    console.error('[stripe-webhook] compliance_vault entitlement flip failed:', err && err.message, '| userId=', userId);
+  }
+
+  try {
+    await captureServerEvent({
+      distinctId: userId,
+      event: 'addon_purchased',
+      properties: { addon: 'compliance_vault', stripe_subscription_id: stripeSubscriptionId },
+    });
+  } catch (_) { /* analytics never load-bearing */ }
+}
+
+async function handleComplianceVaultSubscriptionDeleted(subscription) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+  const priceId = subscription?.items?.data?.[0]?.price?.id || null;
+  const isAddonSub = (ADDON_COMPLIANCE_VAULT_PRICE_ID && priceId === ADDON_COMPLIANCE_VAULT_PRICE_ID)
+    || (subscription.metadata && subscription.metadata.addon === 'compliance_vault');
+  if (!isAddonSub) return;
+
+  try {
+    await supabaseFetch(`/rest/v1/subscriptions?compliance_vault_stripe_sub_id=eq.${encodeURIComponent(subscription.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ compliance_vault_enabled: false }),
+    });
+    console.log('[stripe-webhook] compliance_vault subscription.deleted: compliance_vault_enabled=false for sub=', subscription.id);
+  } catch (err) {
+    console.error('[stripe-webhook] compliance_vault subscription.deleted patch failed:', err && err.message);
+  }
+}
+
 module.exports = async function handler(req, res) {
   // Stripe reaches this from its own infrastructure, not a browser, so CORS
   // is permissive. Browser callers are not expected to hit this endpoint.
@@ -1454,6 +1525,8 @@ module.exports = async function handler(req, res) {
       const session = event.data.object;
       if (session.metadata && session.metadata.addon === 'email_integration') {
         await handleAddonCheckoutCompleted(session);
+      } else if (session.metadata && session.metadata.addon === 'compliance_vault') {
+        await handleComplianceVaultCheckoutCompleted(session);
       } else {
         await handleCheckoutSessionCompleted(stripe, session);
       }
@@ -1467,6 +1540,7 @@ module.exports = async function handler(req, res) {
       await handleSubscriptionUpdated(stripe, event.data.object, event.id);
     } else if (event.type === 'customer.subscription.deleted') {
       await handleAddonSubscriptionDeleted(event.data.object);
+      await handleComplianceVaultSubscriptionDeleted(event.data.object);
       await handleSubscriptionDeleted(event.data.object, event.id);
     }
     res.status(200).json({ ok: true, received: event.type });
