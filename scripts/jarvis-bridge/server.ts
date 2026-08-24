@@ -624,17 +624,33 @@ function subscribeRealtime(): void {
   realtimeChannel.subscribe(status => {
     process.stderr.write(`jarvis-bridge channel: realtime ambient-awareness subscription status: ${status}\n`)
     if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') && !shuttingDownRef.value) {
-      // realtime-js retries internally for transient network blips, but a
-      // hard CLOSED/error can leave it dead — rebuild the subscription from
-      // scratch after a short delay rather than silently going deaf.
+      // Carter, 2026-08-24 — real crash found live while testing an unrelated
+      // fix: realtime-js can invoke this status callback MULTIPLE times for
+      // one underlying disconnect (e.g. CHANNEL_ERROR immediately followed by
+      // CLOSED), and without a guard each matching call scheduled its own
+      // setTimeout(subscribeRealtime, 5000). Two overlapping subscribeRealtime()
+      // calls then raced: `.channel(topic)` returned the same still-subscribed
+      // channel instance to the second caller before the first's
+      // removeChannel() had actually completed, and its `.on('postgres_changes',
+      // ...)` call threw "cannot add postgres_changes callbacks ... after
+      // subscribe()" — synchronously, inside a setTimeout callback, so it hit
+      // process.on('uncaughtException') and self-terminated the whole channel
+      // (log: ~/.claude/channels/jarvis-bridge/server.log, 2026-08-24 18:08:59Z).
+      // Guard: only ever have ONE resubscribe in flight at a time.
+      if (resubscribePending) return
+      resubscribePending = true
       process.stderr.write('jarvis-bridge channel: rebuilding realtime subscription in 5s\n')
       try {
         realtimeClient.removeChannel(realtimeChannel!)
       } catch {}
-      setTimeout(subscribeRealtime, 5000)
+      setTimeout(() => {
+        resubscribePending = false
+        subscribeRealtime()
+      }, 5000)
     }
   })
 }
+let resubscribePending = false
 
 // Plain object (not `let shuttingDown` directly) so subscribeRealtime's
 // closure above — defined before `shuttingDown` exists below — can read the
@@ -709,43 +725,21 @@ const deliveredAt = new Map<string, number>()
 const nudged = new Set<string>()
 const NUDGE_DELAY_MS = Math.max(10000, parseInt(process.env.JARVIS_BRIDGE_NUDGE_MS || '45000', 10))
 
-// Synthetic busy-ack (Atlas, 2026-08-20). Separate problem from the
-// reply-reliability nudge above: that one exists for when the model saw the
-// turn and dropped it; this one exists for when the model hasn't even had a
-// turn yet because this session is mid a long tool-call chain and control
-// hasn't returned to the model at all — the documented 7+min-silence
-// incident (Jarvis merged into the main terminal session, 2026-08-20,
-// launcher.bat). A model-driven `reply(final:false)` ack can't fire in that
-// case by definition; this process CAN, since it's a separate poller not
-// blocked by the CLI's tool-call loop. If a turn sits 'delivered' for
-// ACK_DELAY_MS with no status change, write 'working' directly — bypassing
-// the model and the `reply` tool entirely — with a canned busy message. When
-// the model eventually does get a turn, it still calls `reply` normally
-// (blocked only on 'answered', see the tool handler above) and overwrites
-// this. The other half of this fix is surfacing `reply_text` on a 'working'
-// turn back to the phone at all (api/jarvis-bridge-turn.js) and actually
-// speaking/showing it there (jarvis-pwa.html) — before 2026-08-20 neither of
-// those existed, so even the model's own interim acks were silently dropped
-// end-to-end; this was never actually heard by Heath despite the mechanism
-// existing on the model side already.
-const synthAcked = new Set<string>()
-const ACK_DELAY_MS = Math.max(2000, parseInt(process.env.JARVIS_BRIDGE_ACK_MS || '8000', 10))
-// Fallback generic text — used only when turn.user_message is empty (shouldn't
-// happen in practice, api/jarvis-bridge-turn.js rejects an empty message).
-const SYNTH_ACK_TEXT = "Got it — I'm mid-task right now, give me a moment and I'll get back to you."
-// 2026-08-22 (Carter): this fires from the CHANNEL PROCESS, not the model —
-// it's the ACK_DELAY_MS safety net for when Cole hasn't even started
-// responding yet (status still 'delivered'), so there's no tool/agent
-// context to report ("what's actually running" doesn't exist yet). The one
-// thing we DO already have at this point is what Heath actually asked —
-// echo a short snippet of it back so the ack isn't pure boilerplate, rather
-// than a generic "give me a moment" with no connection to the request.
-function buildSynthAckText(userMessage: string): string {
-  const trimmed = (userMessage || '').trim()
-  if (!trimmed) return SYNTH_ACK_TEXT
-  const snippet = trimmed.length > 60 ? `${trimmed.slice(0, 57)}...` : trimmed
-  return `Got it — still working on "${snippet}", give me a moment.`
-}
+// Synthetic busy-ack — REMOVED 2026-08-24 (Heath, live voice complaint):
+// this used to auto-write a canned "Got it — still working on '<echo of
+// Heath's own message>', give me a moment" as turn.reply_text whenever a
+// turn sat 'delivered' for ACK_DELAY_MS with no real reply yet, and
+// jarvis-pwa.html would speak it aloud via speakInterimAck. It fired on
+// almost every turn (most real answers take longer than the old 8s delay),
+// so Heath heard his own words echoed back to him before every real answer.
+// Added 2026-08-20 for a real problem (7+min silence when Cole is mid a long
+// tool-call chain with no interim ack) but the fix was worse than the
+// silence it solved. The reply-reliability nudge below is a SEPARATE
+// mechanism (re-injects a notification telling Cole to call `reply` — it
+// never writes reply_text or speaks anything to Heath) and stays intact, as
+// does Cole's own genuine `reply(final:false)` interim ack path (the tool
+// handler above, unaffected by this removal) — those are real, specific
+// status updates and should keep working.
 
 async function tick(): Promise<void> {
   if (shuttingDown) return
@@ -841,27 +835,6 @@ async function tick(): Promise<void> {
           process.stderr.write(`jarvis-bridge channel: failed to deliver inbound to Claude: ${err}\n`)
         })
       continue
-    }
-
-    // status === 'delivered' — synthetic busy-ack. See ACK_DELAY_MS comment
-    // above for why this exists separately from the nudge below. Same
-    // `delivering` guard as the nudge: skip while a still-in-flight tick is
-    // building enriched content (YouTube transcript etc.) and hasn't
-    // actually notified the model yet.
-    if (turn.status === 'delivered' && !synthAcked.has(id) && !delivering.has(id)) {
-      const deliveredMsForAck = deliveredAt.get(id) ?? new Date(turn.delivered_at || turn.created_at || 0).getTime()
-      if (Date.now() - deliveredMsForAck > ACK_DELAY_MS) {
-        synthAcked.add(id)
-        putTurn(id, {
-          ...turn,
-          status: 'working',
-          reply_text: buildSynthAckText(turn.user_message),
-          progress_at: new Date().toISOString(),
-        }).catch(err => {
-          process.stderr.write(`jarvis-bridge channel: synthetic ack write failed for ${id}: ${err}\n`)
-          synthAcked.delete(id) // allow a retry on a later tick instead of giving up silently
-        })
-      }
     }
 
     // status === 'delivered' — reply-reliability watchdog. Skipped while
