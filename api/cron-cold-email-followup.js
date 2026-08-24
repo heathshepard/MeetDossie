@@ -287,7 +287,20 @@ async function findFollowupCandidates(touchNum) {
   const r = await fetch(url, { headers: sbHeaders() });
   if (!r.ok) return [];
   const rows = await r.json();
-  return Array.isArray(rows) ? rows : [];
+  if (!Array.isArray(rows)) return [];
+
+  // GATED 2026-08-24 (Heath directive) — never follow up on a lead whose
+  // prior touch went to a guessed/unverified address. Confirmed via
+  // email_events: tier_c_trec_pattern_guess sends hit 83% bounce over the
+  // last 14 days; every real bounce traced to a pattern_guess email_source.
+  // Legacy rows with no confidence_tier/email_source metadata (pre-tracking)
+  // are left alone — they're already-delivered touch-1s, not guesses.
+  return rows.filter(row => {
+    const m = row.metadata || {};
+    const isGuessedTier = m.confidence_tier === 'tier_c_trec_pattern_guess';
+    const isGuessedSource = typeof m.email_source === 'string' && m.email_source.startsWith('pattern_guess:');
+    return !isGuessedTier && !isGuessedSource;
+  });
 }
 
 async function touchAlreadyQueued(email, touchNum) {
