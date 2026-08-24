@@ -383,7 +383,108 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice' });
+    if (action === 'provisioning_audit') {
+      // Read-only. One-off diagnostic for the 2026-08-24 webhook-gap sweep
+      // (Heath: are Terry/Jennifer/Lisa-style silent provisioning failures
+      // happening to anyone else right now, undetected). Lists every
+      // successful Checkout Session and every Subscription created since a
+      // given date (default 2026-05-01, Dossie founding launch), with the
+      // customer email resolved for each so Atlas can cross-reference
+      // against Supabase profiles/subscriptions outside this function.
+      // Makes ZERO writes to Stripe or Supabase.
+      const sinceParam = req.query?.since || (req.body && req.body.since);
+      const sinceSec = sinceParam
+        ? Math.floor(new Date(sinceParam).getTime() / 1000)
+        : Math.floor(new Date('2026-05-01T00:00:00Z').getTime() / 1000);
+
+      // --- Checkout Sessions (paginated, created >= since) ---
+      const sessions = [];
+      {
+        let startingAfter;
+        for (let page = 0; page < 20; page++) {
+          const params = { limit: 100, created: { gte: sinceSec } };
+          if (startingAfter) params.starting_after = startingAfter;
+          const batch = await stripe.checkout.sessions.list(params);
+          for (const s of (batch.data || [])) sessions.push(s);
+          if (!batch.has_more || (batch.data || []).length === 0) break;
+          startingAfter = batch.data[batch.data.length - 1].id;
+        }
+      }
+      const paidSessions = sessions
+        .filter((s) => s.status === 'complete' && s.payment_status === 'paid')
+        .map((s) => ({
+          id: s.id,
+          created_iso: new Date(s.created * 1000).toISOString(),
+          customer: typeof s.customer === 'string' ? s.customer : (s.customer && s.customer.id) || null,
+          customer_email: (s.customer_details && s.customer_details.email) || s.customer_email || null,
+          customer_name: (s.customer_details && s.customer_details.name) || null,
+          mode: s.mode,
+          amount_total: s.amount_total,
+          currency: s.currency,
+          subscription: typeof s.subscription === 'string' ? s.subscription : (s.subscription && s.subscription.id) || null,
+          metadata: s.metadata || {},
+        }));
+
+      // --- Subscriptions (paginated, ALL statuses, created >= since) ---
+      const subs = [];
+      {
+        let startingAfter;
+        for (let page = 0; page < 20; page++) {
+          const params = { limit: 100, status: 'all', created: { gte: sinceSec } };
+          if (startingAfter) params.starting_after = startingAfter;
+          const batch = await stripe.subscriptions.list(params);
+          for (const s of (batch.data || [])) subs.push(s);
+          if (!batch.has_more || (batch.data || []).length === 0) break;
+          startingAfter = batch.data[batch.data.length - 1].id;
+        }
+      }
+
+      // Resolve customer email for each subscription (cache to avoid dupe calls).
+      const custEmailCache = {};
+      const subsOut = [];
+      for (const s of subs) {
+        const custId = typeof s.customer === 'string' ? s.customer : (s.customer && s.customer.id) || null;
+        let email = null;
+        let name = null;
+        if (custId) {
+          if (custEmailCache[custId] !== undefined) {
+            ({ email, name } = custEmailCache[custId]);
+          } else {
+            try {
+              const cust = await stripe.customers.retrieve(custId);
+              email = (cust && !cust.deleted && cust.email) || null;
+              name = (cust && !cust.deleted && cust.name) || null;
+            } catch (e) {
+              email = null; name = null;
+            }
+            custEmailCache[custId] = { email, name };
+          }
+        }
+        subsOut.push({
+          id: s.id,
+          status: s.status,
+          created_iso: new Date(s.created * 1000).toISOString(),
+          customer: custId,
+          customer_email: email,
+          customer_name: name,
+          price_id: s?.items?.data?.[0]?.price?.id || null,
+          price_unit_amount: s?.items?.data?.[0]?.price?.unit_amount,
+          cancel_at_period_end: s.cancel_at_period_end,
+          canceled_at_iso: s.canceled_at ? new Date(s.canceled_at * 1000).toISOString() : null,
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        since_iso: new Date(sinceSec * 1000).toISOString(),
+        checkout_sessions_paid_count: paidSessions.length,
+        checkout_sessions_paid: paidSessions,
+        subscriptions_count: subsOut.length,
+        subscriptions: subsOut,
+      });
+    }
+
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice | provisioning_audit' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }
