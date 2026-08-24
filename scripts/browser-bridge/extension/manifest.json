@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Cole Browser Bridge",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnNe2Zf7AiX+wXYdVBoOj2zM9bi1hmorXJqv8xDnL0ICNOQg68oxMHC7SgSSP32XYuyRpowUtmqUxuP0gzyp+H/avxi9Gh9ykLVVT30tJxUAemsKLiF9rXu/XIqGZtfPNvx//kpoek3OYsmSW3WMpcZst7GQiETsllNzil1i2dzoaDNx3BX3YjJdc++BB0Rnetu2rXCK7QqIrA2nfA4xfhSYgyD9DDxVpCTSCyBO7KvNEW/Oqxb/8W+QZ1x7KWU6pTSbeemdCR70RmzkrVBCWPO4lWtk4oNdlBjGqFkWgg2p/8IAYfmDaAQEtG8+hxgsLPOrxZNDBDA01CYKpMAjVwQIDAQAB",
+  "description": "Lets Heath's live Claude Code session (jarvis-bridge / Cole) read and act inside a real, logged-in Chrome tab on demand. Off by default per tab -- arm it with the toolbar icon.",
+  "permissions": ["activeTab", "scripting", "nativeMessaging", "storage", "alarms"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cole Browser Bridge (click to arm/disarm on this tab)"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
