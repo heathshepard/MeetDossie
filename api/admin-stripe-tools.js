@@ -110,6 +110,40 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, coupon });
     }
 
+    if (action === 'get_checkout_session') {
+      // Read-only. Inspects a real (but not-yet-completed) Checkout Session
+      // for its actual line items / discount / total — used to verify a
+      // real create-*-checkout-session.js endpoint built the session
+      // correctly (e.g. the founding 50%-off coupon actually applied)
+      // without ever completing the payment. Added 2026-08-24 for the
+      // Compliance Vault add-on verification pass.
+      const sessionId = req.query?.session_id || (req.body && req.body.session_id);
+      if (!sessionId) return res.status(400).json({ ok: false, error: 'session_id required' });
+      const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['line_items', 'total_details.breakdown'] });
+      return res.status(200).json({
+        ok: true,
+        session: {
+          id: session.id,
+          status: session.status,
+          amount_subtotal: session.amount_subtotal,
+          amount_total: session.amount_total,
+          currency: session.currency,
+          customer: session.customer,
+          customer_email: session.customer_email,
+          client_reference_id: session.client_reference_id,
+          metadata: session.metadata,
+          total_details: session.total_details,
+          line_items: (session.line_items && session.line_items.data ? session.line_items.data : []).map((li) => ({
+            description: li.description,
+            price_id: li.price && li.price.id,
+            amount_subtotal: li.amount_subtotal,
+            amount_total: li.amount_total,
+            quantity: li.quantity,
+          })),
+        },
+      });
+    }
+
     if (action === 'get_subscription') {
       const subId = req.query?.subscription_id || (req.body && req.body.subscription_id);
       if (!subId) return res.status(400).json({ ok: false, error: 'subscription_id required' });
@@ -349,7 +383,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_balance | list_customer_subs | search_products | preview_invoice' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }

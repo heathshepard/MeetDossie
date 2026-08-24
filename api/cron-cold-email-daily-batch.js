@@ -361,6 +361,22 @@ async function loadWarmedLeads() {
   return warmed;
 }
 
+// ── Verified-address gate — Heath directive 2026-08-24 ──────────────────
+// Last week's 167-send batch hit 75% bounce. Confirmed via email_events:
+// the last 14 days' queue was 150 tier_c_trec_pattern_guess sends at an
+// 83% bounce rate (125/150), vs 7.5% for everything else. Every bounce
+// traced to a pattern-guessed address (email_source starting with
+// 'pattern_guess:'), whether the row was labeled tier_b or tier_c.
+// Heath's words: "stop sending to guessed email addresses, confirm that
+// they are real." Until a verified-address pipeline exists (scraped
+// brokerage roster pages or an email-verification API — see Atlas
+// scoping note in docs/TECH-DEBT.md), the ONLY pool allowed to send is
+// email_source === 'existing' — a real address actually found on the
+// agent's profile page, not synthesized from a brokerage domain pattern.
+function isVerifiedEmailSource(r) {
+  return r.email_source === 'existing';
+}
+
 async function selectLeads(count, excluded) {
   const all = loadLeads();
   const selected = [];
@@ -371,17 +387,18 @@ async function selectLeads(count, excluded) {
     !KNOWN_BOUNCES.has((r.email || '').toLowerCase()) &&
     !excluded.has((r.email || '').toLowerCase());
 
-  // Tier 1: ZenRows-verified existing emails (highest deliverability signal).
+  // Tier 1: ZenRows-verified existing emails (highest deliverability signal,
+  // and — as of 2026-08-24 — the ONLY tier allowed to send at all).
   const tier1 = all.filter(r =>
     r.confidence_tier === 'tier_b_zenrows_no_phone' &&
-    r.email_source === 'existing' &&
+    isVerifiedEmailSource(r) &&
     isValidLead(r)
   );
 
-  // Tier 2: ZenRows-scoped + any brokerage-scoped pattern guess (kw, exp, jpar,
-  // etc). Broader than v3's KW-only rule — small pattern-guess pools starve
-  // the ramp within a week. Deliverability is comparable to KW across major
-  // brokerages we've probed.
+  // Tier 2: brokerage-scoped pattern guess (kw, exp, jpar, etc). GATED OFF
+  // 2026-08-24 — these are guessed addresses (email_source starts with
+  // 'pattern_guess:'), not verified. Kept computed for visibility into
+  // pool size only; never queued until replaced by verified sourcing.
   const tier2 = all.filter(r =>
     r.confidence_tier === 'tier_b_zenrows_no_phone' &&
     typeof r.email_source === 'string' &&
@@ -389,9 +406,8 @@ async function selectLeads(count, excluded) {
     isValidLead(r)
   );
 
-  // Tier 3: TREC-scoped pattern guess (much larger pool: 4200+). Lower
-  // deliverability signal than Tier 1/2 but the volume is what unblocks the
-  // ramp beyond ~week 1. Reserve for when Tier 1+2 exhausted.
+  // Tier 3: TREC-scoped pattern guess (4200+ rows). GATED OFF 2026-08-24 —
+  // this is the pool that produced the 83% bounce rate. Never queued.
   const tier3 = all.filter(r =>
     r.confidence_tier === 'tier_c_trec_pattern_guess' &&
     isValidLead(r)
@@ -407,13 +423,17 @@ async function selectLeads(count, excluded) {
     return false;
   };
 
-  // Warm-touch priority: leads engaged on social >= 3 days ago go first.
+  // Warm-touch priority: leads engaged on social >= 3 days ago go first —
+  // but still only from the verified pool. Engagement doesn't verify an
+  // email address.
   const warmed = await loadWarmedLeads();
   const warmedTier = all.filter(r =>
-    isValidLead(r) && warmed.has((r.email || '').toLowerCase())
+    isValidLead(r) && isVerifiedEmailSource(r) && warmed.has((r.email || '').toLowerCase())
   );
 
-  take(warmedTier) || take(tier1) || take(tier2) || take(tier3);
+  // GATED 2026-08-24: tier2/tier3 removed from the take chain. Only
+  // verified-address pools (warmedTier, tier1) may queue a send.
+  take(warmedTier) || take(tier1);
 
   return {
     selected,
