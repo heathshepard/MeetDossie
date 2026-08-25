@@ -3,6 +3,7 @@
 //   GET  ?action=get_price&price_id=<id> → unit_amount/currency/recurring
 //   POST { action: "create_price", product_name, unit_amount, currency?, interval, nickname? }
 //   POST { action: "create_coupon", id, percent_off?, amount_off?, currency?, duration }
+//   POST { action: "cancel_subscription", subscription_id, hard_cancel? } → cancel_at_period_end=true by default
 //
 // Auth: Bearer ${CRON_SECRET}. A short-lived ONE_SHOT_TOKEN is also accepted
 // while we figure out the FOUNDING coupon situation; reverted in the very
@@ -140,6 +141,42 @@ module.exports = async function handler(req, res) {
             amount_total: li.amount_total,
             quantity: li.quantity,
           })),
+        },
+      });
+    }
+
+    if (action === 'cancel_subscription') {
+      // Write. Cancels a real subscription with cancel_at_period_end=true —
+      // same pattern as the self-serve api/cancel-subscription.js (access
+      // continues through the period already paid for, no proration
+      // refund). Used for admin-initiated cancellations of real founding
+      // members (e.g. 2026-08-24 Miki/Amanda) where the customer isn't
+      // going through the Settings UI themselves. CRON_SECRET-gated —
+      // this is the one write action on this endpoint that touches a real
+      // paying customer's billing, so it requires an explicit
+      // hard_cancel:false (default) confirmation param to stay boringly
+      // matched to the self-serve graceful-cancel default.
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      body = body || {};
+      const subId = req.query?.subscription_id || body.subscription_id;
+      if (!subId) return res.status(400).json({ ok: false, error: 'subscription_id required' });
+      const hardCancel = body.hard_cancel === true;
+      const sub = hardCancel
+        ? await stripe.subscriptions.cancel(subId)
+        : await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
+      return res.status(200).json({
+        ok: true,
+        subscription: {
+          id: sub.id,
+          status: sub.status,
+          cancel_at_period_end: sub.cancel_at_period_end,
+          cancel_at: sub.cancel_at,
+          cancel_at_iso: sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null,
+          current_period_end: sub.current_period_end,
+          current_period_end_iso: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+          canceled_at: sub.canceled_at,
+          canceled_at_iso: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
         },
       });
     }
@@ -484,7 +521,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice | provisioning_audit' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | cancel_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice | provisioning_audit' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }
