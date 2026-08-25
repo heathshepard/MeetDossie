@@ -387,6 +387,9 @@
     "api/jarvis-session-log.js": {
       "maxDuration": 10,
       "includeFiles": "SESSION-DIARY.md"
+    },
+    "api/cron-generate-posts.js": {
+      "maxDuration": 300
     }
   },
   "crons": [
