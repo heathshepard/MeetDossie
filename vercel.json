@@ -390,6 +390,9 @@
     },
     "api/cron-generate-posts.js": {
       "maxDuration": 300
+    },
+    "api/cron-reddit-scanner.js": {
+      "maxDuration": 120
     }
   },
   "crons": [
