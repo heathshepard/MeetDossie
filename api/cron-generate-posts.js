@@ -1118,7 +1118,12 @@ async function callAnthropic(prompt) {
     },
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
-      max_tokens: 8192,
+      // Raised 8192 -> 16000 (Carter, 2026-08-25): Sonnet 5's extended thinking
+      // was eating the whole 8192 budget on its thinking block before writing
+      // any of the 5-9 post JSON, so every real run returned "no content
+      // block" or truncated JSON that failed to parse. Reproduced live on
+      // staging: 8192 failed 3/3 dry runs with this exact error.
+      max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
