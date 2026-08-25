@@ -43,8 +43,38 @@
 // SCHEDULE
 //   Every 30 minutes via vercel.json.
 //
+// STALE LIVE-DISPATCH FLAG (added Atlas, 2026-08-25)
+//   Separate, shorter-fuse check piggybacked onto this same cron run — see
+//   checkStaleLiveDispatches() below. Live-interactive-dispatch rows (see
+//   cole-dispatch-start.js — metadata._live_dispatch=true, e.g. Cole
+//   spawning Atlas/Carter mid-conversation) are the one category where "the
+//   work genuinely finished and got reported to Heath, but the -complete
+//   call never happened because the AI agent's own turn-to-turn memory
+//   dropped it" is a real, recurring failure mode (documented 3x same night
+//   in memory/feedback_wire-cole-dispatch-tracking.md) -- NOT a dead/crashed
+//   process. The 4h orphan-reset above is correct for dead processes but far
+//   too slow to catch this, AND resetting status to 'pending' would let the
+//   async dispatcher pick the row back up and genuinely RE-RUN work that
+//   already happened -- wrong for this case.
+//
+//   So: rows tagged _live_dispatch=true, still in_progress, started_at older
+//   than STALE_LIVE_DISPATCH_MINUTES (75 -- comfortably above every real
+//   task duration observed the night this was built, ~30s-40min, and well
+//   under the 4h hard orphan cutoff) get ONLY a metadata stamp
+//   (_stale_flagged_at / _stale_age_minutes) plus one Telegram ping --
+//   status, started_at, and everything else about the row is left alone.
+//   No status change means:
+//     - it stays visible in the Jarvis IN-FLIGHT WORK panel
+//       (/api/jarvis-in-flight-work only queries status=eq.in_progress)
+//     - it is NOT re-claimable by the async dispatcher
+//     - the 4h orphan-reset above still applies to it as the final backstop
+//       if it's genuinely dead, not just unclosed
+//   The metadata stamp is also a one-shot dedupe -- a row only gets flagged
+//   (and Heath only gets pinged) once, not every 30 minutes it stays stuck.
+//
 // OWNER
-//   Atlas, 2026-06-27 (post-orphan-incident).
+//   Atlas, 2026-06-27 (post-orphan-incident). Stale live-dispatch flag added
+//   2026-08-25.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -60,6 +90,8 @@ const TELEGRAM_CHAT_ID          = process.env.TELEGRAM_CHAT_ID || '7874782923';
 
 const ORPHAN_AGE_HOURS    = 4;     // in_progress rows older than this = orphans
 const BURST_ALERT_THRESHOLD = 5;   // >=5 orphans in one run pings Heath
+
+const STALE_LIVE_DISPATCH_MINUTES = 75; // live-dispatch rows stuck longer than this get flagged (see header note)
 
 // ─── Supabase REST helper ────────────────────────────────────────────────────
 
@@ -90,6 +122,66 @@ async function tg(text) {
   }
 }
 
+// ─── Stale live-dispatch flag (see header note) ─────────────────────────────
+
+async function checkStaleLiveDispatches() {
+  const cutoffIso = new Date(Date.now() - STALE_LIVE_DISPATCH_MINUTES * 60 * 1000).toISOString();
+
+  const find = await sb(
+    `agent_queue?select=id,agent_name,task_subject,started_at,metadata` +
+      `&status=eq.in_progress&started_at=lt.${encodeURIComponent(cutoffIso)}` +
+      `&order=started_at.asc&limit=50`,
+  );
+  if (!find.ok) {
+    return { ok: false, error: `supabase_find_${find.status}`, flagged: [] };
+  }
+
+  const candidates = (Array.isArray(find.data) ? find.data : []).filter((row) => {
+    const meta = row.metadata || {};
+    return meta._live_dispatch === true && !meta._stale_flagged_at;
+  });
+
+  if (candidates.length === 0) {
+    return { ok: true, flagged: [], cutoff: cutoffIso };
+  }
+
+  const flagged = [];
+  const nowIso = new Date().toISOString();
+
+  for (const row of candidates) {
+    const ageMinutes = Math.round((Date.now() - new Date(row.started_at).getTime()) / 60000);
+    const newMeta = {
+      ...(row.metadata || {}),
+      _stale_flagged_at: nowIso,
+      _stale_flagged_by: 'cron-agent-queue-orphan-reset',
+      _stale_age_minutes: ageMinutes,
+    };
+
+    // Guard the patch with status=eq.in_progress so we never stamp a row
+    // that completed (or got orphan-reset above) in the gap between the
+    // find and the patch.
+    const patch = await sb(`agent_queue?id=eq.${row.id}&status=eq.in_progress`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ metadata: newMeta }),
+    });
+
+    if (patch.ok) {
+      const subject = (row.task_subject || '').slice(0, 120);
+      flagged.push({ id: row.id, agent: row.agent_name, subject, age_minutes: ageMinutes });
+      console.log(`[stale-live-dispatch] flagged ${row.id} (${row.agent_name}, ${ageMinutes}m, no -complete call)`);
+      await tg(
+        `[agent queue] "${subject}" (${row.agent_name}) has been in_progress ${ageMinutes}m with no ` +
+          `cole-dispatch-complete call — likely finished but never closed out. Check Jarvis IN-FLIGHT ` +
+          `WORK panel; if the work is actually done, this is just a missed close-out (safe to ignore). ` +
+          `Row id: ${row.id}.`,
+      );
+    }
+  }
+
+  return { ok: true, flagged, cutoff: cutoffIso };
+}
+
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 async function handler(req, res) {
@@ -117,7 +209,13 @@ async function handler(req, res) {
   }
   const orphans = Array.isArray(find.data) ? find.data : [];
   if (orphans.length === 0) {
-    return res.status(200).json({ ok: true, reset_count: 0, cutoff: cutoffIso });
+    const staleResult = await checkStaleLiveDispatches();
+    return res.status(200).json({
+      ok: true,
+      reset_count: 0,
+      cutoff: cutoffIso,
+      stale_live_dispatch_flagged: staleResult.flagged || [],
+    });
   }
 
   // 2. Reset each. We patch one row at a time so the audit metadata reflects
@@ -182,6 +280,11 @@ async function handler(req, res) {
     );
   }
 
+  // 4. Stale live-dispatch flag — separate, shorter-fuse check over rows the
+  //    4h sweep above didn't touch (different age bucket, metadata-only
+  //    stamp, no status change). See header note.
+  const staleResult = await checkStaleLiveDispatches();
+
   return res.status(200).json({
     ok: true,
     reset_count: resetIds.length,
@@ -190,6 +293,7 @@ async function handler(req, res) {
     reset: resetIds,
     cutoff: cutoffIso,
     at: nowIso,
+    stale_live_dispatch_flagged: staleResult.flagged || [],
   });
 }
 
