@@ -1118,12 +1118,15 @@ async function callAnthropic(prompt) {
     },
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
-      // Raised 8192 -> 16000 (Carter, 2026-08-25): Sonnet 5's extended thinking
-      // was eating the whole 8192 budget on its thinking block before writing
-      // any of the 5-9 post JSON, so every real run returned "no content
-      // block" or truncated JSON that failed to parse. Reproduced live on
-      // staging: 8192 failed 3/3 dry runs with this exact error.
-      max_tokens: 16000,
+      // Raised 8192 -> 32000 (Carter, 2026-08-25). Root-caused via a temp
+      // diagnostic log on staging: Sonnet 5's extended thinking is not capped
+      // by anything in this request, and consumed 13,492 of a 16,000-token
+      // ceiling on its own (confirmed via response usage.output_tokens_details
+      // .thinking_tokens), leaving too little room to finish even a 5-post
+      // batch — stop_reason came back "max_tokens" with truncated JSON every
+      // time. 32000 leaves real headroom for thinking plus the full 9-post
+      // JSON payload (voiceover_script + caption + hashtags x9).
+      max_tokens: 32000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -1144,13 +1147,6 @@ async function callAnthropic(prompt) {
     .map((b) => b.text)
     .join('')
     .trim());
-  // TEMP DIAGNOSTIC (Carter, 2026-08-25) — remove once the truncation root
-  // cause is confirmed. Logs block types/lengths + stop_reason + usage so we
-  // can see whether extended thinking is eating the max_tokens budget.
-  console.log('[cron-generate-posts][diag] stop_reason=', data?.stop_reason,
-    'usage=', JSON.stringify(data?.usage || {}),
-    'blocks=', (data?.content || []).map((b) => `${b?.type}:${(b?.text || b?.thinking || '').length}`).join(','),
-    'content_len=', content.length);
   if (!content) throw new Error('Anthropic returned no content block');
   return content;
 }
