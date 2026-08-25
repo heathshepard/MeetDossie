@@ -98,9 +98,20 @@ connected directly by Heath in Zernio's dashboard, confirmed live via
   `@meetdossie`; `owner`/routing pattern extends with no schema gap (partial
   unique index is already `(platform, owner) WHERE is_active`).
 - **YouTube** — "Shepard Real Estate Solutions" channel, `zernio_account_id`
-  `6a846a0c77555aae017776e3`. Connected and available — **no posting logic
-  wired, no content plan yet.** Not inserted into `zernio_accounts`; noted
-  here for when there's a reason to route to it.
+  `6a846a0c77555aae017776e3`. Connected in Zernio (Zernio holds the OAuth
+  grant against the channel — no separate Google consent needed on our end).
+  Inserted into `zernio_accounts` 2026-08-25 (owner=`heath-realtor`,
+  `20260825_zernio_accounts_youtube_heath_realtor.sql`), so
+  `cron-publish-approved.js`'s `pushToZernio()`/`lookupZernioAccountId()`
+  fallback now resolves it — same DB-driven pattern as the FB/IG rows above.
+  **Still no content plan**: nothing currently routes a generated post to
+  `platform=youtube` + `target_owner=heath-realtor` (0 `social_posts` rows
+  exist for platform=youtube at all as of 2026-08-25), and the separate daily
+  `cron-post-videos.js` video_library cron is hardcoded to MeetDossie's own
+  ("dossie") brand accounts for every other platform — pointing its dead
+  `ZERNIO_YOUTUBE_ACCOUNT_ID` env var at this channel would incorrectly mix
+  Heath's personal channel into a MeetDossie-branded multi-platform run.
+  Content routing for this channel is a Pierce/Sage call, not solved here.
 - (A fourth destination, `metaads` `6a846a2f77555aae01778a01`, also lives
   under this profile — not social posting, out of scope.)
 
@@ -128,7 +139,7 @@ Both `owner='heath-realtor'` rows are read by `cron-publish-approved.js`
 |---|---|---|
 | facebook | `6a8469f177555aae01775798` | ✅ (in `zernio_accounts`) |
 | instagram | `6a8469d677555aae017735a1` | ✅ (in `zernio_accounts`) |
-| youtube | `6a846a0c77555aae017776e3` | connected, not wired — no content plan |
+| youtube | `6a846a0c77555aae017776e3` | ✅ (in `zernio_accounts` since 2026-08-25) — destination wired, no content plan |
 
 ---
 
