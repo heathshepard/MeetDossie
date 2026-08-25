@@ -5,6 +5,9 @@
 //   POST { action: "create_price", product_name, unit_amount, currency?, interval, nickname? }
 //   POST { action: "create_coupon", id, percent_off?, amount_off?, currency?, duration }
 //   POST { action: "cancel_subscription", subscription_id, hard_cancel? } → cancel_at_period_end=true by default
+//   POST { action: "update_account_support_address", line1, line2?, city, state, postal_code, country? }
+//     → Stripe Account Update API, business_profile.support_address only.
+//     Does NOT touch business_profile.support_phone or any other field.
 //
 // Auth: Bearer ${CRON_SECRET}. A short-lived ONE_SHOT_TOKEN is also accepted
 // while we figure out the FOUNDING coupon situation; reverted in the very
@@ -193,6 +196,51 @@ module.exports = async function handler(req, res) {
           current_period_end_iso: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
           canceled_at: sub.canceled_at,
           canceled_at_iso: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
+        },
+      });
+    }
+
+    if (action === 'update_account_support_address') {
+      // Write. Updates ONLY business_profile.support_address via Stripe's
+      // Account Update API (stripe.accounts.update). This is what shows on
+      // customer-facing receipts/invoices. Added 2026-08-25 to move off
+      // Heath's home address (226 W Hosack St) onto the business mailbox
+      // (215 West Bandera Road, Suite 114-1009). Deliberately does NOT touch
+      // business_profile.support_phone (still Heath's personal cell) or any
+      // other business_profile field — Heath only authorized the address
+      // change. Stripe's business_profile.support_address is a real Address
+      // object: { line1, line2, city, state, postal_code, country }.
+      let body = req.body;
+      if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
+      body = body || {};
+      const { line1, line2, city, state, postal_code, country } = body;
+      if (!line1 || !city || !state || !postal_code) {
+        return res.status(400).json({ ok: false, error: 'line1, city, state, postal_code required (line2, country optional — country defaults to US)' });
+      }
+      const support_address = {
+        line1,
+        city,
+        state,
+        postal_code,
+        country: country || 'US',
+      };
+      if (line2) support_address.line2 = line2;
+
+      // stripe.accounts.update requires an account id — the underlying
+      // endpoint is POST /v1/accounts/{id}, documented for connected
+      // (Connect) accounts. To update the account the API key itself
+      // belongs to, resolve its own id first via the same self-lookup
+      // get_account already uses (stripe.accounts.retrieve() with no
+      // args → GET /v1/account), then pass that id back in.
+      const self = await stripe.accounts.retrieve();
+      const acct = await stripe.accounts.update(self.id, {
+        business_profile: { support_address },
+      });
+      return res.status(200).json({
+        ok: true,
+        account: {
+          id: acct.id,
+          business_profile: acct.business_profile || null,
         },
       });
     }
@@ -537,7 +585,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | cancel_subscription | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice | provisioning_audit' });
+    return res.status(400).json({ ok: false, error: 'unknown action; use get_price | create_price | deactivate_price | create_coupon | get_coupon | get_subscription | cancel_subscription | update_account_support_address | get_checkout_session | get_balance | list_customer_subs | search_products | preview_invoice | provisioning_audit' });
   } catch (err) {
     return res.status(502).json({ ok: false, error: (err && err.message) || String(err) });
   }
