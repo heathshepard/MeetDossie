@@ -4716,6 +4716,33 @@
         } catch (logErr) {
           console.warn('[jarvis-aec] getSettings failed:', logErr);
         }
+        // Carter 2026-08-25: real-outage root-cause fix. Desktop browser
+        // session ran ~15 clean utterances over 14min, then jarvis_stt_debug
+        // shows ZERO further rows ever — no failed attempt, nothing. Heath
+        // confirmed the UI still visually read "listening." That means the
+        // capture pipeline died silently upstream of any network call, with
+        // nothing to detect or recover from it. The one long-lived MediaStream
+        // (see resumeListening's "mic stream is still alive" comment — it's
+        // intentionally reused across many utterances per conversation, not
+        // re-acquired each turn) has zero listeners for the browser's own
+        // "this track just died" signals. Wire them here so a real track
+        // death is caught the instant it happens instead of silently.
+        try {
+          if (track && typeof track.addEventListener === 'function') {
+            track.addEventListener('ended', () => {
+              console.warn('[jarvis-mic-recovery] mic track ended unexpectedly (device revoked/disconnected)');
+              if (conversationActive) recoverMicStream('track-ended');
+            });
+            track.addEventListener('mute', () => {
+              console.warn('[jarvis-mic-recovery] mic track muted at OS/device level');
+            });
+            track.addEventListener('unmute', () => {
+              console.warn('[jarvis-mic-recovery] mic track unmuted');
+            });
+          }
+        } catch (trackErr) {
+          console.warn('[jarvis-mic-recovery] track event wiring failed:', trackErr);
+        }
         return stream;
       } catch (err) {
         console.error('[jarvis] mic error', err);
