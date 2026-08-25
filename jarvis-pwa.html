@@ -4731,6 +4731,7 @@
         // "this track just died" signals. Wire them here so a real track
         // death is caught the instant it happens instead of silently.
         try {
+          const track = stream.getAudioTracks()[0];
           if (track && typeof track.addEventListener === 'function') {
             track.addEventListener('ended', () => {
               console.warn('[jarvis-mic-recovery] mic track ended unexpectedly (device revoked/disconnected)');
