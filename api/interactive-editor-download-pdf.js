@@ -27,7 +27,7 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
-const { translateEditorFieldNames } = require('./_lib/trec-20-19-editor-field-translate');
+const { translateEditorFieldNames, translateSnapshotAddressFields } = require('./_lib/trec-20-19-editor-field-translate');
 
 const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
@@ -162,7 +162,13 @@ module.exports = async function handler(req, res) {
     // translate them onto the keys fill-trec-20-19.js now reads. See
     // _lib/trec-20-19-editor-field-translate.js for the full mapping +
     // known gaps.
-    const merged = translateEditorFieldNames(mergeFieldValues(txn, snapshot));
+    //
+    // 2026-08-25 CARTER — translateSnapshotAddressFields() runs on the
+    // SNAPSHOT only, before it's merged with the txn row — see that
+    // function's header comment for why doing this post-merge (as first
+    // attempted) silently dropped city/state/zip on every download with no
+    // live editor snapshot.
+    const merged = translateEditorFieldNames(mergeFieldValues(txn, translateSnapshotAddressFields(snapshot)));
 
     // Render the filled PDF.
     let buffer;

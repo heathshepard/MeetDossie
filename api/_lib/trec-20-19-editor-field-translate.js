@@ -176,32 +176,40 @@ function translateEditorFieldNames(fv) {
     if (combined) out.broker_relationship_disclosure = combined;
   }
 
-  // PROPERTY ADDRESS — 2026-08-25 CARTER — Quinn found the address rendering
-  // duplicated ("789 Ranch Rd, San Antonio, TX 78230, San Antonio, TX
-  // 78230"). Root cause: trec-20-19-transaction-field-map.js's
-  // `property_address` resolver (fullAddress()) already returns the FULL
-  // "street, city/state/zip" known-as string — that's the correct value for
-  // the editor's own field DISPLAY (TREC's "known as ___" blank is the full
-  // address, not just street). The editor round-trips every field's current
-  // value back to the download endpoint (FormEditor.jsx fieldValuesForSnapshot
-  // sends the whole editor.fields map, not just deltas), so fv.property_address
-  // arrives at fill-trec-20-19.js ALREADY concatenated. But that file's own
-  // knownAsAddress/fullAddressForHeader builders independently re-append
-  // fv.city_state_zip onto fv.property_address, assuming it's street-only
-  // (true for the raw transactions column, false for what the editor sends).
-  // Fix: move the editor's pre-concatenated value onto the `property_full`
-  // key, which fill-trec-20-19.js already checks FIRST and uses as-is with no
-  // further concatenation (see knownAsAddress / fullAddressForHeader). Do not
-  // also leave it under `property_address` — mergeFieldValues would still
-  // pass that through as a snapshot override and any future caller that
-  // reads fv.property_address directly (assuming street-only) would inherit
-  // the same bug.
-  if (!hasValue(out.property_full) && hasValue(src.property_address)) {
-    out.property_full = src.property_address;
-    delete out.property_address;
-  }
-
   return out;
 }
 
-module.exports = { translateEditorFieldNames };
+// PROPERTY ADDRESS — 2026-08-25 CARTER — Quinn found the address rendering
+// duplicated ("789 Ranch Rd, San Antonio, TX 78230, San Antonio, TX 78230").
+// Root cause: trec-20-19-transaction-field-map.js's `property_address`
+// resolver (fullAddress()) returns the FULL "street, city/state/zip"
+// known-as string for the editor's own field DISPLAY (TREC's "known as ___"
+// blank is the full address, not just street). The editor round-trips every
+// field's CURRENT value back on every download/verify call (FormEditor.jsx's
+// fieldValuesForSnapshot sends the whole editor.fields map, not just
+// deltas), so when a snapshot is present, its property_address arrives
+// ALREADY concatenated — but fill-trec-20-19.js's knownAsAddress /
+// fullAddressForHeader builders independently re-append fv.city_state_zip on
+// top, assuming property_address is street-only (true for the raw
+// transactions column, false for what the editor sends).
+//
+// This can only be fixed on the SNAPSHOT itself, before it's merged with the
+// transactions row — not inside translateEditorFieldNames(), which runs
+// AFTER that merge and can no longer tell a raw column value (street-only,
+// the plain "Download filled PDF" button with no live editor snapshot) apart
+// from an editor-computed one (already concatenated). Doing it post-merge
+// was tried and reverted: it moved the RAW txn.property_address (street
+// only, no snapshot case) onto property_full and deleted property_address,
+// which silently dropped the city/state/zip on every download that has no
+// live editor snapshot — the far more common real-world path. Call this on
+// `snapshot` (never on the merged/txn object) before merging.
+function translateSnapshotAddressFields(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return snapshot;
+  if (!hasValue(snapshot.property_address)) return snapshot;
+  const out = { ...snapshot };
+  if (!hasValue(out.property_full)) out.property_full = out.property_address;
+  delete out.property_address;
+  return out;
+}
+
+module.exports = { translateEditorFieldNames, translateSnapshotAddressFields };
