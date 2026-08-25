@@ -1144,6 +1144,13 @@ async function callAnthropic(prompt) {
     .map((b) => b.text)
     .join('')
     .trim());
+  // TEMP DIAGNOSTIC (Carter, 2026-08-25) — remove once the truncation root
+  // cause is confirmed. Logs block types/lengths + stop_reason + usage so we
+  // can see whether extended thinking is eating the max_tokens budget.
+  console.log('[cron-generate-posts][diag] stop_reason=', data?.stop_reason,
+    'usage=', JSON.stringify(data?.usage || {}),
+    'blocks=', (data?.content || []).map((b) => `${b?.type}:${(b?.text || b?.thinking || '').length}`).join(','),
+    'content_len=', content.length);
   if (!content) throw new Error('Anthropic returned no content block');
   return content;
 }
