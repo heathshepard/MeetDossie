@@ -59,7 +59,13 @@ function isoWeekNumber(d) {
 
 function pickWeekAndDay(now) {
   const isoWeek = isoWeekNumber(now);
-  const weekNumber = ((isoWeek - 1) % 4) + 1; // 1..4 rotating
+  // Rotates 1..5 — content_calendar actually holds 5 weeks (25 rows), not 4.
+  // Was hardcoded to 4 (Carter, found 2026-08-25 while verifying the
+  // re-armed cron): week 5 (the newest "control freak" positioning content,
+  // added after weeks 1-4) was unreachable by both the live rotation and the
+  // ?week= test override. Confirmed live: distinct week_number in
+  // content_calendar = [1,2,3,4,5].
+  const weekNumber = ((isoWeek - 1) % 5) + 1; // 1..5 rotating
   const utcDow = now.getUTCDay(); // 0=Sun..6=Sat
   const dayOfWeek = utcDow >= 1 && utcDow <= 5 ? utcDow : 0;
   return { weekNumber, dayOfWeek };
@@ -154,7 +160,7 @@ module.exports = withTelemetry('cron-content-brief', async function handler(req,
   // Allow ?week=N&day=N override for testing.
   const forceWeek = parseInt(url.searchParams.get('week') || '', 10);
   const forceDay = parseInt(url.searchParams.get('day') || '', 10);
-  const w = Number.isFinite(forceWeek) && forceWeek >= 1 && forceWeek <= 4 ? forceWeek : weekNumber;
+  const w = Number.isFinite(forceWeek) && forceWeek >= 1 && forceWeek <= 5 ? forceWeek : weekNumber;
   const d = Number.isFinite(forceDay) && forceDay >= 1 && forceDay <= 5 ? forceDay : dayOfWeek;
 
   if (d === 0) {
