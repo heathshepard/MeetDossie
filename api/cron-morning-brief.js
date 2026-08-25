@@ -1,5 +1,13 @@
 // Vercel Serverless Function: /api/cron-morning-brief
 //
+// AKA the "Business Brief" (renamed in-message 2026-08-25 — this and
+// api/jarvis-morning-brief.js were both calling themselves "Morning Brief,"
+// confusing to refer to since they're two unrelated features. This one is
+// the passive Telegram push; jarvis-morning-brief.js is the interactive
+// Jarvis PWA voice feature and keeps the "Morning Brief" name. Route/file
+// name intentionally left unchanged — cron-health.js, founding-count.js,
+// and other watchdogs key off this filename for freshness checks.
+//
 // Sends Heath a daily Telegram snapshot of Dossie business health at 7AM CDT
 // (12:00 UTC). Surfaces churn-risk customers as action items so he can text
 // them personally before they go cold.
@@ -589,8 +597,15 @@ async function buildBrief() {
   }
 
   // ─── Render ────────────────────────────────────────────────────────────
+  // Renamed from "Morning Brief" 2026-08-25 — jarvis-morning-brief.js (the
+  // Jarvis PWA voice feature Heath actually taps/says "give me a morning
+  // brief" for) already owns that name. This is the passive Telegram push
+  // of business/financial/customer health, so "Business Brief" disambiguates
+  // the two without touching this file's route, telemetry name, or watchdog
+  // freshness checks (cron-health.js, founding-count.js, etc. key off the
+  // filename, not this header text).
   const lines = [];
-  lines.push(`☀️ Dossie Morning Brief — ${chicagoDateLabel()}`);
+  lines.push(`☀️ Dossie Business Brief — ${chicagoDateLabel()}`);
   lines.push('');
 
   // FINANCIAL

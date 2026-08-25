@@ -74,10 +74,15 @@ export default async function handler(req, res) {
     thisMonthStart.setDate(1);
     thisMonthStart.setHours(0, 0, 0, 0);
 
+    // stripe-webhook.js writes status='cancelled' (double-L) on
+    // customer.subscription.deleted, but this was filtering on the
+    // single-L 'canceled' spelling only — cancellationsThisMonth silently
+    // read 0 every single month regardless of real cancellations. Match
+    // both spellings, same as cron-morning-brief.js already does.
     const { count: cancellationsThisMonth } = await supabase
       .from('subscriptions')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'canceled')
+      .in('status', ['canceled', 'cancelled'])
       .gte('updated_at', thisMonthStart.toISOString());
 
     metrics.revenue.cancellationsThisMonth = cancellationsThisMonth || 0;

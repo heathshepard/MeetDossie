@@ -32,6 +32,7 @@
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { toNum, calculateNetSheet } = require('./_lib/net-sheet-calc');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -86,12 +87,6 @@ async function supabaseRest(pathPart, init) {
     ...((init && init.headers) || {}),
   };
   return fetch(url, { ...init, headers });
-}
-
-function toNum(v, fallback) {
-  if (v == null || v === '') return fallback != null ? fallback : 0;
-  const n = Number(String(v).replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) ? n : (fallback != null ? fallback : 0);
 }
 
 function fmtMoney(n) {
@@ -171,24 +166,12 @@ module.exports = async function handler(req, res) {
     const propertyAddress = sanitizeString(body.property_address || txDefaults.property_address, { maxLength: 300 }) || '';
     const sellerName = sanitizeString(body.seller_name || txDefaults.seller_name, { maxLength: 300 }) || '';
 
-    // Calculate
-    const commissionAmount = (salePrice * commissionPct) / 100;
-    const totalDeductions = commissionAmount + mortgagePayoff + escrowFee + titlePolicyCost + hoaTransferFee + homeWarrantyCap + surveyCost + repairs + otherCredits - optionFeeCredit;
-    const netProceeds = salePrice - totalDeductions;
-
-    const breakdown = [
-      { label: 'Sale Price', amount: salePrice, type: 'income' },
-      { label: 'Commission (' + commissionPct.toFixed(2) + '%)', amount: -commissionAmount, type: 'deduction' },
-      { label: 'Mortgage Payoff', amount: -mortgagePayoff, type: 'deduction' },
-      { label: 'Escrow / Closing Fee', amount: -escrowFee, type: 'deduction' },
-      { label: 'Title Policy', amount: -titlePolicyCost, type: 'deduction' },
-      { label: 'HOA Transfer Fee', amount: -hoaTransferFee, type: 'deduction' },
-      { label: 'Home Warranty Reimbursement', amount: -homeWarrantyCap, type: 'deduction' },
-      { label: 'Survey', amount: -surveyCost, type: 'deduction' },
-      { label: 'Agreed Repairs', amount: -repairs, type: 'deduction' },
-      { label: 'Other Credits to Buyer', amount: -otherCredits, type: 'deduction' },
-      { label: 'Option Fee Credit', amount: optionFeeCredit, type: 'credit' },
-    ].filter(function(item) { return item.amount !== 0; });
+    // Calculate — shared with api/cron-financial-sanity.js's reconciliation
+    // check via api/_lib/net-sheet-calc.js so there is exactly one formula.
+    const { breakdown, commissionAmount, totalDeductions, netProceeds } = calculateNetSheet({
+      salePrice, commissionPct, mortgagePayoff, escrowFee, titlePolicyCost,
+      hoaTransferFee, homeWarrantyCap, surveyCost, repairs, otherCredits, optionFeeCredit,
+    });
 
     const sources = {
       sale_price: (body.sale_price == null && txDefaults.sale_price != null) ? 'contract' : 'manual',

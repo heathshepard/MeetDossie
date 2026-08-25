@@ -451,6 +451,10 @@
       "schedule": "15 13 * * *"
     },
     {
+      "path": "/api/cron-financial-sanity",
+      "schedule": "20 13 * * *"
+    },
+    {
       "path": "/api/cron-pipeline-health",
       "schedule": "0 13 * * *"
     },

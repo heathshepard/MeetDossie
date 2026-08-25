@@ -10,8 +10,14 @@
 //     admin-migrate-cancellation-feedback.js) — one row per attempt, even if
 //     the Stripe cancellation below fails, so a customer's typed feedback is
 //     never lost to a billing-side error.
-//   - Cancels Stripe subscription (cancel_at_period_end)
-//   - Updates profiles table (cancellation_requested_at timestamp)
+//   - Cancels Stripe subscription (cancel_at_period_end) — the `subscriptions`
+//     table is the source of truth for cancellation state (cancel_at_period_end/
+//     canceled_at), synced by the customer.subscription.updated Stripe webhook
+//     (api/stripe-webhook.js). This route does NOT also write a
+//     cancellation_requested_at timestamp to profiles — that column was never
+//     migrated and every real customer cancellation was 500ing on it until
+//     2026-08-24 (removed rather than added a migration for a column nothing
+//     reads).
 //   - Sends confirmation email via Resend
 //   - Notifies Heath via Telegram, including the survey answers (2026-08-24 —
 //     Heath's request: this flow is likely the only feedback channel he'll
@@ -100,30 +106,6 @@ async function cancelStripeSubscription(subscriptionId) {
   }
 
   return response.json();
-}
-
-async function updateProfileCancellation(userId) {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
-    {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({
-        cancellation_requested_at: new Date().toISOString(),
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to update profile: ${response.status}`);
-  }
 }
 
 async function sendConfirmationEmail(email, endDate) {
@@ -321,9 +303,6 @@ module.exports = async function handler(req, res) {
 
     // Persist the exit survey now that the cancellation actually succeeded
     await saveCancellationFeedback({ userId: auth.userId, email: auth.email, ...survey, subscriptionCancelled: true });
-
-    // Update profile with cancellation timestamp
-    await updateProfileCancellation(auth.userId);
 
     // Send confirmation email
     await sendConfirmationEmail(auth.email, endDate);
