@@ -169,12 +169,32 @@ async function resolveBlankTemplatePdf(doc) {
   const filename = doc.file_name
     || (templateName ? `${templateName}.pdf` : `${slug}.pdf`);
 
-  return { buffer, mimeType: 'application/pdf', filename };
+  // `slug` exposed so callers (esign-create.js's blank-send gate) can tell
+  // WHICH form this is without a second form_templates round-trip — needed
+  // to distinguish genuinely-blank-by-design forms (Wire Fraud Warning — 0
+  // AcroForm fields, nothing to fill) from real contract/addendum forms that
+  // must go through the Fill Contract flow before they're signature-ready.
+  return { buffer, mimeType: 'application/pdf', filename, slug };
 }
+
+// 2026-08-25 CARTER — Quinn's blank-send bug (roadmap item #3, Alpha TC).
+// Forms with ZERO fillable legal content — nothing a "fill" step could ever
+// populate — are safe to send straight from the blank asset. Every other
+// slug in FORM_TEMPLATE_B64 above is a real TREC/TAR contract or addendum
+// with fillable blanks/checkboxes; sending those blank is exactly the bug
+// Quinn caught live (DocuSeal confirmed "values": [] on a signature request
+// for a real contract). Keep this allowlist SHORT and add to it only when a
+// form is verified to have no fillable fields (same standard as Wire Fraud
+// Warning: 0 AcroForm fields, confirmed in fillWireFraudWarning()'s own
+// header comment in api/fill-form.js).
+const BLANK_SEND_SAFE_SLUGS = new Set([
+  'wire-fraud-warning', // TAR 2517 — 0 AcroForm fields, informational notice only
+]);
 
 module.exports = {
   resolveBlankTemplatePdf,
   isBlankTemplateDoc,
+  BLANK_SEND_SAFE_SLUGS,
   // Exposed for tests + esign-create.js which still needs the maps directly.
   FORM_TEMPLATE_B64,
   SHORT_NAME_TO_FORM_TYPE,

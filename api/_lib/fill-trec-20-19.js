@@ -485,16 +485,41 @@ async function fillTrec2019(pdfDoc, fv) {
   // value was supplied.
 
   // EXECUTION BLOCK
-  // 2026-08-19 BROKERAGE FIX — REMOVED. This block used to fill
-  // execution_day/execution_month/execution_year_2digit (the "EXECUTED the
-  // ___ day of ___, 20__ (Effective Date)" blank on page 10) using
-  // fv.contract_effective_date, falling back to fv.closing_date. Per
-  // Heath's explicit, repeated, standing instruction, this blank must
-  // ALWAYS remain empty on an outgoing offer — it gets filled in by the
-  // broker upon final acceptance, not before. Confirmed via
-  // trec-20-19-field-coords.json's own notes ("Signature block: day
-  // number/month/year") that this coordinate IS that blank. Do not
-  // reintroduce this without an explicit, separate instruction.
+  // 2026-08-19 BROKERAGE FIX — REMOVED the old version of this block, which
+  // filled execution_day/execution_month/execution_year_2digit (the
+  // "EXECUTED the ___ day of ___, 20__ (Effective Date)" blank on page 10)
+  // using fv.contract_effective_date OR fv.closing_date. The closing_date
+  // fallback was the actual defect — closing_date is set on almost every
+  // outgoing offer, so the blank filled in on documents that had not been
+  // executed yet, violating Heath's standing instruction that this blank
+  // must stay empty until the broker fills it in upon final acceptance.
+  //
+  // 2026-08-25 CARTER — Quinn found the fix over-corrected: removing the
+  // draw entirely made it disappear even when fv.contract_effective_date IS
+  // genuinely set (i.e. the deal has actually been marked ratified/executed
+  // via chat.js's "ratified yesterday" -> contract_effective_date path).
+  // The interactive editor's field map already computes and displays a
+  // "filled" executed day/month/year in that case (trec-20-19-transaction-
+  // field-map.js executedPart(), derived ONLY from contract_effective_date,
+  // never closing_date) — so the UI told the agent the date was filled
+  // while the downloaded PDF silently left it blank. Restored, but keyed
+  // ONLY off fv.contract_effective_date (no closing_date fallback) so the
+  // original standing instruction still holds on every unexecuted offer.
+  if (fv.contract_effective_date) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fv.contract_effective_date));
+    if (m) {
+      const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      const day = String(Number(m[3]));
+      const month = MONTH_NAMES[Number(m[2]) - 1] || '';
+      const year2 = m[1].slice(2);
+      drawFieldText('execution_day', day);
+      drawFieldText('execution_month', month);
+      drawFieldText('execution_year_2digit', year2);
+    } else {
+      console.warn('[fill-trec-20-19] contract_effective_date not in YYYY-MM-DD form, skipping execution block:', fv.contract_effective_date);
+    }
+  }
   drawFieldText('buyer_email', fv.buyer_email || '');
   drawFieldText('seller_email', fv.seller_email || '');
 

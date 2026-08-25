@@ -1709,6 +1709,50 @@ async function _UNREACHABLE_LEGACY_BODY_ORIGINAL_KEEP_FOR_REVIEW(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
+// 2026-08-25 CARTER — Quinn found Conventional AND FHA checked simultaneously
+// on the same downloaded PDF. Root cause: every loan-type block below used to
+// gate independently on `ft === 'X' || fv.financing_X === true`. fill-form.js's
+// POST handler computes financing_conventional/fha/va ONCE from the STORED
+// transactions.financing_type (Object.assign(txDefaults, fieldValues) at the
+// bottom of this file), but a caller can override financing_type for a single
+// fill via field_values without also clearing the OTHER boolean flags —
+// Object.assign only overwrites keys the caller actually sent. That left a
+// stale `fv.financing_conventional === true` from the transaction's old
+// financing_type sitting alongside a freshly-overridden `fv.financing_type:
+// 'fha'`, so BOTH the conventional block (ft check false, but its OR'd stale
+// flag true) and the fha block (ft === 'fha') fired — same failure mode
+// explains the stray "$1.00" that leaked into USDA's origination-charge
+// blank while its own checkbox stayed unchecked (a stale fv.financing_usda
+// flag can fire the text draw independent of whether the resolved type is
+// really USDA).
+//
+// Fix: resolve ONE loan type up front and gate every block on that single
+// value (else-if via string equality below), never on a flag OR'd against a
+// possibly-stale sibling. financing_type is the authoritative signal
+// (chat.js's fill_forms tool schema enum is conventional|fha|va|cash|other);
+// the fv.financing_X booleans are consulted ONLY as a fallback, and ONLY when
+// exactly one of them is true — usda/reverse/tx_veterans have no
+// financing_type enum value today so a boolean flag is their only entry
+// point. Ambiguous (zero or multiple true) resolves to null: leave the whole
+// §1 loan-type section blank rather than guess or double-check boxes on a
+// document headed for signature.
+function resolveFinancingLoanType(fv) {
+  const ft = String(fv.financing_type || '').toLowerCase();
+  const ftTypes = new Set(['conventional', 'tx_veterans', 'fha', 'va', 'usda', 'reverse', 'other']);
+  if (ftTypes.has(ft)) return ft;
+  const flags = {
+    conventional: fv.financing_conventional === true,
+    tx_veterans: fv.financing_tx_veterans === true,
+    fha: fv.financing_fha === true,
+    va: fv.financing_va === true,
+    usda: fv.financing_usda === true,
+    reverse: fv.financing_reverse === true,
+    other: fv.financing_other === true,
+  };
+  const trueKeys = Object.keys(flags).filter((k) => flags[k]);
+  return trueKeys.length === 1 ? trueKeys[0] : null;
+}
+
 async function fillFinancingAddendum(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
@@ -1725,10 +1769,11 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   safeSetText(form, 'Address of Property', propertyFull || fv.property_address || '');
 
   const ft = String(fv.financing_type || '').toLowerCase();
+  const loanType = resolveFinancingLoanType(fv);
   const loanAmt = fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '';
 
   // D1 fix: Only check first mortgage checkbox if CONVENTIONAL
-  if (ft === 'conventional') {
+  if (loanType === 'conventional') {
     safeCheck(form, 'a A first mortgage loan in the principal amount of');
   }
   // D5 fix: For ANY financed deal, subject to buyer approval; ensure §2.B property-approval
@@ -1750,27 +1795,49 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   }
 
   // LOAN TYPE — wire each type's fields
-  if (ft === 'conventional' || fv.financing_conventional === true) {
+  if (loanType === 'conventional') {
     safeCheck(form, '1 Conventional Financing');
-    safeSetText(form, 'any financed PMI premium due in full in 1', loanAmt);
-    safeSetText(form, 'any financed PMI premium due in full in 2', fv.loan_amount_2 != null ? formatMoney(fv.loan_amount_2) : '');
-    safeSetText(form, 'per annum for the first', fv.interest_rate_cap || '');
-    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || '');
-    safeSetText(form, 'excluding', fv.pmi_exclusion || '');
-    safeSetText(form, 'any financed PMI premium due in full in 1_2', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : '');
-    safeSetText(form, 'any financed PMI premium due in full in 2_2', fv.second_loan_amount_2 != null && fv.second_loan_amount_2 !== '' ? formatMoney(fv.second_loan_amount_2) : '');
-    safeSetText(form, 'per annum for the first_2', fv.second_interest_rate_cap || '');
+    // 2026-08-25 CARTER — Quinn found the loan amount landing in the
+    // "due in ___ years" blank instead of the principal-amount blank.
+    // Root cause verified via a real bbox dump against the live blank
+    // asset (pdftotext -bbox cross-referenced with a pdf-lib widget-rect
+    // dump, scratchpad/40-11/): field 'any financed PMI premium due in
+    // full in 1' (despite its name) sits at x~292-330,y~530 — the "(1) A
+    // first mortgage loan ... due in full in ___ year(s)" blank — while
+    // field 'years with interest not to exceed' (despite ITS name) sits
+    // at x~374-476,y~542 — squarely on the "principal amount of $ ___
+    // (excluding..." blank. The two names are swapped relative to their
+    // real on-page position. Same swap exists on the second-mortgage sub-
+    // paragraph's equivalent fields, and 'any financed PMI premium due in
+    // full in 2' is actually the FIRST mortgage's interest-rate-% blank
+    // (x~515-544,y~531), not a second-loan-amount field. Every field below
+    // is now targeted by its VERIFIED position, not its printed name.
+    safeSetText(form, 'years with interest not to exceed', loanAmt); // real principal-amount blank
+    safeSetText(form, 'any financed PMI premium due in full in 1', fv.loan_term_years || '30'); // real "due in full in ___ years" blank
+    safeSetText(form, 'any financed PMI premium due in full in 2', fv.interest_rate_cap || ''); // real interest-rate-% blank
+    safeSetText(form, 'per annum for the first', fv.rate_cap_period_years || '30'); // rate-cap period (years) — verified correct as named
+    safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed', fv.origination_charges_cap || ''); // origination % — verified correct as named
+    // Second mortgage sub-paragraph — same swap pattern verified against
+    // the same bbox dump: 'excluding' sits on the principal-amount blank,
+    // 'any financed PMI premium due in full in 1_2' on the years blank,
+    // 'any financed PMI premium due in full in 2_2' on the interest-rate-%
+    // blank. 'per annum for the first_2' and the trailing origination-%
+    // field were already correct as named.
+    safeSetText(form, 'excluding', fv.second_loan_amount != null && fv.second_loan_amount !== '' ? formatMoney(fv.second_loan_amount) : (fv.pmi_exclusion || ''));
+    safeSetText(form, 'any financed PMI premium due in full in 1_2', fv.second_loan_term_years || fv.loan_term_years || '30');
+    safeSetText(form, 'any financed PMI premium due in full in 2_2', fv.second_interest_rate_cap || '');
+    safeSetText(form, 'per annum for the first_2', fv.second_rate_cap_period_years || '30');
     safeSetText(form, 'shown on Buyers Loan Estimate for the loan not to exceed_2', fv.second_origination_charges_cap || '');
   }
 
-  if (ft === 'tx_veterans' || fv.financing_tx_veterans === true) {
+  if (loanType === 'tx_veterans') {
     safeCheck(form, '2 Texas Veterans Loan A loans from the Texas Veterans Land Board of');
     // D8 note: AcroForm field names appear inverted per Hadley audit; this needs visual verify on TxVet render
     safeSetText(form, 'for a period in the total amount of', loanAmt);
     safeSetText(form, 'years at the interest rate established by the', fv.tx_vet_loan_years || '30');
   }
 
-  if (ft === 'fha' || fv.financing_fha === true) {
+  if (loanType === 'fha') {
     safeCheck(form, '3 FHA Insured Financing A Section');
     // D2 fix: Default FHA Section to "203(b)" if not provided
     safeSetText(form, 'undefined', fv.fha_loan_section || '203(b)');
@@ -1831,7 +1898,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
   // follow that SAME one-paragraph-forward rotation. Every field name
   // below is bbox-verified against the actual printed line/paragraph it
   // sits on; do not trust this asset's own field names for this section.
-  if (ft === 'va' || fv.financing_va === true) {
+  if (loanType === 'va') {
     // Real VA checkbox (mislabeled "6 Reverse Mortgage...").
     safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity');
     // Real VA loan-amount blank ("...loan of not less than $___").
@@ -1865,7 +1932,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'value of the Property established by the Department of Veterans Affairs', fv.va_appraised_value != null && fv.va_appraised_value !== '' ? formatMoney(fv.va_appraised_value) : (fv.sale_price != null ? formatMoney(fv.sale_price) : ''));
   }
 
-  if (ft === 'usda' || fv.financing_usda === true) {
+  if (loanType === 'usda') {
     // Real USDA checkbox (mislabeled "4 VA Guaranteed...").
     safeCheck(form, '4 VA Guaranteed Financing A VA guaranteed loan of not less than');
     // Real USDA loan-amount blank.
@@ -1883,7 +1950,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     safeSetText(form, 'Estimate for the loan not to exceed', fv.financing_usda_origination_cap || '1.00');
   }
 
-  if (ft === 'reverse' || fv.financing_reverse === true) {
+  if (loanType === 'reverse') {
     // Real Reverse Mortgage checkbox (mislabeled "5 USDA Guaranteed...").
     safeCheck(form, '5 USDA Guaranteed Financing A USDAguaranteed loan of not less than');
     // Real Reverse loan-amount blank ("...principal amount of $___").
@@ -1923,7 +1990,7 @@ async function fillFinancingAddendum(pdfDoc, fv) {
     }
   }
 
-  if (ft === 'other' || fv.financing_other === true) {
+  if (loanType === 'other') {
     safeCheck(form, '6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1');
     // F7 fix: Wire Other Financing block using -1-suffixed widget names
     safeSetText(form, 'excluding_2-1', fv.financing_other_principal || (fv.loan_amount != null ? formatMoney(fv.loan_amount) : ''));
