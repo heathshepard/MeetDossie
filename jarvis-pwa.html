@@ -4220,6 +4220,9 @@
     };
     let processingTurn = false;         // true while STT+chat+TTS round-trip runs
     let pendingEndConversation = false; // set if user taps end mid-turn
+    // Carter 2026-08-25 mic self-healing watchdog counters — see startVadLoop.
+    let __vadSuspendedTicks = 0;
+    let __vadFlatlineTicks = 0;
 
     // ===== HALF-DUPLEX VOICE STATE (Atlas 2026-06-28) =====
     // Two bugs Heath flagged 2026-06-28:
@@ -4758,6 +4761,101 @@
     try { window.__jarvisEnsureMic = ensureMic; } catch {}
     try { window.__jarvisGetPttState = () => pttState; } catch {}
 
+    // ====================================================================
+    // MIC SELF-HEALING (Carter 2026-08-25)
+    // ----------------------------------------------------------------------------
+    // Real incident: desktop-browser session ran ~15 clean utterances over
+    // 14 minutes (jarvis_stt_debug all ok_el_primary), then the table shows
+    // ZERO rows ever again — not a failed attempt, nothing reached the
+    // server. Heath confirmed the UI still visually read "listening." Root
+    // cause: continuous conversation mode intentionally reuses ONE
+    // long-lived MediaStream across every utterance (see resumeListening's
+    // "mic stream is still alive" branch — it only calls ensureMic() again
+    // if micStream is null) instead of re-acquiring per utterance. That
+    // stream had zero listeners for any of the browser's own "this capture
+    // pipeline just died" signals, so a track death, an OS-level mic
+    // mute/reclaim, or a suspended AudioContext (all real events, and the
+    // live session that night was mid-conversation about Bluetooth audio
+    // switching — a known trigger for exactly this class of failure) left
+    // the UI stuck showing "listening" forever with nothing to notice or
+    // recover. recoverMicStream() is the shared repair path: tear down the
+    // dead recorder/stream/VAD loop without firing a spurious STT call on
+    // whatever's buffered, then reacquire fresh via ensureMic() and resume
+    // capture — same primitives restartMicStream() (below, native-lifecycle
+    // path) already trusts, just reachable from more triggers.
+    let __micRecoveryInFlight = false;
+    async function recoverMicStream(reason) {
+      if (__micRecoveryInFlight) return; // one recovery at a time
+      if (!conversationActive) return;
+      __micRecoveryInFlight = true;
+      console.warn(`[jarvis-mic-recovery] recovering mic pipeline, reason=${reason}`);
+      try {
+        if (mediaRecorder) {
+          try { mediaRecorder._suppressFinalize = true; } catch {}
+          try { if (mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch {}
+          mediaRecorder = null;
+        }
+        stopVadLoop();
+        stopMicStream();
+        const stream = await ensureMic();
+        if (!stream) {
+          conversationActive = false;
+          setPttState('error', 'MIC BLOCKED');
+          showToast('Mic lost and could not reconnect. Tap to retry.');
+          return;
+        }
+        startVadLoop(stream);
+        startUtteranceRecorder(stream);
+        if (pttState !== 'speaking' && pttState !== 'thinking') {
+          setPttState('listening');
+          pttLabel.textContent = 'TAP TO END';
+          pttStatus.textContent = 'Listening — speak, then pause.';
+        }
+        showToast('Mic reconnected.', 1500);
+        console.log(`[jarvis-mic-recovery] recovered ok, reason=${reason}`);
+      } catch (err) {
+        console.error('[jarvis-mic-recovery] recovery failed', err);
+        conversationActive = false;
+        setPttState('error', 'MIC ERROR');
+        showToast(`Mic recovery failed: ${err.message}`);
+      } finally {
+        __micRecoveryInFlight = false;
+      }
+    }
+    try { window.__jarvisRecoverMicStream = recoverMicStream; } catch {}
+
+    // Cross-checks the still-active mic device against the live device list.
+    // Registered once (module scope, not per-ensureMic-call) so it can't
+    // stack duplicate listeners across many utterances/recoveries. Catches
+    // the Bluetooth-disconnect / default-input-switch case specifically —
+    // some browsers don't fire a track 'ended'/'mute' event on a device
+    // swap, they just silently start feeding a different (or dead) source.
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+        navigator.mediaDevices.addEventListener('devicechange', async () => {
+          if (!conversationActive || !micStream) return;
+          try {
+            const track = micStream.getAudioTracks()[0];
+            if (!track) return;
+            const activeId = (track.getSettings && track.getSettings().deviceId) || '';
+            if (!activeId) return; // nothing to cross-check against
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const stillPresent = devices.some(
+              (d) => d.kind === 'audioinput' && d.deviceId === activeId
+            );
+            if (!stillPresent) {
+              console.warn('[jarvis-mic-recovery] active input device disappeared from device list (devicechange)');
+              recoverMicStream('device-disconnected');
+            }
+          } catch (err) {
+            console.warn('[jarvis-mic-recovery] devicechange check failed', err);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[jarvis-mic-recovery] devicechange listener setup failed', err);
+    }
+
     // Atlas 2026-06-28: interrupt path, factored out (Carter 2026-08-22) so
     // both the manual tap-to-interrupt handler and the barge-in VAD trigger
     // (see triggerBargeIn above) share one implementation instead of two
@@ -4873,7 +4971,31 @@
       }
       const buf = new Uint8Array(analyser.fftSize);
       vadState = { speaking: false, speechStartedAt: 0, lastVoiceAt: 0, utteranceStartedAt: Date.now() };
+      // Carter 2026-08-25 self-healing counters — reset fresh every time the
+      // VAD loop (re)starts. See recoverMicStream for the incident this
+      // guards against.
+      __vadSuspendedTicks = 0;
+      __vadFlatlineTicks = 0;
       vadIntervalId = setInterval(() => {
+        // Self-healing check #1: a suspended AudioContext silently returns
+        // zero/stale analyser data forever — pttState stays 'listening',
+        // nothing errors, nothing reaches the server. Browsers can suspend
+        // an AudioContext on audio-focus changes (e.g. a Bluetooth device
+        // connecting/disconnecting mid-conversation). Try a cheap resume()
+        // first; only tear down and reacquire the whole pipeline if it's
+        // still stuck suspended after ~1s of resume attempts.
+        if (audioCtx && audioCtx.state === 'suspended') {
+          try { audioCtx.resume(); } catch {}
+          __vadSuspendedTicks++;
+          if (__vadSuspendedTicks * VAD.pollMs > 1000) {
+            __vadSuspendedTicks = 0;
+            console.warn('[jarvis-mic-recovery] AudioContext stuck suspended after resume() attempts — rebuilding mic pipeline');
+            recoverMicStream('audiocontext-suspended');
+            return;
+          }
+        } else {
+          __vadSuspendedTicks = 0;
+        }
         if (!analyser) return;
         analyser.getByteTimeDomainData(buf);
         // RMS of normalized (-1,1) signal
@@ -4915,6 +5037,28 @@
         // rest of the time anyway; the explicit gate makes that guarantee
         // instead of relying on it.
         if (pttState !== 'listening') return;
+
+        // Self-healing check #2: a bit-exact-zero RMS reading, tick after
+        // tick, while genuinely in 'listening' state is not what a real
+        // mic ever produces — even a silent room has continuous tiny
+        // electrical/quantization noise, so RMS jitters above 0. Exact 0.0
+        // sustained for 10s+ is the signature of a dead capture pipeline
+        // (track alive per readyState but the browser/OS stopped actually
+        // feeding it samples — the "zombie stream" the native-lifecycle
+        // code below already documents for the backgrounding case). This
+        // catches the same failure class on the plain desktop-browser path,
+        // where nothing else here would ever notice.
+        if (rms === 0) {
+          __vadFlatlineTicks++;
+          if (__vadFlatlineTicks * VAD.pollMs > 10000) {
+            __vadFlatlineTicks = 0;
+            console.warn('[jarvis-mic-recovery] analyser reporting bit-exact silence for 10s+ while listening — dead capture pipeline, rebuilding');
+            recoverMicStream('flatline');
+            return;
+          }
+        } else {
+          __vadFlatlineTicks = 0;
+        }
 
         const above = rms > VAD.threshold;
 
