@@ -5265,6 +5265,14 @@
             try { if (it.url) URL.revokeObjectURL(it.url); } catch {}
           }
         } catch {}
+        // Carter 2026-08-25: MSE path cleanup — drop pending chunks so a
+        // stray sourceBuffer 'updateend' can't resume appending after the
+        // user cut Jarvis off, and revoke the MediaSource object URL.
+        try {
+          if (mseHardCeiling) { clearTimeout(mseHardCeiling); mseHardCeiling = null; }
+          msePendingChunks.length = 0;
+          if (mseObjectUrl) { URL.revokeObjectURL(mseObjectUrl); mseObjectUrl = null; }
+        } catch {}
         // atlas_11 v4: also halt native AudioTrack immediately so Heath
         // can cut Jarvis off mid-word without the buffered PCM continuing
         // to play from the Sony WH.
@@ -5288,9 +5296,155 @@
       // with HSP off). Otherwise, fall back to the WebView <audio> chain.
       const useNativeOutput = isCapacitorNativeCtx() && isForceNativeOutputOn();
 
-      // When an audio MP3 arrives, build an <audio> element and queue it.
-      // If nothing is currently playing AND this is the next-expected seq,
-      // start it. Otherwise wait for chain.
+      // Carter 2026-08-25: Heath confirmed live, on the actual Bluetooth
+      // headphones he was using — turning BT off made the "skipping" stop
+      // instantly. That rules out a JS-timing/pre-buffering gap (which
+      // would glitch on any output device) and points at the WebView
+      // <audio> architecture itself: the old path built a BRAND NEW
+      // <audio> element (new blob URL, new play() call) for every single
+      // TTS sentence chunk. Each new element is a new OS/browser media
+      // playback session — frequent start/stop of separate sessions is a
+      // known trigger for A2DP codec resync glitches over Bluetooth, even
+      // when there's zero gap between them. Fix: play the WHOLE turn
+      // through ONE continuous <audio> element backed by a single
+      // MediaSource/SourceBuffer, appending each chunk as a media segment
+      // into the SAME ongoing stream instead of starting a new session per
+      // sentence. Falls back to the old per-chunk <audio> chain if the
+      // browser can't do MediaSource + audio/mpeg (defensive — keeps the
+      // tool working even on a browser this wasn't verified against).
+      const useMSE = !useNativeOutput && (function () {
+        try {
+          return typeof window.MediaSource !== 'undefined' && MediaSource.isTypeSupported('audio/mpeg');
+        } catch (e) { return false; }
+      })();
+
+      // ---- MSE single-stream playback state (used only when useMSE) ----
+      let mseAudio = null;
+      let mediaSource = null;
+      let sourceBuffer = null;
+      let mseObjectUrl = null;
+      let mseSourceOpen = false;
+      let mseAppendInProgress = false;
+      let msePendingChunks = []; // { seq, bytes } waiting to be appended, in arrival order
+      let mseSkipSeqs = new Set(); // seqs whose TTS failed server-side (audio_error) — skip when reached
+      let mseNextAppendSeq = 0;
+      let mseServerDone = false; // SSE stream reported 'done' or 'error'
+      let mseEndOfStreamCalled = false;
+      let msePlaybackStarted = false;
+      let mseHardCeiling = null;
+
+      function ensureMSEStarted() {
+        if (mseAudio) return; // already set up for this turn
+        mediaSource = new MediaSource();
+        mseAudio = new Audio();
+        mseObjectUrl = URL.createObjectURL(mediaSource);
+        mseAudio.src = mseObjectUrl;
+        activeAudio = mseAudio;
+        mediaSource.addEventListener('sourceopen', () => {
+          try {
+            sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+            sourceBuffer.addEventListener('updateend', () => {
+              mseAppendInProgress = false;
+              mseTryAppendNext();
+            });
+            sourceBuffer.addEventListener('error', (e) => {
+              console.warn('[jarvis] MSE sourceBuffer error', e);
+            });
+            mseSourceOpen = true;
+            mseTryAppendNext();
+          } catch (e) {
+            // addSourceBuffer failed despite isTypeSupported passing earlier
+            // (rare browser edge case). Don't build a mid-turn failover —
+            // the existing "no audio ever played" branch below already
+            // falls back to speech-synthesis text playback, and the 8s
+            // drainTimeout keeps this from hanging the conversation.
+            console.warn('[jarvis] MSE sourceopen setup failed:', e);
+          }
+        });
+        mseAudio.addEventListener('playing', () => {
+          if (!msePlaybackStarted) {
+            msePlaybackStarted = true;
+            anyAudioPlayed = true;
+            setPttState('speaking');
+            pttLabel.textContent = 'TAP TO INTERRUPT';
+            pttStatus.textContent = 'Speaking… (tap to cut in)';
+          }
+        });
+        mseAudio.addEventListener('ended', () => mseAdvanceEnd('ended'));
+        mseAudio.addEventListener('error', () => mseAdvanceEnd('error'));
+        // Hard ceiling for the whole turn — never sit on a stalled MSE
+        // stream forever. 2 minutes covers the longest realistic reply.
+        mseHardCeiling = setTimeout(() => mseAdvanceEnd('hard-ceiling'), 120000);
+      }
+
+      function mseTryAppendNext() {
+        if (aborted || !mseSourceOpen || mseAppendInProgress || !sourceBuffer) return;
+        while (mseSkipSeqs.has(mseNextAppendSeq)) {
+          mseSkipSeqs.delete(mseNextAppendSeq);
+          mseNextAppendSeq++;
+        }
+        const idx = msePendingChunks.findIndex((c) => c.seq === mseNextAppendSeq);
+        if (idx === -1) {
+          maybeEndMSEStream();
+          return;
+        }
+        const chunk = msePendingChunks.splice(idx, 1)[0];
+        mseNextAppendSeq = chunk.seq + 1;
+        try {
+          mseAppendInProgress = true;
+          sourceBuffer.appendBuffer(chunk.bytes);
+        } catch (e) {
+          console.warn(`[jarvis] MSE appendBuffer failed seq=${chunk.seq}:`, e);
+          mseAppendInProgress = false;
+          mseTryAppendNext();
+          return;
+        }
+        // Single play() call for the ENTIRE turn, not per chunk — this is
+        // the actual Bluetooth fix (one continuous playback session).
+        if (!msePlaybackStarted && mseAudio.paused) {
+          mseAudio.play().catch((err) => {
+            console.warn('[jarvis] MSE audio.play() rejected:', err);
+          });
+        }
+      }
+
+      function maybeEndMSEStream() {
+        if (mseEndOfStreamCalled || !mseServerDone || mseAppendInProgress) return;
+        if (msePendingChunks.length) return; // still chunks waiting on the seq gate
+        if (!mediaSource || mediaSource.readyState !== 'open') return;
+        try {
+          mediaSource.endOfStream();
+          mseEndOfStreamCalled = true;
+        } catch (e) {
+          console.warn('[jarvis] MSE endOfStream failed:', e);
+        }
+      }
+
+      function markMSEServerDone() {
+        if (!useMSE) return;
+        mseServerDone = true;
+        maybeEndMSEStream();
+      }
+
+      function mseAdvanceEnd(reason) {
+        if (mseHardCeiling) { clearTimeout(mseHardCeiling); mseHardCeiling = null; }
+        console.log(`[jarvis] MSE playback ended via ${reason}`);
+        try { if (mseObjectUrl) URL.revokeObjectURL(mseObjectUrl); } catch {}
+        if (activeAudio === mseAudio) activeAudio = null;
+        playbackCompletedResolve && playbackCompletedResolve();
+      }
+
+      function mseEnqueue(seq, bytes) {
+        msePendingChunks.push({ seq, bytes });
+        msePendingChunks.sort((a, b) => a.seq - b.seq);
+        ensureMSEStarted();
+        mseTryAppendNext();
+      }
+
+      // When an audio MP3 arrives, route it to the native bridge, the MSE
+      // continuous stream, or (fallback) build a discrete <audio> element
+      // and queue it. If nothing is currently playing AND this is the
+      // next-expected seq, start it. Otherwise wait for chain.
       function enqueueAudio(seq, base64) {
         const byteStr = atob(base64);
         const bytes = new Uint8Array(byteStr.length);
@@ -5302,13 +5456,21 @@
           // recognizes { seq, native:true, bytes } and drives the native
           // AudioTrack directly.
           audioQueue.push({ seq, native: true, bytes });
-        } else {
-          const blob = new Blob([bytes], { type: 'audio/mpeg' });
-          const url = URL.createObjectURL(blob);
-          const audio = new Audio(url);
-          audio.preload = 'auto';
-          audioQueue.push({ seq, url, audio });
+          audioQueue.sort((a, b) => a.seq - b.seq);
+          tryPlayNext();
+          return;
         }
+        if (useMSE) {
+          mseEnqueue(seq, bytes);
+          return;
+        }
+        // Legacy per-chunk <audio> path — only reached when the browser
+        // doesn't support MediaSource + audio/mpeg.
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.preload = 'auto';
+        audioQueue.push({ seq, url, audio });
         audioQueue.sort((a, b) => a.seq - b.seq);
         tryPlayNext();
       }
@@ -5528,7 +5690,10 @@
               enqueueAudio(payload.seq, payload.base64);
             } else if (eventName === 'audio_error') {
               // One sentence's TTS failed. Skip it in the play sequence.
-              if (nextPlaySeq === payload.seq) {
+              if (useMSE) {
+                mseSkipSeqs.add(payload.seq);
+                mseTryAppendNext();
+              } else if (nextPlaySeq === payload.seq) {
                 nextPlaySeq = payload.seq + 1;
                 tryPlayNext();
               }
@@ -5539,13 +5704,16 @@
                 assistantText = payload.full;
               }
               streamDone = true;
+              markMSEServerDone();
             } else if (eventName === 'error') {
               streamError = payload.error || 'stream error';
               streamDone = true;
+              markMSEServerDone();
             }
           }
         }
         streamDone = true;
+        markMSEServerDone();
 
         // If no audio EVER played, treat as fallback
         if (!anyAudioPlayed) {
@@ -5559,7 +5727,12 @@
 
         // If the last audio's onended already fired before stream ended,
         // the queue is dry now — resolve immediately so we don't deadlock.
-        if (currentlyPlayingSeq === -1 && audioQueue.length === 0) {
+        // Carter 2026-08-25: gated to !useMSE — currentlyPlayingSeq/
+        // audioQueue are never touched by the MSE path (it's always -1 / 0
+        // for an MSE turn), so this used to resolve the turn immediately
+        // instead of waiting for the single <audio> element's real 'ended'
+        // event via mseAdvanceEnd().
+        if (!useMSE && currentlyPlayingSeq === -1 && audioQueue.length === 0) {
           playbackCompletedResolve && playbackCompletedResolve();
         }
 
@@ -5595,6 +5768,7 @@
           // We were mid-playback when stream broke — let queue finish, then resume
           streamDone = true;
           tryPlayNext();
+          markMSEServerDone();
           const safety = setTimeout(() => playbackCompletedResolve && playbackCompletedResolve(), 15000);
           await playbackCompleted;
           clearTimeout(safety);
@@ -5867,6 +6041,7 @@
       // channel — see the "Live session bridge" comment above askBridge().
       let reply = '';
       try {
+        __interimAckSpokenThisTurn = false; // new turn — allow one fresh audible ack
         reply = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
       } catch (err) {
         console.error('[jarvis] bridge chat failed (walkie-talkie):', err);
@@ -5959,6 +6134,23 @@
     // legitimate ack being skipped, only stale/superseded ones.
     let __interimAckGen = 0;
     let __interimAckAudio = null;
+    // Carter 2026-08-25: Heath confirmed LIVE, on real Bluetooth headphones,
+    // that TTS "skipping" is Bluetooth-specific — turning BT off fixed it
+    // instantly. Root cause: every distinct interim-ack status update (and
+    // then the final answer) creates a BRAND NEW <audio> element/blob URL,
+    // i.e. a brand new OS/Bluetooth media playback session. A single long
+    // "Thinking…" wait can fire several distinct interim acks (askBridge's
+    // dedup only blocks an EXACT repeat, not a new status message), each
+    // starting a fresh BT session back-to-back with the final answer's own
+    // session right after — frequent session start/stop is a known A2DP
+    // codec-resync glitch trigger, independent of any gap/timing between
+    // them. Fix: cap audible interim acks to the FIRST one per turn. Later
+    // interim updates still update pttStatus text (askBridge's own poll
+    // loop already does that) — they just don't speak, cutting playback
+    // sessions per turn from "however many status changes fire" down to at
+    // most 2 (one ack + one final answer), same ceiling runBridgeChat's
+    // text-only interim handling already accepts for typed-chat mode.
+    let __interimAckSpokenThisTurn = false;
 
     // Stops any interim-ack audio that's currently playing AND invalidates
     // any interim-ack fetch/decode still in flight so it won't start
@@ -5985,6 +6177,12 @@
     // interrupt the wait for the real answer. Playback IS coordinated
     // though — see the block above this function.
     async function speakInterimAck(text) {
+      // Carter 2026-08-25 BT-glitch mitigation — see __interimAckSpokenThisTurn
+      // comment above. Only the first interim ack of a turn gets a new
+      // playback session; later ones are silently dropped (status text
+      // already updates via askBridge's own poll loop regardless).
+      if (__interimAckSpokenThisTurn) return;
+      __interimAckSpokenThisTurn = true;
       const myGen = ++__interimAckGen; // supersedes any still-playing/in-flight ack
       if (__interimAckAudio) {
         try { __interimAckAudio.pause(); } catch {}
@@ -8285,6 +8483,7 @@
     // day. See the "Route: live jarvis-bridge Cole session" comment above
     // handleUtteranceBlob.
     async function runBridgeVoiceChat(transcript) {
+      __interimAckSpokenThisTurn = false; // new turn — allow one fresh audible ack
       const answer = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
       appendMessage('assistant', answer);
       await speakBridgeAnswer(answer);
