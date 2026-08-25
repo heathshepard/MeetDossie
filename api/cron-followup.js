@@ -11,6 +11,7 @@
 // Schedule: vercel.json — 0 12 * * * (noon UTC = 7am Central).
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { REQUIRED_DOCUMENT_WATCHLIST } = require('./_lib/required-documents.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -66,53 +67,19 @@ const escapeHtml = (s) =>
 // Generalized 2026-08-11 beyond IABS to every document type that has a
 // matching transaction-level delivery/received flag (see the field enum in
 // api/chat.js) — the same false-positive class applies to any of these, not
-// just IABS. transactionFlag/documentType names are verified against the
-// live schema; a doc type is deliberately left OFF this list rather than
-// guessing a flag name that doesn't exist.
-const DOCUMENT_FOLLOWUPS = [
-  {
-    match: /\biabs\b|information about brokerage services/i,
-    transactionFlag: 'iabs_delivered_at',
-    documentType: 'iabs-form',
-    label: 'IABS',
-  },
-  {
-    match: /seller'?s?\s+disclosure|\bsdn\b/i,
-    transactionFlag: 'sellers_disclosure_received_at',
-    documentType: 'trec-sellers-disclosure',
-    label: "Seller's Disclosure Notice",
-  },
-  {
-    match: /buyer representation/i,
-    transactionFlag: 'buyer_rep_signed_at',
-    documentType: 'trec-buyer-representation',
-    label: 'Buyer Representation Agreement',
-  },
-  {
-    match: /title commitment/i,
-    transactionFlag: 'title_commitment_received_at',
-    documentType: 'title-commitment',
-    label: 'Title Commitment',
-  },
-  {
-    match: /\bsurvey\b/i,
-    transactionFlag: 'survey_received_at',
-    documentType: 'survey',
-    label: 'Survey',
-  },
-  {
-    match: /pre-?approval/i,
-    transactionFlag: 'pre_approval_received',
-    documentType: 'pre-approval-letter',
-    label: 'Pre-Approval Letter',
-  },
-  {
-    match: /\bhoa\b.*(docs|documents|addendum)/i,
-    transactionFlag: 'hoa_docs_received_at',
-    documentType: 'trec-hoa-addendum',
-    label: 'HOA Documents',
-  },
-];
+// just IABS.
+//
+// Generalized AGAIN 2026-08-25 (Atlas infra audit finding, Alpha TC Roadmap
+// #5): the list used to be hard-coded to exactly 7 types here. Any action
+// item chasing a document type outside those 7 (e.g. "Lead Paint Disclosure
+// still needed") fell through findDocumentFollowup() as unmatched and got
+// treated as a plain client-facing check-in — meaning it could auto-send
+// straight to the client at 48h with ZERO check against the documents table
+// first. Now sourced from required-documents.js, a real 16-type watchlist
+// ported from Dossie/dossie-app.jsx's own getRequiredDocs() and cross-checked
+// against scan-contract.js's real document_type enum — not a guess. See that
+// file for what's included/excluded and why.
+const DOCUMENT_FOLLOWUPS = REQUIRED_DOCUMENT_WATCHLIST;
 
 function findDocumentFollowup(item) {
   const haystack = `${item.email_subject || ''} ${item.description || ''}`;
@@ -121,19 +88,30 @@ function findDocumentFollowup(item) {
 
 // Returns { resolved, document } — resolved is true if the transaction's own
 // delivery flag is set OR a matching document already exists in the dossier.
+// cfg.transactionFlag is null for document types added 2026-08-25 that have
+// no known transaction-level delivery-flag column (see required-documents.js)
+// — for those, presence in the documents table is the only signal, which is
+// still correct (never guess a flag name that doesn't exist).
 async function checkDocumentFollowupResolved(transactionId, cfg) {
   if (!transactionId) return { resolved: false, document: null };
 
-  const [{ data: txRows }, { data: docRows }] = await Promise.all([
-    supabaseFetch(
-      `/rest/v1/transactions?id=eq.${encodeURIComponent(transactionId)}&select=${encodeURIComponent(cfg.transactionFlag)}&limit=1`,
-    ),
+  const fetches = [
     supabaseFetch(
       `/rest/v1/documents?transaction_id=eq.${encodeURIComponent(transactionId)}&document_type=eq.${encodeURIComponent(cfg.documentType)}&order=created_at.desc&limit=1`,
     ),
-  ]);
+  ];
+  if (cfg.transactionFlag) {
+    fetches.push(
+      supabaseFetch(
+        `/rest/v1/transactions?id=eq.${encodeURIComponent(transactionId)}&select=${encodeURIComponent(cfg.transactionFlag)}&limit=1`,
+      ),
+    );
+  }
+  const [{ data: docRows }, txResult] = await Promise.all(fetches);
 
-  const flagSet = Array.isArray(txRows) && txRows[0] && Boolean(txRows[0][cfg.transactionFlag]);
+  const flagSet = cfg.transactionFlag && txResult && Array.isArray(txResult.data) && txResult.data[0]
+    ? Boolean(txResult.data[0][cfg.transactionFlag])
+    : false;
   const document = Array.isArray(docRows) && docRows[0] ? docRows[0] : null;
 
   return { resolved: Boolean(flagSet) || Boolean(document), document };
