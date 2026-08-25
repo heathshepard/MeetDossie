@@ -8,6 +8,9 @@ Read this front page first every session. Topic depth lives in `docs/` — Read 
 
 Non-negotiable. Every rule exists because of a repeated mistake.
 
+**RULE 0 — SHORT, DIRECT, ONE PLACE**
+Heath has said this 4 times now (2026-07-28, 08-06, 08-07, 08-25) and it keeps drifting — worst during long sessions with lots of simultaneous background-dispatch status updates. Default reply is 3-6 lines: what happened, the number that matters, the one open question. No preamble, no restating the request, no narrating verification step-by-step. Post the answer in ONE place — never the same thing in Telegram and terminal. Long-form only for a real decision Heath must make or a report he asked for. Full detail: CLAUDE.md §17 "RESPONSE LENGTH + SPEED."
+
 **RULE 1 — SCAN BEFORE BUILD**
 Run `dir scripts/` first; if a script for that task exists, USE IT — never rebuild. DossieBot Chrome profile system (`fb-group-poster.js`, `fb-group-commenter.js`, `fb-lead-scraper.js`, `instagram-engager.js`, `linkedin-engager.js`) = foundation for all local browser automation. Read `scripts/PLAYWRIGHT-SETUP.md` before any FB/IG/LinkedIn automation.
 
@@ -165,6 +168,8 @@ Incident history → `docs/INCIDENT-LOG.md`.
 ## 17. HOW TO WORK WITH THIS CODEBASE
 
 ### RESPONSE LENGTH + SPEED — APPLIES TO EVERY AGENT
+
+See RULE 0 in Section 0 for the compressed, must-read version. Full detail below.
 
 Heath's words, 2026-07-28: responses are "extremely too lengthy" and take
 "extremely too long." Reading a wall of tables costs him more time than the work
