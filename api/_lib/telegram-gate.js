@@ -56,6 +56,7 @@
 const ALWAYS_ALLOW = new Set([
   'alert-health',            // */5 — double-probes, only alerts if still broken after retry
   'cron-pc-heartbeat-check', // */5 — only fires when a PC has actually gone silent, 1x per stale window
+  'cron-agent-requests-stale-check', // */15 — only fires when agent_requests rows are actually stuck (see file header, 2026-08-25 incident)
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
