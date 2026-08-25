@@ -5416,6 +5416,43 @@
       let currentlyPlayingSeq = -1;
       let nextPlaySeq = 0;
 
+      // Carter 2026-08-25: pre-buffer gate. Root cause of the "audible gap
+      // between sequential TTS chunks" report (distinct from the earlier
+      // Bluetooth codec-resync fix above — this one reproduces with zero BT
+      // involved): every chunk used to start playing the INSTANT it landed,
+      // with zero lookahead. ElevenLabs per-sentence TTS latency is not
+      // guaranteed to beat the playback duration of the sentence before it —
+      // a short, fast-to-synthesize sentence #1 can finish playing before
+      // sentence #2's audio has even arrived from the server, so the player
+      // (MSE buffer runs dry -> HTMLMediaElement 'waiting', or the legacy/
+      // native queue simply has nothing at nextPlaySeq yet) sits in genuine
+      // silence until #2 shows up. Fix: don't start audible playback until
+      // either 2 chunks are buffered or the server has already said 'done'
+      // (short one-chunk replies must not be delayed), capped at 500ms so a
+      // slow first chunk never turns into a long stuck-silent PWA. Segments
+      // still get appended into the MSE buffer / audioQueue immediately as
+      // they arrive either way — only the moment we start audibly playing is
+      // deferred, same trick real streaming players use to avoid underrun.
+      const PREBUFFER_CHUNKS = 2;
+      const PREBUFFER_MAX_WAIT_MS = 500;
+      let playbackArmed = false;
+      let armTimer = null;
+      let chunksArrivedCount = 0;
+      function armPlayback() {
+        if (playbackArmed) return;
+        playbackArmed = true;
+        if (armTimer) { clearTimeout(armTimer); armTimer = null; }
+        if (useMSE) { mseTryAppendNext(); } else { tryPlayNext(); }
+      }
+      function maybeArmPlayback() {
+        if (playbackArmed) return;
+        if (chunksArrivedCount >= PREBUFFER_CHUNKS || streamDone) {
+          armPlayback();
+        } else if (!armTimer) {
+          armTimer = setTimeout(armPlayback, PREBUFFER_MAX_WAIT_MS);
+        }
+      }
+
       // Atlas 2026-06-28: interrupt hook. Heath taps the mic while Jarvis
       // is speaking → onPttClick calls window.__jarvisInterruptTTS('user-tap')
       // which sets aborted=true, pauses the current <audio>, drops the queue,
@@ -5445,6 +5482,10 @@
           msePendingChunks.length = 0;
           if (mseObjectUrl) { URL.revokeObjectURL(mseObjectUrl); mseObjectUrl = null; }
         } catch {}
+        // Carter 2026-08-25: pre-buffer gate cleanup — a stray armTimer
+        // firing after the user already cut Jarvis off would call
+        // tryPlayNext()/mseTryAppendNext() into a torn-down queue.
+        try { if (armTimer) { clearTimeout(armTimer); armTimer = null; } } catch {}
         // atlas_11 v4: also halt native AudioTrack immediately so Heath
         // can cut Jarvis off mid-word without the buffered PCM continuing
         // to play from the Sony WH.
@@ -5573,7 +5614,11 @@
         }
         // Single play() call for the ENTIRE turn, not per chunk — this is
         // the actual Bluetooth fix (one continuous playback session).
-        if (!msePlaybackStarted && mseAudio.paused) {
+        // Carter 2026-08-25: gated on playbackArmed (see PREBUFFER comment
+        // above) — the segment is appended into the buffer either way, but
+        // we hold off calling play() until the pre-buffer gate says go, so
+        // there's runway buffered before audio becomes audible at all.
+        if (!msePlaybackStarted && mseAudio.paused && playbackArmed) {
           mseAudio.play().catch((err) => {
             console.warn('[jarvis] MSE audio.play() rejected:', err);
           });
@@ -5621,6 +5666,7 @@
         const byteStr = atob(base64);
         const bytes = new Uint8Array(byteStr.length);
         for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+        chunksArrivedCount++;
         if (useNativeOutput) {
           // Native bridge path — no <audio> element, no <blob> URL. We
           // still queue an item so the sequence gate + interrupt hooks
@@ -5629,11 +5675,13 @@
           // AudioTrack directly.
           audioQueue.push({ seq, native: true, bytes });
           audioQueue.sort((a, b) => a.seq - b.seq);
-          tryPlayNext();
+          maybeArmPlayback();
+          if (playbackArmed) tryPlayNext();
           return;
         }
         if (useMSE) {
           mseEnqueue(seq, bytes);
+          maybeArmPlayback();
           return;
         }
         // Legacy per-chunk <audio> path — only reached when the browser
@@ -5644,11 +5692,13 @@
         audio.preload = 'auto';
         audioQueue.push({ seq, url, audio });
         audioQueue.sort((a, b) => a.seq - b.seq);
-        tryPlayNext();
+        maybeArmPlayback();
+        if (playbackArmed) tryPlayNext();
       }
 
       function tryPlayNext() {
         if (aborted) return; // user interrupted — don't start next clip
+        if (!playbackArmed) return; // pre-buffer gate not open yet
         if (currentlyPlayingSeq !== -1) return; // something playing
         const idx = audioQueue.findIndex((it) => it.seq === nextPlaySeq);
         if (idx === -1) return; // next-expected not yet arrived
@@ -5877,10 +5927,15 @@
               }
               streamDone = true;
               markMSEServerDone();
+              // A short (single-chunk) reply would otherwise sit behind the
+              // 2-chunk pre-buffer gate until the 500ms timeout — arm now
+              // since we know for certain no more chunks are coming.
+              maybeArmPlayback();
             } else if (eventName === 'error') {
               streamError = payload.error || 'stream error';
               streamDone = true;
               markMSEServerDone();
+              maybeArmPlayback();
             }
           }
         }
