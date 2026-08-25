@@ -1,6 +1,7 @@
 // Vercel Serverless Function: /api/admin-stripe-tools
 // Tiny operations endpoint for inspecting and configuring our Stripe account.
 //   GET  ?action=get_price&price_id=<id> → unit_amount/currency/recurring
+//   GET  ?action=get_account → read-only business_profile/company address + support contact
 //   POST { action: "create_price", product_name, unit_amount, currency?, interval, nickname? }
 //   POST { action: "create_coupon", id, percent_off?, amount_off?, currency?, duration }
 //   POST { action: "cancel_subscription", subscription_id, hard_cancel? } → cancel_at_period_end=true by default
@@ -46,6 +47,21 @@ module.exports = async function handler(req, res) {
           active: price.active,
           nickname: price.nickname,
           product: price.product,
+        },
+      });
+    }
+
+    if (action === 'get_account') {
+      // Read-only. Surfaces whatever business address/support contact Stripe
+      // has on file so we can confirm it before ever touching it.
+      const acct = await stripe.accounts.retrieve();
+      return res.status(200).json({
+        ok: true,
+        account: {
+          id: acct.id,
+          business_profile: acct.business_profile || null,
+          company: acct.company ? { name: acct.company.name, address: acct.company.address || null } : null,
+          individual: acct.individual ? { address: acct.individual.address || null } : null,
         },
       });
     }
