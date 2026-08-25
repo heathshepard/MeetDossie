@@ -4716,6 +4716,33 @@
         } catch (logErr) {
           console.warn('[jarvis-aec] getSettings failed:', logErr);
         }
+        // Carter 2026-08-25: real-outage root-cause fix. Desktop browser
+        // session ran ~15 clean utterances over 14min, then jarvis_stt_debug
+        // shows ZERO further rows ever — no failed attempt, nothing. Heath
+        // confirmed the UI still visually read "listening." That means the
+        // capture pipeline died silently upstream of any network call, with
+        // nothing to detect or recover from it. The one long-lived MediaStream
+        // (see resumeListening's "mic stream is still alive" comment — it's
+        // intentionally reused across many utterances per conversation, not
+        // re-acquired each turn) has zero listeners for the browser's own
+        // "this track just died" signals. Wire them here so a real track
+        // death is caught the instant it happens instead of silently.
+        try {
+          if (track && typeof track.addEventListener === 'function') {
+            track.addEventListener('ended', () => {
+              console.warn('[jarvis-mic-recovery] mic track ended unexpectedly (device revoked/disconnected)');
+              if (conversationActive) recoverMicStream('track-ended');
+            });
+            track.addEventListener('mute', () => {
+              console.warn('[jarvis-mic-recovery] mic track muted at OS/device level');
+            });
+            track.addEventListener('unmute', () => {
+              console.warn('[jarvis-mic-recovery] mic track unmuted');
+            });
+          }
+        } catch (trackErr) {
+          console.warn('[jarvis-mic-recovery] track event wiring failed:', trackErr);
+        }
         return stream;
       } catch (err) {
         console.error('[jarvis] mic error', err);
@@ -8357,10 +8384,24 @@
       // day (delay + mid-word cutoff, Bluetooth-only, intermittent — matching
       // a route that has to re-establish per reply rather than staying warm).
       const useNativeOutput = isCapacitorNativeCtx() && isForceNativeOutputOn() && !!window.__jarvisNativePlayMp3Bytes;
-      // Read the body exactly once — arrayBuffer() and blob() can't both be
-      // called on the same Response. Derive both the native Uint8Array and
-      // the WebView-fallback Blob from this single buffer.
-      const ttsArrayBuffer = await ttsRes.arrayBuffer();
+      // Carter 2026-08-25: found and fixed while verifying the BT-skip
+      // report — this used to read ttsRes.arrayBuffer() unconditionally
+      // here, then EVERY non-native call (all of desktop/WebView use,
+      // including the native-failure fallback below) hit ttsRes.blob() on
+      // an ALREADY-CONSUMED body and threw "Failed to execute 'blob' on
+      // 'Response': body stream already read" — 100% reproducible,
+      // confirmed via a direct call to this function against live staging.
+      // That throw propagates up through runBridgeVoiceChat, caught by
+      // handleUtteranceBlob's outer catch, which silently replaces the
+      // real ElevenLabs answer with a robotic browser-SpeechSynthesis
+      // "Connection hiccup, sir. Try again." on every desktop voice reply.
+      // Fix: clone() BEFORE either branch touches the body — the native
+      // branch consumes the original via arrayBuffer(), the WebView branch
+      // (used directly here on non-native contexts, and as the fallback
+      // when native playback itself throws) consumes the independent clone
+      // via blob(). A Response body can only be read once ever, so the
+      // clone must happen before the first read, not after.
+      const ttsResForBlob = ttsRes.clone();
 
       // Carter 2026-08-22: idempotent guard + a hard-ceiling safety net —
       // Heath's live truck test (same session as the native-bridge fix
@@ -8407,6 +8448,7 @@
           try { window.__jarvisNativeStopPlayback && window.__jarvisNativeStopPlayback(); } catch {}
         };
         try {
+          const ttsArrayBuffer = await ttsRes.arrayBuffer();
           const bytes = new Uint8Array(ttsArrayBuffer);
           await window.__jarvisNativePlayMp3Bytes(bytes);
           clearTimeout(hardCeiling);
@@ -8420,7 +8462,7 @@
         }
       }
 
-      const audioBlob = await ttsRes.blob();
+      const audioBlob = await ttsResForBlob.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       let bridgeVoiceAborted = false;
