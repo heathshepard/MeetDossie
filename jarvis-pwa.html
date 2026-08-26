@@ -1523,6 +1523,36 @@
     .jb-item-body.hidden { display: none; }
     .jb-status-note { font-size: 12px; line-height: 1.45; color: var(--txt-mute); white-space: pre-wrap; word-wrap: break-word; }
     .jb-item-meta { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-faint); }
+    /* ===== ALWAYS-VISIBLE PREVIEW + STALENESS CONFIRM (2026-08-26) =====
+       Heath's complaint: cards only showed name + court flag; the actual
+       context (status_note) was hidden behind the expand toggle, so he had
+       to click (or ask Cole) to know what a card even referred to -- and
+       once a ball went stale (Wild Cherry sat 13 days after the amendment
+       was actually signed; the Dossie deck ball said "not started" after
+       the deck had actually been built) nothing ever prompted him to check.
+       Fix: (1) a one-line truncated status_note always visible under the
+       court line, no click required. (2) once a ball crosses the existing
+       48h "very-stale" threshold, an inline confirm bar replaces guessing
+       with an explicit choice -- "still true" bumps last_updated (same
+       write path Jarvis already uses conversationally), the existing ✕
+       handles "done." */
+    .jb-preview {
+      margin: 4px 0 0 22px; font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute); overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    }
+    .jb-stale-confirm {
+      margin: 8px 0 0 22px; padding: 6px 8px; border-radius: 6px;
+      background: rgba(255, 82, 82, 0.06); border: 1px solid var(--fail);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .jb-stale-confirm-text { font-size: 10.5px; color: var(--fail); flex: 1 1 auto; }
+    .jb-stale-confirm-btn {
+      background: transparent; border: 1px solid var(--fail); border-radius: 5px;
+      color: var(--fail); font-size: 10px; letter-spacing: 0.04em;
+      padding: 4px 8px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
+    }
+    .jb-stale-confirm-btn:hover { background: rgba(255, 82, 82, 0.12); }
 
     /* ===== PANEL DRAG-AND-DROP REORDER (v1, 2026-08-12) =====
        draggable="true" is set at runtime (initPanelDragDrop() in the boot
@@ -2533,8 +2563,19 @@
       border-color: rgba(139, 168, 136, 0.3);
       background: rgba(139, 168, 136, 0.06);
     }
+    /* Stale variant (2026-08-26) — a row running longer than the
+       cron-agent-queue-orphan-reset threshold (75 min) is no longer a
+       confident "still working" signal; it's flagged so Heath can tell FYI
+       from "this might actually be stuck" at a glance instead of every row
+       looking identical regardless of how long it's been running. */
+    .bg-jobs-item.stale {
+      border-color: rgba(232, 131, 107, 0.5);
+      background: rgba(232, 131, 107, 0.08);
+    }
+    .bg-jobs-item.stale .bg-jobs-state { color: var(--fail, #E8836B); }
     .bg-jobs-item .bg-jobs-agent { color: var(--cyan-bright); font-weight: 600; text-transform: capitalize; }
     .bg-jobs-item .bg-jobs-elapsed { color: var(--txt-faint); font-variant-numeric: tabular-nums; }
+    .bg-jobs-item .bg-jobs-state { color: var(--ok); font-size: 10px; letter-spacing: 0.02em; }
     /* Dismiss control (2026-08-22 PM revision) — only rendered on .done
        items; an in-progress job isn't dismissible, it's still running.
        Same visual language as .jb-del-btn elsewhere in this file. */
@@ -7031,6 +7072,7 @@
         const createdStr = b.created_at
           ? new Date(b.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
           : '—';
+        const isVeryStale = elapsed.level === 'very-stale';
         row.innerHTML = `
           <div class="jb-item-head">
             <button class="jb-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
@@ -7047,6 +7089,12 @@
             <span class="jb-court-end jb-court-them ${mine ? '' : 'active'}" title="${escapeHtml(mine ? '' : (b.court || ''))}"></span>
           </div>
           <div class="jb-court-status ${mine ? 'mine' : 'other'}"></div>
+          <div class="jb-preview" title="${escapeHtml(b.status_note || '')}"></div>
+          ${isVeryStale ? `
+          <div class="jb-stale-confirm">
+            <span class="jb-stale-confirm-text">No update in ${elapsed.text} — still true?</span>
+            <button class="jb-stale-confirm-btn jb-still-btn" type="button">Still true, keep it</button>
+          </div>` : ''}
           <div class="jb-item-body ${expanded ? '' : 'hidden'}">
             <div class="jb-status-note"></div>
             <div class="jb-item-meta">Since ${lastUpdatedStr} · added ${createdStr}</div>
@@ -7056,6 +7104,7 @@
         row.querySelector('.jb-name').textContent = b.name;
         row.querySelector('.jb-court-them').textContent = mine ? 'OTHER' : (b.court || '').toUpperCase();
         row.querySelector('.jb-court-status').textContent = mine ? 'Your move' : `Waiting on ${b.court}`;
+        row.querySelector('.jb-preview').textContent = b.status_note || '(no detail — click to add context next time you tell Jarvis about this)';
         row.querySelector('.jb-status-note').textContent = b.status_note || '(no detail)';
         list.appendChild(row);
 
@@ -7065,6 +7114,8 @@
           toggleJbExpand(b.id);
         });
         row.querySelector('.jb-del-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteJb(b.id); });
+        const stillBtn = row.querySelector('.jb-still-btn');
+        if (stillBtn) stillBtn.addEventListener('click', (e) => { e.stopPropagation(); bumpJbStillTrue(b.id, stillBtn); });
       });
 
       // FLIP playback: for any ball whose x-position moved since the last
@@ -7106,6 +7157,23 @@
       } catch (err) {
         console.warn('[jarvis] deleteJb failed', err);
         showToast('Could not dismiss.');
+      }
+    }
+
+    // "Still true, keep it" -- the staleness-confirm button's one job: bump
+    // last_updated to now via the same write path Jarvis uses conversationally,
+    // so a ball that's genuinely still waiting stops reading as abandoned data
+    // without Heath having to say anything out loud to reset it.
+    async function bumpJbStillTrue(id, btnEl) {
+      if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Updating…'; }
+      try {
+        const { error } = await supabase.from('jarvis_balls').update({ last_updated: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        await loadJarvisBalls();
+      } catch (err) {
+        console.warn('[jarvis] bumpJbStillTrue failed', err);
+        showToast('Could not update.');
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Still true, keep it'; }
       }
     }
 
@@ -7790,16 +7858,37 @@
         const bStart = new Date(b[1].item.started_at || b[1].item.created_at).getTime();
         return aStart - bStart;
       });
+      // Same threshold cron-agent-queue-orphan-reset.js uses to flag a
+      // live-dispatch agent_queue row as stuck (STALE_LIVE_DISPATCH_MINUTES).
+      // Kept in sync manually — both intentionally read "75 minutes."
+      const BG_JOBS_STALE_MINUTES = 75;
       list.innerHTML = rows.map(([id, entry]) => {
         const it = entry.item;
         const isDone = !!entry.doneAt;
+        const startedMs = it.started_at || it.created_at ? new Date(it.started_at || it.created_at).getTime() : null;
+        const ageMin = !isDone && startedMs ? Math.floor((Date.now() - startedMs) / 60000) : 0;
+        const isStale = !isDone && ageMin >= BG_JOBS_STALE_MINUTES;
         const elapsed = isDone ? '✓ done' : fmtBgElapsed(it.started_at || it.created_at);
         const rawTitle = it.title || '(no description)';
         const title = rawTitle.length > 46 ? rawTitle.slice(0, 45) + '…' : rawTitle;
-        return `<span class="bg-jobs-item${isDone ? ' done' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(rawTitle)}">
+        // Plain-language state (2026-08-26, same fix pattern applied to
+        // jarvis_balls earlier tonight): every row here is status=in_progress
+        // by definition, so the useful distinction for Heath isn't the raw
+        // status word, it's whether this needs a look. Nothing here is ever
+        // "waiting on you" — it's either FYI (still working normally) or a
+        // heads-up that it's run long enough the orphan-reset cron will
+        // likely reclaim it soon.
+        const stateText = isDone ? '' : (isStale ? `possibly stuck (${elapsed}) — auto-resets ~75m` : 'working — FYI, no action needed');
+        const tooltip = isDone
+          ? `${rawTitle} — finished`
+          : (isStale
+            ? `${rawTitle} — running ${elapsed}, longer than the normal 75-minute window. cron-agent-queue-orphan-reset will reclaim it automatically if it's truly dead; nothing for you to do.`
+            : `${rawTitle} — an agent is actively working on this. FYI only, no action needed.`);
+        return `<span class="bg-jobs-item${isDone ? ' done' : ''}${isStale ? ' stale' : ''}" data-id="${escapeHtml(id)}" title="${escapeHtml(tooltip)}">
           <span class="bg-jobs-agent">${escapeHtml(it.agent || '?')}</span>
           <span class="bg-jobs-title">${escapeHtml(title)}</span>
           <span class="bg-jobs-elapsed">${escapeHtml(elapsed)}</span>
+          ${stateText ? `<span class="bg-jobs-state">${escapeHtml(stateText)}</span>` : ''}
           ${isDone ? `<button class="bg-jobs-dismiss" data-dismiss-id="${escapeHtml(id)}" title="Clear" aria-label="Clear completed job">✕</button>` : ''}
         </span>`;
       }).join('');
@@ -8201,7 +8290,7 @@
     // Content kinds that already carry the FULL, final content in `details`
     // (a fully-drafted email or post) — Details/Ask Detail should show that
     // content immediately, no agent round-trip needed.
-    const PENDING_CONTENT_KINDS = new Set(['outbound_email', 'email_queue', 'social_post', 'sage_research_draft', 'founding_application']);
+    const PENDING_CONTENT_KINDS = new Set(['outbound_email', 'email_queue', 'social_post', 'sage_research_draft', 'founding_application', 'cold_email_batch']);
 
     // Plain-text rendering of item.details for the pending-approval modal.
     // Root cause fixed here (Carter, 2026-08-12): the modal used to dump
@@ -8241,6 +8330,26 @@
           '',
           d.full_content || item.subtitle || '(no content)',
         ].filter((l) => l !== null).join('\n');
+      }
+
+      if (kind === 'cold_email_batch') {
+        const samples = Array.isArray(d.samples) ? d.samples : [];
+        const sampleText = samples.map((s, i) => [
+          `--- Sample ${i + 1} of ${d.recipient_count || samples.length} ---`,
+          `To: ${s.to_email || '(unknown)'}`,
+          `Subject: ${s.subject || '(no subject)'}`,
+          s.body_text || '(no body preview)',
+        ].join('\n')).join('\n\n');
+        return [
+          `Campaign: ${d.campaign || '(no campaign tag)'}${d.touch != null ? ' (touch ' + d.touch + ')' : ''}`,
+          `Recipients: ${d.recipient_count || samples.length}`,
+          '',
+          sampleText || '(no samples available)',
+          samples.length < (d.recipient_count || 0) ? `\n(+ ${d.recipient_count - samples.length} more not shown)` : '',
+          '',
+          'Approve = every email in this batch becomes sendable (still respects each row\'s scheduled send_after time).',
+          'Reject = every email in this batch is discarded, none will send.',
+        ].filter((l) => l !== '').join('\n');
       }
 
       if (kind === 'founding_application') {
