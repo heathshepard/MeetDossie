@@ -95,8 +95,24 @@
  * file's own documented recurring bug above, an already-open tab or
  * installed PWA will keep running stale JS and never show a brand-new
  * button unless the cache key changes.
+ *
+ * 2026-08-26 (Atlas): cache key bumped to v14. Root cause of "mic self-
+ * healing isn't working" (2026-08-26 live report): the mic self-heal code
+ * itself (recoverMicStream + the 4 real triggers, commits ab26e7ac/1aad1fe4,
+ * shipped 2026-08-25 ~14:47-14:51) is correct on disk and re-verified in a
+ * real signed-in browser session today -- but this SW file (and therefore
+ * CACHE) was never touched by those commits, and per the exact recurring
+ * pattern documented above (v9/v10/v13), an already-open Jarvis session from
+ * BEFORE that fix shipped has been running the old in-memory JS ever since --
+ * no self-heal code was ever loaded into it, so of course it never fired.
+ * Three more commits landed on top since (TTS pre-buffer 3c604ef8, jarvis-
+ * balls 4d35502e, jarvis-approvals 26ff25cc) with the same gap. Bumping now
+ * forces the controllerchange->reload cycle on Heath's NEXT real navigation.
+ * If a plain tab reload doesn't pick it up (Android suspend/resume is not a
+ * real navigation, per the v10 comment), a true close + reopen or Force stop
+ * is required.
  */
-const CACHE = 'jarvis-pwa-v13-2026-08-22-session-log';
+const CACHE = 'jarvis-pwa-v14-2026-08-26-mic-self-heal-propagate';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
