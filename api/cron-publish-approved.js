@@ -1001,9 +1001,11 @@ module.exports = async function handler(req, res) {
     }
 
     // Media gate: block publish if the post requires a video/image that hasn't been attached yet.
-    // video_required is set per-platform in cron-generate-posts: true for tiktok/youtube only.
-    // Instagram now uses HCTI image cards (media_url set at generation time) — video_required=false.
-    // Twitter, LinkedIn, Facebook, and Instagram all publish without this gate.
+    // video_required is set per-platform in cron-generate-posts.js: true for
+    // facebook/instagram/tiktok/youtube (updated 2026-08-26 — the HCTI card
+    // path that used to set video_required=false for facebook/instagram is
+    // gone; see the "Card renderer — REMOVED" comment block there). Twitter
+    // and LinkedIn stay text-only and skip this gate.
     const needsVideo = post.video_required === true;
     if (needsVideo && !post.media_url) {
       const blockReason = 'video_required=true but media_url is null — Creatomate pipeline must render and attach video before publish';
