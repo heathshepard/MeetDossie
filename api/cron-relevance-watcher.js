@@ -169,12 +169,29 @@ const ESP_DOMAINS = [
   'sendinblue.com', 'brevo.com',
   'convertkit.com', 'ck.page',
   'zernio.com',
+  // Infra/deploy noise (Atlas 2026-08-26) — alert-health already owns real
+  // outage alerting; a "your Vercel preview failed to build" email is not a
+  // deal/client/customer signal and was previously slipping through relevant
+  // because the From-domain check never actually ran (see gmailFetch bugfix
+  // above). Confirmed real: 6 of 64 historical hits were exactly this.
+  'vercel.com', 'vercel-status.com',
 ];
 
 const NOREPLY_FROM_PATTERNS = [
   /noreply@/i, /no-reply@/i, /do[-_.]?not[-_.]?reply@/i, /donotreply@/i,
   /automated@/i, /notifications?@/i, /mailer-daemon@/i, /postmaster@/i,
   /bounces?@/i, /autoresponder@/i, /marketing@/i, /newsletter@/i,
+];
+
+// Heath's own outbound addresses. Copies of his own sent mail (e.g. a Resend
+// send from heath@meetdossie.com landing back in his kw.com inbox) are not a
+// "did something happen" signal — he already knows what he sent. Confirmed
+// real: several historical hits were exactly Heath's own outreach copy text
+// ("Hey Suzanne, I built Dossie...") misclassified as relevant inbound.
+const SELF_SENT_PATTERNS = [
+  /^heath@meetdossie\.com$/i,
+  /^hello@meetdossie\.com$/i,
+  /^heath\.shepard@kw\.com$/i,
 ];
 
 const BLOCKED_LABEL_IDS = new Set(['CATEGORY_PROMOTIONS', 'CATEGORY_UPDATES', 'CATEGORY_SOCIAL', 'CATEGORY_FORUMS', 'SPAM', 'TRASH', 'DRAFT']);
@@ -190,6 +207,7 @@ function isBulkMail({ fromEmail, hasListUnsubscribe, labelIds }) {
   const domain = domainOf(fromEmail);
   if (domain && ESP_DOMAINS.some((d) => domain === d || domain.endsWith('.' + d))) return 'esp_domain';
   if (NOREPLY_FROM_PATTERNS.some((rx) => rx.test(fromEmail))) return 'noreply_pattern';
+  if (SELF_SENT_PATTERNS.some((rx) => rx.test(fromEmail))) return 'self_sent_copy';
   return null;
 }
 
@@ -244,7 +262,7 @@ async function updateCheckpoint({ newTs, status, matches, notes }) {
 async function loadActiveDeals() {
   const res = await supaFetch(
     `transactions?user_id=eq.${encodeURIComponent(HEATH_KW_USER_ID)}&status=neq.closed` +
-    `&select=property_address,buyer_name,seller_name,client_names,dossier_number,stage`,
+    `&select=id,property_address,buyer_name,seller_name,client_names,dossier_number,stage`,
     { method: 'GET' },
   );
   if (!res.ok) {
@@ -255,12 +273,25 @@ async function loadActiveDeals() {
   return (Array.isArray(rows) ? rows : [])
     .filter((r) => (r.property_address || r.buyer_name || r.seller_name || r.client_names))
     .map((r) => ({
+      id: r.id,
       address: r.property_address || null,
       buyer: r.buyer_name || null,
       seller: r.seller_name || null,
       client_names: r.client_names || null,
       stage: r.stage || null,
     }));
+}
+
+// Best-effort match of the Haiku-returned MATCH string back to one of Heath's
+// live deals, so a real deal hit can carry a transaction_id into dossie_asks
+// (not just sit in relevance_watch_hits, which nothing surfaces in-app).
+// Deliberately conservative: substring match against address only. A miss
+// just means the hit still gets a Telegram alert without a deal card — never
+// blocks the alert.
+function matchDealByVerdict(matched, deals) {
+  if (!matched) return null;
+  const needle = String(matched).toLowerCase();
+  return deals.find((d) => d.address && needle.includes(d.address.toLowerCase().split(',')[0].trim())) || null;
 }
 
 async function loadGoogleTokens() {
@@ -283,7 +314,15 @@ async function persistAccessToken(accessToken, expiresAt) {
 }
 
 async function insertHit(row) {
-  const res = await supaFetch('relevance_watch_hits', {
+  // BUGFIX (Atlas, 2026-08-26): PostgREST's `Prefer: resolution=merge-
+  // duplicates` is a no-op without `on_conflict=<col>` in the URL telling it
+  // which constraint to upsert against — omitting it means a duplicate
+  // gmail_message_id (e.g. a manually-rewound checkpoint reprocessing a
+  // message already on file) hits the plain unique-constraint violation
+  // (23505) instead of updating. Reproduced live: this was silently eating
+  // inserts any time the same message got re-seen. Never surfaced before
+  // because normal 15-min incremental runs never revisit an old checkpoint.
+  const res = await supaFetch('relevance_watch_hits?on_conflict=gmail_message_id', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify([row]),
@@ -319,8 +358,33 @@ async function refreshGoogleToken(refreshToken) {
   return data;
 }
 
+// BUGFIX (Atlas, 2026-08-26): new URLSearchParams({ metadataHeaders: [...] })
+// stringifies an array value by joining it with commas into ONE query value
+// ("From,To,Subject,..."), not repeated `metadataHeaders=From&metadataHeaders=To`
+// params. Gmail's messages.get only returns headers that exactly match a
+// requested name, so every format=metadata call here was asking for a header
+// literally named "From,To,Subject,Date,List-Unsubscribe" — which doesn't
+// exist — and got an empty headers array back every single time. Verified:
+// every one of the 64 rows written to relevance_watch_hits before this fix has
+// from_email/from_name/subject = null, and the bulk-mail prefilter (which also
+// depends on the From header) never actually filtered anything by sender
+// domain. classifyEmail() still worked because it also gets the Gmail
+// `snippet`, which is NOT header-derived — that's why past verdicts/reasons
+// read correctly despite blank From/Subject.
+function buildGmailQuery(params) {
+  const qs = new URLSearchParams();
+  for (const [key, val] of Object.entries(params || {})) {
+    if (Array.isArray(val)) {
+      for (const v of val) qs.append(key, v);
+    } else if (val !== undefined && val !== null) {
+      qs.append(key, val);
+    }
+  }
+  return qs.toString();
+}
+
 async function gmailFetch(accessToken, path, params = {}) {
-  const qs = new URLSearchParams(params).toString();
+  const qs = buildGmailQuery(params);
   const url = `https://gmail.googleapis.com/gmail/v1/users/me/${path}${qs ? `?${qs}` : ''}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   const data = await res.json().catch(() => null);
@@ -438,17 +502,22 @@ async function classifyEmail({ fromDisplay, subject, snippet }, contextBlock) {
 }
 
 // --------------------------------------------------------------------------
-// Telegram — written, feature-flagged OFF. See file header.
+// Telegram — live as of 2026-08-26 (RELEVANCE_WATCHER_NOTIFY=1). Also gated
+// by api/_lib/telegram-gate.js's TELEGRAM_CRON_NOTIFICATIONS allowlist.
 // --------------------------------------------------------------------------
+
+const escapeHtml = (s) =>
+  String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 async function sendRelevanceTelegramAlert(hit) {
   if (!NOTIFY_ENABLED) return { ok: true, skipped: true, reason: 'notify_disabled' };
   if (!TELEGRAM_BOT_TOKEN) return { ok: false, skipped: true, reason: 'no_telegram_token' };
   const text = [
-    `📧 <b>Relevant email</b> — ${hit.matched_deal_or_person || 'unmatched'}`,
-    `From: ${hit.from_name ? `${hit.from_name} <${hit.from_email}>` : hit.from_email}`,
-    `Subject: ${hit.subject || '(no subject)'}`,
-    hit.reason ? `<i>${hit.reason}</i>` : null,
+    `📧 <b>Relevant email</b> — ${escapeHtml(hit.matched_deal_or_person || 'unmatched')}`,
+    `From: ${escapeHtml(hit.from_name ? `${hit.from_name} <${hit.from_email}>` : (hit.from_email || 'unknown'))}`,
+    `Subject: ${escapeHtml(hit.subject || '(no subject)')}`,
+    hit.reason ? `<i>${escapeHtml(hit.reason)}</i>` : null,
+    hit.snippet ? escapeHtml(hit.snippet) : null,
     hit.gmail_thread_id ? `<a href="https://mail.google.com/mail/u/0/#inbox/${hit.gmail_thread_id}">Open thread</a>` : null,
   ].filter(Boolean).join('\n\n');
 
@@ -458,7 +527,57 @@ async function sendRelevanceTelegramAlert(hit) {
     body: JSON.stringify({ chat_id: HEATH_TELEGRAM_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true }),
   });
   const data = await res.json().catch(() => null);
-  return { ok: res.ok && data?.ok, status: res.status };
+  // data.suppressed=true means telegram-gate ate this call — distinguishes a
+  // real send from a muted one for the run stats below (see TELEGRAM_CRON_
+  // NOTIFICATIONS in telegram-gate.js).
+  return { ok: res.ok && data?.ok, status: res.status, suppressed: !!(data && data.suppressed) };
+}
+
+// Route a real deal-matched hit into dossie_asks too, so it surfaces on the
+// app home screen (Morning Brief) — not just Telegram, which Heath has said
+// he's drifting away from. Dedupes on source so a re-run of the same message
+// (checkpoint overlap, manual reprocessing) never double-cards.
+async function createEmailAsk({ userId, transactionId, matchedLabel, subject, snippet, reason, gmailThreadId, messageId }) {
+  const source = `email:${messageId}`;
+  const existing = await supaFetch(`dossie_asks?source=eq.${encodeURIComponent(source)}&select=id&limit=1`);
+  if (existing.ok) {
+    const rows = await existing.json().catch(() => []);
+    if (Array.isArray(rows) && rows.length) return { ok: true, skipped: true, reason: 'already_filed' };
+  }
+
+  const threadUrl = gmailThreadId ? `https://mail.google.com/mail/u/0/#inbox/${gmailThreadId}` : null;
+  const body = [
+    reason || 'A new email came in on this deal.',
+    subject ? `Subject: ${subject}` : null,
+    snippet || null,
+  ].filter(Boolean).join('\n\n').slice(0, 2000);
+
+  const payload = {
+    user_id: userId,
+    transaction_id: transactionId,
+    urgency: 'normal',
+    title: `New email — ${String(matchedLabel || 'deal update').slice(0, 140)}`,
+    body: body || 'A new email came in on this deal.',
+    due_at: null,
+    due_label: null,
+    suggested_actions: [
+      { id: 'reviewed', label: 'Reviewed', kind: 'primary', effect: 'resolve' },
+      threadUrl ? { id: 'open_thread', label: 'Open in Gmail', kind: 'secondary', effect: 'none', url: threadUrl } : null,
+    ].filter(Boolean),
+    created_by: 'system',
+    source,
+  };
+
+  const res = await supaFetch('dossie_asks', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    console.warn('[cron-relevance-watcher] dossie_asks insert failed', res.status, await res.text().catch(() => ''));
+    return { ok: false };
+  }
+  return { ok: true };
 }
 
 // --------------------------------------------------------------------------
@@ -477,6 +596,7 @@ async function handler(req, res) {
   if (!authorized(req)) {
     return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
+
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
   }
@@ -636,10 +756,35 @@ async function handler(req, res) {
     const inserted = await insertHit(hitRow);
     if (!inserted) stats.insert_failures++;
 
-    // Feature-flagged, OFF by default (RELEVANCE_WATCHER_NOTIFY unset in
-    // Vercel). No-ops until Heath approves a live notify channel.
+    // Real deal match (address appears in Heath's live transactions) also
+    // gets a persistent dossie_asks card, not just a Telegram ping that
+    // scrolls away. Never blocks the Telegram send below.
+    const dealMatch = matchDealByVerdict(verdict.matched, deals);
+    if (dealMatch) {
+      const askResult = await createEmailAsk({
+        userId: HEATH_KW_USER_ID,
+        transactionId: dealMatch.id,
+        matchedLabel: verdict.matched,
+        subject: hitRow.subject,
+        snippet: hitRow.snippet,
+        reason: verdict.reason,
+        gmailThreadId: hitRow.gmail_thread_id,
+        messageId,
+      });
+      stats.dossie_asks_created = (stats.dossie_asks_created || 0) + (askResult.ok && !askResult.skipped ? 1 : 0);
+    }
+
+    // RELEVANCE_WATCHER_NOTIFY=1 (Atlas, 2026-08-26 — Heath: "if you're
+    // checking my email then we need to build a way for it to be actually
+    // useful"). Still gated a second time by telegram-gate's
+    // TELEGRAM_CRON_NOTIFICATIONS allowlist — sendRelevanceTelegramAlert()
+    // reports back whether that gate actually suppressed the send so run
+    // stats tell the truth about what really reached Heath's phone.
     if (NOTIFY_ENABLED) {
       const tg = await sendRelevanceTelegramAlert(hitRow);
+      stats.notify_attempted = (stats.notify_attempted || 0) + 1;
+      if (tg.suppressed) stats.notify_suppressed = (stats.notify_suppressed || 0) + 1;
+      if (tg.ok && !tg.skipped && !tg.suppressed) stats.notify_sent = (stats.notify_sent || 0) + 1;
       if (tg.ok && !tg.skipped) {
         await supaFetch(`relevance_watch_hits?gmail_message_id=eq.${encodeURIComponent(messageId)}`, {
           method: 'PATCH',

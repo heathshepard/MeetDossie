@@ -57,6 +57,7 @@ const ALWAYS_ALLOW = new Set([
   'alert-health',            // */5 — double-probes, only alerts if still broken after retry
   'cron-pc-heartbeat-check', // */5 — only fires when a PC has actually gone silent, 1x per stale window
   'cron-agent-requests-stale-check', // */15 — only fires when agent_requests rows are actually stuck (see file header, 2026-08-25 incident)
+  'vercel-deploy-webhook',   // event-driven, not scheduled — only fires on an actual deploy failure/cancel (see file header, 2026-08-26)
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
@@ -89,13 +90,23 @@ function parseMode() {
 }
 
 // Decide whether `jobName` is permitted to push a Telegram message right now.
+//
+// BUGFIX 2026-08-26 (Atlas): this used to only consult ALWAYS_ALLOW in the
+// 'off' branch, so switching to mode='list' (a specific comma-separated
+// allowlist) silently dropped every ALWAYS_ALLOW job unless it happened to
+// also be named in the list -- contradicting the header comment above,
+// which documents 'strict' as the ONLY way to fully silence the floor.
+// Found while wiring vercel-deploy-webhook into ALWAYS_ALLOW and discovering
+// a real test alert got eaten with TELEGRAM_CRON_NOTIFICATIONS in list mode.
+// Now ALWAYS_ALLOW is honored in every mode except 'strict', matching docs.
 function isAllowed(jobName) {
   const { mode, allow } = parseMode();
-  if (mode === 'on') return true;
   if (mode === 'strict') return false;
+  if (ALWAYS_ALLOW.has(jobName)) return true;
+  if (mode === 'on') return true;
   if (mode === 'list') return allow.has(jobName);
-  // mode === 'off' — only the outage-alert floor survives.
-  return ALWAYS_ALLOW.has(jobName);
+  // mode === 'off' and not in ALWAYS_ALLOW.
+  return false;
 }
 
 // Pull the Bot API method name out of a Telegram URL:
