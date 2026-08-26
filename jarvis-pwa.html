@@ -10211,7 +10211,7 @@
     // isn't stuck on stale shell HTML.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-26-mic-self-heal-v14').then((reg) => {
+        navigator.serviceWorker.register('/jarvis-pwa-sw.js?v=2026-08-26-fix-double-reload-race-v15').then((reg) => {
           if (reg && reg.update) reg.update().catch(() => {});
         }).catch((err) => {
           console.warn('[jarvis] SW register failed', err);
