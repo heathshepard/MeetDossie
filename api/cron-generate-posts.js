@@ -84,17 +84,16 @@ FLAG these ALWAYS:
 
 ## VERIFIED FACTS — the only source of truth for specific claims
 
-### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch)
+### Current customers (__FOUNDING_COUNT__ founding members as of run time — count is queried live from the subscriptions table each batch, excluding cancelled/cancel_at_period_end rows and Suzanne's $1 friend rate)
+CORRECTED 2026-08-25 against docs/CUSTOMERS.md — Miki Mccarthy, Amanda Nuckles, Zelda Cain, and Jennifer Beltran are NO LONGER active customers (cancelled) and must never be referenced as current members. Do not name a cancelled customer in a post at all — not even past tense — unless Heath explicitly asks for a churn story.
 1. Kimberly Herrera — $29/mo founding member
 2. Tiffany Gill — $29/mo founding member
 3. Brittney YBarbo — $29/mo founding member. Broker, ~80 tx/yr, Southeast Texas. Found Dossie via Facebook search "transaction coordinating in Texas". Control-freak who can't trust delegation. Direct quote: "the lack of systems I have in place isn't sustainable."
 4. Suzanne Page — $1/mo founding friend (FOUNDING_FRIEND coupon)
-5. Miki Mccarthy — $29/mo founding member, Rio Grande Valley / Greater McAllen, My Real Estate Company brokerage
-6. Cecilia Whitley — $29/mo founding member, Austin, Sterling and Associates brokerage
-7. Terry Katz — $29/mo founding member, Houston / Spring TX
-8. Amanda Nuckles — $29/mo founding member, Central Texas, All City Real Estate
-9. Zelda Cain — $29/mo founding member, Houston, A2Z Real Estate Consultants LLC
-10. Natalie Megerson — $29/mo founding member, San Antonio + Austin + San Marcos, REAL Broker
+5. Cecilia Whitley — $29/mo founding member, Austin, Sterling and Associates brokerage
+6. Terry Katz — $29/mo founding member, Houston / Spring TX
+7. Natalie Megerson — $29/mo founding member, San Antonio + Austin + San Marcos, REAL Broker
+8. Lisa Nilsson — $29/mo founding member, Boerne / Hill Country San Antonio, Premier Hill Country Properties
 
 If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are valid. Higher numbers ("#15", "#22") are FABRICATIONS — flag as red.
 
@@ -111,11 +110,12 @@ If a draft references a founding member number, ONLY 1-__FOUNDING_COUNT__ are va
 - Share Dossie button (desktop sidebar + mobile bottom nav)
 - TREC deadline calculator at meetdossie.com/calculator
 - 10 SEO guide pages + 5 AEO answer pages
+- Compliance Vault — $15/mo Solo add-on, shipped 2026-08-24. Tracks required compliance document types and completion status for solo agents.
+- Team Plan admin tools — shipped 2026-08-24/25: TC role scoping (assign specific TCs to specific deals), admin-only transaction reassignment between agents, real-time team risk-triage push alerts, weekly team risk digest, monthly-closings tracking on the Team dashboard.
 
 ### NOT yet built — never claim as live (red flag if claimed)
 - Reply Monitoring
 - AI Autopilot
-- Compliance Vault
 - White Label
 - Brokerage compliance document sending
 - Stripe Payment Links (current checkouts expire 24h)
@@ -158,7 +158,7 @@ If a draft uses founder-pain specifics NOT in this list (e.g. "Tuesday 9:43pm de
 
 🔴 RED (highest severity — verdict MUST be needs_revision):
 - Founding member numbers past __FOUNDING_COUNT__
-- Any language pitching founding membership, founding pricing ($29/mo), spot counts/scarcity ("X spots left", "X of 25 taken"), or meetdossie.com/founding as available to a NEW customer. Founding CLOSED PERMANENTLY 2026-08-04 — no new signups exist or will ever exist again. The ONLY acceptable pricing pitch to a prospect is "Solo pricing is $149/month" or "Team pricing is $349/month" with signup at meetdossie.com/signup. Referencing the 10 existing founding members as a historical fact (e.g. "our first 10 members locked in early access at $29/mo for life") is fine — inviting a NEW signup into founding pricing or spots is always a red flag.
+- Any language pitching founding membership, founding pricing ($29/mo), spot counts/scarcity ("X spots left", "X of 25 taken"), or meetdossie.com/founding as available to a NEW customer. Founding CLOSED PERMANENTLY 2026-08-04 — no new signups exist or will ever exist again. The ONLY acceptable pricing pitch to a prospect is "Solo pricing is $149/month" or "Team pricing is $349/month" with signup at meetdossie.com/signup. Referencing the __FOUNDING_COUNT__ existing founding members as a historical fact (e.g. "our first agents locked in early access at $29/mo for life") is fine — inviting a NEW signup into founding pricing or spots is always a red flag.
 - Invented timestamps with the air of specificity ("Tuesday at 9:43pm", "10pm debug session", "ship in 48 hours") not documented above
 - Customer names + events not in the verified list above
 - Features claimed as live from the NOT-yet-built list
@@ -233,17 +233,23 @@ function isExcludedFoundingEmail(email) {
 
 async function getFoundingMemberCount() {
   const FOUNDING_TOTAL = 50;
-  const FALLBACK = 11;
+  // Corrected 2026-08-25 to match docs/CUSTOMERS.md's live methodology (7 x
+  // $29/mo founding + Suzanne's $1 friend rate excluded below = 7 taken).
+  const FALLBACK = 7;
   try {
-    // Step 1: get all active founding subscription user_ids.
+    // Step 1: get all active founding subscription user_ids. Also pull
+    // cancel_at_period_end so members who already cancelled (access continues
+    // through their paid period but they are not a going-forward customer,
+    // e.g. Miki/Amanda cancelled 2026-08-24) are excluded from "current
+    // customer" counts and copy — matches docs/CUSTOMERS.md's methodology.
     const r = await supabaseFetch(
-      `/rest/v1/subscriptions?select=user_id&status=in.(active,trialing)&plan=eq.founding`,
+      `/rest/v1/subscriptions?select=user_id,cancel_at_period_end&status=in.(active,trialing)&plan=eq.founding`,
     );
     if (!r.ok || !Array.isArray(r.data)) {
       console.warn('[cron-generate-posts] getFoundingMemberCount: unexpected response', r.status);
       return { taken: FALLBACK, remaining: FOUNDING_TOTAL - FALLBACK };
     }
-    const userIds = r.data.map((s) => s.user_id).filter(Boolean);
+    const userIds = r.data.filter((s) => !s.cancel_at_period_end).map((s) => s.user_id).filter(Boolean);
     if (userIds.length === 0) {
       return { taken: 0, remaining: FOUNDING_TOTAL };
     }
@@ -325,12 +331,12 @@ const TOPICS = [
   {
     key: 'build_in_public',
     label: 'Build in Public — show the behind-the-scenes work',
-    angle: 'Share what Heath is actively building right now. Code commits, feature decisions, late-night debugging sessions, customer feedback that shaped a feature. Make it personal and transparent. Show the human builder behind Dossie, not a faceless company. Examples: "Spent 4 hours fixing the deadline rollover edge case tonight because Brittney caught it", "Just shipped voice transcription for Talk to Dossie — here\'s why it took 3 weeks", "A customer asked for a specific workflow tweak. Shipped it in 48 hours."',
+    angle: 'Share what Heath is actively building right now, using ONLY real shipped events from the VERIFIED FACTS section below (never invent a timestamp, session length, or customer catching a bug). Make it personal and transparent — show the human builder behind Dossie, not a faceless company. Ground it in an actual real ship: e.g. the Compliance Vault add-on shipping, or the Team Plan admin tools (TC role scoping, reassignment, risk alerts) shipping. Describe WHY it was built and what problem it solves — do not invent the specific mechanics of how it was built (no "spent N hours", no "customer X caught this") unless that detail is in the verified facts.',
   },
   {
     key: 'feature_reveal',
     label: 'Feature Reveal — announce new capabilities as they ship',
-    angle: 'Announce a specific new feature that just went live. Focus on the capability and the why, not just the what. Show before/after, pain → solution. Examples: "Milestone Cards just shipped — share Under Contract / Clear to Close / Closed cards directly to Instagram", "Talk to Dossie now transcribes voice notes — update deals hands-free between showings", "Morning Brief now includes escalated items with follow-up counts — know exactly which tasks need your attention first."',
+    angle: 'Announce a specific new feature that just went live, using ONLY features from the shipped-features list in VERIFIED FACTS below. Focus on the capability and the why, not just the what. Show before/after, pain → solution. Real current examples to draw from: Compliance Vault ($15/mo Solo add-on — required compliance document types tracked automatically, no more guessing what is missing from a file), Team Plan admin tools (a broker can now scope which TC sees which deals, and reassign a transaction to another agent without a support ticket).',
   },
   {
     key: 'community_movement',
@@ -891,7 +897,7 @@ ${buildPlatformNativeBlock(platform)}
    ${notes}
    STRUCTURE: feature name -> what it does -> one concrete outcome -> CTA
    EXAMPLE CAPTION: "Dossie scans a TREC contract in about 8 seconds. Deadlines auto-calculated, paragraph cited. No math. No spreadsheet. $149/month at meetdossie.com/signup"
-   ALLOWED FEATURES (shipped, safe to claim): TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only - agent reviews and sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines.
+   ALLOWED FEATURES (shipped, safe to claim): TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only - agent reviews and sends), morning brief with Luna voice, closing milestone cards, dossier pipeline view with deadline badges, Talk-to-Dossie chat, natural-language deadlines, Compliance Vault ($15/mo Solo add-on - tracks required compliance document types and status), Team Plan admin tools (TC role scoping, admin transaction reassignment, team risk-triage alerts, monthly closings tracking - Team tier only).
    EMAIL DRAFT QUEUE ACCURACY: The email draft queue does NOT auto-write emails when deadlines hit. Agents build draft templates in the queue, review them, and send manually. NEVER write "Dossie writes your emails", "Dossie drafts follow-ups automatically when a deadline approaches", or "Dossie sends follow-ups" — any automation claim on email drafting is false and triggers verifier rejection. Correct framing: "Dossie's email draft queue keeps follow-ups ready to review and send" or "Follow-up drafts queued — you review, you send."
    DO NOT claim any unshipped feature. Keep it to ONE feature per post — do not stack multiple capabilities into one claim.
    SINGLE FEATURE HARD RULE: The length target for LinkedIn (1300-2000 chars) is achieved by telling a DEEPER STORY about ONE feature — more context, a concrete agent scenario, the before/after, the why it matters. It is NEVER achieved by listing or describing additional features. If you run out of depth on one feature, pick a different feature. Stacking features ("Dossie does X and Y and Z") always triggers a verifier rejection. Write ONE feature. Go deep.
@@ -1006,7 +1012,7 @@ You may ONLY reference verified real facts about Dossie. Hallucinated specifics 
 ALLOWED specifics:
 - The founder pain stories saved verbatim in CLAUDE.md and the memory file \`project_heath_founder_pain_stories.md\` (TC quit while Heath was in Italy with deals in escrow; $400/file and still waking at 4:30am wondering if the option fee receipt was sent; "vacation is the stress test your systems fail" reframe; Brittney's "control freak / visibility problem" insight)
 - Customer first names + brokerage + market that are documented in CLAUDE.md section 6 "CURRENT CUSTOMERS" (currently __FOUNDING_COUNT__ founding members, referenced as historical fact only). Founding pricing is CLOSED PERMANENTLY (2026-08-04) — NEVER pitch founding pricing, a spot count, or meetdossie.com/founding to a prospect. The only pricing to offer a prospect is "Solo pricing is $149/month" or "Team pricing is $349/month".
-- Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat.
+- Real product features that exist: TREC deadline auto-calc with paragraph cites, contract PDF scanning, email draft queue (drafts only, agent sends), morning brief with voice, closing milestone cards, dossier pipeline view, Talk-to-Dossie chat, Compliance Vault ($15/mo Solo add-on), Team Plan admin tools (TC role scoping, transaction reassignment, team risk-triage alerts, monthly closings tracking).
 
 FORBIDDEN specifics:
 - Any founding member number past __FOUNDING_COUNT__
@@ -1112,7 +1118,15 @@ async function callAnthropic(prompt) {
     },
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
-      max_tokens: 8192,
+      // Raised 8192 -> 32000 (Carter, 2026-08-25). Root-caused via a temp
+      // diagnostic log on staging: Sonnet 5's extended thinking is not capped
+      // by anything in this request, and consumed 13,492 of a 16,000-token
+      // ceiling on its own (confirmed via response usage.output_tokens_details
+      // .thinking_tokens), leaving too little room to finish even a 5-post
+      // batch — stop_reason came back "max_tokens" with truncated JSON every
+      // time. 32000 leaves real headroom for thinking plus the full 9-post
+      // JSON payload (voiceover_script + caption + hashtags x9).
+      max_tokens: 32000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });

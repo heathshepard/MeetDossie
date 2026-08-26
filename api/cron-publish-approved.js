@@ -62,10 +62,13 @@ const ZERNIO_POSTS_URL = 'https://zernio.com/api/v1/posts';
 // separately for cleanup.
 const MAX_PER_RUN = 30;
 
-// YouTube account ID is stored in env var — Heath must add ZERNIO_YOUTUBE_ACCOUNT_ID
-// in Vercel dashboard (Settings -> Environment Variables). Value comes from Zernio
-// dashboard under Connected Accounts -> YouTube -> Account ID.
-const ZERNIO_YOUTUBE_ACCOUNT_ID = process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null;
+// YouTube account routing is DB-driven, not env-driven — same pattern as
+// the heath-realtor facebook/instagram rows. See lookupZernioAccountId()
+// below and supabase/migrations/20260825_zernio_accounts_youtube_heath_realtor.sql
+// for the "Shepard Real Estate Solutions" channel row
+// (platform=youtube, owner=heath-realtor). A prior ZERNIO_YOUTUBE_ACCOUNT_ID
+// env-var stub lived here but was never read by pushToZernio() — removed
+// 2026-08-25 as dead/misleading code, not a functional change.
 
 // Twitter thread split with hard caps. Verified on the 838-char Brenda thread
 // that previously exploded into 15 sub-fragments because the LLM had written

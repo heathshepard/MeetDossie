@@ -93,6 +93,7 @@ async function getDocumentRow(documentId, userId) {
 // See _lib/resolve-blank-template-pdf.js for background.
 const {
   resolveBlankTemplatePdf: resolveBlankTemplatePdfDoc,
+  BLANK_SEND_SAFE_SLUGS,
 } = require('./_lib/resolve-blank-template-pdf');
 
 // Legacy wrapper preserving the (formTemplateId) → Buffer contract used
@@ -1522,11 +1523,32 @@ module.exports = async function handler(req, res) {
       let pdfBuffer = null;
       const isBlankTemplate = doc.document_type === 'form_template' && doc.status === 'blank';
       if (isBlankTemplate && doc.form_template_id) {
-        pdfBuffer = await resolveBlankTemplatePdf(doc.form_template_id);
-        if (!pdfBuffer) {
+        // 2026-08-25 CARTER — Quinn's blank-send bug (roadmap item #3, Alpha
+        // TC roadmap, real Playwright test 2026-08-24). Form Library's
+        // "Attach" creates exactly this status:'blank' row pointing at the
+        // raw TREC template with zero transaction data — and this branch
+        // used to send it straight to DocuSeal for real signature no matter
+        // what form it was. Quinn proved it live: DocuSeal confirmed
+        // "values": [] on the created submission. Gate on the resolved
+        // slug now: only forms with genuinely zero fillable legal content
+        // (BLANK_SEND_SAFE_SLUGS — currently just the Wire Fraud Warning
+        // notice) may go out from the blank asset. Every real contract or
+        // addendum must be filled first — the agent needs the Fill Contract
+        // / Interactive Editor flow's own required-field gate, which stamps
+        // real values into documents.storage_path (status leaves 'blank')
+        // before a signature request can be created for it.
+        const resolved = await resolveBlankTemplatePdfDoc(doc);
+        if (!resolved) {
           throw new ValidationError('This form template PDF is not available. Please contact support.', 422);
         }
-        console.log(`[esign-create] Blank form_template ${doc.form_template_id} resolved from base64 assets (${pdfBuffer.length} bytes).`);
+        if (!BLANK_SEND_SAFE_SLUGS.has(resolved.slug)) {
+          throw new ValidationError(
+            'This form has not been filled in yet. Open it from the dossier and use Fill Contract to complete the required fields before sending it for signature.',
+            409,
+          );
+        }
+        pdfBuffer = resolved.buffer;
+        console.log(`[esign-create] Blank form_template ${doc.form_template_id} (slug=${resolved.slug}, blank-send-safe) resolved from base64 assets (${pdfBuffer.length} bytes).`);
       } else {
         signedUrl = await generateSignedUrl(doc.storage_path, 300);
       }
