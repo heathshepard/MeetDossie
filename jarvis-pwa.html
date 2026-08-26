@@ -1523,6 +1523,36 @@
     .jb-item-body.hidden { display: none; }
     .jb-status-note { font-size: 12px; line-height: 1.45; color: var(--txt-mute); white-space: pre-wrap; word-wrap: break-word; }
     .jb-item-meta { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--txt-faint); }
+    /* ===== ALWAYS-VISIBLE PREVIEW + STALENESS CONFIRM (2026-08-26) =====
+       Heath's complaint: cards only showed name + court flag; the actual
+       context (status_note) was hidden behind the expand toggle, so he had
+       to click (or ask Cole) to know what a card even referred to -- and
+       once a ball went stale (Wild Cherry sat 13 days after the amendment
+       was actually signed; the Dossie deck ball said "not started" after
+       the deck had actually been built) nothing ever prompted him to check.
+       Fix: (1) a one-line truncated status_note always visible under the
+       court line, no click required. (2) once a ball crosses the existing
+       48h "very-stale" threshold, an inline confirm bar replaces guessing
+       with an explicit choice -- "still true" bumps last_updated (same
+       write path Jarvis already uses conversationally), the existing ✕
+       handles "done." */
+    .jb-preview {
+      margin: 4px 0 0 22px; font-size: 11px; line-height: 1.4;
+      color: var(--txt-mute); overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    }
+    .jb-stale-confirm {
+      margin: 8px 0 0 22px; padding: 6px 8px; border-radius: 6px;
+      background: rgba(255, 82, 82, 0.06); border: 1px solid var(--fail);
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .jb-stale-confirm-text { font-size: 10.5px; color: var(--fail); flex: 1 1 auto; }
+    .jb-stale-confirm-btn {
+      background: transparent; border: 1px solid var(--fail); border-radius: 5px;
+      color: var(--fail); font-size: 10px; letter-spacing: 0.04em;
+      padding: 4px 8px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
+    }
+    .jb-stale-confirm-btn:hover { background: rgba(255, 82, 82, 0.12); }
 
     /* ===== PANEL DRAG-AND-DROP REORDER (v1, 2026-08-12) =====
        draggable="true" is set at runtime (initPanelDragDrop() in the boot
@@ -7031,6 +7061,7 @@
         const createdStr = b.created_at
           ? new Date(b.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
           : '—';
+        const isVeryStale = elapsed.level === 'very-stale';
         row.innerHTML = `
           <div class="jb-item-head">
             <button class="jb-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
@@ -7047,6 +7078,12 @@
             <span class="jb-court-end jb-court-them ${mine ? '' : 'active'}" title="${escapeHtml(mine ? '' : (b.court || ''))}"></span>
           </div>
           <div class="jb-court-status ${mine ? 'mine' : 'other'}"></div>
+          <div class="jb-preview" title="${escapeHtml(b.status_note || '')}"></div>
+          ${isVeryStale ? `
+          <div class="jb-stale-confirm">
+            <span class="jb-stale-confirm-text">No update in ${elapsed.text} — still true?</span>
+            <button class="jb-stale-confirm-btn jb-still-btn" type="button">Still true, keep it</button>
+          </div>` : ''}
           <div class="jb-item-body ${expanded ? '' : 'hidden'}">
             <div class="jb-status-note"></div>
             <div class="jb-item-meta">Since ${lastUpdatedStr} · added ${createdStr}</div>
@@ -7056,6 +7093,7 @@
         row.querySelector('.jb-name').textContent = b.name;
         row.querySelector('.jb-court-them').textContent = mine ? 'OTHER' : (b.court || '').toUpperCase();
         row.querySelector('.jb-court-status').textContent = mine ? 'Your move' : `Waiting on ${b.court}`;
+        row.querySelector('.jb-preview').textContent = b.status_note || '(no detail — click to add context next time you tell Jarvis about this)';
         row.querySelector('.jb-status-note').textContent = b.status_note || '(no detail)';
         list.appendChild(row);
 
@@ -7065,6 +7103,8 @@
           toggleJbExpand(b.id);
         });
         row.querySelector('.jb-del-btn').addEventListener('click', (e) => { e.stopPropagation(); deleteJb(b.id); });
+        const stillBtn = row.querySelector('.jb-still-btn');
+        if (stillBtn) stillBtn.addEventListener('click', (e) => { e.stopPropagation(); bumpJbStillTrue(b.id, stillBtn); });
       });
 
       // FLIP playback: for any ball whose x-position moved since the last
@@ -7106,6 +7146,23 @@
       } catch (err) {
         console.warn('[jarvis] deleteJb failed', err);
         showToast('Could not dismiss.');
+      }
+    }
+
+    // "Still true, keep it" -- the staleness-confirm button's one job: bump
+    // last_updated to now via the same write path Jarvis uses conversationally,
+    // so a ball that's genuinely still waiting stops reading as abandoned data
+    // without Heath having to say anything out loud to reset it.
+    async function bumpJbStillTrue(id, btnEl) {
+      if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Updating…'; }
+      try {
+        const { error } = await supabase.from('jarvis_balls').update({ last_updated: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        await loadJarvisBalls();
+      } catch (err) {
+        console.warn('[jarvis] bumpJbStillTrue failed', err);
+        showToast('Could not update.');
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Still true, keep it'; }
       }
     }
 
