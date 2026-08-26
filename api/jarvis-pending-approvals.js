@@ -138,23 +138,67 @@ export default async function handler(req, res) {
       });
     }
 
+    // Batch-gated rows (cold-email daily-batch + followup, tagged by
+    // cron-cold-email-review) used to render as N separate non-actionable
+    // "check Telegram" cards — one per recipient — which is exactly the
+    // 2026-08-26 complaint: 25 items, told to go check Telegram, nothing
+    // there (root cause: the Telegram card depends on cron-cold-email-review
+    // successfully reaching api.telegram.org, which the telegram-gate kill
+    // switch silently suppresses while still marking the row as if the card
+    // sent — see api/_lib/cold-email-batch-approval.js header). Fix: group
+    // by metadata.batch into ONE real, actionable item Heath can approve or
+    // reject right here — same shared approve/reject lib telegram-webhook.js
+    // uses, so this can never drift from what the Telegram button does.
+    const batchGroups = new Map(); // batchId -> rows[]
+    const ungatedOutbound = [];
     for (const r of outboundEmails) {
-      // Batch-gated rows (cold-email daily-batch + followup, tagged by
-      // cron-cold-email-review) can't be approved one at a time from here —
-      // /api/jarvis-approve correctly refuses them with 'not_yet_batch_approved'.
-      // Surfacing them as a normal actionable item (2026-08-16 regression) meant
-      // Approve always failed with that raw string. Mark them non-actionable so
-      // the UI can hide the Approve button instead of offering one that fails.
       const batchGated = !!(r.metadata && r.metadata.requires_approval === true &&
         r.metadata.approval_status !== 'approved');
+      const batchId = batchGated ? r.metadata.batch : null;
+      if (batchGated && batchId) {
+        if (!batchGroups.has(batchId)) batchGroups.set(batchId, []);
+        batchGroups.get(batchId).push(r);
+      } else {
+        ungatedOutbound.push(r);
+      }
+    }
+
+    for (const [batchId, rows] of batchGroups.entries()) {
+      const meta0 = rows[0].metadata || {};
+      const oldestCreatedAt = rows.reduce((min, r) => (!min || r.created_at < min ? r.created_at : min), null);
+      const samples = rows.slice(0, 3).map((r) => ({ to_email: r.to_email, subject: r.subject, body_text: (r.body_text || '').slice(0, 500) }));
+      items.push({
+        id: `coldbatch:${batchId}`,
+        source: 'cold_email_batch',
+        source_id: batchId,
+        title: `Cold email batch — ${rows.length} recipient${rows.length === 1 ? '' : 's'}`,
+        subtitle: `${meta0.campaign || '(no campaign tag)'}${meta0.touch != null ? ' · touch ' + meta0.touch : ''}`,
+        agent: 'Cole',
+        waiting_minutes: minutesAgo(oldestCreatedAt),
+        created_at: oldestCreatedAt,
+        approve_endpoint: '/api/jarvis-approve',
+        approve_payload: { kind: 'cold_email_batch', id: batchId },
+        reply_supported: false,
+        ask_detail_supported: true,
+        actionable: true,
+        blocked_reason: null,
+        details: {
+          batch: batchId,
+          campaign: meta0.campaign || null,
+          touch: meta0.touch ?? null,
+          recipient_count: rows.length,
+          samples,
+        },
+      });
+    }
+
+    for (const r of ungatedOutbound) {
       items.push({
         id: `outbound:${r.id}`,
         source: 'outbound_email_queue',
         source_id: r.id,
         title: r.subject || '(no subject)',
-        subtitle: batchGated
-          ? `To: ${r.to_email} · Awaiting batch approval — check Telegram`
-          : `To: ${r.to_email}`,
+        subtitle: `To: ${r.to_email}`,
         agent: 'Cole',
         waiting_minutes: minutesAgo(r.created_at),
         created_at: r.created_at,
@@ -162,13 +206,8 @@ export default async function handler(req, res) {
         approve_payload: { kind: 'outbound_email', id: r.id },
         reply_supported: false,
         ask_detail_supported: true,
-        // actionable=false: hide/disable the Approve action in the UI.
-        // Reject still works per-row (jarvis-approve's outbound_email reject
-        // path doesn't check batch state, it just marks the row 'skipped').
-        actionable: !batchGated,
-        blocked_reason: batchGated
-          ? 'Part of a cold-email batch awaiting the Telegram approval card. Approve/reject the whole batch there — check Telegram.'
-          : null,
+        actionable: true,
+        blocked_reason: null,
         details: {
           to_email: r.to_email,
           from_email: r.from_email,

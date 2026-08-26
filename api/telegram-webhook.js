@@ -17,6 +17,10 @@ const {
   approveFoundingApplication,
   rejectFoundingApplication,
 } = require('./_lib/founding-approval');
+const {
+  approveColdEmailBatch,
+  rejectColdEmailBatch,
+} = require('./_lib/cold-email-batch-approval');
 
 const { handleGroupPostCallback } = require('./group-post-callback');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
@@ -828,30 +832,20 @@ async function handleCallbackQuery(cb) {
     const batchId = coldemail[2];
     const originalBody = String(message?.text || '');
 
-    const { data: batchRows } = await supabaseFetch(
-      `/rest/v1/outbound_email_queue?metadata->>batch=eq.${encodeURIComponent(batchId)}&metadata->>approval_status=eq.pending_approval&select=id,metadata`,
-    );
-    const rowsToActOn = Array.isArray(batchRows) ? batchRows : [];
-    if (rowsToActOn.length === 0) {
+    // Shared with /api/jarvis-approve (kind: 'cold_email_batch') — see
+    // ./_lib/cold-email-batch-approval.js header for why this can no longer
+    // be a Telegram-only path.
+    const result = action === 'approve'
+      ? await approveColdEmailBatch(batchId)
+      : await rejectColdEmailBatch(batchId, 'heath_rejected_via_telegram_batch_review');
+
+    if (!result.ok) {
       if (callbackId) await answerCallback(callbackId, 'Already actioned or batch not found');
       return;
     }
 
-    const now = new Date().toISOString();
-    let failures = 0;
-    for (const row of rowsToActOn) {
-      const patchBody = action === 'approve'
-        ? { metadata: { ...row.metadata, approval_status: 'approved', approved_at: now } }
-        : { metadata: { ...row.metadata, approval_status: 'rejected', rejected_at: now }, status: 'skipped', error_text: 'heath_rejected_via_telegram_batch_review' };
-      const patch = await supabaseFetch(`/rest/v1/outbound_email_queue?id=eq.${encodeURIComponent(row.id)}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify(patchBody),
-      });
-      if (!patch.ok) failures += 1;
-    }
-
-    const count = rowsToActOn.length;
+    const count = result.count;
+    const failures = result.failures;
     if (action === 'approve') {
       if (chatId && messageId) {
         await editMessage(chatId, messageId, `${originalBody}\n\n✅ APPROVED — ${count} email(s) will send starting at their scheduled time.${failures ? ` (${failures} failed to update — check logs)` : ''}`);

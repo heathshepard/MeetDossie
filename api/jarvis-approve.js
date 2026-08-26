@@ -28,6 +28,7 @@
 
 import { verifySupabaseToken } from './_middleware/auth.js';
 import { sendOutboundEmailRow } from './_lib/outbound-email-send.js';
+import { approveColdEmailBatch, rejectColdEmailBatch } from './_lib/cold-email-batch-approval.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -195,6 +196,27 @@ export default async function handler(req, res) {
           status: 'pending', locked_at: null, error_text: send.errorText || 'send_failed', updated_at: now,
         });
         return res.status(502).json({ ok: false, error: 'send_failed', detail: send.errorText || 'unknown error' });
+      }
+      case 'cold_email_batch': {
+        // id here is the batch id (metadata.batch on outbound_email_queue
+        // rows), not a single row id — approve/reject acts on every pending
+        // row in the batch at once. Same shared lib telegram-webhook.js's
+        // coldemail_approve_/coldemail_reject_ callback uses — see
+        // ./_lib/cold-email-batch-approval.js for why this exists (2026-08-26,
+        // the "25 cold emails, check Telegram" incident — the Telegram card
+        // for this batch never actually sent, so Jarvis no longer depends on
+        // it having sent).
+        const result = action === 'approve'
+          ? await approveColdEmailBatch(id, reason)
+          : await rejectColdEmailBatch(id, reason || 'Heath rejected via Jarvis HUD');
+        if (!result.ok) {
+          return res.status(409).json({ ok: false, error: 'not_found_or_already_actioned', detail: 'This batch has already been approved/rejected or no longer exists.' });
+        }
+        newStatus = action === 'approve' ? 'approved' : 'rejected';
+        return res.status(200).json({
+          ok: true, kind, id, action, new_status: newStatus,
+          batch_count: result.count, failures: result.failures, at: now,
+        });
       }
       case 'founding_application': {
         // Mark decision + status. Downstream Pierce/Cole flow handles email send.
