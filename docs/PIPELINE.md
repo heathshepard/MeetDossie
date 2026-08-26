@@ -119,6 +119,37 @@ Both `owner='heath-realtor'` rows are read by `cron-publish-approved.js`
 `pushToZernio()` via `social_posts.target_owner`. Weekly posting cadence
 (when there's content) is drafted in `docs/REALTOR-PAGE-CADENCE.md`.
 
+### Direct YouTube Data API upload path (alternative to Zernio)
+
+Built 2026-08-25 (Atlas) alongside the Zernio wiring above, for cases the
+Zernio scheduler doesn't cover (a channel with no Zernio connection, or an
+upload feature Zernio's UI doesn't expose). Independent OAuth grant from
+Zernio's — reuses the existing Google Cloud project (`GOOGLE_CLIENT_ID`/
+`GOOGLE_CLIENT_SECRET`/`GOOGLE_OAUTH_REDIRECT_URI`, already live) but scoped
+narrowly to `youtube.upload` + `youtube.readonly`, stored under a separate
+`user_integrations.oauth_provider='google_youtube'` row so it never touches
+the `google_calendar` row's Gmail/Calendar scopes.
+
+- `GET /api/youtube-oauth-init` — starts consent (Bearer Supabase JWT, same
+  pattern as `google-oauth-init.js`).
+- `GET /api/google-oauth-callback` — shared callback, now provider-generic
+  (reads `oauth_states.provider` instead of hardcoding `google_calendar`).
+- `GET /api/youtube-connection-status` — Bearer Supabase JWT; reports
+  connected + resolved channel.
+- `POST /api/youtube-upload` — Bearer `CRON_SECRET`; fetches `video_url`,
+  uploads via resumable upload, defaults `privacy_status=private`.
+- `api/_lib/youtube-oauth.js` — token load/refresh + `uploadVideo()` /
+  `getMyChannel()` / `getVideoStatus()`.
+
+**Not yet done (human action, can't be done from code):** `youtube.upload`
+is a Google restricted/sensitive scope. Nobody has run the consent flow yet,
+and the Google Cloud Console OAuth consent screen for this project needs
+"YouTube Data API v3" enabled and the scope added (plus the connecting
+account added as a test user if the app is still in Testing mode) before
+`/api/youtube-oauth-init` will get anything but `invalid_scope`/unverified-app
+back from Google. Until that's done and someone completes the consent
+click-through, this path is built but unproven end-to-end.
+
 ---
 
 ## ZERNIO ACCOUNT IDs

@@ -5,21 +5,27 @@
 // GET /api/google-oauth-callback?code=<>&state=<>
 //   OR ?error=access_denied&state=<>
 //
+// Shared across every Google OAuth provider we run (google_calendar,
+// google_youtube, ...) — the specific provider comes from oauth_states.provider,
+// written by whichever *-oauth-init endpoint started the flow. One callback,
+// one redirect_uri registered in Google Cloud Console, N providers. Do not
+// hardcode a provider name here; read it off stateRow.
+//
 // Behavior:
 //   1. Look up state token in public.oauth_states (must exist, unconsumed,
-//      not expired). Resolve to user_id.
+//      not expired). Resolve to user_id + provider.
 //   2. Mark state consumed.
 //   3. Exchange code for access + refresh tokens.
 //   4. Upsert into public.user_integrations
-//      (user_id, oauth_provider='google_calendar', access_token, refresh_token,
+//      (user_id, oauth_provider=<stateRow.provider>, access_token, refresh_token,
 //       scopes, expires_at, google_email).
-//   5. 302 redirect to <redirect_after>?connected=google_calendar
+//   5. 302 redirect to <redirect_after>?connected=<stateRow.provider>
 //      (or ?error=<code> on failure).
 //
 // This endpoint is public (no bearer token — that's the whole point of the
 // callback), but authenticity is proven via the opaque state token.
 //
-// Owner: Atlas (SV-JARVIS-CAL-1, 2026-07-06).
+// Owner: Atlas (SV-JARVIS-CAL-1, 2026-07-06; generalized for youtube 2026-08-25).
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -215,11 +221,13 @@ export default async function handler(req, res) {
   // 4. Fetch Google account email (nice-to-have).
   const googleEmail = await fetchGoogleAccountEmail(accessToken);
 
-  // 5. Upsert into user_integrations.
+  // 5. Upsert into user_integrations, under whichever provider this flow was
+  // started for (stateRow.provider — e.g. 'google_calendar', 'google_youtube').
+  const provider = stateRow.provider || 'google_calendar';
   try {
     await sbUpsert('user_integrations', {
       user_id: stateRow.user_id,
-      oauth_provider: 'google_calendar',
+      oauth_provider: provider,
       access_token: accessToken,
       refresh_token: refreshToken,
       scopes,
@@ -234,6 +242,6 @@ export default async function handler(req, res) {
   }
 
   // 6. Success. Bounce back to the app.
-  res.setHeader('Location', bounceUrl(stateRow.redirect_after, { connected: 'google_calendar' }));
+  res.setHeader('Location', bounceUrl(stateRow.redirect_after, { connected: provider }));
   return res.status(302).end();
 }
