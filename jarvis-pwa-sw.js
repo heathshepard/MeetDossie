@@ -111,8 +111,39 @@
  * If a plain tab reload doesn't pick it up (Android suspend/resume is not a
  * real navigation, per the v10 comment), a true close + reopen or Force stop
  * is required.
+ *
+ * 2026-08-26 PM (Atlas): cache key bumped to v15 -- fixes a live outage the
+ * v14 bump itself caused ("couldn't load" on every panel, reported
+ * immediately after Heath closed+reopened per the v14 instructions).
+ * Reproduced with Playwright: registered v13 as the "already-open session,"
+ * then let v15's real script through and reloaded the same tab (simulating
+ * close+reopen) -- captured 4 stacked boot() cycles and multiple
+ * `TypeError: Failed to fetch` errors in afterSignIn/loadCalendar/
+ * loadPendingApprovals/loadInFlightWork/loadTickers, i.e. real panel fetches
+ * getting aborted mid-flight. Root cause: TWO independent triggers both try
+ * to reload the page the instant a new SW takes control -- this file's own
+ * `activate` handler below used to call `client.navigate(client.url)` on
+ * every window client right after `clients.claim()`, AND jarvis-pwa.html has
+ * its own `controllerchange` listener that calls `window.location.reload()`
+ * (added the same day, 2026-06-26, as a belt-and-suspenders duplicate of the
+ * same intent). `clients.claim()` fires `controllerchange` in the page
+ * essentially synchronously with this handler's own subsequent
+ * `client.navigate()` call, so both fire near-simultaneously and race: the
+ * browser ends up re-navigating/re-running boot() 3-4x instead of once, and
+ * any boot() cycle caught mid-fetch when the NEXT navigation starts throws
+ * "Failed to fetch" for that panel with no retry logic to recover it -- the
+ * panel is left stuck on "Couldn't load" until a further manual reload,
+ * which is exactly what Heath saw ("couldn't load" on every panel) right
+ * after doing the close+reopen he was told to do. Fix: removed the
+ * `client.navigate()` loop from `activate` below -- the page's own
+ * `controllerchange` -> `reload()` listener is the single source of truth
+ * for "reload when a new SW takes control" now, so there's exactly one
+ * navigation trigger instead of two racing ones. `clients.claim()` is kept
+ * (still needed so the new SW controls existing clients at all). Re-verified
+ * with the same v13->v15 transition repro: 1 boot() cycle, zero fetch
+ * failures, all panels render real data.
  */
-const CACHE = 'jarvis-pwa-v14-2026-08-26-mic-self-heal-propagate';
+const CACHE = 'jarvis-pwa-v15-2026-08-26-fix-double-reload-race';
 const SHELL = [
   '/myjarvis',
   '/jarvis-pwa.html',
@@ -130,15 +161,17 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim()).then(async () => {
-      // 2026-06-26 (Atlas): when a new SW takes control, force-reload all
-      // window clients so they pick up the fresh shell HTML/JS instead of
-      // whatever the page was already rendering when the SW upgraded.
-      const clients = await self.clients.matchAll({ type: 'window' });
-      for (const client of clients) {
-        try { client.navigate(client.url); } catch (_) { /* navigate not supported on some WebViews */ }
-      }
-    })
+    ).then(() => self.clients.claim())
+    // 2026-08-26 (Atlas): removed the `client.navigate()` force-reload loop
+    // that used to live here (added 2026-06-26). It raced with
+    // jarvis-pwa.html's own `controllerchange` -> `window.location.reload()`
+    // listener, which already handles "reload when a new SW takes control."
+    // Two simultaneous navigation triggers on the same client caused 3-4x
+    // stacked boot() cycles and aborted in-flight panel fetches
+    // ("Failed to fetch" / "Couldn't load" on every panel) -- see the v15
+    // header comment above for the full repro. `clients.claim()` alone is
+    // enough: it's what makes `controllerchange` fire in the page in the
+    // first place, and the page's listener does the single reload from there.
   );
 });
 
