@@ -314,7 +314,15 @@ async function persistAccessToken(accessToken, expiresAt) {
 }
 
 async function insertHit(row) {
-  const res = await supaFetch('relevance_watch_hits', {
+  // BUGFIX (Atlas, 2026-08-26): PostgREST's `Prefer: resolution=merge-
+  // duplicates` is a no-op without `on_conflict=<col>` in the URL telling it
+  // which constraint to upsert against — omitting it means a duplicate
+  // gmail_message_id (e.g. a manually-rewound checkpoint reprocessing a
+  // message already on file) hits the plain unique-constraint violation
+  // (23505) instead of updating. Reproduced live: this was silently eating
+  // inserts any time the same message got re-seen. Never surfaced before
+  // because normal 15-min incremental runs never revisit an old checkpoint.
+  const res = await supaFetch('relevance_watch_hits?on_conflict=gmail_message_id', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify([row]),
