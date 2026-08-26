@@ -57,6 +57,7 @@ const ALWAYS_ALLOW = new Set([
   'alert-health',            // */5 — double-probes, only alerts if still broken after retry
   'cron-pc-heartbeat-check', // */5 — only fires when a PC has actually gone silent, 1x per stale window
   'cron-agent-requests-stale-check', // */15 — only fires when agent_requests rows are actually stuck (see file header, 2026-08-25 incident)
+  'vercel-deploy-webhook',   // event-driven, not scheduled — only fires on an actual deploy failure/cancel (see file header, 2026-08-26)
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
