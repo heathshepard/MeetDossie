@@ -326,7 +326,10 @@
     "api/{cron-send-engagement-approvals,cron-engagement-summary,cron-send-to-sage,cron-heath-publish-digest,cron-morning-ops-digest,cron-platform-health-checker,cron-account-session-monitor}.js": {
       "maxDuration": 30
     },
-    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation,cron-content-pipeline-review,cron-content-pipeline-promote,cron-cold-email-review,cron-engagement-review,cron-agent-requests-stale-check}.js": {
+    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation}.js": {
+      "maxDuration": 30
+    },
+    "api/{cron-content-pipeline-review,cron-content-pipeline-promote,cron-cold-email-review,cron-engagement-review,cron-agent-requests-stale-check}.js": {
       "maxDuration": 30
     },
     "api/{admin-migrate-content-pipeline-queue,cron-cold-email-followup}.js": {
