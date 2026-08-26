@@ -597,25 +597,6 @@ async function handler(req, res) {
     return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
 
-  // TEMP DIAGNOSTIC (Atlas, 2026-08-26) — CRON_SECRET-gated, read-only.
-  // TELEGRAM_CRON_NOTIFICATIONS is a Vercel "Sensitive" var: write-only from
-  // the dashboard/CLI/vercel env pull forever after creation, by design. It's
-  // not a credential (just a comma list of cron job names), so reading it
-  // back at runtime — the only place it's still readable — to resolve a real
-  // "is my job actually on the list" question is safe. Remove once the
-  // allowlist question in this session is settled.
-  if (req.query && req.query.debugTelegramGate) {
-    const gate = require('./_lib/telegram-gate');
-    const { mode, allow } = gate.parseMode();
-    return res.status(200).json({
-      ok: true,
-      mode,
-      allow_list: allow ? Array.from(allow) : null,
-      this_job_allowed: gate.isAllowed('cron-relevance-watcher'),
-      raw_present: process.env.TELEGRAM_CRON_NOTIFICATIONS != null && process.env.TELEGRAM_CRON_NOTIFICATIONS !== '',
-    });
-  }
-
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
   }
