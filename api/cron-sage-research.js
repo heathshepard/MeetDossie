@@ -289,6 +289,7 @@ Write the post. Return JSON only.`;
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) {
       console.warn('[sage-research] draft API status:', res.status);
@@ -377,14 +378,24 @@ module.exports = withTelemetry('cron-sage-research', async function handler(req,
 
   console.log(`[sage-research] feeds=${allItems.length} recent=${recent.length} scored=${scored.length} candidates=${candidates.length}`);
 
-  // 4. Draft. Stop at MAX_DRAFTS_PER_RUN successful drafts.
-  const drafted = [];
-  for (const headline of candidates) {
-    if (drafted.length >= MAX_DRAFTS_PER_RUN) break;
-    const draft = await draftPost(headline);
-    if (!draft || !draft.content || !draft.platform) continue;
-    drafted.push({ headline, draft });
-  }
+  // 4. Draft all candidates IN PARALLEL, then keep the first MAX_DRAFTS_PER_RUN
+  //    successes in score order. Sequential drafting (one Anthropic call at a
+  //    time, up to KEEP_TOP_N_HEADLINES=12 of them) was the root cause of the
+  //    90s FUNCTION_INVOCATION_TIMEOUT this cron had been silently eating for
+  //    12+ days — confirmed via a manual authenticated trigger + Vercel logs
+  //    on 2026-08-26 showing the run got past feed-fetching fine and died mid
+  //    drafting loop. Parallelizing bounds wall time to ~one call instead of
+  //    N serial calls; the 30s AbortSignal timeout above stops a single slow
+  //    call from hanging the whole batch.
+  const draftResults = await Promise.all(
+    candidates.map(async (headline) => {
+      const draft = await draftPost(headline);
+      return { headline, draft };
+    })
+  );
+  const drafted = draftResults
+    .filter(({ draft }) => draft && draft.content && draft.platform)
+    .slice(0, MAX_DRAFTS_PER_RUN);
 
   // 5. Insert each draft into social_posts as pending_approval.
   const inserted = [];
