@@ -1236,7 +1236,7 @@ footer {
         <li><span class="price-check">-</span> TREC deadline engine</li>
         <li><span class="price-check">-</span> Auto email follow-ups</li>
       </ul>
-      <a href="https://buy.stripe.com/test_9B6fZiaeB8Dd0Fmeg70Fi00" class="price-btn outlined" target="_blank" rel="noopener noreferrer">Start Solo Plan</a>
+      <a href="#" class="price-btn outlined plan-cta" data-plan="solo">Start Solo Plan</a>
     </div>
 
     <div class="price-card popular">
@@ -1259,7 +1259,7 @@ footer {
         <li><span class="price-check">-</span> Shared templates</li>
         <li><span class="price-check">-</span> Priority support</li>
       </ul>
-      <a href="https://buy.stripe.com/test_aFa28s72p5r1co4fkb0Fi01" class="price-btn filled" target="_blank" rel="noopener noreferrer">Start Team Plan</a>
+      <a href="#" class="price-btn filled plan-cta" data-plan="team">Start Team Plan</a>
     </div>
 
     <div class="price-card">
@@ -1391,6 +1391,43 @@ document.querySelectorAll('.feature-card,.compare-card,.brief-demo,.price-card,.
   el.style.transform='translateY(20px)';
   el.style.transition='opacity 0.7s ease-out,transform 0.7s ease-out';
   _obs.observe(el);
+});
+
+// Solo/Team checkout — mirrors signup.html: real server-side Stripe
+// Checkout Session via /api/create-checkout-session (live-mode price IDs
+// in Vercel env), never a hardcoded buy.stripe.com link. Fixed 2026-08-27
+// after these buttons were found pointed at test-mode payment links.
+document.querySelectorAll('.plan-cta').forEach(function(btn) {
+  btn.addEventListener('click', async function(e) {
+    e.preventDefault();
+    if (btn.dataset.loading === '1') return;
+    var plan = btn.getAttribute('data-plan');
+    var originalText = btn.textContent;
+    var originalBackground = btn.style.background;
+    btn.dataset.loading = '1';
+    btn.textContent = 'Opening checkout…';
+    try {
+      var res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: plan, billing_period: 'monthly' })
+      });
+      var out = null;
+      try { out = await res.json(); } catch (parseErr) { out = null; }
+      if (!res.ok || !out || !out.ok || !out.url) {
+        throw new Error((out && out.error) || 'Checkout unavailable');
+      }
+      window.location.href = out.url;
+    } catch (err) {
+      btn.textContent = "Couldn't open checkout — email heath@meetdossie.com";
+      btn.style.background = '#E8836B';
+      setTimeout(function() {
+        btn.textContent = originalText;
+        btn.style.background = originalBackground;
+        btn.dataset.loading = '0';
+      }, 4000);
+    }
+  });
 });
 </script>
 <script>
