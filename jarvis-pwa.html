@@ -6384,7 +6384,14 @@
         setPttState('error');
         pttStatus.textContent = err.message;
         showToast(`Chat: ${err.message}`);
-        speakFallback('Connection hiccup, sir. Try again.');
+        // Atlas 2026-08-27: don't blame "the connection" when Cole was
+        // actually still working the whole time — see askBridge's
+        // reallyOffline comment. Only say "hiccup" for a genuine drop.
+        speakFallback(
+          err && err.reallyOffline
+            ? 'Connection hiccup, sir. Cole\'s terminal dropped. Try again shortly.'
+            : 'Still chewing on that one, sir — it ran long but nothing disconnected. Check the terminal or Telegram.'
+        );
         return;
       }
       appendMessage('assistant', reply, undefined, replyAttachments);
@@ -8666,6 +8673,18 @@
       const MAX_WAIT_MS = 9 * 60 * 1000;
       const startedAt = Date.now();
       let toldOffline = false;
+      // Atlas 2026-08-27: was Cole's terminal EVER actually confirmed
+      // unreachable during this wait, vs. just slow? Before this, a 9-minute
+      // timeout and a real dropped connection threw the exact same generic
+      // Error, so every caller's catch block spoke the same "Connection
+      // hiccup, sir" line regardless of which one actually happened — even
+      // when the channel was alive and polling the whole time and Cole was
+      // simply still deep in a long tool-call chain (confirmed live
+      // 2026-08-27: server.log shows 13 legitimate "no reply yet" nudges
+      // over ~2h with the channel process healthy throughout). That false
+      // "connection" framing is what actually reads as "Cole session
+      // unresponsive" to Heath — nothing was disconnected, it was just slow.
+      let sawOffline = false;
       // Dedup so a repeated 'working' poll doesn't re-fire the same ack
       // every 1.5s until the real answer lands — see onInterim callers
       // (speakInterimAck / appendMessage) for what actually happens with it.
@@ -8697,17 +8716,29 @@
             try { opts.onInterim(poll.interim); } catch (err) { console.warn('[jarvis] onInterim handler failed:', err); }
           }
         }
-        if (poll.bridge_offline && !toldOffline) {
-          toldOffline = true;
-          try { pttStatus.textContent = "Cole's terminal isn't running right now — will answer once it's back…"; } catch {}
-        }
-        if (!poll.bridge_offline) {
+        if (poll.bridge_offline) {
+          sawOffline = true;
+          if (!toldOffline) {
+            toldOffline = true;
+            try { pttStatus.textContent = "Cole's terminal isn't running right now — will answer once it's back…"; } catch {}
+          }
+        } else {
           const elapsedS = Math.round((Date.now() - startedAt) / 1000);
           const label = opts.statusVerb || 'Thinking';
           try { pttStatus.textContent = `${label}… ${elapsedS}s`; } catch {}
         }
       }
-      throw new Error('Timed out waiting for a reply — it may still finish; check again shortly.');
+      // Distinguish the two real causes instead of one generic message —
+      // see the sawOffline comment above. `err.reallyOffline` lets callers
+      // (handleUtteranceBlob / sendNow catch blocks) pick an accurate spoken
+      // fallback instead of always blaming "the connection."
+      const timeoutErr = new Error(
+        sawOffline
+          ? "Cole's terminal genuinely dropped and never came back within 9 minutes — it likely needs a restart."
+          : 'Cole is still working on it past 9 minutes — the channel stayed connected the whole time, it\'s just a long one. Check Telegram or the terminal for the actual result.'
+      );
+      timeoutErr.reallyOffline = sawOffline;
+      throw timeoutErr;
     }
 
     async function runBridgeChat(message, opts = {}) {
@@ -10834,22 +10865,54 @@
             __wasSpeakingWhenHidden = false;
           }
         } else {
-          // ===== Plain browser path — original behavior
+          // ===== Plain browser path (Atlas, 2026-08-27 — real bug fix) =====
+          // Before this fix: `endConversation()` fired unconditionally on
+          // EVERY hidden event (screen auto-lock, notification pull-down,
+          // app switch) — a near-certainty during any answer that takes more
+          // than a few seconds, which is routine when Cole is mid a
+          // background-agent dispatch. That call sets conversationActive =
+          // false AND resets the button to "TAP TO START" immediately,
+          // silently, with nothing on screen to notice if Heath isn't
+          // looking (he's waiting for a SPOKEN reply, not staring at the
+          // phone). Cole's TTS answer plays fine regardless (speakBridgeAnswer
+          // doesn't check conversationActive to START), but afterward
+          // settleBridgeVoice's `if (conversationActive) resumeListening()`
+          // now sees false and does NOT reopen the mic — Jarvis "just stops
+          // working" exactly as reported live 2026-08-27: "it says tap to
+          // end, he responds, and it never clicks back to me." The
+          // "recover on visible" branch below was already written for this
+          // (`__wasSpeakingWhenHidden && conversationActive`) but was DEAD
+          // CODE — conversationActive was always already false by the time
+          // it ran, because the hidden branch had just cleared it a moment
+          // earlier on the same event.
+          //
+          // Fix: mirror the Capacitor-native path's remember/restore pattern.
+          // Browsers still can't hold a live getUserMedia stream in the
+          // background (no foreground service here — OS/Chromium will kill
+          // it or the browser will suspend the tab), so mic capture still
+          // has to release on hidden. But the LOGICAL conversation
+          // (conversationActive) now survives the background instead of
+          // being torn down, and resumeListening() — which already
+          // re-acquires the mic via ensureMic() when micStream is null —
+          // actually runs on return to visible instead of being unreachable.
           if (!visible) {
-            // Remember speaking state so we can recover on return-to-visible
-            // even though the browser will likely tear down the conversation.
             __wasSpeakingWhenHidden = (pttState === 'speaking' || pttState === 'thinking');
+            __wasActiveWhenHidden = conversationActive;
             if (conversationActive) {
-              endConversation().catch(() => lifecycleCleanup());
+              // Release the OS mic resource without ending the conversation
+              // or touching pttState/pttLabel — resumeListening() on return
+              // rebuilds both from scratch.
+              try { stopVadLoop(); } catch {}
+              try { stopMicStream(); } catch {}
             } else if (pttState !== 'listening') {
               stopMicStream();
             }
           } else {
-            // Visible again. In plain browser the conversation was usually
-            // torn down on hidden, but if conversationActive is somehow still
-            // true and we were mid-TTS when hidden, force the resume.
-            if (__wasSpeakingWhenHidden && conversationActive) {
-              console.log('[jarvis-lifecycle] visible (browser) — was mid-TTS when hidden, forcing resumeListening');
+            // Visible again. If we were in a live conversation when
+            // backgrounded (regardless of whether Cole had answered yet),
+            // reopen the mic automatically — no manual tap required.
+            if (__wasActiveWhenHidden && conversationActive) {
+              console.log('[jarvis-lifecycle] visible (browser) — resuming conversation after background');
               setTimeout(() => {
                 try {
                   if (typeof window.__jarvisResumeListening === 'function' && conversationActive) {
@@ -10860,6 +10923,7 @@
                 }
               }, 500);
             }
+            __wasActiveWhenHidden = false;
             __wasSpeakingWhenHidden = false;
           }
         }
