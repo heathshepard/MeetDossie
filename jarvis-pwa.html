@@ -700,6 +700,18 @@
     }
     .msg-attachment-file:hover { border-color: rgba(201, 169, 110, 0.6); }
     .msg-attachment-file-icon { font-size: 15px; line-height: 1; }
+    .msg-attachment-video {
+      max-width: 240px; max-height: 240px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 8px rgba(77, 208, 225, 0.2);
+      display: block;
+      background: #000;
+    }
+    /* jarvis_todos attachments (2026-08-27) — reuses .msg-attachment* above
+       via renderMessageAttachments(), just needs a wrapping row. */
+    .jt-item-attachments { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .jt-item-attach-badge { font-size: 12px; flex-shrink: 0; opacity: 0.85; }
     .msg {
       padding: 8px 10px; margin: 6px 0;
       border-radius: 10px;
@@ -4384,13 +4396,18 @@
     // Inserts a message bubble at the TOP of the scrollback. Newest-at-top
      // gives Heath the latest reply without scrolling. Older messages flow
      // downward inside the fixed-height, internally-scrollable session log.
-    // Renders file attachments Cole sent back on a turn reply (images and/or
-    // PDFs). These arrive ONLY via scripts/jarvis-bridge-attach-file.js —
-    // the `reply` MCP tool itself has no file parameter (its schema lives in
-    // the MCP server, not editable from this repo) — that script merges an
-    // `attachments` array onto the turn's Storage JSON, and
-    // GET /api/jarvis-bridge-turn relays it through on status==='answered'.
-    // attachments: [{name, url, media_type, kind: 'image'|'pdf'|'file', size}]
+    // Renders file attachments — images, PDFs, and (2026-08-27) videos.
+    // Shared by two callers with the exact same attachment shape
+    // ({name, url, media_type, kind: 'image'|'pdf'|'video'|'file', size}):
+    //   1. Cole's jarvis-bridge chat replies — arrive via
+    //      scripts/jarvis-bridge-attach-file.js merging onto the turn's
+    //      Storage JSON, relayed by GET /api/jarvis-bridge-turn.
+    //   2. jarvis_todos.attachments — arrives via
+    //      scripts/jarvis-todo-attach-file.js merging onto the todo row's
+    //      `attachments` JSONB column, read directly by loadJarvisTodos().
+    // Video: tappable, plays inline with native controls (Heath's whole ask
+    // for the to-do feature — a completed deliverable shown ON the item,
+    // not just described in text).
     function renderMessageAttachments(container, attachments) {
       attachments.forEach((att) => {
         if (!att || !att.url) return;
@@ -4401,6 +4418,12 @@
             <a href="${att.url}" target="_blank" rel="noopener">
               <img class="msg-attachment-image" src="${att.url}" alt="${(att.name || 'attachment').replace(/"/g, '&quot;')}" loading="lazy" />
             </a>
+          `;
+        } else if (att.kind === 'video') {
+          wrap.innerHTML = `
+            <video class="msg-attachment-video" controls playsinline preload="metadata">
+              <source src="${att.url}" type="${(att.media_type || 'video/mp4').replace(/"/g, '&quot;')}" />
+            </video>
           `;
         } else {
           const icon = att.kind === 'pdf' ? '📄' : '📎'; // 📄 / 📎
@@ -7285,7 +7308,7 @@
       try {
         const { data, error } = await supabase
           .from('jarvis_todos')
-          .select('id, title, detail, done, created_at, updated_at')
+          .select('id, title, detail, done, attachments, created_at, updated_at')
           .order('done', { ascending: true })
           .order('created_at', { ascending: false });
         if (error) throw error;
@@ -7323,6 +7346,7 @@
           <div class="jt-item-head">
             <button class="jt-toggle" aria-expanded="${expanded}">${expanded ? '▾' : '▸'}</button>
             <span class="jt-item-title"></span>
+            ${Array.isArray(t.attachments) && t.attachments.length ? `<span class="jt-item-attach-badge" title="${t.attachments.length} attachment${t.attachments.length > 1 ? 's' : ''}">📎</span>` : ''}
             <span class="jt-item-actions">
               <button class="jt-icon-btn jt-done-btn" title="${t.done ? 'Mark not done' : 'Mark done'}">${t.done ? '↺' : '✓'}</button>
               <button class="jt-icon-btn jt-del-btn" title="Delete">✕</button>
@@ -7330,6 +7354,7 @@
           </div>
           <div class="jt-item-body ${expanded ? '' : 'hidden'}">
             <div class="jt-item-detail"></div>
+            <div class="jt-item-attachments"></div>
             <div class="jt-item-meta">Added ${created}</div>
             <div class="jt-item-edit-row">
               <button class="jt-btn jt-edit-btn">Edit</button>
@@ -7338,6 +7363,12 @@
         `;
         row.querySelector('.jt-item-title').textContent = t.title;
         row.querySelector('.jt-item-detail').textContent = t.detail || '(no detail)';
+        // Attachments (2026-08-27, jarvis_todos.attachments) — completed
+        // deliverables (video/screenshot/PDF) shown directly on the item.
+        // Reuses the same renderMessageAttachments() helper chat replies use.
+        if (Array.isArray(t.attachments) && t.attachments.length) {
+          renderMessageAttachments(row.querySelector('.jt-item-attachments'), t.attachments);
+        }
         list.appendChild(row);
 
         const head = row.querySelector('.jt-item-head');
