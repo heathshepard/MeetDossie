@@ -353,8 +353,11 @@
     "api/{cron-cron-fire-verifier,cron-pull-post-analytics,cron-customer-view-digest,cron-reconcile-future-builds,cron-self-improvement-daily,cron-regression-suite}.js": {
       "maxDuration": 120
     },
-    "api/{cron-sage-intelligence-update,cron-sage-research}.js": {
+    "api/cron-sage-intelligence-update.js": {
       "maxDuration": 90
+    },
+    "api/cron-sage-research.js": {
+      "maxDuration": 120
     },
     "api/{cron-dossie-full-diagnostic,system-diagnostics-trigger,dossiesign-auto-map}.js": {
       "maxDuration": 300
