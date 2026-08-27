@@ -1,0 +1,333 @@
+{
+  "form_code": "trec-39-11",
+  "form_name": "Amendment to Contract",
+  "trec_revision": "39-11",
+  "pdf_sha256": "d12909bcbd014080948eb6f9771231ba1b1d98c64eaf07e87ab0faa1118b8d36",
+  "source_coords_file": "api/_assets/trec-amendment-39-11-coords.json",
+  "source_pdf_asset": "api/_assets/trec-amendment-39-11-base64.js",
+  "labeling_method": "manual, position-verified against rendered PDF page image (pdftoppm) + pdftotext -bbox word coordinates. LLM neighbor-text tool built at scripts/extract-field-neighbor-text.js was used as a first pass; final key/party/paragraph values below were individually cross-checked against real text at each widget's exact x/y, not the raw pdf_field_name.",
+  "labeled_by": "carter",
+  "labeled_at": "2026-08-27T21:00:00.000Z",
+  "review_status": "pending_human_approval",
+  "reviewer": null,
+  "approved_at": null,
+  "field_count": 51,
+  "important_finding": "pdf_field_name is NOT reliable on this form even where it looks descriptive. Several checkbox fields carry a name whose leading number matches their true paragraph position but whose descriptive text is pulled from an ADJACENT paragraph (e.g. the field positioned at paragraph (8)'s checkbox is literally named '8 The date for Buyer to give written notice...', which is paragraph (9)'s text). Every field below was resolved by its real x/y position against the actual rendered page + pdftotext word coordinates, never by trusting pdf_field_name text.",
+  "structured_address_fields": "none on this form — property is a single free-text 'Street Address and City' line, not a multi-part street/city/state/zip group.",
+  "fields": [
+    {
+      "widget_index": 0, "pdf_field_name": "Street Address and City", "page": 1,
+      "x_pt": 125.3, "y_pt": 687.2, "w_pt": 359.2, "h_pt": 14.6,
+      "key": "property_address_and_city", "party": "n/a", "paragraph": "header",
+      "field_kind": "flat_text", "notes": "Single free-text line under 'TO CONTRACT CONCERNING THE PROPERTY AT'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "1 The Sales Price in Paragraph 3 of the contract is", "page": 1,
+      "x_pt": 37.4, "y_pt": 651.9, "w_pt": 11.1, "h_pt": 8.6,
+      "key": "para1_sales_price_change_selected", "party": "both", "paragraph": "1",
+      "field_kind": "checkbox", "notes": "Name matches true position/content for this field."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined", "page": 1,
+      "x_pt": 469.4, "y_pt": 639.7, "w_pt": 90.1, "h_pt": 12.7,
+      "key": "para1a_cash_portion_amount", "party": "buyer", "paragraph": "1A",
+      "field_kind": "flat_text", "format": "currency", "notes": "'A. Cash portion of Sales Price payable by Buyer at closing ... $___'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined_2", "page": 1,
+      "x_pt": 469.6, "y_pt": 627.6, "w_pt": 90.0, "h_pt": 11.4,
+      "key": "para1b_financing_sum_amount", "party": "n/a", "paragraph": "1B",
+      "field_kind": "flat_text", "format": "currency", "notes": "'B. Sum of financing described in the contract ... $___'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined_3", "page": 1,
+      "x_pt": 469.6, "y_pt": 616.3, "w_pt": 90.0, "h_pt": 11.5,
+      "key": "para1c_sales_price_total_amount", "party": "n/a", "paragraph": "1C",
+      "field_kind": "flat_text", "format": "currency", "notes": "'C. Sales Price (Sum of A and B) ... $___'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers", "page": 1,
+      "x_pt": 38.0, "y_pt": 605.5, "w_pt": 11.1, "h_pt": 9.1,
+      "key": "para2_repairs_treatments_change_selected", "party": "seller", "paragraph": "2",
+      "field_kind": "checkbox", "notes": "Name matches true position/content for this field."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text1", "page": 1,
+      "x_pt": 195.4, "y_pt": 572.2, "w_pt": 362.5, "h_pt": 9.9,
+      "key": "para2_repairs_description_line1", "party": "seller", "paragraph": "2",
+      "field_kind": "flat_text", "notes": "First (partial) blank line completing '...shall complete the following repairs and treatments: ___'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text 10", "page": 1,
+      "x_pt": 68.3, "y_pt": 561.1, "w_pt": 488.3, "h_pt": 11.7,
+      "key": "para2_repairs_description_line2", "party": "seller", "paragraph": "2",
+      "field_kind": "flat_text"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text 9", "page": 1,
+      "x_pt": 68.2, "y_pt": 549.8, "w_pt": 488.3, "h_pt": 11.7,
+      "key": "para2_repairs_description_line3", "party": "seller", "paragraph": "2",
+      "field_kind": "flat_text"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text 8", "page": 1,
+      "x_pt": 68.6, "y_pt": 538.7, "w_pt": 488.3, "h_pt": 11.7,
+      "key": "para2_repairs_description_line4", "party": "seller", "paragraph": "2",
+      "field_kind": "flat_text", "notes": "Line ends with the closing period of the paragraph."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "3 The date in Paragraph 9 of the contract is changed to", "page": 1,
+      "x_pt": 38.4, "y_pt": 525.9, "w_pt": 11.0, "h_pt": 9.8,
+      "key": "para3_closing_date_change_selected", "party": "both", "paragraph": "3",
+      "field_kind": "checkbox", "notes": "Name matches true position/content for this field."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "date 5", "page": 1,
+      "x_pt": 346.7, "y_pt": 524.8, "w_pt": 148.9, "h_pt": 11.6,
+      "key": "para3_new_closing_date", "party": "both", "paragraph": "3",
+      "field_kind": "flat_text", "format": "date_full", "notes": "'The date in Paragraph 9 ... is changed to ___, 20__.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "20_25", "page": 1,
+      "x_pt": 518.2, "y_pt": 524.0, "w_pt": 37.7, "h_pt": 12.0,
+      "key": "para3_new_closing_date_year_suffix", "party": "both", "paragraph": "3",
+      "field_kind": "flat_text", "format": "year_2_digit_suffix", "notes": "Fills in after preprinted '20'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "4 The amount in Paragraph 12A1b of the contract is changed to", "page": 1,
+      "x_pt": 37.4, "y_pt": 513.8, "w_pt": 11.6, "h_pt": 8.6,
+      "key": "para4_12a1b_amount_change_selected", "party": "both", "paragraph": "4",
+      "field_kind": "checkbox", "notes": "Name matches true position/content for this field."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined_4", "page": 1,
+      "x_pt": 414.1, "y_pt": 510.2, "w_pt": 98.2, "h_pt": 14.3,
+      "key": "para4_new_12a1b_amount", "party": "n/a", "paragraph": "4",
+      "field_kind": "flat_text", "format": "currency", "notes": "'The amount in Paragraph 12A(1)(b) of the contract is changed to $___.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "5 The cost of lender required repairs and treatment as itemized on the attached list will be paid", "page": 1,
+      "x_pt": 38.0, "y_pt": 497.8, "w_pt": 11.1, "h_pt": 9.1,
+      "key": "para5_12b_amounts_change_selected", "party": "both", "paragraph": "5",
+      "field_kind": "checkbox",
+      "notes": "NAME MISMATCH: this field's descriptive text is paragraph 6's wording; by position this is the checkbox for '(5) The amounts in Paragraph 12B ... are changed as follows (check applicable boxes):'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will5", "page": 1,
+      "x_pt": 73.7, "y_pt": 483.2, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_1_seller_pay_selected", "party": "seller", "paragraph": "5(1)",
+      "field_kind": "checkbox", "notes": "'(1) Seller will pay (check one box only):' activation box."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will6", "page": 1,
+      "x_pt": 296.3, "y_pt": 482.7, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_1_seller_pay_dollar_selected", "party": "seller", "paragraph": "5(1)",
+      "field_kind": "checkbox", "notes": "Verified by exact word x-position: checkbox glyph directly before the '$________' blank on the Seller line."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "203", "page": 1,
+      "x_pt": 315.6, "y_pt": 481.6, "w_pt": 53.3, "h_pt": 12.7,
+      "key": "para5_1_seller_pay_dollar_amount", "party": "seller", "paragraph": "5(1)",
+      "field_kind": "flat_text", "format": "currency"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will not7", "page": 1,
+      "x_pt": 397.2, "y_pt": 482.7, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_1_seller_pay_percent_selected", "party": "seller", "paragraph": "5(1)",
+      "field_kind": "checkbox", "notes": "Verified by exact word x-position: checkbox glyph directly before '_____% of the Sales Price' on the Seller line, after 'or'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined_8", "page": 1,
+      "x_pt": 412.4, "y_pt": 481.1, "w_pt": 34.2, "h_pt": 12.1,
+      "key": "para5_1_seller_pay_percent_amount", "party": "seller", "paragraph": "5(1)",
+      "field_kind": "flat_text", "format": "percent"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will9", "page": 1,
+      "x_pt": 74.7, "y_pt": 468.9, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_2_buyer_pay_selected", "party": "buyer", "paragraph": "5(2)",
+      "field_kind": "checkbox", "notes": "'(2) Buyer will pay (check one box only):' activation box, line directly below the Seller line."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will10", "page": 1,
+      "x_pt": 297.4, "y_pt": 468.4, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_2_buyer_pay_dollar_selected", "party": "buyer", "paragraph": "5(2)",
+      "field_kind": "checkbox"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "20", "page": 1,
+      "x_pt": 316.6, "y_pt": 467.3, "w_pt": 53.3, "h_pt": 12.7,
+      "key": "para5_2_buyer_pay_dollar_amount", "party": "buyer", "paragraph": "5(2)",
+      "field_kind": "flat_text", "format": "currency", "notes": "NAME MISMATCH: generic '20', not a year field — confirmed by position as the Buyer-line dollar-amount blank."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "will not", "page": 1,
+      "x_pt": 398.3, "y_pt": 468.4, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para5_2_buyer_pay_percent_selected", "party": "buyer", "paragraph": "5(2)",
+      "field_kind": "checkbox"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "undefined_5", "page": 1,
+      "x_pt": 413.4, "y_pt": 466.8, "w_pt": 34.2, "h_pt": 12.1,
+      "key": "para5_2_buyer_pay_percent_amount", "party": "buyer", "paragraph": "5(2)",
+      "field_kind": "flat_text", "format": "percent"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "6 Buyer has paid Seller an additional Option Fee of", "page": 1,
+      "x_pt": 37.4, "y_pt": 455.2, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para6_lender_repairs_cost_selected", "party": "both", "paragraph": "6",
+      "field_kind": "checkbox",
+      "notes": "NAME MISMATCH: text is paragraph 7's wording; by position this is '(6) The cost of lender required repairs and treatment ... will be paid as follows: $___ by Seller; $___ by Buyer.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "as follows", "page": 1,
+      "x_pt": 138.1, "y_pt": 440.1, "w_pt": 137.3, "h_pt": 11.8,
+      "key": "para6_seller_pays_amount", "party": "seller", "paragraph": "6",
+      "field_kind": "flat_text", "format": "currency", "notes": "Verified by x-position: first '$___' blank on the line, before 'by Seller;'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "for an extension of the", "page": 1,
+      "x_pt": 340.9, "y_pt": 440.1, "w_pt": 144.2, "h_pt": 11.8,
+      "key": "para6_buyer_pays_amount", "party": "buyer", "paragraph": "6",
+      "field_kind": "flat_text", "format": "currency", "notes": "NAME MISMATCH: text belongs to paragraph 7; by exact x-position this is the second '$___' blank on paragraph 6's line, before 'by Buyer.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid", "page": 1,
+      "x_pt": 37.4, "y_pt": 430.0, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para7_option_fee_selected", "party": "buyer", "paragraph": "7",
+      "field_kind": "checkbox",
+      "notes": "NAME MISMATCH: text is paragraph 8's wording; by position this is '(7) Buyer has paid Seller an additional option fee of $___ for an extension of the unrestricted right to terminate the contract...'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "contract", "page": 1,
+      "x_pt": 329.5, "y_pt": 426.2, "w_pt": 113.2, "h_pt": 12.7,
+      "key": "para7_option_fee_amount", "party": "buyer", "paragraph": "7",
+      "field_kind": "flat_text", "format": "currency", "notes": "'...an additional option fee of $___ for an extension...'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "be credited to the Sales Price", "page": 1,
+      "x_pt": 71.9, "y_pt": 401.0, "w_pt": 145.9, "h_pt": 12.8,
+      "key": "para7_option_fee_expiration_date", "party": "buyer", "paragraph": "7",
+      "field_kind": "flat_text", "format": "date_full",
+      "notes": "NAME MISMATCH: text belongs to end of paragraph 7's own sentence, not this blank. By exact x-position (71.9-217.8pt on the wrapped continuation line) this is the date blank in '...on or before 5:00 p.m. on ___, 20__.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "20_2", "page": 1,
+      "x_pt": 238.4, "y_pt": 400.4, "w_pt": 33.5, "h_pt": 12.0,
+      "key": "para7_option_fee_expiration_date_year_suffix", "party": "buyer", "paragraph": "7",
+      "field_kind": "flat_text", "format": "year_2_digit_suffix"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Fee", "page": 1,
+      "x_pt": 412.1, "y_pt": 402.6, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para7_credited_to_sales_price_will", "party": "n/a", "paragraph": "7",
+      "field_kind": "checkbox", "notes": "'This additional option fee ❑ will ❑ will not be credited to the Sales Price.' — WILL box."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Fee 2", "page": 1,
+      "x_pt": 447.0, "y_pt": 402.6, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para7_credited_to_sales_price_will_not", "party": "n/a", "paragraph": "7",
+      "field_kind": "checkbox", "notes": "WILL NOT box, mutually exclusive with the field above."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as", "page": 1,
+      "x_pt": 38.0, "y_pt": 379.6, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para8_buyer_waives_termination_right_selected", "party": "buyer", "paragraph": "8",
+      "field_kind": "checkbox",
+      "notes": "NAME MISMATCH: text is paragraph 9's wording; by position this is '(8) Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid.' No fill-in blanks — pure checkbox."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "9 Other Modifications Insert only factual statements and business details applicable to this sale", "page": 1,
+      "x_pt": 37.4, "y_pt": 364.1, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para9_financing_notice_date_change_selected", "party": "buyer", "paragraph": "9",
+      "field_kind": "checkbox",
+      "notes": "NAME MISMATCH: text is paragraph 10's wording; by position this is '(9) The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval ... is changed to ___, 20__.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text6", "page": 1,
+      "x_pt": 390.2, "y_pt": 350.3, "w_pt": 105.6, "h_pt": 12.4,
+      "key": "para9_new_notice_date", "party": "buyer", "paragraph": "9",
+      "field_kind": "flat_text", "format": "date_full"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "20_3", "page": 1,
+      "x_pt": 516.1, "y_pt": 349.9, "w_pt": 38.3, "h_pt": 11.8,
+      "key": "para9_new_notice_date_year_suffix", "party": "buyer", "paragraph": "9",
+      "field_kind": "flat_text", "format": "year_2_digit_suffix"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "10", "page": 1,
+      "x_pt": 35.9, "y_pt": 339.5, "w_pt": 11.6, "h_pt": 9.1,
+      "key": "para10_other_modifications_selected", "party": "both", "paragraph": "10",
+      "field_kind": "checkbox", "notes": "'(10) Other Modifications: (Real estate brokers and sales agents are prohibited from practicing law.)'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text7 1", "page": 1,
+      "x_pt": 527.1, "y_pt": 338.2, "w_pt": 28.2, "h_pt": 11.8,
+      "key": "para10_other_modifications_line1", "party": "both", "paragraph": "10",
+      "field_kind": "flat_text", "notes": "Short blank continuing directly on the header line after 'law.)'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text5.1", "page": 1,
+      "x_pt": 71.4, "y_pt": 326.4, "w_pt": 485.2, "h_pt": 10.8,
+      "key": "para10_other_modifications_line2", "party": "both", "paragraph": "10",
+      "field_kind": "flat_text"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text4.1", "page": 1,
+      "x_pt": 71.1, "y_pt": 314.1, "w_pt": 484.7, "h_pt": 12.3,
+      "key": "para10_other_modifications_line3", "party": "both", "paragraph": "10",
+      "field_kind": "flat_text"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Text3.1", "page": 1,
+      "x_pt": 71.3, "y_pt": 304.7, "w_pt": 484.2, "h_pt": 11.3,
+      "key": "para10_other_modifications_line4", "party": "both", "paragraph": "10",
+      "field_kind": "flat_text", "notes": "Last line, ends with the paragraph's closing period."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "DATE OF FINAL ACCEPTANCE", "page": 1,
+      "x_pt": 126.7, "y_pt": 222.2, "w_pt": 38.4, "h_pt": 12.7,
+      "key": "executed_day_of_month", "party": "n/a", "paragraph": "executed_block",
+      "field_kind": "flat_text", "format": "day_of_month",
+      "notes": "NAME MISMATCH: field is 'EXECUTED the ___ day of', a day-of-month number, not itself the acceptance-date caption (that's static instruction text printed below the fill line, '(BROKER: FILL IN THE DATE OF FINAL ACCEPTANCE.)'). Broker-filled, not buyer/seller."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "20_4", "page": 1,
+      "x_pt": 203.3, "y_pt": 221.7, "w_pt": 170.4, "h_pt": 12.7,
+      "key": "executed_month", "party": "n/a", "paragraph": "executed_block",
+      "field_kind": "flat_text", "format": "month_name", "notes": "'...day of ________, 20__.'"
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "BROKER FILL IN THE", "page": 1,
+      "x_pt": 395.3, "y_pt": 222.2, "w_pt": 34.6, "h_pt": 12.7,
+      "key": "executed_year_suffix", "party": "n/a", "paragraph": "executed_block",
+      "field_kind": "flat_text", "format": "year_2_digit_suffix",
+      "notes": "NAME MISMATCH: generic year-suffix blank, confirmed by x-position directly after preprinted '20' and before the closing '.'."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Signature3", "page": 1,
+      "x_pt": 36.2, "y_pt": 167.8, "w_pt": 259.8, "h_pt": 32.0,
+      "key": "buyer_signature_1", "party": "buyer", "paragraph": "signatures",
+      "field_kind": "signature", "notes": "Upper-left signature block, directly above the 'Buyer' caption at y=157.9pt."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Signature5", "page": 1,
+      "x_pt": 314.2, "y_pt": 167.8, "w_pt": 263.2, "h_pt": 32.0,
+      "key": "seller_signature_1", "party": "seller", "paragraph": "signatures",
+      "field_kind": "signature", "notes": "Upper-right signature block, above the 'Seller' caption at y=157.9pt."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Signature7", "page": 1,
+      "x_pt": 35.1, "y_pt": 124.8, "w_pt": 261.5, "h_pt": 32.0,
+      "key": "buyer_signature_2", "party": "buyer", "paragraph": "signatures",
+      "field_kind": "signature", "notes": "Lower-left signature block, above the second 'Buyer' caption at y=115.2pt — second buyer/co-signer line."
+    },
+    {
+      "widget_index": 0, "pdf_field_name": "Signature8", "page": 1,
+      "x_pt": 314.8, "y_pt": 125.3, "w_pt": 261.5, "h_pt": 32.0,
+      "key": "seller_signature_2", "party": "seller", "paragraph": "signatures",
+      "field_kind": "signature", "notes": "Lower-right signature block, second seller/co-signer line."
+    }
+  ]
+}
