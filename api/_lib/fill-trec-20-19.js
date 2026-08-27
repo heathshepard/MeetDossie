@@ -55,6 +55,26 @@
 //   fillTrec2019(pdfDoc, fieldValues) — mutates the pdfDoc in place.
 //   formatMoney(value)                — "425000" -> "425,000"
 //   formatDate(iso)                   — "2026-08-15" -> "08/15/2026"
+//
+// 2026-08-27 CARTER (dossie-esign-productization-plan step 3 — pre-send field
+// audit): the text side of this filler draws directly into the page content
+// stream (page.drawText), not into a real AcroForm field, so there is no
+// getText()-style read-back available the way there is for AcroForm text
+// fields in fill-form.js. What IS deterministically knowable, and wasn't
+// tracked at all before this change: whether the coordinate map actually had
+// an entry for a given field name (a TREC revision that renames/removes a
+// field silently drops the value here — exactly the failure mode this whole
+// module's coordMap is exposed to) and whether the draw call itself
+// completed. Both now report into the shared ledger (./fill-ledger) so
+// fill-form.js's pre-send audit sees flat-PDF failures with the same
+// confidence it already had for AcroForm forms. Checkboxes on this asset ARE
+// real AcroForm fields (see applyResaleContractCheckboxes below), so those
+// get a true getCheckBox().isChecked() read-back, same as safeCheck().
+const {
+  recordAttempt,
+  recordWritten,
+  recordFailure,
+} = require('./fill-ledger');
 
 const TREC_20_19_COORDS = (() => {
   try {
@@ -140,12 +160,15 @@ async function fillTrec2019(pdfDoc, fv) {
 
   function drawFieldText(fieldName, value, options = {}) {
     if (value == null || value === '') return;
+    recordAttempt(fieldName);
     const coord = coordMap[fieldName];
     if (!coord) {
+      recordFailure('text', fieldName, 'no coordinate for field on this template version');
       console.warn('[fill-trec-20-19] No coordinate for field:', fieldName);
       return;
     }
     if (coord.page < 1 || coord.page > pages.length) {
+      recordFailure('text', fieldName, `coordinate page ${coord.page} out of range (pdf has ${pages.length} pages) — template drift?`);
       console.warn('[fill-trec-20-19] Page out of range for field:', fieldName, 'page:', coord.page);
       return;
     }
@@ -158,7 +181,9 @@ async function fillTrec2019(pdfDoc, fv) {
         size: fontSize,
         ...options,
       });
+      recordWritten();
     } catch (e) {
+      recordFailure('text', fieldName, e && e.message);
       console.warn('[fill-trec-20-19] drawText failed for', fieldName + ':', e && e.message);
     }
   }
@@ -757,10 +782,21 @@ function applyResaleContractCheckboxes(pdfDoc, fv) {
   }
   const checkedFieldNames = [];
   const check = (fieldName, label) => {
+    // Checkboxes on this asset ARE real AcroForm fields (unlike the drawn
+    // text above), so this gets the same attempted/written/read-back
+    // discipline as fill-form.js's safeCheck().
+    recordAttempt(fieldName);
     try {
-      form.getCheckBox(fieldName).check();
-      checkedFieldNames.push(fieldName);
+      const box = form.getCheckBox(fieldName);
+      box.check();
+      if (box.isChecked()) {
+        recordWritten();
+        checkedFieldNames.push(fieldName);
+      } else {
+        recordFailure('checkbox', fieldName, `read-back shows unchecked after check() (${label})`);
+      }
     } catch (e) {
+      recordFailure('checkbox', fieldName, `${label}: ${e && e.message}`);
       console.warn('[fill-trec-20-19] could not check', label, '(field', JSON.stringify(fieldName) + '):', e && e.message);
     }
   };
