@@ -674,6 +674,32 @@
       margin-top: 6px;
       display: block;
     }
+    /* File attachments Cole sends back on a reply (2026-08-27) — set via
+       scripts/jarvis-bridge-attach-file.js, rendered by
+       renderMessageAttachments(). Images: inline preview wrapped in a link
+       that opens the full-size original in a new tab ("tap to expand").
+       PDFs/other: a tappable open/download chip. */
+    .msg-attachment { margin-top: 6px; }
+    .msg-attachment-image {
+      max-width: 240px; max-height: 240px;
+      border-radius: 8px;
+      border: 1px solid var(--cyan-dim);
+      box-shadow: 0 0 8px rgba(77, 208, 225, 0.2);
+      display: block;
+      cursor: pointer;
+    }
+    .msg-attachment-file {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(201, 169, 110, 0.35);
+      background: rgba(201, 169, 110, 0.08);
+      color: inherit;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .msg-attachment-file:hover { border-color: rgba(201, 169, 110, 0.6); }
+    .msg-attachment-file-icon { font-size: 15px; line-height: 1; }
     .msg {
       padding: 8px 10px; margin: 6px 0;
       border-radius: 10px;
@@ -4358,7 +4384,38 @@
     // Inserts a message bubble at the TOP of the scrollback. Newest-at-top
      // gives Heath the latest reply without scrolling. Older messages flow
      // downward inside the fixed-height, internally-scrollable session log.
-    function appendMessage(role, content, createdAt) {
+    // Renders file attachments Cole sent back on a turn reply (images and/or
+    // PDFs). These arrive ONLY via scripts/jarvis-bridge-attach-file.js —
+    // the `reply` MCP tool itself has no file parameter (its schema lives in
+    // the MCP server, not editable from this repo) — that script merges an
+    // `attachments` array onto the turn's Storage JSON, and
+    // GET /api/jarvis-bridge-turn relays it through on status==='answered'.
+    // attachments: [{name, url, media_type, kind: 'image'|'pdf'|'file', size}]
+    function renderMessageAttachments(container, attachments) {
+      attachments.forEach((att) => {
+        if (!att || !att.url) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'msg-attachment';
+        if (att.kind === 'image') {
+          wrap.innerHTML = `
+            <a href="${att.url}" target="_blank" rel="noopener">
+              <img class="msg-attachment-image" src="${att.url}" alt="${(att.name || 'attachment').replace(/"/g, '&quot;')}" loading="lazy" />
+            </a>
+          `;
+        } else {
+          const icon = att.kind === 'pdf' ? '📄' : '📎'; // 📄 / 📎
+          wrap.innerHTML = `
+            <a class="msg-attachment-file" href="${att.url}" target="_blank" rel="noopener">
+              <span class="msg-attachment-file-icon">${icon}</span>
+              <span class="msg-attachment-file-name">${(att.name || 'attachment').replace(/</g, '&lt;')}</span>
+            </a>
+          `;
+        }
+        container.appendChild(wrap);
+      });
+    }
+
+    function appendMessage(role, content, createdAt, attachments) {
       const el = document.createElement('div');
       el.className = `msg ${role}`;
       const tsSource = createdAt ? new Date(createdAt) : new Date();
@@ -4369,6 +4426,9 @@
         <div class="msg-time">${ts}</div>
       `;
       el.querySelector('.msg-content').textContent = content;
+      if (Array.isArray(attachments) && attachments.length) {
+        renderMessageAttachments(el.querySelector('.msg-content'), attachments);
+      }
       // Prepend so newest is at the top of the visible region.
       messages.insertBefore(el, messages.firstChild);
       // Keep the newest message in view (scrollTop=0 = top of the list).
@@ -4379,6 +4439,11 @@
         try { pushUI.maybeShowBanner(); } catch (err) { console.warn('[jarvis] pushUI banner check failed', err); }
       }
     }
+    // Debug/verify hook, same pattern as window.__jarvisHandleUtteranceBlob —
+    // lets a Playwright verification script render a real message bubble
+    // (with real attachments fetched from the real API) without needing to
+    // drive a full live jarvis-bridge round trip.
+    try { window.__jarvisAppendMessage = appendMessage; } catch {}
 
     // ===== Supabase boot — fetch publishable key from API to avoid hard-coding =====
     async function bootSupabase() {
@@ -6308,9 +6373,12 @@
       // Every turn goes to the live Cole session through the jarvis-bridge
       // channel — see the "Live session bridge" comment above askBridge().
       let reply = '';
+      let replyAttachments = [];
       try {
         __interimAckSpokenThisTurn = false; // new turn — allow one fresh audible ack
-        reply = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
+        const answer = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
+        reply = answer.text;
+        replyAttachments = answer.attachments;
       } catch (err) {
         console.error('[jarvis] bridge chat failed (walkie-talkie):', err);
         setPttState('error');
@@ -6319,7 +6387,7 @@
         speakFallback('Connection hiccup, sir. Try again.');
         return;
       }
-      appendMessage('assistant', reply);
+      appendMessage('assistant', reply, undefined, replyAttachments);
       setPttState('speaking');
       pttStatus.textContent = 'Speaking…';
       try {
@@ -8612,7 +8680,13 @@
         const poll = await pollRes.json();
 
         if (poll.status === 'answered') {
-          return poll.reply || '(no answer returned)';
+          // attachments (2026-08-27): set only via
+          // scripts/jarvis-bridge-attach-file.js — see that script's header
+          // and the api/jarvis-bridge-turn.js GET comment for the full path.
+          return {
+            text: poll.reply || '(no answer returned)',
+            attachments: Array.isArray(poll.attachments) ? poll.attachments : [],
+          };
         }
         if (poll.status === 'error' || poll.status === 'expired') {
           throw new Error(poll.error || 'The live session did not answer in time.');
@@ -8645,8 +8719,12 @@
         // reply mode is 'voice' (see sendNow / speakBridgeAnswer, 2026-08-22).
         onInterim: (t) => { appendMessage('assistant', t); },
       });
-      appendMessage('assistant', answer);
-      return answer;
+      // askBridge() returns {text, attachments} (2026-08-27) — attachments
+      // render inline, but callers of runBridgeChat (sendNow) only ever
+      // needed the spoken/typed text, so keep returning that as a plain
+      // string to avoid touching every call site's contract.
+      appendMessage('assistant', answer.text, undefined, answer.attachments);
+      return answer.text;
     }
 
     // Plays `answer` aloud via ElevenLabs TTS (falls back to browser
@@ -8836,8 +8914,8 @@
     async function runBridgeVoiceChat(transcript) {
       __interimAckSpokenThisTurn = false; // new turn — allow one fresh audible ack
       const answer = await askBridge(transcript, { statusVerb: 'Thinking', onInterim: (t) => { speakInterimAck(t); } });
-      appendMessage('assistant', answer);
-      await speakBridgeAnswer(answer);
+      appendMessage('assistant', answer.text, undefined, answer.attachments);
+      await speakBridgeAnswer(answer.text);
     }
 
     function renderAttachmentChip() {
