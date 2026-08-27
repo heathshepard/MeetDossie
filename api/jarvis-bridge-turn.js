@@ -72,7 +72,13 @@ const OWNER_EMAIL = 'heath.shepard@kw.com';
 
 const BUCKET = 'jarvis-bridge';
 const PREFIX = 'turns/';
-const MAX_MESSAGE = 4000;
+// Raised 2026-08-27 (Atlas) — 4,000 was rejecting real pasted content (Claude-
+// in-Chrome extension output, App Store Connect status dumps, QA reports)
+// that Heath now pastes routinely. 50,000 chars still leaves enormous
+// headroom under the real wall below (see MAX_IMAGE_BASE64 budget, which is
+// recalculated against this new value) while still acting as a genuine
+// backstop against a pathological request.
+const MAX_MESSAGE = 50_000;
 // Optional inbound image (Jarvis chat attach button — jarvis-pwa.html
 // resizeImageForVision caps at 1024px before this ever gets here, so a
 // typical JPEG lands well under this).
@@ -90,17 +96,17 @@ const MAX_MESSAGE = 4000;
 // Budget against the 4,500,000-byte wall, conservatively assuming decimal
 // MB (the smaller of the two possible readings of "4.5MB"):
 //   4,500,000  hard cap
-//    - 4,000   MAX_MESSAGE (worst case, chars == bytes, all ASCII-safe here)
+//    - 50,000  MAX_MESSAGE (worst case, chars == bytes, all ASCII-safe here)
 //    -   150   JSON structure (keys/quotes/braces/media-type string)
 //    - 300,000 safety margin (~6.7%) for measurement slop / header framing
 //   -----------
-//    4,195,850 -> rounded down to a clean 4,200,000
-// Decoded this is ~3.15MB of actual image bytes — modest vs the old
+//    4,149,850 -> rounded down to a clean 4,150,000
+// Decoded this is ~3.1MB of actual image bytes — modest vs the old
 // 4,000,000/~3MB, but it's the genuine safe max for this transport, not an
 // arbitrary pick. In practice it's moot: resizeImageForVision never lets a
 // real photo/screenshot get anywhere near this (1024px JPEG/PNG output is
 // typically 100KB-1.5MB), so this only ever fires on a pathological input.
-const MAX_IMAGE_BASE64 = 4_200_000; // ~4.2MB base64 chars ≈ ~3.15MB decoded
+const MAX_IMAGE_BASE64 = 4_150_000; // ~4.15MB base64 chars ≈ ~3.1MB decoded
 // NOTE: the `jarvis-bridge` Supabase Storage bucket's file_size_limit is
 // NOT the binding constraint here — confirmed 2026-08-11 it's 8MB (raised
 // from 6MB same session for headroom), comfortably above the ~4.2MB worst
@@ -324,7 +330,16 @@ module.exports = async function handler(req, res) {
   const message = String(body.message || '').trim();
   if (!message) return res.status(400).json({ ok: false, error: 'message_required' });
   if (message.length > MAX_MESSAGE) {
-    return res.status(400).json({ ok: false, error: 'message_too_long', max: MAX_MESSAGE });
+    return res.status(400).json({
+      ok: false,
+      error: 'message_too_long',
+      max: MAX_MESSAGE,
+      length: message.length,
+      // Human-readable string — askBridge() in jarvis-pwa.html surfaces this
+      // directly instead of the bare error code so a real limit hit reads as
+      // an actual explanation, not a cryptic toast.
+      message: `Message too long: ${message.length.toLocaleString()} characters (max ${MAX_MESSAGE.toLocaleString()}). Trim it down or split it into two messages.`,
+    });
   }
 
   // Optional image (Jarvis chat attach button). image_base64 is raw base64,

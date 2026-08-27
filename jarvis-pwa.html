@@ -8697,7 +8697,10 @@
       });
       const start = await startRes.json();
       if (!startRes.ok || !start.ok) {
-        throw new Error(start?.error || `Request failed (${startRes.status})`);
+        // Prefer the server's human-readable `message` (e.g. message_too_long
+        // now includes actual/max char counts) over the bare error code —
+        // Atlas 2026-08-27, was showing the raw "message_too_long" string.
+        throw new Error(start?.message || start?.error || `Request failed (${startRes.status})`);
       }
 
       const POLL_MS = 1500; // matches the local channel's own poll interval
@@ -9283,6 +9286,12 @@
         } catch (err) {
           console.warn('[jarvis] chat send failed', err);
           showToast(`Send failed: ${err.message}`);
+          // Atlas 2026-08-27: restore the text so a failed send (e.g. hitting
+          // message_too_long on a big paste) doesn't silently eat it — the
+          // input was cleared optimistically above, before this catch could
+          // know the send actually failed. Attachment-only sends have
+          // nothing to restore (raw is '').
+          if (raw && !textInput.value) textInput.value = raw;
           // 2026-08-22: same "stuck on speaking" gap as wireQuickActions —
           // if runLegacyChatTTS's own TTS fetch threw right after it called
           // setPttState('speaking') but before any audio element/settle()

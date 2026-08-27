@@ -820,7 +820,25 @@ async function tick(): Promise<void> {
     }
 
     if (turn.status === 'answered' || turn.status === 'error') {
+      // Root cause of the 2026-08-27 total-silence outage (Atlas): this used
+      // to just add(id) and leave the Storage object in place forever. Once
+      // an id is in `answered`, line ~805 (`if (answered.has(id)) continue`)
+      // skips it on every future tick BEFORE it ever reaches the STALE_MS
+      // cleanup check above — so answered/errored turns never got deleted,
+      // only genuinely-abandoned ones did. listTurns() sorts ascending by
+      // created_at with limit:100 (Supabase Storage list max page size), so
+      // once the bucket accumulated >100 old-but-never-deleted answered
+      // turns, EVERY new turn past position 100 was permanently excluded
+      // from every listTurns() result — never seen, never delivered, never
+      // logged (no code path errors; the loop just never reaches them).
+      // Confirmed live: 108 turns.length in ./turns/, the 2 newest (both
+      // real, stuck, unanswered Heath turns) sitting at position 107-108,
+      // heartbeat.json staying perfectly healthy throughout because tick()
+      // itself never threw or stalled — it just had nothing left to do for
+      // any turn past the page-100 cutoff. Delete on the same path stale
+      // cleanup uses so the bucket stays bounded going forward.
       answered.add(id)
+      void deleteTurn(id)
       continue
     }
 
