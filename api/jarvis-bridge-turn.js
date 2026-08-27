@@ -30,7 +30,13 @@
 //
 // GET /api/jarvis-bridge-turn?id=<turn_id>
 //   Authorization: Bearer <supabase user JWT>
-//   -> { ok, status: pending|delivered|working|answered|expired, reply?, interim? }
+//   -> { ok, status: pending|delivered|working|answered|expired, reply?, interim?, attachments? }
+//   attachments (status==='answered' only) is an array of
+//   {name, url, media_type, kind, size, uploaded_at} — set not by the
+//   `reply` MCP tool (no file param exists there) but by the separate
+//   scripts/jarvis-bridge-attach-file.js, which merges them directly onto
+//   the turn's Storage JSON. See that script's header comment for the full
+//   design/usage. Always present (possibly []) on an answered turn.
 //   interim (status==='working' only) is a genuine early ack the model sent
 //   via the `reply` tool with final:false — e.g. "Dispatching Atlas to fix
 //   the staging build". Added 2026-08-20: this field did not exist before,
@@ -205,7 +211,19 @@ module.exports = async function handler(req, res) {
     const ageMs = Date.now() - createdMs;
 
     if (turn.status === 'answered') {
-      return res.status(200).json({ ok: true, status: 'answered', reply: turn.reply_text || '' });
+      // attachments (2026-08-27): optional array set by
+      // scripts/jarvis-bridge-attach-file.js — a SEPARATE mechanism from the
+      // `reply` MCP tool (that tool's schema has no file parameter and can't
+      // be extended from this repo). That script uploads to the private
+      // jarvis-attachments bucket and merges {name,url,media_type,kind,size}
+      // objects directly onto this same turn's Storage JSON. Relayed here
+      // as-is; jarvis-pwa.html renders image/pdf/file accordingly.
+      return res.status(200).json({
+        ok: true,
+        status: 'answered',
+        reply: turn.reply_text || '',
+        attachments: Array.isArray(turn.attachments) ? turn.attachments : [],
+      });
     }
     if (turn.status === 'error') {
       return res.status(200).json({ ok: false, status: 'error', error: turn.reply_text || 'unknown error' });
