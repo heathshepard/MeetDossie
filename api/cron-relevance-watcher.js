@@ -313,6 +313,22 @@ async function persistAccessToken(accessToken, expiresAt) {
   }).catch((e) => console.warn('[cron-relevance-watcher] token persist failed', e.message));
 }
 
+// Check whether this Gmail message already produced a notified hit. Mirrors
+// the already_filed dedupe style in createEmailAsk() above. insertHit()'s
+// merge-duplicates upsert has no memory of a prior send by itself — this is
+// what stops a checkpoint-overlap or manual-rewind reprocess of the same
+// message from re-pinging Telegram / re-filing a dossie_asks card for
+// something Heath already got notified about.
+async function wasAlreadyNotified(messageId) {
+  const res = await supaFetch(
+    `relevance_watch_hits?gmail_message_id=eq.${encodeURIComponent(messageId)}&select=notified&limit=1`,
+    { method: 'GET' },
+  );
+  if (!res.ok) return false; // fail open on the read — never let a lookup error block a legit alert
+  const rows = await res.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0 && rows[0].notified === true;
+}
+
 async function insertHit(row) {
   // BUGFIX (Atlas, 2026-08-26): PostgREST's `Prefer: resolution=merge-
   // duplicates` is a no-op without `on_conflict=<col>` in the URL telling it
@@ -611,6 +627,8 @@ async function handler(req, res) {
     dry_run: !NOTIFY_ENABLED,
     candidates: 0,
     prefiltered_bulk: 0,
+    prefiltered_already_read: 0,
+    prefiltered_already_notified: 0,
     classified: 0,
     relevant_hits: 0,
     classify_errors: 0,
@@ -723,6 +741,18 @@ async function handler(req, res) {
       continue;
     }
 
+    // Gap fix (Atlas, 2026-08-28): Heath kept getting alerted on emails he'd
+    // already read in Gmail — nothing here ever checked UNREAD before
+    // classifying/alerting. labelIds already comes back from the metadata
+    // fetch above (isBulkMail uses it for CATEGORY_*/SPAM/TRASH). Only skip
+    // on a confirmed present array lacking UNREAD — if labelIds is missing
+    // or not an array (metadata-fetch quirk), don't suppress, same
+    // conservative posture as hasBlockedLabel().
+    if (Array.isArray(msg?.labelIds) && !msg.labelIds.includes('UNREAD')) {
+      stats.prefiltered_already_read++;
+      continue;
+    }
+
     if (classifyCallsUsed >= MAX_CLASSIFY_CALLS) continue; // cost guardrail — rest picked up next run
 
     classifyCallsUsed++;
@@ -753,6 +783,17 @@ async function handler(req, res) {
       matched_deal_or_person: verdict.matched,
       reason: verdict.reason,
     };
+    // Gap fix (Atlas, 2026-08-28): insertHit()'s upsert has no memory of a
+    // prior send by itself. Re-checking a message (checkpoint's 60s overlap
+    // window, or a manual checkpoint rewind) must not re-alert Heath about
+    // something he was already notified about. Mirrors the already_filed
+    // skip style in createEmailAsk() above.
+    const alreadyNotified = await wasAlreadyNotified(messageId);
+    if (alreadyNotified) {
+      stats.prefiltered_already_notified++;
+      continue;
+    }
+
     const inserted = await insertHit(hitRow);
     if (!inserted) stats.insert_failures++;
 
