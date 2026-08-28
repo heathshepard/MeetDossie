@@ -67,9 +67,22 @@ async function loadPlatformSchedules(platform) {
 // Count rows already scheduled / posted / publishing for `platform` on the
 // calendar day that contains `dayStartUtc`-`dayEndUtc`. Includes rows whose
 // scheduled_for OR posted_at lands inside the window (covers all states).
-async function countOccupiedOnDay(platform, dayStartUtc, dayEndUtc) {
+//
+// `owner` scopes this to a single destination (e.g. 'dossie' vs
+// 'heath-realtor') the same way cron-publish-approved.js's countPostedToday
+// already does for the daily-cap check. Without this, two independent
+// accounts on the same platform (Dossie's Facebook Page vs Heath's personal
+// realtor Facebook Page — see 20260817_zernio_accounts_owner.sql) shared one
+// slot-occupancy count here, so Dossie filling today's slots pushed
+// heath-realtor rows to tomorrow even though heath-realtor has its own
+// separate daily cap and never actually competed for those slots. Root cause
+// of the 2026-08-28 Rust beta-recruitment FB/IG posts sitting at
+// status='approved' with scheduled_for 24h out while Heath was waiting on
+// them live (Atlas, same-day fix).
+async function countOccupiedOnDay(platform, dayStartUtc, dayEndUtc, owner) {
   const start = encodeURIComponent(dayStartUtc.toISOString());
   const end = encodeURIComponent(dayEndUtc.toISOString());
+  const ownerFilter = owner ? `&target_owner=eq.${encodeURIComponent(owner)}` : '';
   // Two filters OR'd: scheduled_for in window OR posted_at in window
   // PostgREST or= syntax uses bare operators (gte.X), NOT =gte.X. The =gte
   // syntax only works at top-level where the column name precedes it. See:
@@ -77,6 +90,7 @@ async function countOccupiedOnDay(platform, dayStartUtc, dayEndUtc) {
   const filter =
     `platform=eq.${encodeURIComponent(platform)}` +
     `&status=in.(approved,publishing,posted,pending_video)` +
+    ownerFilter +
     `&or=(and(scheduled_for.gte.${start},scheduled_for.lte.${end}),and(posted_at.gte.${start},posted_at.lte.${end}))` +
     `&select=id,scheduled_for,posted_at,status`;
   const { data, ok } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
@@ -90,6 +104,7 @@ async function assignNextScheduledFor(post, opts = {}) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
 
   const fromDt = opts.fromDt instanceof DateTime ? opts.fromDt : DateTime.utc();
+  const owner = post.target_owner || 'dossie';
   const schedules = await loadPlatformSchedules(post.platform);
   if (schedules.size === 0) {
     // No schedule row for this platform — fall back to next-hour-top so the
@@ -111,7 +126,7 @@ async function assignNextScheduledFor(post, opts = {}) {
     const dayStartUtc = dayStartLocal.toUTC().toJSDate();
     const dayEndUtc = dayStartLocal.endOf('day').toUTC().toJSDate();
 
-    const occupied = await countOccupiedOnDay(post.platform, dayStartUtc, dayEndUtc);
+    const occupied = await countOccupiedOnDay(post.platform, dayStartUtc, dayEndUtc, owner);
     const cap = sched.max_per_day || 999;
     if (occupied.length >= cap) continue; // day is full
 

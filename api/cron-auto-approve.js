@@ -96,7 +96,7 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
     // Also pull content/hook/voiceover_script so the caption sanitizer can gate
     // promotion — locked 2026-07-12 after the [COMPETITOR REMIX SEED] IG leak.
     const { ok: rowOk, data: rowData } = await supabaseFetch(
-      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&select=id,platform,persona,scheduled_for,content,hook,voiceover_script&limit=1`,
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&select=id,platform,persona,scheduled_for,content,hook,voiceover_script,target_owner&limit=1`,
     );
     const row = rowOk && Array.isArray(rowData) ? rowData[0] : null;
 
