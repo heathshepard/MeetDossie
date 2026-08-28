@@ -25,6 +25,7 @@ const {
 } = require('./_middleware/rateLimit');
 
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
+const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -380,35 +381,68 @@ async function supabaseStorageRemove(storagePath) {
   }).catch(function() {});
 }
 
+// Raise a Dossie Ask when the pre-send field audit blocks a send. Mirrors
+// api/cron-esign-events.js's createAsk() exactly — same table, same shape —
+// per the plan's explicit instruction to reuse that surface rather than
+// build a new one. Never throws: an ask failing to write should not mask the
+// real problem (the blocked fill) with a 500 of its own.
+async function createDossieAsk({ userId, transactionId, ask }) {
+  try {
+    const resp = await supabaseRest('dossie_asks', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        user_id: userId,
+        transaction_id: transactionId || null,
+        urgency: ask.urgency,
+        title: String(ask.title).slice(0, 160),
+        body: String(ask.body).slice(0, 2000),
+        due_at: ask.dueAt || null,
+        due_label: ask.dueLabel || null,
+        suggested_actions: ask.actions || [],
+        created_by: 'dossie',
+        source: 'fill-form:pre-send-field-audit',
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(function() { return ''; });
+      console.warn('[fill-form] dossie_asks insert failed (non-fatal):', resp.status, text.slice(0, 200));
+      return null;
+    }
+    const rows = await resp.json();
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    return row && row.id ? row.id : null;
+  } catch (e) {
+    console.warn('[fill-form] createDossieAsk failed (non-fatal):', e && e.message);
+    return null;
+  }
+}
+
 // Write ledger. safeSetText/safeCheck swallow every pdf-lib error, which is the
 // right call for optional fields but meant a template field-name drift produced a
 // completely blank PDF and an HTTP 200 — nothing in the product could tell you
 // the document came out empty. Each attempted write is now recorded and verified
 // by reading the value back off the form, so the handler can refuse to call a
 // document "filled" when the writes did not land. Reset per request.
-let fillLedger = { attempted: 0, written: 0, failures: [] };
-
-function resetFillLedger() {
-  fillLedger = { attempted: 0, written: 0, failures: [] };
-  return fillLedger;
-}
-
-function getFillLedger() {
-  return fillLedger;
-}
-
-function recordFillFailure(kind, name, reason) {
-  // Cap the retained detail; a drifted template can fail hundreds of fields.
-  if (fillLedger.failures.length < 60) {
-    fillLedger.failures.push({ kind, field: String(name), reason: String(reason || 'unknown') });
-  }
-}
+//
+// 2026-08-27 CARTER: moved to a shared module (./_lib/fill-ledger) so the
+// flat-PDF coordinate filler (fill-trec-20-19.js — the TREC 20-19 resale
+// contract, the highest-volume form) reports into the SAME ledger this
+// request. It previously had zero write tracking at all. See
+// ./_lib/pre-send-field-audit.js for the gate that reads this ledger.
+const {
+  resetFillLedger,
+  getFillLedger,
+  recordAttempt,
+  recordWritten,
+  recordFailure: recordFillFailure,
+} = require('./_lib/fill-ledger');
 
 function safeSetText(form, name, value) {
   // Blank/absent values are not "writes" — don't count them for or against.
   const raw = value == null ? '' : String(value);
   if (raw === '') return;
-  fillLedger.attempted++;
+  recordAttempt(name);
   try {
     const field = form.getTextField(name);
     if (!field) {
@@ -423,7 +457,7 @@ function safeSetText(form, name, value) {
     // setText did not throw.
     const readBack = field.getText();
     if (readBack === v || (v && readBack && readBack.indexOf(v.slice(0, 8)) === 0)) {
-      fillLedger.written++;
+      recordWritten();
     } else {
       recordFillFailure('text', name, `read-back mismatch (wrote ${JSON.stringify(v.slice(0, 24))}, read ${JSON.stringify(String(readBack).slice(0, 24))})`);
     }
@@ -434,7 +468,7 @@ function safeSetText(form, name, value) {
 }
 
 function safeCheck(form, name) {
-  fillLedger.attempted++;
+  recordAttempt(name);
   try {
     const box = form.getCheckBox(name);
     if (!box) {
@@ -443,7 +477,7 @@ function safeCheck(form, name) {
     }
     box.check();
     if (box.isChecked()) {
-      fillLedger.written++;
+      recordWritten();
     } else {
       recordFillFailure('checkbox', name, 'read-back shows unchecked after check()');
     }
@@ -4044,7 +4078,7 @@ module.exports = async function handler(req, res) {
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date&limit=1',
+      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date,role,sdn_received,sellers_disclosure_received_at,listing_agent_name,listing_agent_email_addr,listing_broker_name,user_id&limit=1',
       { method: 'GET' },
     );
     if (!txResp.ok) {
@@ -4072,6 +4106,24 @@ module.exports = async function handler(req, res) {
       }
       if (resolvedFormType !== formType) {
         console.log('[fill-form] auto-upgraded form type from', formType, 'to', resolvedFormType, 'based on transaction_type:', tx.transaction_type);
+      }
+    }
+
+    // ¶7B SELLER'S DISCLOSURE NOTICE — the real trigger point: this
+    // transaction is reaching the point of filling its resale contract, so
+    // verify (never assume) whether the disclosure is actually on file.
+    // See api/_lib/seller-disclosure-check.js for the full rules (manual
+    // answer always wins; document presence auto-checks + persists; missing
+    // leaves the box blank and raises a Dossie Ask with a draft — never
+    // auto-sent — request to the listing agent). Applies to every
+    // subscriber's resale-contract fill, not just Heath's.
+    let sdnCheck = null;
+    if (resolvedFormType === 'resale-contract') {
+      try {
+        const { checkSellerDisclosure } = require('./_lib/seller-disclosure-check');
+        sdnCheck = await checkSellerDisclosure(tx);
+      } catch (e) {
+        console.warn('[fill-form] seller-disclosure-check failed (non-fatal, leaving ¶7B unset):', e && e.message);
       }
     }
 
@@ -4171,6 +4223,18 @@ module.exports = async function handler(req, res) {
       expected_completion_date: tx.expected_completion_date || '',
     };
 
+    // ¶7B — only ever set the default when checkSellerDisclosure() actually
+    // determined the document is on file (or the agent already told Dossie
+    // manually). Missing/undetermined stays OUT of txDefaults entirely so
+    // fillResaleContractCoordinate's own "never guess" rule leaves both
+    // checkboxes blank — field_values from the caller (chat.js) can still
+    // override this either way.
+    if (sdnCheck && sdnCheck.received === true) {
+      txDefaults.seller_disclosure_received = true;
+    } else if (sdnCheck && sdnCheck.received === false) {
+      txDefaults.seller_disclosure_received = false;
+    }
+
     // Agent-supplied field_values override transaction defaults
     let mergedFields = Object.assign({}, txDefaults, fieldValues);
 
@@ -4264,6 +4328,49 @@ module.exports = async function handler(req, res) {
         ledger.attempted - ledger.written, ledger.attempted, resolvedFormType);
     }
 
+    // ------------------------------------------------------------------
+    // PRE-SEND FIELD AUDIT (dossie-esign-productization-plan step 3).
+    // The gate above only catches TOTAL failure (0 of N writes landed).
+    // This catches the more common, more dangerous case: most of the
+    // document filled fine but a field this form type calls CRITICAL
+    // (sale price, closing date, earnest money, option fee/days — see
+    // api/_lib/fill-form-required-fields.js) silently dropped. Source data
+    // had a real value for it; the ledger shows the write failed. That
+    // combination blocks the send outright — no document is stored, no
+    // `documents` row is created, and esign-create.js has nothing to send
+    // because nothing was saved. A Dossie Ask is raised so the failure is
+    // visible instead of silent, following the same dossie_asks pattern
+    // api/cron-esign-events.js already uses for post-completion signature
+    // verification.
+    // ------------------------------------------------------------------
+    const formConfigForAudit = FORM_CONFIGS[resolvedFormType];
+    const fieldAudit = auditFilledDocument({ formType: resolvedFormType, mergedFields, ledger });
+    if (!fieldAudit.pass) {
+      console.error('[fill-form] BLOCKED — critical field(s) did not land on %s for tx %s: %s',
+        resolvedFormType, transactionId, JSON.stringify(fieldAudit.blocked));
+      const ask = buildFieldAuditAsk({
+        formName: formConfigForAudit.name,
+        formType: resolvedFormType,
+        audit: fieldAudit,
+        documentContext: { propertyAddress: tx.property_address || null },
+      });
+      const askId = await createDossieAsk({ userId, transactionId, ask });
+      return res.status(422).json({
+        ok: false,
+        blocked: true,
+        error: 'This document did not fill correctly, so it was not saved or sent. ' +
+          fieldAudit.blocked.map((b) => b.prompt).join(', ') + ' should have a value but did not make it onto the page.',
+        ask_id: askId,
+        fill_report: {
+          form_type: resolvedFormType,
+          fields_attempted: ledger.attempted,
+          fields_written: ledger.written,
+          blocked_fields: fieldAudit.blocked,
+          untracked_fields: fieldAudit.untracked,
+        },
+      });
+    }
+
     const ts = Date.now();
     const config = FORM_CONFIGS[resolvedFormType];
     const safeName = config.shortName + '-' + ts + '.pdf';
@@ -4334,6 +4441,9 @@ module.exports = async function handler(req, res) {
       },
       // True when some values did not make it onto the page — show the agent.
       partial_fill: fillRate < 1,
+      // ¶7B Seller's Disclosure Notice determination (resale-contract only;
+      // null for every other form type). See api/_lib/seller-disclosure-check.js.
+      seller_disclosure_check: sdnCheck,
     });
 
   } catch (error) {

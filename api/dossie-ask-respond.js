@@ -245,6 +245,80 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'Unknown action for this ask' });
   }
 
+  // effect === 'send_email' — the one place a Dossie Ask actually reaches a
+  // third party. The draft (to/subject/body) is baked into the action at
+  // creation time (see api/_lib/seller-disclosure-check.js); nothing sends
+  // until THIS specific tap happens. Reuses /api/send-email (Resend +
+  // email_queue log) rather than duplicating it, same as callChatBackend
+  // reuses /api/chat below.
+  if (action && action.effect === 'send_email') {
+    const draft = action.email || {};
+    if (!draft.to || !draft.subject || !draft.body) {
+      return res.status(400).json({ ok: false, error: 'This action has no draft to send.' });
+    }
+    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    const base = `${proto}://${host}`;
+    let sendOk = false;
+    let sendError = null;
+    try {
+      const sendRes = await fetch(`${base}/api/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: req.headers.authorization || '',
+        },
+        body: JSON.stringify({
+          to: draft.to,
+          subject: draft.subject,
+          body: draft.body,
+          transactionId: ask.transaction_id || undefined,
+        }),
+      });
+      const sendJson = await sendRes.json().catch(() => null);
+      sendOk = sendRes.ok && sendJson && sendJson.ok;
+      if (!sendOk) sendError = (sendJson && sendJson.error) || `send-email returned ${sendRes.status}`;
+    } catch (err) {
+      sendError = err && err.message;
+    }
+
+    if (!sendOk) {
+      // Leave the ask exactly as it was — a failed send must not read as
+      // resolved, and must not silently disappear.
+      return res.status(502).json({ ok: false, error: sendError || 'Send failed' });
+    }
+
+    const now2 = new Date().toISOString();
+    const thread2 = Array.isArray(ask.thread) ? ask.thread.slice() : [];
+    thread2.push({
+      at: now2,
+      role: 'agent',
+      text: `Sent to ${draft.to}: "${draft.subject}"`,
+      action_id: action.id,
+    });
+    const upd2 = await supabaseFetch(
+      `/rest/v1/dossie_asks?id=eq.${encodeURIComponent(askId)}` +
+        `&user_id=eq.${encodeURIComponent(userId)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          thread: thread2.slice(-MAX_THREAD_ENTRIES),
+          status: 'resolved',
+          resolution: action.id,
+          resolution_note: `Sent to ${draft.to}`,
+          resolved_at: now2,
+        }),
+      },
+    );
+    if (!upd2.ok || !Array.isArray(upd2.data) || upd2.data.length === 0) {
+      return res.status(500).json({ ok: false, error: 'Sent, but could not record it on the ask.' });
+    }
+    const saved2 = upd2.data[0];
+    delete saved2.transactions;
+    return res.status(200).json({ ok: true, effect: 'resolve', reply: null, ask: saved2 });
+  }
+
   const agentText = trimmedText || (action ? action.label : '');
   let effect = action ? action.effect || 'reply' : await classifyIntent(ask, agentText);
 

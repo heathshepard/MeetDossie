@@ -599,6 +599,26 @@ async function main() {
     await markPosted(POST_ID, post.group_registry_id, postUrl);
     console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${postUrl}`);
     await sendTelegramConfirmation(post.group_name, post.post_body, true, null);
+
+    // Part 2 (comment_watchlist, Sage 2026-08-28): "heath_own_post" direction.
+    // Fires automatically on a real confirmed post -- fb-group-poster.js is
+    // the pre-existing, CLAUDE.md-sanctioned exception that does post
+    // autonomously (RULE 4), unlike the comment/reply pipeline this table
+    // otherwise only feeds from confirmed-by-Heath actions.
+    await supabaseFetch('/rest/v1/comment_watchlist', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        thread_url: postUrl,
+        group_name: post.group_name,
+        post_author: 'Heath Shepard',
+        direction: 'heath_own_post',
+        our_text: post.post_body,
+        source_table: 'group_posts',
+        source_id: POST_ID,
+        posted_at: new Date().toISOString(),
+      }),
+    }).catch((err) => console.warn('[fb-group-poster] comment_watchlist insert non-fatal:', err && err.message));
   } else {
     await markFailed(POST_ID, errorMsg || 'unknown error');
     await sendTelegramConfirmation(post.group_name, post.post_body, false, errorMsg);

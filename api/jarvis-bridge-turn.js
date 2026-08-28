@@ -72,7 +72,13 @@ const OWNER_EMAIL = 'heath.shepard@kw.com';
 
 const BUCKET = 'jarvis-bridge';
 const PREFIX = 'turns/';
-const MAX_MESSAGE = 4000;
+// Raised 2026-08-27 (Atlas) — 4,000 was rejecting real pasted content (Claude-
+// in-Chrome extension output, App Store Connect status dumps, QA reports)
+// that Heath now pastes routinely. 50,000 chars still leaves enormous
+// headroom under the real wall below (see MAX_IMAGE_BASE64 budget, which is
+// recalculated against this new value) while still acting as a genuine
+// backstop against a pathological request.
+const MAX_MESSAGE = 50_000;
 // Optional inbound image (Jarvis chat attach button — jarvis-pwa.html
 // resizeImageForVision caps at 1024px before this ever gets here, so a
 // typical JPEG lands well under this).
@@ -90,17 +96,17 @@ const MAX_MESSAGE = 4000;
 // Budget against the 4,500,000-byte wall, conservatively assuming decimal
 // MB (the smaller of the two possible readings of "4.5MB"):
 //   4,500,000  hard cap
-//    - 4,000   MAX_MESSAGE (worst case, chars == bytes, all ASCII-safe here)
+//    - 50,000  MAX_MESSAGE (worst case, chars == bytes, all ASCII-safe here)
 //    -   150   JSON structure (keys/quotes/braces/media-type string)
 //    - 300,000 safety margin (~6.7%) for measurement slop / header framing
 //   -----------
-//    4,195,850 -> rounded down to a clean 4,200,000
-// Decoded this is ~3.15MB of actual image bytes — modest vs the old
+//    4,149,850 -> rounded down to a clean 4,150,000
+// Decoded this is ~3.1MB of actual image bytes — modest vs the old
 // 4,000,000/~3MB, but it's the genuine safe max for this transport, not an
 // arbitrary pick. In practice it's moot: resizeImageForVision never lets a
 // real photo/screenshot get anywhere near this (1024px JPEG/PNG output is
 // typically 100KB-1.5MB), so this only ever fires on a pathological input.
-const MAX_IMAGE_BASE64 = 4_200_000; // ~4.2MB base64 chars ≈ ~3.15MB decoded
+const MAX_IMAGE_BASE64 = 4_150_000; // ~4.15MB base64 chars ≈ ~3.1MB decoded
 // NOTE: the `jarvis-bridge` Supabase Storage bucket's file_size_limit is
 // NOT the binding constraint here — confirmed 2026-08-11 it's 8MB (raised
 // from 6MB same session for headroom), comfortably above the ~4.2MB worst
@@ -110,11 +116,66 @@ const MAX_IMAGE_BASE64 = 4_200_000; // ~4.2MB base64 chars ≈ ~3.15MB decoded
 //   PUT {SUPABASE_URL}/storage/v1/bucket/jarvis-bridge  { file_size_limit }
 
 // If nothing has picked the turn up (delivered_at unset) after this long,
-// the local channel process is almost certainly not running — tell the UI
-// so it can say "Cole isn't listening right now" instead of spinning forever.
+// the local channel process MIGHT not be running — but see the heartbeat
+// check below (Atlas, 2026-08-27) for why this alone is no longer enough to
+// declare bridge_offline.
 const PICKUP_TIMEOUT_MS = 20 * 1000;
 // Absolute turn lifetime — matches the cleanup window in server.ts.
 const TURN_EXPIRY_MS = 60 * 60 * 1000;
+
+// Real liveness check (Atlas, 2026-08-27) — root cause of Heath repeatedly
+// seeing "Cole's terminal isn't running right now" while Cole was
+// demonstrably alive and answering elsewhere (Telegram, terminal). Before
+// this, PICKUP_TIMEOUT_MS above was the ONLY signal this endpoint had: if
+// one specific turn's delivered_at didn't get set within 20s, this handler
+// declared the whole channel dead. That heuristic conflates "the local
+// channel process is dead" with "it's alive and ticking but a single
+// Supabase Storage call ran long" — confirmed live via
+// ~/.claude/channels/jarvis-bridge/server.log: server.ts's listTurns() (the
+// first call in every tick) intermittently throws
+// "TimeoutError: The operation timed out" at its own 10s fetch timeout, and
+// two of those back-to-back (observed clustering roughly hourly in
+// production) burns the entire 20s pickup budget for any turn that landed
+// in that window — while the poll loop's own local heartbeat file kept
+// writing "ok" the whole time, proving the process (and the Claude Code
+// session it's attached to) never actually went down.
+// scripts/jarvis-bridge/server.ts now mirrors that same proof-of-life into
+// this bucket as a plain top-level object (heartbeat.json, deliberately
+// outside the turns/ prefix so listTurns() never returns it), written at
+// least every REMOTE_HEARTBEAT_MIN_INTERVAL_MS (5s) whenever the process is
+// alive. If that heartbeat is fresh, the channel is genuinely up — a slow
+// pickup on ANY one turn is a transient Storage hiccup, not a dead session,
+// and Heath should never be told otherwise. Only fall back to declaring
+// bridge_offline when the heartbeat itself is stale or missing (the
+// process really is down, or hasn't been upgraded to write one yet).
+const HEARTBEAT_OBJECT_PATH = 'heartbeat.json';
+// 3x the channel's own write interval (5s) — enough margin to absorb
+// ordinary poll jitter and Storage read latency without masking a real
+// outage; still small next to PICKUP_TIMEOUT_MS/TURN_EXPIRY_MS above.
+const HEARTBEAT_STALE_MS = 15 * 1000;
+
+async function getRemoteHeartbeat() {
+  try {
+    const res = await fetch(
+      storageUrl(`object/${BUCKET}/${HEARTBEAT_OBJECT_PATH}?_cb=${Date.now()}`),
+      { headers: storageHeaders({ 'Cache-Control': 'no-cache' }), cache: 'no-store' }
+    );
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    // Storage itself being unreachable here is exactly the kind of transient
+    // blip this whole check exists to not over-read — treat "can't confirm
+    // alive" the same as "heartbeat missing" below, not as "definitely dead".
+    return null;
+  }
+}
+
+async function isChannelAlive() {
+  const hb = await getRemoteHeartbeat();
+  if (!hb || !hb.ts) return false;
+  const ageMs = Date.now() - new Date(hb.ts).getTime();
+  return ageMs >= 0 && ageMs <= HEARTBEAT_STALE_MS;
+}
 
 function storageUrl(path) {
   return `${SUPABASE_URL}/storage/v1/${path}`;
@@ -232,8 +293,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: false, status: 'expired' });
     }
     if (turn.status === 'pending' && ageMs > PICKUP_TIMEOUT_MS) {
-      // Nobody's polling the bucket — the local channel process is down.
-      return res.status(200).json({ ok: true, status: 'pending', bridge_offline: true, waiting_ms: ageMs });
+      // Don't jump straight to "the channel is down" off one slow turn — see
+      // the heartbeat block above. Only report bridge_offline if there's
+      // genuinely no recent proof-of-life either.
+      const alive = await isChannelAlive();
+      if (!alive) {
+        return res.status(200).json({ ok: true, status: 'pending', bridge_offline: true, waiting_ms: ageMs });
+      }
+      // Channel is alive and ticking (fresh heartbeat) — this turn just
+      // hasn't been picked up yet, most likely a transient Storage hiccup on
+      // the local poller's end. Report plain 'pending' so the client keeps
+      // showing its normal "still working" state instead of a false alarm.
+      return res.status(200).json({ ok: true, status: 'pending', waiting_ms: ageMs });
     }
     if (turn.status === 'working') {
       // See the file-header note above — this is the field that was
@@ -259,7 +330,16 @@ module.exports = async function handler(req, res) {
   const message = String(body.message || '').trim();
   if (!message) return res.status(400).json({ ok: false, error: 'message_required' });
   if (message.length > MAX_MESSAGE) {
-    return res.status(400).json({ ok: false, error: 'message_too_long', max: MAX_MESSAGE });
+    return res.status(400).json({
+      ok: false,
+      error: 'message_too_long',
+      max: MAX_MESSAGE,
+      length: message.length,
+      // Human-readable string — askBridge() in jarvis-pwa.html surfaces this
+      // directly instead of the bare error code so a real limit hit reads as
+      // an actual explanation, not a cryptic toast.
+      message: `Message too long: ${message.length.toLocaleString()} characters (max ${MAX_MESSAGE.toLocaleString()}). Trim it down or split it into two messages.`,
+    });
   }
 
   // Optional image (Jarvis chat attach button). image_base64 is raw base64,

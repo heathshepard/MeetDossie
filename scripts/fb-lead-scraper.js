@@ -190,51 +190,87 @@ async function scanGroup(page, group, seenIds) {
     return leads;
   }
 
-  // Scroll to load posts (last 48h)
-  for (let i = 0; i < 4; i++) {
-    await page.evaluate(() => window.scrollBy(0, 1500));
-    await page.waitForLoadState('networkidle').catch(() => {});
-  }
+  // Extract BEFORE each scroll step, not once at the end. FB virtualizes
+  // the feed -- it unmounts/empties a post's rendered innerText once it
+  // scrolls out of the viewport (the container div with role="article"
+  // stays in the DOM to preserve scroll height, but its text collapses to
+  // near-empty). A single evaluate() after the scroll loop therefore lands,
+  // more often than not, on a moment where every currently-visible-during-
+  // this-run post has already been virtualized away, even on a fully
+  // healthy, unrestricted session -- reads back 0 results even when real
+  // matching posts genuinely rendered mid-scroll. Confirmed live 2026-08-17
+  // (fb-engagement-scraper.js) and reproduced again 2026-08-28 with a direct
+  // A/B capture on this exact group: extract-once-at-end saw 0 articles,
+  // extract-per-step saw 2 real ones on the identical page/run. This is why
+  // fb-lead-scraper.js was finding 0 leads across all 36 registry groups
+  // even after the 2026-08-17 keyword broadening -- the keywords were never
+  // the problem. Ported from fb-engagement-scraper.js's fix, which never got
+  // backported here when it shipped.
+  const seenPostsThisGroup = new Map(); // dedupe within a single scan pass
 
-  const posts = await page.evaluate((patterns) => {
-    const results = [];
-    // Rebuild regex objects in-browser — Playwright serializes args as plain
-    // strings, RegExp objects don't survive the boundary.
-    const regexes = patterns.map(p => new RegExp(p, 'i'));
-    const articles = document.querySelectorAll('div[role="article"]');
-    for (const article of articles) {
-      const text = article.innerText || '';
-      let matchedPattern = null;
-      for (let i = 0; i < regexes.length; i++) {
-        if (regexes[i].test(text)) { matchedPattern = patterns[i]; break; }
-      }
-      if (!matchedPattern) continue;
-
-      let postUrl = null;
-      const links = article.querySelectorAll('a[href*="/groups/"]');
-      for (const link of links) {
-        const href = link.getAttribute('href');
-        if (href && /\/groups\/[^/]+\/posts\/\d+/.test(href)) {
-          postUrl = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
-          postUrl = postUrl.split('?')[0];
-          break;
+  async function extractCurrent() {
+    const { results, rawVisibleWithText } = await page.evaluate((patterns) => {
+      const results = [];
+      let rawVisibleWithText = 0;
+      // Rebuild regex objects in-browser — Playwright serializes args as
+      // plain strings, RegExp objects don't survive the boundary.
+      const regexes = patterns.map(p => new RegExp(p, 'i'));
+      const articles = document.querySelectorAll('div[role="article"]');
+      for (const article of articles) {
+        const text = (article.innerText || '').trim();
+        if (text.length < 20) continue;
+        rawVisibleWithText++;
+        let matchedPattern = null;
+        for (let i = 0; i < regexes.length; i++) {
+          if (regexes[i].test(text)) { matchedPattern = patterns[i]; break; }
         }
+        if (!matchedPattern) continue;
+
+        let postUrl = null;
+        const links = article.querySelectorAll('a[href*="/groups/"]');
+        for (const link of links) {
+          const href = link.getAttribute('href');
+          if (href && /\/groups\/[^/]+\/posts\/\d+/.test(href)) {
+            postUrl = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
+            postUrl = postUrl.split('?')[0];
+            break;
+          }
+        }
+
+        let authorName = '';
+        const nameEl = article.querySelector('h3 a, h4 a, strong a');
+        if (nameEl) authorName = nameEl.innerText.trim();
+
+        results.push({
+          text: text.slice(0, 1000),
+          postUrl,
+          authorName,
+          postId: postUrl ? postUrl.split('/').filter(Boolean).pop() : null,
+          matchedPattern,
+        });
       }
-
-      let authorName = '';
-      const nameEl = article.querySelector('h3 a, h4 a, strong a');
-      if (nameEl) authorName = nameEl.innerText.trim();
-
-      results.push({
-        text: text.slice(0, 1000),
-        postUrl,
-        authorName,
-        postId: postUrl ? postUrl.split('/').filter(Boolean).pop() : null,
-        matchedPattern,
-      });
+      return { results, rawVisibleWithText };
+    }, LEAD_KEYWORD_PATTERNS);
+    if (process.env.LEAD_SCRAPER_DEBUG) {
+      console.log(`[fb-lead-scraper][debug] extractCurrent: rawArticlesWithRealText=${rawVisibleWithText} keywordMatches=${results.length}`);
     }
     return results;
-  }, LEAD_KEYWORD_PATTERNS);
+  }
+
+  // Capture once before any scrolling (posts already in the initial viewport),
+  // then again after each scroll step, before the next step can virtualize
+  // them away.
+  for (const batch of [await extractCurrent()]) {
+    for (const p of batch) seenPostsThisGroup.set(p.postId || p.text.slice(0, 80), p);
+  }
+  for (let i = 0; i < 4; i++) {
+    await page.evaluate(() => window.scrollBy(0, 1500));
+    await page.waitForTimeout(1800 + Math.floor(Math.random() * 1200));
+    const batch = await extractCurrent();
+    for (const p of batch) seenPostsThisGroup.set(p.postId || p.text.slice(0, 80), p);
+  }
+
+  const posts = [...seenPostsThisGroup.values()];
 
   for (const post of posts) {
     const dedupeKey = post.postId || post.text.slice(0, 80);
@@ -326,7 +362,11 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error('[fb-lead-scraper] Fatal error:', err.message);
-  process.exit(1);
-});
+module.exports = { scanGroup, LEAD_KEYWORD_PATTERNS };
+
+if (require.main === module) {
+  main().catch(err => {
+    console.error('[fb-lead-scraper] Fatal error:', err.message);
+    process.exit(1);
+  });
+}

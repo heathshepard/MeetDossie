@@ -146,6 +146,56 @@ function writeHeartbeat(extra: Record<string, unknown> = {}): void {
   } catch (err) {
     process.stderr.write(`jarvis-bridge channel: heartbeat write failed: ${err}\n`)
   }
+  writeRemoteHeartbeat()
+}
+
+// Remote heartbeat (Atlas, 2026-08-27) — root cause of Heath repeatedly
+// seeing "Cole's terminal isn't running right now" in the Jarvis PWA while
+// this session was demonstrably alive and answering elsewhere (Telegram,
+// terminal). api/jarvis-bridge-turn.js's GET poll previously had NO real
+// liveness signal at all — it inferred "the channel is down" purely from
+// whether ONE SPECIFIC turn's `delivered_at` got set within 20s
+// (PICKUP_TIMEOUT_MS) of creation. That heuristic conflates "this process is
+// dead" with "this process is alive and ticking but a single Supabase
+// Storage call ran long" — confirmed live in server.log: `listTurns()` (the
+// very first call in every tick()) intermittently throws
+// "TimeoutError: The operation timed out" at FETCH_TIMEOUT_MS (10s default,
+// unconfigured here), and two of those in a row — which server.log shows
+// clustering, roughly hourly — burns the entire 20s pickup budget for any
+// turn that happened to land in that window, with the poll loop, the local
+// heartbeat.json, and the actual Claude Code session all fully healthy
+// throughout. The local HEARTBEAT_FILE above already captures true
+// proof-of-life (written after every completed runTick(), success or
+// failure) but only ever existed on Heath's own machine — invisible to the
+// Vercel function answering the phone's poll. This mirrors that same
+// heartbeat into the jarvis-bridge Storage bucket (a plain top-level object,
+// deliberately OUTSIDE the turns/ prefix so listTurns() never returns it) so
+// the API layer can check REAL liveness instead of guessing from one turn's
+// pickup latency. Throttled to avoid hammering Storage on every ~500ms-1.5s
+// tick — one write per REMOTE_HEARTBEAT_MIN_INTERVAL_MS is plenty of
+// margin against the API's freshness check (see HEARTBEAT_STALE_MS there).
+// Fire-and-forget with its own timeout: a failed heartbeat write must never
+// block or crash the poll loop that's the whole point of this being a
+// liveness signal in the first place.
+const HEARTBEAT_OBJECT_PATH = 'heartbeat.json' // bucket-root, NOT under turns/
+const REMOTE_HEARTBEAT_MIN_INTERVAL_MS = 5000
+let lastRemoteHeartbeatAt = 0
+function writeRemoteHeartbeat(): void {
+  const now = Date.now()
+  if (now - lastRemoteHeartbeatAt < REMOTE_HEARTBEAT_MIN_INTERVAL_MS) return
+  lastRemoteHeartbeatAt = now
+  fetch(sb(`object/${BUCKET}/${HEARTBEAT_OBJECT_PATH}`), {
+    method: 'POST',
+    headers: authHeaders({
+      'Content-Type': 'application/json',
+      'x-upsert': 'true',
+      'cache-control': 'no-cache, no-store, max-age=0, must-revalidate',
+    }),
+    body: JSON.stringify({ ts: new Date().toISOString(), pid: process.pid, uptime_s: Math.round(process.uptime()) }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  }).catch(err => {
+    process.stderr.write(`jarvis-bridge channel: remote heartbeat write failed: ${err}\n`)
+  })
 }
 
 // Load ~/.claude/channels/jarvis-bridge/.env into process.env — THIS FILE
@@ -770,7 +820,25 @@ async function tick(): Promise<void> {
     }
 
     if (turn.status === 'answered' || turn.status === 'error') {
+      // Root cause of the 2026-08-27 total-silence outage (Atlas): this used
+      // to just add(id) and leave the Storage object in place forever. Once
+      // an id is in `answered`, line ~805 (`if (answered.has(id)) continue`)
+      // skips it on every future tick BEFORE it ever reaches the STALE_MS
+      // cleanup check above — so answered/errored turns never got deleted,
+      // only genuinely-abandoned ones did. listTurns() sorts ascending by
+      // created_at with limit:100 (Supabase Storage list max page size), so
+      // once the bucket accumulated >100 old-but-never-deleted answered
+      // turns, EVERY new turn past position 100 was permanently excluded
+      // from every listTurns() result — never seen, never delivered, never
+      // logged (no code path errors; the loop just never reaches them).
+      // Confirmed live: 108 turns.length in ./turns/, the 2 newest (both
+      // real, stuck, unanswered Heath turns) sitting at position 107-108,
+      // heartbeat.json staying perfectly healthy throughout because tick()
+      // itself never threw or stalled — it just had nothing left to do for
+      // any turn past the page-100 cutoff. Delete on the same path stale
+      // cleanup uses so the bucket stays bounded going forward.
       answered.add(id)
+      void deleteTurn(id)
       continue
     }
 
