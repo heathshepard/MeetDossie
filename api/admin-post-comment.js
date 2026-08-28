@@ -43,12 +43,13 @@ module.exports = async function handler(req, res) {
   // Section 19) — this route runs where the real key lives.
   if (req.method === 'GET') {
     const postId = req.query.postId;
-    if (!postId) {
-      return res.status(400).json({ ok: false, error: 'postId query param required' });
+    const accountIdQ = req.query.accountId;
+    if (!postId || !accountIdQ) {
+      return res.status(400).json({ ok: false, error: 'postId and accountId query params required' });
     }
     try {
       const zRes = await retryFetch(
-        `${ZERNIO_BASE_URL}/inbox/comments/${encodeURIComponent(postId)}`,
+        `${ZERNIO_BASE_URL}/inbox/comments/${encodeURIComponent(postId)}?accountId=${encodeURIComponent(accountIdQ)}`,
         { headers: { Authorization: `Bearer ${ZERNIO_API_KEY}` } },
         { name: 'Zernio-comment-get', maxAttempts: 2, baseDelay: 1000 }
       );
