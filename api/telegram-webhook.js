@@ -917,6 +917,27 @@ async function handleCallbackQuery(cb) {
           confirmed_via: 'telegram_button',
         }),
       });
+      // Part 2 (comment_watchlist, Sage 2026-08-28): only Heath's own
+      // confirmed action creates a watch entry -- never on approval, never
+      // speculatively. Requires a permalink to watch; rows without one
+      // (post URL not captured during scan) skip the watchlist but still
+      // get the engagement_post_log audit row above.
+      if (row.permalink) {
+        await supabaseFetch('/rest/v1/comment_watchlist', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            thread_url: row.permalink,
+            group_name: row.group_name,
+            post_author: row.author_name || null,
+            direction: 'heath_commented_on_others',
+            our_text: row.drafted_reply,
+            source_table: 'engagement_queue',
+            source_id: row.id,
+            posted_at: postedAt,
+          }),
+        }).catch(() => {});
+      }
       if (chatId && messageId) {
         await editMessage(chatId, messageId, `${originalBody}\n\n✅ LOGGED -- marked posted at ${postedAt}.`);
       }
