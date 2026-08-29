@@ -5,7 +5,7 @@
       "url": "https://mcp.supabase.com/mcp?project_ref=pgwoitbdiyubjugwufhk"
     },
     "playwright": {
-      "command": "npx.cmd",
+      "command": "npx",
       "args": [
         "-y",
         "@playwright/mcp@latest",
