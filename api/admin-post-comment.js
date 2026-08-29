@@ -29,12 +29,37 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ ok: false, error: 'Unauthorized' });
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
   if (!ZERNIO_API_KEY) {
     return res.status(500).json({ ok: false, error: 'ZERNIO_API_KEY not configured' });
+  }
+
+  // GET ?postId=... — verification helper, reads back comments on a post.
+  // Not part of the original ask but needed since local .env.local's
+  // ZERNIO_API_KEY is a write-only Vercel Sensitive var (see CLAUDE.md
+  // Section 19) — this route runs where the real key lives.
+  if (req.method === 'GET') {
+    const postId = req.query.postId;
+    const accountIdQ = req.query.accountId;
+    if (!postId || !accountIdQ) {
+      return res.status(400).json({ ok: false, error: 'postId and accountId query params required' });
+    }
+    try {
+      const zRes = await retryFetch(
+        `${ZERNIO_BASE_URL}/inbox/comments/${encodeURIComponent(postId)}?accountId=${encodeURIComponent(accountIdQ)}`,
+        { headers: { Authorization: `Bearer ${ZERNIO_API_KEY}` } },
+        { name: 'Zernio-comment-get', maxAttempts: 2, baseDelay: 1000 }
+      );
+      const text = await zRes.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = null; }
+      return res.status(zRes.status).json({ ok: zRes.ok, status: zRes.status, data });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
   }
 
   const { postId, accountId, message } = req.body || {};
