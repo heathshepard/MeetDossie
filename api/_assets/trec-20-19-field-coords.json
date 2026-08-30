@@ -398,57 +398,57 @@
     },
     "sellers_agent_address": {
       "page": 8,
-      "x": 107.7,
-      "y": 153.86,
-      "fontSize": 10,
-      "maxWidth": 220,
-      "align": "left",
-      "notes": "¶21 Seller's agent address"
-    },
-    "buyers_agent_address": {
-      "page": 8,
       "x": 373.31,
       "y": 153.86,
       "fontSize": 10,
       "maxWidth": 220,
       "align": "left",
-      "notes": "¶21 Buyer's agent address"
+      "notes": "¶21 Seller's agent address. Fixed 2026-08-30 -- x was 107.7 (left/Buyer's-agent column); pdftotext -bbox on the blank template shows 'Seller's agent' heading + its Address:/Phone:/Email: labels at x approx 327-344, 'Buyer's agent' at x approx 61-78. Swapped with buyers_agent_address."
+    },
+    "buyers_agent_address": {
+      "page": 8,
+      "x": 107.7,
+      "y": 153.86,
+      "fontSize": 10,
+      "maxWidth": 220,
+      "align": "left",
+      "notes": "¶21 Buyer's agent address. Fixed 2026-08-30 -- x was 373.31 (right/Seller's-agent column). Swapped with sellers_agent_address."
     },
     "sellers_agent_phone": {
-      "page": 8,
-      "x": 98.46,
-      "y": 85.1,
-      "fontSize": 10,
-      "maxWidth": 180,
-      "align": "left",
-      "notes": "¶21 Seller's agent phone"
-    },
-    "buyers_agent_phone": {
       "page": 8,
       "x": 364.07,
       "y": 85.1,
       "fontSize": 10,
       "maxWidth": 180,
       "align": "left",
-      "notes": "¶21 Buyer's agent phone"
+      "notes": "¶21 Seller's agent phone. Fixed 2026-08-30 -- x was 98.46 (left/Buyer's-agent column). Swapped with buyers_agent_phone."
     },
-    "sellers_agent_email": {
+    "buyers_agent_phone": {
       "page": 8,
-      "x": 95.47,
-      "y": 50.66,
+      "x": 98.46,
+      "y": 85.1,
       "fontSize": 10,
       "maxWidth": 180,
       "align": "left",
-      "notes": "¶21 Seller's agent email"
+      "notes": "¶21 Buyer's agent phone. Fixed 2026-08-30 -- x was 364.07 (right/Seller's-agent column). Swapped with sellers_agent_phone."
     },
-    "buyers_agent_email": {
+    "sellers_agent_email": {
       "page": 8,
       "x": 361.08,
       "y": 50.66,
       "fontSize": 10,
       "maxWidth": 180,
       "align": "left",
-      "notes": "¶21 Buyer's agent email"
+      "notes": "¶21 Seller's agent email. Fixed 2026-08-30 -- x was 95.47 (left/Buyer's-agent column). Swapped with buyers_agent_email."
+    },
+    "buyers_agent_email": {
+      "page": 8,
+      "x": 95.47,
+      "y": 50.66,
+      "fontSize": 10,
+      "maxWidth": 180,
+      "align": "left",
+      "notes": "¶21 Buyer's agent email. Fixed 2026-08-30 -- x was 361.08 (right/Seller's-agent column). Swapped with sellers_agent_email."
     },
     "buyer_attorney": {
       "page": 9,
