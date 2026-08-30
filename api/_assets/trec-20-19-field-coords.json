@@ -383,7 +383,8 @@
       "fontSize": 10,
       "maxWidth": 180,
       "align": "left",
-      "notes": "¶21 Buyer notice email"
+      "secondLine": { "x": 109.74, "y": 211.49 },
+      "notes": "¶21 Buyer notice email. secondLine = the printed form's own second blank underline directly below the labeled line (confirmed on the rendered blank page 8 -- Address/Phone(s)/Email(s) each have two stacked blank lines, only the first carries the printed label). Used by drawFieldText's maxWidth overflow handling (2026-08-30) when a joined multi-email value exceeds the labeled line's own 180pt budget -- previously overflowed straight into the Seller's column."
     },
     "seller_notice_email": {
       "page": 8,
@@ -392,7 +393,8 @@
       "fontSize": 10,
       "maxWidth": 180,
       "align": "left",
-      "notes": "¶21 Seller notice email"
+      "secondLine": { "x": 375.35, "y": 211.49 },
+      "notes": "¶21 Seller notice email. secondLine -- see buyer_notice_email's note; same two-blank-line structure mirrored on the Seller side."
     },
     "sellers_agent_address": {
       "page": 8,
