@@ -11,6 +11,18 @@
  *      are nudged right by PAGE11_LEFT_PAD so values don't render flush
  *      against their printed labels.
  *
+ * 2026-08-30 CARTER follow-up (Quinn QA gate finding): fix #1 above had a
+ * gap -- a single UNBREAKABLE token (no whitespace at all, e.g. one long
+ * email address) that exceeds maxWidth bypassed the degrade pipeline
+ * entirely, because wrapTextToWidth()'s single-word fallback handed the
+ * full oversized word straight to page.drawText() with no re-check. Fixed
+ * in drawFieldText()'s coord.secondLine branch: line1 is now always routed
+ * through fitTextToWidth() before drawing. See
+ * testUnbreakableTokenTruncatesAtFloor / testUnbreakableTokenBoundary-
+ * ShrinksWithoutTruncating below -- the two tests above never exercised
+ * this shape (both always have a break point), which is why the suite kept
+ * passing while the bug was live.
+ *
  * No jest/mocha exists in this repo for the flat-PDF coordinate engine --
  * this follows the same plain-node + process.exit(1) convention already
  * used by scripts/smoke-test-trec-fills.js. NOT wired into
@@ -22,6 +34,7 @@
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 
 const REPO = path.join(__dirname, '..');
@@ -81,6 +94,70 @@ async function testMaxWidthDegradesWithoutSecondLine() {
   const outPath = path.join(REPO, '.tmp/regression-county-truncate.pdf');
   fs.writeFileSync(outPath, savedBytes);
   console.log('  PASS: absurdly long county value did not throw (wrote', outPath, 'for manual spot-check if needed)');
+}
+
+// 2026-08-30 CARTER -- unbreakable-token gap found by Quinn's QA gate. The
+// two tests above only ever exercise text that has A break point (words
+// joined by spaces, or "; "-joined emails), so they never caught the case
+// where the FIRST word alone already exceeds coord.maxWidth (e.g. a single
+// long email address with no whitespace at all). That case bypassed
+// fitTextToWidth entirely and drew oversized. Both cases below render
+// through the real production path and read the actual text layer back with
+// pdftotext -- an assertion against the drawn width alone would not have
+// caught this bug (the old code path also "fit" its own -- wrong -- notion
+// of what to draw), so these check what a human reading the rendered PDF
+// would actually see.
+async function testUnbreakableTokenTruncatesAtFloor() {
+  const doc = await loadBlank();
+  // 144 chars, zero whitespace -- shaped like a real long email address.
+  // Matches Quinn's repro: single unbroken string, no break point anywhere.
+  const token140 = 'a'.repeat(130) + '@' + 'b'.repeat(9) + '.com';
+  await fillTrec2019(doc, { buyer_notice_email: token140 });
+  const savedBytes = await doc.save();
+  const outPath = path.join(REPO, '.tmp/regression-buyer-email-140char.pdf');
+  fs.writeFileSync(outPath, savedBytes);
+  const text = execSync(`pdftotext -f 8 -l 8 -layout "${outPath}" -`).toString();
+  const buyerLine = text.split('\n').find((l) => /Email\(s\):\s*a{5,}/.test(l));
+  assert.ok(buyerLine, 'expected a truncated buyer email line (run of a-chars) on page 8');
+  assert.ok(
+    buyerLine.includes('…'),
+    'an unbreakable token that still does not fit at the 6.5pt font floor must be truncated with an ellipsis, not drawn oversized'
+  );
+  assert.ok(
+    !buyerLine.includes(token140),
+    'the full 144-char token must NOT appear un-truncated on the page -- that IS the original overflow bug'
+  );
+  const sellerLabelCount = (buyerLine.match(/Email\(s\):/g) || []).length;
+  assert.strictEqual(
+    sellerLabelCount, 2,
+    'Seller\'s own "Email(s):" label must still render intact and separated from the Buyer column -- a collision would merge/clip it'
+  );
+  console.log('  PASS: unbreakable 144-char token (no whitespace) shrinks then truncates with an ellipsis instead of drawing oversized');
+}
+
+async function testUnbreakableTokenBoundaryShrinksWithoutTruncating() {
+  const doc = await loadBlank();
+  // 34 'a's -- only ~3.5pt over the 180pt/10pt budget. Quinn's report: this
+  // shape is MORE dangerous than the 140-char case because it's visually
+  // indistinguishable from a safe value if it silently overflows.
+  const token34 = 'a'.repeat(34);
+  await fillTrec2019(doc, { buyer_notice_email: token34 });
+  const savedBytes = await doc.save();
+  const outPath = path.join(REPO, '.tmp/regression-buyer-email-34a-boundary.pdf');
+  fs.writeFileSync(outPath, savedBytes);
+  const text = execSync(`pdftotext -f 8 -l 8 -layout "${outPath}" -`).toString();
+  const buyerLine = text.split('\n').find((l) => l.includes('Email(s):') && l.includes(token34));
+  assert.ok(buyerLine, 'expected the full 34-char token to render INTACT -- a small shrink alone should be enough to fit it, no truncation needed');
+  assert.ok(
+    !buyerLine.includes('…'),
+    'a value only marginally over budget should recover via font-shrink alone -- truncating it would be an unnecessary loss of information'
+  );
+  const sellerLabelCount = (buyerLine.match(/Email\(s\):/g) || []).length;
+  assert.strictEqual(
+    sellerLabelCount, 2,
+    'Seller\'s own "Email(s):" label must still render intact and separated from the Buyer column'
+  );
+  console.log('  PASS: 34-char unbreakable token just over budget shrinks to fit with no truncation and no collision');
 }
 
 async function testBrokerPagePaddingApplied() {
@@ -155,6 +232,8 @@ async function main() {
   const tests = [
     ['maxWidth enforced, wraps to declared secondLine', testMaxWidthEnforcedWithSecondLine],
     ['maxWidth degrades (shrink/truncate) with no secondLine', testMaxWidthDegradesWithoutSecondLine],
+    ['unbreakable 144-char token shrinks then truncates at the font floor', testUnbreakableTokenTruncatesAtFloor],
+    ['unbreakable 34-char token just over budget shrinks without truncating', testUnbreakableTokenBoundaryShrinksWithoutTruncating],
     ['page-11 broker fields get left padding, right edge preserved', testBrokerPagePaddingApplied],
   ];
   let failed = 0;

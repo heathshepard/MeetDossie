@@ -247,7 +247,42 @@ async function fillTrec2019(pdfDoc, fv) {
       if (coord.maxWidth && wrapFont.widthOfTextAtSize(text, fontSize) > coord.maxWidth) {
         if (coord.secondLine) {
           const [line1, remainder] = wrapTextToWidth(text, fontSize, coord.maxWidth);
-          page.drawText(line1, { x: coord.x, y: coord.y, size: fontSize, ...options });
+          // 2026-08-30 CARTER -- unbreakable-token fix. wrapTextToWidth's own
+          // fallback ("single word longer than maxWidth -- don't drop it")
+          // forces the ENTIRE oversized word onto line1 when it has no
+          // whitespace to break on (e.g. a lone long email address with no
+          // "; " to split multiple addresses on -- the two-email case this
+          // whole degrade pipeline was built for always has a break point,
+          // a solo long email never does). That line1 was previously drawn
+          // straight to the page at the caller's fontSize with NO re-check
+          // against coord.maxWidth, bypassing fitTextToWidth's shrink-then-
+          // truncate degrade entirely -- it drew oversized and overflowed
+          // into the Seller's column exactly like the bug this file's
+          // maxWidth-overflow fix (above) was written to close, just via a
+          // single-token value instead of a "; "-joined multi-value one.
+          // Route line1 through the SAME fitTextToWidth degrade every other
+          // overflow path in this file already uses: shrink in 0.5pt steps
+          // to the 6.5pt floor first (recovers full text with no visible
+          // loss for anything only marginally over budget -- e.g. 34 chars
+          // at 183.48pt vs a 180pt budget fits again at 9.5pt), then
+          // truncate with a trailing ellipsis only if it's still too wide at
+          // the floor. Deliberately NOT split across coord.secondLine here:
+          // an unbreakable token (no word boundary) has nowhere sensible to
+          // break mid-token, and every other overflow path in this file
+          // (escrow address, ¶8 broker disclosure) also never breaks a
+          // token mid-word -- only wraps on whitespace or truncates with an
+          // ellipsis. Splitting an email address in half across two
+          // disconnected printed blanks would be harder for a human to read
+          // back correctly than a shrunk-or-truncated single line marked
+          // with "…". remainder stays empty in the true single-token case
+          // (verified: wrapTextToWidth's fallback sets i = 1 with no words
+          // left), so this fires instead of, not in addition to, the
+          // existing remainder/secondLine branch below.
+          const fittedLine1 = fitTextToWidth(line1, fontSize, coord.maxWidth);
+          page.drawText(fittedLine1.text, { x: coord.x, y: coord.y, size: fittedLine1.fontSize, ...options });
+          if (fittedLine1.truncated) {
+            console.warn('[fill-trec-20-19] field', fieldName, 'truncated on first line (unbreakable token exceeded maxWidth even at font floor):', value);
+          }
           if (remainder) {
             const line2MaxWidth = coord.secondLine.maxWidth || coord.maxWidth;
             const fitted = fitTextToWidth(remainder, fontSize, line2MaxWidth);
