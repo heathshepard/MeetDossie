@@ -46,6 +46,13 @@ const BROKERAGE_PROFILE_DIR = process.env.BROKERAGE_PROFILE_DIR
  * @param {boolean} [opts.headless=true]
  * @param {string}  [opts.reason='brokerage']  tag for the chrome-unlock log
  * @param {{width:number,height:number}} [opts.viewport]
+ * @param {number}  [opts.unlockTimeoutMs]  cooperative-wait budget passed to
+ *   unlockProfile() before it gives up and throws (default 90000). Bump this
+ *   for scripts that expect to queue behind a long-running job.
+ * @param {boolean} [opts.forceUnlock=false]  pass-through to
+ *   unlockProfile({ force: true }) — kills a live holder instead of waiting.
+ *   Only use this when deliberately reclaiming the profile from a job you
+ *   know is dead; nothing in this repo sets it by default.
  * @returns {Promise<import('playwright').BrowserContext>}
  */
 async function launchBrokerageContext(opts = {}) {
@@ -53,9 +60,19 @@ async function launchBrokerageContext(opts = {}) {
   const reason = opts.reason || 'brokerage';
   const viewport = opts.viewport || { width: 1400, height: 950 };
 
-  // Kill any stale chrome.exe still holding this profile's lock (dead script,
-  // Ctrl+C, crash) before we try to launch — same guard FB automation uses.
-  await unlockProfile({ profileDir: BROKERAGE_PROFILE_DIR, reason });
+  // Cooperative preflight: wait for any live chrome.exe holding this
+  // profile's lock to release it, clearing stale crash artifacts once it's
+  // free. Does NOT kill a live holder unless forceUnlock is explicitly set —
+  // see scripts/_lib/chrome-profile-unlock.js header for why (this profile
+  // is shared across many concurrent agent jobs; the old kill-on-sight
+  // default dropped Heath's own connectMLS login window mid-session,
+  // 2026-08-30).
+  await unlockProfile({
+    profileDir: BROKERAGE_PROFILE_DIR,
+    reason,
+    timeoutMs: opts.unlockTimeoutMs,
+    force: !!opts.forceUnlock,
+  });
 
   const { chromium } = require('playwright');
   const context = await chromium.launchPersistentContext(BROKERAGE_PROFILE_DIR, {
