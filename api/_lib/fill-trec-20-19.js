@@ -158,36 +158,6 @@ async function fillTrec2019(pdfDoc, fv) {
   const { StandardFonts } = require('pdf-lib');
   const wrapFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  function drawFieldText(fieldName, value, options = {}) {
-    if (value == null || value === '') return;
-    recordAttempt(fieldName);
-    const coord = coordMap[fieldName];
-    if (!coord) {
-      recordFailure('text', fieldName, 'no coordinate for field on this template version');
-      console.warn('[fill-trec-20-19] No coordinate for field:', fieldName);
-      return;
-    }
-    if (coord.page < 1 || coord.page > pages.length) {
-      recordFailure('text', fieldName, `coordinate page ${coord.page} out of range (pdf has ${pages.length} pages) — template drift?`);
-      console.warn('[fill-trec-20-19] Page out of range for field:', fieldName, 'page:', coord.page);
-      return;
-    }
-    const page = pages[coord.page - 1];
-    const fontSize = options.fontSize || coord.fontSize || 10;
-    try {
-      page.drawText(String(value).slice(0, 200), {
-        x: coord.x,
-        y: coord.y,
-        size: fontSize,
-        ...options,
-      });
-      recordWritten();
-    } catch (e) {
-      recordFailure('text', fieldName, e && e.message);
-      console.warn('[fill-trec-20-19] drawText failed for', fieldName + ':', e && e.message);
-    }
-  }
-
   // Splits `text` at a word boundary so the first line fits within
   // `maxWidth` at `fontSize` (measured with the real embedded font, not a
   // char-count guess). Returns [line1, line2] -- line2 is '' when the
@@ -206,6 +176,109 @@ async function fillTrec2019(pdfDoc, fv) {
     }
     if (!line1 && words.length) { line1 = words[0]; i = 1; } // single word longer than maxWidth -- don't drop it
     return [line1, words.slice(i).join(' ')];
+  }
+
+  // 2026-08-30 CARTER -- maxWidth overflow fix (root cause: drawFieldText
+  // drew every coordMap field's declared maxWidth into the JSON for
+  // documentation purposes only and never actually measured/enforced it,
+  // unlike the escrow-address and broker-disclosure fields above which each
+  // built their own one-off wrap logic). Real failure: ¶21 buyer notice
+  // Email(s) (page 8) -- two real buyer emails joined with "; " measured
+  // ~222pt at the field's own 10pt default, ~42pt past its declared 180pt
+  // maxWidth, and ran straight into the Seller's "Email(s):" label with no
+  // gap ("...ketanhthakkar@gmail.comEmail(s):"). Found via
+  // .tmp/ridgebluff-offer -- see build-offer.js's manual per-build
+  // workaround, which this generic fix replaces.
+  //
+  // Degradation order when a value exceeds coord.maxWidth (never silently
+  // clipped):
+  //   (a) if the field declares coord.secondLine ({x, y[, maxWidth]}) --
+  //       i.e. the printed form genuinely has a second blank underline
+  //       below this one (verified page-by-page, not assumed) -- wrap the
+  //       overflow word-by-word onto it, same wrap logic already proven
+  //       correct for the escrow-address 2-line field.
+  //   (b) otherwise (or if text still doesn't fit the second line), shrink
+  //       the font in 0.5pt steps down to FONT_SHRINK_FLOOR (6.5pt --
+  //       matches the floor already used and visually verified for the
+  //       ¶11 Special Provisions manual draw elsewhere in this pipeline;
+  //       below that a TREC form field reads as illegibly small).
+  //   (c) if it still doesn't fit at the floor size, truncate word-by-word
+  //       and append an ellipsis so a shortened value is visibly marked as
+  //       shortened rather than looking like the whole value.
+  const FONT_SHRINK_FLOOR = 6.5;
+  const FONT_SHRINK_STEP = 0.5;
+  function fitTextToWidth(text, fontSize, maxWidth) {
+    if (wrapFont.widthOfTextAtSize(text, fontSize) <= maxWidth) {
+      return { text, fontSize, truncated: false };
+    }
+    let size = fontSize;
+    while (size > FONT_SHRINK_FLOOR) {
+      size = Math.max(FONT_SHRINK_FLOOR, size - FONT_SHRINK_STEP);
+      if (wrapFont.widthOfTextAtSize(text, size) <= maxWidth) {
+        return { text, fontSize: size, truncated: false };
+      }
+    }
+    size = FONT_SHRINK_FLOOR;
+    let truncated = text;
+    while (truncated.length > 1 && wrapFont.widthOfTextAtSize(truncated + '…', size) > maxWidth) {
+      truncated = truncated.slice(0, -1);
+    }
+    return { text: truncated + '…', fontSize: size, truncated: true };
+  }
+
+  function drawFieldText(fieldName, value, options = {}) {
+    if (value == null || value === '') return;
+    recordAttempt(fieldName);
+    const coord = coordMap[fieldName];
+    if (!coord) {
+      recordFailure('text', fieldName, 'no coordinate for field on this template version');
+      console.warn('[fill-trec-20-19] No coordinate for field:', fieldName);
+      return;
+    }
+    if (coord.page < 1 || coord.page > pages.length) {
+      recordFailure('text', fieldName, `coordinate page ${coord.page} out of range (pdf has ${pages.length} pages) — template drift?`);
+      console.warn('[fill-trec-20-19] Page out of range for field:', fieldName, 'page:', coord.page);
+      return;
+    }
+    const page = pages[coord.page - 1];
+    const fontSize = options.fontSize || coord.fontSize || 10;
+    const text = String(value).slice(0, 200);
+    try {
+      if (coord.maxWidth && wrapFont.widthOfTextAtSize(text, fontSize) > coord.maxWidth) {
+        if (coord.secondLine) {
+          const [line1, remainder] = wrapTextToWidth(text, fontSize, coord.maxWidth);
+          page.drawText(line1, { x: coord.x, y: coord.y, size: fontSize, ...options });
+          if (remainder) {
+            const line2MaxWidth = coord.secondLine.maxWidth || coord.maxWidth;
+            const fitted = fitTextToWidth(remainder, fontSize, line2MaxWidth);
+            page.drawText(fitted.text, {
+              x: coord.secondLine.x, y: coord.secondLine.y, size: fitted.fontSize, ...options,
+            });
+            if (fitted.truncated) {
+              console.warn('[fill-trec-20-19] field', fieldName, 'truncated on overflow line:', value);
+            }
+          }
+        } else {
+          const fitted = fitTextToWidth(text, fontSize, coord.maxWidth);
+          page.drawText(fitted.text, { x: coord.x, y: coord.y, size: fitted.fontSize, ...options });
+          if (fitted.truncated) {
+            console.warn('[fill-trec-20-19] field', fieldName, 'truncated on overflow:', value);
+          }
+        }
+        recordWritten();
+        return;
+      }
+      page.drawText(text, {
+        x: coord.x,
+        y: coord.y,
+        size: fontSize,
+        ...options,
+      });
+      recordWritten();
+    } catch (e) {
+      recordFailure('text', fieldName, e && e.message);
+      console.warn('[fill-trec-20-19] drawText failed for', fieldName + ':', e && e.message);
+    }
   }
 
   // PARTIES — buyer_name, seller_name
@@ -1019,6 +1092,39 @@ const BROKER_PAGE_BLOCK2_BUYER_SIDE = {
  * Block 2 (Buyer's agent) and the listing agent is Block 1 (Seller's
  * agent).
  */
+// 2026-08-30 CARTER -- page-11 near-zero left padding fix. Bbox-verified
+// (pdftotext -bbox against .tmp/ridgebluff-offer/blank-20-19.pdf, page 11)
+// against every one of these 16 real AcroForm field rects: the printed
+// label's own right edge and the field's rect x0 are within ~1pt of each
+// other (several are actually NEGATIVE -- the rect starts before the label
+// glyphs even end), e.g. "License No_2" (Associate's Email, Block 1) rect
+// x=145.61 vs label "Email:" xMax=146.19 -- the field literally starts
+// UNDER the colon. This is a template/rect-positioning defect on this one
+// page, not present on the rest of the form (contrast page-8 ¶21 fields
+// above, which all have real declared maxWidth clearance). A prior local
+// workaround (.tmp/ridgebluff-offer/build-offer.js) prepended a literal
+// leading space to every value on this page as a per-build hack; fixed
+// here at the source instead by nudging each field's own widget Rect
+// PAGE11_LEFT_PAD points to the right (and narrowing its width by the same
+// amount so the right edge -- and any content beyond it on the same
+// printed line -- doesn't move). Only touches fields this module actually
+// writes to (BROKER_PAGE_BLOCK1/2), and only once, right before the value
+// is set.
+const PAGE11_LEFT_PAD = 3.5;
+
+function padFieldRectLeft(form, fieldName, pad) {
+  try {
+    const field = form.getTextField(fieldName);
+    for (const widget of field.acroField.getWidgets()) {
+      const r = widget.getRectangle();
+      if (r.width <= pad) continue; // guard against degenerate/too-narrow rects
+      widget.setRectangle({ x: r.x + pad, y: r.y, width: r.width - pad, height: r.height });
+    }
+  } catch (e) {
+    console.warn('[fill-trec-20-19] broker page: could not pad rect for', fieldName, e && e.message);
+  }
+}
+
 async function fillBrokerContactPage(pdfDoc, fv) {
   let form;
   try {
@@ -1029,7 +1135,10 @@ async function fillBrokerContactPage(pdfDoc, fv) {
   }
   const set = (name, val) => {
     if (!val) return;
-    try { form.getTextField(name).setText(String(val)); } catch (e) {
+    try {
+      padFieldRectLeft(form, name, PAGE11_LEFT_PAD);
+      form.getTextField(name).setText(String(val));
+    } catch (e) {
       console.warn('[fill-trec-20-19] broker page: could not set', name, e && e.message);
     }
   };
