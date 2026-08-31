@@ -37,39 +37,14 @@ const TREC_23_20_MAP = require('./_assets/field-maps/trec-23-20-coords.json');
 const TREC_24_20_MAP = require('./_assets/field-maps/trec-24-20-coords.json');
 const TREC_25_17_MAP = require('./_assets/field-maps/trec-25-17-coords.json');
 
-// 2026-08-31 CARTER — TXR-1101 (TAR 1101 Listing Agreement) coord map. Built
-// in the "array of widgets, bottom-left pt coords" shape used by
-// interactive-editor-init.js's COORDS_FILES convention (see api/_assets/
-// txr-1101-listing-agreement-coords.json), NOT the top-left-design-coords
-// object shape flat-pdf-filler.js expects. Converted once at module load.
-const TXR_1101_RAW_MAP = require('./_assets/txr-1101-listing-agreement-coords.json');
-function buildFlatFillerMapFromWidgetArray(rawMap, formLabel) {
-  const pageHeights = {};
-  for (const ps of (rawMap.page_sizes || [])) pageHeights[ps.page] = ps.height_pt;
-  const firstPage = (rawMap.page_sizes && rawMap.page_sizes[0]) || { width_pt: 612, height_pt: 792 };
-  const fields = {};
-  for (const f of (rawMap.fields || [])) {
-    if (!f.key || f.type === 'checkbox' || f.type === 'signature') continue; // drawn by e-sign, not draft fill
-    if (fields[f.key]) continue; // first widget for a key wins
-    const pageHeight = pageHeights[f.page] || firstPage.height_pt;
-    fields[f.key] = {
-      page: f.page,
-      x: f.x_pt,
-      y: pageHeight - f.y_pt - f.h_pt, // bottom-left pt -> top-left design coord flat-pdf-filler expects
-      width: f.w_pt,
-      height: f.h_pt,
-      font_size: 10,
-    };
-  }
-  return {
-    form_id: rawMap.form_type,
-    form_name: formLabel,
-    page_count: rawMap.page_count,
-    page_dimensions: { width: firstPage.width_pt, height: firstPage.height_pt },
-    fields,
-  };
-}
-const TXR_1101_MAP = buildFlatFillerMapFromWidgetArray(TXR_1101_RAW_MAP, 'Residential Real Estate Listing Agreement (TAR 1101)');
+// 2026-09-01 CARTER — TAR 1101 Listing Agreement draft-fill wiring reverted
+// per Quinn's QA gate (staging commit e0159ace): txr-1101-listing-agreement-
+// coords.json was hand-estimated, not PyMuPDF-anchored + visually verified
+// like the other 4 maps, and Quinn's render found all 8 seller/broker contact
+// fields colliding with their own labels, property_county overlapping its
+// label, listing_price landing inside a word, and term_start_date/
+// term_end_date floating disconnected from their blanks. Coordinate file
+// stays on disk for later real anchor-based derivation; not wired here.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -122,12 +97,6 @@ const TREC_RESIDENTIAL_LEASES_B64 = require('./_assets/trec-residential-leases-b
 const TREC_FIXTURE_LEASES_B64 = require('./_assets/trec-fixture-leases-base64.js');
 const TREC_LOAN_ASSUMPTION_B64 = require('./_assets/trec-loan-assumption-base64.js');
 const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-district-base64.js');
-// 2026-08-31 CARTER — TAR 1101 Listing Agreement. Previously only used for
-// e-sign (api/dossiesign-prepare.js) and blank-preview (api/_lib/resolve-
-// blank-template-pdf.js) -- never for draft-time text fill; there was no
-// 'listing-agreement' entry in FORM_CONFIGS at all. Same flat-PDF shape as
-// the 4 forms fixed above (0 AcroForm fields, confirmed below).
-const TAR_LISTING_AGREEMENT_B64 = require('./_assets/tar-listing-agreement-base64.js');
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -361,15 +330,6 @@ const FORM_CONFIGS = {
     shortName: 'TREC-IDN-Improvement-District',
     getBase64: () => TREC_IMPROVEMENT_DISTRICT_B64,
     documentType: 'improvement_district_notice',
-  },
-  // 2026-08-31 CARTER — TAR 1101 Listing Agreement. Was wired for e-sign +
-  // blank-preview only; no draft-fill entry existed. Flat PDF (0 AcroForm
-  // fields), routes through flat-pdf-filler + TXR_1101_MAP (see above).
-  'listing-agreement': {
-    name: 'Residential Real Estate Listing Agreement (TAR 1101)',
-    shortName: 'TAR-1101-Listing-Agreement',
-    getBase64: () => TAR_LISTING_AGREEMENT_B64,
-    documentType: 'listing_agreement',
   },
 };
 
@@ -3420,10 +3380,6 @@ function buildNewHomeFieldMapValues(fv) {
     additional_earnest_days: additionalEarnestDays,
     option_period_days: optionDays,
     closing_date: closingDateStr,
-    closing_date_page4: closingDateStr,
-    closing_date_page5: closingDateStr,
-    closing_date_page6: closingDateStr,
-    closing_date_page7: closingDateStr, // present on 24-20 map only; harmless extra key for 23-20
     buyer_address: fv.buyer_address || '',
     seller_address: fv.seller_address || '',
     effective_date: effectiveDateStr,
@@ -3494,11 +3450,6 @@ async function fillFarmRanch(pdfDoc, fv) {
     additional_earnest_money: fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '',
     option_period_days: optionDays,
     closing_date: closingDateStr,
-    closing_date_page3b: closingDateStr,
-    closing_date_page5: closingDateStr,
-    closing_date_page6: closingDateStr,
-    closing_date_page7: closingDateStr,
-    closing_date_page8: closingDateStr,
     buyer_address: fv.buyer_address || '',
     seller_address: fv.seller_address || '',
     effective_date: effectiveDateStr,
@@ -3799,48 +3750,6 @@ async function fillLoanAssumption(pdfDoc, fv) {
 // IMPROVEMENT DISTRICT ASSESSMENT NOTICE (stub)
 // Auto-fills property address. Agent completes assessment details manually.
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// RESIDENTIAL REAL ESTATE LISTING AGREEMENT (TAR 1101)
-// 2026-08-31 CARTER — new draft-fill handler. Flat PDF, 0 AcroForm fields
-// (confirmed same way as the 4 forms above). Routes through TXR_1101_MAP.
-// Signature/date-of-signing/checkbox widgets are intentionally left blank —
-// filled at e-sign time by api/dossiesign-prepare.js, not draft time.
-// ---------------------------------------------------------------------------
-async function fillListingAgreement(pdfDoc, fv) {
-  const startDateStr = fv.listing_start_date
-    ? (String(fv.listing_start_date).includes('-') ? formatDate(fv.listing_start_date) : fv.listing_start_date)
-    : '';
-  const endDateStr = fv.listing_end_date
-    ? (String(fv.listing_end_date).includes('-') ? formatDate(fv.listing_end_date) : fv.listing_end_date)
-    : '';
-
-  const values = {
-    seller_name: fv.seller_name || '',
-    seller_name_2: fv.seller_name_2 || '',
-    seller_address: fv.seller_address || '',
-    seller_city_state_zip: fv.seller_city_state_zip || fv.city_state_zip || '',
-    seller_phone: fv.seller_phone || '',
-    seller_email: fv.seller_email || '',
-    broker_name: fv.listing_broker_firm || '',
-    broker_address: fv.listing_broker_address || '',
-    broker_phone: fv.listing_agent_phone || '',
-    broker_email: fv.listing_agent_email || '',
-    property_county: fv.county || '',
-    property_address: [fv.property_address, fv.city_state_zip].filter(Boolean).join(', '),
-    listing_price: fv.listing_price != null && fv.listing_price !== ''
-      ? formatMoney(fv.listing_price)
-      : (fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : ''),
-    term_start_date: startDateStr,
-    term_end_date: endDateStr,
-    broker_fee_percent: fv.listing_commission_pct != null && fv.listing_commission_pct !== '' ? String(fv.listing_commission_pct) : '',
-    sponsoring_broker_name: fv.listing_broker_firm || '',
-    sales_agent_name: fv.listing_agent_name || '',
-    sales_agent_license_no: fv.listing_agent_license || '',
-  };
-
-  await fillFlatPdfFromMapStrict(pdfDoc, values, TXR_1101_MAP, 'Residential Real Estate Listing Agreement (TAR 1101)');
-  return pdfDoc;
-}
 
 async function fillImprovementDistrict(pdfDoc, fv) {
   const form = pdfDoc.getForm();
@@ -3965,7 +3874,6 @@ async function fillForm(formType, fieldValues) {
     case 'fixture-leases':        await fillFixtureLeases(pdfDoc, fv); break;
     case 'loan-assumption':       await fillLoanAssumption(pdfDoc, fv); break;
     case 'improvement-district':  await fillImprovementDistrict(pdfDoc, fv); break;
-    case 'listing-agreement':     await fillListingAgreement(pdfDoc, fv); break;
     default:
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }

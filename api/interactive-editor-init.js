@@ -96,11 +96,6 @@ const COORDS_FILES = {
   'new-home-incomplete':     'trec-23-20-coords.json',
   'new-home-complete':       'trec-24-20-coords.json',
   'farm-ranch':               'trec-25-17-coords.json',
-  // 2026-08-31 CARTER — TAR 1101 Listing Agreement. Coord file already lives
-  // in this exact shape (built 2026-08-05, manually anchored -- see
-  // "manual_field_N" pdf_field_name placeholders); it was just never added
-  // to any of these lookup tables.
-  'listing-agreement':       'txr-1101-listing-agreement-coords.json',
 };
 const COORDS_CACHE = {};
 function loadCoords(formType) {
@@ -161,7 +156,6 @@ const FORM_LABELS = {
   'new-home-incomplete':     { code: '23-20', name: 'New Home Contract (Incomplete Construction)' },
   'new-home-complete':       { code: '24-20', name: 'New Home Contract (Completed Construction)' },
   'farm-ranch':               { code: '25-17', name: 'Farm and Ranch Contract' },
-  'listing-agreement':        { code: 'TAR 1101', name: 'Residential Real Estate Listing Agreement' },
 };
 
 // fill-form.js stores documents with a `document_type` column, not
@@ -201,7 +195,6 @@ const FORM_TYPE_TO_DOCUMENT_TYPE = {
   'new-home-incomplete':     'new_home_contract_incomplete',
   'new-home-complete':       'new_home_contract_complete',
   'farm-ranch':               'farm_ranch_contract',
-  'listing-agreement':        'listing_agreement',
 };
 
 // Extend REQUIRED_FIELDS to include the four target forms plus common optional
@@ -307,11 +300,6 @@ const EDITABLE_FIELDS_BY_FORM = {
     { key: 'sale_price', required: true, type: 'money' },
     { key: 'earnest_money', required: true, type: 'money' },
     { key: 'closing_date', required: true, type: 'date' },
-  ],
-  'listing-agreement': [
-    { key: 'seller_name', required: false, type: 'text' },
-    { key: 'property_address', required: false, type: 'text' },
-    { key: 'listing_price', required: true, type: 'money' },
   ],
 };
 

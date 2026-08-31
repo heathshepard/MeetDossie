@@ -66,8 +66,8 @@
       "height_pt": 792
     }
   ],
-  "field_count": 42,
-  "mapped_field_count": 42,
+  "field_count": 37,
+  "mapped_field_count": 37,
   "fields": [
     {
       "pdf_field_name": null,
@@ -151,7 +151,7 @@
       "w_pct": 5.719,
       "h_pct": 1.515,
       "key": "acreage",
-      "label": "Acreage value — just left of 'acres' word at (117.3, 606.4)",
+      "label": "Acreage value \u2014 just left of 'acres' word at (117.3, 606.4)",
       "category": null
     },
     {
@@ -168,7 +168,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "cash_portion",
-      "label": "A. Cash portion — right of '$' at (420.7, 523.1)",
+      "label": "A. Cash portion \u2014 right of '$' at (420.7, 523.1)",
       "category": null
     },
     {
@@ -185,7 +185,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "financing_amount",
-      "label": "B. Sum of financing — right of '$' at (420.7, 565.0)",
+      "label": "B. Sum of financing \u2014 right of '$' at (420.7, 565.0)",
       "category": null
     },
     {
@@ -202,7 +202,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "sales_price",
-      "label": "C. Sales Price (Sum A+B) — right of '$' at (420.7, 576.2)",
+      "label": "C. Sales Price (Sum A+B) \u2014 right of '$' at (420.7, 576.2)",
       "category": null
     },
     {
@@ -219,7 +219,7 @@
       "w_pct": 14.706,
       "h_pct": 1.515,
       "key": "acreage_adjustment",
-      "label": "Excess acreage adjustment — right of '$' at (459.2, 615.9)",
+      "label": "Excess acreage adjustment \u2014 right of '$' at (459.2, 615.9)",
       "category": null
     },
     {
@@ -338,58 +338,7 @@
       "w_pct": 6.536,
       "h_pct": 1.515,
       "key": "option_period_days",
-      "label": "Before 'days after' at (118.1, 480.6) — option period",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 3,
-      "x_pt": 100,
-      "y_pt": 141,
-      "w_pt": 140,
-      "h_pt": 14,
-      "x_pct": 16.34,
-      "y_pct": 17.803,
-      "w_pct": 22.876,
-      "h_pct": 1.768,
-      "key": "closing_date",
-      "label": "Main closing date — 'Closing Date' anchor at (123.7, 141.1)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 3,
-      "x_pt": 235,
-      "y_pt": 414,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 38.399,
-      "y_pct": 52.273,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page3b",
-      "label": "Page 3 second closing — anchor at (267.7, 414.5)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 5,
-      "x_pt": 71,
-      "y_pt": 217,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 11.601,
-      "y_pct": 27.399,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page5",
-      "label": "Page 5 closing — anchor at (99.0, 216.9)",
+      "label": "Before 'days after' at (118.1, 480.6) \u2014 option period",
       "category": null
     },
     {
@@ -397,50 +346,16 @@
       "widget_index": 0,
       "type": "text",
       "page": 6,
-      "x_pt": 54,
-      "y_pt": 308,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 8.824,
-      "y_pct": 38.889,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page6",
-      "label": "Page 6 closing — anchor at (82.2, 308.3)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 7,
-      "x_pt": 49,
-      "y_pt": 338,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 8.007,
-      "y_pct": 42.677,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page7",
-      "label": "Page 7 closing — anchor at (76.9, 338.5)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 8,
-      "x_pt": 215,
-      "y_pt": 302,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 35.131,
-      "y_pct": 38.131,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page8",
-      "label": "Page 8 closing — anchor at (381.0, 302.3)",
+      "x_pt": 322,
+      "y_pt": 291,
+      "w_pt": 98,
+      "h_pt": 14,
+      "x_pct": 52.614,
+      "y_pct": 36.742,
+      "w_pct": 16.013,
+      "h_pct": 1.768,
+      "key": "closing_date",
+      "label": "PARA 9A blank (underscore run inline) -- page 6 (was page 3 body prose)",
       "category": null
     },
     {
@@ -542,7 +457,7 @@
       "w_pct": 16.34,
       "h_pct": 1.515,
       "key": "effective_date",
-      "label": "Effective Date — anchor at (464.9, 205.3)",
+      "label": "Effective Date \u2014 anchor at (464.9, 205.3)",
       "category": null
     },
     {
@@ -729,7 +644,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_1",
-      "label": "Escrow Agent receipt date 1 — anchor at (52.1, 128.3)",
+      "label": "Escrow Agent receipt date 1 \u2014 anchor at (52.1, 128.3)",
       "category": null
     },
     {
@@ -746,7 +661,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_2",
-      "label": "Escrow Agent receipt date 2 — anchor at (52.1, 204.0)",
+      "label": "Escrow Agent receipt date 2 \u2014 anchor at (52.1, 204.0)",
       "category": null
     },
     {
@@ -763,7 +678,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_3",
-      "label": "Escrow Agent receipt date 3 — anchor at (52.1, 319.7)",
+      "label": "Escrow Agent receipt date 3 \u2014 anchor at (52.1, 319.7)",
       "category": null
     },
     {
@@ -780,7 +695,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_4",
-      "label": "Escrow Agent receipt date 4 — anchor at (52.1, 450.5)",
+      "label": "Escrow Agent receipt date 4 \u2014 anchor at (52.1, 450.5)",
       "category": null
     }
   ]

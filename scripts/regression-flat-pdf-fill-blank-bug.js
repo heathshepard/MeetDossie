@@ -189,6 +189,52 @@ async function testCurrentFillFormProducesRealVisibleText() {
   console.log('  PASS: current fillForm() (post-fix routing) produces PDFs with the real injected values independently verifiable via pdftotext -- not just "no error thrown"');
 }
 
+// 2026-09-01 CARTER -- Quinn's QA gate on staging commit e0159ace caught a
+// DIFFERENT failure class than the one this suite originally targeted: the
+// fill can place real, extractable text (so testCurrentFillFormProducesReal-
+// VisibleText above passes) while that text lands on top of unrelated prose
+// instead of the actual fillable blank -- e.g. closing_date anchored to a
+// bare "Closing Date" substring landed on "At least ___ days prior to the
+// Closing Date" on TREC 23-20 page 2, producing extracted text like
+// "least12/01/2026" -- a real value glued directly onto a printed word with
+// no whitespace between them, because the drawn text's baseline sat in the
+// middle of a sentence rather than on a real blank (which always has
+// whitespace/punctuation on both sides in the source PDF).
+// This assertion is form-agnostic: it flags ANY case where a fill value's
+// text is immediately adjacent (no separating whitespace) to a letter in the
+// extracted PDF text, regardless of which field or form it is.
+function assertNoGluedOverlap(text, value, label) {
+  const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const gluedBefore = new RegExp('[A-Za-z]' + escaped);
+  const gluedAfter = new RegExp(escaped + '[A-Za-z]');
+  const before = text.match(gluedBefore);
+  const after = text.match(gluedAfter);
+  assert.ok(
+    !before && !after,
+    `${label}: value "${value}" appears glued to adjacent prose with no whitespace ` +
+    `(match: "${(before && before[0]) || (after && after[0])}") -- this is the ` +
+    `promiscuous-anchor class of bug (text landing on prose, not on the real blank), ` +
+    `not a "field missing" bug`
+  );
+}
+
+async function testClosingDateLandsOnBlankNotProse() {
+  const CLOSING_DATE_FORMS = [
+    { formType: 'new-home-incomplete', label: 'TREC 23-20', closing: '2026-08-15', expectFormatted: '08/15/2026' },
+    { formType: 'new-home-complete',   label: 'TREC 24-20', closing: '2026-07-30', expectFormatted: '07/30/2026' },
+    { formType: 'farm-ranch',          label: 'TREC 25-17', closing: '2026-09-15', expectFormatted: '09/15/2026' },
+  ];
+  for (const f of CLOSING_DATE_FORMS) {
+    const base = FORMS.find((x) => x.formType === f.formType);
+    const fv = Object.assign({}, base.fv, { closing_date: f.closing });
+    const pdfBytes = await fillForm(f.formType, fv);
+    const text = pdfToText(pdfBytes);
+    assert.ok(text.includes(f.expectFormatted), `${f.label}: formatted closing date "${f.expectFormatted}" not found in extracted text at all`);
+    assertNoGluedOverlap(text, f.expectFormatted, f.label);
+  }
+  console.log('  PASS: closing_date on TREC 23-20 / 24-20 / 25-17 lands on the real ¶9A blank, not glued onto surrounding "Closing Date" prose mentions');
+}
+
 async function testStrictGateBlocksEmptyOrEmptyMap() {
   // Empty/missing field map -> must throw
   const pdfDoc1 = await PDFDocument.create();
@@ -229,6 +275,7 @@ async function main() {
     ['All 4 wired assets are 0-AcroForm-field flat PDFs (bug precondition)', testAllFourAssetsAreZeroFieldFlatPdfs],
     ['Pre-fix safeSetText() code path silently ships a blank PDF (proves this suite is not a no-op)', testPreFixCodePathProducesNoVisibleText],
     ['Current fillForm() places real, independently-verifiable text', testCurrentFillFormProducesRealVisibleText],
+    ['closing_date lands on the real ¶9A blank, not glued onto prose (Quinn e0159ace catch)', testClosingDateLandsOnBlankNotProse],
     ['fillFlatPdfFromMapStrict loud-failure gate', testStrictGateBlocksEmptyOrEmptyMap],
   ];
   let failed = 0;

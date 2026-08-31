@@ -37,15 +37,15 @@
       "type": "text",
       "page": 1,
       "x_pt": 49,
-      "y_pt": 160,
-      "w_pt": 455,
+      "y_pt": 171,
+      "w_pt": 450,
       "h_pt": 14,
       "x_pct": 8.007,
-      "y_pct": 20.202,
-      "w_pct": 74.346,
+      "y_pct": 21.591,
+      "w_pct": 73.529,
       "h_pct": 1.768,
       "key": "seller_name",
-      "label": "Long blank wraps y=153->y=172 ending at (SELLER) at x=507",
+      "label": "Wrap line 2 of BETWEEN...AND ___ (SELLER) -- was overlapping line 1",
       "category": null
     },
     {
@@ -62,7 +62,7 @@
       "w_pct": 31.046,
       "h_pct": 1.768,
       "key": "buyer_name",
-      "label": "Buyer signature line 1 (left) — 'Buyer' label at y=663 below",
+      "label": "Buyer signature line 1 (left) \u2014 'Buyer' label at y=663 below",
       "category": null
     },
     {
@@ -79,7 +79,7 @@
       "w_pct": 31.046,
       "h_pct": 1.768,
       "key": "buyer_name_2",
-      "label": "Buyer signature line 2 (right) — second buyer if joint",
+      "label": "Buyer signature line 2 (right) \u2014 second buyer if joint",
       "category": null
     },
     {
@@ -96,7 +96,7 @@
       "w_pct": 17.974,
       "h_pct": 1.768,
       "key": "contract_effective_date",
-      "label": "Date line under signature 1 — 'Date' label at (270.9, 663.2)",
+      "label": "Date line under signature 1 \u2014 'Date' label at (270.9, 663.2)",
       "category": null
     },
     {
@@ -113,7 +113,7 @@
       "w_pct": 17.974,
       "h_pct": 1.768,
       "key": "termination_notice_date",
-      "label": "Date line under signature 2 — 'Date' label at (526.5, 663.2)",
+      "label": "Date line under signature 2 \u2014 'Date' label at (526.5, 663.2)",
       "category": null
     },
     {
@@ -266,7 +266,7 @@
       "w_pct": 77.614,
       "h_pct": 8.838,
       "key": "termination_reason_other",
-      "label": "Free-text reason if (8) Other checked — 6 blank lines",
+      "label": "Free-text reason if (8) Other checked \u2014 6 blank lines",
       "category": null
     }
   ]

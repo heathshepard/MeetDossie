@@ -61,8 +61,8 @@
       "height_pt": 792
     }
   ],
-  "field_count": 38,
-  "mapped_field_count": 38,
+  "field_count": 35,
+  "mapped_field_count": 35,
   "fields": [
     {
       "pdf_field_name": null,
@@ -197,7 +197,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "cash_portion",
-      "label": "A. Cash portion — fill right of '$' at (437.5, 207.6)",
+      "label": "A. Cash portion \u2014 fill right of '$' at (437.5, 207.6)",
       "category": null
     },
     {
@@ -214,7 +214,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "financing_amount",
-      "label": "B. Sum of financing — fill right of '$' at (437.5, 250.6)",
+      "label": "B. Sum of financing \u2014 fill right of '$' at (437.5, 250.6)",
       "category": null
     },
     {
@@ -231,7 +231,7 @@
       "w_pct": 17.974,
       "h_pct": 1.515,
       "key": "sales_price",
-      "label": "C. Sales Price (Sum A+B) — fill right of '$' at (437.5, 262.8)",
+      "label": "C. Sales Price (Sum A+B) \u2014 fill right of '$' at (437.5, 262.8)",
       "category": null
     },
     {
@@ -282,7 +282,7 @@
       "w_pct": 14.706,
       "h_pct": 1.515,
       "key": "earnest_money",
-      "label": "Right of '$' at (383.8, 455.3) — earnest money amount",
+      "label": "Right of '$' at (383.8, 455.3) \u2014 earnest money amount",
       "category": null
     },
     {
@@ -299,7 +299,7 @@
       "w_pct": 14.706,
       "h_pct": 1.515,
       "key": "option_fee",
-      "label": "Right of '$' at (133.8, 466.1) — option fee amount",
+      "label": "Right of '$' at (133.8, 466.1) \u2014 option fee amount",
       "category": null
     },
     {
@@ -357,68 +357,17 @@
       "pdf_field_name": null,
       "widget_index": 0,
       "type": "text",
-      "page": 2,
-      "x_pt": 124,
-      "y_pt": 393,
-      "w_pt": 140,
+      "page": 5,
+      "x_pt": 292,
+      "y_pt": 394,
+      "w_pt": 125,
       "h_pt": 14,
-      "x_pct": 20.261,
-      "y_pct": 49.621,
-      "w_pct": 22.876,
+      "x_pct": 47.712,
+      "y_pct": 49.747,
+      "w_pct": 20.425,
       "h_pct": 1.768,
       "key": "closing_date",
-      "label": "Main closing date blank — 'Closing Date' anchor at (273.7, 393.6)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 4,
-      "x_pt": 89,
-      "y_pt": 245,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 14.542,
-      "y_pct": 30.934,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page4",
-      "label": "Closing Date page 4 — anchor at (233.1, 245.5)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 5,
-      "x_pt": 235,
-      "y_pt": 410,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 38.399,
-      "y_pct": 51.768,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page5",
-      "label": "Closing Date page 5 — anchor at (392.2, 410.3)",
-      "category": null
-    },
-    {
-      "pdf_field_name": null,
-      "widget_index": 0,
-      "type": "text",
-      "page": 6,
-      "x_pt": 215,
-      "y_pt": 411,
-      "w_pt": 140,
-      "h_pt": 12,
-      "x_pct": 35.131,
-      "y_pct": 51.894,
-      "w_pct": 22.876,
-      "h_pct": 1.515,
-      "key": "closing_date_page6",
-      "label": "Closing Date page 6 — anchor at (523.5, 411.5) (right margin)",
+      "label": "PARA 9A blank -- anchored on 'will be on or before' / ', 20' baseline, page 5 (was page 2 body prose)",
       "category": null
     },
     {
@@ -435,7 +384,7 @@
       "w_pct": 76.797,
       "h_pct": 1.515,
       "key": "buyer_address",
-      "label": "Buyer's notice address block — top of notice section",
+      "label": "Buyer's notice address block \u2014 top of notice section",
       "category": null
     },
     {
@@ -469,7 +418,7 @@
       "w_pct": 16.34,
       "h_pct": 1.515,
       "key": "effective_date",
-      "label": "Effective Date blank — anchor at (467.1, 207.3)",
+      "label": "Effective Date blank \u2014 anchor at (467.1, 207.3)",
       "category": null
     },
     {
@@ -656,7 +605,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_1",
-      "label": "Escrow Agent receipt date 1 — anchor at (52.9, 132.1)",
+      "label": "Escrow Agent receipt date 1 \u2014 anchor at (52.9, 132.1)",
       "category": null
     },
     {
@@ -673,7 +622,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_2",
-      "label": "Escrow Agent receipt date 2 — anchor at (52.7, 215.0)",
+      "label": "Escrow Agent receipt date 2 \u2014 anchor at (52.7, 215.0)",
       "category": null
     },
     {
@@ -690,7 +639,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_3",
-      "label": "Escrow Agent receipt date 3 — anchor at (52.7, 350.3)",
+      "label": "Escrow Agent receipt date 3 \u2014 anchor at (52.7, 350.3)",
       "category": null
     },
     {
@@ -707,7 +656,7 @@
       "w_pct": 21.242,
       "h_pct": 1.515,
       "key": "escrow_receipt_date_4",
-      "label": "Escrow Agent receipt date 4 — anchor at (52.7, 485.6)",
+      "label": "Escrow Agent receipt date 4 \u2014 anchor at (52.7, 485.6)",
       "category": null
     }
   ]

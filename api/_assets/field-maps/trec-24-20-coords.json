@@ -180,54 +180,14 @@
       "notes": "Before 'days after' at (125.3, 709.2)"
     },
     "closing_date": {
-      "page": 2,
-      "x": 130,
-      "y": 424,
-      "width": 140,
-      "height": 14,
-      "font_size": 11,
-      "required": true,
-      "notes": "Main closing date blank \u2014 'Closing Date' anchor at (337.6, 424.1)"
-    },
-    "closing_date_page4": {
-      "page": 4,
-      "x": 89,
-      "y": 673,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "'Closing Date' anchor at (113.3, 673.8)"
-    },
-    "closing_date_page5": {
       "page": 5,
-      "x": 89,
-      "y": 697,
-      "width": 140,
-      "height": 12,
+      "x": 300,
+      "y": 678,
+      "width": 135,
+      "height": 14,
       "font_size": 10,
-      "required": false,
-      "notes": "'Closing Date' anchor at (125.8, 697.2)"
-    },
-    "closing_date_page6": {
-      "page": 6,
-      "x": 215,
-      "y": 696,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "'Closing Date' anchor at (478.7, 696.3) (right margin)"
-    },
-    "closing_date_page7": {
-      "page": 7,
-      "x": 215,
-      "y": 100,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "'Closing Date' anchor at (343.0, 100.4)"
+      "required": true,
+      "notes": "PARA 9A blank -- anchored on 'The closing of the sale will be on or before' (ends x=297.4, baseline y=103.7) through ', 20' (starts x=439.9), same baseline y=103.7. Previous coords pointed at a bare 'Closing Date' hit on page 2 body prose, not this blank."
     },
     "buyer_address": {
       "page": 7,
@@ -390,5 +350,5 @@
       "notes": "Escrow Agent receipt date 4 \u2014 anchor at (52.1, 496.6)"
     }
   },
-  "field_count": 39
+  "field_count": 35
 }
