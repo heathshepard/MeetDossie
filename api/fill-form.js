@@ -26,6 +26,50 @@ const {
 
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
+const { fillFlatPdfFromMapStrict } = require('./_assets/flat-pdf-filler.js');
+
+// 2026-08-31 CARTER — coordinate field-maps for the four flat (0-AcroForm-
+// field) PDFs that 45dbdaa0 wired to safeSetText() and silently produced
+// blank output for. Built + visually verified June 14-16 (see
+// scripts/smoke-test-trec-fills.js, Engineering/trec-fill-samples-2026-06-14/).
+const TREC_38_7_MAP = require('./_assets/field-maps/trec-38-7-coords.json');
+const TREC_23_20_MAP = require('./_assets/field-maps/trec-23-20-coords.json');
+const TREC_24_20_MAP = require('./_assets/field-maps/trec-24-20-coords.json');
+const TREC_25_17_MAP = require('./_assets/field-maps/trec-25-17-coords.json');
+
+// 2026-08-31 CARTER — TXR-1101 (TAR 1101 Listing Agreement) coord map. Built
+// in the "array of widgets, bottom-left pt coords" shape used by
+// interactive-editor-init.js's COORDS_FILES convention (see api/_assets/
+// txr-1101-listing-agreement-coords.json), NOT the top-left-design-coords
+// object shape flat-pdf-filler.js expects. Converted once at module load.
+const TXR_1101_RAW_MAP = require('./_assets/txr-1101-listing-agreement-coords.json');
+function buildFlatFillerMapFromWidgetArray(rawMap, formLabel) {
+  const pageHeights = {};
+  for (const ps of (rawMap.page_sizes || [])) pageHeights[ps.page] = ps.height_pt;
+  const firstPage = (rawMap.page_sizes && rawMap.page_sizes[0]) || { width_pt: 612, height_pt: 792 };
+  const fields = {};
+  for (const f of (rawMap.fields || [])) {
+    if (!f.key || f.type === 'checkbox' || f.type === 'signature') continue; // drawn by e-sign, not draft fill
+    if (fields[f.key]) continue; // first widget for a key wins
+    const pageHeight = pageHeights[f.page] || firstPage.height_pt;
+    fields[f.key] = {
+      page: f.page,
+      x: f.x_pt,
+      y: pageHeight - f.y_pt - f.h_pt, // bottom-left pt -> top-left design coord flat-pdf-filler expects
+      width: f.w_pt,
+      height: f.h_pt,
+      font_size: 10,
+    };
+  }
+  return {
+    form_id: rawMap.form_type,
+    form_name: formLabel,
+    page_count: rawMap.page_count,
+    page_dimensions: { width: firstPage.width_pt, height: firstPage.height_pt },
+    fields,
+  };
+}
+const TXR_1101_MAP = buildFlatFillerMapFromWidgetArray(TXR_1101_RAW_MAP, 'Residential Real Estate Listing Agreement (TAR 1101)');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -50,9 +94,18 @@ const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
 const T47_AFFIDAVIT_B64 = require('./_assets/t47-affidavit-base64.js');
 const TREC_UNIMPROVED_PROPERTY_B64 = require('./_assets/trec-unimproved-property-base64.js');
-const TREC_NEW_HOME_INCOMPLETE_B64 = require('./_assets/trec-new-home-incomplete-base64.js');
-const TREC_NEW_HOME_COMPLETE_B64 = require('./_assets/trec-new-home-complete-base64.js');
-const TREC_FARM_RANCH_B64 = require('./_assets/trec-farm-ranch-base64.js');
+// 2026-08-31 CARTER — these three were pointed at the WRONG PDF revision
+// (trec-new-home-incomplete-base64.js / trec-new-home-complete-base64.js /
+// trec-farm-ranch-base64.js -- TREC 23-18/24-18/25-14). api/_lib/resolve-
+// blank-template-pdf.js (the blank-preview path) already served the correct
+// -23-20/-24-20/-25-17 revisions, so a member's blank preview didn't even
+// match the revision the fill handler wrote to. Both are 0-AcroForm-field
+// flat PDFs either way (see fillTerminationNotice/etc below), but the
+// coordinate field-maps in _assets/field-maps/ were built against the
+// -23-20/-24-20/-25-17 assets specifically -- swapping to match.
+const TREC_NEW_HOME_INCOMPLETE_B64 = require('./_assets/trec-new-home-incomplete-23-20-base64.js');
+const TREC_NEW_HOME_COMPLETE_B64 = require('./_assets/trec-new-home-complete-24-20-base64.js');
+const TREC_FARM_RANCH_B64 = require('./_assets/trec-farm-ranch-25-17-base64.js');
 const TREC_SELLER_FINANCING_B64 = require('./_assets/trec-seller-financing-base64.js');
 const TREC_BUYERS_TEMP_LEASE_B64 = require('./_assets/trec-buyers-temp-lease-base64.js');
 const TREC_SELLERS_TEMP_LEASE_B64 = require('./_assets/trec-sellers-temp-lease-base64.js');
@@ -69,6 +122,12 @@ const TREC_RESIDENTIAL_LEASES_B64 = require('./_assets/trec-residential-leases-b
 const TREC_FIXTURE_LEASES_B64 = require('./_assets/trec-fixture-leases-base64.js');
 const TREC_LOAN_ASSUMPTION_B64 = require('./_assets/trec-loan-assumption-base64.js');
 const TREC_IMPROVEMENT_DISTRICT_B64 = require('./_assets/trec-improvement-district-base64.js');
+// 2026-08-31 CARTER — TAR 1101 Listing Agreement. Previously only used for
+// e-sign (api/dossiesign-prepare.js) and blank-preview (api/_lib/resolve-
+// blank-template-pdf.js) -- never for draft-time text fill; there was no
+// 'listing-agreement' entry in FORM_CONFIGS at all. Same flat-PDF shape as
+// the 4 forms fixed above (0 AcroForm fields, confirmed below).
+const TAR_LISTING_AGREEMENT_B64 = require('./_assets/tar-listing-agreement-base64.js');
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -101,8 +160,13 @@ const FORM_CONFIGS = {
     documentType: 'financing_addendum',
   },
   'termination-notice': {
-    name: 'Notice of Sellers Termination of Contract',
-    shortName: 'TREC-Termination-Notice',
+    // 2026-08-31 CARTER — corrected: the wired asset (trec-termination-
+    // base64.js) is actually TREC 38-7, "Notice of BUYER'S Termination of
+    // Contract" (confirmed via rendered PDF -- title printed on the form
+    // itself), not a Seller's termination notice. The old name here was
+    // just wrong; the routing/asset were already correct.
+    name: "Notice of Buyer's Termination of Contract",
+    shortName: 'TREC-38-7-Termination-Notice',
     getBase64: () => TREC_TERMINATION_B64,
     documentType: 'termination_notice',
   },
@@ -297,6 +361,15 @@ const FORM_CONFIGS = {
     shortName: 'TREC-IDN-Improvement-District',
     getBase64: () => TREC_IMPROVEMENT_DISTRICT_B64,
     documentType: 'improvement_district_notice',
+  },
+  // 2026-08-31 CARTER — TAR 1101 Listing Agreement. Was wired for e-sign +
+  // blank-preview only; no draft-fill entry existed. Flat PDF (0 AcroForm
+  // fields), routes through flat-pdf-filler + TXR_1101_MAP (see above).
+  'listing-agreement': {
+    name: 'Residential Real Estate Listing Agreement (TAR 1101)',
+    shortName: 'TAR-1101-Listing-Agreement',
+    getBase64: () => TAR_LISTING_AGREEMENT_B64,
+    documentType: 'listing_agreement',
   },
 };
 
@@ -2066,50 +2139,41 @@ async function fillFinancingAddendum(pdfDoc, fv) {
 // [TextField] "Date" -> contract_effective_date
 // [TextField] "Date_2" -> termination_notice_date (defaults to today)
 // ---------------------------------------------------------------------------
+// 2026-08-31 CARTER — REWIRED off safeSetText(). The asset behind this form
+// (trec-termination-base64.js) is a flat PDF with 0 AcroForm fields (verified:
+// pdf-lib form.getFields().length === 0), so every safeSetText() call above
+// was a silent no-op — the "14 AcroForm fields" claim in the old header
+// comment was stale/wrong. This was the 45dbdaa0 hotfix bug: it shipped a
+// 200 response with a completely blank PDF attached. Now routes through
+// flat-pdf-filler's coordinate map (TREC_38_7_MAP, verified June 2026) and
+// fillFlatPdfFromMapStrict(), which THROWS instead of returning a blank PDF
+// if the map lookup or the draw pass comes back empty.
 async function fillTerminationNotice(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  // PROPERTY + PARTIES
   const propertyFull = fv.property_full || [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
-  safeSetText(form, 'Street Address and City', propertyFull);
-  safeSetText(form, 'BETWEEN THE UNDERSIGNED SELLER AND', fv.seller_name || '');
-  safeSetText(form, 'BUYER', fv.buyer_name || '');
 
-  // TERMINATION REASON (radio group)
-  // termination_reason: 'earnest_money' selects option 1 (Paragraph 5 earnest money failure)
-  // termination_reason: 'other' selects option 2 (other paragraph)
-  if (fv.termination_reason === 'earnest_money') {
-    try {
-      const rg = form.getRadioGroup('1 Buyer failed to deliver the earnest money within the time required under Paragraph 5 of');
-      if (rg) rg.select('undefined');
-    } catch (e) {
-      console.warn('[fill-form] termination radio group:', e && e.message);
-    }
-  } else if (fv.termination_reason === 'other') {
-    try {
-      const rg = form.getRadioGroup('1 Buyer failed to deliver the earnest money within the time required under Paragraph 5 of');
-      if (rg) rg.select('undefined_2');
-    } catch (e) {
-      console.warn('[fill-form] termination radio group other:', e && e.message);
-    }
-  }
+  const effectiveDateStr = fv.contract_effective_date
+    ? (String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date)
+    : '';
+  const today = new Date().toISOString().slice(0, 10);
+  const noticeDateStr = formatDate(fv.termination_notice_date || today);
 
-  // OTHER TERMINATION REASON PARAGRAPH REFERENCES (up to 6 lines)
+  // OTHER TERMINATION REASON PARAGRAPH REFERENCES — free-text block on the
+  // real form (map field termination_reason_other), not per-line inputs.
   var otherReasons = fv.termination_other_reasons || [];
   if (typeof otherReasons === 'string') otherReasons = [otherReasons];
-  for (var i = 1; i <= 6; i++) {
-    safeSetText(form, '2 Other identify the paragraph number of contract or the addendum ' + i,
-      (otherReasons[i - 1] != null ? String(otherReasons[i - 1]) : ''));
-  }
+  const reasonText = otherReasons.filter(Boolean).join('; ');
 
-  // DATES
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
-  const today = new Date().toISOString().slice(0, 10);
-  safeSetText(form, 'Date_2', fv.termination_notice_date ? formatDate(fv.termination_notice_date) : formatDate(today));
+  const values = {
+    property_address: propertyFull,
+    seller_name: fv.seller_name || '',
+    buyer_name: fv.buyer_name || '',
+    buyer_name_2: fv.buyer_name_2 || '',
+    contract_effective_date: effectiveDateStr,
+    termination_notice_date: noticeDateStr,
+    termination_reason_other: reasonText,
+  };
 
+  await fillFlatPdfFromMapStrict(pdfDoc, values, TREC_38_7_MAP, 'Notice of Termination (TREC 38-7)');
   return pdfDoc;
 }
 
@@ -3316,221 +3380,131 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// NEW HOME CONTRACT — INCOMPLETE CONSTRUCTION (TREC 23-18)
-// PDF is a flat file with AcroForm dict but 0 named widget fields.
-// safeSetText calls will silently warn but produce no fills.
-// TREC 23 covers new construction where the home is not yet complete.
-// Builder-specific fields: builder name, expected completion date, CO date.
-// NOTE: When TREC releases a version with AcroForm fields, update field names
-// below by running: node -e "require('pdf-lib').PDFDocument.load(...)"
+// Shared value-mapping for the New Home Contract family (TREC 23-20 / 24-20).
+// Maps this file's `fv` naming (shared with the resale/farm-ranch handlers)
+// onto the logical field names in the verified coordinate maps
+// (_assets/field-maps/trec-23-20-coords.json / trec-24-20-coords.json).
+// Signature/date/broker/escrow-receipt fields are intentionally left blank --
+// those are filled at e-sign time, not draft time.
+// ---------------------------------------------------------------------------
+function buildNewHomeFieldMapValues(fv) {
+  const closingDateStr = fv.closing_date
+    ? (String(fv.closing_date).includes('-') ? formatDate(fv.closing_date) : fv.closing_date)
+    : '';
+  const effectiveDateStr = fv.contract_effective_date
+    ? (String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date)
+    : '';
+  const optionDays = (fv.option_period_days != null && fv.option_period_days !== '')
+    ? String(fv.option_period_days)
+    : (fv.option_days != null && fv.option_days !== '' ? String(fv.option_days) : '');
+  const additionalEarnestDays = (fv.additional_earnest_money_days != null && fv.additional_earnest_money_days !== '')
+    ? String(fv.additional_earnest_money_days)
+    : (fv.additional_earnest_days != null && fv.additional_earnest_days !== '' ? String(fv.additional_earnest_days) : '');
+
+  return {
+    seller_name: fv.seller_name || '',
+    buyer_name: fv.buyer_name || '',
+    lot_number: fv.legal_lot || '',
+    block_number: fv.legal_block || '',
+    addition_name: fv.addition_name || fv.legal_description || '',
+    county: fv.county || '',
+    property_address: fv.property_address || '',
+    cash_portion: fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '',
+    financing_amount: fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '',
+    sales_price: fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '',
+    escrow_agent: fv.title_company || '',
+    escrow_address: fv.title_company_address || '',
+    earnest_money: fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '',
+    option_fee: fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '',
+    additional_earnest_money: fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '',
+    additional_earnest_days: additionalEarnestDays,
+    option_period_days: optionDays,
+    closing_date: closingDateStr,
+    closing_date_page4: closingDateStr,
+    closing_date_page5: closingDateStr,
+    closing_date_page6: closingDateStr,
+    closing_date_page7: closingDateStr, // present on 24-20 map only; harmless extra key for 23-20
+    buyer_address: fv.buyer_address || '',
+    seller_address: fv.seller_address || '',
+    effective_date: effectiveDateStr,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// NEW HOME CONTRACT -- INCOMPLETE CONSTRUCTION (TREC 23-20)
+// 2026-08-31 CARTER -- REWIRED off safeSetText(). Confirmed the asset behind
+// this form is a flat PDF with 0 AcroForm fields -- every safeSetText() call
+// this function used to make was a silent no-op (the 45dbdaa0 bug). Now
+// routes through flat-pdf-filler's coordinate map (TREC_23_20_MAP, verified
+// June 2026 via PyMuPDF anchor scan + visual overlay) with
+// fillFlatPdfFromMapStrict(), which throws instead of shipping a blank PDF.
+// Builder/CO-specific fields (builder name, completion date, warranty co.)
+// have no coordinates in the verified map yet -- that scan covered deal-term
+// fields only; not filled here, same known gap as when this was AcroForm-only.
 // ---------------------------------------------------------------------------
 async function fillNewHomeIncomplete(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  // Common fields that TREC new-home forms share with the resale family.
-  // These are best-guess names — TREC 23-18 has no AcroForm widget names to verify against.
-  if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'and', fv.seller_name);
-
-  const addr = fv.property_address || '';
-  if (addr) {
-    safeSetText(form, 'Texas known as', addr);
-    safeSetText(form, 'Address of Property', addr);
-    safeSetText(form, 'Street Address and City', addr);
-  }
-  if (fv.county) safeSetText(form, 'County of', fv.county);
-  if (fv.city_state_zip) safeSetText(form, 'City of', fv.city_state_zip);
-  if (fv.legal_description) safeSetText(form, 'Addition', fv.legal_description);
-
-  if (fv.sale_price != null && fv.sale_price !== '') safeSetText(form, 'undefined_4', formatMoney(fv.sale_price));
-  if (fv.down_payment_amt != null && fv.down_payment_amt !== '') safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
-  if (fv.loan_amount != null && fv.loan_amount !== '') safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
-
-  if (fv.earnest_money != null && fv.earnest_money !== '') safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
-  if (fv.option_fee != null && fv.option_fee !== '') safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
-
-  if (fv.closing_date) {
-    const cd = String(fv.closing_date);
-    if (cd.includes('-')) {
-      safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(cd));
-      safeSetText(form, '20', formatTwoDigitYear(cd));
-    } else {
-      safeSetText(form, 'A The closing of the sale will be on or before', cd);
-    }
-  }
-
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-')
-      ? formatDate(fv.contract_effective_date)
-      : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
-
-  if (fv.title_company) {
-    safeSetText(form, 'title insurance Title Policy issued by', fv.title_company);
-    safeSetText(form, 'Escrow Agent', fv.title_company);
-  }
-
-  const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
-
-  // New construction-specific fields (best-guess names for TREC 23)
-  if (fv.builder_name) safeSetText(form, 'Builder Name', fv.builder_name);
-  if (fv.expected_completion_date) safeSetText(form, 'Expected Completion Date', formatDate(fv.expected_completion_date));
-  if (fv.builder_rep_name) safeSetText(form, 'Builder Representative', fv.builder_rep_name);
-  if (fv.builder_rep_phone) safeSetText(form, 'Builder Phone', fv.builder_rep_phone);
-
-  if (fv.listing_agent_name) safeSetText(form, 'Listing Associates Name', fv.listing_agent_name);
-  if (fv.listing_broker_firm) safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
-  if (fv.listing_agent_phone) safeSetText(form, 'Phone_3', fv.listing_agent_phone);
-  if (fv.listing_agent_email) safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
-  if (fv.listing_agent_license) safeSetText(form, 'License No_5', fv.listing_agent_license);
-
+  const values = buildNewHomeFieldMapValues(fv);
+  await fillFlatPdfFromMapStrict(pdfDoc, values, TREC_23_20_MAP, 'New Home Contract - Incomplete Construction (TREC 23-20)');
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// NEW HOME CONTRACT — COMPLETED CONSTRUCTION (TREC 24-18)
-// PDF is a flat file with AcroForm dict but 0 named widget fields.
-// TREC 24 covers new construction where the home is substantially complete.
-// Differs from TREC 23 mainly in the completion/CO sections.
-// NOTE: Field names below are best-guess — verify after TREC publishes AcroForm version.
+// NEW HOME CONTRACT -- COMPLETED CONSTRUCTION (TREC 24-20)
+// 2026-08-31 CARTER -- REWIRED off safeSetText() for the same reason as 23-20
+// above (0 AcroForm fields, silent no-op). Routes through TREC_24_20_MAP +
+// fillFlatPdfFromMapStrict().
 // ---------------------------------------------------------------------------
 async function fillNewHomeComplete(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
-
-  // Same common fields as TREC 23 (best-guess names for flat PDF)
-  if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'and', fv.seller_name);
-
-  const addr = fv.property_address || '';
-  if (addr) {
-    safeSetText(form, 'Texas known as', addr);
-    safeSetText(form, 'Address of Property', addr);
-    safeSetText(form, 'Street Address and City', addr);
-  }
-  if (fv.county) safeSetText(form, 'County of', fv.county);
-  if (fv.city_state_zip) safeSetText(form, 'City of', fv.city_state_zip);
-  if (fv.legal_description) safeSetText(form, 'Addition', fv.legal_description);
-
-  if (fv.sale_price != null && fv.sale_price !== '') safeSetText(form, 'undefined_4', formatMoney(fv.sale_price));
-  if (fv.down_payment_amt != null && fv.down_payment_amt !== '') safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
-  if (fv.loan_amount != null && fv.loan_amount !== '') safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
-
-  if (fv.earnest_money != null && fv.earnest_money !== '') safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
-  if (fv.option_fee != null && fv.option_fee !== '') safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
-
-  if (fv.closing_date) {
-    const cd = String(fv.closing_date);
-    if (cd.includes('-')) {
-      safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(cd));
-      safeSetText(form, '20', formatTwoDigitYear(cd));
-    } else {
-      safeSetText(form, 'A The closing of the sale will be on or before', cd);
-    }
-  }
-
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-')
-      ? formatDate(fv.contract_effective_date)
-      : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
-
-  if (fv.title_company) {
-    safeSetText(form, 'title insurance Title Policy issued by', fv.title_company);
-    safeSetText(form, 'Escrow Agent', fv.title_company);
-  }
-
-  const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
-
-  // Completed construction-specific fields (best-guess names for TREC 24)
-  if (fv.builder_name) safeSetText(form, 'Builder Name', fv.builder_name);
-  if (fv.co_received_date) safeSetText(form, 'Certificate of Occupancy Date', formatDate(fv.co_received_date));
-  if (fv.co_number) safeSetText(form, 'Certificate of Occupancy Number', fv.co_number);
-  if (fv.builder_rep_name) safeSetText(form, 'Builder Representative', fv.builder_rep_name);
-  if (fv.builder_rep_phone) safeSetText(form, 'Builder Phone', fv.builder_rep_phone);
-  if (fv.builder_warranty_company) safeSetText(form, 'Warranty Company', fv.builder_warranty_company);
-
-  if (fv.listing_agent_name) safeSetText(form, 'Listing Associates Name', fv.listing_agent_name);
-  if (fv.listing_broker_firm) safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
-  if (fv.listing_agent_phone) safeSetText(form, 'Phone_3', fv.listing_agent_phone);
-  if (fv.listing_agent_email) safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
-  if (fv.listing_agent_license) safeSetText(form, 'License No_5', fv.listing_agent_license);
-
+  const values = buildNewHomeFieldMapValues(fv);
+  await fillFlatPdfFromMapStrict(pdfDoc, values, TREC_24_20_MAP, 'New Home Contract - Completed Construction (TREC 24-20)');
   return pdfDoc;
 }
 
 // ---------------------------------------------------------------------------
-// FARM AND RANCH CONTRACT (TREC 25-14)
-// PDF has AcroForm dict but 0 named widget fields — flat PDF.
-// TREC 25 covers residential-use land with improvements (house, barn, fences).
-// Has additional sections for minerals, water rights, easements vs TREC 9.
-// NOTE: Field names below are best-guess — verify after TREC publishes AcroForm version.
-// Key difference from TREC 9: TREC 25 includes mineral/surface rights addenda.
+// FARM AND RANCH CONTRACT (TREC 25-17)
+// 2026-08-31 CARTER -- REWIRED off safeSetText(). Confirmed 0 AcroForm fields
+// (flat PDF) -- every prior safeSetText() call was a silent no-op (45dbdaa0
+// bug). Routes through flat-pdf-filler's coordinate map (TREC_25_17_MAP,
+// verified June 2026) with fillFlatPdfFromMapStrict().
 // ---------------------------------------------------------------------------
 async function fillFarmRanch(pdfDoc, fv) {
-  const form = pdfDoc.getForm();
+  const closingDateStr = fv.closing_date
+    ? (String(fv.closing_date).includes('-') ? formatDate(fv.closing_date) : fv.closing_date)
+    : '';
+  const effectiveDateStr = fv.contract_effective_date
+    ? (String(fv.contract_effective_date).includes('-') ? formatDate(fv.contract_effective_date) : fv.contract_effective_date)
+    : '';
+  const optionDays = (fv.option_period_days != null && fv.option_period_days !== '')
+    ? String(fv.option_period_days)
+    : (fv.option_days != null && fv.option_days !== '' ? String(fv.option_days) : '');
 
-  // Common party/property fields (best-guess, shared with TREC 9-17 family)
-  if (fv.buyer_name) safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name);
-  if (fv.seller_name) safeSetText(form, 'and', fv.seller_name);
+  const values = {
+    seller_name: fv.seller_name || '',
+    buyer_name: fv.buyer_name || '',
+    county: fv.county || '',
+    property_description: fv.legal_description || fv.property_address || '',
+    acreage: fv.land_acreage != null && fv.land_acreage !== '' ? String(fv.land_acreage) : '',
+    cash_portion: fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '',
+    financing_amount: fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '',
+    sales_price: fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '',
+    escrow_agent: fv.title_company || '',
+    escrow_address: fv.title_company_address || '',
+    earnest_money: fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '',
+    option_fee: fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '',
+    additional_earnest_money: fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '',
+    option_period_days: optionDays,
+    closing_date: closingDateStr,
+    closing_date_page3b: closingDateStr,
+    closing_date_page5: closingDateStr,
+    closing_date_page6: closingDateStr,
+    closing_date_page7: closingDateStr,
+    closing_date_page8: closingDateStr,
+    buyer_address: fv.buyer_address || '',
+    seller_address: fv.seller_address || '',
+    effective_date: effectiveDateStr,
+  };
 
-  const addr = fv.property_address || '';
-  if (addr) {
-    safeSetText(form, 'Texas known as', addr);
-    safeSetText(form, 'Address of Property', addr);
-    safeSetText(form, 'Street Address and City', addr);
-  }
-  if (fv.county) safeSetText(form, 'County of', fv.county);
-  if (fv.city_state_zip) safeSetText(form, 'City of', fv.city_state_zip);
-  if (fv.legal_description) safeSetText(form, 'A LAND Lot', fv.legal_description);
-
-  // Land-specific acreage
-  if (fv.land_acreage != null && fv.land_acreage !== '') safeSetText(form, 'acres', String(fv.land_acreage));
-
-  // Price fields (best-guess naming shared with TREC 9 family)
-  if (fv.sale_price != null && fv.sale_price !== '') safeSetText(form, 'undefined_4', formatMoney(fv.sale_price));
-  if (fv.down_payment_amt != null && fv.down_payment_amt !== '') safeSetText(form, 'undefined_2', formatMoney(fv.down_payment_amt));
-  if (fv.loan_amount != null && fv.loan_amount !== '') safeSetText(form, 'undefined_3', formatMoney(fv.loan_amount));
-
-  if (fv.earnest_money != null && fv.earnest_money !== '') safeSetText(form, 'earnest money of', formatMoney(fv.earnest_money));
-  if (fv.option_fee != null && fv.option_fee !== '') safeSetText(form, 'Option Fee in the form of', formatMoney(fv.option_fee));
-
-  if (fv.closing_date) {
-    const cd = String(fv.closing_date);
-    if (cd.includes('-')) {
-      safeSetText(form, 'A The closing of the sale will be on or before', formatLongDateNoYear(cd));
-      safeSetText(form, '20', formatTwoDigitYear(cd));
-    } else {
-      safeSetText(form, 'A The closing of the sale will be on or before', cd);
-    }
-  }
-
-  if (fv.contract_effective_date) {
-    const ds = String(fv.contract_effective_date).includes('-')
-      ? formatDate(fv.contract_effective_date)
-      : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds);
-  }
-
-  if (fv.title_company) {
-    safeSetText(form, 'title insurance Title Policy issued by', fv.title_company);
-    safeSetText(form, 'Escrow Agent', fv.title_company);
-  }
-
-  const isFinanced = fv.loan_amount && Number(fv.loan_amount) > 0;
-  if (isFinanced || fv.financing_addendum === true) safeCheck(form, 'Third Party Financing Addendum');
-
-  safeCheck(form, '1 Buyer accepts the Property As Is');
-
-  if (fv.listing_agent_name) safeSetText(form, 'Listing Associates Name', fv.listing_agent_name);
-  if (fv.listing_broker_firm) safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm);
-  if (fv.listing_agent_phone) safeSetText(form, 'Phone_3', fv.listing_agent_phone);
-  if (fv.listing_agent_email) safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email);
-  if (fv.listing_agent_license) safeSetText(form, 'License No_5', fv.listing_agent_license);
-
+  await fillFlatPdfFromMapStrict(pdfDoc, values, TREC_25_17_MAP, 'Farm and Ranch Contract (TREC 25-17)');
   return pdfDoc;
 }
 
@@ -3825,6 +3799,49 @@ async function fillLoanAssumption(pdfDoc, fv) {
 // IMPROVEMENT DISTRICT ASSESSMENT NOTICE (stub)
 // Auto-fills property address. Agent completes assessment details manually.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// RESIDENTIAL REAL ESTATE LISTING AGREEMENT (TAR 1101)
+// 2026-08-31 CARTER — new draft-fill handler. Flat PDF, 0 AcroForm fields
+// (confirmed same way as the 4 forms above). Routes through TXR_1101_MAP.
+// Signature/date-of-signing/checkbox widgets are intentionally left blank —
+// filled at e-sign time by api/dossiesign-prepare.js, not draft time.
+// ---------------------------------------------------------------------------
+async function fillListingAgreement(pdfDoc, fv) {
+  const startDateStr = fv.listing_start_date
+    ? (String(fv.listing_start_date).includes('-') ? formatDate(fv.listing_start_date) : fv.listing_start_date)
+    : '';
+  const endDateStr = fv.listing_end_date
+    ? (String(fv.listing_end_date).includes('-') ? formatDate(fv.listing_end_date) : fv.listing_end_date)
+    : '';
+
+  const values = {
+    seller_name: fv.seller_name || '',
+    seller_name_2: fv.seller_name_2 || '',
+    seller_address: fv.seller_address || '',
+    seller_city_state_zip: fv.seller_city_state_zip || fv.city_state_zip || '',
+    seller_phone: fv.seller_phone || '',
+    seller_email: fv.seller_email || '',
+    broker_name: fv.listing_broker_firm || '',
+    broker_address: fv.listing_broker_address || '',
+    broker_phone: fv.listing_agent_phone || '',
+    broker_email: fv.listing_agent_email || '',
+    property_county: fv.county || '',
+    property_address: [fv.property_address, fv.city_state_zip].filter(Boolean).join(', '),
+    listing_price: fv.listing_price != null && fv.listing_price !== ''
+      ? formatMoney(fv.listing_price)
+      : (fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : ''),
+    term_start_date: startDateStr,
+    term_end_date: endDateStr,
+    broker_fee_percent: fv.listing_commission_pct != null && fv.listing_commission_pct !== '' ? String(fv.listing_commission_pct) : '',
+    sponsoring_broker_name: fv.listing_broker_firm || '',
+    sales_agent_name: fv.listing_agent_name || '',
+    sales_agent_license_no: fv.listing_agent_license || '',
+  };
+
+  await fillFlatPdfFromMapStrict(pdfDoc, values, TXR_1101_MAP, 'Residential Real Estate Listing Agreement (TAR 1101)');
+  return pdfDoc;
+}
+
 async function fillImprovementDistrict(pdfDoc, fv) {
   const form = pdfDoc.getForm();
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
@@ -3948,6 +3965,7 @@ async function fillForm(formType, fieldValues) {
     case 'fixture-leases':        await fillFixtureLeases(pdfDoc, fv); break;
     case 'loan-assumption':       await fillLoanAssumption(pdfDoc, fv); break;
     case 'improvement-district':  await fillImprovementDistrict(pdfDoc, fv); break;
+    case 'listing-agreement':     await fillListingAgreement(pdfDoc, fv); break;
     default:
       throw new ValidationError('No fill handler for form_type: ' + formType);
   }
