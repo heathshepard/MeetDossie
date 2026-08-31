@@ -170,64 +170,14 @@
       "notes": "Before 'days after' at (118.1, 480.6) \u2014 option period"
     },
     "closing_date": {
-      "page": 3,
-      "x": 100,
-      "y": 141,
-      "width": 140,
-      "height": 14,
-      "font_size": 11,
-      "required": true,
-      "notes": "Main closing date \u2014 'Closing Date' anchor at (123.7, 141.1)"
-    },
-    "closing_date_page3b": {
-      "page": 3,
-      "x": 235,
-      "y": 414,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "Page 3 second closing \u2014 anchor at (267.7, 414.5)"
-    },
-    "closing_date_page5": {
-      "page": 5,
-      "x": 71,
-      "y": 217,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "Page 5 closing \u2014 anchor at (99.0, 216.9)"
-    },
-    "closing_date_page6": {
       "page": 6,
-      "x": 54,
-      "y": 308,
-      "width": 140,
-      "height": 12,
+      "x": 322,
+      "y": 291,
+      "width": 98,
+      "height": 14,
       "font_size": 10,
-      "required": false,
-      "notes": "Page 6 closing \u2014 anchor at (82.2, 308.3)"
-    },
-    "closing_date_page7": {
-      "page": 7,
-      "x": 49,
-      "y": 338,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "Page 7 closing \u2014 anchor at (76.9, 338.5)"
-    },
-    "closing_date_page8": {
-      "page": 8,
-      "x": 215,
-      "y": 302,
-      "width": 140,
-      "height": 12,
-      "font_size": 10,
-      "required": false,
-      "notes": "Page 8 closing \u2014 anchor at (381.0, 302.3)"
+      "required": true,
+      "notes": "PARA 9A blank -- this form prints the blank as literal underscores inline in the sentence 'The closing of the sale will be on or before ___________________, 20_____, or within 7 days' (baseline y=490.6). Anchored proportionally on the underscore run between 'before ' and ', 20'. Previous coords pointed at a bare 'Closing Date' hit on page 3 body prose, not this blank."
     },
     "reservations_oil_gas": {
       "page": 5,
@@ -420,5 +370,5 @@
       "notes": "Escrow Agent receipt date 4 \u2014 anchor at (52.1, 450.5)"
     }
   },
-  "field_count": 42
+  "field_count": 37
 }

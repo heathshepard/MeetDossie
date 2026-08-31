@@ -86,6 +86,16 @@ const COORDS_FILES = {
   'loan-assumption':         'trec-loan-assumption-coords.json',
   'improvement-district':    'trec-improvement-district-coords.json',
   'appraisal-termination':   'trec-49-1-coords.json',
+  // 2026-08-31 CARTER — the 4 forms whose fill handler shipped blank PDFs
+  // (45dbdaa0 bug, see api/fill-form.js). These coord files were converted
+  // from the verified flat-PDF field-maps in api/_assets/field-maps/ (built
+  // June 2026 via PyMuPDF anchor-text scan, no AcroForm widgets exist on
+  // these forms) into the same {page_count, page_sizes, fields:[{key,
+  // x_pct, y_pct, ...}]} shape the rest of this file expects.
+  'termination-notice':      'trec-38-7-coords.json',
+  'new-home-incomplete':     'trec-23-20-coords.json',
+  'new-home-complete':       'trec-24-20-coords.json',
+  'farm-ranch':               'trec-25-17-coords.json',
 };
 const COORDS_CACHE = {};
 function loadCoords(formType) {
@@ -141,6 +151,11 @@ const FORM_LABELS = {
   'loan-assumption':         { code: '41-3', name: 'Addendum for Loan Assumption' },
   'improvement-district':    { code: 'IDN', name: 'Improvement District Assessment Notice' },
   'appraisal-termination':   { code: '49-1', name: "Right to Terminate Due to Lender's Appraisal" },
+  // 2026-08-31 CARTER — 45dbdaa0 bug fix coverage extension.
+  'termination-notice':      { code: '38-7', name: "Notice of Buyer's Termination of Contract" },
+  'new-home-incomplete':     { code: '23-20', name: 'New Home Contract (Incomplete Construction)' },
+  'new-home-complete':       { code: '24-20', name: 'New Home Contract (Completed Construction)' },
+  'farm-ranch':               { code: '25-17', name: 'Farm and Ranch Contract' },
 };
 
 // fill-form.js stores documents with a `document_type` column, not
@@ -174,6 +189,12 @@ const FORM_TYPE_TO_DOCUMENT_TYPE = {
   'loan-assumption':         'loan_assumption_addendum',
   'improvement-district':    'improvement_district_notice',
   'appraisal-termination':   'appraisal_termination',
+  // 2026-08-31 CARTER — 45dbdaa0 bug fix coverage extension. Values match
+  // documentType in api/fill-form.js's FORM_CONFIGS exactly.
+  'termination-notice':      'termination_notice',
+  'new-home-incomplete':     'new_home_contract_incomplete',
+  'new-home-complete':       'new_home_contract_complete',
+  'farm-ranch':               'farm_ranch_contract',
 };
 
 // Extend REQUIRED_FIELDS to include the four target forms plus common optional
@@ -248,6 +269,38 @@ const EDITABLE_FIELDS_BY_FORM = {
   'loan-assumption':      [{ key: 'property_address', required: false, type: 'text' }],
   'improvement-district': [{ key: 'property_address', required: false, type: 'text' }],
   'appraisal-termination':[{ key: 'property_address', required: false, type: 'text' }],
+  // 2026-08-31 CARTER — 45dbdaa0 bug fix coverage extension. Deal-term keys
+  // match the coord field-map's logical names (see KEY_ALIASES below for the
+  // one mismatch: map uses `sales_price`, canonical key is `sale_price`).
+  'termination-notice': [
+    { key: 'buyer_name', required: false, type: 'text' },
+    { key: 'seller_name', required: false, type: 'text' },
+    { key: 'property_address', required: false, type: 'text' },
+  ],
+  'new-home-incomplete': [
+    { key: 'buyer_name', required: false, type: 'text' },
+    { key: 'seller_name', required: false, type: 'text' },
+    { key: 'property_address', required: false, type: 'text' },
+    { key: 'sale_price', required: true, type: 'money' },
+    { key: 'earnest_money', required: true, type: 'money' },
+    { key: 'closing_date', required: true, type: 'date' },
+  ],
+  'new-home-complete': [
+    { key: 'buyer_name', required: false, type: 'text' },
+    { key: 'seller_name', required: false, type: 'text' },
+    { key: 'property_address', required: false, type: 'text' },
+    { key: 'sale_price', required: true, type: 'money' },
+    { key: 'earnest_money', required: true, type: 'money' },
+    { key: 'closing_date', required: true, type: 'date' },
+  ],
+  'farm-ranch': [
+    { key: 'buyer_name', required: false, type: 'text' },
+    { key: 'seller_name', required: false, type: 'text' },
+    { key: 'property_address', required: false, type: 'text' },
+    { key: 'sale_price', required: true, type: 'money' },
+    { key: 'earnest_money', required: true, type: 'money' },
+    { key: 'closing_date', required: true, type: 'date' },
+  ],
 };
 
 async function supabaseCall(method, path, body) {
@@ -640,6 +693,11 @@ module.exports = async function handler(req, res) {
         seller_name_1: 'seller_name',
         earnest_money_amount: 'earnest_money',
         property_city: 'city_state_zip',
+        // 2026-08-31 CARTER — 45dbdaa0 bug fix coverage extension. The
+        // trec-23-20/24-20/25-17 coord field-maps use logical names that
+        // predate this file's canonical `transactions`-column keys.
+        sales_price: 'sale_price',
+        property_description: 'property_address', // farm-ranch (TREC 25-17) only
       };
       const coordsDoc = loadCoords(formType);
       const coordsByKey = {};
