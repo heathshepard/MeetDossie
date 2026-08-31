@@ -414,15 +414,15 @@ const TOOLS = [
   },
   {
     name: 'ask_hadley',
-    description: 'Ask Hadley (General Counsel) a TREC contract or Texas real estate law question. Use whenever the agent says anything like: ask Hadley, what does TREC say about, explain paragraph X of TREC Y, is the seller required to, what does the buyer lose if, what is the rule on, is this enforceable, can the seller, can the buyer, what happens when the option period expires, define earnest money under TREC, what is the deadline for, walk me through paragraph X. Returns a cited answer drawn from Hadley\'s in-house knowledge base of TREC forms and Texas real estate statutes. Currently studied: TREC 20-18 (One to Four Family Residential Contract — Resale). Other forms will return a graceful "studying that next" reply and log the question for Hadley.',
+    description: 'Ask Hadley (General Counsel) a TREC contract or Texas real estate law question. Use whenever the agent says anything like: ask Hadley, what does TREC say about, explain paragraph X of TREC Y, is the seller required to, what does the buyer lose if, what is the rule on, is this enforceable, can the seller, can the buyer, what happens when the option period expires, define earnest money under TREC, what is the deadline for, walk me through paragraph X. Returns a cited answer drawn from Hadley\'s in-house knowledge base of TREC forms and Texas real estate statutes. Currently studied: TREC 20-19 (One to Four Family Residential Contract — Resale, current since 2026-07-01) and TREC 20-18 (superseded, still valid for contracts executed before 2026-07-01). Other forms will return a graceful "studying that next" reply and log the question for Hadley.',
     input_schema: {
       type: 'object',
       properties: {
         question: { type: 'string', description: 'The TREC / Texas real estate question, verbatim or paraphrased from the agent.' },
         form: {
           type: 'string',
-          enum: ['TREC 20-18', '20-18', 'TREC 20-17', 'TREC 40-11', 'TREC 36-11', 'TREC 39-10', 'TREC 38-7'],
-          description: 'Optional: which TREC form this question relates to. Default is TREC 20-18 (the current residential resale contract).',
+          enum: ['TREC 20-19', '20-19', 'TREC 20-18', '20-18', 'TREC 20-17', 'TREC 40-11', 'TREC 36-11', 'TREC 39-11', 'TREC 38-7'],
+          description: 'Optional: which TREC form this question relates to. Default is TREC 20-19 (the current residential resale contract, effective 2026-07-01). Pass TREC 20-18 only when the agent is asking about a contract executed before that date.',
         },
         paragraph: { type: 'string', description: 'Optional: paragraph reference like "12.A.(1)(b)" — pass through if the agent quotes one.' },
       },

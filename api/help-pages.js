@@ -125,11 +125,11 @@ const HELP_PAGES = {
     sections: [
       {
         heading: 'How it works',
-        content: 'Open any dossier. Tap the "Forms" tab. Pick the form you need — for example, TREC One to Four Family Residential Contract (20-18) or a financing addendum. Dossie pre-fills every field she can from the contract data already in the dossier (party names, property address, dates). You review, fill any gaps, and tap "Send for signature."',
+        content: 'Open any dossier. Tap the "Forms" tab. Pick the form you need — for example, TREC One to Four Family Residential Contract (20-19) or a financing addendum. Dossie pre-fills every field she can from the contract data already in the dossier (party names, property address, dates). You review, fill any gaps, and tap "Send for signature."',
       },
       {
         heading: 'What forms are supported',
-        content: 'Today: TREC resale contract (20-18), financing addendum (40-11), amendment (39-10), termination notice (38-7). Coming next: HOA Addendum (36-11), Lead-Based Paint Addendum (OP-L), Seller\'s Disclosure Notice (OP-H), TREC 49-1 (right to terminate due to lender\'s appraisal).',
+        content: 'Today: TREC resale contract (20-19), financing addendum (40-11), amendment (39-11), termination notice (38-7). Coming next: HOA Addendum (36-11), Lead-Based Paint Addendum (OP-L), Seller\'s Disclosure Notice (OP-H), TREC 49-1 (right to terminate due to lender\'s appraisal).',
       },
       {
         heading: 'Form Packages',

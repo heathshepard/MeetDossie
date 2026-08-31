@@ -109,43 +109,60 @@ async function resolveBlankTemplatePdf(formTemplateId) {
   return resolved ? resolved.buffer : null;
 }
 
-// TREC 20-18 (One to Four Family Residential Contract — Resale) routing.
+// TREC 20-19 (One to Four Family Residential Contract — Resale) routing.
 //
 // 2026-07-05 ATLAS ROUND 6 — GOLD-2026-07-05-v11-esign-coords-from-acroform
-// v10 (template 4018208) shipped with widgets in the wrong position — Heath's
-// phone screenshots showed sig widgets floating in the left margin on page 9
-// and initial widgets ABOVE the "Initialed for identification" line on page 8.
-// The template's widget positions in DocuSeal Studio are broken.
+// v10 (template 4018208, TREC 20-18) shipped with widgets in the wrong
+// position — Heath's phone screenshots showed sig widgets floating in the
+// left margin on page 9 and initial widgets ABOVE the "Initialed for
+// identification" line on page 8. The template's widget positions in
+// DocuSeal Studio are broken.
 //
 // v11 approach (Path B): BYPASS the broken template. Build a fresh transient
 // template from the raw PDF on every send, placing signature/initial widgets
-// at coordinates extracted DIRECTLY from the AcroForm widgets in
-// trec-20-18-raw.pdf. The extraction script (.tmp/atlas26-build-coord-map.js)
-// reads pdf-lib widget rectangles and emits
-// api/_assets/trec-20-18-esign-coords.json.
+// at coordinates extracted DIRECTLY from the source PDF's AcroForm widgets.
 //
-// Visual verification: red rectangles at these coords overlap the "Buyer"
-// underline on page 9 and the "Initialed for identification by Buyer __" line
-// on page 8 in the raw PDF render (see .tmp/atlas26-p9-overlay-09.png).
+// 2026-08-31 CARTER — TREC 20-18 was superseded 2026-07-01. The coord map
+// above was built from 20-18 (9 pages, 8 initial pages + page-9 signature)
+// and was being applied unchanged to the 12-page 20-19 document (10 initial
+// pages: 1-9 and 12; signature block on page 10) — at least 2 pages of
+// required initials were never placed on every 20-19 sent. Replaced with
+// api/_assets/trec-20-19-esign-coords.json, extracted directly from
+// .tmp/ridgebluff-offer/blank-20-19.pdf's own AcroForm widget rects (see
+// that file's "description"/"method" fields for the full derivation).
+//
+// DocuSeal areas[].page indexing — settled empirically 2026-08-31: built a
+// throwaway 4-page probe PDF with visible "PHYSICAL PAGE N" labels, created a
+// DocuSeal template via POST /templates/pdf with a field at areas[].page=2,
+// opened the real signing URL in a real (Playwright) browser, and read the
+// DOM: the field rendered inside page-container index 1 (0-indexed DOM
+// wrapper id `page-<uuid>-1`), i.e. the physical 2nd page. So on CREATE,
+// areas[].page is 1-INDEXED = the literal PDF page number. (GET responses
+// echo the same area back as `page - 1` — a separate, 0-indexed
+// *read* representation that does not affect what you send. This is the
+// source of the old contradictory comment near the OP-H fields below:
+// "0-indexed page = 2" was describing the GET echo, not the input value.)
+// Template + submission created for the probe were archived immediately
+// after; no lasting DocuSeal account state.
 //
 // RESALE_TEMPLATE_ID (4018208) is kept as a legacy id in case a caller still
 // passes it explicitly, but the resale-contract default path no longer touches it.
 const RESALE_TEMPLATE_ID = 4018208;
 
-// Load AcroForm-derived signing widget coordinates for TREC 20-18.
+// Load AcroForm-derived signing widget coordinates for TREC 20-19.
 // Structure: RESALE_COORDS[side][index] = { initials: [{page,x,y,w,h}...], signature: {page,x,y,w,h} }
 // side: 'buyer' | 'seller'; index: 0 (first party) or 1 (co-party).
 // y is TOP-origin (0=top, 1=bottom of page). DocuSeal uses top-origin per
-// its area.vue: `top: y * 100 + '%'`.
+// its area.vue: `top: y * 100 + '%'`. page is 1-indexed (see note above).
 const _path = require('path');
 const _fs = require('fs');
 let RESALE_COORDS_CACHE = null;
 function loadResaleCoords() {
   if (RESALE_COORDS_CACHE) return RESALE_COORDS_CACHE;
   try {
-    const p = _path.join(__dirname, '_assets', 'trec-20-18-esign-coords.json');
+    const p = _path.join(__dirname, '_assets', 'trec-20-19-esign-coords.json');
     RESALE_COORDS_CACHE = JSON.parse(_fs.readFileSync(p, 'utf8'));
-    console.log(`[esign-create] Loaded TREC 20-18 esign coord map from ${p}`);
+    console.log(`[esign-create] Loaded TREC 20-19 esign coord map from ${p}`);
     for (const side of ['buyer', 'seller']) {
       for (let idx = 0; idx < RESALE_COORDS_CACHE[side].length; idx += 1) {
         const c = RESALE_COORDS_CACHE[side][idx];
@@ -157,7 +174,7 @@ function loadResaleCoords() {
       }
     }
   } catch (err) {
-    console.error('[esign-create] Failed to load TREC 20-18 coord map:', err && err.message);
+    console.error('[esign-create] Failed to load TREC 20-19 coord map:', err && err.message);
     RESALE_COORDS_CACHE = { buyer: [], seller: [] };
   }
   return RESALE_COORDS_CACHE;
@@ -165,14 +182,16 @@ function loadResaleCoords() {
 
 function buildResaleFieldsForSigner(roleName, side, sideIndex) {
   if (side === 'agent') {
-    // Agent gets a signature + date on page 9 below the buyer/seller block.
-    // Auto-timestamp the date on sign via preferences.format.
+    // Agent gets a signature + date on page 10 (the EXECUTED/signature page
+    // in the 12-page 20-19 — was page 9 in the superseded 9-page 20-18),
+    // below the buyer/seller block. Auto-timestamp the date on sign via
+    // preferences.format.
     return [
       { name: `${roleName} Signature`, type: 'signature',
-        areas: [{ page: 9, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
+        areas: [{ page: 10, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
       { name: `${roleName} Date`, type: 'date',
         preferences: { format: 'MM/DD/YYYY' },
-        areas: [{ page: 9, x: 0.42, y: 0.75, w: 0.18, h: 0.035 }] },
+        areas: [{ page: 10, x: 0.42, y: 0.75, w: 0.18, h: 0.035 }] },
     ];
   }
   const coords = loadResaleCoords();
@@ -227,6 +246,43 @@ function buildResaleContractFieldMap(signers) {
     fieldMap[role] = buildResaleFieldsForSigner(role, side, sideIndex);
   }
   return recognized > 0 ? fieldMap : null;
+}
+
+// Fail loudly, don't send, if the placed field count is implausible for the
+// document's page count. Per buyer/seller signer that's 1 initial per
+// initial-bearing page + 1 signature + 1 date; per agent signer it's 1
+// signature + 1 date. Reads the expected page count from the SAME coords
+// file buildResaleFieldsForSigner just used, not a hardcoded number, so this
+// stays correct if the coord map is ever regenerated against a new page
+// count. Throws ValidationError (422) — caller must not proceed to
+// docusealCreateFromPdf when this throws.
+function assertPlausibleResaleFieldCount(fieldMap, signers) {
+  const coords = loadResaleCoords();
+  const initialPageCount = Array.isArray(coords.initialBearingPages)
+    ? coords.initialBearingPages.length
+    : 10; // fallback floor if the coords file's metadata is ever missing
+  let expectedTotal = 0;
+  let expectedBySigner = 0;
+  for (const s of signers) {
+    const role = s.role || 'Signer';
+    const side = classifyRole(role);
+    if (side === 'buyer' || side === 'seller') {
+      expectedTotal += initialPageCount + 2; // initials + signature + date
+      expectedBySigner += 1;
+    } else if (side === 'agent') {
+      expectedTotal += 2; // signature + date only
+    }
+  }
+  const actualTotal = Object.values(fieldMap).reduce((acc, arr) => acc + arr.length, 0);
+  if (expectedBySigner > 0 && actualTotal < expectedTotal) {
+    throw new ValidationError(
+      `Field placement check failed: expected ~${expectedTotal} signature/initial widgets `
+      + `for this signer set (${initialPageCount} initial pages) but only built ${actualTotal}. `
+      + `Refusing to send — this is the exact failure mode that has previously sent a contract `
+      + `with missing initials. Contact support before retrying.`,
+      422,
+    );
+  }
 }
 
 function classifyRole(roleRaw) {
@@ -1389,7 +1445,7 @@ module.exports = async function handler(req, res) {
     //   1. fill-form.js has already baked all contract text into the PDF via
     //      pdf-lib and uploaded it to Supabase Storage (doc.storage_path).
     //   2. esign-create downloads that filled PDF, POSTs to /templates/pdf
-    //      with ONLY signer widgets — initials 8x per party + signature + date.
+    //      with ONLY signer widgets — initials 10x per party + signature + date.
     //   3. DocuSeal renders the PDF text as static content (baked, unchangeable)
     //      and only shows the signer-only widgets as interactive pink boxes.
     //
@@ -1397,8 +1453,9 @@ module.exports = async function handler(req, res) {
     // remains available for any explicit `templateId` passed in the request body,
     // but the resale-contract default route no longer sets one.
     //
-    // Widget coordinates: api/_assets/trec-20-18-esign-coords.json (built from
-    // AcroForm widget rectangles in trec-20-18-raw.pdf, atlas26 round).
+    // Widget coordinates: api/_assets/trec-20-19-esign-coords.json (built
+    // 2026-08-31 directly from AcroForm widget rectangles in the real 20-19
+    // PDF — see that file's own "description"/"method" fields).
     let effectiveTemplateId = templateId;
     // NOTE: intentionally NOT setting effectiveTemplateId for resale_contract.
 
@@ -1566,6 +1623,15 @@ module.exports = async function handler(req, res) {
               console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
             }
           }
+          // 2026-08-31 CARTER — tag-count gate. This is the exact defect that
+          // let a 20-18-geometry packet go out on a 12-page 20-19 document
+          // with two pages of initials silently missing: a green DocuSeal
+          // response is not evidence the placement was correct. BLOCK
+          // (don't warn) if the placed count is implausible for the
+          // recognized signers, computed from the SAME coord file just used
+          // to build the fields, so this stays correct if the map ever
+          // changes page count.
+          assertPlausibleResaleFieldCount(autoFieldMap, allSigners);
         }
       }
 
@@ -1674,5 +1740,17 @@ module.exports = async function handler(req, res) {
       error: `Could not send that for signature. ${hint}`,
     });
   }
+};
+
+// Test-only surface (not part of the HTTP contract). Used by
+// scripts/regression-trec-20-19-esign-coords.js and local verification
+// scripts so real-DocuSeal tests don't have to fake a full HTTP request.
+module.exports.__testing = {
+  buildResaleContractFieldMap,
+  buildResaleFieldsForSigner,
+  assertPlausibleResaleFieldCount,
+  loadResaleCoords,
+  docusealCreateFromPdf,
+  classifyRole,
 };
 
