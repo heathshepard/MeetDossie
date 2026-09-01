@@ -2,7 +2,14 @@
 // GET (Authorization: Bearer <supabase user JWT>)
 //   -> { ok: true, emailIntegrationEnabled: bool, isFoundingActive: bool,
 //        priceCents: 1500, foundingPriceCents: 750,
-//        cancelAtPeriodEnd: bool, currentPeriodEnd: ISO string|null }
+//        cancelAtPeriodEnd: bool, currentPeriodEnd: ISO string|null,
+//        mailProvider: 'google'|'microsoft'|null, mailConnectedEmail: string|null }
+//
+// mailProvider/mailConnectedEmail added 2026-09-01
+// (SV-ENG-EMAIL-INTEGRATION-MS-GRAPH) so support can answer "why isn't my
+// email syncing" from this one endpoint instead of a database query — reads
+// the same user_integrations row api/_lib/mail-client.js resolves at cron
+// time (Google wins the tie-break if a user somehow connected both).
 //
 // Small read-only endpoint so the Settings > Add-ons UI and the Talk-to-Dossie
 // side panel can show the REAL entitlement state instead of a hardcoded
@@ -64,6 +71,28 @@ module.exports = async function handler(req, res) {
   const isFoundingActive = !!sub && sub.plan === 'founding' && ['active', 'internal', 'pending_onboarding'].includes(sub.status);
   const emailIntegrationEnabled = !!(sub && sub.email_integration_enabled);
 
+  let mailProvider = null;
+  let mailConnectedEmail = null;
+  try {
+    const integResp = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_integrations?select=oauth_provider,google_email,microsoft_email&user_id=eq.${encodeURIComponent(userId)}`
+      + `&or=(google_email.not.is.null,microsoft_email.not.is.null)`,
+      { headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` } },
+    );
+    const integRows = integResp.ok ? await integResp.json().catch(() => []) : [];
+    const googleRow = Array.isArray(integRows) ? integRows.find((r) => r.google_email) : null;
+    const microsoftRow = Array.isArray(integRows) ? integRows.find((r) => r.microsoft_email) : null;
+    if (googleRow) {
+      mailProvider = 'google';
+      mailConnectedEmail = googleRow.google_email;
+    } else if (microsoftRow) {
+      mailProvider = 'microsoft';
+      mailConnectedEmail = microsoftRow.microsoft_email;
+    }
+  } catch (err) {
+    console.error('[addon-status] user_integrations lookup failed', err && err.message);
+  }
+
   let cancelAtPeriodEnd = false;
   let currentPeriodEnd = null;
   if (emailIntegrationEnabled && sub.email_integration_stripe_sub_id && STRIPE_SECRET_KEY) {
@@ -85,5 +114,7 @@ module.exports = async function handler(req, res) {
     foundingPriceCents: FOUNDING_PRICE_CENTS,
     cancelAtPeriodEnd,
     currentPeriodEnd,
+    mailProvider,
+    mailConnectedEmail,
   });
 };

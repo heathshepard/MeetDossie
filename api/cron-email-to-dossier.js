@@ -35,7 +35,8 @@ require('./_lib/telegram-gate').install('cron-email-to-dossier');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { listEmailIntegrationCustomers } = require('./_lib/email-integration-customers');
-const { loadGoogleTokensForUser, makeGmailClient, headerMap, parseFromHeader, bodyOfMessage } = require('./_lib/gmail-oauth');
+const { makeMailClient } = require('./_lib/mail-client');
+const { headerMap, parseFromHeader, bodyOfMessage } = require('./_lib/gmail-oauth');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -43,6 +44,8 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID;
+const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const HEATH_TELEGRAM_CHAT_ID = '7874782923';
 
@@ -186,13 +189,14 @@ async function summarizeEmail({ address, stage, fromDisplay, subject, body }) {
 // Telegram — one-shot alert when a customer's Google refresh token is dead.
 // --------------------------------------------------------------------------
 
-async function sendInvalidGrantAlertOnce(googleEmail, alreadyAlerted) {
+async function sendInvalidGrantAlertOnce(email, alreadyAlerted, provider = 'google') {
   if (alreadyAlerted) return;
   if (!TELEGRAM_BOT_TOKEN) return;
+  const providerLabel = provider === 'microsoft' ? 'Microsoft' : 'Google';
   const text = [
-    '⚠️ Gmail connection to Dossie broke.',
-    `Google revoked the refresh token for ${googleEmail} (invalid_grant).`,
-    'Fix: that customer needs to reconnect Google in Settings.',
+    `⚠️ ${providerLabel} connection to Dossie broke.`,
+    `${providerLabel} revoked the refresh token for ${email} (invalid_grant).`,
+    `Fix: that customer needs to reconnect ${providerLabel} in Settings.`,
   ].join('\n');
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
@@ -205,18 +209,18 @@ async function sendInvalidGrantAlertOnce(googleEmail, alreadyAlerted) {
 // Per-customer run
 // --------------------------------------------------------------------------
 
-async function runForCustomer({ userId, googleEmail }) {
+async function runForCustomer({ userId, email }) {
   const stats = { candidates: 0, matched: 0, filed: 0, summarize_errors: 0, patch_failures: 0 };
 
   const { ts: checkpoint, lastStatus } = await getCheckpoint(userId);
 
-  const tokens = await loadGoogleTokensForUser(userId);
-  if (!tokens) {
-    await updateCheckpoint(userId, { newTs: checkpoint, status: 'error', matches: 0, notes: 'no_google_integration_row' });
-    return { ok: false, status: 'no_google_integration', userId, stats };
+  const mail = await makeMailClient({ userId });
+  if (!mail) {
+    await updateCheckpoint(userId, { newTs: checkpoint, status: 'error', matches: 0, notes: 'no_mail_integration_row' });
+    return { ok: false, status: 'no_mail_integration', userId, stats };
   }
 
-  const gmail = makeGmailClient({ userId, tokens });
+  const gmail = mail.client;
 
   const afterEpoch = Math.floor(new Date(checkpoint).getTime() / 1000) - 60;
   const q = [`after:${afterEpoch}`, '-in:sent', '-in:drafts', '-in:spam', '-in:trash', '-in:chats'].join(' ');
@@ -226,7 +230,7 @@ async function runForCustomer({ userId, googleEmail }) {
     listResp = await gmail('messages', { q, maxResults: String(MAX_CANDIDATES_PER_USER) });
   } catch (err) {
     const hitInvalidGrant = err.isInvalidGrant || /invalid_grant/i.test(String(err.message || ''));
-    if (hitInvalidGrant) await sendInvalidGrantAlertOnce(googleEmail, lastStatus === 'error');
+    if (hitInvalidGrant) await sendInvalidGrantAlertOnce(email || mail.email, lastStatus === 'error', mail.provider);
     await updateCheckpoint(userId, { newTs: checkpoint, status: 'error', matches: 0, notes: `gmail_list_failed:${String(err.message || err)}` });
     return { ok: false, status: 'gmail_list_failed', userId, error: String(err.message || err), stats };
   }
@@ -351,8 +355,10 @@ async function handler(req, res) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(200).json({ ok: true, status: 'skipped', reason: 'ANTHROPIC_API_KEY not set' });
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(200).json({ ok: true, status: 'skipped', reason: 'GOOGLE_CLIENT_ID/SECRET not set' });
+  const googleConfigured = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+  const microsoftConfigured = !!(MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET);
+  if (!googleConfigured && !microsoftConfigured) {
+    return res.status(200).json({ ok: true, status: 'skipped', reason: 'no mail provider configured (GOOGLE_CLIENT_ID/SECRET and MICROSOFT_CLIENT_ID/SECRET both unset)' });
   }
 
   let customers = [];
