@@ -715,18 +715,6 @@
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/api/cron-cold-email-daily-batch",
-      "schedule": "0 14 * * 1-5"
-    },
-    {
-      "path": "/api/cron-cold-email-followup",
-      "schedule": "0 15 * * 1-5"
-    },
-    {
-      "path": "/api/cron-cold-email-review",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/cron-warm-touch-populate",
       "schedule": "0 12 * * 1-5"
     },
