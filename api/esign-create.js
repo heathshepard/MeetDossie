@@ -1,10 +1,17 @@
 // Vercel Serverless Function: /api/esign-create
 // POST { documentId, signers: [{name, email, role}], message?, fields?, templateId? }
+// POST { documentIds: [uuid], signers: [{name, email, role}], message? }   (packet form)
 // Authorization: Bearer <supabase user JWT>
 //
 // Sends a PDF for e-signature via DocuSeal Cloud Pro.
 // If templateId is provided, creates a submission from a template (Phase 3).
 // If fields are provided, field placement coordinates are sent to DocuSeal (Phase 2).
+//
+// 2026-09-01 CARTER — `documentIds` (array) accepted alongside legacy
+// `documentId`. This is the contract the DossieSign FormEditor Send button
+// posts (docs/DOSSIE-DOCUSEAL-INTEGRATION-PLAN-2026-09-01.md §2.2/§2.3).
+// Single-document only for now; multi-document packets land with the
+// Phase 3 multi-doc submission work.
 //
 // ==========================================================================
 // SQL — RUN IN SUPABASE SQL EDITOR BEFORE DEPLOYING
@@ -1373,7 +1380,17 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const documentId = sanitizeString(body.documentId, { maxLength: 200 });
+    // 2026-09-01 CARTER — accept `documentIds: [uuid]` (the FormEditor Send
+    // button contract) alongside legacy `documentId`. One document per
+    // envelope until the Phase 3 multi-document submission work lands;
+    // reject >1 loudly rather than silently dropping documents.
+    let documentId = sanitizeString(body.documentId, { maxLength: 200 });
+    if (!documentId && Array.isArray(body.documentIds)) {
+      if (body.documentIds.length > 1) {
+        throw new ValidationError('Multi-document packets are not supported yet — send one document at a time.');
+      }
+      documentId = sanitizeString(body.documentIds[0], { maxLength: 200 });
+    }
     const templateId = sanitizeString(body.templateId, { maxLength: 200 }) || null;
     const message = sanitizeString(body.message, { maxLength: 1000 }) || null;
     const signers = Array.isArray(body.signers) ? body.signers : [];

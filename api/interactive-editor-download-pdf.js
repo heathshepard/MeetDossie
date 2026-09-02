@@ -14,6 +14,17 @@
 //        Interactive Editor's Preview + inline PDF pane so the agent sees
 //        their in-progress edits reflected on the PDF in real time.
 //
+//   POST { ..., persist: true, document_id? }
+//        2026-09-01 CARTER — bake-to-storage mode for the FormEditor Send
+//        button (docs/DOSSIE-DOCUSEAL-INTEGRATION-PLAN-2026-09-01.md §2.3).
+//        Runs the exact same merge+fill as the preview path, then UPLOADS the
+//        filled PDF to the documents bucket and updates the given documents
+//        row (or inserts a new resale_contract row when document_id is absent
+//        or not owned by the caller). Returns JSON { ok, documentId,
+//        storagePath, fileName } instead of PDF bytes, so the Send button can
+//        POST /api/esign-create with a documentId whose storage_path holds
+//        the live editor snapshot — not a stale fill.
+//
 // Authorization: Bearer <supabase user JWT>
 //
 // 2026-07-13 CARTER — Phase 1 fill-pipeline fix. Previous version returned
@@ -80,6 +91,78 @@ function mergeFieldValues(txnRow, snapshot) {
     }
   }
   return merged;
+}
+
+const BUCKET = 'documents';
+
+// Upload filled bytes to Supabase Storage (service role). Mirrors the
+// fill-form.js upload path + naming convention (shortName-timestamp.pdf).
+async function storageUpload(storagePath, buffer) {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/pdf',
+      'x-upsert': 'true',
+    },
+    body: buffer,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Storage upload failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+}
+
+// Persist the filled PDF: upload to a fresh timestamped storage path, then
+// point the documents row at it. Updates the caller's existing row when
+// document_id is provided and owned; inserts a new resale_contract row
+// otherwise. Returns { documentId, storagePath, fileName }.
+async function persistFilledPdf({ buffer, userId, transactionId, documentId }) {
+  const fileName = `TREC-Resale-Contract-${Date.now()}.pdf`;
+  const storagePath = `${userId}/${transactionId}/${fileName}`;
+  await storageUpload(storagePath, buffer);
+
+  const docPatch = {
+    file_name: fileName,
+    file_type: 'application/pdf',
+    storage_path: storagePath,
+    file_size: buffer.length,
+    status: 'filled',
+  };
+
+  if (documentId) {
+    const rows = await supa(
+      `documents?id=eq.${encodeURIComponent(documentId)}` +
+      `&user_id=eq.${encodeURIComponent(userId)}` +
+      `&transaction_id=eq.${encodeURIComponent(transactionId)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify(docPatch),
+      }
+    );
+    if (Array.isArray(rows) && rows[0] && rows[0].id) {
+      return { documentId: rows[0].id, storagePath, fileName };
+    }
+    // Row not found / not owned — fall through to insert rather than fail
+    // the send on a stale documentId.
+    console.warn('[interactive-editor-download-pdf] persist: document_id %s not found for user, inserting new row', documentId);
+  }
+
+  const inserted = await supa('documents', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      transaction_id: transactionId,
+      user_id: userId,
+      document_type: 'resale_contract',
+      ...docPatch,
+    }),
+  });
+  const row = Array.isArray(inserted) ? inserted[0] : inserted;
+  if (!row || !row.id) throw new Error('documents insert returned no row.');
+  return { documentId: row.id, storagePath, fileName };
 }
 
 async function fillTrec2019Pdf(fieldValues) {
@@ -177,6 +260,24 @@ module.exports = async function handler(req, res) {
     } catch (fillErr) {
       console.error('[interactive-editor-download-pdf] fillTrec2019Pdf failed:', fillErr && fillErr.message);
       return res.status(500).json({ ok: false, error: 'PDF fill failed.' });
+    }
+
+    // Bake-to-storage mode (Send button). Persist the exact bytes we just
+    // rendered and hand back the documentId for /api/esign-create.
+    if (req.method === 'POST' && params.persist === true) {
+      const requestedDocId = sanitizeString(params.document_id, { maxLength: 200 }) || null;
+      const persisted = await persistFilledPdf({
+        buffer,
+        userId,
+        transactionId,
+        documentId: requestedDocId,
+      });
+      return res.status(200).json({
+        ok: true,
+        documentId: persisted.documentId,
+        storagePath: persisted.storagePath,
+        fileName: persisted.fileName,
+      });
     }
 
     const propSlug = String(txn.property_address || 'contract')
