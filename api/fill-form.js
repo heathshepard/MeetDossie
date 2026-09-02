@@ -2887,6 +2887,26 @@ async function fillT47Affidavit(pdfDoc, fv) {
 // Shares many field names with TREC 20 resale (same TREC template family).
 //
 // SECTION 1 — PARTIES
+// !!! 2026-09-01 CARTER — THIS TABLE PREDATES THE FULL POSITION AUDIT AND
+// !!! MANY OF ITS ENTRIES WERE WRONG (16 mappings corrected). The inline
+// !!! comments inside fillUnimprovedProperty() below are the authoritative,
+// !!! position-verified mapping (verified against the widget-rect overlays
+// !!! .tmp/coord-overlays/unimproved-property-page-*.png). Highlights of
+// !!! what changed: 'undefined'/'undefined_2'/'undefined_3' are §3.A/B/C
+// !!! (cash/financing/total); 'undefined_4' is the §5.A escrow ADDRESS
+// !!! line; 'undefined_5' is the §5.A Option Fee; '4 days' is the §5.B
+// !!! OPTION PERIOD days; 'Option Fee in the form of' and the three
+// !!! 'is acknowledged*' fields are page-10 receipt method/$ slots;
+// !!! 'within days' is the §3.D survey-variance termination days;
+// !!! 'i will not.../ii will be...' are §4.B lease-delivery boxes;
+// !!! 'i 1'/'ii 2'/'is'/'is not subject to' are the §6.A(8) shortages
+// !!! election; 'Email'/'Email_2' are the §23 ATTORNEY e-mails;
+// !!! 'Sellers'/'Buyers expense an owners policy of' are the §3.D
+// !!! will/will-not-adjust pair; 'Team Name'/'Team Name 2' columns are
+// !!! swapped; 'dollar amount'/'% of sales price' are the page-9 broker-fee
+// !!! disclosure. Regression:
+// !!! scripts/regression-unimproved-property-position-audit.js
+//
 //   [TextField] "1 PARTIES The parties to this contract are" -> seller_name (SELLER'S blank is first; fixed 2026-09-02, see Bug 1a below)
 //   [TextField] "and" -> buyer_name
 // SECTION 2 — PROPERTY
@@ -3085,46 +3105,102 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, 'Contract Concerning_4', addr);
   safeSetText(form, 'Contract Address 8', addr);
 
-  // LEGAL DESCRIPTION (land-specific)
+  // ==========================================================================
+  // 2026-09-01 CARTER — FULL POSITION AUDIT of this handler (Quinn QA Bugs
+  // 4/5 + "assume there are more"). Every field below was re-verified
+  // against the widget-rectangle overlay renders built from the live asset
+  // (.tmp/coord-overlays/unimproved-property-page-*.png + -legend.txt —
+  // numbered boxes drawn at each AcroForm widget's actual getRectangle()
+  // position on the printed page). The AcroForm field NAMES on this PDF are
+  // recycled/garbage; they routinely sit nowhere near the printed label the
+  // name suggests. 16 mappings were wrong; regression:
+  // scripts/regression-unimproved-property-position-audit.js.
+  // ==========================================================================
+
+  // LEGAL DESCRIPTION (§2)
   safeSetText(form, '2 PROPERTY Lot', fv.legal_lot || '');
   safeSetText(form, 'Block', fv.legal_block || fv.land_parcel_id || '');
   safeSetText(form, 'Addition', fv.legal_description || '');
-  safeSetText(form, 'undefined', fv.legal_abstract || '');
+  // NOTE: 'undefined' is NOT a §2 abstract blank — it is the §3.A Cash
+  // Portion blank (page-1 overlay box 9). legal_abstract has no printed
+  // slot on the 11-04-2024 form; dropped.
   safeSetText(form, 'City of', fv.city_state_zip || '');
   safeSetText(form, 'County of', fv.county || '');
 
-  // ACREAGE + PRICE PER ACRE
+  // SALES PRICE (§3.A/B/C) — page-1 overlay boxes 9/13/14.
+  // Old map wrote sale_price into 'undefined_4', which is the §5.A escrow-
+  // agent address line 2 — §3 rendered completely blank and the price
+  // printed inside §5.A (Quinn Bug 4).
+  let cashPortion9 = (fv.cash_portion != null && fv.cash_portion !== '') ? Number(fv.cash_portion)
+    : (fv.down_payment_amt != null && fv.down_payment_amt !== '') ? Number(fv.down_payment_amt) : null;
+  if (cashPortion9 == null && fv.sale_price != null && fv.sale_price !== '' && fv.loan_amount != null) {
+    cashPortion9 = Number(fv.sale_price) - Number(fv.loan_amount || 0);
+  }
+  safeSetText(form, 'undefined', cashPortion9 != null && !Number.isNaN(cashPortion9) ? formatMoney(cashPortion9) : '');
+  safeSetText(form, 'undefined_2', Number(fv.loan_amount) > 0 ? formatMoney(fv.loan_amount) : '');
+  safeSetText(form, 'undefined_3', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
+  // §3.B Loan Assumption Addendum checkbox (page-1 box 11)
+  if (fv.loan_assumption_addendum === true) safeCheck(form, 'Check Box1');
+
+  // §3.D SALES PRICE ADJUSTMENT (page-1 boxes 15-22). The checkboxes named
+  // 'Sellers' / 'Buyers expense an owners policy of' are the §3.D
+  // "will" / "will not be adjusted" pair (NOT title-policy expense — that
+  // pair lives on page 2). Never guessed: only checked on explicit input.
+  if (fv.sales_price_adjusted === true) safeCheck(form, 'Sellers');
+  else if (fv.sales_price_adjusted === false) safeCheck(form, 'Buyers expense an owners policy of');
   safeSetText(form, 'acres', fv.land_acreage != null && fv.land_acreage !== '' ? String(fv.land_acreage) : '');
   safeSetText(form, '$ per acre', fv.price_per_acre != null && fv.price_per_acre !== '' ? formatMoney(fv.price_per_acre) : '');
-  safeSetText(form, '% of sales price', fv.price_percent_of_sales || '');
-  safeSetText(form, 'dollar amount', fv.price_dollar_amount != null && fv.price_dollar_amount !== '' ? formatMoney(fv.price_dollar_amount) : '');
-  safeSetText(form, 'agreed to pay dollar amount', fv.agreed_dollar_amount != null && fv.agreed_dollar_amount !== '' ? formatMoney(fv.agreed_dollar_amount) : '');
-  safeSetText(form, 'agreed to pay percentage', fv.agreed_pay_percentage || '');
-
-  // SALES PRICE (Section 3)
-  safeSetText(form, 'undefined_2', fv.down_payment_amt != null && fv.down_payment_amt !== '' ? formatMoney(fv.down_payment_amt) : '');
-  safeSetText(form, 'undefined_3', fv.loan_amount != null && fv.loan_amount !== '' ? formatMoney(fv.loan_amount) : '');
-  safeSetText(form, 'undefined_4', fv.sale_price != null && fv.sale_price !== '' ? formatMoney(fv.sale_price) : '');
-
-  // Price allocation checkboxes
+  // 'within days' = §3.D "terminate within __ days after receiving the
+  // survey" (page-1 box 19) — NOT title-objection days (old map).
+  safeSetText(form, 'within days', fv.survey_variance_termination_days || '');
   if (fv.price_per_acre_3a === true) safeCheck(form, '3a');
   if (fv.price_per_acre_3b === true) safeCheck(form, '3b');
   if (fv.price_prorated === true) safeCheck(form, 'proportinately to 3a and 3b');
-  if (fv.check_dollar_amount === true) safeCheck(form, 'Check dollar amount');
-  if (fv.check_percentage === true) safeCheck(form, 'Check percentage');
-  if (fv.other_list_checkbox === true) safeCheck(form, 'Other list');
 
-  // EARNEST MONEY / OPTION FEE (Section 5)
+  // §4.B NATURAL RESOURCE LEASES (page-1 boxes 23-27). 'Seller is' /
+  // 'Seller is not' = Seller is/is not a party to a Natural Resource Lease.
+  // The checkboxes named 'i will not be amended...' / 'ii will be
+  // amended...' are §4.B(1)/(2) has-delivered / has-not-delivered — the old
+  // map treated (1) as a title-exception box and CHECKED IT BY DEFAULT on
+  // every fill, silently attesting Seller delivered lease copies. Removed;
+  // explicit input only.
+  if (fv.natural_resource_lease === true || fv.seller_is_checkbox === true) safeCheck(form, 'Seller is');
+  else if (fv.natural_resource_lease === false || fv.seller_is_not_checkbox === true) safeCheck(form, 'Seller is not');
+  if (fv.natural_resource_leases_delivered === true) {
+    safeCheck(form, 'i will not be amended or deleted from the title policy or');
+  } else if (fv.natural_resource_leases_delivered === false) {
+    safeCheck(form, 'ii will be amended to read shortages in area at the expense of');
+    safeSetText(form, 'within the time required Seller may terminate this contract or exercise Sellers remedies under', fv.natural_resource_leases_days || '');
+  }
+
+  // EARNEST MONEY / OPTION FEE (§5.A, page-1 boxes 28-34)
   safeSetText(form, 'earnest money of', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
   safeSetText(form, 'as earnest money to', fv.earnest_money_to || fv.title_company || '');
-  safeSetText(form, 'agent at', fv.escrow_agent_address || '');
-  safeSetText(form, 'Option Fee in the form of', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
-  const optionFeeRecipient = fv.option_fee_escrow_recipient || fv.title_company || fv.listing_agent_name || '';
-  safeSetText(form, 'Seller or Listing Broker', optionFeeRecipient);
-  safeSetText(form, 'is acknowledged', fv.option_acknowledged_date || '');
+  // Escrow agent address: line 1 = the field misleadingly named 'the other
+  // party in writing...' (box 29), line 2 = 'undefined_4' (box 30).
+  safeSetText(form, 'the other party in writing before entering into a contract of sale Disclose if applicable', fv.escrow_agent_address || '');
+  safeSetText(form, 'undefined_4', fv.escrow_agent_address_line2 || '');
+  // §5.A Option Fee amount = 'undefined_5' (box 32). The field named
+  // 'Option Fee in the form of' is the page-10 receipt PAYMENT-METHOD slot
+  // (Quinn Bug 5).
+  safeSetText(form, 'undefined_5', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
+  // §5.A(1) additional earnest money: amount = 'agent at' (box 33),
+  // days = '3 days' (box 34).
+  safeSetText(form, 'agent at', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
+  safeSetText(form, '3 days', fv.additional_earnest_days || '');
+  // §5.B Option Period days = '4 days' (page-2 box 2). Old map never wrote
+  // option days anywhere on this form — a checklist-critical field.
+  safeSetText(form, '4 days', fv.option_period_days || fv.option_days || '');
+
+  // PAGE-10 RECEIPTS. 'is acknowledged*' are the receipt $ AMOUNT blanks
+  // (not dates); the receipt DATE lines are 'Date' / 'DateTime' etc.
+  safeSetText(form, 'Option Fee in the form of', fv.option_fee_form || '');
+  const optionFeeRecipient = fv.option_fee_escrow_recipient || fv.title_company || '';
+  safeSetText(form, 'Seller or Listing Broker', optionFeeRecipient); // option-fee receipt Escrow Agent line
+  safeSetText(form, 'is acknowledged', fv.option_fee != null && fv.option_fee !== '' ? formatMoney(fv.option_fee) : '');
   safeSetText(form, 'Earnest Money in the form of', fv.earnest_money_form || '');
-  safeSetText(form, 'is acknowledged_2', fv.earnest_acknowledged_date || '');
-  safeSetText(form, 'is acknowledged_3', fv.add_earnest_acknowledged_date || '');
+  safeSetText(form, 'is acknowledged_2', fv.earnest_money != null && fv.earnest_money !== '' ? formatMoney(fv.earnest_money) : '');
+  safeSetText(form, 'is acknowledged_3', fv.additional_earnest_money != null && fv.additional_earnest_money !== '' ? formatMoney(fv.additional_earnest_money) : '');
   safeSetText(form, 'additional Earnest Money in the form of', fv.additional_earnest_form || '');
 
   // TITLE COMPANY / ESCROW
@@ -3145,20 +3221,53 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   } else {
     safeCheck(form, 'Buyer'); // field named "Buyer" = Seller's-expense box
   }
-  // Title exception handling
-  if (fv.title_exception_not_amended !== false) safeCheck(form, 'i will not be amended or deleted from the title policy or');
-  safeSetText(form, 'within days', fv.title_objection_days || '');
-  safeSetText(form, 'Buyer must object the earlier of i the Closing Date or ii', fv.title_objection_deadline || '');
-  safeSetText(form, '3 days', fv.funding_notice_days || '');
-  safeSetText(form, '4 days', fv.closing_statement_days || '');
 
-  // MINERAL RIGHTS (TREC 9-17 specific)
-  // NOTE: "is" here checks a real page-2 title-exception field (6A(8)(ii),
-  // amendment at Buyer's expense) that happens to share this generic AcroForm
-  // name -- left as-is, out of scope for this pass.
-  if (fv.mineral_rights_included === true) safeCheck(form, 'is');
-  safeSetText(form, 'the other party in writing before entering into a contract of sale Disclose if applicable', fv.mineral_rights_notes || '');
-  safeSetText(form, 'undefined_8', fv.mineral_rights_extra || '');
+  // §6.A(8) "shortages in area" title-exception election (page-2 boxes
+  // 6/7/8/9): 'i 1' = (i) will NOT be amended, 'ii 2' = (ii) WILL be
+  // amended, expense pair = fields named 'is' (Buyer) / 'is not subject to'
+  // (Seller). Same fv keys as the 20-19 pipeline. Never guessed.
+  if (fv.shortages_in_area_amended === true || fv.title_option_2 === true) {
+    safeCheck(form, 'ii 2');
+    if (fv.shortages_in_area_expense === 'buyer') safeCheck(form, 'is');
+    else if (fv.shortages_in_area_expense === 'seller') safeCheck(form, 'is not subject to');
+  } else if (fv.shortages_in_area_amended === false || fv.title_option_1 === true) {
+    safeCheck(form, 'i 1');
+  }
+
+  // §6.C SURVEY (page-2 boxes 10-17): option checkboxes '1 Within' /
+  // '2 Within' / '3 Within' + their day blanks + option-(1) expense pair
+  // 'Sellers_2' (Seller's) / 'Buyers expense no later than 3 days prior to
+  // Closing Date' (Buyer's). Same fv keys as the 20-19 pipeline.
+  const surveyOption9 = fv.survey_option != null ? String(fv.survey_option) : '';
+  if (surveyOption9 === '1') safeCheck(form, '1 Within');
+  else if (surveyOption9 === '2') safeCheck(form, '2 Within');
+  else if (surveyOption9 === '3') safeCheck(form, '3 Within');
+  safeSetText(form, 'Title Company Sellers existing survey of the Property and a Residential Real Property Affidavit', fv.survey_days_seller || '');
+  safeSetText(form, 'at Buyers expense Buyer is deemed to receive the survey on the date of actual receipt or', fv.survey_days_buyer || '');
+  safeSetText(form, 'furnish a new survey to Buyer', fv.survey_days_new || '');
+  if (fv.survey_option1_expense === 'seller') safeCheck(form, 'Sellers_2');
+  else if (fv.survey_option1_expense === 'buyer') safeCheck(form, 'Buyers expense no later than 3 days prior to Closing Date');
+
+  // §6.D OBJECTIONS: day-count blank (page-3 box 2) + prohibited
+  // use/activity line (page-2 box 18, field named 'undefined_8'). The old
+  // map put a DEADLINE DATE in the day-count blank and routed
+  // title_objection_days to the §3.D survey-variance blank.
+  safeSetText(form, 'Buyer must object the earlier of i the Closing Date or ii', fv.title_objection_days || '');
+  safeSetText(form, 'undefined_8', fv.title_objection_activity || fv.permitted_use || '');
+
+  // §6.E(2) HOA membership (page-3 boxes 3/4): 'is_2' = "is not subject
+  // to mandatory membership". KNOWN LIMITATION: the "is subject" box is a
+  // second widget of the multi-widget field named 'Texas Agricultural
+  // Development District For additional information contact the Texas'
+  // whose OTHER widget is the §7.E(2) litigation-awareness box — checking
+  // the field would mark both. Left uncheckable rather than cross-marking
+  // a disclosure; the is-not side is a standalone field and safe.
+  if (fv.hoa_mandatory === false || fv.not_subject_to_hoa === true) safeCheck(form, 'is_2');
+
+  // MINERAL RIGHTS: no dedicated blank/checkbox exists on the 11-04-2024
+  // form — reservations run through the Oil/Gas addendum checkbox (§22).
+  // The old 'is' / notes wiring landed on the §6.A(8)(ii) expense box and
+  // the §5.A escrow address line respectively; removed.
 
   // 2026-09-02 CARTER -- fixed Bug 1c: "is no. 1" / "is not 2" are NOT a
   // mineral-rights pair (there is no distinct mineral-rights checkbox on this
@@ -3191,24 +3300,26 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
     }
   }
 
-  // CONTRACT EFFECTIVE DATE
-  if (fv.contract_effective_date) {
-    const ds9 = String(fv.contract_effective_date).includes('-')
-      ? formatDate(fv.contract_effective_date)
-      : fv.contract_effective_date;
-    safeSetText(form, 'Date', ds9);
-  }
+  // 'Date' is the page-10 OPTION FEE RECEIPT date line (overlay box 5),
+  // not the contract effective date (which this form only carries via the
+  // page-8 EXECUTED day/month/year blanks, filled below). Old map stamped
+  // the effective date onto the escrow agent's receipt line.
+  safeSetText(form, 'Date', fv.option_acknowledged_date || '');
 
-  // SURVEY OPTIONS
-  if (fv.title_option_1 === true) safeCheck(form, 'i 1');
-  if (fv.title_option_2 === true) safeCheck(form, 'ii 2');
-  if (fv.not_subject_to_hoa === true) safeCheck(form, 'is not subject to');
+  // §7.E "If Seller is aware of any of the items above, explain" lines
+  // (page-5 boxes 14/15).
+  safeSetText(form, 'Disclose-1', fv.seller_disclosure_explanation || '');
+  safeSetText(form, 'Disclose 2-2', fv.seller_disclosure_explanation_line2 || '');
 
-  // SELLERS_2 / BUYERS EXPENSE CHECKBOXES
-  if (fv.sellers_expense_checkbox === true) safeCheck(form, 'Sellers');
-  if (fv.buyers_expense_owners_policy === true) safeCheck(form, 'Buyers expense an owners policy of');
-  if (fv.seller_is_checkbox === true) safeCheck(form, 'Seller is');
-  if (fv.seller_is_not_checkbox === true) safeCheck(form, 'Seller is not');
+  // §11 SPECIAL PROVISIONS (page-5 boxes 20/21).
+  safeSetText(form, 'Text2-4', fv.special_provisions_line1 || fv.special_provisions || '');
+  safeSetText(form, 'Text2-3', fv.special_provisions_line2 || '');
+
+  // §12.A(1)(b)/(c) SETTLEMENT EXPENSES (page-5 boxes 22-26).
+  if (fv.check_dollar_amount === true) safeCheck(form, 'Check dollar amount');
+  if (fv.check_percentage === true) safeCheck(form, 'Check percentage');
+  safeSetText(form, 'agreed to pay dollar amount', fv.agreed_dollar_amount != null && fv.agreed_dollar_amount !== '' ? formatMoney(fv.agreed_dollar_amount) : '');
+  safeSetText(form, 'agreed to pay percentage', fv.agreed_pay_percentage || '');
 
   // ADDENDUM CHECKBOXES (Section 22)
   const isFinanced9 = fv.loan_amount && Number(fv.loan_amount) > 0;
@@ -3233,11 +3344,26 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   if (fv.right_to_terminate_addendum === true) safeCheck(form, 'Addendum Concerning Right to');
   if (fv.pid_addendum === true) safeCheck(form, 'PID');
   if (fv.section_1031_exchange === true) safeCheck(form, 'Section 1031 Exchange');
+  if (fv.other_list_checkbox === true) safeCheck(form, 'Other list');
 
-  // OTHER PROPERTY / DISCLOSE FIELDS (land-specific)
-  safeSetText(form, 'Disclose', fv.disclose_1 || '');
+  // §8.A BROKER DISCLOSURE "Disclose if applicable" lines (page-5 boxes
+  // 16/17 — despite the names, 'Disclose'/'Disclose 2' sit under §8.A).
+  safeSetText(form, 'Disclose', fv.disclose_1 || fv.broker_relationship_disclosure || '');
   safeSetText(form, 'Disclose 2', fv.disclose_2 || '');
-  safeSetText(form, 'escrow fee and other expenses payable by Seller under this contract', fv.seller_expense_notes || '');
+  // §12.A(1)(c) "an amount not to exceed $___ to be applied to other
+  // Buyer's Expenses" (page-5 box 26) — a money blank.
+  const sellerPaidBuyerExp9 = fv.seller_paid_buyer_expenses != null && fv.seller_paid_buyer_expenses !== ''
+    ? formatMoney(fv.seller_paid_buyer_expenses)
+    : (fv.seller_expense_notes || '');
+  safeSetText(form, 'escrow fee and other expenses payable by Seller under this contract', sellerPaidBuyerExp9);
+
+  // Page-9 broker-fee DISCLOSURE ("Listing Broker has agreed to pay Other
+  // Broker a fee of $[47] or [48]% of the Sales Price" — boxes 45-48).
+  // The old map labeled 'dollar amount' / '% of sales price' as §3 price
+  // allocation; they are the fee-disclosure blanks.
+  safeSetText(form, 'dollar amount', (fv.broker_fee_dollar_amount != null && fv.broker_fee_dollar_amount !== '') ? formatMoney(fv.broker_fee_dollar_amount)
+    : (fv.price_dollar_amount != null && fv.price_dollar_amount !== '' ? formatMoney(fv.price_dollar_amount) : ''));
+  safeSetText(form, '% of sales price', fv.broker_fee_percent || fv.price_percent_of_sales || '');
 
   // EXECUTION DATE
   if (fv.contract_effective_date) {
@@ -3250,18 +3376,24 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
       safeSetText(form, '20_2', ced9.slice(2, 4));
     }
   }
-  safeSetText(form, 'Email', fv.buyer_email || '');
-  safeSetText(form, 'Email_2', fv.seller_email || '');
-
-  // ATTORNEYS
+  // §23 ATTORNEYS. 'Email'/'Email_2' are the ATTORNEYS' e-mail lines
+  // (page-7 boxes 48/49) — the parties' own e-mails belong on the §21
+  // notice block ('Text6'/'Text10', below). Old map put buyer_email/
+  // seller_email on the attorney lines.
   safeSetText(form, 'Attorney is', fv.buyer_attorney || '');
   safeSetText(form, 'Attorney is_2', fv.seller_attorney || '');
+  safeSetText(form, 'Email', fv.buyer_attorney_email || '');
+  safeSetText(form, 'Email_2', fv.seller_attorney_email || '');
 
   // BROKER SECTION
   safeSetText(form, 'Listing Broker Firm', fv.listing_broker_firm || '');
   safeSetText(form, 'License No_4', fv.listing_broker_license || '');
   safeSetText(form, 'Listing Associates Name', fv.listing_agent_name || '');
-  safeSetText(form, 'Team Name', fv.listing_team_name || '');
+  // Page-9 team names: 'Team Name 2' is the LISTING column's box, 'Team
+  // Name' is the OTHER-broker column's (overlay boxes 14/15) — reverse of
+  // what the names suggest.
+  safeSetText(form, 'Team Name 2', fv.listing_team_name || fv.listing_team_name_2 || '');
+  safeSetText(form, 'Team Name', fv.other_broker_team_name || '');
   safeSetText(form, 'License No_5', fv.listing_agent_license || '');
   safeSetText(form, 'Listing Associates Email Address', fv.listing_agent_email || '');
   safeSetText(form, 'Phone_3', fv.listing_agent_phone || '');
@@ -3276,7 +3408,6 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, 'License No', fv.other_broker_license || '');
   safeSetText(form, 'Associates Name', fv.other_broker_assoc_name || '');
   safeSetText(form, 'Selling Associates Name', fv.selling_agent_name || '');
-  safeSetText(form, 'Team Name 2', fv.listing_team_name_2 || '');
   safeSetText(form, 'Team Name 3', fv.selling_team_name || '');
   safeSetText(form, 'License No_2', fv.other_broker_assoc_license || '');
   safeSetText(form, 'Associates Email Address', fv.other_broker_assoc_email || '');
@@ -3333,8 +3464,15 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, 'Phone_8', fv.add_escrow_phone || '');
   safeSetText(form, 'Fax_3', fv.add_escrow_fax || '');
 
-  // NOTICE ADDRESS
-  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.notice_address || '');
+  // §21 NOTICES (page-7 boxes 2-15). 'when mailed to...' = To BUYER at
+  // line 1; 'undefined_16' = To SELLER at line 1; 'at' / 'at_2' = the
+  // respective second lines; 'Text6' / 'Text10' = the parties' E-mail/Fax.
+  safeSetText(form, 'when mailed to handdelivered at or transmitted by fax or electronic transmission as follows', fv.buyer_notice_address || fv.notice_address || '');
+  safeSetText(form, 'at', fv.buyer_notice_address_line2 || '');
+  safeSetText(form, 'undefined_16', fv.seller_notice_address || '');
+  safeSetText(form, 'at_2', fv.seller_notice_address_line2 || '');
+  safeSetText(form, 'Text6', fv.buyer_email || '');
+  safeSetText(form, 'Text10', fv.seller_email || '');
 
   // INITIALS
   var buyerInitFields9 = [
