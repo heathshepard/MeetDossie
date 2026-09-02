@@ -26,6 +26,7 @@ const {
 
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
+const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
 const { fillFlatPdfFromMapStrict } = require('./_assets/flat-pdf-filler.js');
 
 // 2026-08-31 CARTER — coordinate field-maps for the four flat (0-AcroForm-
@@ -4043,7 +4044,7 @@ module.exports = async function handler(req, res) {
     const safeUid = encodeURIComponent(userId);
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
-      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date,role,sdn_received,sellers_disclosure_received_at,listing_agent_name,listing_agent_email_addr,listing_broker_name,user_id&limit=1',
+      'transactions?id=eq.' + safeTx + '&user_id=eq.' + safeUid + '&select=id,property_address,city_state_zip,buyer_name,seller_name,sale_price,earnest_money,option_fee,option_days,closing_date,contract_effective_date,county,legal_description,title_company,loan_amount,financing_type,lender_name,year_built,hoa_name,hoa_phone,hoa_management_company,appraisal_value,appraisal_deadline,transaction_type,land_acreage,land_legal_description,land_parcel_id,builder_name,builder_rep_name,builder_rep_phone,builder_rep_email,builder_warranty_company,co_received_date,co_number,expected_completion_date,role,sdn_received,sellers_disclosure_received_at,listing_agent_name,listing_agent_email_addr,listing_broker_name,user_id,contract_field_drafts&limit=1',
       { method: 'GET' },
     );
     if (!txResp.ok) {
@@ -4200,8 +4201,18 @@ module.exports = async function handler(req, res) {
       txDefaults.seller_disclosure_received = false;
     }
 
-    // Agent-supplied field_values override transaction defaults
-    let mergedFields = Object.assign({}, txDefaults, fieldValues);
+    // 2026-09-01 CARTER — Defect A2 fix: the member's saved Interactive
+    // Editor edits (transactions.contract_field_drafts) now reach every PDF
+    // this pipeline produces. Precedence: canonical txDefaults < stored
+    // drafts < caller-supplied field_values. Identical to the old
+    // Object.assign({}, txDefaults, fieldValues) when no drafts exist.
+    // See api/_lib/merge-contract-field-drafts.js.
+    let mergedFields = mergeContractFieldDrafts({
+      tx,
+      formType: resolvedFormType,
+      baseValues: txDefaults,
+      callerValues: fieldValues,
+    });
 
     // ----------------------------------------------------------------------
     // TREC 20-18 strict validation pipeline (opt-in via body.strict_validate)

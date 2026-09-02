@@ -20,6 +20,7 @@ const {
 } = require('./_middleware/rateLimit');
 
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -456,7 +457,19 @@ module.exports = async function handler(req, res) {
         console.warn(`[dossiesign-prepare] ${error}`);
       } else {
         try {
-          const pdfBuffer = await fillFormPreview(formType, fv);
+          // 2026-09-01 CARTER — Defect A2 fix: merge the member's saved
+          // Interactive Editor drafts (transactions.contract_field_drafts)
+          // on top of the canonical values, same choke-point lib fill-form
+          // uses. The 20-19 translation moves the editor's full "known as"
+          // address to property_full; this preview filler predates that
+          // split and reads property_address, so map it back here (its own
+          // fv.property_address is already the concatenated full string, so
+          // no duplicated-city risk in this path).
+          const fvForForm = mergeContractFieldDrafts({ tx, formType, baseValues: fv });
+          if ((fvForForm.property_address == null || fvForForm.property_address === '') && fvForForm.property_full) {
+            fvForForm.property_address = fvForForm.property_full;
+          }
+          const pdfBuffer = await fillFormPreview(formType, fvForForm);
           if (!pdfBuffer) {
             error = `Failed to fill form. Template may not be in FORM_B64_MAP.`;
             console.warn(`[dossiesign-prepare] ${error} for ${formType}`);
