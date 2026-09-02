@@ -2886,8 +2886,8 @@ async function fillT47Affidavit(pdfDoc, fv) {
 // Shares many field names with TREC 20 resale (same TREC template family).
 //
 // SECTION 1 — PARTIES
-//   [TextField] "1 PARTIES The parties to this contract are" -> buyer_name
-//   [TextField] "and" -> seller_name
+//   [TextField] "1 PARTIES The parties to this contract are" -> seller_name (SELLER'S blank is first; fixed 2026-09-02, see Bug 1a below)
+//   [TextField] "and" -> buyer_name
 // SECTION 2 — PROPERTY
 //   [TextField] "Texas known as" -> property_address (street line)
 //   [TextField] "Address of Property" -> property_address (repeat)
@@ -2921,8 +2921,8 @@ async function fillT47Affidavit(pdfDoc, fv) {
 //   [TextField] "Escrow Agent" -> title_company (repeat)
 //   [TextField] "Escrow Agent_2" -> title_company
 //   [TextField] "Escrow Agent_3" -> title_company
-//   [CheckBox] "Buyer" -> buyer_pays_survey
-//   [CheckBox] "Seller" -> seller_pays_survey
+//   [CheckBox] "Buyer" -> title policy at SELLER'S expense (6A) -- name is swapped vs. printed position, fixed 2026-09-02
+//   [CheckBox] "Seller" -> title policy at BUYER'S expense (6A) -- name is swapped vs. printed position, fixed 2026-09-02
 //   [CheckBox] "i will not be amended or deleted from the title policy or" -> title_exception_not_amended
 //   [CheckBox] "ii will be amended to read shortages in area at the expense of" -> title_exception_amended
 //   [TextField] "3 days" -> funding_notice_days
@@ -2956,9 +2956,9 @@ async function fillT47Affidavit(pdfDoc, fv) {
 //   [CheckBox] "Texas Agricultural Development District..." (multiple) -> agri_district_n
 //   [CheckBox] "is_2" (multiple) -> agri_district_is_n
 // LAND-SPECIFIC CHECKBOXES
-//   [CheckBox] "is" -> mineral_rights_included
-//   [CheckBox] "is no. 1" -> mineral_rights_excluded_1
-//   [CheckBox] "is not 2" -> mineral_rights_excluded_2
+//   [CheckBox] "is" -> mineral_rights_included (really a page-2 title-exception field that shares this generic name; left as-is)
+//   [CheckBox] "is no. 1" -> ag_development_district_is_selected (6E(8) Texas Ag Development District pair, NOT mineral rights -- fixed 2026-09-02)
+//   [CheckBox] "is not 2" -> ag_development_district_is_not_selected (fixed 2026-09-02)
 //   [CheckBox] "i 1" -> title_option_1
 //   [CheckBox] "ii 2" -> title_option_2
 //   [CheckBox] "is not subject to" -> not_subject_to_hoa
@@ -3064,8 +3064,14 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   // (Already loaded by fillForm; pdfDoc is passed in)
 
   // PARTIES
-  safeSetText(form, '1 PARTIES The parties to this contract are', fv.buyer_name || '');
-  safeSetText(form, 'and', fv.seller_name || '');
+  // 2026-09-02 CARTER -- fixed Bug 1a: printed text is "The parties to this
+  // contract are ___ (Seller) and ___ (Buyer)" -- Seller's blank comes FIRST.
+  // This used to write buyer_name into the Seller blank and vice versa on
+  // every generated contract. Confirmed against .tmp/coord-overlays/role-maps/
+  // unimproved-property.json fields 1-2 (position-verified from the rendered
+  // page) and against a filled/rendered test PDF.
+  safeSetText(form, '1 PARTIES The parties to this contract are', fv.seller_name || '');
+  safeSetText(form, 'and', fv.buyer_name || '');
 
   // PROPERTY ADDRESS
   const addr = fv.property_address || '';
@@ -3125,11 +3131,18 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, 'Escrow Agent', fv.title_company || '');
   safeSetText(form, 'Escrow Agent_2', fv.title_company || '');
   safeSetText(form, 'Escrow Agent_3', fv.title_company || '');
-  // Survey expense: default Seller
+  // 2026-09-02 CARTER -- fixed Bug 1b: these are the page-2 paragraph 6A
+  // Title Policy expense checkboxes, not survey checkboxes (comment below was
+  // already wrong before this fix). The AcroForm field NAMED "Buyer" sits
+  // before the printed word "Seller's" (6A "at Seller's expense"), and the
+  // field named "Seller" sits before printed "Buyer's" (6A "at Buyer's
+  // expense") -- confirmed via role-maps/unimproved-property.json page-2
+  // fields 3-4 (position-verified) and a rendered test PDF. Default: Seller
+  // pays (matches the printed form's typical convention).
   if (fv.buyer_pays_survey === true) {
-    safeCheck(form, 'Buyer');
+    safeCheck(form, 'Seller'); // field named "Seller" = Buyer's-expense box
   } else {
-    safeCheck(form, 'Seller');
+    safeCheck(form, 'Buyer'); // field named "Buyer" = Seller's-expense box
   }
   // Title exception handling
   if (fv.title_exception_not_amended !== false) safeCheck(form, 'i will not be amended or deleted from the title policy or');
@@ -3139,11 +3152,23 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
   safeSetText(form, '4 days', fv.closing_statement_days || '');
 
   // MINERAL RIGHTS (TREC 9-17 specific)
+  // NOTE: "is" here checks a real page-2 title-exception field (6A(8)(ii),
+  // amendment at Buyer's expense) that happens to share this generic AcroForm
+  // name -- left as-is, out of scope for this pass.
   if (fv.mineral_rights_included === true) safeCheck(form, 'is');
-  if (fv.mineral_rights_excluded_1 === true) safeCheck(form, 'is no. 1');
-  if (fv.mineral_rights_excluded_2 === true) safeCheck(form, 'is not 2');
   safeSetText(form, 'the other party in writing before entering into a contract of sale Disclose if applicable', fv.mineral_rights_notes || '');
   safeSetText(form, 'undefined_8', fv.mineral_rights_extra || '');
+
+  // 2026-09-02 CARTER -- fixed Bug 1c: "is no. 1" / "is not 2" are NOT a
+  // mineral-rights pair (there is no distinct mineral-rights checkbox on this
+  // form -- mineral reservations run through the separate "Addendum for
+  // Reservation of Oil, Gas and Other Minerals" checkbox below). Per
+  // role-maps/unimproved-property.json page-4 fields 2-3 (position-verified
+  // against the rendered page), these are the paragraph 6E(8) Texas
+  // Agricultural Development District pair: "The Property [X] is / is not
+  // ... located in a Texas Agricultural Development District."
+  if (fv.ag_development_district_is_selected === true) safeCheck(form, 'is no. 1');
+  if (fv.ag_development_district_is_not_selected === true) safeCheck(form, 'is not 2');
 
   // PROPERTY CONDITION (Section 8)
   if (fv.as_is_with_repairs === true) {
@@ -3318,13 +3343,18 @@ async function fillUnimprovedProperty(pdfDoc, fv) {
     'Initialed for identification by Buyer_4',
     'Initialed for identification by Buyer_5',
   ];
+  // 2026-09-02 CARTER -- fixed Bug 1d: "and Seller_5" (page 5) and
+  // "and Seller_6" (page 6) are stale/recycled AcroForm names -- per
+  // role-maps/unimproved-property.json fields 28 (p5) and (p6), both are
+  // actually the second BUYER initial box on those pages, not Seller. This
+  // array is currently dead code (the forEach below is commented out per the
+  // 2026-07-04 fix), but corrected here so it's not a live trap if
+  // reactivated.
   var sellerInitFields9 = [
     'and Seller',
     'and Seller_2',
     'and Seller_3',
     'and Seller_4',
-    'and Seller_5',
-    'and Seller_6',
   ];
   // 2026-07-04 atlas_29 fix (Bug 4 — Heath): initials + signature-page name
   // slots NOT pre-populated in fill phase. Fields remain empty for the signer.
@@ -3747,16 +3777,25 @@ async function fillLoanAssumption(pdfDoc, fv) {
 }
 
 // ---------------------------------------------------------------------------
-// IMPROVEMENT DISTRICT ASSESSMENT NOTICE (stub)
-// Auto-fills property address. Agent completes assessment details manually.
+// IMPROVEMENT DISTRICT ASSESSMENT NOTICE (TREC 53-0)
+// 2026-09-02 CARTER -- fixed Bug 2: the asset this handler fills used to be a
+// byte-identical copy of the Coastal Area Property addendum (TREC 33-2) --
+// confirmed via pdftotext title text and buffer equality against
+// trec-coastal-area-base64.js. Re-sourced the real TREC 53-0 PDF from
+// trec.texas.gov (rev. 11-08-2021) and rebuilt the coordinate/role map from
+// its actual AcroForm field names (Text1-Text15, Date/Date_2-4,
+// Signature11-14) -- see .tmp/coord-overlays/role-maps/improvement-district.json.
+// Auto-fills property address (the one field Dossie's transaction data
+// reliably has). District name / assessing municipality / statute basis are
+// jurisdiction-specific facts not currently captured in fv -- left for the
+// agent to complete by hand, same as before.
 // ---------------------------------------------------------------------------
 
 async function fillImprovementDistrict(pdfDoc, fv) {
   const form = pdfDoc.getForm();
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   if (addr) {
-    safeSetText(form, 'Address of Property', addr);
-    safeSetText(form, 'Street Address and City', addr);
+    safeSetText(form, 'Text1', addr);
   }
   return pdfDoc;
 }
