@@ -127,37 +127,54 @@ async function fetchFileBytes(storagePath) {
 }
 
 // Known TREC form types returned from detection
-// Maps the canonical form_type key used throughout the codebase
+// Maps the canonical form_type key used throughout the codebase.
+//
+// 2026-09-01 CARTER — full audit against the actual PDF assets loaded by
+// FORM_CONFIGS in api/fill-form.js (pdftotext on page 1 of every decoded
+// base64 asset; titles + TREC numbers read off the documents themselves).
+// The previous list mislabeled 20 of 28 entries — wrong TREC numbers, wrong
+// titles (e.g. improvement-district described as the Seaward/Gulf addendum,
+// oil-gas-minerals described as the 49-1 appraisal-termination form,
+// buyers/sellers temp-lease numbers swapped), and 3 non-canonical keys
+// (wire-fraud-advisory, buyer-rep, buyer-termination) that fill-form.js
+// would reject. Regression:
+// scripts/regression-detect-form-type-descriptions.js — keep the two lists
+// in sync; every key below (except "unknown") must exist in FORM_CONFIGS
+// and every number/title must match the asset's page-1 text.
 const FORM_TYPE_DESCRIPTIONS = `
-Known Texas TREC/TAR form types and their identifiers:
-- resale-contract: TREC 20-18 (or 20-17), "One to Four Family Residential Contract (Resale)"
+Known Texas TREC/TXR form types and their identifiers.
+Older revisions of the same form map to the same key (e.g. a TREC 20-18 upload is still resale-contract).
+- resale-contract: TREC 20-19, "One to Four Family Residential Contract (Resale)"
 - unimproved-property: TREC 9-17, "Unimproved Property Contract"
-- new-home-incomplete: TREC 23-18, "New Home Contract (Incomplete Construction)"
-- new-home-complete: TREC 24-18, "New Home Contract (Completed Construction)"
-- farm-ranch: TREC 25-15, "Farm and Ranch Contract"
-- financing-addendum: TREC 40-11 or 49-1, "Third Party Financing Addendum" or "Right to Terminate Due to Lender's Appraisal"
-- termination-notice: TREC 50-0, "Seller's Termination" (currently implemented - NOTE: This is seller-side termination, not buyer-side)
-  - buyer-termination: TREC 38-7, "Notice of Buyer's Termination of Contract" (NOT YET IMPLEMENTED)
-- amendment: TREC 39-10, "Amendment to Contract"
-- sellers-disclosure: OP-H, "Seller's Disclosure Notice"
-- hoa-addendum: TREC 36-11, "Addendum for Property Subject to Mandatory Membership in Property Owners Association"
-- lead-paint-addendum: OP-L, "Lead-Based Paint Addendum"
-- wire-fraud-advisory: TAR, "Wire Fraud Advisory"
-- buyer-rep: TAR 2501, "Residential Buyer/Tenant Representation Agreement"
+- new-home-incomplete: TREC 23-20, "New Home Contract (Incomplete Construction)"
+- new-home-complete: TREC 24-20, "New Home Contract (Completed Construction)"
+- farm-ranch: TREC 25-17, "Farm and Ranch Contract"
+- financing-addendum: TREC 40-11, "Third Party Financing Addendum"
+- appraisal-termination: TREC 49-1, "Addendum Concerning Right to Terminate Due to Lender's Appraisal"
+- termination-notice: TREC 38-7, "Notice of Buyer's Termination of Contract"
+- amendment: TREC 39-11, "Amendment to Contract"
+- sellers-disclosure: TREC 55-1 (formerly OP-H), "Seller's Disclosure Notice"
+- hoa-addendum: TREC 36-11, "Addendum for Property Subject to Mandatory Membership in a Property Owners Association"
+- lead-paint-addendum: TREC 56-0 (formerly OP-L), "Addendum for Seller's Disclosure of Information on Lead-Based Paint and Lead-Based Paint Hazards as Required by Federal Law"
+- wire-fraud-warning: TXR 2517, "Wire Fraud Warning"
+- buyer-rep-agreement: TXR 1501, "Residential Buyer/Tenant Representation Agreement"
 - t47-affidavit: T-47, "Residential Real Property Affidavit"
-- loan-assumption: TREC 41-4, "Loan Assumption Addendum"
-- backup-contract: TREC 11-7, "Addendum for Back-Up Contract"
-- sale-other-property: TREC 10-7, "Addendum for Sale of Other Property"
-- coastal-area: TREC 33-3, "Addendum for Coastal Area Property"
-- hydrostatic-testing: TREC 49-2, "Seller's Temporary Residential Lease"
-- environmental: TREC 28-3, "Environmental Assessment Addendum"
+- seller-financing: TREC 26-8, "Seller Financing Addendum"
+- loan-assumption: TREC 41-3, "Loan Assumption Addendum"
+- backup-contract: TREC 11-8, "Addendum for Back-Up Contract"
+- sale-other-property: TREC 10-6, "Addendum for Sale of Other Property by Buyer"
+- coastal-area: TREC 33-2, "Addendum for Coastal Area Property"
+- gulf-waterway: TREC 34-4, "Addendum for Property Located Seaward of the Gulf Intracoastal Waterway"
+- hydrostatic-testing: TREC 48-1, "Addendum for Authorizing Hydrostatic Testing"
+- environmental: TREC 28-2, "Environmental Assessment, Threatened or Endangered Species, and Wetlands Addendum"
 - short-sale: TREC 45-2, "Short Sale Addendum"
-- oil-gas-minerals: TREC 44-3, "Addendum Concerning Right to Terminate Due to Lender's Appraisal"
-- improvement-district: TREC 34-6, "Addendum for Property Located Seaward of the Gulf Intracoastal Waterway"
-- buyers-temp-lease: TREC 15-6, "Buyer's Temporary Residential Lease"
-- sellers-temp-lease: TREC 16-6, "Seller's Temporary Residential Lease"
-- residential-leases: TREC 2001, "Residential Lease"
-- propane-gas: TREC 47-2, "Addendum for Seller's Disclosure of Information on Lead-Based Paint"
+- oil-gas-minerals: TREC 44-3, "Addendum for Reservation of Oil, Gas, and Other Minerals"
+- improvement-district: TREC 53-0, "Addendum Containing Notice of Obligation to Pay Improvement District Assessment"
+- buyers-temp-lease: TREC 16-7, "Buyer's Temporary Residential Lease" (buyer occupies BEFORE closing)
+- sellers-temp-lease: TREC 15-7, "Seller's Temporary Residential Lease" (seller occupies AFTER closing)
+- residential-leases: TREC 51-1, "Addendum Regarding Residential Leases"
+- fixture-leases: TREC 52-1, "Addendum Regarding Fixture Leases"
+- propane-gas: TREC 47-0, "Addendum for Property in a Propane Gas System Service Area"
 - unknown: Cannot identify the form type
 `;
 
