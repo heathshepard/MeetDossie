@@ -303,5 +303,4 @@ shared home compounds every time someone touches either concern.
 ## Related
 
 [[friday-execution-option-fee-trap]], [[teaching-pipeline-cole-to-dossie]],
-[[feedback_required-contract-fields-checklist]], [[clients-kanika-jain-ketan-thakkar]],
-[[dossie-esign-productization-plan]].
+[[feedback_required-contract-fields-checklist]], [[dossie-esign-productization-plan]].
