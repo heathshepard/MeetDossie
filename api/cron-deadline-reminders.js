@@ -28,8 +28,21 @@
 //   - hoa_document_deadline     → "HOA document deadline"
 //   - loan_approval_deadline    → "Loan approval deadline"
 //   - possession_date           → "Possession"
+//   - option_fee_due_date       → "Option fee delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once option_fee_receipt_date is set
+//   - earnest_money_due_date    → "Earnest money delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once deposited/confirmed
 //   - expected_completion_date  → "Expected completion (new construction)" — T-7 if CO not received
 //   - builder_warranty_expiration → "Builder warranty expiration" — T-30
+//
+// 2026-09-03 CARTER (Deadline Guardian checklist #1): the two ¶5.A funds
+// delivery deadlines use a T-3/T-1/T-0 schedule instead of the default
+// T-7/T-1/T-0 — the whole window is only 3 days after the effective date, so
+// T-7 can never land. T-3 fires on the effective date itself (or earlier
+// than T-1 whenever ¶5A(2) rollover stretched the window), which guarantees
+// at least one reminder before the due date as long as the contract is in
+// Dossie before the deadline passes. If the due-date columns are NULL (rows
+// predating the migration, or writes that bypassed the API), the cron
+// derives the due date in-memory from contract_effective_date via
+// business-calendar.js — it never writes the derived value back.
 //
 // Customer filter mirrors cron-morning-brief.js:
 //   - profiles.is_demo = true            → skip
@@ -39,6 +52,7 @@
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { customerFirstName } = require('./_lib/personalization.js');
+const { computeFundsDeliveryDueDates } = require('./_lib/business-calendar.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,6 +69,12 @@ const BRAND_CORAL = '#E8927C';
 const BRAND_MUTED = '#9CA8B4';
 
 // Map of transaction column -> friendly deadline label.
+// Optional per-field keys:
+//   milestones   — days_out schedule override (default REMINDER_MILESTONES).
+//   suppressWhen — fn(tx) -> true skips the reminder entirely (funds already
+//                  confirmed received; don't nag after receipt).
+//   deriveFrom   — fn(tx) -> ymd|null fallback when the column itself is NULL
+//                  (in-memory only — never written back to the row).
 const DEADLINE_FIELDS = [
   { col: 'option_expiration_date', label: 'Option period expiration' },
   { col: 'closing_date',           label: 'Closing date' },
@@ -63,9 +83,33 @@ const DEADLINE_FIELDS = [
   { col: 'hoa_document_deadline',  label: 'HOA document deadline' },
   { col: 'loan_approval_deadline', label: 'Loan approval deadline' },
   { col: 'possession_date',        label: 'Possession date' },
+  // TREC ¶5.A funds delivery — the 3-day window means T-7 can never fire, so
+  // these run T-3/T-1/T-0. Receipt suppression uses the *received* fields
+  // (option_fee_receipt_date / earnest_money_deposited_at|confirmed_at),
+  // never "instructions sent" — sent is not received (spec Gate 6).
+  {
+    col: 'option_fee_due_date',
+    label: 'Option fee delivery deadline (TREC ¶5.A)',
+    milestones: [3, 1, 0],
+    suppressWhen: (tx) => Boolean(tx.option_fee_receipt_date),
+    deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).option_fee_due_date,
+  },
+  {
+    col: 'earnest_money_due_date',
+    label: 'Earnest money delivery deadline (TREC ¶5.A)',
+    milestones: [3, 1, 0],
+    suppressWhen: (tx) => Boolean(tx.earnest_money_deposited_at || tx.earnest_money_confirmed_at),
+    deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).earnest_money_due_date,
+  },
 ];
 
-const REMINDER_MILESTONES = [7, 1, 0]; // days_out values we fire on
+const REMINDER_MILESTONES = [7, 1, 0]; // default days_out values we fire on
+
+// Union of every milestone any field can fire on — used to precompute target
+// dates for the day; each field still only matches its own schedule.
+const ALL_MILESTONES = [...new Set(
+  DEADLINE_FIELDS.flatMap((f) => f.milestones || REMINDER_MILESTONES),
+)].sort((a, b) => b - a);
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -122,7 +166,8 @@ function friendlyDate(ymd) {
 function toneFor(daysOut) {
   if (daysOut === 0) return { eyebrow: 'TODAY', headline: 'A deadline hits today.' };
   if (daysOut === 1) return { eyebrow: 'TOMORROW', headline: 'A deadline hits tomorrow.' };
-  return { eyebrow: 'HEADS UP', headline: 'A deadline is one week away.' };
+  if (daysOut === 7) return { eyebrow: 'HEADS UP', headline: 'A deadline is one week away.' };
+  return { eyebrow: 'HEADS UP', headline: `A deadline is ${daysOut} days away.` };
 }
 
 function buildEmailHtml({ firstName, propertyAddress, deadlineLabel, deadlineDateYMD, daysOut }) {
@@ -203,6 +248,12 @@ async function loadActiveCustomers() {
 async function loadOpenTransactions(userId) {
   const baseFields = ['id', 'user_id', 'property_address', 'status', ...DEADLINE_FIELDS.map((f) => f.col)];
   const conditionalFields = [
+    // ¶5.A funds delivery: derivation source + receipt-suppression fields.
+    // (option_fee_due_date / earnest_money_due_date ride in via baseFields —
+    // they're DEADLINE_FIELDS columns. Requires the 20260903 migration.)
+    'contract_effective_date',
+    'option_fee_receipt_date',
+    'earnest_money_deposited_at',
     'earnest_money_confirmed_at',
     'inspection_scheduled_at',
     'inspection_completed_at',
@@ -303,7 +354,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
     }
 
     const today = todayChicagoYMD();
-    const targets = REMINDER_MILESTONES.map((d) => ({ daysOut: d, date: addDaysYMD(today, d) }));
+    const targets = ALL_MILESTONES.map((d) => ({ daysOut: d, date: addDaysYMD(today, d) }));
 
     const customers = await loadActiveCustomers();
     const summary = {
@@ -328,11 +379,19 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
         const fired = await loadFiredReminders(tx.id);
 
         for (const field of DEADLINE_FIELDS) {
-          const ymd = tx[field.col];
+          // Funds already confirmed received -> no reminder (never nag after
+          // receipt).
+          if (field.suppressWhen && field.suppressWhen(tx)) continue;
+
+          // Column value wins; otherwise derive in-memory (read-only) so rows
+          // whose due-date columns were never populated still get reminders.
+          let ymd = tx[field.col];
+          if (!ymd && field.deriveFrom) ymd = field.deriveFrom(tx);
           if (!ymd) continue;
 
-          // Find which (if any) milestone this deadline matches today.
-          const match = targets.find((t) => t.date === String(ymd).slice(0, 10));
+          // Find which (if any) of THIS field's milestones matches today.
+          const fieldMilestones = field.milestones || REMINDER_MILESTONES;
+          const match = targets.find((t) => fieldMilestones.includes(t.daysOut) && t.date === String(ymd).slice(0, 10));
           if (!match) continue;
 
           const key = `${field.col}|${match.daysOut}`;
@@ -345,7 +404,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
             ? `Today: ${field.label} for ${tx.property_address || 'your dossier'}`
             : match.daysOut === 1
               ? `Tomorrow: ${field.label} for ${tx.property_address || 'your dossier'}`
-              : `Heads up: ${field.label} in 7 days for ${tx.property_address || 'your dossier'}`;
+              : `Heads up: ${field.label} in ${match.daysOut} days for ${tx.property_address || 'your dossier'}`;
 
           const html = buildEmailHtml({
             firstName: cust.first_name,
@@ -916,3 +975,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
   }
 });
+
+// Test-only surface for scripts/regression-funds-delivery-due-dates.js.
+// The telemetry-wrapped handler remains the sole runtime export.
+module.exports.__test = { DEADLINE_FIELDS, REMINDER_MILESTONES, ALL_MILESTONES };

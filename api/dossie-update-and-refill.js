@@ -17,6 +17,7 @@
 
 const fetch = require('node-fetch');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { computeFundsDeliveryDueDates } = require('./_lib/business-calendar');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -178,10 +179,21 @@ async function updateDossierField(dossierId, fieldName, fieldValue) {
   // Targeted PATCH — writes ONLY the single field being changed. This is the
   // race-clobber-safe path: concurrent updates to other fields on the same
   // row are preserved (Bug 1 fix).
-  const rows = await supabaseCall('PATCH', `transactions?id=eq.${dossierId}`, {
+  const patch = {
     [canonical]: typedValue,
     updated_at: new Date().toISOString(),
-  });
+  };
+
+  // TREC ¶5.A: setting/changing the effective date (re)computes the option
+  // fee and earnest money delivery due dates — effective + 3 calendar days,
+  // then the ¶5A(2) weekend/Texas Legal Holiday rollover (which applies ONLY
+  // to these two funds-delivery deadlines). Clearing the effective date
+  // clears both due dates. See docs/DOSSIE-DEADLINE-GUARDIAN-SPEC.md Gate 1.
+  if (canonical === 'contract_effective_date') {
+    Object.assign(patch, computeFundsDeliveryDueDates(typedValue));
+  }
+
+  const rows = await supabaseCall('PATCH', `transactions?id=eq.${dossierId}`, patch);
 
   if (!rows || rows.length === 0) {
     throw new Error('Dossier not found or update failed');
