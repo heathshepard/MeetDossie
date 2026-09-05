@@ -295,8 +295,13 @@ function matchDealByVerdict(matched, deals) {
 }
 
 async function loadGoogleTokens() {
+  // Deterministic row pick (same shape as scripts/kw-mail.py and
+  // api/gmail-refresh.js): unique key is (user_id, oauth_provider), not
+  // google_email, so re-consent stragglers can coexist for this address.
+  // Require a refresh token and take the most recently updated row.
   const res = await supaFetch(
-    `user_integrations?select=access_token,refresh_token,expires_at&google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}&limit=1`,
+    `user_integrations?select=id,access_token,refresh_token,expires_at&google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`
+    + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
     { method: 'GET' },
   );
   if (!res.ok) throw new Error(`user_integrations fetch failed: ${res.status}`);
@@ -305,11 +310,17 @@ async function loadGoogleTokens() {
   return rows[0];
 }
 
-async function persistAccessToken(accessToken, expiresAt) {
-  await supaFetch(`user_integrations?google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`, {
+async function persistAccessToken(accessToken, expiresAt, rowId) {
+  // Scope the write-back to the exact row loadGoogleTokens() picked —
+  // patching by google_email would smear this token across every row
+  // carrying the address (e.g. a google_youtube row for the same account).
+  const filter = rowId
+    ? `id=eq.${encodeURIComponent(rowId)}`
+    : `google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`;
+  await supaFetch(`user_integrations?${filter}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ access_token: accessToken, expires_at: expiresAt }),
+    body: JSON.stringify({ access_token: accessToken, expires_at: expiresAt, updated_at: new Date().toISOString() }),
   }).catch((e) => console.warn('[cron-relevance-watcher] token persist failed', e.message));
 }
 
@@ -664,7 +675,7 @@ async function handler(req, res) {
         const refreshed = await refreshGoogleToken(tokens.refresh_token);
         accessToken = refreshed.access_token;
         const expiresAt = new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString();
-        await persistAccessToken(accessToken, expiresAt);
+        await persistAccessToken(accessToken, expiresAt, tokens.id);
         return await gmailFetch(accessToken, path, params);
       }
       throw err;

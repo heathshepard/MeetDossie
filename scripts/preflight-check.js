@@ -111,8 +111,13 @@ async function checkSupabase() {
 }
 
 async function checkGmailSend() {
+  // Same deterministic row pick as kw-mail.py / api/gmail-refresh.js: the
+  // table is unique on (user_id, oauth_provider), not google_email, so an
+  // unordered limit=1 could inspect a stale duplicate row's scopes instead of
+  // the row sends will actually use.
   const r = await sbFetch(
-    `user_integrations?select=scopes,expires_at,google_email&google_email=eq.${encodeURIComponent(KW_ACCOUNT)}&limit=1`
+    `user_integrations?select=scopes,expires_at,google_email&google_email=eq.${encodeURIComponent(KW_ACCOUNT)}`
+    + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`
   );
   if (!r.ok) return { status: 'FAIL', error: `HTTP ${r.status}` };
   const rows = await r.json();

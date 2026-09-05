@@ -47,8 +47,16 @@ export default async function handler(req, res) {
   if (!email) return res.status(400).json({ error: 'email_required' });
 
   try {
+    // Deterministic row pick: a re-consent can leave more than one row for the
+    // same google_email (different user_id/provider pairs — the table is only
+    // unique on user_id+oauth_provider). An unordered limit=1 here used to
+    // grab whichever row Postgres returned first, including a dead one whose
+    // refresh token was revoked (live failure 2026-08-29: every send hit
+    // invalid_grant while a perfectly good row sat unread). Require a
+    // non-null refresh token and take the most recently updated row.
     const rows = await sb(
-      `user_integrations?select=refresh_token,google_email&google_email=eq.${encodeURIComponent(email)}&limit=1`
+      `user_integrations?select=id,refresh_token,google_email&google_email=eq.${encodeURIComponent(email)}`
+      + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`
     );
     if (!rows || !rows.length || !rows[0].refresh_token) {
       return res.status(404).json({ error: 'no_refresh_token_for_email', email });
@@ -77,10 +85,14 @@ export default async function handler(req, res) {
     }
 
     const expiresAt = new Date(Date.now() + (tok.expires_in || 3600) * 1000).toISOString();
-    await sb(`user_integrations?google_email=eq.${encodeURIComponent(email)}`, {
+    // Write back to the exact row we refreshed — patching by google_email
+    // would smear this access token across every row carrying that address
+    // (e.g. a google_youtube row for the same account). Bump updated_at so
+    // "most recently updated" keeps pointing at the row that actually works.
+    await sb(`user_integrations?id=eq.${encodeURIComponent(rows[0].id)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ access_token: tok.access_token, expires_at: expiresAt }),
+      body: JSON.stringify({ access_token: tok.access_token, expires_at: expiresAt, updated_at: new Date().toISOString() }),
     });
 
     return res.status(200).json({ ok: true, email, expires_at: expiresAt, scope: tok.scope });

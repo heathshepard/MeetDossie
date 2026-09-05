@@ -30,20 +30,29 @@ async function sb(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Returns { access_token, refresh_token, expires_at, google_email } or null.
+// Returns { id, access_token, refresh_token, expires_at, google_email } or null.
+// refresh_token=not.is.null: re-consent stragglers can leave a dead row for
+// the same user (unique key is user_id+oauth_provider) — never hand back a
+// row that can't be refreshed when a usable one exists.
 async function loadGoogleTokensForUser(userId) {
   const { ok, data } = await sb(
-    `user_integrations?select=access_token,refresh_token,expires_at,google_email&user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null&order=updated_at.desc&limit=1`,
+    `user_integrations?select=id,access_token,refresh_token,expires_at,google_email&user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
   );
   if (!ok || !Array.isArray(data) || !data.length) return null;
   return data[0];
 }
 
-async function persistAccessToken(userId, accessToken, expiresAt) {
-  await sb(`user_integrations?user_id=eq.${encodeURIComponent(userId)}`, {
+async function persistAccessToken(userId, accessToken, expiresAt, rowId) {
+  // Prefer the exact row id — a bare user_id filter would smear this Google
+  // access token across the user's OTHER integration rows too
+  // (microsoft_graph, google_youtube), clobbering their tokens.
+  const filter = rowId
+    ? `id=eq.${encodeURIComponent(rowId)}`
+    : `user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null`;
+  await sb(`user_integrations?${filter}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ access_token: accessToken, expires_at: expiresAt }),
+    body: JSON.stringify({ access_token: accessToken, expires_at: expiresAt, updated_at: new Date().toISOString() }),
   }).catch(() => {});
 }
 
@@ -94,7 +103,7 @@ function makeGmailClient({ userId, tokens }) {
         const refreshed = await refreshGoogleToken(tokens.refresh_token);
         accessToken = refreshed.access_token;
         const expiresAt = new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString();
-        await persistAccessToken(userId, accessToken, expiresAt);
+        await persistAccessToken(userId, accessToken, expiresAt, tokens.id);
         return raw(path, params);
       }
       throw err;
