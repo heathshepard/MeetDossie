@@ -58,6 +58,13 @@ const ALWAYS_ALLOW = new Set([
   'cron-pc-heartbeat-check', // */5 — only fires when a PC has actually gone silent, 1x per stale window
   'cron-agent-requests-stale-check', // */15 — only fires when agent_requests rows are actually stuck (see file header, 2026-08-25 incident)
   'vercel-deploy-webhook',   // event-driven, not scheduled — only fires on an actual deploy failure/cancel (see file header, 2026-08-26)
+  'cron-support-ticket-alert', // */30 — only fires when a customer support ticket sits unanswered past 2h (+24h/72h/7d escalations).
+                               // Added 2026-09-07 (Carter): ticket 503a1d1b (Amanda Nuckles, a founding member asking how to
+                               // cancel) had 4 escalation alerts eaten by this gate while heath_alerted_at got stamped anyway.
+                               // A silent support queue is a customer-losing outage, not digest noise.
+  'cron-unsubscribe-spike-monitor', // hourly probe, but only SENDS when >2 unsubscribes/24h (6h dedup) — silent on a
+                                    // healthy list. Deliverability/domain-reputation bleed threatens every transactional
+                                    // send (deadline reminders, e-sign) — Carter, 2026-09-07.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
