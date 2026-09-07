@@ -8,7 +8,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-send-for-approval');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-send-for-approval');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
@@ -409,6 +411,15 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
         sendErrors.push({ id: post.id, step: 'veto', status: textResult.status });
         continue;
       }
+      // 2026-09-07 (Carter): NEVER stamp telegram_sent_at on a gate-suppressed
+      // send. cron-auto-approve treats telegram_sent_at as "Heath saw this and
+      // his veto window is running" — a suppressed veto message would auto-post
+      // content he never laid eyes on.
+      if (wasSuppressed(textResult.data)) {
+        console.warn(`[cron-send-for-approval] veto message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+        sendErrors.push({ id: post.id, step: 'veto', error: 'suppressed_by_telegram_gate' });
+        continue;
+      }
       const messageId = textResult.data?.result?.message_id || null;
       const now = new Date().toISOString();
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
@@ -428,6 +439,12 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
       continue;
     }
 
+    // Same suppression guard as the veto branch — see comment above.
+    if (wasSuppressed(textResult.data)) {
+      console.warn(`[cron-send-for-approval] approval message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+      sendErrors.push({ id: post.id, step: 'text', error: 'suppressed_by_telegram_gate' });
+      continue;
+    }
     const messageId = textResult.data?.result?.message_id || null;
     const now = new Date().toISOString();
     const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {

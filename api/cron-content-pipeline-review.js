@@ -13,7 +13,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-content-pipeline-review');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-content-pipeline-review');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -129,6 +131,14 @@ module.exports = withTelemetry('cron-content-pipeline-review', async function ha
     if (!result.ok) {
       console.error('[cron-content-pipeline-review] send failed for', row.id, result.raw?.slice(0, 200));
       errors.push({ id: row.id, error: result.raw?.slice(0, 200) });
+      continue;
+    }
+    // Gate-suppressed send = Heath never saw it. Do NOT stamp telegram_sent_at
+    // (this cron only picks rows where it's null — a false stamp makes the row
+    // invisible forever). Carter, 2026-09-07.
+    if (wasSuppressed(result.data)) {
+      console.warn(`[cron-content-pipeline-review] review message for row ${row.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+      errors.push({ id: row.id, error: 'suppressed_by_telegram_gate' });
       continue;
     }
     const messageId = result.data?.result?.message_id || null;

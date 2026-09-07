@@ -16,7 +16,8 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-fb-unlock-alerts');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-fb-unlock-alerts');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -106,6 +107,23 @@ module.exports = withTelemetry('cron-fb-unlock-alerts', async function handler(r
 
   const candidates = Array.isArray(candidatesRes.data) ? candidatesRes.data : [];
   console.log(`[cron-fb-unlock-alerts] ${candidates.length} candidates`);
+
+  // 2026-09-07 (Carter): each candidate is an atomic unit of draft-DM +
+  // admin_unlock_status='pending' stamp + Telegram ping. If the gate would
+  // suppress the ping, processing anyway would stamp 'pending' ("don't
+  // double-alert") with Heath never told — the drafts would sit invisible.
+  // Skip the whole unit; candidates stay eligible and retry when the gate
+  // re-opens.
+  if (candidates.length > 0 && !telegramGate.isAllowed('cron-fb-unlock-alerts')) {
+    console.warn(`[cron-fb-unlock-alerts] Telegram ping would be SUPPRESSED by telegram-gate — skipping ${candidates.length} candidate(s) so they stay retryable (none stamped pending)`);
+    return res.status(200).json({
+      ok: true,
+      ran_at: new Date().toISOString(),
+      candidates: candidates.length,
+      processed: 0,
+      skipped: 'suppressed_by_telegram_gate',
+    });
+  }
 
   const processed = [];
   const errors = [];

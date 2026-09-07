@@ -117,9 +117,24 @@ function methodOf(url) {
   return m ? m[1].toLowerCase() : '';
 }
 
+// CONTRACT (Carter, 2026-09-07 — after the cron-video-approval incident):
+// a suppressed send is NOT a delivery and must never be mistaken for one.
+// The fake payload carries three explicit markers callers can branch on:
+//   delivered: false        <- the human did NOT receive this message
+//   suppressed: true        <- the gate ate it (configured state, not an error)
+//   suppressed_by: 'telegram-gate'
+// HTTP status stays 200 and json.ok stays true so passive digest crons that
+// only fire-and-forget don't start erroring — but ANY caller that advances
+// state on "the human was notified" (pending_approval, *_sent_at, debounce
+// stamps) MUST call wasSuppressed() on the parsed body first.
+//
+// WHY: on 2026-08-17 cron-video-approval got this fake success, marked five
+// videos pending_approval, and they sat invisible for three weeks. Same
+// silent-failure class as the fill-engine bugs.
 function fakeTelegramOk(method) {
   const payload = {
     ok: true,
+    delivered: false,
     suppressed: true,
     suppressed_by: 'telegram-gate',
     result: { message_id: 0, date: Math.floor(Date.now() / 1000) },
@@ -173,11 +188,20 @@ function install(jobName) {
       const method = methodOf(url);
       const isSend = method && !READ_ONLY_METHODS.has(method);
       if (isSend && !isAllowed(name)) {
-        // Visible in Vercel logs so "why did it go quiet" is answerable, but
-        // no message reaches Heath's phone.
-        console.log(
-          `[telegram-gate] suppressed ${method} from ${name} ` +
-          `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'})`
+        // WARN-level and self-describing: a suppressed notification must leave
+        // a trace someone can find later. The 2026-08-17 video_library incident
+        // cost three weeks because suppression was silent-and-invisible.
+        let preview = '';
+        try {
+          const parsed = init && init.body ? JSON.parse(init.body) : null;
+          const text = parsed && (parsed.text || parsed.caption);
+          if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
+          if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
+        } catch (_) { /* body not JSON — no preview */ }
+        console.warn(
+          `[telegram-gate] SUPPRESSED ${method} from ${name} — NOT delivered ` +
+          `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
+          preview
         );
         return Promise.resolve(fakeTelegramOk(method));
       }
@@ -189,4 +213,14 @@ function install(jobName) {
   return { jobName: name, muted: !isAllowed(name) };
 }
 
-module.exports = { install, isAllowed, ALWAYS_ALLOW, parseMode };
+// Did the gate eat this send? Accepts either the parsed Telegram JSON body or
+// a caller's own { ok, data } wrapper around it. Callers that advance state on
+// "the human was notified" MUST check this before stamping anything.
+function wasSuppressed(x) {
+  if (!x || typeof x !== 'object') return false;
+  if (x.suppressed === true && x.suppressed_by === 'telegram-gate') return true;
+  if (x.data && typeof x.data === 'object') return wasSuppressed(x.data);
+  return false;
+}
+
+module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode };

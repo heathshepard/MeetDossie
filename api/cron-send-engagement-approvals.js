@@ -19,7 +19,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-send-engagement-approvals');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-send-engagement-approvals');
+const { wasSuppressed } = telegramGate;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -72,8 +74,11 @@ async function patchRow(id, fields) {
 
 // ─── Telegram ────────────────────────────────────────────────────────────────
 
+// Returns { ok, suppressed, messageId }. suppressed=true means telegram-gate
+// ate the send (Carter, 2026-09-07) — the message never reached Heath and the
+// row must NOT advance to sent_for_approval.
 async function tgSend(text, replyMarkup) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false, suppressed: false, messageId: null };
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -86,9 +91,13 @@ async function tgSend(text, replyMarkup) {
       }),
     });
     const data = await res.json().catch(() => null);
-    return data?.result?.message_id || null;
+    return {
+      ok: res.ok && !!data?.ok,
+      suppressed: wasSuppressed(data),
+      messageId: data?.result?.message_id || null,
+    };
   } catch {
-    return null;
+    return { ok: false, suppressed: false, messageId: null };
   }
 }
 
@@ -193,12 +202,24 @@ module.exports = withTelemetry('cron-send-engagement-approvals', async function 
         { text: 'Reject',  callback_data: `eng_reject:${row.id}` },
       ]],
     };
-    const messageId = await tgSend(buildDraftMessage(row), keyboard);
+    const draftSend = await tgSend(buildDraftMessage(row), keyboard);
+
+    // Suppressed or failed send => Heath never saw the draft. Leave the row
+    // where it is so the next run retries; stamping sent_for_approval here
+    // would make it invisible forever (Carter, 2026-09-07).
+    if (draftSend.suppressed) {
+      console.warn(`[cron-send-engagement-approvals] approval message for candidate ${row.id} SUPPRESSED by telegram-gate — NOT marking sent_for_approval`);
+      continue;
+    }
+    if (!draftSend.ok) {
+      console.error(`[cron-send-engagement-approvals] draft send failed for candidate ${row.id} — NOT marking sent_for_approval`);
+      continue;
+    }
 
     await patchRow(row.id, {
       status: 'sent_for_approval',
       telegram_sent_at: new Date().toISOString(),
-      telegram_message_id: messageId || null,
+      telegram_message_id: draftSend.messageId || null,
     });
     sent++;
     await new Promise((r) => setTimeout(r, 1500));

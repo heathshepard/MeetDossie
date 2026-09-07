@@ -31,7 +31,9 @@
 // stamped metadata.batch_card_sent_at so a later run of this cron does not
 // resend the card. Heath's tap is what actually changes approval_status.
 
-require('./_lib/telegram-gate').install('cron-cold-email-review');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-cold-email-review');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -164,6 +166,14 @@ module.exports = withTelemetry('cron-cold-email-review', async function handler(
     if (!result.ok) {
       console.error('[cron-cold-email-review] send failed for batch', batchId, result.raw?.slice(0, 200));
       errors.push({ batch: batchId, error: result.raw?.slice(0, 200) });
+      continue;
+    }
+    // Gate-suppressed send = the card never reached Heath's phone. Do NOT
+    // stamp batch_card_sent_at — that's exactly how the 2026-08-26 invisible
+    // 25-email batch happened. Carter, 2026-09-07.
+    if (wasSuppressed(result.data)) {
+      console.warn(`[cron-cold-email-review] batch card for ${batchId} SUPPRESSED by telegram-gate — NOT stamping batch_card_sent_at (batch stays visible in Jarvis)`);
+      errors.push({ batch: batchId, error: 'suppressed_by_telegram_gate' });
       continue;
     }
     const messageId = result.data?.result?.message_id || null;

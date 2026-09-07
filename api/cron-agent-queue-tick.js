@@ -31,7 +31,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-agent-queue-tick');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-agent-queue-tick');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { createClient } = require('@supabase/supabase-js');
@@ -239,12 +241,18 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
     const alreadyAcknowledged = prev && prev.last_meta && prev.last_meta.pause_acknowledged_at;
 
     if (prevStatus !== 'paused_expected' && !alreadyAcknowledged) {
-      await tg(
+      const handoff = await tg(
         `[queue watchdog] Dispatch cron is paused (${reason}). ` +
           `${oldReady.length} ready task(s) will sit until the dispatcher is un-paused. ` +
           `Suppressing hourly "stuck dispatcher" alerts. Un-pause /api/cron-agent-queue-dispatch in vercel.json to resume.`,
       );
-      pausedMeta.pause_acknowledged_at = new Date().toISOString();
+      // Only stamp the one-time acknowledgement if the handoff message truly
+      // reached Heath — a gate-suppressed send would eat it forever.
+      if (handoff.delivered) {
+        pausedMeta.pause_acknowledged_at = new Date().toISOString();
+      } else if (handoff.suppressed) {
+        console.warn('[cron-agent-queue-tick] pause handoff message SUPPRESSED by telegram-gate — NOT stamping pause_acknowledged_at');
+      }
     } else if (alreadyAcknowledged) {
       pausedMeta.pause_acknowledged_at = prev.last_meta.pause_acknowledged_at;
     }
@@ -288,12 +296,19 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
   const oldestAgeMin = Math.round(
     (Date.now() - new Date(oldReady[0].created_at).getTime()) / 60000,
   );
-  await tg(
+  const alertSend = await tg(
     `[queue watchdog] Nothing is claiming ready work: ${oldReady.length} ready task(s) older than ${DISPATCH_STUCK_MIN}min ` +
       `(oldest ${oldestAgeMin}min, ${oldReady[0].agent_name} / "${(oldReady[0].task_subject || '').slice(0, 60)}") ` +
       `AND no claims in same window. Check scripts/agent-queue-poller.js is running on your PC ` +
       `(Get-ScheduledTask -TaskName AgentQueuePoller) and claude-code-worker.js if it's a task_type row.`,
   );
+
+  // Gate-suppressed = Heath was NOT alerted. Do not persist the throttle
+  // stamp — that would mark 'alerted' with nothing delivered (Carter, 2026-09-07).
+  if (alertSend.suppressed) {
+    console.warn('[cron-agent-queue-tick] stuck-dispatcher alert SUPPRESSED by telegram-gate — NOT stamping dispatch_alert_at');
+    return { alerted: false, reason: 'suppressed_by_telegram_gate', stuck_ready: oldReady.length };
+  }
 
   // Persist the alert timestamp so the throttle holds across ticks.
   const alertedAt = new Date().toISOString();
@@ -317,16 +332,23 @@ async function maybeAlertDispatchStuck(supabase, snapshot) {
   };
 }
 
+// Returns { delivered, suppressed }. delivered=true only when Telegram truly
+// accepted the message — a telegram-gate fake success is NOT a delivery
+// (Carter, 2026-09-07).
 async function tg(text) {
-  if (!TELEGRAM_BOT_TOKEN) return;
+  if (!TELEGRAM_BOT_TOKEN) return { delivered: false, suppressed: false };
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text }),
     });
+    const data = await r.json().catch(() => null);
+    const suppressed = wasSuppressed(data);
+    return { delivered: r.ok && !suppressed, suppressed };
   } catch (e) {
     console.warn('[cron-agent-queue-tick] telegram failed:', e.message);
+    return { delivered: false, suppressed: false };
   }
 }
 

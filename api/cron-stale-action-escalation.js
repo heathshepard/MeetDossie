@@ -18,7 +18,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-stale-action-escalation');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-stale-action-escalation');
+const { wasSuppressed } = telegramGate;
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -57,7 +59,9 @@ async function tg(text) {
         disable_web_page_preview: true,
       }),
     });
-    return { ok: r.ok };
+    const data = await r.json().catch(() => null);
+    // suppressed=true: telegram-gate ate the send — Heath was NOT escalated to.
+    return { ok: r.ok, suppressed: wasSuppressed(data) };
   } catch (err) {
     console.error('[stale-escalation] tg error:', err && err.message);
     return { ok: false };
@@ -148,7 +152,13 @@ module.exports = async function handler(req, res) {
 
     if (!dryRun) {
       const tgRes = await tg(text);
-      tgOk = tgRes.ok === true;
+      // Gate-suppressed = Heath never saw the escalation. Do NOT stamp
+      // last_escalated_at — the 3-day re-escalation window would silently
+      // swallow it (Carter, 2026-09-07).
+      if (tgRes.suppressed) {
+        console.warn(`[cron-stale-action-escalation] escalation for action ${a.id} SUPPRESSED by telegram-gate — NOT stamping last_escalated_at`);
+      }
+      tgOk = tgRes.ok === true && !tgRes.suppressed;
 
       // Stamp payload.last_escalated_at = now(). Merge into existing payload
       // to avoid clobbering other keys.

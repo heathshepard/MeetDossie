@@ -10,7 +10,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-followup-check');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-followup-check');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -71,7 +73,10 @@ async function sendTelegram(text) {
       }),
     });
     const bodyText = await res.text();
-    return { ok: res.ok, status: res.status, body: bodyText };
+    let data = null;
+    try { data = bodyText ? JSON.parse(bodyText) : null; } catch { data = null; }
+    // suppressed=true: telegram-gate ate the send — Heath was NOT alerted.
+    return { ok: res.ok, status: res.status, body: bodyText, suppressed: wasSuppressed(data) };
   } catch (err) {
     return { ok: false, error: (err && err.message) || 'send failed' };
   }
@@ -125,13 +130,18 @@ module.exports = withTelemetry('cron-followup-check', async function handler(req
 
     const alert = formatAlert(row);
     const send = await sendTelegram(alert);
-    if (!send.ok) {
+    if (send.suppressed) {
+      // Gate-suppressed send = Heath never got the reminder. Leaving the row
+      // 'fired' would silently swallow it forever (Carter, 2026-09-07).
+      console.warn(`[cron-followup-check] alert for followup ${row.id} SUPPRESSED by telegram-gate — reverting to pending, NOT marking fired`);
+    }
+    if (!send.ok || send.suppressed) {
       // Revert to pending so we retry next tick.
       await supabaseFetch(`/rest/v1/followups?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: 'pending', fired_at: null }),
       });
-      errors.push({ id: row.id, stage: 'telegram', error: send.error || send.body || null });
+      errors.push({ id: row.id, stage: 'telegram', error: send.suppressed ? 'suppressed_by_telegram_gate' : (send.error || send.body || null) });
       continue;
     }
     fired.push({ id: row.id, title: row.title });

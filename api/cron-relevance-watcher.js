@@ -837,7 +837,10 @@ async function handler(req, res) {
       stats.notify_attempted = (stats.notify_attempted || 0) + 1;
       if (tg.suppressed) stats.notify_suppressed = (stats.notify_suppressed || 0) + 1;
       if (tg.ok && !tg.skipped && !tg.suppressed) stats.notify_sent = (stats.notify_sent || 0) + 1;
-      if (tg.ok && !tg.skipped) {
+      // 2026-09-07 (Carter): a suppressed send must NOT mark the hit
+      // notified=true — wasAlreadyNotified() would then skip it forever even
+      // though Heath never saw it.
+      if (tg.ok && !tg.skipped && !tg.suppressed) {
         await supaFetch(`relevance_watch_hits?gmail_message_id=eq.${encodeURIComponent(messageId)}`, {
           method: 'PATCH',
           headers: { Prefer: 'return=minimal' },
