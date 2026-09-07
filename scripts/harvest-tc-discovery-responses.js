@@ -405,7 +405,7 @@ async function main() {
   try {
     context = await launchContext(headless);
   } catch (err) {
-    if (/holder|lock|timeout/i.test(err.message || '')) {
+    if (/held|holder|lock|timeout/i.test(err.message || '')) {
       console.log(`[tc-harvest] profile busy (${err.message}) — skipping this tick, next run retries`);
       return;
     }
