@@ -45,6 +45,9 @@ const http = require('http');
 const path = require('path');
 
 const md5 = (s) => crypto.createHash('md5').update(s, 'utf8').digest('hex');
+// Mirrors the DB's generated column:
+// md5(btrim(regexp_replace(comment_text, '\s+', ' ', 'g')))
+const normHash = (s) => md5(String(s).replace(/\s+/g, ' ').trim());
 
 // ─── Mock PostgREST ───────────────────────────────────────────────────────────
 
@@ -93,7 +96,7 @@ const server = http.createServer((req, res) => {
       const conflictCols = (q.on_conflict || '').split(',').filter(Boolean);
       for (const r of arr) {
         const row = { id: String(nextId++), ...r };
-        if (table === 'tc_discovery_responses') row.comment_hash = md5(row.comment_text);
+        if (table === 'tc_discovery_responses') row.comment_hash = normHash(row.comment_text);
         const dupe = conflictCols.length > 0 && rows.some((ex) => conflictCols.every((c) => ex[c] === row[c]));
         if (!dupe) rows.push(row);
       }
@@ -160,6 +163,19 @@ async function main() {
   const r3 = await upsertComments(post, comments2, '2026-09-13T21:30:00Z');
   assert.strictEqual(r3.inserted, 1, 'third pass inserts only the new comment');
   assert.strictEqual(db.tc_discovery_responses.length, 3, '3 rows total');
+
+  // 2b. FB DOUBLE-RENDER: the live DOM renders every comment twice with
+  // whitespace-only differences (verified 2026-09-07, Q2 DFW post: "me." + 3
+  // spaces vs 1). Whitespace variants of an already-stored comment — and a
+  // same-comment_id second rendering — must NOT create new rows.
+  const wsVariants = [
+    { author: 'Jane Agent', text: verbatim.replace(/\n/g, ' \n').replace(/  +/g, '   '), permalink: null, atRaw: '2h', at: null },
+    { author: 'Bob Broker', text: 'Timelines.   Every time.', permalink: 'https://x/?comment_id=999', atRaw: '1h', at: null },
+    { author: 'Bob Broker', text: 'Timelines.  Every time.', permalink: 'https://y/?comment_id=999', atRaw: '1h', at: null },
+  ];
+  const r4 = await upsertComments(post, wsVariants, '2026-09-14T21:30:00Z');
+  assert.strictEqual(r4.inserted, 0, 'whitespace-variant re-renders insert nothing');
+  assert.strictEqual(db.tc_discovery_responses.length, 3, 'STILL 3 rows — double-render dedupe holds');
 
   // 3. VERBATIM: byte-identical, whitespace and newlines intact
   const stored = db.tc_discovery_responses.find((r) => r.commenter_name === 'Jane Agent');

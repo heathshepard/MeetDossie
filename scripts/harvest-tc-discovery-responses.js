@@ -14,9 +14,11 @@
 //     controls ("View more comments", "N replies", "See more"). It never
 //     posts, replies, likes, joins, or types anything.
 //   - comment_text is stored VERBATIM. No normalizing, no truncation.
-//   - Idempotent: dedupe key is (post_url, commenter_name, md5(comment_text))
-//     both in-script and as a DB UNIQUE constraint — re-running never
-//     duplicates rows; re-seen comments just get last_seen_at bumped.
+//   - Idempotent: dedupe key is (post_url, commenter_name,
+//     md5(whitespace-normalized comment_text)) both in-script and as a DB
+//     UNIQUE constraint, plus FB's own comment_id in-pass — re-running never
+//     duplicates rows; re-seen comments just get last_seen_at bumped. The
+//     STORED text is still verbatim; only the hash normalizes whitespace.
 //   - Only group_posts mutations: last_harvested_at + harvest_count
 //     (harvest metadata added by supabase/migrations/20260907_tc_discovery_responses.sql).
 //
@@ -81,6 +83,14 @@ const CAMPAIGN_WINDOW_MS = 45 * DAY;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const md5 = (s) => crypto.createHash('md5').update(s, 'utf8').digest('hex');
+
+// Dedupe hash is computed on WHITESPACE-NORMALIZED text (collapse runs,
+// trim) — Facebook renders each comment twice in the DOM and the two
+// renderings differ in whitespace only (verified live 2026-09-07, Q2 DFW
+// post). Must match the DB's generated comment_hash expression:
+// md5(btrim(regexp_replace(comment_text, '\s+', ' ', 'g'))).
+// The STORED comment_text stays verbatim; only the hash normalizes.
+const normHash = (s) => md5(String(s).replace(/\s+/g, ' ').trim());
 
 // ─── Supabase helpers ─────────────────────────────────────────────────────────
 
@@ -176,13 +186,19 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
   const inserts = [];
   const seenIds = [];
   const localKeys = new Set(); // dedupe within a single scrape pass too
+  const localCommentIds = new Set(); // FB's own comment_id — catches double-rendered DOM copies
   let skipped = 0;
 
   for (const c of comments) {
     const author = (c.author || '').trim();
     const text = c.text; // VERBATIM — never trimmed/normalized
     if (!author || !text || !text.trim()) { skipped++; continue; }
-    const key = `${author}::${md5(text)}`;
+    const cidMatch = c.permalink ? String(c.permalink).match(/comment_id=(\d+)/) : null;
+    if (cidMatch) {
+      if (localCommentIds.has(cidMatch[1])) { skipped++; continue; }
+      localCommentIds.add(cidMatch[1]);
+    }
+    const key = `${author}::${normHash(text)}`;
     if (localKeys.has(key)) { skipped++; continue; }
     localKeys.add(key);
     if (existing.has(key)) {
@@ -310,9 +326,11 @@ async function scrapeComments(page) {
     const articles = Array.from(document.querySelectorAll('div[role="article"]'));
     for (const art of articles) {
       const label = art.getAttribute('aria-label') || '';
-      const m = label.match(/^(?:Comment|Reply) by (.+?)(?:\s+\d+\s+\w+\s+ago)?$/i);
+      const m = label.match(/^(?:Comment|Reply) by (.+)$/i);
       if (!m) continue; // the original post's article has no "Comment by" label
-      let author = m[1].trim();
+      // Live labels look like "Comment by Chaska Wilkinson about an hour ago"
+      // / "... 36 minutes ago" — strip the trailing relative-time phrase.
+      let author = m[1].replace(/\s+(?:about\s+)?(?:an?|\d+)\s+(?:second|minute|hour|day|week|month|year)s?\s+ago$/i, '').trim();
       // Prefer the first profile link's text when present (cleaner than aria-label parsing)
       const authorLink = art.querySelector('a[role="link"] span, a[role="link"] strong');
       if (authorLink && authorLink.innerText && authorLink.innerText.trim()) {

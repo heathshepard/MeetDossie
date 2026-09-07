@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.tc_discovery_responses (
   source_group      TEXT,
   commenter_name    TEXT NOT NULL,
   comment_text      TEXT NOT NULL,
-  comment_hash      TEXT GENERATED ALWAYS AS (md5(comment_text)) STORED,
+  comment_hash      TEXT GENERATED ALWAYS AS (md5(btrim(regexp_replace(comment_text, '\\s+', ' ', 'g')))) STORED,
   comment_permalink TEXT,
   commented_at      TIMESTAMPTZ,
   commented_at_raw  TEXT,
@@ -48,8 +48,27 @@ CREATE TABLE IF NOT EXISTS public.tc_discovery_responses (
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Converge comment_hash to the whitespace-normalized expression (the first
+-- deploy used raw md5(comment_text); FB's double-rendered DOM produced
+-- whitespace-variant near-dupes). Generated columns can't be altered in
+-- place, so drop + re-add — cheap at this table's size, idempotent in effect.
 ALTER TABLE public.tc_discovery_responses
   DROP CONSTRAINT IF EXISTS tc_discovery_responses_dedupe;
+ALTER TABLE public.tc_discovery_responses
+  DROP COLUMN IF EXISTS comment_hash;
+ALTER TABLE public.tc_discovery_responses
+  ADD COLUMN comment_hash TEXT GENERATED ALWAYS AS (md5(btrim(regexp_replace(comment_text, '\\s+', ' ', 'g')))) STORED;
+
+-- Collapse any whitespace-variant near-dupes captured before this converge
+-- (keep the earliest row per key), then enforce uniqueness.
+DELETE FROM public.tc_discovery_responses t
+  USING public.tc_discovery_responses keep
+  WHERE keep.post_url = t.post_url
+    AND keep.commenter_name = t.commenter_name
+    AND keep.comment_hash = t.comment_hash
+    AND (keep.created_at < t.created_at
+         OR (keep.created_at = t.created_at AND keep.id < t.id));
+
 ALTER TABLE public.tc_discovery_responses
   ADD CONSTRAINT tc_discovery_responses_dedupe
   UNIQUE (post_url, commenter_name, comment_hash);

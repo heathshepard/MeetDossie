@@ -45,7 +45,12 @@ CREATE TABLE IF NOT EXISTS public.tc_discovery_responses (
   -- The response itself. comment_text is VERBATIM — never cleaned.
   commenter_name    TEXT NOT NULL,
   comment_text      TEXT NOT NULL,
-  comment_hash      TEXT GENERATED ALWAYS AS (md5(comment_text)) STORED,
+  -- Dedupe hash is WHITESPACE-NORMALIZED (collapse runs, trim) because
+  -- Facebook renders each comment twice in the DOM with slightly different
+  -- whitespace between the two renderings (verified live 2026-09-07 on the
+  -- Q2 DFW post — same comment, "me." + 3 spaces vs 1). comment_text itself
+  -- stays VERBATIM; only the hash normalizes.
+  comment_hash      TEXT GENERATED ALWAYS AS (md5(btrim(regexp_replace(comment_text, '\s+', ' ', 'g')))) STORED,
   comment_permalink TEXT,
   commented_at      TIMESTAMPTZ,          -- best-effort absolute time
   commented_at_raw  TEXT,                 -- FB's rendered timestamp verbatim ("2h", "Yesterday at 3:14 PM")
@@ -84,7 +89,7 @@ COMMENT ON TABLE public.tc_discovery_responses IS
 COMMENT ON COLUMN public.tc_discovery_responses.comment_text IS
   'VERBATIM comment text as rendered on the platform. The entire point of the table. Never edited.';
 COMMENT ON COLUMN public.tc_discovery_responses.comment_hash IS
-  'Generated md5(comment_text); part of the dedupe key so re-harvests never duplicate rows.';
+  'Generated md5 of whitespace-normalized comment_text; part of the dedupe key so re-harvests (and FB''s double-rendered DOM) never duplicate rows. The stored text itself is verbatim.';
 COMMENT ON COLUMN public.tc_discovery_responses.commented_at_raw IS
   'The platform''s rendered timestamp exactly as scraped ("2h", "Yesterday at 3:14 PM") — kept because the parsed commented_at is best-effort.';
 
