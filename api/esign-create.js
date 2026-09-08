@@ -10,8 +10,19 @@
 // 2026-09-01 CARTER — `documentIds` (array) accepted alongside legacy
 // `documentId`. This is the contract the DossieSign FormEditor Send button
 // posts (docs/DOSSIE-DOCUSEAL-INTEGRATION-PLAN-2026-09-01.md §2.2/§2.3).
-// Single-document only for now; multi-document packets land with the
-// Phase 3 multi-doc submission work.
+//
+// 2026-09-08 CARTER — multi-document packets are LIVE (Phase 3 of the plan).
+// `documentIds: [uuid, ...]` in the member's chosen order builds ONE DocuSeal
+// submission from ONE transient template carrying every PDF as its own
+// document (`documents: []` on POST /templates/pdf — verified live 2026-09-08:
+// fields bind per-document via attachment_uuid, areas[].page stays LOCAL and
+// 1-indexed per document, roles are shared across documents). One envelope,
+// one signing session, one email per signer — the zipForm
+// "Add a Document or Form → My Transaction" mental model.
+// Documents with no field map (e.g. an MLS-pulled seller's disclosure upload)
+// ride in a packet via caller-placed `fields` entries carrying `documentId`.
+// The 422 placement gate fires on EVERY document in the packet — a packet is
+// only as valid as its worst document.
 //
 // ==========================================================================
 // SQL — RUN IN SUPABASE SQL EDITOR BEFORE DEPLOYING
@@ -45,6 +56,7 @@
 //
 // ==========================================================================
 
+const crypto = require('crypto');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const {
   checkRateLimit,
@@ -422,6 +434,219 @@ function assertPlausibleMappedFieldCount(formEntry, fieldMap, signers) {
       + `initials. Contact support before retrying.`, 422,
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// 2026-09-08 CARTER — multi-document packet machinery (Phase 3).
+// A packet = one contract + its addenda (+ arbitrary uploaded PDFs with
+// caller-placed fields) sent as ONE DocuSeal submission. Field maps, the
+// buildMappedFieldMap assignment, and both 422 gates run PER DOCUMENT — the
+// generalized gate fires on every document, not just the first.
+// ---------------------------------------------------------------------------
+const MAX_PACKET_DOCUMENTS = 10;
+const CUSTOM_FIELD_TYPES = new Set(['signature', 'initials', 'date', 'text', 'checkbox']);
+
+// Resolve the PDF bytes for a packet document. Mirrors the single-document
+// path exactly: blank form_template placeholders resolve from base64 assets
+// (gated to BLANK_SEND_SAFE_SLUGS — an unfilled contract can never ride in a
+// packet), everything else comes from Supabase Storage.
+async function resolvePdfBufferForDoc(doc) {
+  const isBlankTemplate = doc.document_type === 'form_template' && doc.status === 'blank';
+  if (isBlankTemplate && doc.form_template_id) {
+    const resolved = await resolveBlankTemplatePdfDoc(doc);
+    if (!resolved) {
+      throw new ValidationError(`"${doc.file_name}": this form template PDF is not available. Please contact support.`, 422);
+    }
+    if (!BLANK_SEND_SAFE_SLUGS.has(resolved.slug)) {
+      throw new ValidationError(
+        `"${doc.file_name}" has not been filled in yet. Open it from the dossier and complete the `
+        + `required fields before adding it to a signing packet.`, 409,
+      );
+    }
+    return resolved.buffer;
+  }
+  if (!doc.storage_path) {
+    throw new ValidationError(`"${doc.file_name}" has no stored PDF — cannot send it for signature.`, 422);
+  }
+  const signedUrl = await generateSignedUrl(doc.storage_path, 300);
+  const pdfRes = await fetch(signedUrl);
+  if (!pdfRes.ok) {
+    throw new ValidationError(`Could not fetch "${doc.file_name}" for signing (${pdfRes.status}).`, 502);
+  }
+  return Buffer.from(await pdfRes.arrayBuffer());
+}
+
+// Gate for documents with NO field map (the MLS-pulled seller's-disclosure
+// upload case): the member must have placed fields on it themselves, and
+// those placements must be well-formed. Throws 422 — the caller must not
+// reach DocuSeal when this throws.
+function validateCustomFieldsForDoc(doc, docFields, allSigners) {
+  const roleSet = new Set(allSigners.map((s) => s.role || 'Signer'));
+  if (docFields.length === 0) {
+    throw new ValidationError(
+      `"${doc.file_name}" has no signature field map and no placed fields. Open it and place at `
+      + `least one signature field for each signer before adding it to a packet.`, 422,
+    );
+  }
+  let hasSignatureOrInitials = false;
+  for (const f of docFields) {
+    if (!f || typeof f.name !== 'string' || !f.name.trim() || !CUSTOM_FIELD_TYPES.has(f.type)) {
+      throw new ValidationError(`"${doc.file_name}": a placed field is malformed (name/type). Refusing to send.`, 422);
+    }
+    if (!roleSet.has(f.signerRole)) {
+      throw new ValidationError(
+        `"${doc.file_name}": field "${f.name}" targets role "${f.signerRole}", which is not one of `
+        + `this packet's signers. Refusing to send.`, 422,
+      );
+    }
+    const areas = Array.isArray(f.areas) ? f.areas : [];
+    if (areas.length === 0) {
+      throw new ValidationError(`"${doc.file_name}": field "${f.name}" has no placement area. Refusing to send.`, 422);
+    }
+    for (const a of areas) {
+      const numsOk = [a.x, a.y, a.w, a.h].every((n) => typeof n === 'number' && Number.isFinite(n));
+      const ok = a && Number.isInteger(a.page) && a.page >= 1 && numsOk
+        && a.x >= 0 && a.x <= 1 && a.y >= 0 && a.y <= 1
+        && a.w > 0 && a.w <= 1 && a.h > 0 && a.h <= 1;
+      if (!ok) {
+        throw new ValidationError(
+          `"${doc.file_name}": field "${f.name}" has an invalid placement area (page must be a `
+          + `1-indexed integer, x/y/w/h fractions 0-1). Refusing to send.`, 422,
+        );
+      }
+    }
+    if (f.type === 'signature' || f.type === 'initials') hasSignatureOrInitials = true;
+  }
+  if (!hasSignatureOrInitials) {
+    throw new ValidationError(
+      `"${doc.file_name}": place at least one signature or initials field on it. Refusing to send `
+      + `a document nobody can sign.`, 422,
+    );
+  }
+}
+
+// Build the flattened DocuSeal field list for one packet document.
+// Mapped forms (the 23 verified maps + the resale 20-19) run through the SAME
+// buildMappedFieldMap + assertPlausibleMappedFieldCount machinery as
+// single-document sends. Unmapped docs require caller-placed fields routed by
+// `fields[].documentId`. `prefix` keeps field names unique across documents
+// (same-name fields on a DocuSeal template share one value — two "Buyer 1
+// Signature" fields on different addenda must NOT be the same field).
+function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFields }) {
+  const prefix = packetSize > 1 ? `D${docIndex + 1} ` : '';
+  const formEntry = doc.document_type === 'resale_contract'
+    ? resaleFormEntry()
+    : resolveEsignFieldMapForDoc(doc);
+  const flat = [];
+
+  if (formEntry) {
+    const built = buildMappedFieldMap(formEntry, allSigners); // throws 422 on any violation
+    assertPlausibleMappedFieldCount(formEntry, built.fieldMap, allSigners); // throws 422
+    console.log(`[esign-create] packet doc ${docIndex + 1}/${packetSize} "${doc.file_name}" `
+      + `(${formEntry.form_type}, TREC ${formEntry.trec_no || '?'}): ${built.summary.join('; ')}`);
+    for (const [role, roleFields] of Object.entries(built.fieldMap)) {
+      for (const f of roleFields) {
+        flat.push({
+          name: `${prefix}${f.name}`,
+          type: f.type,
+          role,
+          ...(f.preferences ? { preferences: f.preferences } : {}),
+          areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
+        });
+      }
+    }
+  } else {
+    const docFields = (callerFields || []).filter((f) => f && f.documentId === doc.id);
+    validateCustomFieldsForDoc(doc, docFields, allSigners); // throws 422
+    console.log(`[esign-create] packet doc ${docIndex + 1}/${packetSize} "${doc.file_name}" `
+      + `(unmapped): ${docFields.length} caller-placed field(s)`);
+    for (const f of docFields) {
+      flat.push({
+        name: `${prefix}${f.name}`,
+        type: f.type,
+        role: f.signerRole,
+        ...(f.preferences && typeof f.preferences === 'object' ? { preferences: f.preferences } : {}),
+        areas: f.areas.map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
+      });
+    }
+  }
+  return { formEntry, fields: flat };
+}
+
+// Packet-wide gate: every principal (buyer/seller) signer must end up with at
+// least one signature-type widget SOMEWHERE in the packet. Mapped documents
+// already guarantee this per-document; this catches all-upload packets where
+// a signer was named but never given a signature placement.
+function assertPacketSignable(packetDocs, allSigners) {
+  for (const s of allSigners) {
+    const role = s.role || 'Signer';
+    if (classifyRole(role) === 'agent') continue;
+    const hasSignature = packetDocs.some((d) => d.fields.some(
+      (f) => f.role === role && f.type === 'signature',
+    ));
+    if (!hasSignature) {
+      throw new ValidationError(
+        `Signer "${role}" has no signature field anywhere in this packet. Refusing to send an `
+        + `unsignable packet.`, 422,
+      );
+    }
+  }
+}
+
+// Create ONE transient DocuSeal template carrying every packet PDF as its own
+// document, then ONE submission against it. Verified live 2026-09-08:
+// POST /templates/pdf accepts documents:[] with per-document fields; each
+// field binds to its own document (attachment_uuid) and areas[].page stays
+// local + 1-indexed per document; roles are shared submitters across all
+// documents. One submission = one signing session = one email per signer.
+async function docusealCreateFromPacket({ packetName, documents, signers, message }) {
+  if (!DOCUSEAL_API_KEY) {
+    console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub packet submission.');
+    return {
+      id: `stub-packet-${Date.now()}`,
+      templateId: null,
+      submitters: signers.map((s, i) => ({
+        uuid: `stub-uuid-${i}`,
+        slug: `stub-slug-${i}`,
+        name: s.name,
+        email: s.email,
+        role: s.role || 'Signer',
+        status: 'sent',
+        embed_src: null,
+      })),
+    };
+  }
+
+  const tmplBody = {
+    name: packetName || 'Signing packet',
+    documents: documents.map((d) => ({
+      // DocuSeal appends .pdf to the document name itself (probe: "DocA.pdf"
+      // came back "DocA.pdf.pdf") — strip the extension here.
+      name: String(d.fileName || 'Document').replace(/\.pdf$/i, ''),
+      file: `data:application/pdf;base64,${d.pdfBuffer.toString('base64')}`,
+      fields: d.fields,
+    })),
+    submitters: signers.map((s) => ({ name: s.role || 'Signer' })),
+  };
+
+  const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
+    method: 'POST',
+    headers: {
+      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(tmplBody),
+  });
+  if (!tmplRes.ok) {
+    const text = await tmplRes.text().catch(() => '');
+    throw new ValidationError(`DocuSeal packet template creation failed (${tmplRes.status}): ${text.slice(0, 200)}`, 422);
+  }
+  const tmplData = await tmplRes.json();
+  if (!tmplData.id) {
+    throw new ValidationError('DocuSeal packet template missing id.', 502);
+  }
+
+  return createSubmissionFromTransientTemplate(tmplData, signers, message);
 }
 
 function classifyRole(roleRaw) {
@@ -844,7 +1069,22 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
     throw new ValidationError(`DocuSeal template missing id.`, 502);
   }
 
-  // Step 4: Create the submission from the template. Map roles to submitter emails.
+  // Step 4: Create the submission from the template.
+  const result = await createSubmissionFromTransientTemplate(tmplData, signers, message);
+  // Audit trail: hash of the exact bytes sent for signing.
+  result.sentPdfSha256 = sha256Hex(pdfBuffer);
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// 2026-09-08 CARTER — shared "template → submission" leg, extracted verbatim
+// from docusealCreateFromPdf so the multi-document packet path uses the SAME
+// submitter mapping + message handling instead of forking it.
+// Returns { id, submitters, templateId }.
+// ---------------------------------------------------------------------------
+async function createSubmissionFromTransientTemplate(tmplData, signers, message) {
+  const templateId = tmplData.id;
+  // Map roles to submitter emails.
   const tmplSubmitters = (tmplData.submitters || []).map((tmplSub) => {
     // Match by role; fall back to position.
     const original = signers.find((s) => (s.role || 'Signer') === tmplSub.name) || null;
@@ -912,10 +1152,15 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
     return {
       id: submData[0].submission_id,
       submitters: submData,
+      templateId,
     };
   }
-  if (submData && submData.id) return submData;
+  if (submData && submData.id) return { ...submData, templateId };
   throw new ValidationError(`DocuSeal returned unexpected submission shape.`, 502);
+}
+
+function sha256Hex(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
 // 2026-07-05 ATLAS ROUND 7 — GOLD-2026-07-05-v11-esign-prefill-fixed
@@ -1361,8 +1606,30 @@ async function insertSignatureRequest(row) {
     return { ok: false, status: res.status, text };
   };
 
-  const first = await attempt(row);
+  let first = await attempt(row);
   if (first.ok) return { row: first.row, warning: null };
+
+  // 2026-09-08 CARTER — the packet + audit-trail columns (document_ids,
+  // sent_pdf_sha256, docuseal_template_id — api/_migrations/0026) may not
+  // exist yet on an environment where the migration hasn't run. Losing the
+  // whole tracking row over an optional column is the worst outcome (the
+  // envelope is already out) — strip them and retry, loudly.
+  const isUnknownColumn = first.text.includes('PGRST204')
+    || /could not find the .* column/i.test(first.text)
+    || /column .* does not exist/i.test(first.text);
+  if (isUnknownColumn) {
+    const stripped = { ...row };
+    for (const col of ['document_ids', 'sent_pdf_sha256', 'docuseal_template_id']) delete stripped[col];
+    console.warn('[esign-create] signature_requests insert hit unknown column — run '
+      + 'api/_migrations/0026-esign-packets-audit.sql. Retrying without audit columns.');
+    first = await attempt(stripped);
+    if (first.ok) {
+      return {
+        row: first.row,
+        warning: 'Sent and recorded, but packet/audit metadata could not be saved (database migration pending).',
+      };
+    }
+  }
 
   const isFkViolation = first.text.includes('23503')
     || /foreign key constraint/i.test(first.text);
@@ -1513,15 +1780,26 @@ module.exports = async function handler(req, res) {
     }
 
     // 2026-09-01 CARTER — accept `documentIds: [uuid]` (the FormEditor Send
-    // button contract) alongside legacy `documentId`. One document per
-    // envelope until the Phase 3 multi-document submission work lands;
-    // reject >1 loudly rather than silently dropping documents.
+    // button contract) alongside legacy `documentId`.
+    // 2026-09-08 CARTER — 2+ documentIds now build a multi-document packet
+    // (one envelope, one email per signer). Order is the member's packet
+    // order and is preserved end-to-end. Single-document sends (legacy
+    // `documentId` or a 1-element array) keep the existing path untouched.
     let documentId = sanitizeString(body.documentId, { maxLength: 200 });
-    if (!documentId && Array.isArray(body.documentIds)) {
-      if (body.documentIds.length > 1) {
-        throw new ValidationError('Multi-document packets are not supported yet — send one document at a time.');
+    let packetDocumentIds = null;
+    if (!documentId && Array.isArray(body.documentIds) && body.documentIds.length > 0) {
+      const cleaned = body.documentIds.map((id) => sanitizeString(id, { maxLength: 200 })).filter(Boolean);
+      if (cleaned.length !== body.documentIds.length) {
+        throw new ValidationError('Every documentIds entry must be a document id.');
       }
-      documentId = sanitizeString(body.documentIds[0], { maxLength: 200 });
+      if (cleaned.length > MAX_PACKET_DOCUMENTS) {
+        throw new ValidationError(`A packet can contain at most ${MAX_PACKET_DOCUMENTS} documents.`);
+      }
+      if (new Set(cleaned).size !== cleaned.length) {
+        throw new ValidationError('The same document appears more than once in the packet.');
+      }
+      if (cleaned.length > 1) packetDocumentIds = cleaned;
+      else documentId = cleaned[0];
     }
     const templateId = sanitizeString(body.templateId, { maxLength: 200 }) || null;
     const message = sanitizeString(body.message, { maxLength: 1000 }) || null;
@@ -1538,8 +1816,11 @@ module.exports = async function handler(req, res) {
     const sellerAgentName = sanitizeString(body.sellerAgentName, { maxLength: 200 }) || null;
     const sellerAgentEmail = sanitizeString(body.sellerAgentEmail, { maxLength: 200 }) || null;
 
-    if (!documentId) {
+    if (!documentId && !packetDocumentIds) {
       throw new ValidationError('documentId is required.');
+    }
+    if (packetDocumentIds && templateId) {
+      throw new ValidationError('templateId cannot be combined with a multi-document packet — the template flow is single-document.', 422);
     }
     if (signers.length === 0) {
       throw new ValidationError('At least one signer is required.');
@@ -1557,6 +1838,139 @@ module.exports = async function handler(req, res) {
     }
     if (sellerAgentEmail && !sellerAgentEmail.includes('@')) {
       throw new ValidationError('sellerAgentEmail must be a valid email address.');
+    }
+
+    // ------------------------------------------------------------------
+    // Multi-document packet path (2026-09-08). One envelope for the whole
+    // packet; per-document field maps + 422 gates; caller-placed fields for
+    // unmapped uploads routed by fields[].documentId.
+    // ------------------------------------------------------------------
+    if (packetDocumentIds) {
+      // Fetch every document (verifies ownership on each).
+      const packetDocRows = [];
+      for (const id of packetDocumentIds) {
+        packetDocRows.push(await getDocumentRow(id, userId));
+      }
+
+      // All docs must belong to the same dossier (or carry none). Two
+      // different transactions in one envelope is always a mistake.
+      const txIds = [...new Set(packetDocRows.map((d) => d.transaction_id).filter(Boolean))];
+      if (txIds.length > 1) {
+        throw new ValidationError('Packet documents belong to different dossiers — send them separately.', 422);
+      }
+      const packetTransactionId = txIds[0] || null;
+      const packetTx = packetTransactionId ? await getFullTransactionRow(packetTransactionId, userId) : null;
+      const packetPropertyAddress = packetTx ? (packetTx.property_address || '') : '';
+
+      const packetSigners = agentSignerEmail
+        ? [...signers, { name: agentSignerName, email: agentSignerEmail, role: 'Agent' }]
+        : signers;
+
+      // Build every document entry: PDF bytes + gated field placement.
+      // Signer→slot assignment is deterministic from the same signers array
+      // on every document, so Buyer 1 is the same person on every form.
+      const packetDocs = [];
+      for (let i = 0; i < packetDocRows.length; i += 1) {
+        const d = packetDocRows[i];
+        const pdfBuffer = await resolvePdfBufferForDoc(d);
+        const { fields: docFields } = buildPacketDocEntry({
+          doc: d,
+          docIndex: i,
+          packetSize: packetDocRows.length,
+          allSigners: packetSigners,
+          callerFields: fields,
+        });
+        packetDocs.push({
+          documentId: d.id,
+          fileName: d.file_name || `Document ${i + 1}.pdf`,
+          pdfBuffer,
+          fields: docFields,
+          sha256: sha256Hex(pdfBuffer),
+        });
+      }
+      assertPacketSignable(packetDocs, packetSigners);
+
+      const firstName = packetDocs[0].fileName.replace(/\.pdf$/i, '');
+      const packetLabel = packetDocs.length > 1
+        ? `${firstName} + ${packetDocs.length - 1} more document${packetDocs.length > 2 ? 's' : ''}`
+        : firstName;
+
+      const packetResult = await docusealCreateFromPacket({
+        packetName: packetLabel,
+        documents: packetDocs,
+        signers: packetSigners,
+        message,
+      });
+
+      const packetSubmissionId = String(packetResult.id || '');
+      const packetSignerRows = (Array.isArray(packetResult.submitters) ? packetResult.submitters : []).map((sub, i) => {
+        const slug = sub.slug || null;
+        return {
+          name: sub.name || packetSigners[i]?.name || '',
+          email: sub.email || packetSigners[i]?.email || '',
+          role: sub.role || packetSigners[i]?.role || 'Signer',
+          status: sub.status || 'sent',
+          signingUrl: slug ? `https://docuseal.com/s/${slug}` : (sub.embed_src || null),
+          uuid: sub.uuid || null,
+        };
+      });
+
+      // ONE Dossie-branded email per external signer for the whole packet.
+      await Promise.all(
+        packetSignerRows
+          .filter((s) => s.email && s.email !== agentSignerEmail)
+          .map((s) =>
+            sendSigningEmail({
+              signerName: s.name,
+              signerEmail: s.email,
+              documentName: packetLabel,
+              propertyAddress: packetPropertyAddress,
+              signingUrl: s.signingUrl,
+            }).catch((err) => {
+              console.error(`[esign-create] packet sendSigningEmail failed for ${s.email}:`, err && err.message ? err.message : err);
+            })
+          )
+      );
+
+      const sentHashes = {};
+      for (const d of packetDocs) sentHashes[d.documentId] = d.sha256;
+
+      const packetInserted = await insertSignatureRequest({
+        user_id: userId,
+        transaction_id: packetTransactionId,
+        document_id: packetDocumentIds[0],
+        document_ids: packetDocumentIds,
+        sent_pdf_sha256: sentHashes,
+        docuseal_template_id: packetResult.templateId ? String(packetResult.templateId) : null,
+        docuseal_submission_id: packetSubmissionId,
+        status: 'sent',
+        signers: packetSignerRows,
+        message: message || null,
+        ...(sellerAgentName ? { seller_agent_name: sellerAgentName } : {}),
+        ...(sellerAgentEmail ? { seller_agent_email: sellerAgentEmail } : {}),
+      });
+
+      // Stamp the submission id on every packet document (best-effort).
+      if (packetSubmissionId) {
+        await Promise.all(packetDocumentIds.map((id) =>
+          supa(`documents?id=eq.${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ docuseal_submission_id: packetSubmissionId }),
+            headers: { Prefer: 'return=minimal' },
+          }).catch((e) => {
+            console.warn('[esign-create] packet documents patch failed:', e && e.message ? e.message : e);
+          })
+        ));
+      }
+
+      return res.status(200).json({
+        ok: true,
+        submissionId: packetSubmissionId,
+        signatureRequestId: packetInserted.row?.id || null,
+        signers: packetSignerRows,
+        documentIds: packetDocumentIds,
+        ...(packetInserted.warning ? { warning: packetInserted.warning } : {}),
+      });
     }
 
     // Fetch the document (verifies ownership).
@@ -1865,6 +2279,14 @@ module.exports = async function handler(req, res) {
       status: 'sent',
       signers: signerRows,
       message: message || null,
+      // Audit trail (2026-09-08): hash of the exact bytes sent + the
+      // transient template id (for the future reaper). Both columns are
+      // stripped-and-retried by insertSignatureRequest if the migration
+      // hasn't run yet.
+      ...(submissionResult.sentPdfSha256
+        ? { sent_pdf_sha256: { [documentId]: submissionResult.sentPdfSha256 } } : {}),
+      ...(submissionResult.templateId
+        ? { docuseal_template_id: String(submissionResult.templateId) } : {}),
       ...(sellerAgentName ? { seller_agent_name: sellerAgentName } : {}),
       ...(sellerAgentEmail ? { seller_agent_email: sellerAgentEmail } : {}),
     });
@@ -1923,5 +2345,12 @@ module.exports.__testing = {
   resolveEsignFieldMapForDoc,
   buildMappedFieldMap,
   assertPlausibleMappedFieldCount,
+  // Packet machinery (2026-09-08)
+  buildPacketDocEntry,
+  validateCustomFieldsForDoc,
+  assertPacketSignable,
+  docusealCreateFromPacket,
+  sha256Hex,
+  MAX_PACKET_DOCUMENTS,
 };
 

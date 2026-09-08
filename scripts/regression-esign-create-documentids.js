@@ -14,7 +14,9 @@
  *
  * Fix (two halves):
  *   - api/esign-create.js accepts `documentIds: [uuid]` alongside legacy
- *     `documentId` (multi-doc rejected loudly until Phase 3).
+ *     `documentId`. (2026-09-08: multi-document packets are now LIVE — see
+ *     regression-esign-multidoc-packet.js; this file keeps the contract +
+ *     limit checks.)
  *   - SendPacketButton.jsx bakes the live snapshot to storage via
  *     POST /api/interactive-editor-download-pdf { persist: true } and then
  *     POSTs { transactionId, documentIds, signers }; templateId + fields
@@ -102,19 +104,43 @@ async function testDocumentIdsAccepted() {
   console.log(`  PASS: documentIds:[uuid] accepted past validation (proceeded to ${res.statusCode}: "${err.slice(0, 60)}")`);
 }
 
-async function testMultiDocumentRejectedLoudly() {
+// 2026-09-08 CARTER — multi-document packets are now SUPPORTED (Phase 3).
+// Two documentIds must get past validation (they then fail deeper on the
+// stubbed network, which is fine). The old "not supported yet" rejection is
+// itself now the regression.
+async function testMultiDocumentAccepted() {
   const res = await post({
     transactionId: 'tx-1',
-    documentIds: ['a', 'b'],
+    documentIds: ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'],
     signers: SIGNERS,
   });
   const err = (res.body && res.body.error) || '';
-  assert.strictEqual(res.statusCode, 400, `expected 400 for 2 documentIds, got ${res.statusCode}`);
   assert.ok(
-    /multi-document/i.test(err),
-    `expected the multi-document message, got "${err}" — a silent first-doc pick or "documentId is required" are both wrong`
+    !/multi-document packets are not supported/i.test(err),
+    `two documentIds must not hit the old "not supported yet" rejection — got ${res.statusCode} "${err}"`
   );
-  console.log('  PASS: two documentIds rejected loudly with the multi-document message');
+  assert.ok(
+    !(res.statusCode === 400 && /documentId is required/i.test(err)),
+    `two documentIds must pass documentId validation — got ${res.statusCode} "${err}"`
+  );
+  console.log(`  PASS: two documentIds accepted past validation (proceeded to ${res.statusCode}: "${err.slice(0, 60)}")`);
+}
+
+async function testPacketLimits() {
+  const many = Array.from({ length: 11 }, (_, i) => `00000000-0000-4000-8000-0000000000${String(i).padStart(2, '0')}`);
+  const resMany = await post({ documentIds: many, signers: SIGNERS });
+  assert.strictEqual(resMany.statusCode, 400, `expected 400 for 11 documentIds, got ${resMany.statusCode}`);
+  assert.ok(/at most 10/i.test(resMany.body.error), `expected the max-10 message, got "${resMany.body.error}"`);
+
+  const resDupe = await post({ documentIds: ['a-doc', 'a-doc'], signers: SIGNERS });
+  assert.strictEqual(resDupe.statusCode, 400, `expected 400 for duplicate documentIds, got ${resDupe.statusCode}`);
+  assert.ok(/more than once/i.test(resDupe.body.error), `expected the duplicate message, got "${resDupe.body.error}"`);
+
+  const resTmpl = await post({ documentIds: ['doc-a', 'doc-b'], templateId: '12345', signers: SIGNERS });
+  assert.strictEqual(resTmpl.statusCode, 422, `expected 422 for templateId+packet, got ${resTmpl.statusCode}`);
+  assert.ok(/templateId cannot be combined/i.test(resTmpl.body.error), `expected the templateId message, got "${resTmpl.body.error}"`);
+
+  console.log('  PASS: packet limits enforced (max 10, no duplicates, no templateId mixing)');
 }
 
 async function testOldButtonPayloadStillRejected() {
@@ -154,7 +180,8 @@ async function main() {
   console.log('=========================================================================================');
   const tests = [
     ['documentIds:[uuid] passes validation', testDocumentIdsAccepted],
-    ['multi-document rejected loudly', testMultiDocumentRejectedLoudly],
+    ['multi-document packet accepted past validation', testMultiDocumentAccepted],
+    ['packet limits enforced', testPacketLimits],
     ['old templateId+fields payload still 400s', testOldButtonPayloadStillRejected],
     ['shipped bundle posts documentIds, no 4952172', testShippedBundlePostsDocumentIds],
     ['download-pdf persist path exists', testDownloadPdfPersistPathExists],
