@@ -35,11 +35,15 @@ $Action = New-ScheduledTaskAction `
     -Argument "/c `"$Wrapper`"" `
     -WorkingDirectory $RepoRoot
 
-# Every 30 minutes, indefinitely (harvest self-gates; reply-queue exits
-# instantly when nothing is approved).
-$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddHours(8) `
+# Every 30 minutes, indefinitely: a Daily trigger carrying a 30-min/24-h
+# repetition block. ([TimeSpan]::MaxValue as -RepetitionDuration serializes
+# to task XML this Windows build rejects with 0x80041318 — hit live
+# 2026-09-08; the Daily+Repetition pattern is the reliable equivalent.)
+$Trigger = New-ScheduledTaskTrigger -Daily -At '00:00'
+$Repetition = (New-ScheduledTaskTrigger -Once -At '00:00' `
     -RepetitionInterval (New-TimeSpan -Minutes 30) `
-    -RepetitionDuration ([TimeSpan]::MaxValue)
+    -RepetitionDuration (New-TimeSpan -Hours 24)).Repetition
+$Trigger.Repetition = $Repetition
 
 $Settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
