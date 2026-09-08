@@ -25,14 +25,19 @@
 // explicitly approved each one in Telegram via cron-tc-reply-approval) and
 // posts each reply THREADED UNDER THE SPECIFIC COMMENT — the capability the
 // legacy postComment() lacks (it can only type into the post's top-level
-// "Write a comment..." box).
+// "Write a comment..." box). Covers BOTH thread roles: comments on Heath's
+// own campaign posts (thread_role='host') and replies to comments Heath left
+// on other people's posts (thread_role='guest', fed by
+// scripts/watch-guest-thread-replies.js) — same lifecycle, same locks.
 //
 // Hard rules:
 //   - NOTHING posts without reply_status='approved' (Heath's explicit tap).
 //   - One reply per comment, EVER: rows are claimed with an atomic
 //     status-guarded PATCH ('approved' -> 'posting'); 'posted'/'post_failed'
 //     are terminal and never retried (a verify failure can mean it DID post).
-//   - Respects scripts/_lib/comment-caps.js (Facebook 5/day + 45-min min-gap).
+//   - Respects scripts/_lib/comment-caps.js on the dedicated 'facebook_reply'
+//     budget (10/day + 30-min min-gap — separate from the 'facebook' budget
+//     Heath's initiated comments use, so neither starves the other).
 //     Over-cap approved replies stay queued and Heath gets ONE Telegram note.
 //   - Every post is VERIFIED by re-rendering the thread and reading the reply
 //     back before the row is marked posted.
@@ -371,7 +376,13 @@ const SAGE_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
   os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
 const HEATH_FB_NAMES = ['Heath Shepard'];
-const TC_PLATFORM = 'facebook';
+// BUDGET SPLIT 2026-09-08 (Carter): threaded replies draw from the dedicated
+// 'facebook_reply' budget (10/day, 30-min gap) so reply follow-through never
+// starves Heath's initiated-comment budget ('facebook', 15/day) or vice
+// versa. The rows themselves still carry platform='facebook' — pass that as
+// minGapElapsed's filterPlatform.
+const TC_BUDGET = 'facebook_reply';
+const TC_ROW_PLATFORM = 'facebook';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const normText = (s) => String(s || '').replace(/\s+/g, ' ').trim();
@@ -571,16 +582,17 @@ async function runTcReplyQueue(deps = {}) {
       continue;
     }
 
-    // Anti-ban caps: daily cap + min-gap. Over-cap replies STAY QUEUED
-    // (status remains 'approved') — never dropped, never force-posted.
-    const capCheck = await caps.canComment(TC_PLATFORM, sbFetch);
+    // Anti-ban caps: daily cap + min-gap on the dedicated reply budget.
+    // Over-cap replies STAY QUEUED (status remains 'approved') — never
+    // dropped, never force-posted.
+    const capCheck = await caps.canComment(TC_BUDGET, sbFetch);
     if (!capCheck.allowed) {
       out.queuedForCap = rows.length - i;
       log.log(`[tc-reply-queue] cap hit (${capCheck.reason}) — ${out.queuedForCap} approved repl${out.queuedForCap === 1 ? 'y' : 'ies'} stay queued`);
-      await notify(`TC reply queue: FB daily cap hit (${capCheck.reason}). ${out.queuedForCap} approved repl${out.queuedForCap === 1 ? 'y' : 'ies'} queued — they post automatically on later runs.`);
+      await notify(`TC reply queue: FB reply-budget cap hit (${capCheck.reason}). ${out.queuedForCap} approved repl${out.queuedForCap === 1 ? 'y' : 'ies'} queued — they post automatically on later runs.`);
       break;
     }
-    const gap = await caps.minGapElapsed(TC_PLATFORM, sbFetch, 'tc_discovery_responses', 'reply_posted_at');
+    const gap = await caps.minGapElapsed(TC_BUDGET, sbFetch, 'tc_discovery_responses', 'reply_posted_at', TC_ROW_PLATFORM);
     if (!gap.elapsed) {
       out.queuedForCap = rows.length - i;
       log.log(`[tc-reply-queue] min-gap not elapsed (${Math.round(gap.ageMin)}m/${gap.gapMin}m) — ${out.queuedForCap} queued for next run`);
@@ -610,7 +622,7 @@ async function runTcReplyQueue(deps = {}) {
     if (submitted) {
       // Count against the cap the moment keystrokes were submitted — even if
       // verification fails below, the comment may be live on Facebook.
-      await caps.recordComment(TC_PLATFORM, sbFetch);
+      await caps.recordComment(TC_BUDGET, sbFetch);
     }
 
     const verified = await verifier(row, replyText);

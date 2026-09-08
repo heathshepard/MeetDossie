@@ -19,15 +19,39 @@
 // shadowbanned in June. Slowed cron to once/day and dropped per-platform
 // caps below platform "human agent" volume. Stays here until Sage delivers
 // an algorithm-safe strategy.
+//
+// FACEBOOK BUDGET SPLIT 2026-09-08 (Carter, for the guest-comment growth
+// strategy — pending Heath's merge sign-off, which is the explicit approval
+// this header requires):
+//   facebook       = comments Heath INITIATES on other people's posts.
+//                    Raised 5 -> 15 to unblock the 15-20/day strategy. Honest
+//                    risk note: the June shadowban hit at 12/day — BUT those
+//                    were automated posts fired in bursts (6 inside 60 min).
+//                    Today's initiated comments are drafted-only; Heath
+//                    pastes and posts them BY HAND via the engagement_queue
+//                    handoff, so timing is human. 15 is the strategy floor;
+//                    ramp to 20 only after 2 clean weeks, Heath's call. If
+//                    ANY warning sign appears (comment removed, temp block,
+//                    reduced reach), drop straight back to 5.
+//   facebook_reply = threaded replies to people who replied to Heath (posted
+//                    by automation via fb-group-commenter --tc-reply-queue).
+//                    Separate budget so reply follow-through never starves
+//                    new commenting and vice versa. Replying to someone who
+//                    replied to YOU is the most human-looking action class,
+//                    but it IS automated keystrokes on the one account the
+//                    entire distribution strategy runs through — kept at 10
+//                    with a 30-min min-gap.
+// A banned profile ends the whole strategy. These are ceilings, not targets.
 const PLATFORM_DAILY_CAPS = Object.freeze({
-  facebook: 5,
+  facebook: 15,       // initiated comments (human-pasted; see split note above)
+  facebook_reply: 10, // automated threaded replies to replies-to-Heath
   instagram: 5,
   linkedin: 3,
   reddit: 3,
   twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 21; // sum of the above; hard ceiling across all platforms
+const TOTAL_DAILY_CAP = 41; // sum of the above; hard ceiling across all platforms
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -39,6 +63,7 @@ const PER_AUTHOR_COOLDOWN_DAYS = 7;  // don't comment on the same author twice w
 // inside 60 min — bot-pattern to any moderation system.
 const MIN_GAP_MINUTES = Object.freeze({
   facebook: 45,
+  facebook_reply: 30, // replying promptly to a reply-to-you reads as normal human behavior
   instagram: 20,
   twitter: 45,
   linkedin: 90,
@@ -73,7 +98,7 @@ async function getTodayCounts(sbFetch) {
   const { ok, data } = await sbFetch(
     `/rest/v1/comment_caps_state?day=eq.${key}&select=platform,count`
   );
-  const out = { facebook: 0, instagram: 0, linkedin: 0, reddit: 0, twitter: 0, total: 0 };
+  const out = { facebook: 0, facebook_reply: 0, instagram: 0, linkedin: 0, reddit: 0, twitter: 0, total: 0 };
   if (!ok || !Array.isArray(data)) return out;
   for (const row of data) {
     const p = String(row.platform || '').toLowerCase();
@@ -161,16 +186,20 @@ async function recordComment(platform, sbFetch) {
  * log table (engagement_candidates.posted_at or reddit_engagements.posted_at).
  * Min-gap is enforced platform-by-platform.
  *
- * @param {string} platform
+ * @param {string} platform  budget key for the gap lookup (e.g. 'facebook_reply')
  * @param {(path: string, init?: object) => Promise<{ok, status, data}>} sbFetch
  * @param {string} logTable  e.g. 'engagement_candidates' or 'reddit_engagements'
  * @param {string} timestampCol  e.g. 'posted_at'
+ * @param {string} [filterPlatform]  value stored in logTable.platform when it
+ *   differs from the budget key — tc_discovery_responses rows carry
+ *   platform='facebook' while their budget is 'facebook_reply'.
  */
-async function minGapElapsed(platform, sbFetch, logTable, timestampCol = 'posted_at') {
+async function minGapElapsed(platform, sbFetch, logTable, timestampCol = 'posted_at', filterPlatform = null) {
   const p = String(platform || '').toLowerCase();
   const gapMin = MIN_GAP_MINUTES[p] || 8;
+  const fp = String(filterPlatform || p).toLowerCase();
   const { ok, data } = await sbFetch(
-    `/rest/v1/${logTable}?platform=eq.${p}&${timestampCol}=not.is.null&order=${timestampCol}.desc&limit=1&select=${timestampCol}`
+    `/rest/v1/${logTable}?platform=eq.${fp}&${timestampCol}=not.is.null&order=${timestampCol}.desc&limit=1&select=${timestampCol}`
   );
   if (!ok || !Array.isArray(data) || data.length === 0) return { elapsed: true };
   const last = new Date(data[0][timestampCol]).getTime();

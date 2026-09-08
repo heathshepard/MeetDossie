@@ -1409,7 +1409,7 @@ async function handleCallbackQuery(cb) {
       );
       const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
       const tail = won
-        ? 'Approved — posts under their comment on the next local poster run (FB cap 5/day; queued if over).'
+        ? 'Approved — posts under their comment on the next local poster run (FB reply budget 10/day; queued if over).'
         : 'Already handled.';
       if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
       if (callbackId) await answerCallback(callbackId, won ? 'Approved' : 'Already handled');

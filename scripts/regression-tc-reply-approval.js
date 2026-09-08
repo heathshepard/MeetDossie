@@ -15,8 +15,10 @@
  *      The queue must only select reply_status='approved' rows.
  *   2. NO DOUBLE-REPLY: the 'approved'->'posting' claim is atomic; posted /
  *      post_failed rows are terminal and never re-selected.
- *   3. CAP ENFORCEMENT: FB 5/day (comment-caps.js) — over-cap approved rows
- *      stay queued (still 'approved'), Heath gets notified, nothing posts.
+ *   3. CAP ENFORCEMENT: replies draw the dedicated 'facebook_reply' budget
+ *      (10/day, comment-caps.js — split 2026-09-08 from the 'facebook'
+ *      initiated-comment budget) — over-cap approved rows stay queued (still
+ *      'approved'), Heath gets notified, nothing posts.
  *   4. SUPPRESSION LIES: a telegram-gate-suppressed send must NOT stamp
  *      reply_notified_at / advance to 'notified' (the exact bug class that
  *      hid five finished videos for three weeks). The stored draft must
@@ -220,9 +222,9 @@ async function main() {
   assert.strictEqual(posterCalls, 0, 'poster NEVER called for notified/flagged rows — approval gate holds');
   assert.strictEqual(q1.posted, 0, 'nothing posted without approval');
 
-  // ── 3. CAP ENFORCEMENT: FB daily cap blocks, rows stay queued ─────────────
+  // ── 3. CAP ENFORCEMENT: reply-budget daily cap blocks, rows stay queued ───
   const today = new Date().toISOString().slice(0, 10);
-  db.comment_caps_state.push({ id: 'cap-1', platform: 'facebook', day: today, count: 5 });
+  db.comment_caps_state.push({ id: 'cap-1', platform: 'facebook_reply', day: today, count: caps.PLATFORM_DAILY_CAPS.facebook_reply });
   const approved = [];
   for (let i = 0; i < 3; i++) {
     approved.push(seedComment({

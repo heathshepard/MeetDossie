@@ -212,7 +212,12 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
     const author = (c.author || '').trim();
     const text = c.text; // VERBATIM — never trimmed/normalized
     if (!author || !text || !text.trim()) { skipped++; continue; }
-    const cidMatch = c.permalink ? String(c.permalink).match(/comment_id=(\d+)/) : null;
+    // Nested replies carry BOTH ids (?comment_id=PARENT&reply_comment_id=CHILD).
+    // Dedupe on the reply's own id when present — matching the parent id here
+    // silently discarded EVERY nested reply as a duplicate (bug found 2026-09-08).
+    const cidMatch = c.permalink
+      ? (String(c.permalink).match(/reply_comment_id=(\d+)/) || String(c.permalink).match(/[?&]comment_id=(\d+)/))
+      : null;
     if (cidMatch) {
       if (localCommentIds.has(cidMatch[1])) { skipped++; continue; }
       localCommentIds.add(cidMatch[1]);
@@ -295,19 +300,25 @@ async function detectLoggedOut(page) {
 }
 
 // Whitelisted, read-only expansion clicks. Nothing else is ever clicked.
-const EXPAND_RE = /^(View (all )?\d+ (more )?(comments|replies)|View more comments|View more replies|Previous comments|\d+ (reply|replies)|See more)$/i;
+const EXPAND_RE = /^(View (all )?\d+ (more )?(comments?|repl(?:y|ies))|View more comments|View more replies|Previous comments|\d+ (reply|replies)|See more)$/i;
 
 async function expandThread(page) {
+  // Click ALL matching expansion controls per round, marking each so FB's
+  // double-rendered DOM clones (which never collapse after a click) can't
+  // starve the loop — previously one dead clone ate all 12 rounds and
+  // "View 1 reply" links further down were never reached (2026-09-08).
   for (let round = 0; round < 12; round++) {
     const clicked = await page.evaluate((reSrc) => {
       const re = new RegExp(reSrc, 'i');
       const btns = Array.from(document.querySelectorAll('div[role="button"], span[role="button"]'));
+      let n = 0;
       for (const b of btns) {
+        if (b.dataset.tcHarvestClicked) continue;
         const t = (b.innerText || '').trim();
-        if (t && re.test(t) && !/see more$/i.test(t)) { b.click(); return t; }
+        if (t && re.test(t) && !/see more$/i.test(t)) { b.dataset.tcHarvestClicked = '1'; b.click(); n++; }
       }
-      return null;
-    }, EXPAND_RE.source).catch(() => null);
+      return n;
+    }, EXPAND_RE.source).catch(() => 0);
     if (!clicked) break;
     await sleep(1800);
   }
@@ -497,6 +508,17 @@ module.exports = {
   recordHarvestPass,
   parseRelativeTimestamp,
   fetchCampaignPosts,
+  // Scraping machinery, shared with scripts/watch-guest-thread-replies.js.
+  // These carry the 2026-09-08 fixes (singular "View 1 reply" in EXPAND_RE,
+  // nested replies deduped on their OWN reply_comment_id, click-marking so
+  // FB's double-rendered clones can't starve the expansion loop) — reuse
+  // them, never re-implement.
+  detectLoggedOut,
+  expandThread,
+  scrapeComments,
+  launchContext,
+  normHash,
+  HEATH_FB_NAMES,
 };
 
 if (require.main === module) {

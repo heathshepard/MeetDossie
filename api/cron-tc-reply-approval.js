@@ -7,8 +7,7 @@
 // notification with the post (for context), the comment, and a proposed reply
 // that I can edit if necessary and an approve button."
 //
-// For every NEW row in tc_discovery_responses (harvested by
-// scripts/harvest-tc-discovery-responses.js) this cron:
+// For every NEW row in tc_discovery_responses this cron:
 //   1. Classifies the comment. Hostile / astroturf-accusation comments get NO
 //      draft — they're flagged to Heath for personal judgment.
 //   2. Drafts a reply in Heath's voice: thank them for the SPECIFIC thing they
@@ -18,6 +17,17 @@
 //   3. Sends ONE Telegram message per comment via DossieMarketingBot: the post
 //      (context), the comment verbatim with the commenter's name, the proposed
 //      reply, and Approve / Edit / Skip buttons.
+//
+// TWO THREAD ROLES (2026-09-08 extension — replies on OTHER people's posts):
+//   thread_role='host'  — a comment on Heath's OWN campaign post (harvested by
+//      scripts/harvest-tc-discovery-responses.js). He's the host; a reply from
+//      him is expected. Context joins group_posts.
+//   thread_role='guest' — a reply to a comment HEATH left on someone else's
+//      post (detected by scripts/watch-guest-thread-replies.js, registry in
+//      comment_watchlist). He's a guest in their thread: the draft must not
+//      hijack it, and the tone differs depending on whether the reply came
+//      from the POST AUTHOR (their house) or a third party. Context joins
+//      comment_watchlist (original post snapshot + Heath's own comment).
 //
 // Approve/Edit/Skip callbacks land in api/telegram-webhook.js
 // (tcreply_approve / tcreply_edit / tcreply_skip). The actual Facebook post
@@ -98,7 +108,47 @@ ${String(comment.comment_text || '').slice(0, 900)}
 
 Return ONLY JSON: {"hostile": boolean, "hostile_reason": "short reason or empty", "reply": "the reply text or empty"}`;
 
-async function draftReply(post, comment) {
+// Guest-thread variant: Heath commented on SOMEONE ELSE'S post and got a
+// reply there. He's a guest, not the host — the draft must read the room:
+// gracious to the post author in their own thread, peer-warm to a third
+// party, and never thread-hijacking. Same zero-pitch rules.
+const GUEST_DRAFT_PROMPT = (guest, comment) => {
+  const postAuthor = guest.post_author || 'the post author';
+  const fromAuthor = guest.replyIsFromPostAuthor;
+  return `You are drafting a Facebook COMMENT REPLY for Heath Shepard, a Texas REALTOR. IMPORTANT: this is NOT Heath's post. ${postAuthor} posted in "${guest.group_name || 'a Facebook group'}", Heath left a comment on THEIR post, and ${comment.commenter_name} replied to Heath's comment. Heath is a GUEST in this thread.
+
+${fromAuthor
+    ? `${comment.commenter_name} IS the post author — this is their thread and their conversation. Be gracious and deferential to their framing: engage with what THEY said, add one useful thought or one short question at most, and let them keep the floor.`
+    : `${comment.commenter_name} is a third party who joined the conversation under Heath's comment. Peer-to-peer warmth is right, but remember whose post it is — keep it brief and don't turn ${postAuthor}'s thread into Heath's own discussion.`}
+
+HARD RULES:
+- NEVER mention Dossie, any software, any product, any link. Heath is a working agent talking to peers. Zero pitch. Zero selling.
+- Respond to the SPECIFIC thing they said — reference their actual words/details, never a generic "thanks".
+- 1 to 3 sentences TOTAL. Short, warm, casual, like a real agent thumb-typing. No hashtags, no sign-off, no corporate phrasing. Clean spelling.
+- At most ONE question, and only if it genuinely fits — in someone else's thread a statement can be the better close.
+- First name only if you address them at all (optional).
+
+ALSO classify the reply first. hostile=true if it is hostile toward Heath, accuses him of being an ad / bot / AI / astroturf / data-mining, or is aggressive enough that an automated-drafted reply would be risky. When hostile=true, set reply to "".
+
+THE ORIGINAL POST by ${postAuthor}:
+"""
+${String(guest.post_body || '(post text unavailable)').slice(0, 700)}
+"""
+
+HEATH'S COMMENT on that post:
+"""
+${String(guest.our_text || '').slice(0, 700)}
+"""
+
+REPLY to Heath by ${comment.commenter_name}:
+"""
+${String(comment.comment_text || '').slice(0, 900)}
+"""
+
+Return ONLY JSON: {"hostile": boolean, "hostile_reason": "short reason or empty", "reply": "the reply text or empty"}`;
+};
+
+async function draftReply(post, comment, guest = null) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -109,7 +159,7 @@ async function draftReply(post, comment) {
     body: JSON.stringify({
       model: DRAFT_MODEL,
       max_tokens: 400,
-      messages: [{ role: 'user', content: DRAFT_PROMPT(post, comment) }],
+      messages: [{ role: 'user', content: guest ? GUEST_DRAFT_PROMPT(guest, comment) : DRAFT_PROMPT(post, comment) }],
     }),
   });
   if (!res.ok) {
@@ -134,34 +184,56 @@ async function draftReply(post, comment) {
 
 // ─── Telegram message ────────────────────────────────────────────────────────
 
-function buildApprovalMessage(post, row) {
-  const lines = [
-    `TC DISCOVERY COMMENT — ${post.group_name || row.source_group || 'unknown group'}${row.question_id ? ` [${row.question_id}]` : ''}`,
-    '',
-    'POST (context):',
-    String(post.post_body || '(post body unavailable)').slice(0, 500),
-    '',
-    `COMMENT from ${row.commenter_name}:`,
-    String(row.comment_text || '').slice(0, 900),
-    '',
-    'PROPOSED REPLY:',
-    String(row.reply_draft || ''),
-    '',
-    'Approve posts it under their comment (FB cap 5/day — queued if over). Edit: reply to the prompt with your text.',
-  ];
+function buildApprovalMessage(post, row, guest = null) {
+  const lines = guest
+    ? [
+      `REPLY TO YOUR COMMENT — ${guest.group_name || row.source_group || 'unknown group'} (on ${guest.post_author || 'someone'}'s post)`,
+      '',
+      'THEIR POST (context):',
+      String(guest.post_body || '(post text unavailable)').slice(0, 400),
+      '',
+      'YOUR COMMENT:',
+      String(guest.our_text || '(not captured)').slice(0, 400),
+      '',
+      `REPLY from ${row.commenter_name}${guest.replyIsFromPostAuthor ? ' (the POST AUTHOR)' : ''}:`,
+      String(row.comment_text || '').slice(0, 900),
+      '',
+      'PROPOSED REPLY:',
+      String(row.reply_draft || ''),
+      '',
+      'Approve posts it threaded under their reply (FB reply budget 10/day — queued if over). Edit: reply to the prompt with your text.',
+    ]
+    : [
+      `TC DISCOVERY COMMENT — ${post.group_name || row.source_group || 'unknown group'}${row.question_id ? ` [${row.question_id}]` : ''}`,
+      '',
+      'POST (context):',
+      String(post.post_body || '(post body unavailable)').slice(0, 500),
+      '',
+      `COMMENT from ${row.commenter_name}:`,
+      String(row.comment_text || '').slice(0, 900),
+      '',
+      'PROPOSED REPLY:',
+      String(row.reply_draft || ''),
+      '',
+      'Approve posts it under their comment (FB reply budget 10/day — queued if over). Edit: reply to the prompt with your text.',
+    ];
   return lines.join('\n').slice(0, 4090);
 }
 
-function buildFlagMessage(post, row) {
+function buildFlagMessage(post, row, guest = null) {
+  const header = guest
+    ? `REPLY TO YOUR COMMENT — FLAGGED, your call (no draft): ${guest.group_name || row.source_group || 'unknown group'} (on ${guest.post_author || 'someone'}'s post)`
+    : `TC DISCOVERY COMMENT — FLAGGED, your call (no draft): ${post.group_name || row.source_group || 'unknown group'}${row.question_id ? ` [${row.question_id}]` : ''}`;
   const lines = [
-    `TC DISCOVERY COMMENT — FLAGGED, your call (no draft): ${post.group_name || row.source_group || 'unknown group'}${row.question_id ? ` [${row.question_id}]` : ''}`,
+    header,
     '',
     `Reason: ${row.reply_error || 'hostile / astroturf accusation'}`,
     '',
-    'POST (context):',
-    String(post.post_body || '(post body unavailable)').slice(0, 500),
+    guest ? 'THEIR POST (context):' : 'POST (context):',
+    String((guest ? guest.post_body : post.post_body) || '(post body unavailable)').slice(0, 400),
+    ...(guest ? ['', 'YOUR COMMENT:', String(guest.our_text || '(not captured)').slice(0, 400)] : []),
     '',
-    `COMMENT from ${row.commenter_name}:`,
+    `${guest ? 'REPLY' : 'COMMENT'} from ${row.commenter_name}${guest && guest.replyIsFromPostAuthor ? ' (the POST AUTHOR)' : ''}:`,
     String(row.comment_text || '').slice(0, 900),
     '',
     'Nothing will be drafted or posted for this one. Reply manually on Facebook if you want to engage.',
@@ -219,7 +291,7 @@ async function processPendingReplies(deps) {
   const { ok, data, status } = await sbFetch(
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=in.(new,flagged)&reply_notified_at=is.null&is_own_comment=eq.false'
-    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error`
+    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id`
     + `&order=harvested_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!ok) {
@@ -229,8 +301,9 @@ async function processPendingReplies(deps) {
   const rows = Array.isArray(data) ? data : [];
   if (rows.length === 0) return out;
 
-  // Batch-load the source posts for context.
-  const postIds = [...new Set(rows.map((r) => r.group_post_id).filter(Boolean))];
+  // Batch-load context: group_posts for host rows, comment_watchlist for
+  // guest rows (Heath's outbound comment on someone else's post).
+  const postIds = [...new Set(rows.filter((r) => r.thread_role !== 'guest').map((r) => r.group_post_id).filter(Boolean))];
   const postMap = new Map();
   if (postIds.length > 0) {
     const { ok: pOk, data: pData } = await sbFetch(
@@ -238,13 +311,35 @@ async function processPendingReplies(deps) {
     );
     if (pOk && Array.isArray(pData)) for (const p of pData) postMap.set(p.id, p);
   }
+  const watchIds = [...new Set(rows.filter((r) => r.thread_role === 'guest').map((r) => r.watchlist_id).filter(Boolean))];
+  const watchMap = new Map();
+  if (watchIds.length > 0) {
+    const { ok: wOk, data: wData } = await sbFetch(
+      `/rest/v1/comment_watchlist?id=in.(${watchIds.map(encodeURIComponent).join(',')})&select=id,group_name,post_author,post_body,our_text,thread_url`,
+    );
+    if (wOk && Array.isArray(wData)) for (const w of wData) watchMap.set(w.id, w);
+  }
 
   for (const row of rows) {
     const post = postMap.get(row.group_post_id) || { group_name: row.source_group, post_body: null, post_url: row.post_url };
+    // Guest context: whose house it is, the post, and Heath's own comment.
+    // Tone branches on whether the reply came from the post author.
+    let guest = null;
+    if (row.thread_role === 'guest') {
+      const w = watchMap.get(row.watchlist_id) || {};
+      guest = {
+        group_name: w.group_name || row.source_group,
+        post_author: w.post_author || null,
+        post_body: w.post_body || null,
+        our_text: w.our_text || null,
+        replyIsFromPostAuthor: !!(w.post_author
+          && String(w.post_author).trim().toLowerCase() === String(row.commenter_name || '').trim().toLowerCase()),
+      };
+    }
     try {
       // 1. Draft (skip if already drafted or already flagged).
       if (row.reply_status === 'new' && !row.reply_draft) {
-        const d = await draft(post, row);
+        const d = await draft(post, row, guest);
         if (d.hostile) {
           row.reply_status = 'flagged';
           row.reply_error = `hostile/astroturf: ${d.hostileReason || 'flagged by classifier'}`;
@@ -269,7 +364,7 @@ async function processPendingReplies(deps) {
 
       // 2. Notify.
       const isFlag = row.reply_status === 'flagged';
-      const text = isFlag ? buildFlagMessage(post, row) : buildApprovalMessage(post, row);
+      const text = isFlag ? buildFlagMessage(post, row, guest) : buildApprovalMessage(post, row, guest);
       const markup = isFlag ? null : approvalKeyboard(row.id);
       const sendRes = await send(text, markup);
       if (!sendRes.ok) {
