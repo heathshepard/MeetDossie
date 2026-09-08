@@ -314,6 +314,9 @@
     "api/{cron-process-agent-requests,cron-sage-draft-engagements,cron-sage-autonomous-review,cron-mission-watchdog,cron-verify-zernio-deliveries,cron-kpi-drift-detector}.js": {
       "maxDuration": 60
     },
+    "api/cron-comment-opp-approval.js": {
+      "maxDuration": 60
+    },
     "api/{cron-affiliate-qualify-referrals,cron-daily-debrief,cron-fanout-builds-to-agent-queues,cron-autonomous-daily-digest,cron-inbox-scan,cron-support-ticket-alert,cron-apply-approved-improvements}.js": {
       "maxDuration": 60
     },
@@ -792,6 +795,10 @@
     },
     {
       "path": "/api/cron-tc-reply-approval",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-comment-opp-approval",
       "schedule": "*/30 * * * *"
     }
   ]

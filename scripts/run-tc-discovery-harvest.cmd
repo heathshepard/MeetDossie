@@ -10,7 +10,15 @@ rem Step 3: post any Heath-APPROVED replies threaded under their comments
 rem (exits without launching Chrome when nothing is approved; respects the
 rem facebook_reply 10/day budget and 30-min min-gap from
 rem scripts\_lib\comment-caps.js).
+rem Step 4: DAILY comment-opportunity hunt (self-gates to once/day; re-verifies
+rem recent posted comments first — a removed comment halts the whole pipeline).
+rem Step 5: post Heath-APPROVED comment opportunities — at most ONE per tick,
+rem 'facebook_auto' 8/day budget, 45-60 min varied spacing, verify-by-re-render,
+rem comment_watchlist registration. Exits in ~2s without Chrome when nothing is
+rem approved, the spacing gap hasn't elapsed, or the pipeline is halted.
 cd /d "C:\Users\Heath\Projects\MeetDossie"
 node scripts\harvest-tc-discovery-responses.js >> scripts\tc-discovery-harvest.log 2>&1
 node scripts\watch-guest-thread-replies.js >> scripts\guest-thread-watch.log 2>&1
 node scripts\fb-group-commenter.js --tc-reply-queue >> scripts\tc-reply-queue.log 2>&1
+node scripts\fb-comment-hunt-daily.js >> scripts\comment-hunt.log 2>&1
+node scripts\fb-comment-opp-poster.js >> scripts\comment-opp-poster.log 2>&1
