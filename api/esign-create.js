@@ -187,109 +187,78 @@ function loadResaleCoords() {
   return RESALE_COORDS_CACHE;
 }
 
-function buildResaleFieldsForSigner(roleName, side, sideIndex) {
-  if (side === 'agent') {
-    // Agent gets a signature + date on page 10 (the EXECUTED/signature page
-    // in the 12-page 20-19 — was page 9 in the superseded 9-page 20-18),
-    // below the buyer/seller block. Auto-timestamp the date on sign via
-    // preferences.format.
-    return [
-      { name: `${roleName} Signature`, type: 'signature',
-        areas: [{ page: 10, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
-      { name: `${roleName} Date`, type: 'date',
-        preferences: { format: 'MM/DD/YYYY' },
-        areas: [{ page: 10, x: 0.42, y: 0.75, w: 0.18, h: 0.035 }] },
-    ];
-  }
+// 2026-09-08 CARTER — the resale (TREC 20-19) path now runs through the SAME
+// assignment + gate implementation as the 23 generically-mapped forms
+// (buildMappedFieldMap + assertPlausibleMappedFieldCount below). This adapter
+// converts trec-20-19-esign-coords.json into the standard formEntry shape so
+// there is exactly ONE place that assigns signers to printed lines and ONE
+// gate. It replaces buildResaleContractFieldMap/assertPlausibleResaleFieldCount,
+// which had two render-confirmed defects:
+//   1. `Math.min(sideIndex, 1)` silently gave a 3rd buyer the IDENTICAL
+//      signature rect as buyer 2 — two different people wired to sign the
+//      same printed line. The 20-19 has exactly two printed signature lines
+//      and two footer-initial blanks per side; a 3rd principal per side
+//      cannot be represented and now 422s loudly (buildMappedFieldMap's
+//      slot-exhaustion check) instead of collapsing.
+//   2. assertPlausibleResaleFieldCount only compared a TOTAL count, so the
+//      collapse (and a signer with no signature at all) passed the gate.
+// The date widget sits directly below the signature line; DocuSeal 'date'
+// with preferences.format auto-fills MM/DD/YYYY on sign.
+// Agent placement (page 10, below the principals' block) is intentionally
+// whitespace — the 20-19 prints no broker signature line anywhere (page 11
+// is "Print name(s) only. Do not sign.") — and is preserved unchanged from
+// the pre-convergence behavior.
+let RESALE_FORM_ENTRY_CACHE = null;
+function resaleFormEntry() {
+  if (RESALE_FORM_ENTRY_CACHE) return RESALE_FORM_ENTRY_CACHE;
   const coords = loadResaleCoords();
-  const idx = Math.min(sideIndex, 1);
-  const partyCoords = (coords[side] && coords[side][idx]) || null;
-  if (!partyCoords) return [];
-  const out = [];
-  for (const ini of partyCoords.initials) {
-    out.push({
-      name: `${roleName} Initials P${ini.page}`,
-      type: 'initials',
-      areas: [{ page: ini.page, x: ini.x, y: ini.y, w: ini.w, h: ini.h }],
+  const roles = {};
+  const expected = {};
+  for (const side of ['buyer', 'seller']) {
+    (coords[side] || []).forEach((party, i) => {
+      const label = side === 'buyer' ? `Buyer ${i + 1}` : `Seller ${i + 1}`;
+      const fields = party.initials.map((ini) => ({
+        title: `${label} Initials P${ini.page}`,
+        type: 'initials',
+        areas: [{ page: ini.page, x: ini.x, y: ini.y, w: ini.w, h: ini.h }],
+      }));
+      const sig = party.signature;
+      fields.push({
+        title: `${label} Signature`,
+        type: 'signature',
+        areas: [{ page: sig.page, x: sig.x, y: sig.y, w: sig.w, h: sig.h }],
+      });
+      fields.push({
+        title: `${label} Date`,
+        type: 'date',
+        preferences: { format: 'MM/DD/YYYY' },
+        areas: [{
+          page: sig.page,
+          x: sig.x,
+          y: Math.min(sig.y + sig.h + 0.005, 0.99),
+          w: Math.min(sig.w * 0.5, 0.18),
+          h: 0.022,
+        }],
+      });
+      roles[`${side}${i + 1}`] = fields;
+      expected[`${side}${i + 1}`] = fields.length;
     });
   }
-  const sig = partyCoords.signature;
-  out.push({
-    name: `${roleName} Signature`,
-    type: 'signature',
-    areas: [{ page: sig.page, x: sig.x, y: sig.y, w: sig.w, h: sig.h }],
-  });
-  // Date widget directly below the signature line. Auto-populates on sign.
-  // DocuSeal 'date' field with preferences.format renders as MM/DD/YYYY and
-  // requires the signer to click once (auto-fills with today's date).
-  out.push({
-    name: `${roleName} Date`,
-    type: 'date',
-    preferences: { format: 'MM/DD/YYYY' },
-    areas: [{
-      page: sig.page,
-      x: sig.x,
-      y: Math.min(sig.y + sig.h + 0.005, 0.99),
-      w: Math.min(sig.w * 0.5, 0.18),
-      h: 0.022,
-    }],
-  });
-  return out;
-}
-
-function buildResaleContractFieldMap(signers) {
-  const buyerCounter = { i: 0 };
-  const sellerCounter = { i: 0 };
-  const fieldMap = {};
-  let recognized = 0;
-  for (const s of signers) {
-    const role = s.role || 'Signer';
-    const side = classifyRole(role);
-    let sideIndex = 0;
-    if (side === 'buyer') { sideIndex = buyerCounter.i++; recognized++; }
-    else if (side === 'seller') { sideIndex = sellerCounter.i++; recognized++; }
-    else if (side === 'agent') { sideIndex = 0; recognized++; }
-    else { continue; }
-    fieldMap[role] = buildResaleFieldsForSigner(role, side, sideIndex);
-  }
-  return recognized > 0 ? fieldMap : null;
-}
-
-// Fail loudly, don't send, if the placed field count is implausible for the
-// document's page count. Per buyer/seller signer that's 1 initial per
-// initial-bearing page + 1 signature + 1 date; per agent signer it's 1
-// signature + 1 date. Reads the expected page count from the SAME coords
-// file buildResaleFieldsForSigner just used, not a hardcoded number, so this
-// stays correct if the coord map is ever regenerated against a new page
-// count. Throws ValidationError (422) — caller must not proceed to
-// docusealCreateFromPdf when this throws.
-function assertPlausibleResaleFieldCount(fieldMap, signers) {
-  const coords = loadResaleCoords();
-  const initialPageCount = Array.isArray(coords.initialBearingPages)
-    ? coords.initialBearingPages.length
-    : 10; // fallback floor if the coords file's metadata is ever missing
-  let expectedTotal = 0;
-  let expectedBySigner = 0;
-  for (const s of signers) {
-    const role = s.role || 'Signer';
-    const side = classifyRole(role);
-    if (side === 'buyer' || side === 'seller') {
-      expectedTotal += initialPageCount + 2; // initials + signature + date
-      expectedBySigner += 1;
-    } else if (side === 'agent') {
-      expectedTotal += 2; // signature + date only
-    }
-  }
-  const actualTotal = Object.values(fieldMap).reduce((acc, arr) => acc + arr.length, 0);
-  if (expectedBySigner > 0 && actualTotal < expectedTotal) {
-    throw new ValidationError(
-      `Field placement check failed: expected ~${expectedTotal} signature/initial widgets `
-      + `for this signer set (${initialPageCount} initial pages) but only built ${actualTotal}. `
-      + `Refusing to send — this is the exact failure mode that has previously sent a contract `
-      + `with missing initials. Contact support before retrying.`,
-      422,
-    );
-  }
+  // Sending agent (buyer-side flow): signature + auto-date on page 10.
+  roles.buyer_agent = [
+    { title: 'Agent Signature', type: 'signature',
+      areas: [{ page: 10, x: 0.05, y: 0.75, w: 0.35, h: 0.035 }] },
+    { title: 'Agent Date', type: 'date',
+      preferences: { format: 'MM/DD/YYYY' },
+      areas: [{ page: 10, x: 0.42, y: 0.75, w: 0.18, h: 0.035 }] },
+  ];
+  RESALE_FORM_ENTRY_CACHE = {
+    form_type: 'resale_contract',
+    trec_no: '20-19',
+    roles,
+    expected_field_count_per_role: expected,
+  };
+  return RESALE_FORM_ENTRY_CACHE;
 }
 
 // ---------------------------------------------------------------------------
@@ -1792,27 +1761,27 @@ module.exports = async function handler(req, res) {
 
       let autoFieldMap = null;
       if (!fields && doc.document_type === 'resale_contract') {
-        autoFieldMap = buildResaleContractFieldMap(allSigners);
-        if (autoFieldMap) {
-          const total = Object.values(autoFieldMap).reduce((acc, arr) => acc + arr.length, 0);
-          console.log(`[esign-create] v13 resale_contract signer-only widgets built for ${Object.keys(autoFieldMap).length} signer(s), ${total} widgets total.`);
-          // Log actual widget coordinates for APV verification.
-          for (const [role, roleFields] of Object.entries(autoFieldMap)) {
-            for (const f of roleFields) {
-              const a = (f.areas && f.areas[0]) || {};
-              console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
-            }
+        // 2026-09-08 CARTER — resale converged onto the generalized
+        // assignment + gate (see resaleFormEntry). buildMappedFieldMap
+        // throws 422 on a 3rd buyer/seller (the 20-19 has exactly two
+        // printed lines per side — the old path silently stacked buyer 3
+        // onto buyer 2's signature rect), on duplicate role names, and on
+        // unclassifiable roles. assertPlausibleMappedFieldCount then
+        // re-verifies per-signer signature presence + exact widget totals
+        // from the SAME entry — a green DocuSeal response is not evidence
+        // the placement was correct (2026-08-31 lesson).
+        const formEntry = resaleFormEntry();
+        const built = buildMappedFieldMap(formEntry, allSigners); // throws 422 on any violation
+        autoFieldMap = built.fieldMap;
+        console.log(`[esign-create] resale_contract (TREC 20-19) mapped widgets: ${built.summary.join('; ')}`);
+        // Log actual widget coordinates for APV verification.
+        for (const [role, roleFields] of Object.entries(autoFieldMap)) {
+          for (const f of roleFields) {
+            const a = (f.areas && f.areas[0]) || {};
+            console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
           }
-          // 2026-08-31 CARTER — tag-count gate. This is the exact defect that
-          // let a 20-18-geometry packet go out on a 12-page 20-19 document
-          // with two pages of initials silently missing: a green DocuSeal
-          // response is not evidence the placement was correct. BLOCK
-          // (don't warn) if the placed count is implausible for the
-          // recognized signers, computed from the SAME coord file just used
-          // to build the fields, so this stays correct if the map ever
-          // changes page count.
-          assertPlausibleResaleFieldCount(autoFieldMap, allSigners);
         }
+        assertPlausibleMappedFieldCount(formEntry, autoFieldMap, allSigners);
       } else if (!fields) {
         // 2026-09-08 CARTER — every other mapped form (23 forms: 20 addenda +
         // seller's disclosure + unimproved-property + seller-financing etc.)
@@ -1946,9 +1915,7 @@ module.exports = async function handler(req, res) {
 // scripts/regression-trec-20-19-esign-coords.js and local verification
 // scripts so real-DocuSeal tests don't have to fake a full HTTP request.
 module.exports.__testing = {
-  buildResaleContractFieldMap,
-  buildResaleFieldsForSigner,
-  assertPlausibleResaleFieldCount,
+  resaleFormEntry,
   loadResaleCoords,
   docusealCreateFromPdf,
   classifyRole,
