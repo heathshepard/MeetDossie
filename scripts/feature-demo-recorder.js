@@ -327,6 +327,17 @@ async function record(scriptPath) {
   console.log(`[recorder] Loaded scene script: ${scriptCfg.name} (${scriptCfg.form_factor})`);
 
   const viewport = scriptCfg.viewport || { width: 1920, height: 1080 };
+  // device_scale_factor decouples CSS viewport from recorded pixels. A vertical
+  // 1080x1920 scene used to set viewport to the OUTPUT size, which put the page
+  // above the 768px mobile breakpoint and recorded the DESKTOP layout. With
+  // { viewport: 540x960, device_scale_factor: 2 } the page renders the real
+  // mobile UI and the video still comes out 1080x1920 physical pixels.
+  // output_size overrides the recorded size explicitly if ever needed.
+  const deviceScaleFactor = scriptCfg.device_scale_factor || 1;
+  const outputSize = scriptCfg.output_size || {
+    width: viewport.width * deviceScaleFactor,
+    height: viewport.height * deviceScaleFactor,
+  };
   const slowmo = scriptCfg.slowmo_ms || 400;
 
   const { chromium } = require('playwright');
@@ -341,7 +352,12 @@ async function record(scriptPath) {
   });
   const context = await browser.newContext({
     viewport,
-    recordVideo: { dir: RAW_DIR, size: viewport },
+    deviceScaleFactor,
+    // Real phone emulation for mobile-form-factor scenes (touch events, mobile
+    // UA hints) — opt-in via scene JSON so existing desktop scenes are untouched.
+    isMobile: scriptCfg.is_mobile === true,
+    hasTouch: scriptCfg.has_touch === true || scriptCfg.is_mobile === true,
+    recordVideo: { dir: RAW_DIR, size: outputSize },
     // Pre-grant notification permission so a scene that clicks "Enable risk
     // alerts" (RiskAlertsToggle.jsx's real Notification.requestPermission()
     // call) resolves to 'granted' immediately instead of hanging on a

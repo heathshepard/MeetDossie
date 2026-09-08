@@ -8,7 +8,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-video-approval');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-video-approval');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -123,8 +125,16 @@ module.exports = withTelemetry('cron-video-approval', async function handler(req
 
       const { ok: tgOk, data: tgData } = await tgSend(tgBody);
 
-      if (!tgOk) {
-        console.error('[cron-video-approval] Telegram send failed:', JSON.stringify(tgData).slice(0, 200));
+      // 2026-09-07 (Carter): a telegram-gate-suppressed send is NOT a delivery.
+      // On 2026-08-17 five videos were marked pending_approval off the gate's
+      // fake success and sat invisible for three weeks. Suppressed => revert to
+      // 'ready' so the row stays retryable and visible.
+      const tgSuppressed = wasSuppressed(tgData);
+      if (tgSuppressed) {
+        console.warn(`[cron-video-approval] approval message for video ${video.id} was SUPPRESSED by telegram-gate — reverting to 'ready', NOT marking pending_approval`);
+      }
+      if (!tgOk || tgSuppressed) {
+        if (!tgOk) console.error('[cron-video-approval] Telegram send failed:', JSON.stringify(tgData).slice(0, 200));
         await supabaseFetch(
           `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
           {
@@ -204,8 +214,12 @@ module.exports = withTelemetry('cron-video-approval', async function handler(req
       disable_web_page_preview: false,
     });
 
-    if (!tgOk) {
-      console.error(`[cron-video-approval] Telegram send failed for skit ${skitId}:`, JSON.stringify(tgData).slice(0, 200));
+    const skitSuppressed = wasSuppressed(tgData);
+    if (skitSuppressed) {
+      console.warn(`[cron-video-approval] approval message for skit ${skitId} was SUPPRESSED by telegram-gate — reverting to 'video_rendered', NOT marking video_pending_approval`);
+    }
+    if (!tgOk || skitSuppressed) {
+      if (!tgOk) console.error(`[cron-video-approval] Telegram send failed for skit ${skitId}:`, JSON.stringify(tgData).slice(0, 200));
       // Revert so next run retries
       await supabaseFetch(`/rest/v1/skit_queue?id=eq.${encodeURIComponent(skitId)}`, {
         method: 'PATCH',

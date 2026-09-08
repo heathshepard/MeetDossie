@@ -7,7 +7,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-pc-heartbeat-check');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-pc-heartbeat-check');
+const { wasSuppressed } = telegramGate;
 
 const { createClient } = require('@supabase/supabase-js');
 
@@ -66,8 +68,9 @@ module.exports = async (req, res) => {
       `Last seen: ${row.last_seen}\n\n` +
       `Try Chrome Remote Desktop. If still offline, the PC may have crashed and failed to reboot cleanly.`;
 
+    let delivered = false;
     if (TELEGRAM_BOT_TOKEN) {
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,6 +78,16 @@ module.exports = async (req, res) => {
           text: message
         })
       });
+      const data = await r.json().catch(() => null);
+      delivered = r.ok && !wasSuppressed(data);
+    }
+
+    // Gate-suppressed (strict mode) or failed send = Heath was NOT paged.
+    // Skip the debounce stamp so the next run retries (Carter, 2026-09-07).
+    if (!delivered) {
+      console.warn(`[cron-pc-heartbeat-check] OFFLINE alert for ${row.pc_name} was suppressed or failed — NOT stamping last_alerted_at`);
+      skipped.push({ pc_name: row.pc_name, reason: 'alert_not_delivered' });
+      continue;
     }
 
     await supabase

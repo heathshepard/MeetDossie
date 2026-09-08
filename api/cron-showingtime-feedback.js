@@ -36,13 +36,16 @@
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { listEmailIntegrationCustomers } = require('./_lib/email-integration-customers');
-const { loadGoogleTokensForUser, makeGmailClient, headerMap, bodyOfMessage } = require('./_lib/gmail-oauth');
+const { makeMailClient } = require('./_lib/mail-client');
+const { headerMap, bodyOfMessage } = require('./_lib/gmail-oauth');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID;
+const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET;
 
 // ShowingTime sends from showingtime.com (and its ShowingTime+ / Showing
 // Suite rebrand touches showingsuite.com). Broad allowlist — a false-positive
@@ -219,15 +222,16 @@ function parseShowingTimeFeedback({ subject, body }) {
 // Per-customer run
 // --------------------------------------------------------------------------
 
-async function runForCustomer({ userId, googleEmail }, { dryRun, debugBody } = {}) {
+async function runForCustomer({ userId, email }, { dryRun, debugBody } = {}) {
   const stats = { candidates: 0, feedback_emails: 0, filed: 0, matched_listing: 0, unparseable: 0 };
   const details = [];
+  const googleEmail = email;
 
   let gmail;
   try {
-    const tokens = await loadGoogleTokensForUser(userId);
-    if (!tokens) throw new Error('no_google_integration_row');
-    gmail = makeGmailClient({ userId, tokens });
+    const mail = await makeMailClient({ userId });
+    if (!mail) throw new Error('no_mail_integration_row');
+    gmail = mail.client;
   } catch (err) {
     return { ok: false, status: 'no_google_integration', userId, googleEmail, error: String(err.message) };
   }
@@ -348,8 +352,10 @@ async function handler(req, res) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(200).json({ ok: true, status: 'skipped', reason: 'google_oauth_env_missing' });
+  const googleConfigured = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+  const microsoftConfigured = !!(MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET);
+  if (!googleConfigured && !microsoftConfigured) {
+    return res.status(200).json({ ok: true, status: 'skipped', reason: 'no mail provider configured (GOOGLE_CLIENT_ID/SECRET and MICROSOFT_CLIENT_ID/SECRET both unset)' });
   }
 
   let customers = [];

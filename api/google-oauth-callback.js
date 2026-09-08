@@ -6,16 +6,31 @@
 //   OR ?error=access_denied&state=<>
 //
 // Shared across every Google OAuth provider we run (google_calendar,
-// google_youtube, ...) — the specific provider comes from oauth_states.provider,
-// written by whichever *-oauth-init endpoint started the flow. One callback,
-// one redirect_uri registered in Google Cloud Console, N providers. Do not
-// hardcode a provider name here; read it off stateRow.
+// google_gmail, google_youtube, ...) — the specific provider comes from
+// oauth_states.provider, written by whichever *-oauth-init endpoint started
+// the flow. One callback, N providers, but — as of the 2026-09-01 client
+// split (SV-ENG-OAUTH-SPLIT) — TWO Google Cloud OAuth clients behind it:
+//   - 'google_gmail'    -> CUSTOMER client (GOOGLE_CLIENT_ID), read-only,
+//                          started by api/google-oauth-init.js
+//   - 'google_youtube'  -> CUSTOMER client (GOOGLE_CLIENT_ID), unchanged,
+//                          started by api/youtube-oauth-init.js
+//   - 'google_calendar' -> INTERNAL client (GOOGLE_INTERNAL_CLIENT_ID),
+//                          calendar + gmail send/compose, started by
+//                          api/google-internal-oauth-init.js, gated to Heath
+//   - anything else     -> falls back to the CUSTOMER client (safe default;
+//                          matches pre-split behavior for any state row this
+//                          callback doesn't recognize)
+// Do not hardcode a provider name into the exchange logic beyond this map;
+// read stateRow.provider and look up CLIENT_BY_PROVIDER.
 //
 // Behavior:
 //   1. Look up state token in public.oauth_states (must exist, unconsumed,
 //      not expired). Resolve to user_id + provider.
 //   2. Mark state consumed.
-//   3. Exchange code for access + refresh tokens.
+//   3. Exchange code for access + refresh tokens, using the client_id /
+//      client_secret / redirect_uri that ISSUED the authorization (i.e. the
+//      one matching stateRow.provider) — Google rejects a token exchange
+//      whose client_id doesn't match the one used to start the flow.
 //   4. Upsert into public.user_integrations
 //      (user_id, oauth_provider=<stateRow.provider>, access_token, refresh_token,
 //       scopes, expires_at, google_email).
@@ -25,13 +40,38 @@
 // This endpoint is public (no bearer token — that's the whole point of the
 // callback), but authenticity is proven via the opaque state token.
 //
-// Owner: Atlas (SV-JARVIS-CAL-1, 2026-07-06; generalized for youtube 2026-08-25).
+// Owner: Atlas (SV-JARVIS-CAL-1, 2026-07-06; generalized for youtube
+// 2026-08-25; two-client split Carter 2026-09-01).
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+const GOOGLE_INTERNAL_CLIENT_ID = process.env.GOOGLE_INTERNAL_CLIENT_ID;
+const GOOGLE_INTERNAL_CLIENT_SECRET = process.env.GOOGLE_INTERNAL_CLIENT_SECRET;
+const GOOGLE_INTERNAL_OAUTH_REDIRECT_URI = process.env.GOOGLE_INTERNAL_OAUTH_REDIRECT_URI;
+
+const CUSTOMER_CLIENT = {
+  clientId: GOOGLE_CLIENT_ID,
+  clientSecret: GOOGLE_CLIENT_SECRET,
+  redirectUri: GOOGLE_OAUTH_REDIRECT_URI,
+};
+const INTERNAL_CLIENT = {
+  clientId: GOOGLE_INTERNAL_CLIENT_ID,
+  clientSecret: GOOGLE_INTERNAL_CLIENT_SECRET,
+  redirectUri: GOOGLE_INTERNAL_OAUTH_REDIRECT_URI,
+};
+
+const CLIENT_BY_PROVIDER = {
+  google_calendar: INTERNAL_CLIENT,
+  google_gmail: CUSTOMER_CLIENT,
+  google_youtube: CUSTOMER_CLIENT,
+};
+
+function clientForProvider(provider) {
+  return CLIENT_BY_PROVIDER[provider] || CUSTOMER_CLIENT;
+}
 
 export const config = { api: { bodyParser: false }, maxDuration: 15 };
 
@@ -101,13 +141,13 @@ function bounceUrl(redirectAfter, params) {
   return base + (base.includes('?') ? '&' : '?') + qp;
 }
 
-async function exchangeCodeForTokens(code) {
+async function exchangeCodeForTokens(code, client) {
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     code,
     grant_type: 'authorization_code',
-    redirect_uri: GOOGLE_OAUTH_REDIRECT_URI,
+    redirect_uri: client.redirectUri,
   });
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -193,10 +233,17 @@ export default async function handler(req, res) {
     console.warn('[oauth-callback] state consume warning:', err.message);
   }
 
-  // 3. Exchange code for tokens.
+  // 3. Exchange code for tokens, using the client that issued this
+  // provider's authorization (see CLIENT_BY_PROVIDER above).
+  const client = clientForProvider(stateRow.provider);
+  if (!client.clientId || !client.clientSecret || !client.redirectUri) {
+    console.error(`[oauth-callback] client not configured for provider=${stateRow.provider}`);
+    res.setHeader('Location', bounceUrl(stateRow.redirect_after, { connected: 'error', reason: 'oauth_client_not_configured' }));
+    return res.status(302).end();
+  }
   let tokenResp;
   try {
-    tokenResp = await exchangeCodeForTokens(code);
+    tokenResp = await exchangeCodeForTokens(code, client);
   } catch (err) {
     console.error('[oauth-callback] token exchange failed:', err.message);
     res.setHeader('Location', bounceUrl(stateRow.redirect_after, { connected: 'error', reason: 'token_exchange_failed' }));

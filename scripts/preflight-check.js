@@ -111,8 +111,13 @@ async function checkSupabase() {
 }
 
 async function checkGmailSend() {
+  // Same deterministic row pick as kw-mail.py / api/gmail-refresh.js: the
+  // table is unique on (user_id, oauth_provider), not google_email, so an
+  // unordered limit=1 could inspect a stale duplicate row's scopes instead of
+  // the row sends will actually use.
   const r = await sbFetch(
-    `user_integrations?select=scopes,expires_at,google_email&google_email=eq.${encodeURIComponent(KW_ACCOUNT)}&limit=1`
+    `user_integrations?select=scopes,expires_at,google_email&google_email=eq.${encodeURIComponent(KW_ACCOUNT)}`
+    + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`
   );
   if (!r.ok) return { status: 'FAIL', error: `HTTP ${r.status}` };
   const rows = await r.json();
@@ -141,14 +146,46 @@ async function checkGmailSend() {
   return { status: 'OK', detail: `gmail.send + gmail.compose granted, token valid ${minsLeft}m` };
 }
 
+// Python only exists in WSL here — there is no Windows-side install, and on
+// Windows 'python3' resolves to the Microsoft Store stub, which made this
+// check FAIL ("Python was not found") on a perfectly healthy system whenever
+// preflight ran under Windows node (seen 2026-08-29). A false alarm trains
+// everyone to ignore preflight, which is worse than no check — so route the
+// invocation to WSL python3, the interpreter kw-mail.py actually runs under.
+function pythonInvocation(scriptPath, scriptArgs) {
+  if (process.platform !== 'win32') {
+    return { cmd: 'python3', argv: [scriptPath, ...scriptArgs], extraEnv: {} };
+  }
+  // C:\...\kw-mail.py -> /mnt/c/.../kw-mail.py; WSLENV forwards the secrets
+  // across the Windows->WSL boundary (/u = Win32-to-WSL only).
+  const wslPath = scriptPath
+    .replace(/^([A-Za-z]):\\/, (_, d) => `/mnt/${d.toLowerCase()}/`)
+    .replace(/\\/g, '/');
+  return {
+    cmd: 'wsl.exe',
+    argv: ['-d', 'Ubuntu', '--', 'python3', wslPath, ...scriptArgs],
+    extraEnv: { WSLENV: [process.env.WSLENV, 'SR_KEY/u', 'CRON_SECRET/u'].filter(Boolean).join(':') },
+  };
+}
+
 function checkGmailRead() {
   return new Promise((resolve) => {
     const key = ENV.SUPABASE_SERVICE_ROLE_KEY;
     if (!key) return resolve({ status: 'FAIL', error: 'SUPABASE_SERVICE_ROLE_KEY missing (kw-mail.py needs SR_KEY)' });
+    const inv = pythonInvocation(path.join(REPO, 'scripts', 'kw-mail.py'), ['profile']);
     execFile(
-      'python3',
-      [path.join(REPO, 'scripts', 'kw-mail.py'), 'profile'],
-      { cwd: REPO, timeout: TIMEOUT_MS - 2000, env: { ...process.env, SR_KEY: key } },
+      inv.cmd,
+      inv.argv,
+      {
+        cwd: REPO,
+        timeout: TIMEOUT_MS - 2000,
+        env: {
+          ...process.env,
+          SR_KEY: key,
+          ...(ENV.CRON_SECRET && !process.env.CRON_SECRET ? { CRON_SECRET: ENV.CRON_SECRET } : {}),
+          ...inv.extraEnv,
+        },
+      },
       (err, stdout, stderr) => {
         const out = String(stdout || '').trim();
         if (err) {

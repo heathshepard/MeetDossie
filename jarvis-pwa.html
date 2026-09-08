@@ -9417,7 +9417,12 @@
         const authHeader = await getAuthHeader();
         // Fetch the consent URL as JSON so we can redirect the top window (avoids
         // Bearer-token exposure via 302 with no auth header on a full-page nav).
-        const res = await fetch(`${API_BASE}/api/google-oauth-init?redirect_after=/myjarvis&format=json`, {
+        // Uses the INTERNAL Google OAuth client (calendar.readonly +
+        // gmail.send/compose, Heath-only, gated server-side) — split from
+        // the customer-facing /api/google-oauth-init 2026-09-01
+        // (SV-ENG-OAUTH-SPLIT). Do not point this back at google-oauth-init;
+        // that client no longer requests calendar.readonly.
+        const res = await fetch(`${API_BASE}/api/google-internal-oauth-init?redirect_after=/myjarvis&format=json`, {
           headers: { Authorization: authHeader, Accept: 'application/json' },
         });
         if (!res.ok) {

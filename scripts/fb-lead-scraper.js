@@ -178,6 +178,31 @@ async function sendTelegram(text) {
 
 // ─── Playwright: scan one group ───────────────────────────────────────────────
 
+// Facebook group feeds are client-rendered. domcontentloaded fires long
+// before div[role="article"] nodes actually contain real post text — in
+// practice that takes 10-12+ seconds. Racing a fixed timer here (the old
+// code did one immediate read + four 1.8-3s scroll/wait cycles, under ~12s
+// total) meant the capture window was routinely over before FB had rendered
+// anything: measured 0 posts with usable text across all 48 registry groups
+// in a real run. This polls for real content instead of assuming a duration.
+// Diagnosed + fixed 2026-08-30/2026-09-03.
+async function waitForRealArticles(page, { timeoutMs = 20000, pollMs = 500, minTextLen = 20 } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const count = await page.evaluate((minLen) => {
+      const articles = document.querySelectorAll('div[role="article"]');
+      let withText = 0;
+      for (const a of articles) {
+        if ((a.innerText || '').trim().length >= minLen) withText++;
+      }
+      return withText;
+    }, minTextLen);
+    if (count > 0) return count;
+    await page.waitForTimeout(pollMs);
+  }
+  return 0;
+}
+
 async function scanGroup(page, group, seenIds) {
   const leads = [];
 
@@ -187,6 +212,7 @@ async function scanGroup(page, group, seenIds) {
   const currentUrl = page.url();
   if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
     console.warn('[fb-lead-scraper] Redirected to login - skipping group');
+    console.log(`[fb-lead-scraper] ${group.group_name}: articles=0 withText=0 matched=0 (login redirect)`);
     return leads;
   }
 
@@ -207,15 +233,20 @@ async function scanGroup(page, group, seenIds) {
   // the problem. Ported from fb-engagement-scraper.js's fix, which never got
   // backported here when it shipped.
   const seenPostsThisGroup = new Map(); // dedupe within a single scan pass
+  let maxArticles = 0;
+  let maxWithText = 0;
+
+  let lastArticleDomCount = 0;
 
   async function extractCurrent() {
-    const { results, rawVisibleWithText } = await page.evaluate((patterns) => {
+    const { results, totalArticles, rawVisibleWithText } = await page.evaluate((patterns) => {
       const results = [];
       let rawVisibleWithText = 0;
       // Rebuild regex objects in-browser — Playwright serializes args as
       // plain strings, RegExp objects don't survive the boundary.
       const regexes = patterns.map(p => new RegExp(p, 'i'));
       const articles = document.querySelectorAll('div[role="article"]');
+      const totalArticles = articles.length;
       for (const article of articles) {
         const text = (article.innerText || '').trim();
         if (text.length < 20) continue;
@@ -249,25 +280,51 @@ async function scanGroup(page, group, seenIds) {
           matchedPattern,
         });
       }
-      return { results, rawVisibleWithText };
+      return { results, totalArticles, rawVisibleWithText };
     }, LEAD_KEYWORD_PATTERNS);
+    maxArticles = Math.max(maxArticles, totalArticles);
+    maxWithText = Math.max(maxWithText, rawVisibleWithText);
     if (process.env.LEAD_SCRAPER_DEBUG) {
-      console.log(`[fb-lead-scraper][debug] extractCurrent: rawArticlesWithRealText=${rawVisibleWithText} keywordMatches=${results.length}`);
+      console.log(`[fb-lead-scraper][debug] extractCurrent: totalArticles=${totalArticles} rawArticlesWithRealText=${rawVisibleWithText} keywordMatches=${results.length}`);
     }
     return results;
   }
 
-  // Capture once before any scrolling (posts already in the initial viewport),
-  // then again after each scroll step, before the next step can virtualize
-  // them away.
-  for (const batch of [await extractCurrent()]) {
-    for (const p of batch) seenPostsThisGroup.set(p.postId || p.text.slice(0, 80), p);
+  // Wait for FB to actually render real post text before capturing anything
+  // — see waitForRealArticles() above for why a fixed timer can't do this.
+  const initialWithText = await waitForRealArticles(page, { timeoutMs: 20000, pollMs: 500 });
+  if (process.env.LEAD_SCRAPER_DEBUG) {
+    console.log(`[fb-lead-scraper][debug] ${group.group_name}: initial poll found ${initialWithText} article(s) with real text after ${initialWithText > 0 ? 'wait' : 'timeout'}`);
   }
-  for (let i = 0; i < 4; i++) {
+
+  const firstBatch = await extractCurrent();
+  for (const p of firstBatch) seenPostsThisGroup.set(p.postId || p.text.slice(0, 80), p);
+  lastArticleDomCount = maxArticles;
+
+  // Adaptive scroll budget: keep scrolling+extracting until the *raw*
+  // div[role="article"] DOM node count (article containers persist in the
+  // DOM even after FB virtualizes their text away — see comment above)
+  // stops growing for a few rounds in a row, or a sane ceiling is hit.
+  // Deliberately NOT keyed off keyword-matched count: most groups yield
+  // zero keyword matches on any given pass, which would make that signal
+  // look "stable" after round one even while FB is still streaming in new
+  // posts underneath it. Replaces the old fixed 4-iteration loop.
+  const MAX_ROUNDS = 10;
+  const STABLE_ROUNDS_TO_STOP = 3;
+  let stableRounds = 0;
+
+  for (let round = 0; round < MAX_ROUNDS && stableRounds < STABLE_ROUNDS_TO_STOP; round++) {
     await page.evaluate(() => window.scrollBy(0, 1500));
     await page.waitForTimeout(1800 + Math.floor(Math.random() * 1200));
     const batch = await extractCurrent();
     for (const p of batch) seenPostsThisGroup.set(p.postId || p.text.slice(0, 80), p);
+
+    if (maxArticles <= lastArticleDomCount) {
+      stableRounds++;
+    } else {
+      stableRounds = 0;
+    }
+    lastArticleDomCount = maxArticles;
   }
 
   const posts = [...seenPostsThisGroup.values()];
@@ -278,6 +335,11 @@ async function scanGroup(page, group, seenIds) {
     leads.push({ ...post, groupName: group.group_name });
     seenIds.add(dedupeKey);
   }
+
+  // Per-group visibility so a zero-yield run is distinguishable from a
+  // broken run — this is exactly the gap that let the timing bug go
+  // unnoticed since June.
+  console.log(`[fb-lead-scraper] ${group.group_name}: articles=${maxArticles} withText=${maxWithText} matched=${posts.length}`);
 
   return leads;
 }

@@ -48,7 +48,8 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-mission-watchdog');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-mission-watchdog');
 
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
@@ -377,6 +378,13 @@ async function sendDailySummary(state, clock) {
   // Date-stamped key in America/Chicago to prevent same-day dupes across
   // timezone boundaries (e.g. a run at 00:30 UTC is still 19:30 CDT same day).
   const digestKey = `watchdog-eod-${clock.dateKey}`;
+  // 2026-09-07 (Carter): claiming the slot records "digest sent today". If
+  // telegram-gate would suppress the send, claiming first would burn the
+  // day's slot with nothing delivered. Skip both claim and send.
+  if (!telegramGate.isAllowed('cron-mission-watchdog')) {
+    console.warn(`[watchdog] EOD digest (key=${digestKey}) would be SUPPRESSED by telegram-gate — NOT claiming digest slot, NOT sending`);
+    return false;
+  }
   const claimed = await claimDigestSlot(digestKey, {
     hour_cdt: clock.hour,
     platforms: Object.fromEntries(

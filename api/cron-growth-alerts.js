@@ -15,7 +15,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-growth-alerts');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-growth-alerts');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -115,10 +117,12 @@ async function recordMilestone(id, metricValue) {
 // Telegram alert
 // ---------------------------------------------------------------------------
 
+// Returns { delivered, suppressed }. delivered=true only when Telegram
+// actually accepted the message (not a telegram-gate fake success).
 async function sendTelegram(text) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn("[cron-growth-alerts] Telegram not configured");
-    return;
+    return { delivered: false, suppressed: false };
   }
   try {
     const res = await fetch(
@@ -129,12 +133,16 @@ async function sendTelegram(text) {
         body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: "HTML" }),
       }
     );
+    const data = await res.json().catch(() => null);
     if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      console.error("[cron-growth-alerts] Telegram failed:", res.status, t.slice(0, 200));
+      console.error("[cron-growth-alerts] Telegram failed:", res.status, JSON.stringify(data).slice(0, 200));
+      return { delivered: false, suppressed: false };
     }
+    const suppressed = wasSuppressed(data);
+    return { delivered: !suppressed && data?.ok === true, suppressed };
   } catch (err) {
     console.error("[cron-growth-alerts] Telegram threw:", err && err.message);
+    return { delivered: false, suppressed: false };
   }
 }
 
@@ -181,18 +189,27 @@ module.exports = withTelemetry('cron-growth-alerts', async function handler(req,
     const currentValue = metrics[benchmark.metric] ?? 0;
     if (currentValue >= benchmark.threshold && !fired.has(benchmark.id)) {
       console.log(`[cron-growth-alerts] NEW milestone: ${benchmark.id} (value=${currentValue})`);
-      try {
-        await recordMilestone(benchmark.id, currentValue);
-      } catch (err) {
-        console.error(`[cron-growth-alerts] recordMilestone failed for ${benchmark.id}:`, err && err.message);
-      }
       triggered.push({ id: benchmark.id, message: benchmark.message, value: currentValue });
     }
   }
 
+  // 2026-09-07 (Carter): record the milestone ONLY after the alert actually
+  // reached Heath. growth_milestones doubles as the "already announced"
+  // dedup — recording on a telegram-gate-suppressed (or failed) send would
+  // permanently swallow the announcement. Undelivered milestones retry next run.
   for (const t of triggered) {
     const text = `<b>Dossie growth milestone hit</b>\n\n${t.message}\n\nCurrent value: ${t.value}`;
-    await sendTelegram(text);
+    const send = await sendTelegram(text);
+    if (send.suppressed) {
+      console.warn(`[cron-growth-alerts] milestone ${t.id} alert SUPPRESSED by telegram-gate — NOT recording milestone, will retry`);
+      continue;
+    }
+    if (!send.delivered) continue; // hard failure — retry next run too
+    try {
+      await recordMilestone(t.id, t.value);
+    } catch (err) {
+      console.error(`[cron-growth-alerts] recordMilestone failed for ${t.id}:`, err && err.message);
+    }
   }
 
   if (triggered.length === 0) {

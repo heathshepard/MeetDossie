@@ -42,7 +42,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-support-ticket-alert');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-support-ticket-alert');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -351,6 +353,15 @@ async function handler(req, res) {
     const text = buildAlertText({ ticket, customer, stage, hoursOld, backfill });
 
     const tg = await sendTelegram(text);
+    // Gate-suppressed send = Heath was NOT alerted. Do NOT stamp
+    // heath_alerted_at / escalation stage — retry next tick, same as a
+    // failure (Carter, 2026-09-07).
+    if (tg.ok && wasSuppressed(tg.data)) {
+      console.warn(`[cron-support-ticket-alert] alert for ticket ${ticket.id} (stage ${stage}) SUPPRESSED by telegram-gate — NOT marking alerted`);
+      stats.telegram_suppressed = (stats.telegram_suppressed || 0) + 1;
+      stats.debug.push({ id: ticket.id, tg_err: 'suppressed_by_telegram_gate' });
+      continue;
+    }
     if (!tg.ok) {
       stats.telegram_failures++;
       stats.debug.push({ id: ticket.id, tg_err: tg.status });

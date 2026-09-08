@@ -36,12 +36,15 @@
 const Stripe = require('stripe');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { detectMailProvider } = require('./_lib/mail-provider-detect');
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const ADDON_EMAIL_INTEGRATION_PRICE_ID = process.env.ADDON_EMAIL_INTEGRATION_PRICE_ID;
 const STRIPE_FOUNDING_ADDON_COUPON_ID = process.env.STRIPE_FOUNDING_ADDON_COUPON_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID;
+const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET;
 
 const SUCCESS_URL = 'https://meetdossie.com/app?addon=email-integration&status=success';
 const CANCEL_URL = 'https://meetdossie.com/app?addon=email-integration&status=cancelled';
@@ -99,6 +102,27 @@ module.exports = async function handler(req, res) {
   }
   if (sub.email_integration_enabled) {
     return res.status(400).json({ ok: false, error: 'Email Integration is already active on your account.' });
+  }
+
+  // Provider guard — best-effort MX check on the account's own login email,
+  // so an unsupported or not-yet-configured provider is told BEFORE payment,
+  // not discovered after in Settings. Fails open on anything ambiguous (see
+  // api/_lib/mail-provider-detect.js header) — this only ever blocks a
+  // confidently-detected case.
+  if (email) {
+    const { provider: detectedProvider } = await detectMailProvider(email).catch(() => ({ provider: 'unknown' }));
+    if (detectedProvider === 'unsupported') {
+      return res.status(400).json({
+        ok: false,
+        error: "Email Integration currently supports Gmail/Google Workspace and Outlook/Microsoft 365 inboxes only. We couldn't confirm your account's inbox is one of those — reach out before purchasing so we don't take payment for something that can't connect.",
+      });
+    }
+    if (detectedProvider === 'microsoft' && !(MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Outlook/Microsoft 365 support is built but not fully turned on yet — hang tight, we\'ll email you the moment it\'s live rather than take payment now.',
+      });
+    }
   }
 
   const isActiveFounding = sub.plan === 'founding' && ['active', 'internal', 'pending_onboarding'].includes(sub.status);

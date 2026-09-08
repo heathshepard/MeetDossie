@@ -24,7 +24,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-unsubscribe-spike-monitor');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-unsubscribe-spike-monitor');
+const { wasSuppressed } = telegramGate;
 
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { runHourlyTeamRiskAlerts } = require('./_lib/team-risk-alerts-runner.js');
@@ -71,7 +73,9 @@ async function tg(text) {
         disable_web_page_preview: true,
       }),
     });
-    return { ok: r.ok };
+    const data = await r.json().catch(() => null);
+    // suppressed=true: telegram-gate ate the send — Heath was NOT alerted.
+    return { ok: r.ok, suppressed: wasSuppressed(data) };
   } catch (err) {
     console.warn('[unsub-spike] tg error', err && err.message);
     return { ok: false };
@@ -191,14 +195,24 @@ async function handler(req, res) {
       'Investigate: batch quality, subject line, list source.',
     ].join('\n');
 
+    let alertSuppressed = false;
     if (dryTg) {
       result.pinged = 'dry_tg_skipped';
     } else {
       const sendResult = await tg(msg);
-      result.pinged = !!sendResult.ok;
+      alertSuppressed = !!sendResult.suppressed;
+      result.pinged = !!sendResult.ok && !alertSuppressed;
+      if (alertSuppressed) result.suppressed_by_telegram_gate = true;
     }
 
-    await logAlert(count, latest, msg).catch(() => {});
+    // 2026-09-07 (Carter): unsubscribe_alert_log is the 24h debounce. A
+    // telegram-gate-suppressed ping must NOT be logged as an alert — that
+    // would silence the spike for a full day with Heath never told.
+    if (alertSuppressed) {
+      console.warn(`[unsub-spike] spike alert (${count} in 24h) SUPPRESSED by telegram-gate — NOT writing unsubscribe_alert_log debounce row`);
+    } else {
+      await logAlert(count, latest, msg).catch(() => {});
+    }
 
     const duration_ms = Date.now() - startedAt;
     recordCronRun('cron-unsubscribe-spike-monitor', 'ok', { duration_ms, ...result }).catch(() => {});

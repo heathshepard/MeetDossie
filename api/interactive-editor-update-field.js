@@ -21,6 +21,7 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { fieldNameToPrompt } = require('./_lib/fill-form-required-fields');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { computeFundsDeliveryDueDates } = require('./_lib/business-calendar');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -259,10 +260,18 @@ module.exports = async function handler(req, res) {
 
     // 2. Update the field (targeted PATCH — race-safe).
     const typedValue = normalizeNumericValue(canonical, newValue);
-    await supabaseCall('PATCH', `transactions?id=eq.${transactionId}`, {
+    const patch = {
       [canonical]: typedValue,
       updated_at: new Date().toISOString(),
-    });
+    };
+    // TREC ¶5.A: setting/changing the effective date (re)computes the option
+    // fee and earnest money delivery due dates (effective + 3 calendar days,
+    // then ¶5A(2) weekend/Texas Legal Holiday rollover — funds delivery
+    // only). Clearing the effective date clears both due dates.
+    if (canonical === 'contract_effective_date') {
+      Object.assign(patch, computeFundsDeliveryDueDates(typedValue));
+    }
+    await supabaseCall('PATCH', `transactions?id=eq.${transactionId}`, patch);
 
     // 3. Re-render the specific form PDF by calling fill-form.
     const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';

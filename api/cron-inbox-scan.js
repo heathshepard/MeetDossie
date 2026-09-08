@@ -33,7 +33,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-inbox-scan');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-inbox-scan');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -447,6 +449,14 @@ async function handler(req, res) {
     if (threadUrl) parts.push(`<a href="${threadUrl}">Open thread</a>`);
 
     const tg = await sendTelegram(parts.join('\n\n'));
+    // Gate-suppressed send = Heath was NOT alerted. Do NOT write the
+    // inbox_alerts debounce row — that would mark the email "alerted"
+    // forever with nothing delivered (Carter, 2026-09-07).
+    if (tg.ok && wasSuppressed(tg.data)) {
+      console.warn(`[cron-inbox-scan] alert for gmail message ${messageId} SUPPRESSED by telegram-gate — NOT recording inbox_alerts row`);
+      stats.telegram_suppressed = (stats.telegram_suppressed || 0) + 1;
+      continue;
+    }
     if (!tg.ok) {
       stats.telegram_failures++;
       // Do NOT record alert row — retry next cron cycle.

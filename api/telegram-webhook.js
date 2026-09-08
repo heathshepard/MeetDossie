@@ -573,6 +573,13 @@ async function regeneratePost(rejectedPost) {
 const EDIT_PROMPT_PREFIX = '✏️ Editing post ';
 const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
 
+// TC discovery comment-reply edit flow (cron-tc-reply-approval). Same
+// force_reply pattern as the post edit flow, distinct prefix so the text
+// handler can route it. The revised text BECOMES the reply (reply_final) and
+// the row goes straight to 'approved' — Heath's edit is his approval.
+const TCREPLY_EDIT_PROMPT_PREFIX = '✏️ Editing TC reply ';
+const TCREPLY_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised reply — it posts as-is once the local poster runs.';
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -1345,6 +1352,84 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // TC discovery comment-reply approval flow (cron-tc-reply-approval).
+  // callback_data: tcreply_approve:<uuid> / tcreply_edit:<uuid> / tcreply_skip:<uuid>
+  // Rows live in tc_discovery_responses. NOTHING posts without an explicit
+  // Approve (or an explicit edit-reply, which is a stronger approval) — no
+  // auto-approve, no veto window. The actual Facebook post happens locally
+  // via `node scripts/fb-group-commenter.js --tc-reply-queue`.
+  const tcReplyMatch = data.match(/^tcreply_(approve|edit|skip):([\w-]+)$/);
+  if (tcReplyMatch) {
+    const action = tcReplyMatch[1];
+    const rowId = tcReplyMatch[2];
+    const originalBody = String(message?.text || '');
+    const nowIso = new Date().toISOString();
+
+    const { data: rows } = await supabaseFetch(
+      `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&limit=1&select=id,reply_status,reply_draft,reply_final,commenter_name`,
+    );
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!row) {
+      if (callbackId) await answerCallback(callbackId, 'Comment not found');
+      return;
+    }
+
+    if (action === 'edit') {
+      // Editable while awaiting decision, and re-editable before the local
+      // poster claims it ('approved'). Once posting/posted, too late.
+      if (row.reply_status !== 'notified' && row.reply_status !== 'approved') {
+        if (callbackId) await answerCallback(callbackId, `Too late — already ${row.reply_status}`);
+        return;
+      }
+      const promptText = `${TCREPLY_EDIT_PROMPT_PREFIX}${rowId}${TCREPLY_EDIT_PROMPT_SUFFIX}`;
+      await sendMessage(chatId, promptText, messageId, true);
+      if (callbackId) await answerCallback(callbackId, 'Reply with the revised text');
+      return;
+    }
+
+    if (row.reply_status !== 'notified') {
+      if (callbackId) await answerCallback(callbackId, `Already ${row.reply_status}`);
+      return;
+    }
+
+    if (action === 'approve') {
+      // Guard on reply_status=eq.notified so a double-tap can't re-approve.
+      const patch = await supabaseFetch(
+        `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.notified`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({
+            reply_status: 'approved',
+            reply_final: row.reply_final || row.reply_draft,
+            reply_approved_at: nowIso,
+            updated_at: nowIso,
+          }),
+        },
+      );
+      const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+      const tail = won
+        ? 'Approved — posts under their comment on the next local poster run (FB reply budget 10/day; queued if over).'
+        : 'Already handled.';
+      if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+      if (callbackId) await answerCallback(callbackId, won ? 'Approved' : 'Already handled');
+      return;
+    }
+
+    // skip
+    await supabaseFetch(
+      `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.notified`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ reply_status: 'skipped', updated_at: nowIso }),
+      },
+    );
+    if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\nSkipped — no reply will post.`);
+    if (callbackId) await answerCallback(callbackId, 'Skipped');
+    return;
+  }
+
   // Unified engagement_candidates approval flow.
   // callback_data: eng_approve:<id> / eng_reject:<id>
   // The numeric id is the bigserial primary key on engagement_candidates.
@@ -1676,6 +1761,46 @@ async function handleTextMessage(msg, logStep) {
   // Handle replies to edit prompts
   if (replyTo) {
     const replyText = String(replyTo.text || '');
+
+    // TC discovery reply edit: Heath's revised text becomes reply_final and
+    // the row is APPROVED in the same step (his edit is his approval — spec:
+    // "he replies to the Telegram message with revised text, and that becomes
+    // the reply"). Guarded on notified/approved so an already-posting row
+    // can't be mutated mid-flight.
+    if (replyText.startsWith(TCREPLY_EDIT_PROMPT_PREFIX)) {
+      if (logStep) logStep({ step: 'processing_tcreply_edit' });
+      const after = replyText.slice(TCREPLY_EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(TCREPLY_EDIT_PROMPT_SUFFIX);
+      const rowId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].replace(/\.$/, '').trim();
+      const newText = messageText.trim();
+      if (rowId && newText) {
+        const nowIso = new Date().toISOString();
+        const patch = await supabaseFetch(
+          `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=in.(notified,approved)`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              reply_final: newText,
+              reply_status: 'approved',
+              reply_approved_at: nowIso,
+              updated_at: nowIso,
+            }),
+          },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        await sendMessage(
+          chatId,
+          won
+            ? '✏️ Saved and approved — your text posts as the reply on the next local poster run.'
+            : 'Could not save — that reply is no longer editable (already posting/posted/skipped).',
+          msg.message_id, null, logStep,
+        );
+        if (logStep) logStep({ step: 'tcreply_edit_saved', rowId, won });
+        return;
+      }
+    }
+
     if (replyText.startsWith(EDIT_PROMPT_PREFIX)) {
       // Extract post_id between prefix and suffix
       if (logStep) logStep({ step: 'processing_edit_reply' });

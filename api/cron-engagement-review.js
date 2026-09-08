@@ -21,7 +21,9 @@
 // Auth:     Authorization: Bearer ${CRON_SECRET} (or Vercel's own cron header)
 // Schedule: vercel.json -- every 20 min, matches cron-content-pipeline-review.
 
-require('./_lib/telegram-gate').install('cron-engagement-review');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-engagement-review');
+const { wasSuppressed } = telegramGate;
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -128,6 +130,14 @@ module.exports = async function handler(req, res) {
     if (!result.ok) {
       console.error('[cron-engagement-review] send failed for row', row.id, result.raw?.slice(0, 200));
       errors.push({ id: row.id, error: result.raw?.slice(0, 200) });
+      continue;
+    }
+    // Gate-suppressed send = Heath never saw it. Do NOT stamp telegram_sent_at
+    // (this cron only picks rows where it's null — a false stamp makes the row
+    // invisible forever). Carter, 2026-09-07.
+    if (wasSuppressed(result.data)) {
+      console.warn(`[cron-engagement-review] review message for row ${row.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+      errors.push({ id: row.id, error: 'suppressed_by_telegram_gate' });
       continue;
     }
     const messageId = result.data?.result?.message_id || null;

@@ -8,7 +8,8 @@
     "dev": "node server.js",
     "regression": "node scripts/daily-regression-suite/run.mjs",
     "regression:api": "node scripts/daily-regression-suite/run.mjs --tiers api,db,cron",
-    "regression:staging": "node scripts/daily-regression-suite/run.mjs --source staging-preview"
+    "regression:staging": "node scripts/daily-regression-suite/run.mjs --source staging-preview",
+    "test:mail-oauth": "node scripts/carter-mail-oauth-dispatcher-test.js && node scripts/carter-addon-checkout-provider-guard-test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

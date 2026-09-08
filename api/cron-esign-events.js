@@ -50,7 +50,8 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { parseEsignNotification, matchToDeal } = require('./_lib/esign-notification-parser');
 const { verifyExecutedPdf, VERDICT } = require('./_lib/signature-verifier');
 const { listEmailIntegrationCustomers } = require('./_lib/email-integration-customers');
-const { loadGoogleTokensForUser, makeGmailClient, headerMap, parseFromHeader, bodyOfMessage } = require('./_lib/gmail-oauth');
+const { makeMailClient } = require('./_lib/mail-client');
+const { headerMap, parseFromHeader, bodyOfMessage } = require('./_lib/gmail-oauth');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -58,6 +59,8 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID;
+const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET;
 
 const BUCKET = 'documents';
 
@@ -429,7 +432,7 @@ function authorized(req) {
 // touches `res` directly) so the outer handler can loop over every customer
 // and aggregate. dryRun mirrors the old query-param dry run, scoped to
 // whichever customer the outer handler is currently processing.
-async function runForCustomer({ userId, googleEmail }, { dryRun } = {}) {
+async function runForCustomer({ userId, email }, { dryRun } = {}) {
   const stats = {
     candidates: 0, esign: 0, new: 0, completions: 0,
     filed: 0, retrieval_failures: 0, verified_signed: 0, flagged: 0, asks: 0, errors: 0,
@@ -437,10 +440,11 @@ async function runForCustomer({ userId, googleEmail }, { dryRun } = {}) {
   const details = [];
 
   let gmail;
+  const googleEmail = email;
   try {
-    const tokens = await loadGoogleTokensForUser(userId);
-    if (!tokens) throw new Error('no_google_integration_row');
-    gmail = makeGmailClient({ userId, tokens });
+    const mail = await makeMailClient({ userId });
+    if (!mail) throw new Error('no_mail_integration_row');
+    gmail = mail.client;
   } catch (err) {
     return { ok: false, status: 'no_google_integration', userId, googleEmail, error: String(err.message) };
   }
@@ -703,8 +707,10 @@ async function handler(req, res) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({ ok: false, error: 'supabase_env_missing' });
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(200).json({ ok: true, status: 'skipped', reason: 'google_oauth_env_missing' });
+  const googleConfigured = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+  const microsoftConfigured = !!(MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET);
+  if (!googleConfigured && !microsoftConfigured) {
+    return res.status(200).json({ ok: true, status: 'skipped', reason: 'no mail provider configured (GOOGLE_CLIENT_ID/SECRET and MICROSOFT_CLIENT_ID/SECRET both unset)' });
   }
 
   let customers = [];
