@@ -22,13 +22,15 @@
 //   - Only group_posts mutations: last_harvested_at + harvest_count
 //     (harvest metadata added by supabase/migrations/20260907_tc_discovery_responses.sql).
 //
-// CADENCE (self-gating — run the script as often as every few hours):
-//   pass 1 at >= posted_at + 24h, pass 2 at >= posted_at + 72h, then every
-//   3 days, stopping 45 days after the post. Scheduled via Windows Task
-//   Scheduler (scripts/register-tc-discovery-harvest-task.ps1 +
-//   scripts/run-tc-discovery-harvest.cmd) because it needs the local
-//   DossieBot-Sage Chrome profile — a Vercel cron cannot reach it, and the
-//   agent-queue poller / cron-process-agent-requests are dead.
+// CADENCE (self-gating — safe to run every 30 min):
+//   HOT WINDOW (first 48h after posting, when most comments land — feeds the
+//   comment-reply approval loop): first pass at >= posted_at + 30 min, then
+//   every 45 min. LONG TAIL (after 48h): every 3 days, stopping 45 days
+//   after the post. Scheduled via Windows Task Scheduler
+//   (scripts/register-tc-discovery-harvest-task.ps1 +
+//   scripts/run-tc-discovery-harvest.cmd, 30-min tick) because it needs the
+//   local DossieBot-Sage Chrome profile — a Vercel cron cannot reach it, and
+//   the agent-queue poller / cron-process-agent-requests are dead.
 //
 // HEADLESS CAVEAT: headless launches on the DossieBot-Sage profile have
 // twice FALSELY reported logged-out while the session was live. Default is
@@ -122,15 +124,32 @@ async function fetchCampaignPosts(postId) {
 
 // ─── Cadence ──────────────────────────────────────────────────────────────────
 
-// +24h, +72h, then every 3 days; stop 45 days after the post.
+// TIGHTENED 2026-09-08 (Carter, for the comment-reply approval loop): most
+// comments land in the first 48 hours, and the reply loop is only useful if
+// Heath can answer while the thread is still warm. First 48h after posting:
+// harvest every 45 minutes (first pass as soon as 30 min in). After 48h the
+// long tail keeps the old every-3-days cadence, stopping at 45 days.
+// (Previous scheme was +24h / +72h / every-3-days — far too slow to feed
+// same-hour reply notifications.)
+const HOT_WINDOW_MS = 48 * HOUR;
+const HOT_INTERVAL_MS = 45 * 60 * 1000;
+const FIRST_PASS_DELAY_MS = 30 * 60 * 1000;
+
 function isDue(post, nowMs = Date.now()) {
   if (!post || !post.posted_at || !post.post_url) return false;
   const posted = Date.parse(post.posted_at);
   if (!Number.isFinite(posted)) return false;
   if (nowMs - posted > CAMPAIGN_WINDOW_MS) return false;
   const hc = post.harvest_count || 0;
-  if (hc === 0) return nowMs >= posted + 24 * HOUR;
-  if (hc === 1) return nowMs >= posted + 72 * HOUR;
+  const age = nowMs - posted;
+  if (age <= HOT_WINDOW_MS) {
+    if (hc === 0) return age >= FIRST_PASS_DELAY_MS;
+    const last = Date.parse(post.last_harvested_at || post.posted_at);
+    return nowMs >= last + HOT_INTERVAL_MS;
+  }
+  // Long tail: never-harvested posts (scheduler was down during the hot
+  // window) are due immediately; otherwise every 3 days from the last pass.
+  if (hc === 0) return true;
   const last = Date.parse(post.last_harvested_at || post.posted_at);
   return nowMs >= last + 3 * DAY;
 }

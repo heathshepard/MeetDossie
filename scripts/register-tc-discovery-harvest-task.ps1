@@ -1,10 +1,13 @@
 # register-tc-discovery-harvest-task.ps1
 #
 # Registers Windows Task Scheduler entry "Dossie TC Discovery Harvest".
-# Runs scripts\run-tc-discovery-harvest.cmd every 6 hours. The harvester
-# self-gates the real cadence per post (+24h, +72h, then every 3 days,
-# stopping 45 days after the post), so the 6-hour tick just gives it enough
-# chances to hit those windows. No-op ticks exit without launching Chrome.
+# Runs scripts\run-tc-discovery-harvest.cmd every 30 MINUTES (tightened
+# 2026-09-08 for the comment-reply approval loop). The wrapper does two
+# things per tick: (1) harvest — self-gates per post (every 45 min in the
+# first 48h when most comments land, then every 3 days, stopping at 45
+# days); (2) post Heath-approved replies via
+# fb-group-commenter.js --tc-reply-queue. No-op ticks exit in ~2s without
+# launching Chrome.
 #
 # Why Task Scheduler and not a Vercel cron: the harvester drives the local
 # DossieBot-Sage Chrome profile (Heath's live FB session) — serverless can't
@@ -32,9 +35,10 @@ $Action = New-ScheduledTaskAction `
     -Argument "/c `"$Wrapper`"" `
     -WorkingDirectory $RepoRoot
 
-# Every 6 hours, indefinitely.
+# Every 30 minutes, indefinitely (harvest self-gates; reply-queue exits
+# instantly when nothing is approved).
 $Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddHours(8) `
-    -RepetitionInterval (New-TimeSpan -Hours 6) `
+    -RepetitionInterval (New-TimeSpan -Minutes 30) `
     -RepetitionDuration ([TimeSpan]::MaxValue)
 
 $Settings = New-ScheduledTaskSettingsSet `
@@ -64,5 +68,5 @@ Register-ScheduledTask `
     -Settings $Settings `
     -Principal $Principal | Out-Null
 
-Write-Host "$TaskName registered. Runs every 6 hours; harvester self-gates the per-post cadence."
+Write-Host "$TaskName registered. Runs every 30 minutes; harvester self-gates the per-post cadence and the reply queue only launches Chrome when something is approved."
 Get-ScheduledTask -TaskName $TaskName | Select-Object TaskName, State

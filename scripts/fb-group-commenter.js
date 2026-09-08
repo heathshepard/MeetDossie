@@ -7,15 +7,38 @@
 // the comment if approved within 30 minutes.
 //
 // Usage:
-//   node scripts/fb-group-commenter.js
+//   node scripts/fb-group-commenter.js                       # legacy scan-and-comment mode
+//   node scripts/fb-group-commenter.js --tc-reply-queue      # post APPROVED TC discovery replies
+//   node scripts/fb-group-commenter.js --tc-reply-queue --dry-run
 //
 // Env vars required:
 //   TELEGRAM_BOT_TOKEN
 //   TELEGRAM_CHAT_ID
-//   ANTHROPIC_API_KEY
+//   ANTHROPIC_API_KEY (scan mode only)
+//   SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (--tc-reply-queue only)
 //
 // Groups are loaded from scripts/fb-commenter-groups.json (local file).
 // Add or edit group entries there — no database needed.
+//
+// ─── --tc-reply-queue (Carter, 2026-09-08) ───────────────────────────────────
+// Drains tc_discovery_responses rows with reply_status='approved' (Heath
+// explicitly approved each one in Telegram via cron-tc-reply-approval) and
+// posts each reply THREADED UNDER THE SPECIFIC COMMENT — the capability the
+// legacy postComment() lacks (it can only type into the post's top-level
+// "Write a comment..." box).
+//
+// Hard rules:
+//   - NOTHING posts without reply_status='approved' (Heath's explicit tap).
+//   - One reply per comment, EVER: rows are claimed with an atomic
+//     status-guarded PATCH ('approved' -> 'posting'); 'posted'/'post_failed'
+//     are terminal and never retried (a verify failure can mean it DID post).
+//   - Respects scripts/_lib/comment-caps.js (Facebook 5/day + 45-min min-gap).
+//     Over-cap approved replies stay queued and Heath gets ONE Telegram note.
+//   - Every post is VERIFIED by re-rendering the thread and reading the reply
+//     back before the row is marked posted.
+//   - Uses the DossieBot-Sage Chrome profile (same live FB session the
+//     harvester reads with), cooperative unlock, headed.
+// Scheduled from run-tc-discovery-harvest.cmd right after each harvest pass.
 
 const path = require('path');
 const os = require('os');
@@ -342,6 +365,332 @@ async function postComment(page, postUrl, commentText) {
   console.log('[fb-group-commenter] Comment submitted');
 }
 
+// ─── TC discovery reply queue (threaded replies, approval-gated) ─────────────
+
+const SAGE_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
+  os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
+);
+const HEATH_FB_NAMES = ['Heath Shepard'];
+const TC_PLATFORM = 'facebook';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const normText = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
+function makeSbFetch() {
+  return async function sbFetch(urlPath, init = {}) {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const headers = {
+      'Content-Type': 'application/json',
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      ...(init.headers || {}),
+    };
+    const res = await fetch(`${process.env.SUPABASE_URL}${urlPath}`, { ...init, headers });
+    const text = await res.text();
+    let data = null;
+    if (text) { try { data = JSON.parse(text); } catch { data = null; } }
+    return { ok: res.ok, status: res.status, data };
+  };
+}
+
+/**
+ * Atomically claim an approved row ('approved' -> 'posting'). Returns the
+ * claimed row or null if someone else got there first / it's no longer
+ * approved. This status-guarded PATCH is the double-reply lock.
+ */
+async function claimApprovedReply(sbFetch, rowId) {
+  const res = await sbFetch(
+    `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.approved`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ reply_status: 'posting', updated_at: new Date().toISOString() }),
+    },
+  );
+  if (res.ok && Array.isArray(res.data) && res.data.length > 0) return res.data[0];
+  return null;
+}
+
+async function finalizeReply(sbFetch, rowId, patch) {
+  return sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
+}
+
+// Direct send — this is Heath-requested approval-loop plumbing, not cron noise.
+async function tcNotifyHeath(text) {
+  const token = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: String(text).slice(0, 4090), disable_web_page_preview: true }),
+  }).catch(() => {});
+}
+
+// Read-only-style thread expansion (mirrors the harvester's whitelist).
+async function expandRepliesReadOnly(page) {
+  const EXPAND_RE = /^(View (all )?\d+ (more )?(comments|replies)|View more comments|View more replies|Previous comments|\d+ (reply|replies))$/i;
+  for (let round = 0; round < 10; round++) {
+    const clicked = await page.evaluate((reSrc) => {
+      const re = new RegExp(reSrc, 'i');
+      const btns = Array.from(document.querySelectorAll('div[role="button"], span[role="button"]'));
+      for (const b of btns) {
+        const t = (b.innerText || '').trim();
+        if (t && re.test(t)) { b.click(); return t; }
+      }
+      return null;
+    }, EXPAND_RE.source).catch(() => null);
+    if (!clicked) break;
+    await sleep(1800);
+  }
+}
+
+/**
+ * Post `replyText` THREADED UNDER the specific comment described by `row`
+ * (commenter_name + comment_text). This is the capability postComment() above
+ * lacks. Throws with submitted=false semantics before any keystroke lands.
+ *
+ * @returns {Promise<{submitted: boolean}>}
+ */
+async function postReplyToComment(page, row, replyText) {
+  const targetUrl = row.comment_permalink || row.post_url;
+  if (!targetUrl) throw new Error('row has no comment_permalink or post_url');
+
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await sleep(6000);
+  if (/\/login|\/checkpoint/i.test(page.url())) {
+    throw new Error('redirected to login — DossieBot-Sage profile needs a manual FB login');
+  }
+  await expandRepliesReadOnly(page);
+
+  // Find the target comment's article and click ITS Reply button.
+  const commentSnippet = normText(row.comment_text).slice(0, 80);
+  const clicked = await page.evaluate(({ name, snippet }) => {
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const articles = Array.from(document.querySelectorAll('div[role="article"]'));
+    for (const art of articles) {
+      const label = art.getAttribute('aria-label') || '';
+      if (!/^(Comment|Reply) by /i.test(label)) continue;
+      if (!label.toLowerCase().includes(name.toLowerCase())) continue;
+      if (!norm(art.innerText).includes(snippet)) continue;
+      const btns = Array.from(art.querySelectorAll('div[role="button"], span[role="button"]'));
+      for (const b of btns) {
+        if ((b.innerText || '').trim() === 'Reply') { b.click(); return true; }
+      }
+    }
+    return false;
+  }, { name: row.commenter_name, snippet: commentSnippet }).catch(() => false);
+
+  if (!clicked) {
+    throw new Error(`could not locate Reply button for comment by ${row.commenter_name}`);
+  }
+  await sleep(2500);
+
+  // The reply composer: a contenteditable textbox whose aria-label starts
+  // with "Reply", or (fallback) the currently focused contenteditable.
+  const focused = await page.evaluate(() => {
+    const boxes = Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'));
+    const replyBox = boxes.find((b) => /^reply/i.test(b.getAttribute('aria-label') || ''));
+    const el = replyBox || (document.activeElement && document.activeElement.getAttribute('contenteditable') === 'true' ? document.activeElement : null);
+    if (!el) return false;
+    el.focus();
+    return true;
+  }).catch(() => false);
+  if (!focused) throw new Error('reply composer did not appear after clicking Reply');
+
+  await page.keyboard.type(replyText, { delay: 35 });
+  await sleep(500);
+  await page.keyboard.press('Enter'); // FB reply composer submits on Enter
+  // From here on the reply may be live — caller must treat this as submitted.
+  await sleep(5000);
+  return { submitted: true };
+}
+
+/**
+ * Verify the reply is actually live: re-render the thread and read it back.
+ * A "success" that didn't post is the failure mode this exists to catch.
+ */
+async function verifyReplyPosted(page, row, replyText) {
+  const targetUrl = row.comment_permalink || row.post_url;
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await sleep(6000);
+  await expandRepliesReadOnly(page);
+  const wanted = normText(replyText);
+  return page.evaluate(({ names, wanted: w }) => {
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const articles = Array.from(document.querySelectorAll('div[role="article"]'));
+    for (const art of articles) {
+      const label = art.getAttribute('aria-label') || '';
+      if (!/^(Comment|Reply) by /i.test(label)) continue;
+      const isOwn = names.some((n) => label.toLowerCase().includes(n.toLowerCase()));
+      if (!isOwn) continue;
+      if (norm(art.innerText).includes(w)) return true;
+    }
+    return false;
+  }, { names: HEATH_FB_NAMES, wanted }).catch(() => false);
+}
+
+/**
+ * Core queue logic — deps injectable so the regression test runs it with a
+ * mock DB, mock caps, and a mock poster (no browser, no network).
+ *
+ * @param {object} deps { sbFetch, caps, poster, verifier, notify, log }
+ * @returns {Promise<{posted:number, queuedForCap:number, failed:number, skipped:number}>}
+ */
+async function runTcReplyQueue(deps = {}) {
+  const sbFetch = deps.sbFetch || makeSbFetch();
+  const caps = deps.caps || require('./_lib/comment-caps.js');
+  const poster = deps.poster;     // async (row, replyText) => { submitted }
+  const verifier = deps.verifier; // async (row, replyText) => boolean
+  const notify = deps.notify || tcNotifyHeath;
+  const log = deps.log || console;
+  const out = { posted: 0, queuedForCap: 0, failed: 0, skipped: 0 };
+
+  // ONLY Heath-approved rows. Nothing else is ever eligible.
+  const { ok, data } = await sbFetch(
+    '/rest/v1/tc_discovery_responses'
+    + '?reply_status=eq.approved&replied=eq.false&reply_posted_at=is.null'
+    + '&select=id,post_url,comment_permalink,commenter_name,comment_text,reply_final,reply_draft,source_group'
+    + '&order=reply_approved_at.asc',
+  );
+  if (!ok) throw new Error('failed to load approved replies');
+  const rows = Array.isArray(data) ? data : [];
+  if (rows.length === 0) return out;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const replyText = String(row.reply_final || '').trim();
+    if (!replyText) {
+      // Approved with no text should be impossible — park it, don't guess.
+      await finalizeReply(sbFetch, row.id, { reply_status: 'post_failed', reply_error: 'approved row has empty reply_final' });
+      out.failed++;
+      continue;
+    }
+
+    // Anti-ban caps: daily cap + min-gap. Over-cap replies STAY QUEUED
+    // (status remains 'approved') — never dropped, never force-posted.
+    const capCheck = await caps.canComment(TC_PLATFORM, sbFetch);
+    if (!capCheck.allowed) {
+      out.queuedForCap = rows.length - i;
+      log.log(`[tc-reply-queue] cap hit (${capCheck.reason}) — ${out.queuedForCap} approved repl${out.queuedForCap === 1 ? 'y' : 'ies'} stay queued`);
+      await notify(`TC reply queue: FB daily cap hit (${capCheck.reason}). ${out.queuedForCap} approved repl${out.queuedForCap === 1 ? 'y' : 'ies'} queued — they post automatically on later runs.`);
+      break;
+    }
+    const gap = await caps.minGapElapsed(TC_PLATFORM, sbFetch, 'tc_discovery_responses', 'reply_posted_at');
+    if (!gap.elapsed) {
+      out.queuedForCap = rows.length - i;
+      log.log(`[tc-reply-queue] min-gap not elapsed (${Math.round(gap.ageMin)}m/${gap.gapMin}m) — ${out.queuedForCap} queued for next run`);
+      break; // silent: this resolves within the hour, no need to ping Heath
+    }
+
+    // Double-reply lock: atomic claim.
+    const claimed = await claimApprovedReply(sbFetch, row.id);
+    if (!claimed) {
+      out.skipped++;
+      continue;
+    }
+
+    let submitted = false;
+    try {
+      const postRes = await poster(row, replyText);
+      submitted = !!(postRes && postRes.submitted);
+    } catch (err) {
+      // Nothing was typed/submitted — but do NOT auto-retry (a repeating DOM
+      // failure would hammer the thread). Park it and hand Heath the text.
+      await finalizeReply(sbFetch, row.id, { reply_status: 'post_failed', reply_error: `not_submitted: ${String(err.message).slice(0, 300)}` });
+      await notify(`TC reply FAILED (nothing was posted) for ${row.commenter_name}.\nError: ${err.message}\n\nPost it manually:\n${replyText}\n\n${row.comment_permalink || row.post_url || ''}`);
+      out.failed++;
+      continue;
+    }
+
+    if (submitted) {
+      // Count against the cap the moment keystrokes were submitted — even if
+      // verification fails below, the comment may be live on Facebook.
+      await caps.recordComment(TC_PLATFORM, sbFetch);
+    }
+
+    const verified = await verifier(row, replyText);
+    if (verified) {
+      await finalizeReply(sbFetch, row.id, {
+        reply_status: 'posted',
+        replied: true,
+        reply_posted_at: new Date().toISOString(),
+        reply_error: null,
+      });
+      out.posted++;
+      log.log(`[tc-reply-queue] posted + verified reply to ${row.commenter_name}`);
+    } else {
+      // Submitted but could not read it back. TERMINAL — never auto-retry,
+      // because retrying a reply that actually landed = double-reply.
+      await finalizeReply(sbFetch, row.id, {
+        reply_status: 'post_failed',
+        reply_error: 'submitted but verification could not find the reply in the re-rendered thread',
+      });
+      await notify(`TC reply to ${row.commenter_name} was submitted but could NOT be verified in the thread. Check manually before re-posting (it may be live):\n${row.comment_permalink || row.post_url || ''}`);
+      out.failed++;
+    }
+
+    await sleep(8000 + Math.floor(Math.random() * 7000));
+  }
+
+  return out;
+}
+
+// Browser-wired entrypoint for --tc-reply-queue.
+async function tcReplyQueueMain({ dryRun }) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[tc-reply-queue] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing');
+    process.exit(1);
+  }
+  const sbFetch = makeSbFetch();
+
+  if (dryRun) {
+    const { data } = await sbFetch(
+      '/rest/v1/tc_discovery_responses?reply_status=eq.approved&replied=eq.false&select=id,commenter_name,reply_final,source_group&order=reply_approved_at.asc',
+    );
+    const rows = Array.isArray(data) ? data : [];
+    console.log(`[tc-reply-queue][dry-run] ${rows.length} approved repl${rows.length === 1 ? 'y' : 'ies'} queued:`);
+    for (const r of rows) console.log(`  - ${r.commenter_name} (${r.source_group}): ${String(r.reply_final || '').slice(0, 100)}`);
+    return;
+  }
+
+  // Quick emptiness probe before launching Chrome at all.
+  const probe = await sbFetch('/rest/v1/tc_discovery_responses?reply_status=eq.approved&replied=eq.false&select=id&limit=1');
+  if (!probe.ok || !Array.isArray(probe.data) || probe.data.length === 0) {
+    console.log('[tc-reply-queue] nothing approved — exiting without launching Chrome');
+    return;
+  }
+
+  const { chromium } = require('playwright');
+  const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+  // Cooperative unlock (NO force) — same as the harvester: if another job
+  // holds the profile, this throws/waits and the next scheduled tick retries.
+  await unlockProfile({ profileDir: SAGE_PROFILE_PATH, reason: 'tc-reply-queue' });
+  const context = await chromium.launchPersistentContext(SAGE_PROFILE_PATH, {
+    headless: false, // headless has twice falsely reported logged-out on this profile
+    channel: 'chrome',
+    args: ['--no-sandbox', '--disable-blink-features=AutomationControlled', '--window-size=1180,900', '--no-first-run'],
+    viewport: null,
+    ignoreDefaultArgs: ['--enable-automation'],
+  });
+
+  try {
+    const page = context.pages()[0] || await context.newPage();
+    const result = await runTcReplyQueue({
+      sbFetch,
+      poster: (row, replyText) => postReplyToComment(page, row, replyText),
+      verifier: (row, replyText) => verifyReplyPosted(page, row, replyText),
+    });
+    console.log('[tc-reply-queue] done:', JSON.stringify(result));
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -462,7 +811,21 @@ async function main() {
   console.log('[fb-group-commenter] Done');
 }
 
-main().catch((err) => {
-  console.error('[fb-group-commenter] Fatal error:', err.message);
-  process.exit(1);
-});
+module.exports = {
+  runTcReplyQueue,
+  claimApprovedReply,
+  finalizeReply,
+  postReplyToComment,
+  verifyReplyPosted,
+};
+
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const entry = args.includes('--tc-reply-queue')
+    ? tcReplyQueueMain({ dryRun: args.includes('--dry-run') })
+    : main();
+  entry.catch((err) => {
+    console.error('[fb-group-commenter] Fatal error:', err.message);
+    process.exit(1);
+  });
+}

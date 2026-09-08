@@ -65,6 +65,10 @@ const ALWAYS_ALLOW = new Set([
   'cron-unsubscribe-spike-monitor', // hourly probe, but only SENDS when >2 unsubscribes/24h (6h dedup) — silent on a
                                     // healthy list. Deliverability/domain-reputation bleed threatens every transactional
                                     // send (deadline reminders, e-sign) — Carter, 2026-09-07.
+  'cron-tc-reply-approval',  // sends ONLY when a real human commented on a TC discovery post and Heath's approval
+                             // is required before anything can post back — interactive approval plumbing, not digest
+                             // noise. A swallowed message here silently kills the whole reply loop (the exact
+                             // failure mode that hid five finished videos for three weeks) — Carter, 2026-09-08.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.

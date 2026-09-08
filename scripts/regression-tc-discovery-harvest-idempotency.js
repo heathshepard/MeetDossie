@@ -183,17 +183,22 @@ async function main() {
   assert.strictEqual(stored.question_id, 'Q2', 'question inferred from body snippet');
   assert.strictEqual(stored.theme ?? null, null, 'classification left null at write time');
 
-  // 4. Cadence math
+  // 4. Cadence math — HOT WINDOW scheme (2026-09-08, reply-approval loop):
+  // first 48h: first pass at +30min then every 45min; after 48h: every 3
+  // days from last pass; 45-day stop. See regression-tc-reply-approval.js
+  // for additional hot-window coverage.
   const t0 = Date.parse(post.posted_at);
-  assert.strictEqual(isDue({ ...post, harvest_count: 0 }, t0 + 23 * 3600e3), false, 'not due before +24h');
-  assert.strictEqual(isDue({ ...post, harvest_count: 0 }, t0 + 25 * 3600e3), true, 'due at +24h');
-  assert.strictEqual(isDue({ ...post, harvest_count: 1 }, t0 + 48 * 3600e3), false, 'pass 2 not due at +48h');
-  assert.strictEqual(isDue({ ...post, harvest_count: 1 }, t0 + 73 * 3600e3), true, 'pass 2 due at +72h');
+  assert.strictEqual(isDue({ ...post, harvest_count: 0 }, t0 + 10 * 60e3), false, 'not due 10 min after posting');
+  assert.strictEqual(isDue({ ...post, harvest_count: 0 }, t0 + 35 * 60e3), true, 'first pass due at +30min (hot window)');
+  const hot1 = new Date(t0 + 60 * 60e3).toISOString();
+  assert.strictEqual(isDue({ ...post, harvest_count: 1, last_harvested_at: hot1 }, t0 + 80 * 60e3), false, 'hot window: not due 20 min after last pass');
+  assert.strictEqual(isDue({ ...post, harvest_count: 1, last_harvested_at: hot1 }, t0 + 110 * 60e3), true, 'hot window: due 50 min after last pass');
   const lastIso = new Date(t0 + 5 * 86400e3).toISOString();
-  assert.strictEqual(isDue({ ...post, harvest_count: 2, last_harvested_at: lastIso }, t0 + 6 * 86400e3), false, 'every-3-days: not due 1d after last');
-  assert.strictEqual(isDue({ ...post, harvest_count: 2, last_harvested_at: lastIso }, t0 + 8.1 * 86400e3), true, 'every-3-days: due 3d after last');
+  assert.strictEqual(isDue({ ...post, harvest_count: 20, last_harvested_at: lastIso }, t0 + 6 * 86400e3), false, 'long tail: not due 1d after last');
+  assert.strictEqual(isDue({ ...post, harvest_count: 20, last_harvested_at: lastIso }, t0 + 8.1 * 86400e3), true, 'long tail: due 3d after last');
+  assert.strictEqual(isDue({ ...post, harvest_count: 0 }, t0 + 3 * 86400e3), true, 'never-harvested post past 48h due immediately (outage recovery)');
   assert.strictEqual(isDue({ ...post, harvest_count: 5 }, t0 + 50 * 86400e3), false, 'never due after 45-day window');
-  assert.strictEqual(isDue({ ...post, post_url: null }, t0 + 25 * 3600e3), false, 'no permalink, never due');
+  assert.strictEqual(isDue({ ...post, post_url: null }, t0 + 35 * 60e3), false, 'no permalink, never due');
 
   // 5. Question inference
   assert.strictEqual(inferQuestionId({ discovery_question_id: 'Q13', post_body: 'whatever' }), 'Q13', 'explicit id wins');
