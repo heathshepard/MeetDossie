@@ -294,6 +294,11 @@ async function uploadPreview(userId, transactionId, formSlug, formName, pdfBuffe
     file_name: `${formName} (DossieSign Preview).pdf`,
     file_type: 'application/pdf',
     document_type: 'filled_form',
+    // 2026-09-08 CARTER — stamp the form slug so esign-create can resolve the
+    // per-form signing-widget map (api/_assets/esign-field-maps.json) for
+    // documents created by this preview flow. Without it, 'filled_form' is
+    // opaque and every addendum fell back to one auto-placed signature.
+    form_type: formSlug,
     storage_path: storagePath,
     status: 'filled',
   };

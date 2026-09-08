@@ -1,0 +1,63 @@
+{
+ "form_type": "hoa-addendum",
+ "trecNo": "36-11",
+ "description": "Semantic role map for TREC 36-11 (HOA Addendum). MODE-A-ONLY MAP built 2026-09-08 (Carter): contains ONLY the party signing widgets (signatures + footer initials) — deal/property fields are not mapped here (the fill engine handles them via its own field maps). Coordinates extracted from the live AcroForm widget rects (pdf-lib, same method as the 2026-09-02 role-map batch); party assignment derived by rendering the page and reading the printed labels, NOT from AcroForm field names. x_pct/y_pct/w_pct/h_pct are top-left-origin percentages 0-100.",
+ "pageCount": 1,
+ "generated_at": "2026-09-08T06:46:09.436Z",
+ "field_summary": {
+  "total": 4,
+  "mapped_confident": 4,
+  "mapped_with_note": 0,
+  "unknown": 0
+ },
+ "fields": [
+  {
+   "num": 1,
+   "pdf_field_name": "Signature1",
+   "role": "buyer1",
+   "field_key": "buyer1_signature",
+   "field_type": "signature",
+   "page": 1,
+   "x_pct": 7.33,
+   "y_pct": 78.6,
+   "w_pct": 39.06,
+   "h_pct": 2.87
+  },
+  {
+   "num": 2,
+   "pdf_field_name": "Signature2",
+   "role": "seller1",
+   "field_key": "seller1_signature",
+   "field_type": "signature",
+   "page": 1,
+   "x_pct": 51.96,
+   "y_pct": 78.73,
+   "w_pct": 39.15,
+   "h_pct": 2.8
+  },
+  {
+   "num": 3,
+   "pdf_field_name": "Signature3",
+   "role": "buyer2",
+   "field_key": "buyer2_signature",
+   "field_type": "signature",
+   "page": 1,
+   "x_pct": 7.22,
+   "y_pct": 85.55,
+   "w_pct": 39,
+   "h_pct": 2.8
+  },
+  {
+   "num": 4,
+   "pdf_field_name": "Signature4",
+   "role": "seller2",
+   "field_key": "seller2_signature",
+   "field_type": "signature",
+   "page": 1,
+   "x_pct": 51.84,
+   "y_pct": 85.56,
+   "w_pct": 38.99,
+   "h_pct": 2.8
+  }
+ ]
+}

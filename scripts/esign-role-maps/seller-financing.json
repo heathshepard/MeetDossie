@@ -1,0 +1,115 @@
+{
+ "form_type": "seller-financing",
+ "trecNo": "26-8",
+ "description": "Semantic role map for TREC 26-8 (Seller Financing Addendum). MODE-A-ONLY MAP built 2026-09-08 (Carter): contains ONLY the party signing widgets (signatures + footer initials) — deal/property fields are not mapped here (the fill engine handles them via its own field maps). Coordinates extracted from the live AcroForm widget rects (pdf-lib, same method as the 2026-09-02 role-map batch); party assignment derived by rendering the page and reading the printed labels, NOT from AcroForm field names. x_pct/y_pct/w_pct/h_pct are top-left-origin percentages 0-100.",
+ "pageCount": 2,
+ "generated_at": "2026-09-08T06:46:09.436Z",
+ "field_summary": {
+  "total": 8,
+  "mapped_confident": 8,
+  "mapped_with_note": 0,
+  "unknown": 0
+ },
+ "fields": [
+  {
+   "num": 1,
+   "pdf_field_name": "Initialed for identification by Buyer",
+   "role": "buyer1",
+   "field_key": "buyer1_initials_p1",
+   "field_type": "text",
+   "page": 1,
+   "x_pct": 33.57,
+   "y_pct": 96.12,
+   "w_pct": 6.32,
+   "h_pct": 1.26,
+   "notes": "First Buyer footer slot (x-order). AcroForm name is the printed footer prose — position is the truth."
+  },
+  {
+   "num": 2,
+   "pdf_field_name": "Text5",
+   "role": "buyer2",
+   "field_key": "buyer2_initials_p1",
+   "field_type": "text",
+   "page": 1,
+   "x_pct": 40.19,
+   "y_pct": 96.14,
+   "w_pct": 7.02,
+   "h_pct": 1.29,
+   "notes": "Second Buyer footer slot (x-order)."
+  },
+  {
+   "num": 3,
+   "pdf_field_name": "and Seller",
+   "role": "seller1",
+   "field_key": "seller1_initials_p1",
+   "field_type": "text",
+   "page": 1,
+   "x_pct": 56.12,
+   "y_pct": 96.12,
+   "w_pct": 5.18,
+   "h_pct": 1.26,
+   "notes": "First Seller footer slot (x-order)."
+  },
+  {
+   "num": 4,
+   "pdf_field_name": "Text6",
+   "role": "seller2",
+   "field_key": "seller2_initials_p1",
+   "field_type": "text",
+   "page": 1,
+   "x_pct": 61.39,
+   "y_pct": 96.14,
+   "w_pct": 5.31,
+   "h_pct": 1.29,
+   "notes": "Second Seller footer slot (x-order)."
+  },
+  {
+   "num": 5,
+   "pdf_field_name": "Signature1",
+   "role": "buyer1",
+   "field_key": "buyer1_signature",
+   "field_type": "signature",
+   "page": 2,
+   "x_pct": 9.07,
+   "y_pct": 66.27,
+   "w_pct": 39.64,
+   "h_pct": 4.04
+  },
+  {
+   "num": 6,
+   "pdf_field_name": "Signature2",
+   "role": "buyer2",
+   "field_key": "buyer2_signature",
+   "field_type": "signature",
+   "page": 2,
+   "x_pct": 8.99,
+   "y_pct": 76.04,
+   "w_pct": 39.86,
+   "h_pct": 4.04
+  },
+  {
+   "num": 7,
+   "pdf_field_name": "Signature3",
+   "role": "seller1",
+   "field_key": "seller1_signature",
+   "field_type": "signature",
+   "page": 2,
+   "x_pct": 51.04,
+   "y_pct": 66.38,
+   "w_pct": 40.36,
+   "h_pct": 4.04
+  },
+  {
+   "num": 8,
+   "pdf_field_name": "Signature4",
+   "role": "seller2",
+   "field_key": "seller2_signature",
+   "field_type": "signature",
+   "page": 2,
+   "x_pct": 50.96,
+   "y_pct": 75.98,
+   "w_pct": 40.36,
+   "h_pct": 4.04
+  }
+ ]
+}
