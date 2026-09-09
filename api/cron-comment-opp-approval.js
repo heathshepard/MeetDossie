@@ -167,13 +167,21 @@ async function scoreAndDraft(row, recentOpeners = []) {
   return result;
 }
 
-// ─── Telegram message — BRIEF by explicit request ────────────────────────────
+// ─── Telegram message — brief, but with real post context ────────────────────
+//
+// Heath, 2026-09-09, verbatim: "can you include the post here so I can get
+// better context in addition to the link." The old card quoted only 220
+// chars of the post inline with the author name, unlabeled — easy to mistake
+// for a comment rather than the actual thread he's judging. Budget for the
+// post body: up to POST_BODY_CHARS (well under Telegram's 4096 cap), clearly
+// labeled POST so it reads as thread context, THEN the draft reply below it.
 
-function quoteSnippet(text) {
-  // Strip the leading UI noise lines (author name, group name, timestamps)
-  // best-effort: take the longest line-run of the scrape as the post body.
+const POST_BODY_CHARS = 450;
+
+function postSnippet(text) {
   const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
-  return cleaned.slice(0, 220);
+  if (cleaned.length <= POST_BODY_CHARS) return cleaned;
+  return `${cleaned.slice(0, POST_BODY_CHARS)}...`;
 }
 
 function buildOppMessage(row) {
@@ -184,9 +192,9 @@ function buildOppMessage(row) {
   ].filter(Boolean).join(' · ');
   return [
     `COMMENT OPP — ${row.group_name}${meta ? ` · ${meta}` : ''}`,
-    `${row.author_name || 'Someone'}: "${quoteSnippet(row.post_text)}"`,
+    `POST by ${row.author_name || 'someone'}: "${postSnippet(row.post_text)}"`,
     '',
-    `DRAFT: ${String(row.comment_draft || '')}`,
+    `DRAFT REPLY: ${String(row.comment_draft || '')}`,
     row.post_url || '',
   ].join('\n').slice(0, 4090);
 }

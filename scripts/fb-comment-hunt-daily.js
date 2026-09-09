@@ -61,6 +61,7 @@ try {
 
 const { canScan, recordScan, randDelay, SCAN_DWELL_MS } = require('./_lib/scan-caps');
 const halt = require('./_lib/comment-hunt-halt');
+const { isJunkText } = require('./_lib/junk-text-guard');
 
 const PROFILE_DIR = process.env.SAGE_PROFILE_DIR
   || 'C:\\Users\\Heath\\AppData\\Local\\DossieBot-Sage';
@@ -176,6 +177,11 @@ function prefilterPost(post, { maxAgeHours = 48 } = {}) {
   for (const re of SPAM_PATTERNS) {
     if (re.test(text)) return { keep: false, reason: `spam:${re.source.slice(0, 30)}` };
   }
+  // DOM-junk guard (2026-09-09 Christina Morgan incident): repeated
+  // nav/chrome noise ("Facebook Facebook Facebook...") is not a post, no
+  // matter how it scores. Reject at ingest — never write the row.
+  const junk = isJunkText(text);
+  if (junk.junk) return { keep: false, reason: `junk_text:${junk.reason}` };
   return { keep: true };
 }
 

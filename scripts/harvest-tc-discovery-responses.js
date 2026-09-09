@@ -83,6 +83,8 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const CAMPAIGN_WINDOW_MS = 45 * DAY;
 
+const { isJunkText } = require('./_lib/junk-text-guard');
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const md5 = (s) => crypto.createHash('md5').update(s, 'utf8').digest('hex');
 
@@ -212,6 +214,13 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
     const author = (c.author || '').trim();
     const text = c.text; // VERBATIM — never trimmed/normalized
     if (!author || !text || !text.trim()) { skipped++; continue; }
+    // DOM-junk guard (2026-09-09): reject scraped nav/chrome noise before it
+    // ever reaches tc_discovery_responses / the reply-approval drafting loop.
+    // Rows that pass are still stored verbatim, untouched — this only
+    // rejects candidates that were never real comment text to begin with.
+    // See scripts/_lib/junk-text-guard.js.
+    const junk = isJunkText(text);
+    if (junk.junk) { skipped++; continue; }
     // Nested replies carry BOTH ids (?comment_id=PARENT&reply_comment_id=CHILD).
     // Dedupe on the reply's own id when present — matching the parent id here
     // silently discarded EVERY nested reply as a duplicate (bug found 2026-09-08).

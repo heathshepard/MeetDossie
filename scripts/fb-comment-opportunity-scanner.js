@@ -79,6 +79,7 @@ const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
 const { scanGroup, LEAD_KEYWORD_PATTERNS } = require('./fb-lead-scraper');
 const { canScan, recordScan, randDelay, SCAN_DWELL_MS } = require('./_lib/scan-caps');
+const { isJunkText } = require('./_lib/junk-text-guard');
 
 const SEEN_FILE = path.join(__dirname, '.comment-opportunity-seen.json');
 
@@ -292,6 +293,13 @@ async function main() {
       await randDelay(SCAN_DWELL_MS);
 
       for (const lead of leads) {
+        // DOM-junk guard (2026-09-09): reject scraped nav/chrome noise before
+        // it ever reaches Claude or Heath. See scripts/_lib/junk-text-guard.js.
+        const junk = isJunkText(lead.text);
+        if (junk.junk) {
+          console.warn(`[fb-comment-opportunity-scanner] rejected junk text (${junk.reason}): "${String(lead.text).slice(0, 60)}"`);
+          continue;
+        }
         const draft = await draftComment(lead.groupName, lead.authorName, lead.text, lead.matchedPattern);
         if (!draft) {
           console.warn('[fb-comment-opportunity-scanner] draft failed, skipping lead');
