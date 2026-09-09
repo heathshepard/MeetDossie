@@ -60,16 +60,24 @@ function getFormat(id) {
 }
 
 /**
- * Pick the next format for a group, avoiding whatever was used last in that
- * SAME group (matches api/_lib/group-post-generator.js's pickTemplate
- * pattern for the legacy campaign).
+ * Pick the next format for a group, avoiding:
+ *   (a) whatever was used last in that SAME group (matches
+ *       api/_lib/group-post-generator.js's pickTemplate pattern), and
+ *   (b) any format already used ELSEWHERE in the SAME day's run.
+ * (b) is the one that matters most at 5 formats / 5 groups per day — without
+ * it, two of five daily posts read as the same idea rewritten twice (caught
+ * in real sample output 2026-09-09: 'resource_giveaway' and 'contrarian'
+ * each landed on 2 of the 5 groups in the same run). Falls back to ignoring
+ * (b) only if it would empty the candidate pool (never happens at exactly
+ * 5 formats / 5 groups, but keeps this safe if either count changes).
  * @param {string|null} lastHookType
+ * @param {string[]} [usedThisRun]  format ids already used elsewhere in this run
  * @returns {object} a FORMATS entry
  */
-function pickFormat(lastHookType) {
-  const candidates = FORMATS.length > 1
-    ? FORMATS.filter((f) => f.id !== lastHookType)
-    : FORMATS;
+function pickFormat(lastHookType, usedThisRun = []) {
+  let candidates = FORMATS.filter((f) => f.id !== lastHookType && !usedThisRun.includes(f.id));
+  if (candidates.length === 0) candidates = FORMATS.filter((f) => f.id !== lastHookType);
+  if (candidates.length === 0) candidates = FORMATS;
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 

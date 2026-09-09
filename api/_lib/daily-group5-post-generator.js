@@ -139,10 +139,10 @@ async function telegramSend(token, chatId, text, replyMarkup) {
  * produce a clean post after the retry (never inserts a blocked/duplicate/
  * off-voice row).
  *
- * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners }
+ * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners, usedFormatsThisRun }
  * @returns {Promise<{ post_body: string, format: object } | null>}
  */
-async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [] }) {
+async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [], usedFormatsThisRun = [] }) {
   let lastHookType = recentPosts.length ? recentPosts[0].hook_type : null;
   // Combine explicit cross-group recentOpeners (passed by the caller) with
   // this group's own recent post bodies — either can produce the "sounds
@@ -150,7 +150,7 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
   const openersForPrompt = [...recentOpeners, ...recentPosts.map((r) => r.post_body)];
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const format = pickFormat(lastHookType);
+    const format = pickFormat(lastHookType, usedFormatsThisRun);
     const promoAllowed = false; // Sage's finding, 2026-09-09: none of the 5 groups are confirmed-safe for product-adjacent content today
     const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt });
 
@@ -241,11 +241,18 @@ async function runDailyGroup5PostGeneration(opts) {
   // was three drafts in the same session sharing a shape, not necessarily
   // in the same group.
   const runOpeners = [];
+  // Cross-group FORMAT variety within this run — with exactly 5 formats and
+  // 5 groups, each group should get a different one. Verified against real
+  // sample output 2026-09-09: without this, 2 of 5 groups landed on
+  // 'resource_giveaway' and 2 landed on 'contrarian' in the same run —
+  // "one idea rewritten five ways", the exact thing this pipeline exists to
+  // avoid.
+  const usedFormatsThisRun = [];
 
   for (const group of groups) {
     const recentPosts = withinDedupeWindow(allRecent, group.key, now());
 
-    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners });
+    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners, usedFormatsThisRun });
     if (!clean) {
       log(`[daily-group5] Skipping "${group.name}" — could not produce a clean, non-duplicate, gate-passing post after retry`);
       out.skipped++;
@@ -284,6 +291,7 @@ async function runDailyGroup5PostGeneration(opts) {
     // duplicate the format/body just picked for an earlier group.
     allRecent.unshift({ group_key: group.key, post_body: clean.post_body, hook_type: clean.format.id, created_at: nowIso });
     runOpeners.unshift(clean.post_body);
+    usedFormatsThisRun.push(clean.format.id);
 
     const sendRes = await send(
       buildTelegramMessage(group, clean.format, clean.post_body),

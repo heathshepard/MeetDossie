@@ -274,6 +274,13 @@ async function main() {
   assert.ok(db.group_posts.every((r) => r.status === 'draft'), 'every generated row starts status=draft, never auto-approved');
   const groupKeysUsed = db.group_posts.map((r) => r.group_key).sort();
   assert.deepStrictEqual(groupKeysUsed, groups.map((g) => g.key).sort(), 'exactly one post per group, no group skipped or doubled');
+  // Real sample output 2026-09-09 caught this: without cross-group format
+  // tracking, 2 of 5 groups landed on the SAME format in the same run
+  // ('resource_giveaway' twice, 'contrarian' twice) — "one idea rewritten
+  // five ways", the exact failure this pipeline exists to avoid. At exactly
+  // 5 formats / 5 groups, every hook_type in a single day's run must be distinct.
+  const hookTypesUsed = db.group_posts.filter((r) => r.pipeline === 'daily5').map((r) => r.hook_type);
+  assert.strictEqual(new Set(hookTypesUsed).size, 5, `all 5 daily posts use a DIFFERENT format in the same run, got: ${hookTypesUsed.join(', ')}`);
   assert.strictEqual(sentMessages.length, 5, 'exactly 5 Telegram approval messages sent');
   for (const msg of sentMessages) {
     const buttons = msg.kb.inline_keyboard[0].map((b) => b.text).join(',');
