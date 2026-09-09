@@ -31,17 +31,34 @@
 //   2026-09-09). The generated body is checked AFTER generation, not just
 //   instructed in the prompt.
 //
+// Fabrication guard (2026-09-09, after the generator invented five personal
+// war stories and nearly posted them under Heath's real name/license):
+//   api/_lib/fabrication-guard.js checks EVERY generated body, and the one
+//   format allowed to carry a personal anecdote (`verified_anecdote`) draws
+//   ONLY from api/_lib/verified-war-stories.json via
+//   api/_lib/verified-story-library.js — never free-form generation. If no
+//   eligible story is available for a group/run, that format is never a
+//   candidate (see group-post5-formats.js pickFormat) and generation falls
+//   back to a non-anecdote format instead. See
+//   memory/heath-verified-war-stories.md for the incident + the allowlist.
+//
 // Dedup (per-group, 30-day window):
 //   scripts/_lib/group-post-dedup.js — exact-body hash + word-overlap
 //   near-duplicate + same-hook-type-reused-in-group all block a re-insert.
-//   One retry with explicit feedback before giving up on a group for today.
+//   hook_type for an anecdote post is stored compound
+//   ("verified_anecdote:<storyId>") so this also blocks reusing the SAME
+//   verified story in the same group within the window. One retry with
+//   explicit feedback before giving up on a group for today.
 //
-// Owner: Carter, 2026-09-09
+// Owner: Carter, 2026-09-09. Fabrication-guard + verified-story wiring:
+// Sage, 2026-09-09.
 
 const fs = require('fs');
 const path = require('path');
 
-const { FORMATS, pickFormat, buildPrompt, DRAFT_MODEL } = require('./group-post5-formats');
+const { FORMATS, pickFormat, pickStory, effectiveHookType, baseHookType, buildPrompt, DRAFT_MODEL } = require('./group-post5-formats');
+const { eligibleStories } = require('./verified-story-library');
+const { checkFabrication } = require('./fabrication-guard');
 const { checkGroupContentGate } = require('../../scripts/_lib/group-post-content-gate');
 const { checkDuplicate, withinDedupeWindow } = require('../../scripts/_lib/group-post-dedup');
 const { wasSuppressed } = require('./telegram-gate');
@@ -134,25 +151,50 @@ async function telegramSend(token, chatId, text, replyMarkup) {
 }
 
 /**
- * Generate one post for one group, with content-gate + dedup + voice
- * enforcement and one retry on any failure. Returns null if it can't
- * produce a clean post after the retry (never inserts a blocked/duplicate/
- * off-voice row).
- *
- * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners, usedFormatsThisRun }
- * @returns {Promise<{ post_body: string, format: object } | null>}
+ * Which verified story ids are off the table for THIS pick: any story used
+ * elsewhere in today's run, plus any story whose compound hook_type
+ * ("verified_anecdote:<id>") shows up in this group's own recent posts
+ * (same 30-day dedupe window already loaded by the caller).
  */
-async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [], usedFormatsThisRun = [] }) {
-  let lastHookType = recentPosts.length ? recentPosts[0].hook_type : null;
+function storyIdsRecentlyUsedInGroup(recentPosts) {
+  return recentPosts
+    .map((r) => r.hook_type)
+    .filter((h) => typeof h === 'string' && h.startsWith('verified_anecdote:'))
+    .map((h) => h.split(':')[1]);
+}
+
+/**
+ * Generate one post for one group, with content-gate + dedup + voice +
+ * fabrication enforcement and one retry on any failure. Returns null if it
+ * can't produce a clean post after the retry (never inserts a
+ * blocked/duplicate/off-voice/fabricated row).
+ *
+ * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners, usedFormatsThisRun, usedStoriesThisRun }
+ * @returns {Promise<{ post_body: string, format: object, story: object|null, hookType: string } | null>}
+ */
+async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [], usedFormatsThisRun = [], usedStoriesThisRun = [] }) {
+  let lastHookType = recentPosts.length ? baseHookType(recentPosts[0].hook_type) : null;
   // Combine explicit cross-group recentOpeners (passed by the caller) with
   // this group's own recent post bodies — either can produce the "sounds
   // like the last one" failure Heath named.
   const openersForPrompt = [...recentOpeners, ...recentPosts.map((r) => r.post_body)];
 
+  const groupExcludeStoryIds = storyIdsRecentlyUsedInGroup(recentPosts);
+  const excludeStoryIds = [...new Set([...usedStoriesThisRun, ...groupExcludeStoryIds])];
+  const eligibleStoryIds = eligibleStories({ excludeIds: excludeStoryIds }).map((s) => s.id);
+
   for (let attempt = 0; attempt < 2; attempt++) {
-    const format = pickFormat(lastHookType, usedFormatsThisRun);
+    const format = pickFormat(lastHookType, usedFormatsThisRun, eligibleStoryIds);
+    const story = format.requiresStory ? pickStory(eligibleStoryIds) : null;
+    if (format.requiresStory && !story) {
+      // Should be unreachable given pickFormat's gate, but never generate
+      // an anecdote post without a real story backing it — skip this
+      // attempt rather than risk it.
+      log(`[daily-group5] "${group.name}" (attempt ${attempt + 1}): verified_anecdote picked with no story available — skipping attempt`);
+      continue;
+    }
     const promoAllowed = false; // Sage's finding, 2026-09-09: none of the 5 groups are confirmed-safe for product-adjacent content today
-    const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt });
+    const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt, story });
 
     let result;
     try {
@@ -173,7 +215,8 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
       continue;
     }
 
-    const dup = checkDuplicate(postBody, format.id, recentPosts);
+    const hookType = effectiveHookType(format, story);
+    const dup = checkDuplicate(postBody, hookType, recentPosts);
     if (dup.duplicate) {
       log(`[daily-group5] Dedup BLOCKED "${group.name}" (attempt ${attempt + 1}): ${dup.reason}`);
       lastHookType = format.id; // force a different format on the retry
@@ -186,7 +229,16 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
       continue;
     }
 
-    return { post_body: postBody, format };
+    // Fabrication guard — the fix for the 2026-09-09 incident. Runs on
+    // EVERY format, not just verified_anecdote: a non-anecdote format
+    // drifting into "I had a client who..." territory must be caught too.
+    const fabCheck = checkFabrication(postBody, { formatId: format.id });
+    if (!fabCheck.ok) {
+      log(`[daily-group5] FABRICATION GUARD BLOCKED "${group.name}" (attempt ${attempt + 1}): ${fabCheck.violations.join(', ')}`);
+      continue;
+    }
+
+    return { post_body: postBody, format, story, hookType };
   }
 
   return null;
@@ -248,13 +300,17 @@ async function runDailyGroup5PostGeneration(opts) {
   // "one idea rewritten five ways", the exact thing this pipeline exists to
   // avoid.
   const usedFormatsThisRun = [];
+  // Cross-group STORY variety within this run — Heath's explicit rule
+  // (2026-09-09): don't put the same verified story in two groups the same
+  // day.
+  const usedStoriesThisRun = [];
 
   for (const group of groups) {
     const recentPosts = withinDedupeWindow(allRecent, group.key, now());
 
-    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners, usedFormatsThisRun });
+    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners, usedFormatsThisRun, usedStoriesThisRun });
     if (!clean) {
-      log(`[daily-group5] Skipping "${group.name}" — could not produce a clean, non-duplicate, gate-passing post after retry`);
+      log(`[daily-group5] Skipping "${group.name}" — could not produce a clean, non-duplicate, gate-passing, fabrication-free post after retry`);
       out.skipped++;
       out.results.push({ group_key: group.key, group_name: group.name, status: 'skipped' });
       continue;
@@ -268,7 +324,7 @@ async function runDailyGroup5PostGeneration(opts) {
       pipeline: 'daily5',
       category: 'daily5',
       template_id: clean.format.id,
-      hook_type: clean.format.id,
+      hook_type: clean.hookType,
       post_body: clean.post_body,
       first_comment_body: null,
       status: 'draft',
@@ -288,10 +344,11 @@ async function runDailyGroup5PostGeneration(opts) {
     out.drafted++;
 
     // Add to in-memory recent list so a later group in THIS run can't
-    // duplicate the format/body just picked for an earlier group.
-    allRecent.unshift({ group_key: group.key, post_body: clean.post_body, hook_type: clean.format.id, created_at: nowIso });
+    // duplicate the format/body/story just picked for an earlier group.
+    allRecent.unshift({ group_key: group.key, post_body: clean.post_body, hook_type: clean.hookType, created_at: nowIso });
     runOpeners.unshift(clean.post_body);
     usedFormatsThisRun.push(clean.format.id);
+    if (clean.story) usedStoriesThisRun.push(clean.story.id);
 
     const sendRes = await send(
       buildTelegramMessage(group, clean.format, clean.post_body),
@@ -309,14 +366,14 @@ async function runDailyGroup5PostGeneration(opts) {
         }),
       });
       out.notified++;
-      out.results.push({ id: post.id, group_key: group.key, group_name: group.name, format: clean.format.id, status: 'drafted_and_notified' });
+      out.results.push({ id: post.id, group_key: group.key, group_name: group.name, format: clean.format.id, story_id: clean.story ? clean.story.id : null, status: 'drafted_and_notified' });
     } else {
       // Suppressed or failed send: row STAYS status='draft' with no
       // telegram_sent_at — never fake-advance (same contract as the
       // comment-opportunity pipeline). Next run's Telegram-retry pass
       // (below) will pick it up.
       log(`[daily-group5] Telegram send failed/suppressed for "${group.name}" post ${post.id} — left as draft for retry`);
-      out.results.push({ id: post.id, group_key: group.key, group_name: group.name, format: clean.format.id, status: 'drafted_send_pending' });
+      out.results.push({ id: post.id, group_key: group.key, group_name: group.name, format: clean.format.id, story_id: clean.story ? clean.story.id : null, status: 'drafted_send_pending' });
     }
   }
 

@@ -47,7 +47,7 @@ COMMENT ON COLUMN public.group_posts.pipeline IS
 COMMENT ON COLUMN public.group_posts.group_key IS
   'Matches the "key" field in scripts/comment-hunt-groups.json for daily5 rows (e.g. dfw_network_collab). NULL for legacy rows, which key off group_registry_id instead.';
 COMMENT ON COLUMN public.group_posts.hook_type IS
-  'daily5 only: which content format generated this post (ask_advice/founder_story/contrarian/teardown/resource_giveaway). Used for near-duplicate-hook dedupe.';
+  'daily5 only: which content format generated this post (ask_advice/verified_anecdote/contrarian/process_observation/tracking_question -- see api/_lib/group-post5-formats.js). verified_anecdote rows store a compound value, e.g. verified_anecdote:tc_went_dark (api/_lib/verified-war-stories.json), so recency checks know WHICH story was used. Used for near-duplicate-hook dedupe.';
 COMMENT ON COLUMN public.group_posts.content_hash IS
   'Generated column: md5 of whitespace-normalized post_body. Exact-duplicate dedupe layer for the daily5 pipeline.';
 `;
