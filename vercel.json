@@ -317,6 +317,9 @@
     "api/cron-comment-opp-approval.js": {
       "maxDuration": 60
     },
+    "api/cron-daily-group5-posts.js": {
+      "maxDuration": 60
+    },
     "api/{cron-affiliate-qualify-referrals,cron-daily-debrief,cron-fanout-builds-to-agent-queues,cron-autonomous-daily-digest,cron-inbox-scan,cron-support-ticket-alert,cron-apply-approved-improvements}.js": {
       "maxDuration": 60
     },
@@ -800,6 +803,10 @@
     {
       "path": "/api/cron-comment-opp-approval",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-daily-group5-posts",
+      "schedule": "0 9 * * *"
     }
   ]
 }

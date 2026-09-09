@@ -61,6 +61,7 @@ try {
 
 const { canScan, recordScan, randDelay, SCAN_DWELL_MS } = require('./_lib/scan-caps');
 const halt = require('./_lib/comment-hunt-halt');
+const { isJunkText } = require('./_lib/junk-text-guard');
 
 const PROFILE_DIR = process.env.SAGE_PROFILE_DIR
   || 'C:\\Users\\Heath\\AppData\\Local\\DossieBot-Sage';
@@ -176,39 +177,165 @@ function prefilterPost(post, { maxAgeHours = 48 } = {}) {
   for (const re of SPAM_PATTERNS) {
     if (re.test(text)) return { keep: false, reason: `spam:${re.source.slice(0, 30)}` };
   }
+  // DOM-junk guard (2026-09-09 Christina Morgan incident): repeated
+  // nav/chrome noise ("Facebook Facebook Facebook...") is not a post, no
+  // matter how it scores. Reject at ingest — never write the row.
+  const junk = isJunkText(text);
+  if (junk.junk) return { keep: false, reason: `junk_text:${junk.reason}` };
   return { keep: true };
 }
 
-// ─── The proven extraction (from .sage-comment-hunt-tc.cjs, v4) ──────────────
+// ─── Extraction — REWRITTEN 2026-09-09 after the Christina Morgan incident ────
+//
+// ROOT CAUSE (verified live against the group feed DOM, not guessed):
+// div[aria-posinset] is the virtualized list-item SIZING WRAPPER, not the
+// post. Its own .innerText/.textContent read back EMPTY for the vast
+// majority of wrappers (virtualization placeholder — confirmed: 74 wrappers
+// on a live tc_vas scroll pass, only ~6 non-empty at read time), and for the
+// handful that DO read non-empty, live inspection showed the "text" was a
+// repeated "Facebook" placeholder string (almost certainly lazy-loading
+// image/avatar alt-text noise that lives inside the wrapper but outside the
+// real post), NOT the post body — the exact Christina Morgan shape.
+//
+// The real, clean post body lives in a nested [data-ad-preview="message"]
+// element inside that same wrapper — verified live: three different posts
+// in the tc_vas feed (Nadica Sandeva, Jesse Anderson, Strategic Support
+// Partners LLC) all had clean, readable text there while the wrapper's own
+// innerText was 100% "Facebook" junk for the same posts. Individual inline
+// comments (when Facebook renders a top-comment preview under a post) carry
+// their own div[role="article"] with an aria-label "Comment by X" / "Reply
+// by X" — same pattern already proven working in
+// scripts/harvest-tc-discovery-responses.js's scrapeComments() — extracted
+// here as a SEPARATE field, never folded into the post body.
+//
+// Fallback: a wrapper with real rendered height but no [data-ad-preview]
+// child (rare — e.g. still-loading posts) falls back to the same dir="auto"
+// dedup technique used for comments, applied to the post's own top-level
+// text blocks (excluding anything inside a nested comment/reply article).
+// scripts/_lib/junk-text-guard.js still runs downstream in prefilterPost()
+// as a backstop against any DOM shape neither of these selectors expects.
 
 async function extractVisible(page) {
   return page.evaluate(() => {
     const out = [];
-    for (const u of document.querySelectorAll('div[aria-posinset]')) {
-      const text = (u.innerText || '').trim();
-      if (text.length < 40) continue;
-      let postUrl = null;
-      for (const link of u.querySelectorAll('a[href*="/groups/"]')) {
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
+    function findWrapper(el) {
+      const posinsetAncestor = el.closest('div[aria-posinset]');
+      if (posinsetAncestor) return posinsetAncestor;
+      let w = el;
+      for (let d = 0; d < 8 && w.parentElement; d++) w = w.parentElement;
+      return w;
+    }
+
+    function extractAuthor(wrapper) {
+      let authorName = '';
+      const nameEl = wrapper.querySelector('h2 a, h3 a, h4 a, strong a');
+      if (nameEl) authorName = norm(nameEl.innerText);
+      if (!authorName) {
+        const strong = wrapper.querySelector('strong, h3, h4');
+        if (strong) authorName = norm(strong.innerText).split('\n')[0];
+      }
+      return authorName;
+    }
+
+    function extractPostUrl(wrapper) {
+      for (const link of wrapper.querySelectorAll('a[href*="/groups/"]')) {
         const href = link.getAttribute('href') || '';
         if (/\/groups\/[^/]+\/(posts|permalink)\/\d+/.test(href)) {
-          postUrl = (href.startsWith('http') ? href : 'https://www.facebook.com' + href).split('?')[0];
-          break;
+          return (href.startsWith('http') ? href : 'https://www.facebook.com' + href).split('?')[0];
         }
       }
-      let authorName = '';
-      const nameEl = u.querySelector('h3 a, h4 a, strong a, h2 a, b a');
-      if (nameEl) authorName = nameEl.innerText.trim();
-      if (!authorName) {
-        const strong = u.querySelector('strong, h3, h4');
-        if (strong) authorName = strong.innerText.trim().split('\n')[0];
-      }
-      let age = '';
-      for (const link of u.querySelectorAll('a')) {
-        const t = (link.innerText || '').trim();
-        if (/^(\d+\s?[smhdw]$|\d+ (min|mins|hr|hrs|hour|hours|day|days)|Yesterday)/i.test(t) && t.length < 30) { age = t; break; }
-      }
-      out.push({ text: text.slice(0, 2600), postUrl, authorName, age });
+      return null;
     }
+
+    function extractAge(wrapper) {
+      for (const link of wrapper.querySelectorAll('a')) {
+        const t = norm(link.innerText);
+        if (/^(\d+\s?[smhdw]$|\d+ (min|mins|hr|hrs|hour|hours|day|days)|Yesterday)/i.test(t) && t.length < 30) return t;
+      }
+      return '';
+    }
+
+    // Nested comment/reply previews Facebook renders inline under a post —
+    // same aria-label contract proven in harvest-tc-discovery-responses.js.
+    function extractComments(wrapper) {
+      const comments = [];
+      const consumedNodes = new Set();
+      for (const nested of wrapper.querySelectorAll('div[role="article"]')) {
+        const label = nested.getAttribute('aria-label') || '';
+        const m = label.match(/^(?:Comment|Reply) by (.+)$/i);
+        if (!m) continue;
+        let cAuthor = m[1].replace(/\s+(?:about\s+)?(?:an?|\d+)\s+(?:second|minute|hour|day|week|month|year)s?\s+ago$/i, '').trim();
+        const cAuthorLink = nested.querySelector('a[role="link"] span, a[role="link"] strong');
+        if (cAuthorLink && norm(cAuthorLink.innerText)) cAuthor = norm(cAuthorLink.innerText);
+        const blocks = Array.from(nested.querySelectorAll('div[dir="auto"]'))
+          .map((el) => { consumedNodes.add(el); return el.innerText; })
+          .filter((t) => t && t.trim())
+          .filter((t) => norm(t) !== cAuthor)
+          .filter((t) => !/^(Like|Reply|Share|Follow|Edited|Author|Top contributor|Most relevant|All comments)$/i.test(t.trim()))
+          .filter((t) => !/^\d+\s*(m|h|d|w|min|mins|hr|hrs|hour|hours|day|days|week|weeks)$/i.test(t.trim()));
+        const cText = norm(blocks.join(' '));
+        if (cAuthor && cText) comments.push({ author: cAuthor, text: cText.slice(0, 500) });
+      }
+      return { comments, consumedNodes };
+    }
+
+    // ── Primary path: [data-ad-preview="message"] is the real post body. ──
+    const seenWrappers = new Set();
+    for (const msgEl of document.querySelectorAll('[data-ad-preview="message"]')) {
+      const wrapper = findWrapper(msgEl);
+      if (seenWrappers.has(wrapper)) continue;
+      seenWrappers.add(wrapper);
+
+      let bodyText = norm(msgEl.innerText).replace(/(\s*…?\s*See more)\s*$/i, '').trim();
+      if (bodyText.length < 20) continue;
+
+      const { comments } = extractComments(wrapper);
+      out.push({
+        text: bodyText.slice(0, 2600),
+        postUrl: extractPostUrl(wrapper),
+        authorName: extractAuthor(wrapper),
+        age: extractAge(wrapper),
+        comments,
+      });
+    }
+
+    // ── Fallback: wrappers with real content but no [data-ad-preview]
+    // child — isolate top-level dir="auto" text, excluding anything that
+    // belongs to a nested comment/reply article. ──
+    for (const wrapper of document.querySelectorAll('div[aria-posinset]')) {
+      if (seenWrappers.has(wrapper)) continue;
+      const rawLen = (wrapper.innerText || '').trim().length;
+      if (rawLen < 20) continue; // virtualized-empty placeholder, skip
+      seenWrappers.add(wrapper);
+
+      const { comments, consumedNodes } = extractComments(wrapper);
+      const blocks = Array.from(wrapper.querySelectorAll('div[dir="auto"]'))
+        .filter((el) => !consumedNodes.has(el))
+        .map((el) => el.innerText)
+        .filter((t) => t && t.trim())
+        .filter((t) => !/^(Like|Comment|Share|Send|Most relevant|Top comments?|Write a (public )?comment|See more|Follow|\d+\s*(m|h|d|w|min|mins|hr|hrs|hour|hours|day|days|week|weeks))$/i.test(t.trim()));
+      const texts = [];
+      for (const t of blocks) {
+        const nt = norm(t);
+        if (!texts.some((prev) => prev.includes(nt))) {
+          const idx = texts.findIndex((prev) => nt.includes(prev));
+          if (idx >= 0) texts[idx] = nt; else texts.push(nt);
+        }
+      }
+      const bodyText = texts.join(' ').trim();
+      if (bodyText.length < 20) continue;
+
+      out.push({
+        text: bodyText.slice(0, 2600),
+        postUrl: extractPostUrl(wrapper),
+        authorName: extractAuthor(wrapper),
+        age: extractAge(wrapper),
+        comments,
+      });
+    }
+
     return out;
   });
 }
@@ -408,7 +535,13 @@ async function main() {
           author_name: post.authorName || null,
           post_text: post.text,
           post_age_raw: post.age || null,
-          comment_count: parseCommentCount(post.text),
+          // Prefer the real count of comments the extractor actually pulled
+          // out as separate fields (2026-09-09 rewrite); fall back to the
+          // old best-effort regex against the post body for the rare case
+          // where no inline comment preview rendered.
+          comment_count: (Array.isArray(post.comments) && post.comments.length > 0)
+            ? post.comments.length
+            : parseCommentCount(post.text),
           status: 'found',
         };
         const ins = await sbFetch('/rest/v1/comment_opportunities?on_conflict=post_url', {
@@ -433,7 +566,7 @@ async function main() {
   console.log(`[comment-hunt] done: ${visitsUsed} visits, ${inserted} new candidates, ${filtered} prefiltered. Scoring/drafting happens in cron-comment-opp-approval.`);
 }
 
-module.exports = { prefilterPost, parseAgeHours, parseCommentCount, SPAM_PATTERNS };
+module.exports = { prefilterPost, parseAgeHours, parseCommentCount, SPAM_PATTERNS, extractVisible };
 
 if (require.main === module) {
   main().catch((err) => {

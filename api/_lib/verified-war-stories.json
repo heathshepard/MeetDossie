@@ -1,0 +1,69 @@
+{
+  "_readme": [
+    "The ONLY personal war stories allowed in any generated group post/comment",
+    "in Heath's name. Seeded 2026-09-09 from",
+    "memory/heath-verified-war-stories.md after the daily group-post generator",
+    "invented five personal anecdotes (Hill Country foundation failure,",
+    "daughter's-soccer-game amendment, a newer agent 'on his team', a TREC",
+    "one-pager that doesn't exist, and a false claim about forwarding",
+    "verification texts) and nearly posted them under Heath's real name and",
+    "real estate license into Texas REALTOR groups.",
+    "",
+    "HARD RULE: a generator may draw an anecdote-format post ONLY from a",
+    "story in this file with status='eligible'. If no eligible story fits,",
+    "the generator must fall back to a non-anecdote format. It must never",
+    "invent a new story, embellish an existing one past its safe_to_say",
+    "list, or use a status='blocked' story.",
+    "",
+    "Adding a story requires Heath confirming it in his own words, the same",
+    "day, written into this file with status='eligible' only once it's safe",
+    "to publish."
+  ],
+  "stories": [
+    {
+      "id": "tc_went_dark",
+      "title": "The TC went dark mid-transaction",
+      "status": "eligible",
+      "confirmed_by": "Heath, 2026-09-09, verbatim: \"tc going dark\"",
+      "involves_client": false,
+      "safe_to_say": [
+        "A transaction coordinator he was relying on went unreachable (no call, no email, no response) in the middle of an active transaction",
+        "He had to pick up the file himself until someone else could be looped in",
+        "It exposed how much of a transaction depended on one person with no backup",
+        "He changed how he handles TC coverage as a result -- doesn't let a file depend on a single point of contact anymore"
+      ],
+      "never_say": [
+        "No specific date, month, or season",
+        "No specific city, brokerage, TC name, client name, or property",
+        "No dollar figure",
+        "No invented texture not on the safe_to_say list -- no travel location, no time of day, no number of simultaneous deals. None of that is confirmed; it was invented by the generator on 2026-09-09 (e.g. 'Italy', '4:30am', 'three deals') and is explicitly banned."
+      ],
+      "approved_narrative": "Had a TC go dark on me once, mid-transaction. No call, no email, nothing, right when I needed dates confirmed. Ended up handling the file myself until I could get someone else looped in. Made it painfully obvious how much of a transaction can ride on one person with no backup. I don't set a file up that way anymore.",
+      "source": "memory/heath-verified-war-stories.md"
+    },
+    {
+      "id": "low_oak_earnest_money",
+      "title": "Client missed the 3-day earnest money/option fee deadline by 3 days, lost the right to terminate",
+      "status": "blocked",
+      "confirmed_by": "Heath, 2026-09-09, verbatim: \"client blowing earnest money 3 day deposit deadline by 3 days and then losing the ability to terminate under the option period\"",
+      "involves_client": true,
+      "blocked_reason": "ACTIVE, UNRESOLVED dispute (the 2822 Low Oak file, memory/low-oak-earnest-money-dispute.md). As of the last update the buyers have not responded to the seller's counter and have told the title company they may 'take the legal route.' Heath has made recorded verbal and written admissions of personal fault on this file. Publishing ANY version of this story right now -- even fully anonymized, no names, no address, no dollar figure -- risks reading as a public statement touching an active claim, and the format's own educational value (a client missing a deadline) is very hard to state without implying fault on a party, which is separately banned below. DO NOT set status to 'eligible' without Heath's explicit sign-off AND confirmation the file is resolved/closed -- see memory/josh-sisam-real-estate-attorney.md for the attorney to loop in first.",
+      "review_required_by": ["Heath", "counsel (memory/josh-sisam-real-estate-attorney.md)"],
+      "safe_to_say": [
+        "A client missed the 3-day earnest money/option fee delivery deadline by three days",
+        "As a result they lost the unrestricted right to terminate under the option period",
+        "The underlying mechanic: a contract executed Wednesday through Friday compresses the 3-day delivery window against a title company that's closed for the weekend"
+      ],
+      "never_say": [
+        "No party name, brokerage, address, city, or any other property identifier",
+        "No dollar figure -- the $5,200 figure is specific enough to identify the file on its own",
+        "No date more specific than 'a while back' -- an exact or near-exact date identifies the file",
+        "Never characterize fault on the buyer, the seller, or Heath himself, explicitly or by implication",
+        "Never reference that the matter is unresolved, in dispute, or under attorney review",
+        "Never include any detail (investor type, home state, property type) that narrows who the client could be"
+      ],
+      "approved_narrative": null,
+      "source": "memory/low-oak-earnest-money-dispute.md, memory/friday-execution-option-fee-trap.md"
+    }
+  ]
+}
