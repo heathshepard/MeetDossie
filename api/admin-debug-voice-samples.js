@@ -101,6 +101,7 @@ module.exports = async function handler(req, res) {
     const groups = loadTargetGroups();
     const painLines = await defaultLoadPainLines(supabaseFetch).catch(() => []);
     const runOpeners = [];
+    const usedFormatsThisRun = [];
     const posts = [];
     for (const group of groups) {
       const clean = await generateCleanPost({
@@ -128,9 +129,11 @@ module.exports = async function handler(req, res) {
         painLines,
         log: () => {},
         recentOpeners: runOpeners,
+        usedFormatsThisRun,
       });
       if (clean) {
         runOpeners.unshift(clean.post_body);
+        usedFormatsThisRun.push(clean.format.id);
         const check = guard.checkVoiceCompliance(clean.post_body);
         posts.push({ group_key: group.key, group_name: group.name, format: clean.format.id, post_body: clean.post_body, voice_check: check });
       } else {
