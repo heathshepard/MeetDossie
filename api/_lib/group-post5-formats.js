@@ -80,12 +80,13 @@ const DRAFT_MODEL = 'claude-sonnet-5';
  * reddit_pain_language snippets (may be empty) used as authentic-language
  * fuel, never quoted verbatim into the post.
  */
-function buildPrompt({ group, format, painLines, promoAllowed }) {
+function buildPrompt({ group, format, painLines, promoAllowed, recentOpeners }) {
+  const { buildRecentOpenersBlock } = require('./heath-voice-guard');
   const painBlock = (painLines && painLines.length)
     ? `\nREAL PAIN LANGUAGE FROM REALTORS ONLINE (fuel for authenticity — never quote verbatim, never mention Reddit):\n${painLines.map((p) => `- "${p}"`).join('\n')}\n`
     : '';
 
-  return `You are writing a Facebook GROUP post for Heath Shepard, a licensed Texas REALTOR (Keller Williams, San Antonio / Hill Country). This is Heath's own personal group post, in his own voice — first person, warm, direct, a little self-deprecating. This is NOT third-person marketing copy.
+  return `You are writing a Facebook GROUP post for Heath Shepard, a licensed Texas REALTOR (Keller Williams, San Antonio / Hill Country). This is Heath's own personal group post, in his own voice — first person, direct, a little self-deprecating, dry rather than bubbly. This is NOT third-person marketing copy and NOT an enthusiastic AI-assistant voice.
 
 GROUP: ${group.name}
 FORMAT: ${format.label} (${format.id})
@@ -96,13 +97,13 @@ ${format.scaffold}
 ---
 ${painBlock}
 RULES — NON-NEGOTIABLE:
-1. First person, Heath's real voice: warm, casual, genuine, a little self-deprecating. No corporate language, no hashtags.
-2. Plain ASCII only — no em-dashes, no curly quotes, no special Unicode. Use plain hyphens (-) and straight quotes only.
-3. 100-300 words.
+1. First person, Heath's real voice: direct, genuine, a little self-deprecating, dry over bubbly. No corporate language, no hashtags, no enthusiasm-opener ("love this", "so smart", "that's wild").
+2. Plain ASCII only. NEVER use an em-dash, and never use " - " (space-hyphen-space) as a sentence beat -- that reads written, not spoken. Use a period or a new short sentence instead.
+3. 100-300 words. Contractions always ("that's", "didn't", "he's").
 4. End with a genuine, specific open question that invites real comments (except the resource-giveaway format, which can end with the "just say the word" line instead).
 5. Never mention Dossie, meetdossie.com, "the app", "the tool", or any link — this post pipeline never self-promotes, in ANY of the 5 target groups, today.
 6. All facts must be plausible/accurate for a working Texas agent (option periods, TREC deadlines, earnest money, etc.) — do not invent a specific dollar figure or date that reads as a real, checkable claim; keep numbers illustrative ("a few thousand", "a couple days") unless the scaffold already used a specific one you're rewriting.
-
+${buildRecentOpenersBlock(recentOpeners)}
 Return STRICT JSON only. No markdown, no commentary.
 {
   "post_body": "<the rewritten post, plain text, newlines allowed>"

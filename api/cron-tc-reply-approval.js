@@ -52,6 +52,7 @@ telegramGate.install('cron-tc-reply-approval');
 const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const voiceGuard = require('./_lib/heath-voice-guard');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -85,15 +86,16 @@ async function supabaseFetch(path, init = {}) {
 // memory/heath-client-text-voice-profile.md: SHORT (1-3 sentences), warm,
 // casual, zero corporate jargon, exclamation points when genuinely pleased,
 // no hashtags, no sign-off. Draft clean — never manufacture his typos.
-const DRAFT_PROMPT = (post, comment) => `You are drafting a Facebook COMMENT REPLY for Heath Shepard, a Texas REALTOR. He posted a peer-discussion question in an agent group and ${comment.commenter_name} answered. He wants to reply.
+const DRAFT_PROMPT = (post, comment, recentOpeners = []) => `You are drafting a Facebook COMMENT REPLY for Heath Shepard, a Texas REALTOR. He posted a peer-discussion question in an agent group and ${comment.commenter_name} answered. He wants to reply.
 
 HARD RULES:
 - NEVER mention Dossie, any software, any product, any link. Heath is a working agent talking to peers. Zero pitch. Zero selling.
-- Thank them for the SPECIFIC thing they said — reference their actual words/details, never a generic "thanks for sharing".
-- Ask exactly ONE follow-up question probing for second-level detail on what they described.
-- 1 to 3 sentences TOTAL. Short, warm, casual, like a real agent thumb-typing. No hashtags, no sign-off, no corporate phrasing. Clean spelling.
+- Respond to the SPECIFIC thing they said — reference their actual words/details, never a generic "thanks for sharing". Reference it by ENGAGING with it (agreeing, adding to it, pushing back a little), not by complimenting it first.
+- A follow-up question is OPTIONAL, not required — only ask one if you'd genuinely want to know more. Often the better reply just answers or adds his own experience and stops.
 - First name only if you address them at all (optional).
 
+${voiceGuard.VOICE_PROMPT_BLOCK}
+${voiceGuard.buildRecentOpenersBlock(recentOpeners)}
 ALSO classify the comment first. hostile=true if the comment is hostile toward Heath, accuses the post of being an ad / bot / AI / astroturf / data-mining, or is aggressive enough that an automated-drafted reply would be risky. When hostile=true, set reply to "".
 
 HEATH'S POST (in "${post.group_name || 'a Facebook group'}"):
@@ -112,22 +114,23 @@ Return ONLY JSON: {"hostile": boolean, "hostile_reason": "short reason or empty"
 // reply there. He's a guest, not the host — the draft must read the room:
 // gracious to the post author in their own thread, peer-warm to a third
 // party, and never thread-hijacking. Same zero-pitch rules.
-const GUEST_DRAFT_PROMPT = (guest, comment) => {
+const GUEST_DRAFT_PROMPT = (guest, comment, recentOpeners = []) => {
   const postAuthor = guest.post_author || 'the post author';
   const fromAuthor = guest.replyIsFromPostAuthor;
   return `You are drafting a Facebook COMMENT REPLY for Heath Shepard, a Texas REALTOR. IMPORTANT: this is NOT Heath's post. ${postAuthor} posted in "${guest.group_name || 'a Facebook group'}", Heath left a comment on THEIR post, and ${comment.commenter_name} replied to Heath's comment. Heath is a GUEST in this thread.
 
 ${fromAuthor
-    ? `${comment.commenter_name} IS the post author — this is their thread and their conversation. Be gracious and deferential to their framing: engage with what THEY said, add one useful thought or one short question at most, and let them keep the floor.`
-    : `${comment.commenter_name} is a third party who joined the conversation under Heath's comment. Peer-to-peer warmth is right, but remember whose post it is — keep it brief and don't turn ${postAuthor}'s thread into Heath's own discussion.`}
+    ? `${comment.commenter_name} IS the post author — this is their thread and their conversation. Be gracious and deferential to their framing: engage with what THEY said, add one useful thought at most, and let them keep the floor.`
+    : `${comment.commenter_name} is a third party who joined the conversation under Heath's comment. Peer-to-peer directness is right, but remember whose post it is — keep it brief and don't turn ${postAuthor}'s thread into Heath's own discussion.`}
 
 HARD RULES:
 - NEVER mention Dossie, any software, any product, any link. Heath is a working agent talking to peers. Zero pitch. Zero selling.
-- Respond to the SPECIFIC thing they said — reference their actual words/details, never a generic "thanks".
-- 1 to 3 sentences TOTAL. Short, warm, casual, like a real agent thumb-typing. No hashtags, no sign-off, no corporate phrasing. Clean spelling.
-- At most ONE question, and only if it genuinely fits — in someone else's thread a statement can be the better close.
+- Respond to the SPECIFIC thing they said by engaging with it — agreeing, adding to it, or pushing back a little. Never a generic "thanks" and never compliment it before you engage.
+- A question is OPTIONAL and rare here — in someone else's thread a plain statement is usually the better close.
 - First name only if you address them at all (optional).
 
+${voiceGuard.VOICE_PROMPT_BLOCK}
+${voiceGuard.buildRecentOpenersBlock(recentOpeners)}
 ALSO classify the reply first. hostile=true if it is hostile toward Heath, accuses him of being an ad / bot / AI / astroturf / data-mining, or is aggressive enough that an automated-drafted reply would be risky. When hostile=true, set reply to "".
 
 THE ORIGINAL POST by ${postAuthor}:
@@ -148,7 +151,7 @@ ${String(comment.comment_text || '').slice(0, 900)}
 Return ONLY JSON: {"hostile": boolean, "hostile_reason": "short reason or empty", "reply": "the reply text or empty"}`;
 };
 
-async function draftReply(post, comment, guest = null) {
+async function callDraftModel(promptText) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -159,7 +162,7 @@ async function draftReply(post, comment, guest = null) {
     body: JSON.stringify({
       model: DRAFT_MODEL,
       max_tokens: 400,
-      messages: [{ role: 'user', content: guest ? GUEST_DRAFT_PROMPT(guest, comment) : DRAFT_PROMPT(post, comment) }],
+      messages: [{ role: 'user', content: promptText }],
     }),
   });
   if (!res.ok) {
@@ -180,6 +183,33 @@ async function draftReply(post, comment, guest = null) {
     hostileReason: String(parsed.hostile_reason || '').slice(0, 200),
     reply: String(parsed.reply || '').trim(),
   };
+}
+
+/**
+ * @param {object} post
+ * @param {object} comment
+ * @param {object|null} guest
+ * @param {string[]} recentOpeners  openers from recently drafted replies, so
+ *   this run doesn't repeat the same opening shape (the actual failure mode
+ *   Heath named — three drafts with the identical "compliment then
+ *   question" structure).
+ */
+async function draftReply(post, comment, guest = null, recentOpeners = []) {
+  const basePrompt = guest ? GUEST_DRAFT_PROMPT(guest, comment, recentOpeners) : DRAFT_PROMPT(post, comment, recentOpeners);
+  let result = await callDraftModel(basePrompt);
+  if (result.hostile || !result.reply) return result;
+
+  // One retry, with explicit feedback, if the draft still trips the voice
+  // guard — never silently ship a violation, but also never loop forever.
+  const check = voiceGuard.checkVoiceCompliance(result.reply);
+  if (!check.ok) {
+    const retryPrompt = `${basePrompt}\n\nYOUR PREVIOUS DRAFT VIOLATED THE VOICE RULES ABOVE (${check.violations.join(', ')}): "${result.reply}"\nRewrite it — no banned phrase, no em-dash or " - " beat, don't just tack a question on the end. Return the same JSON shape.`;
+    try {
+      const retried = await callDraftModel(retryPrompt);
+      if (!retried.hostile && retried.reply) result = retried;
+    } catch { /* keep the original draft — Heath reviews every one anyway */ }
+  }
+  return result;
 }
 
 // ─── Telegram message ────────────────────────────────────────────────────────
@@ -301,6 +331,15 @@ async function processPendingReplies(deps) {
   const rows = Array.isArray(data) ? data : [];
   if (rows.length === 0) return out;
 
+  // Recent opener shapes (last 8 delivered replies) so THIS run doesn't
+  // repeat a recently-used opening — grows in-memory as this run drafts
+  // more, so three replies drafted in the SAME run also vary from each
+  // other (the exact failure Heath caught: 3 in a row, same shape).
+  const { data: recentData } = await sbFetch(
+    '/rest/v1/tc_discovery_responses?reply_draft=not.is.null&order=updated_at.desc&limit=8&select=reply_draft',
+  );
+  const recentOpeners = (Array.isArray(recentData) ? recentData : []).map((r) => r.reply_draft).filter(Boolean);
+
   // Batch-load context: group_posts for host rows, comment_watchlist for
   // guest rows (Heath's outbound comment on someone else's post).
   const postIds = [...new Set(rows.filter((r) => r.thread_role !== 'guest').map((r) => r.group_post_id).filter(Boolean))];
@@ -339,7 +378,7 @@ async function processPendingReplies(deps) {
     try {
       // 1. Draft (skip if already drafted or already flagged).
       if (row.reply_status === 'new' && !row.reply_draft) {
-        const d = await draft(post, row, guest);
+        const d = await draft(post, row, guest, recentOpeners);
         if (d.hostile) {
           row.reply_status = 'flagged';
           row.reply_error = `hostile/astroturf: ${d.hostileReason || 'flagged by classifier'}`;
@@ -359,6 +398,9 @@ async function processPendingReplies(deps) {
             body: JSON.stringify({ reply_draft: d.reply, updated_at: new Date().toISOString() }),
           });
           out.drafted++;
+          // So the NEXT draft in this same run also varies (not just against
+          // DB history) — the failure Heath caught was 3-in-a-row same run.
+          recentOpeners.unshift(d.reply);
         }
       }
 
@@ -426,3 +468,6 @@ module.exports.processPendingReplies = processPendingReplies;
 module.exports.buildApprovalMessage = buildApprovalMessage;
 module.exports.buildFlagMessage = buildFlagMessage;
 module.exports.approvalKeyboard = approvalKeyboard;
+module.exports.DRAFT_PROMPT = DRAFT_PROMPT;
+module.exports.GUEST_DRAFT_PROMPT = GUEST_DRAFT_PROMPT;
+module.exports.draftReply = draftReply;

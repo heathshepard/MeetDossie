@@ -45,6 +45,7 @@ const { FORMATS, pickFormat, buildPrompt, DRAFT_MODEL } = require('./group-post5
 const { checkGroupContentGate } = require('../../scripts/_lib/group-post-content-gate');
 const { checkDuplicate, withinDedupeWindow } = require('../../scripts/_lib/group-post-dedup');
 const { wasSuppressed } = require('./telegram-gate');
+const heathVoiceGuard = require('./heath-voice-guard');
 
 const GROUPS_CONFIG_PATH = path.join(__dirname, '..', '..', 'scripts', 'comment-hunt-groups.json');
 
@@ -133,20 +134,25 @@ async function telegramSend(token, chatId, text, replyMarkup) {
 }
 
 /**
- * Generate one post for one group, with content-gate + dedup enforcement
- * and one retry on either failure. Returns null if it can't produce a
- * clean post after the retry (never inserts a blocked/duplicate row).
+ * Generate one post for one group, with content-gate + dedup + voice
+ * enforcement and one retry on any failure. Returns null if it can't
+ * produce a clean post after the retry (never inserts a blocked/duplicate/
+ * off-voice row).
  *
- * @param {object} deps { generate, group, recentPosts, painLines, log }
+ * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners }
  * @returns {Promise<{ post_body: string, format: object } | null>}
  */
-async function generateCleanPost({ generate, group, recentPosts, painLines, log }) {
+async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [] }) {
   let lastHookType = recentPosts.length ? recentPosts[0].hook_type : null;
+  // Combine explicit cross-group recentOpeners (passed by the caller) with
+  // this group's own recent post bodies — either can produce the "sounds
+  // like the last one" failure Heath named.
+  const openersForPrompt = [...recentOpeners, ...recentPosts.map((r) => r.post_body)];
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const format = pickFormat(lastHookType);
     const promoAllowed = false; // Sage's finding, 2026-09-09: none of the 5 groups are confirmed-safe for product-adjacent content today
-    const prompt = buildPrompt({ group, format, painLines, promoAllowed });
+    const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt });
 
     let result;
     try {
@@ -171,6 +177,12 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log 
     if (dup.duplicate) {
       log(`[daily-group5] Dedup BLOCKED "${group.name}" (attempt ${attempt + 1}): ${dup.reason}`);
       lastHookType = format.id; // force a different format on the retry
+      continue;
+    }
+
+    const voiceCheck = heathVoiceGuard.checkVoiceCompliance(postBody);
+    if (!voiceCheck.ok) {
+      log(`[daily-group5] Voice guard BLOCKED "${group.name}" (attempt ${attempt + 1}): ${voiceCheck.violations.join(', ')}`);
       continue;
     }
 
@@ -225,10 +237,15 @@ async function runDailyGroup5PostGeneration(opts) {
     return [];
   });
 
+  // Cross-group opener variety WITHIN this run — the failure Heath named
+  // was three drafts in the same session sharing a shape, not necessarily
+  // in the same group.
+  const runOpeners = [];
+
   for (const group of groups) {
     const recentPosts = withinDedupeWindow(allRecent, group.key, now());
 
-    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log });
+    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners });
     if (!clean) {
       log(`[daily-group5] Skipping "${group.name}" — could not produce a clean, non-duplicate, gate-passing post after retry`);
       out.skipped++;
@@ -266,6 +283,7 @@ async function runDailyGroup5PostGeneration(opts) {
     // Add to in-memory recent list so a later group in THIS run can't
     // duplicate the format/body just picked for an earlier group.
     allRecent.unshift({ group_key: group.key, post_body: clean.post_body, hook_type: clean.format.id, created_at: nowIso });
+    runOpeners.unshift(clean.post_body);
 
     const sendRes = await send(
       buildTelegramMessage(group, clean.format, clean.post_body),

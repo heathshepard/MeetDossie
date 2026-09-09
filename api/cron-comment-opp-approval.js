@@ -45,6 +45,7 @@ telegramGate.install('cron-comment-opp-approval');
 const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const voiceGuard = require('./_lib/heath-voice-guard');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -82,7 +83,7 @@ async function supabaseFetch(path, init = {}) {
 // memory/heath-client-text-voice-profile.md: SHORT (1-3 sentences), warm,
 // casual, zero corporate jargon, no hashtags, no sign-off.
 
-const SCORE_PROMPT = (row) => `You are screening a Facebook group post as a comment opportunity for Heath Shepard, and drafting the comment if it is one.
+const SCORE_PROMPT = (row, recentOpeners = []) => `You are screening a Facebook group post as a comment opportunity for Heath Shepard, and drafting the comment if it is one.
 
 WHO HEATH IS: an experienced working Texas REALTOR (Keller Williams, San Antonio), a landlord, and an investor. He can add genuine value on far more than contract mechanics: pricing and comps, negotiation, inspections, appraisals, lenders and financing, title, vendors and contractors, showings, listing prep, rentals and property management, market conditions, buyer/seller psychology, builders and new construction, transaction coordination and paperwork, TREC forms and deadlines, option periods, earnest money, disclosures, MLS, and plain business-building/lead-gen as a working agent.
 
@@ -93,10 +94,11 @@ SCORE 0-100. High = recent-feeling real question or real problem, few existing c
 IF SCORE >= ${MIN_SCORE}, DRAFT THE COMMENT. HARD RULES:
 - NEVER mention Dossie, any software, any product, any link. Zero pitch. Zero selling. He is a working agent talking to peers.
 - Never argue, never correct harshly, never lecture.
-- 1 to 3 sentences TOTAL. Warm, casual, like a real agent thumb-typing between showings. No hashtags, no sign-off, no corporate phrasing, plain ASCII. Clean spelling.
 - SPECIFIC and useful — never a generic "great post!" or "following!". Every comment must actually say something.
 - Heath's real recent experience, usable ONLY where it genuinely applies (never force these in): the Friday-execution option-fee trap; TREC Paragraph 5.A(2) weekend rollover on earnest/option money delivery; a blank Paragraph 21 notices section costing title three days; estate sales being exempt from the seller's disclosure notice.
 
+${voiceGuard.VOICE_PROMPT_BLOCK}
+${voiceGuard.buildRecentOpenersBlock(recentOpeners)}
 RAW SCRAPE of the post (includes Facebook UI noise — reaction counts, "Like Reply", etc. — ignore that noise):
 Group: ${row.group_name}
 Author: ${row.author_name || 'unknown'}
@@ -107,7 +109,7 @@ ${String(row.post_text || '').slice(0, 1800)}
 
 Return ONLY JSON: {"score": 0-100, "reasons": "one short line", "comment": "the draft, or empty string if score < ${MIN_SCORE}"}`;
 
-async function scoreAndDraft(row) {
+async function callScoreModel(promptText) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -118,7 +120,7 @@ async function scoreAndDraft(row) {
     body: JSON.stringify({
       model: DRAFT_MODEL,
       max_tokens: 500,
-      messages: [{ role: 'user', content: SCORE_PROMPT(row) }],
+      messages: [{ role: 'user', content: promptText }],
     }),
   });
   if (!res.ok) {
@@ -140,6 +142,29 @@ async function scoreAndDraft(row) {
     reasons: String(parsed.reasons || '').slice(0, 300),
     comment: String(parsed.comment || '').trim(),
   };
+}
+
+/**
+ * @param {object} row
+ * @param {string[]} recentOpeners  openers from recently drafted comments so
+ *   this run doesn't repeat a recently-used opening shape.
+ */
+async function scoreAndDraft(row, recentOpeners = []) {
+  const basePrompt = SCORE_PROMPT(row, recentOpeners);
+  let result = await callScoreModel(basePrompt);
+  if (!result.comment) return result;
+
+  // One retry, with explicit feedback, if the draft still trips the voice
+  // guard — never silently ship a violation, but never loop forever either.
+  const check = voiceGuard.checkVoiceCompliance(result.comment);
+  if (!check.ok) {
+    const retryPrompt = `${basePrompt}\n\nYOUR PREVIOUS DRAFT VIOLATED THE VOICE RULES ABOVE (${check.violations.join(', ')}): "${result.comment}"\nRewrite the comment only (keep the same score/reasons) — no banned phrase, no em-dash or " - " beat, don't just tack a question on the end. Return the same JSON shape.`;
+    try {
+      const retried = await callScoreModel(retryPrompt);
+      if (retried.comment) result = { ...result, comment: retried.comment };
+    } catch { /* keep the original draft — Heath reviews every one anyway */ }
+  }
+  return result;
 }
 
 // ─── Telegram message — BRIEF by explicit request ────────────────────────────
@@ -234,9 +259,18 @@ async function processOpportunities(deps) {
     out.errors.push({ step: 'load_unscored' });
     return out;
   }
+
+  // Recent opener shapes (last 8 drafted comments) so this run doesn't
+  // repeat a recently-used opening — grows in-memory as this run drafts
+  // more, so several comments drafted in the SAME run also vary.
+  const { data: recentData } = await sbFetch(
+    '/rest/v1/comment_opportunities?comment_draft=not.is.null&order=updated_at.desc&limit=8&select=comment_draft',
+  );
+  const recentOpeners = (Array.isArray(recentData) ? recentData : []).map((r) => r.comment_draft).filter(Boolean);
+
   for (const row of (Array.isArray(sData) ? sData : [])) {
     try {
-      const d = await score(row);
+      const d = await score(row, recentOpeners);
       const reject = d.score < MIN_SCORE || !d.comment;
       await sbFetch(`/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
@@ -251,6 +285,7 @@ async function processOpportunities(deps) {
       });
       out.scored++;
       if (reject) out.rejected++;
+      else if (d.comment) recentOpeners.unshift(d.comment);
     } catch (err) {
       log.error(`[cron-comment-opp-approval] score failed for ${row.id}: ${err.message}`);
       out.errors.push({ id: row.id, step: 'score', error: err.message });
@@ -332,3 +367,5 @@ module.exports.buildOppMessage = buildOppMessage;
 module.exports.oppKeyboard = oppKeyboard;
 module.exports.MIN_SCORE = MIN_SCORE;
 module.exports.DAILY_NOTIFY_CAP = DAILY_NOTIFY_CAP;
+module.exports.SCORE_PROMPT = SCORE_PROMPT;
+module.exports.scoreAndDraft = scoreAndDraft;
