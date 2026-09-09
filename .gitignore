@@ -242,6 +242,18 @@ scripts/run-sms-poller.sh
 scripts/register-sms-poller.ps1
 scripts/.demo-cleanup-protected.json
 
+# One-off zipForm/Low Oak/Kanika/Royal Crescent brokerage debug scripts —
+# 155 files found hardcoding Heath's zipForm login on 2026-09-02, scrubbed to
+# process.env.ZIPFORM_USERNAME / process.env.ZIPFORM_PASSWORD reads. Never
+# tracked, staying that way so a future `git add -A` can't sweep them in.
+# scripts/_lib/brokerage-browser.js and scripts/brokerage-login-*.js are the
+# real reusable tooling and are NOT covered by this pattern.
+scripts/brokerage-lowoak-*.js
+scripts/brokerage-kanika-watch-*.js
+scripts/brokerage-royalcrescent-*.js
+scripts/brokerage-oldhomestead-*.js
+scripts/_oh_v3_lib.js
+
 # SABOR agent-roster scrape state (2026-08-21) — contains Heath's own home
 # address (addr1/city/zip) + TREC license + phone, plus likely other agents'
 # PII, pulled during the SA realtor scraper build. Untracked going forward;
@@ -249,3 +261,15 @@ scripts/.demo-cleanup-protected.json
 # decision from Heath on git-filter-repo + force-push before it's fully gone
 # from public history. Kept on disk, never staged again.
 scripts/.sa-realtor-v3-state.json
+
+# Ad-hoc audit/debug scripts dropped at scripts/.audit-* during live
+# investigations (e.g. Wild Cherry Command recon, group-access checks) —
+# throwaway, local-only, never commit (2026-09-09 gitignore audit)
+scripts/.audit-*
+
+# Root-level ad-hoc Playwright/verification screenshots — hundreds already
+# accumulate here from manual QA runs; stop new ones from landing via a
+# future broad `git add`. Does NOT retroactively untrack existing committed
+# root PNGs. Subdirectory PNGs (icons/, public/, api/_assets/, etc.) are
+# unaffected (2026-09-09 gitignore audit)
+/*.png
