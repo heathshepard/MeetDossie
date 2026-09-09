@@ -50,6 +50,7 @@ process.env.TELEGRAM_CHAT_ID = '1';
 
 const library = require(path.join(__dirname, '..', 'api', '_lib', 'verified-story-library.js'));
 const { checkFabrication } = require(path.join(__dirname, '..', 'api', '_lib', 'fabrication-guard.js'));
+const { checkPractitionerTest } = require(path.join(__dirname, '..', 'api', '_lib', 'practitioner-test-guard.js'));
 const formats = require(path.join(__dirname, '..', 'api', '_lib', 'group-post5-formats.js'));
 const gen = require(path.join(__dirname, '..', 'api', '_lib', 'daily-group5-post-generator.js'));
 
@@ -86,9 +87,16 @@ const CLEAN_SAMPLE_POSTS = [
   `Anyone here had a deal almost come apart over something buried in the option period? Not fishing for advice, just curious if I'm the only one who still gets a little nervous around day two or three, even after doing this a while. What happened, and did you catch it in time?`,
   `Had a TC go dark on me once, mid-transaction. No call, no email, nothing, right when I needed dates confirmed. Ended up handling the file myself until I could get someone else looped in. Made it painfully obvious how much of a transaction can ride on one person with no backup. Learned that lesson the hard way and don't set a file up that way anymore.`,
   `Curious what everyone's actual system is for tracking dates you can't afford to miss. Not the software name, the real workflow behind it. Calendar reminders, a paper checklist, texting yourself the night before. I've tightened mine up more than once after almost missing something and I'm always looking for a better way. What's actually working for you?`,
-  `Something I see mixed up a lot: terminating during the option period and terminating for cause later in the contract are not the same animal. One just costs you the option fee. The other means you're pointing to a specific paragraph and proving you had the right to walk. Agents explain this to clients differently and it shows. Worth actually walking a buyer through the difference before they're staring at a deadline instead of after.`,
-  `Unpopular opinion: waiving the option period to win a bid isn't brave, it's just moving risk from the seller onto the buyer. I get why it happens in this market. I still think more of us should push back on it with clients instead of just drafting it because they asked for it. Feels like something we've normalized instead of actually examined.`,
+  `Something I see mixed up a lot: terminating during the option period and terminating under a specific contract provision later on are not the same animal. During the option period you can walk for any reason and it costs you the option fee, nothing else has to be proven. Later on, whether it's the financing addendum or a repair dispute, you need an actual contractual basis, not just a change of mind. Worth walking a buyer through that difference before they're staring at a deadline instead of after.`,
+  `Waiving the option period isn't automatically brave, and it isn't automatically reckless either. For a typical retail buyer it's still a bad idea, you're giving up your one clean way out before you know what's actually wrong with the house. For a cash investor planning a full gut anyway, or a contractor who can price that risk himself, it can genuinely make sense. Most buyers waiving it in this market are neither of those. I just don't think we walk clients through which one they actually are before they sign off on it.`,
 ];
+// Which format each sample above was written for -- needed for the
+// practitioner-test guard, which is format-scoped.
+const CLEAN_SAMPLE_FORMAT_IDS = ['ask_advice', 'verified_anecdote', 'tracking_question', 'process_observation', 'contrarian'];
+
+// The ORIGINAL flat-absolute DFW post Heath rejected 2026-09-09 -- no
+// stated exception for a sophisticated buyer/investor/contractor.
+const FLAT_ABSOLUTE_CONTRARIAN = `Unpopular opinion: waiving the option period to win a bid isn't brave, it's just moving risk from the seller onto the buyer. I get why it happens in this market. I still think more of us should push back on it with clients instead of just drafting it because they asked for it. Feels like something we've normalized instead of actually examined.`;
 
 async function main() {
   // ── 1. Library structure: exactly 2 stories, correct eligibility ──────────
@@ -133,6 +141,19 @@ async function main() {
   // (belt+suspenders -- it shouldn't trip named_client etc even without the
   // allowance) since it makes no client claim at all.
   assert.strictEqual(checkFabrication(CLEAN_SAMPLE_POSTS[1], { formatId: 'ask_advice' }).ok, true, 'TC story trips nothing even without the verified_anecdote allowance (it never claims a client)');
+
+  // A fabricated CLIENT narrative slipped in under the verified_anecdote
+  // format must still be caught when the actual chosen story does NOT
+  // involve a client (tc_went_dark, involves_client=false) -- the
+  // allowFor/named_client exception is scoped to the real story, not a
+  // blanket pass for the whole format. Real gap found + fixed 2026-09-09:
+  // without storyInvolvesClient, this exact text (the banned Hill Country
+  // fabrication) rode through undetected whenever pickFormat happened to
+  // land on verified_anecdote.
+  assert.strictEqual(tcStory.involves_client, false, 'tc_went_dark does not involve a client (sanity check for the assertion below)');
+  const clientNarrativeUnderAnecdote = checkFabrication(BANNED_FABRICATIONS[0].text, { formatId: 'verified_anecdote', storyInvolvesClient: tcStory.involves_client });
+  assert.strictEqual(clientNarrativeUnderAnecdote.ok, false, 'a fabricated client story is STILL caught under verified_anecdote when the real chosen story does not involve a client');
+  assert.ok(clientNarrativeUnderAnecdote.violations.some((v) => v.startsWith('named_client')), 'caught specifically as an uncredentialed client claim');
 
   // ── 4. Formats: no format requires inventing an anecdote; verified_anecdote
   //    is the only anecdote-carrying format and is gated on story availability ─
@@ -253,7 +274,87 @@ async function main() {
   assert.ok(recoveredResult, 'a generator that fabricates once then self-corrects on retry produces a clean post on attempt 2');
   assert.strictEqual(checkFabrication(recoveredResult.post_body).ok, true, 'the FINAL post that made it through is clean');
 
-  console.log('PASS: verified-story library (2 stories, Low Oak correctly BLOCKED as an active dispute), fabrication guard (catches all 5 real fabrications, zero false positives on the 5 clean sample posts), format rebuild (no anecdote-inventing formats remain, verified_anecdote hard-gated on story availability across 200 randomized trials), fact-bounded anecdote prompt, cross-group same-day story-reuse block, and end-to-end fabrication blocking in generateCleanPost (skip-not-invent contract verified)');
+  // ── 8. Practitioner-test guard (memory/heath-marketing-must-pass-practitioner-test.md):
+  //    a flat-absolute position on practice with no stated exception is
+  //    caught; the same position WITH a named exception passes ────────────────
+  const flatCheck = checkPractitionerTest(FLAT_ABSOLUTE_CONTRARIAN, { formatId: 'contrarian' });
+  assert.strictEqual(flatCheck.ok, false, 'the original flat "waiving is bad, full stop" post is caught -- no legitimate exception named');
+  assert.ok(flatCheck.violations.some((v) => v.startsWith('no_stated_exception')), 'violation is specifically no_stated_exception');
+
+  // The rewritten DFW post (CLEAN_SAMPLE_POSTS[4], contrarian) carries
+  // Heath's real exception (a cash investor doing a gut renovation, or a
+  // contractor who can price the risk himself) and must pass.
+  const dfwRewrite = CLEAN_SAMPLE_POSTS[4];
+  const dfwCheck = checkPractitionerTest(dfwRewrite, { formatId: 'contrarian' });
+  assert.strictEqual(dfwCheck.ok, true, `rewritten DFW post must pass the practitioner-test guard (violations: ${dfwCheck.violations.join(', ')})`);
+
+  // The TC/VA process_observation post makes no evaluative "should/bad
+  // idea" claim at all -- it's a factual mechanics distinction -- so the
+  // guard correctly does not demand an exception for it.
+  const tcVasCheck = checkPractitionerTest(CLEAN_SAMPLE_POSTS[3], { formatId: 'process_observation' });
+  assert.strictEqual(tcVasCheck.ok, true, 'the TC/VA mechanics post is not an evaluative position, so it passes with no exception required');
+
+  // The guard only applies to POSITION_TAKING_FORMATS -- a flat-absolute
+  // sentence under a format that isn't taking a position on practice
+  // (e.g. verified_anecdote) is out of scope for THIS guard (fabrication
+  // guard covers anecdote-format risk separately).
+  assert.strictEqual(checkPractitionerTest(FLAT_ABSOLUTE_CONTRARIAN, { formatId: 'ask_advice' }).ok, true, 'practitioner-test guard is scoped to position-taking formats only');
+
+  // Every one of the 5 rewritten sample posts, checked under its ACTUAL
+  // format, passes both the fabrication guard and the practitioner-test
+  // guard -- the full, current sample day is clean end to end.
+  for (let i = 0; i < CLEAN_SAMPLE_POSTS.length; i++) {
+    const text = CLEAN_SAMPLE_POSTS[i];
+    const fid = CLEAN_SAMPLE_FORMAT_IDS[i];
+    const fab = checkFabrication(text, { formatId: fid, storyInvolvesClient: false });
+    assert.strictEqual(fab.ok, true, `sample post ${i} (${fid}) passes fabrication guard (violations: ${fab.violations.join(', ')})`);
+    const prac = checkPractitionerTest(text, { formatId: fid });
+    assert.strictEqual(prac.ok, true, `sample post ${i} (${fid}) passes practitioner-test guard (violations: ${prac.violations.join(', ')})`);
+  }
+
+  // ── 9. Wired into the generator: whenever Claude drafts a flat-absolute
+  //    position for EITHER position-taking format (contrarian OR
+  //    process_observation), generateCleanPost never lets it through --
+  //    across many runs (pickFormat is randomized), the final output is
+  //    EITHER a clean post that passes the practitioner-test guard OR a
+  //    skip (null). It is never a shipped flat absolute. This is the
+  //    "assert a flat-absolute take with no exception gets caught" coverage
+  //    at the full-pipeline level (section 8 above covers the guard unit
+  //    itself in isolation). ──────────────────────────────────────────────
+  const flatAlways = async (prompt) => {
+    if (/FORMAT: Contrarian take/.test(prompt)) return { post_body: FLAT_ABSOLUTE_CONTRARIAN };
+    if (/FORMAT: Observation about the TREC process itself/.test(prompt)) {
+      return { post_body: `Waiving the option period is always a bad idea, full stop, no exceptions. I never advise a client to do it under any circumstances.` };
+    }
+    return { post_body: `Curious what everyone's actual system is for tracking dates you can't afford to miss. Not the software name, the real workflow. I'm always tightening mine up. What's actually working for you?` };
+  };
+  let sawSkip = false;
+  let sawShippedPosition = false;
+  for (let i = 0; i < 40; i++) {
+    const outcome = await gen.generateCleanPost({ generate: flatAlways, group: group1, recentPosts: [], painLines: [], log: () => {}, usedFormatsThisRun: [], usedStoriesThisRun: [] });
+    if (!outcome) { sawSkip = true; continue; }
+    if (['contrarian', 'process_observation'].includes(outcome.format.id)) {
+      const check = checkPractitionerTest(outcome.post_body, { formatId: outcome.format.id });
+      assert.strictEqual(check.ok, true, `trial ${i}: if a position-taking format shipped at all, it must have passed the practitioner-test guard, but got: "${outcome.post_body.slice(0, 80)}..."`);
+      sawShippedPosition = true;
+    }
+  }
+  // At least one of the two outcomes should show up across 40 trials --
+  // this is a property test, not a single deterministic path, but it
+  // should never be the case that NEITHER ever happens (that would mean
+  // the mock or the harness is broken, not that the guard is working).
+  assert.ok(sawSkip || sawShippedPosition, 'across 40 trials the generator either skips flat-absolute-only groups or ships a fallback/passing post -- never silently ships the flat absolute');
+
+  // Deterministic wiring check (belt+suspenders on top of the property
+  // test above, same style as regression-heath-voice-guard.js #7): the
+  // guard is actually called, and a failure forces a different format on
+  // retry rather than just retrying the same one blind.
+  const genSrc = require('fs').readFileSync(path.join(__dirname, '..', 'api', '_lib', 'daily-group5-post-generator.js'), 'utf8');
+  assert.ok(genSrc.includes("require('./practitioner-test-guard')"), 'daily-group5-post-generator.js imports the practitioner-test guard');
+  assert.ok(genSrc.includes('checkPractitionerTest(postBody'), 'generateCleanPost actually calls checkPractitionerTest on the generated body');
+  assert.ok(/PRACTITIONER-TEST GUARD BLOCKED[\s\S]{0,200}lastHookType = format\.id/.test(genSrc), 'a practitioner-test failure forces a different format on retry (lastHookType reassigned), same pattern as the dedup block');
+
+  console.log('PASS: verified-story library (2 stories, Low Oak correctly BLOCKED as an active dispute), fabrication guard (catches all 5 real fabrications incl. a fabricated client narrative under verified_anecdote for a non-client story, zero false positives on the 5 clean sample posts), format rebuild (no anecdote-inventing formats remain, verified_anecdote hard-gated on story availability across 200 randomized trials), fact-bounded anecdote prompt, cross-group same-day story-reuse block, end-to-end fabrication blocking in generateCleanPost (skip-not-invent contract verified), and practitioner-test guard (flat-absolute position caught and blocked with fallback, exception-carrying rewrite passes, all 5 current sample posts clean end to end)');
 }
 
 main()

@@ -59,6 +59,7 @@ const path = require('path');
 const { FORMATS, pickFormat, pickStory, effectiveHookType, baseHookType, buildPrompt, DRAFT_MODEL } = require('./group-post5-formats');
 const { eligibleStories } = require('./verified-story-library');
 const { checkFabrication } = require('./fabrication-guard');
+const { checkPractitionerTest } = require('./practitioner-test-guard');
 const { checkGroupContentGate } = require('../../scripts/_lib/group-post-content-gate');
 const { checkDuplicate, withinDedupeWindow } = require('../../scripts/_lib/group-post-dedup');
 const { wasSuppressed } = require('./telegram-gate');
@@ -232,9 +233,22 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
     // Fabrication guard — the fix for the 2026-09-09 incident. Runs on
     // EVERY format, not just verified_anecdote: a non-anecdote format
     // drifting into "I had a client who..." territory must be caught too.
-    const fabCheck = checkFabrication(postBody, { formatId: format.id });
+    const fabCheck = checkFabrication(postBody, { formatId: format.id, storyInvolvesClient: story ? !!story.involves_client : false });
     if (!fabCheck.ok) {
       log(`[daily-group5] FABRICATION GUARD BLOCKED "${group.name}" (attempt ${attempt + 1}): ${fabCheck.violations.join(', ')}`);
+      continue;
+    }
+
+    // Practitioner-test guard — Heath 2026-09-09: a position on practice
+    // with no stated legitimate exception reads as a flat absolute a
+    // working agent would dismiss (memory/heath-marketing-must-pass-
+    // practitioner-test.md). Force a different format on retry, same as
+    // dedup — this is a "produce something else" failure, not a
+    // "try to write the same idea again" failure.
+    const practitionerCheck = checkPractitionerTest(postBody, { formatId: format.id });
+    if (!practitionerCheck.ok) {
+      log(`[daily-group5] PRACTITIONER-TEST GUARD BLOCKED "${group.name}" (attempt ${attempt + 1}): ${practitionerCheck.violations.join(', ')}`);
+      lastHookType = format.id; // force a different format on the retry
       continue;
     }
 

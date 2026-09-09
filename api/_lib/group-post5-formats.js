@@ -44,6 +44,7 @@
 // Owner: Carter, 2026-09-09. Content-safety rebuild: Sage, 2026-09-09.
 
 const { eligibleStories, getStory } = require('./verified-story-library');
+const { POSITION_TAKING_FORMATS } = require('./practitioner-test-guard');
 
 const FORMATS = [
   {
@@ -67,14 +68,14 @@ const FORMATS = [
     label: 'Contrarian take',
     risk: 'medium',
     requiresStory: false,
-    scaffold: `Unpopular opinion: waiving the option period to win a bid isn't brave, it's just moving the risk from the seller to you. I get why buyers do it in this market. I still think agents should push back on it harder than most of us do. Anyone actually had it blow up on a client?`,
+    scaffold: `Waiving the option period isn't automatically brave, and it isn't automatically reckless either. For a typical retail buyer it's still a bad idea, you're giving up your one clean way out before you know what's actually wrong with the house. For a cash investor planning a full gut anyway, or a contractor who can price that risk himself, it can genuinely make sense. Most buyers waiving it in this market are neither of those. I just don't think we walk clients through which one they actually are before they sign off on it.`,
   },
   {
     id: 'process_observation',
     label: 'Observation about the TREC process itself',
     risk: 'very_low',
     requiresStory: false,
-    scaffold: `Something I see mixed up a lot: terminating during the option period and terminating for cause later under the contract are not the same thing. One just costs you the option fee. The other means pointing to a specific paragraph and proving you actually had the right to walk. Worth walking a buyer through the difference before they're staring at a deadline instead of after.`,
+    scaffold: `Something I see mixed up a lot: terminating during the option period and terminating under a specific contract provision later on are not the same animal. During the option period you can walk for any reason and it costs you the option fee, nothing else has to be proven. Later on, whether it's the financing addendum or a repair dispute, you need an actual contractual basis, not just a change of mind. Worth walking a buyer through that difference before they're staring at a deadline instead of after.`,
   },
   {
     id: 'tracking_question',
@@ -228,7 +229,8 @@ GROUP: ${group.name}
 FORMAT: ${format.label} (${format.id})
 ${promoAllowed ? '' : 'HARD RULE: this post must NEVER mention Dossie, any software, any app, any product, any link, "sign up", or anything that reads as self-promotion. Zero pitch. This is a working agent talking to peers, full stop.\n'}
 HARD RULE: this format carries NO personal anecdote. Do not write "I had a client...", "a deal of mine...", "I once...", or any other claim of a specific personal experience/deal/client -- keep it to a general question, opinion, or observation about the process. If you find yourself inventing a specific story to make the post land, stop -- that is exactly what is banned here.
-SCAFFOLD (rewrite this — do not copy verbatim, write fresh copy with the same shape and topic, but do not add any new personal-anecdote claim that isn't already in the scaffold):
+${POSITION_TAKING_FORMATS.includes(format.id) ? `HARD RULE (practitioner test, memory/heath-marketing-must-pass-practitioner-test.md): this post is worthless to Heath if it reads as a flat absolute a 20-year agent would dismiss. If you're taking any evaluative position (something is a bad idea, risky, not worth it, etc.), you MUST also name the legitimate exception -- who or what situation it does NOT apply to (e.g. waiving the option period is bad for a typical retail buyer, but can make sense for a cash investor planning a gut renovation or a contractor who can price the risk himself). If you genuinely cannot name a real exception, do not take a flat position at all -- write the post as a neutral observation or question instead. A position with no stated exception will be rejected.
+` : ''}SCAFFOLD (rewrite this — do not copy verbatim, write fresh copy with the same shape and topic, but do not add any new personal-anecdote claim that isn't already in the scaffold):
 ---
 ${format.scaffold}
 ---

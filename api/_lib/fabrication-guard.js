@@ -71,15 +71,22 @@ const PATTERNS = [
  * @param {object} [opts]
  * @param {string|null} [opts.formatId]  the format id being generated for --
  *   some patterns (e.g. named_client) are only permitted for formats whose
- *   whole point is a verified client-involving anecdote.
+ *   whole point is a verified anecdote.
+ * @param {boolean} [opts.storyInvolvesClient]  the ACTUAL chosen verified
+ *   story's involves_client flag (api/_lib/verified-war-stories.json).
+ *   named_client is only waived when this is true -- e.g. tc_went_dark does
+ *   NOT involve a client, so "had a client..." must still be caught even
+ *   inside a verified_anecdote post, because it can't be that story. This
+ *   is what stops a fabricated client narrative from riding through on the
+ *   anecdote format's looser allowance.
  * @returns {{ ok: boolean, violations: string[] }}
  */
-function checkFabrication(text, { formatId = null } = {}) {
+function checkFabrication(text, { formatId = null, storyInvolvesClient = false } = {}) {
   const t = String(text || '');
   const violations = [];
   for (const p of PATTERNS) {
     if (!p.re.test(t)) continue;
-    if (p.allowFor && p.allowFor.includes(formatId)) continue;
+    if (p.allowFor && p.allowFor.includes(formatId) && (p.id !== 'named_client' || storyInvolvesClient)) continue;
     violations.push(`${p.id}:${p.desc}`);
   }
   return { ok: violations.length === 0, violations };
