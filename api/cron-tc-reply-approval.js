@@ -215,6 +215,15 @@ async function draftReply(post, comment, guest = null, recentOpeners = []) {
 // ─── Telegram message ────────────────────────────────────────────────────────
 
 function buildApprovalMessage(post, row, guest = null) {
+  const postUrl = (guest ? row.post_url : (post.post_url || row.post_url)) || null;
+  const commentUrl = row.comment_permalink || null;
+  const links = [
+    '',
+    postUrl ? `THREAD LINK (whole post): ${postUrl}` : null,
+    commentUrl
+      ? `EXACT COMMENT LINK (jumps to ${row.commenter_name}'s comment): ${commentUrl}`
+      : 'EXACT COMMENT LINK: not captured — use the thread link above',
+  ].filter((l) => l !== null);
   const lines = guest
     ? [
       `REPLY TO YOUR COMMENT — ${guest.group_name || row.source_group || 'unknown group'} (on ${guest.post_author || 'someone'}'s post)`,
@@ -230,6 +239,7 @@ function buildApprovalMessage(post, row, guest = null) {
       '',
       'PROPOSED REPLY:',
       String(row.reply_draft || ''),
+      ...links,
       '',
       'Approve posts it threaded under their reply (FB reply budget 10/day — queued if over). Edit: reply to the prompt with your text.',
     ]
@@ -244,6 +254,7 @@ function buildApprovalMessage(post, row, guest = null) {
       '',
       'PROPOSED REPLY:',
       String(row.reply_draft || ''),
+      ...links,
       '',
       'Approve posts it under their comment (FB reply budget 10/day — queued if over). Edit: reply to the prompt with your text.',
     ];
@@ -267,7 +278,9 @@ function buildFlagMessage(post, row, guest = null) {
     String(row.comment_text || '').slice(0, 900),
     '',
     'Nothing will be drafted or posted for this one. Reply manually on Facebook if you want to engage.',
-    row.comment_permalink ? row.comment_permalink : (row.post_url || ''),
+    row.comment_permalink
+      ? `EXACT COMMENT LINK (jumps to ${row.commenter_name}'s comment): ${row.comment_permalink}`
+      : `THREAD LINK (whole post): ${row.post_url || ''}`,
   ];
   return lines.join('\n').slice(0, 4090);
 }

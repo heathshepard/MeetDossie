@@ -194,8 +194,9 @@ function buildOppMessage(row) {
     `COMMENT OPP — ${row.group_name}${meta ? ` · ${meta}` : ''}`,
     `POST by ${row.author_name || 'someone'}: "${postSnippet(row.post_text)}"`,
     '',
-    `DRAFT REPLY: ${String(row.comment_draft || '')}`,
-    row.post_url || '',
+    `DRAFT COMMENT (fresh top-level comment on the post — not a reply to anyone specific): ${String(row.comment_draft || '')}`,
+    '',
+    `POST LINK: ${row.post_url || ''}`,
   ].join('\n').slice(0, 4090);
 }
 
