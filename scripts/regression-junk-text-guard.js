@@ -73,6 +73,23 @@ async function main() {
   );
   assert.ok(!genuine4.junk, 'a real post mentioning "Facebook" once must not be flagged');
 
+  // ── 3b. Short REAL comments (Cole's explicit ask, 2026-09-09): a short,
+  //    low-unique-token reply is a completely normal thing to actually leave
+  //    on a Facebook post. These must NOT trip the dominant-token-ratio or
+  //    low-unique-ratio checks just for being short. Verified live: this
+  //    exact set of shapes (or near-identical) actually appeared as real
+  //    extracted comments in the 2026-09-09 DOM-extraction fix verification
+  //    run against tc_vas / DFW Realtors - Network & Collaborate. ─────────────
+  const shortRealComments = ['same here', 'yes!!', 'Hi', 'Up!', 'Interested', 'Yes', 'Following along! I have the same questions', 'same same same problem here honestly'];
+  for (const c of shortRealComments) {
+    assert.ok(!isJunkText(c).junk, `short real comment "${c}" must NOT be rejected as junk`);
+  }
+
+  // A short comment that IS actually a repeated-word spam pattern (not a
+  // real reply) must still be caught — the guard isn't disabled for short
+  // strings, only tuned so genuine short replies survive.
+  assert.ok(isJunkText('lol lol lol lol lol lol').junk, 'repeated-word spam in a short string is still rejected');
+
   // ── 4. Integration: the exact incident is rejected at prefilterPost() —
   //    the real ingest point in scripts/fb-comment-hunt-daily.js, not just
   //    the standalone helper. ──────────────────────────────────────────────
