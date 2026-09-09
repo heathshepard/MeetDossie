@@ -74,6 +74,10 @@ const ALWAYS_ALLOW = new Set([
                                // Same class as cron-tc-reply-approval: interactive approval plumbing, capped at
                                // 12 sends/day, silent when the hunt finds nothing. A swallowed send here stalls
                                // the entire daily engagement pipeline — Carter, 2026-09-08.
+  'cron-daily-group5-posts',  // daily 5-group-post Approve/Edit/Skip loop (group_posts pipeline='daily5').
+                               // Same class as cron-comment-opp-approval: interactive approval plumbing, exactly
+                               // 5 sends/day (one per target group). A swallowed send here means a whole day's
+                               // group post for that group never gets approved — Carter, 2026-09-09.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.

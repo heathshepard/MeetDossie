@@ -55,17 +55,40 @@
 //                    explicit sign-off; drop to 4 at the FIRST warning sign
 //                    (the poster also hard-halts the whole pipeline on any
 //                    removed comment / checkpoint / verify failure).
+// FACEBOOK GROUP POST BUDGET 2026-09-09 (Carter, Heath's explicit call,
+// verbatim: "people can post more than once a day. 5 groups 1 post to each
+// group per day is fone" -- one ORIGINATED post/day into EACH of the 5
+// comment-hunt-groups.json groups, never bursted). This is a DIFFERENT
+// action class from facebook_auto (a comment on someone else's post) -- a
+// standalone top-level post with Heath's name on it, in front of the whole
+// group. Separate budget so group-post volume can never eat into the
+// comment-opportunity budget or vice versa. Spacing 2026-09-09 (Heath,
+// verbatim: "and do the posts like 20 minutes apart"): 18-24 min varied
+// (18-min floor + 0-6 min jitter, same "floor + fresh per-run jitter, never
+// metronomic" pattern as facebook_auto's 45-60). Shares the SAME circuit
+// breaker (scripts/_lib/comment-hunt-halt.js) as facebook_auto -- it's one
+// Facebook profile; a checkpoint/login-redirect on either action class must
+// halt both.
+//   facebook_group_post = automated ORIGINATED group posts from the daily
+//                    5-group pipeline (api/cron-daily-group5-posts.js ->
+//                    Telegram Approve/Edit/Skip -> scripts/fb-group5-post-
+//                    queue.js -> scripts/fb-group-poster.js). Every one is
+//                    individually Heath-approved, but the KEYSTROKES are
+//                    automated. Ceiling 5/day (exactly one per target
+//                    group), 18-24 min varied spacing. Drop toward 0 at the
+//                    first warning sign, same as facebook_auto.
 const PLATFORM_DAILY_CAPS = Object.freeze({
   facebook: 15,       // initiated comments (human-pasted; see split note above)
   facebook_auto: 8,   // automated initiated comments (daily hunt; see note above)
   facebook_reply: 10, // automated threaded replies to replies-to-Heath
+  facebook_group_post: 5, // automated ORIGINATED group posts (daily 5-group pipeline; see note above)
   instagram: 5,
   linkedin: 3,
   reddit: 3,
   twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 49; // sum of the above; hard ceiling across all platforms
+const TOTAL_DAILY_CAP = 54; // sum of the above; hard ceiling across all platforms
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -80,6 +103,7 @@ const MIN_GAP_MINUTES = Object.freeze({
   facebook_auto: 45, // FLOOR only — fb-comment-opp-poster.js adds 0-15 min random jitter per run so spacing is 45-60, varied, never metronomic
 
   facebook_reply: 30, // replying promptly to a reply-to-you reads as normal human behavior
+  facebook_group_post: 18, // FLOOR only — fb-group5-post-queue.js adds 0-6 min random jitter per run so spacing is 18-24, varied, never exactly 20:00 (Heath, 2026-09-09: "do the posts like 20 minutes apart")
   instagram: 20,
   twitter: 45,
   linkedin: 90,

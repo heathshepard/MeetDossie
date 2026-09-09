@@ -145,7 +145,9 @@ async function main() {
   assert.strictEqual(caps.PLATFORM_DAILY_CAPS.facebook_reply, 10, 'automated-reply budget is 10/day');
   // 41 -> 49 on 2026-09-08: +8 for the 'facebook_auto' daily-hunt budget
   // (comment-opportunity pipeline; see regression-comment-opportunity-pipeline.js).
-  assert.strictEqual(caps.TOTAL_DAILY_CAP, 49, 'total cap is the sum of all budgets');
+  // 49 -> 54 on 2026-09-09: +5 for the 'facebook_group_post' daily 5-group-post
+  // budget (see regression-group-post-pipeline.js).
+  assert.strictEqual(caps.TOTAL_DAILY_CAP, 54, 'total cap is the sum of all budgets');
   const capSum = Object.values(caps.PLATFORM_DAILY_CAPS).reduce((a, b) => a + b, 0);
   assert.strictEqual(caps.TOTAL_DAILY_CAP, capSum, 'TOTAL_DAILY_CAP must equal the sum of PLATFORM_DAILY_CAPS');
   assert.strictEqual(caps.MIN_GAP_MINUTES.facebook_reply, 30, 'reply min-gap is 30 min');

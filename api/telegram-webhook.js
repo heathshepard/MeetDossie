@@ -23,6 +23,7 @@ const {
 } = require('./_lib/cold-email-batch-approval');
 
 const { handleGroupPostCallback } = require('./group-post-callback');
+const { handleGroup5PostCallback } = require('./group5-post-callback');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
 
@@ -587,6 +588,13 @@ const TCREPLY_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised rep
 const OPPC_EDIT_PROMPT_PREFIX = '✏️ Editing comment ';
 const OPPC_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised comment — it posts as-is on the next local poster run.';
 
+// Daily 5-group-post edit flow (cron-daily-group5-posts /
+// group_posts pipeline='daily5'). Same pattern as the comment-opportunity
+// edit flow above — Heath's revised text becomes post_body and the row is
+// approved in the same step (his edit is his approval).
+const GP5_EDIT_PROMPT_PREFIX = '✏️ Editing group post ';
+const GP5_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised post — it posts as-is on the next local queue-runner tick.';
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -784,6 +792,26 @@ async function handleCallbackQuery(cb) {
   if (groupPost) {
     const originalBody = String(message?.text || '');
     return handleGroupPostCallback(groupPost[1], groupPost[2], callbackId, chatId, messageId, originalBody);
+  }
+
+  // Daily 5-group-post pipeline: gp5_approve:<id> / gp5_edit:<id> / gp5_skip:<id>
+  // (api/cron-daily-group5-posts.js). Colon delimiter + gp5_ prefix keeps
+  // this fully separate from the legacy group_ pipeline above — this one's
+  // rows never carry a self-promotional first_comment_body, so the legacy
+  // handler's "must mention Dossie" validator must never run against them.
+  const gp5 = data.match(/^(gp5_approve|gp5_edit|gp5_skip):([\w-]+)$/);
+  if (gp5) {
+    const originalBody = String(message?.text || '');
+    return handleGroup5PostCallback(gp5[1], gp5[2], {
+      answerCallback,
+      editMessage,
+      sendMessage: (cid, text) => sendMessage(cid, text, messageId, true),
+      editPromptText: `${GP5_EDIT_PROMPT_PREFIX}${gp5[2]}${GP5_EDIT_PROMPT_SUFFIX}`,
+      callbackId,
+      chatId,
+      messageId,
+      originalMessageText: originalBody,
+    });
   }
 
   // Nightly content pipeline approval flow: cpage_approve_<id> / cpage_reject_<id>
@@ -1920,6 +1948,65 @@ async function handleTextMessage(msg, logStep) {
           msg.message_id, null, logStep,
         );
         if (logStep) logStep({ step: 'oppc_edit_saved', rowId, won });
+        return;
+      }
+    }
+
+    // Daily 5-group-post edit: Heath's revised text becomes post_body and
+    // the row is APPROVED in the same step (his edit is his approval).
+    // Guarded on draft/approved so an already-posting row can't be mutated
+    // mid-flight. Runs the SAME content gate as the generator — an edit
+    // that reintroduces a banned term (e.g. Heath pastes a Dossie mention
+    // into DFW's post by mistake) is rejected, not silently approved.
+    if (replyText.startsWith(GP5_EDIT_PROMPT_PREFIX)) {
+      if (logStep) logStep({ step: 'processing_gp5_edit' });
+      const after = replyText.slice(GP5_EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(GP5_EDIT_PROMPT_SUFFIX);
+      const rowId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].replace(/\.$/, '').trim();
+      const newText = messageText.trim();
+      if (rowId && newText) {
+        const { checkGroupContentGate } = require('../scripts/_lib/group-post-content-gate');
+        const { data: rows } = await supabaseFetch(
+          `/rest/v1/group_posts?id=eq.${encodeURIComponent(rowId)}&pipeline=eq.daily5&limit=1&select=id,group_key,status`,
+        );
+        const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+        if (!row) {
+          await sendMessage(chatId, 'Could not find that group post.', msg.message_id, null, logStep);
+          return;
+        }
+        const gate = checkGroupContentGate(row.group_key, newText, null);
+        if (!gate.allowed) {
+          await sendMessage(
+            chatId,
+            `Blocked — your edit still trips the content gate for this group (${gate.reason}). Revise and reply again.`,
+            msg.message_id, null, logStep,
+          );
+          if (logStep) logStep({ step: 'gp5_edit_gate_blocked', rowId, reason: gate.reason });
+          return;
+        }
+        const nowIso = new Date().toISOString();
+        const patch = await supabaseFetch(
+          `/rest/v1/group_posts?id=eq.${encodeURIComponent(rowId)}&status=in.(draft,approved)`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              post_body: newText,
+              status: 'approved',
+              approved_at: nowIso,
+              auto_post_at: nowIso,
+            }),
+          },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        await sendMessage(
+          chatId,
+          won
+            ? '✏️ Saved and approved — your text posts as the group post on the next local queue-runner tick.'
+            : 'Could not save — that post is no longer editable (already posting/posted/skipped).',
+          msg.message_id, null, logStep,
+        );
+        if (logStep) logStep({ step: 'gp5_edit_saved', rowId, won });
         return;
       }
     }
