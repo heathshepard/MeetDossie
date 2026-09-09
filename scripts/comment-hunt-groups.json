@@ -1,0 +1,66 @@
+{
+  "_readme": [
+    "Group list for scripts/fb-comment-hunt-daily.js (daily comment-opportunity finder).",
+    "ONLY the groups verified to carry real conversation on the 2026-09-08 hunt are active.",
+    "The big 'agent' groups (108K/85K/31K) are almost pure listing spam — scanning them",
+    "burned most of that day's 25-visit budget for nothing. They live in skip_groups so",
+    "nobody re-adds them without reading why.",
+    "The POSTING ceiling is NOT here — it is PLATFORM_DAILY_CAPS.facebook_auto in",
+    "scripts/_lib/comment-caps.js (8/day default; ramp only with Heath's sign-off)."
+  ],
+  "groups": [
+    {
+      "key": "dfw_network_collab",
+      "name": "DFW Realtors - Network & Collaborate (38.7K)",
+      "url": "https://www.facebook.com/groups/531847711158328/",
+      "note": "27 posts/day, real conversation — best group of the 2026-09-08 hunt"
+    },
+    {
+      "key": "tc_admins",
+      "name": "Transaction Coordinators and Admins for Real Estate (29.8K)",
+      "url": "https://www.facebook.com/groups/transactioncoordinatorsforrealestate/",
+      "note": "real TC/paperwork threads"
+    },
+    {
+      "key": "tc_vas",
+      "name": "Transaction Coordinators and Virtual Assistants for Real Estate (10.9K)",
+      "url": "https://www.facebook.com/groups/transactioncoordinatorsandvirtualassistants/",
+      "note": "real TC/paperwork threads"
+    },
+    {
+      "key": "kw_re_group",
+      "name": "Keller Williams Real Estate Group (28.6K)",
+      "url": "https://www.facebook.com/groups/kwrealestategroup/",
+      "note": "real conversation; Heath is a KW agent — home turf"
+    },
+    {
+      "key": "tx_re_agents",
+      "name": "Texas Real Estate Agents (22K)",
+      "url": "https://www.facebook.com/groups/texasusarealestateagents/",
+      "note": "real conversation, Texas-specific"
+    }
+  ],
+  "skip_groups": [
+    {
+      "name": "Real Estate Agents Group (108K)",
+      "url": "https://www.facebook.com/groups/LizLuxuryRealEstateAgent/",
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+    },
+    {
+      "name": "All Realtors and related Professionals (85K)",
+      "url": "https://www.facebook.com/groups/350007408391439/",
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+    },
+    {
+      "name": "Real Estate Agents in USA (31.3K)",
+      "url": "https://www.facebook.com/groups/2071832753093090/",
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+    }
+  ],
+  "scan": {
+    "end_key_rounds": 12,
+    "max_group_visits_per_day": 8,
+    "reverify_recent_posted": 3,
+    "max_post_age_hours": 48
+  }
+}

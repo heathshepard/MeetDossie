@@ -42,8 +42,22 @@
 //                    entire distribution strategy runs through — kept at 10
 //                    with a 30-min min-gap.
 // A banned profile ends the whole strategy. These are ceilings, not targets.
+//   facebook_auto  = AUTOMATED initiated comments from the daily
+//                    comment-opportunity finder (fb-comment-hunt-daily.js ->
+//                    cron-comment-opp-approval -> fb-comment-opp-poster.js).
+//                    Every one is individually Heath-approved in Telegram, but
+//                    the KEYSTROKES are automated — the exact action class
+//                    that got the profile shadowbanned in June at 12/day in
+//                    bursts. Ceiling 8/day, 45-60 min VARIED spacing (poster
+//                    adds per-run jitter on top of the 45-min floor), one
+//                    comment per poster run. THIS IS THE CONFIG VALUE for the
+//                    daily hunt — ramp only after 2+ clean weeks and Heath's
+//                    explicit sign-off; drop to 4 at the FIRST warning sign
+//                    (the poster also hard-halts the whole pipeline on any
+//                    removed comment / checkpoint / verify failure).
 const PLATFORM_DAILY_CAPS = Object.freeze({
   facebook: 15,       // initiated comments (human-pasted; see split note above)
+  facebook_auto: 8,   // automated initiated comments (daily hunt; see note above)
   facebook_reply: 10, // automated threaded replies to replies-to-Heath
   instagram: 5,
   linkedin: 3,
@@ -51,7 +65,7 @@ const PLATFORM_DAILY_CAPS = Object.freeze({
   twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 41; // sum of the above; hard ceiling across all platforms
+const TOTAL_DAILY_CAP = 49; // sum of the above; hard ceiling across all platforms
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -63,6 +77,8 @@ const PER_AUTHOR_COOLDOWN_DAYS = 7;  // don't comment on the same author twice w
 // inside 60 min — bot-pattern to any moderation system.
 const MIN_GAP_MINUTES = Object.freeze({
   facebook: 45,
+  facebook_auto: 45, // FLOOR only — fb-comment-opp-poster.js adds 0-15 min random jitter per run so spacing is 45-60, varied, never metronomic
+
   facebook_reply: 30, // replying promptly to a reply-to-you reads as normal human behavior
   instagram: 20,
   twitter: 45,
@@ -98,7 +114,11 @@ async function getTodayCounts(sbFetch) {
   const { ok, data } = await sbFetch(
     `/rest/v1/comment_caps_state?day=eq.${key}&select=platform,count`
   );
-  const out = { facebook: 0, facebook_reply: 0, instagram: 0, linkedin: 0, reddit: 0, twitter: 0, total: 0 };
+  // Derive from PLATFORM_DAILY_CAPS so a new budget key can never be silently
+  // dropped from counting (caught live 2026-09-08: facebook_auto was counted
+  // as 0 forever by the old hardcoded map — cap would never have enforced).
+  const out = { total: 0 };
+  for (const p of Object.keys(PLATFORM_DAILY_CAPS)) out[p] = 0;
   if (!ok || !Array.isArray(data)) return out;
   for (const row of data) {
     const p = String(row.platform || '').toLowerCase();

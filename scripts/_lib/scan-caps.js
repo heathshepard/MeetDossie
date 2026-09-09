@@ -30,7 +30,17 @@ const STATE_FILE = path.join(__dirname, '..', '.scan-caps-state.json');
 // (fb-engagement-scraper.js) and one-time discovery/verification visits
 // (fb-group-discovery.js) share this ceiling since both are "load a group
 // page and look at it" from FB's perspective.
-const DAILY_GROUP_SCAN_CAP = 25;
+//
+// RAISED 25 -> 32 (Carter, 2026-09-08, deliberate): the daily
+// comment-opportunity hunt (fb-comment-hunt-daily.js) needs a standing ~8
+// visits/day (5 active-group scans + up to 3 posted-comment re-verifies) on
+// top of the existing scanners; the 2026-09-08 one-off discovery run burned
+// 37 visits against the old 25 cap because nothing had a reserved slice.
+// 32 = 24 for ad-hoc scanning/discovery + 8 for the hunt. Still inside a
+// heavy-but-human browsing day; an engaged agent hunting leads plausibly
+// opens 30+ group pages. If ANY ban-warning sign appears, drop straight
+// back to 25 and pause the hunt (it halts itself on warning signs too).
+const DAILY_GROUP_SCAN_CAP = 32;
 
 // Group-page-to-group-page dwell time (ms). Randomized so consecutive visits
 // don't land on a mechanical interval -- real browsing is bursty and uneven.

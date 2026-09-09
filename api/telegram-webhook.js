@@ -580,6 +580,13 @@ const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
 const TCREPLY_EDIT_PROMPT_PREFIX = '✏️ Editing TC reply ';
 const TCREPLY_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised reply — it posts as-is once the local poster runs.';
 
+// Daily comment-opportunity edit flow (cron-comment-opp-approval /
+// comment_opportunities). Same pattern as the TC reply edit flow above —
+// Heath's revised text becomes comment_final and the row is approved in the
+// same step.
+const OPPC_EDIT_PROMPT_PREFIX = '✏️ Editing comment ';
+const OPPC_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised comment — it posts as-is on the next local poster run.';
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -1430,6 +1437,84 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Daily comment-opportunity approval flow (cron-comment-opp-approval).
+  // callback_data: oppc_approve:<uuid> / oppc_edit:<uuid> / oppc_skip:<uuid>
+  // Rows live in comment_opportunities. NOTHING posts without an explicit
+  // Approve (or an explicit edit-reply, which is a stronger approval). The
+  // actual Facebook post happens locally via scripts/fb-comment-opp-poster.js
+  // (8/day 'facebook_auto' budget, 45-60 min varied spacing).
+  const oppcMatch = data.match(/^oppc_(approve|edit|skip):([\w-]+)$/);
+  if (oppcMatch) {
+    const action = oppcMatch[1];
+    const rowId = oppcMatch[2];
+    const originalBody = String(message?.text || '');
+    const nowIso = new Date().toISOString();
+
+    const { data: rows } = await supabaseFetch(
+      `/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(rowId)}&limit=1&select=id,status,comment_draft,comment_final,group_name`,
+    );
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!row) {
+      if (callbackId) await answerCallback(callbackId, 'Opportunity not found');
+      return;
+    }
+
+    if (action === 'edit') {
+      // Editable while awaiting decision, and re-editable before the local
+      // poster claims it ('approved'). Once posting/posted, too late.
+      if (row.status !== 'notified' && row.status !== 'approved') {
+        if (callbackId) await answerCallback(callbackId, `Too late — already ${row.status}`);
+        return;
+      }
+      const promptText = `${OPPC_EDIT_PROMPT_PREFIX}${rowId}${OPPC_EDIT_PROMPT_SUFFIX}`;
+      await sendMessage(chatId, promptText, messageId, true);
+      if (callbackId) await answerCallback(callbackId, 'Reply with the revised comment');
+      return;
+    }
+
+    if (row.status !== 'notified') {
+      if (callbackId) await answerCallback(callbackId, `Already ${row.status}`);
+      return;
+    }
+
+    if (action === 'approve') {
+      // Guard on status=eq.notified so a double-tap can't re-approve.
+      const patch = await supabaseFetch(
+        `/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(rowId)}&status=eq.notified`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({
+            status: 'approved',
+            comment_final: row.comment_final || row.comment_draft,
+            approved_at: nowIso,
+            updated_at: nowIso,
+          }),
+        },
+      );
+      const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+      const tail = won
+        ? 'Approved — posts on the next local poster run (8/day budget, 45-60 min spacing; queued if over).'
+        : 'Already handled.';
+      if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+      if (callbackId) await answerCallback(callbackId, won ? 'Approved' : 'Already handled');
+      return;
+    }
+
+    // skip
+    await supabaseFetch(
+      `/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(rowId)}&status=eq.notified`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'skipped', updated_at: nowIso }),
+      },
+    );
+    if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\nSkipped — nothing will post.`);
+    if (callbackId) await answerCallback(callbackId, 'Skipped');
+    return;
+  }
+
   // Unified engagement_candidates approval flow.
   // callback_data: eng_approve:<id> / eng_reject:<id>
   // The numeric id is the bigserial primary key on engagement_candidates.
@@ -1797,6 +1882,44 @@ async function handleTextMessage(msg, logStep) {
           msg.message_id, null, logStep,
         );
         if (logStep) logStep({ step: 'tcreply_edit_saved', rowId, won });
+        return;
+      }
+    }
+
+    // Comment-opportunity edit: Heath's revised text becomes comment_final
+    // and the row is APPROVED in the same step (his edit is his approval).
+    // Guarded on notified/approved so an already-posting row can't be
+    // mutated mid-flight.
+    if (replyText.startsWith(OPPC_EDIT_PROMPT_PREFIX)) {
+      if (logStep) logStep({ step: 'processing_oppc_edit' });
+      const after = replyText.slice(OPPC_EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(OPPC_EDIT_PROMPT_SUFFIX);
+      const rowId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].replace(/\.$/, '').trim();
+      const newText = messageText.trim();
+      if (rowId && newText) {
+        const nowIso = new Date().toISOString();
+        const patch = await supabaseFetch(
+          `/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(rowId)}&status=in.(notified,approved)`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              comment_final: newText,
+              status: 'approved',
+              approved_at: nowIso,
+              updated_at: nowIso,
+            }),
+          },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        await sendMessage(
+          chatId,
+          won
+            ? '✏️ Saved and approved — your text posts as the comment on the next local poster run.'
+            : 'Could not save — that comment is no longer editable (already posting/posted/skipped).',
+          msg.message_id, null, logStep,
+        );
+        if (logStep) logStep({ step: 'oppc_edit_saved', rowId, won });
         return;
       }
     }

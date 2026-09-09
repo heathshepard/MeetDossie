@@ -160,41 +160,13 @@ async function fetchDocumentRow(documentId) {
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
-// Download signed PDF from DocuSeal and store in Supabase Storage.
-// Returns the new document row id, or null on error.
-async function downloadAndStoreSigned(sr, fileName) {
-  if (!DOCUSEAL_API_KEY) {
-    console.warn('[esign-webhook] DOCUSEAL_API_KEY not set — cannot download signed PDF.');
-    return null;
-  }
-
-  // Fetch submission details from DocuSeal to get the signed document URL.
-  const detailRes = await fetch(`${DOCUSEAL_BASE}/submissions/${encodeURIComponent(sr.docuseal_submission_id)}`, {
-    headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
-  });
-  if (!detailRes.ok) {
-    console.error('[esign-webhook] DocuSeal submission fetch failed:', detailRes.status);
-    return null;
-  }
-  const submission = await detailRes.json().catch(() => null);
-  const signedUrl = submission?.documents?.[0]?.url;
-  if (!signedUrl) {
-    console.error('[esign-webhook] No signed document URL in submission:', JSON.stringify(submission || {}).slice(0, 300));
-    return null;
-  }
-
-  // Download the signed PDF bytes.
-  const pdfRes = await fetch(signedUrl);
-  if (!pdfRes.ok) {
-    console.error('[esign-webhook] Failed to download signed PDF:', pdfRes.status);
-    return null;
-  }
-  const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
-
-  // Build storage path: {userId}/{transactionId}/signed-{ts}-{originalFileName}
+// Upload a PDF buffer to Storage + insert a documents row. Returns the new
+// document row id, or null on error. Shared by the signed-PDF and
+// audit-certificate legs below.
+async function storePdfAsDocument({ sr, fileName, pdfBuffer, documentType, pathPrefix }) {
   const ts = Date.now();
-  const safeName = fileName.replace(/[^A-Za-z0-9._\-\s()]/g, '_');
-  const storagePath = `${sr.user_id}/${sr.transaction_id || 'no-transaction'}/signed-${ts}-${safeName}`;
+  const safeName = String(fileName || 'document.pdf').replace(/[^A-Za-z0-9._\-\s()]/g, '_');
+  const storagePath = `${sr.user_id}/${sr.transaction_id || 'no-transaction'}/${pathPrefix}-${ts}-${safeName}`;
 
   const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
   const uploadRes = await fetch(uploadUrl, {
@@ -213,21 +185,20 @@ async function downloadAndStoreSigned(sr, fileName) {
     return null;
   }
 
-  // Insert documents row for the signed PDF.
   const docRes = await supa('documents', {
     method: 'POST',
     body: JSON.stringify({
       transaction_id: sr.transaction_id || null,
       user_id: sr.user_id,
-      file_name: `signed-${safeName}`,
+      file_name: `${pathPrefix}-${safeName}`,
       file_type: 'application/pdf',
-      document_type: 'signed',
+      document_type: documentType,
       storage_path: storagePath,
       file_size: pdfBuffer.length,
     }),
   });
   if (!docRes.ok) {
-    console.error('[esign-webhook] documents insert for signed PDF failed:', docRes.status);
+    console.error(`[esign-webhook] documents insert for ${documentType} failed:`, docRes.status);
     return null;
   }
   const docRows = await docRes.json().catch(() => []);
@@ -235,10 +206,119 @@ async function downloadAndStoreSigned(sr, fileName) {
   return newDoc?.id || null;
 }
 
+// 2026-09-08 CARTER — the completion leg, made defensible (plan §3).
+// From ONE GET /submissions/{id} response:
+//   1. Download + store EVERY signed document (packets return one per PDF —
+//      the old code stored only documents[0] and silently dropped the rest).
+//   2. Download + store DocuSeal's completion certificate (audit_log_url) as
+//      a 'signing_certificate' documents row.
+//   3. sha256 everything that came back.
+//   4. Snapshot submission_events (who opened/signed what and when, with
+//      whatever DocuSeal provides — timestamps always, IP when present).
+// Returns { signedDocs: [{id, fileName, buffer, sha256}], auditDocId,
+//           auditSha256, events, auditFetchFailed }.
+async function storeSignedArtifacts(sr, submission) {
+  const out = { signedDocs: [], auditDocId: null, auditSha256: null, events: null, auditFetchFailed: false };
+
+  const docs = Array.isArray(submission?.documents) ? submission.documents : [];
+  for (let i = 0; i < docs.length; i += 1) {
+    const d = docs[i];
+    if (!d || !d.url) continue;
+    try {
+      const pdfRes = await fetch(d.url);
+      if (!pdfRes.ok) {
+        console.error(`[esign-webhook] signed PDF download failed (${pdfRes.status}) for doc ${i}`);
+        continue;
+      }
+      const buffer = Buffer.from(await pdfRes.arrayBuffer());
+      const baseName = d.name ? `${d.name}.pdf`.replace(/\.pdf(\.pdf)+$/i, '.pdf') : `document-${i + 1}.pdf`;
+      const id = await storePdfAsDocument({
+        sr,
+        fileName: baseName,
+        pdfBuffer: buffer,
+        documentType: 'signed',
+        pathPrefix: 'signed',
+      });
+      out.signedDocs.push({
+        id,
+        fileName: baseName,
+        buffer,
+        sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
+      });
+    } catch (err) {
+      console.error('[esign-webhook] signed PDF store threw:', err && err.message);
+    }
+  }
+
+  // Completion certificate. For a disputed signature this is the evidence —
+  // fetch failure must not block completion, but it is stamped + retried.
+  if (submission?.audit_log_url) {
+    try {
+      const auditRes = await fetch(submission.audit_log_url);
+      if (auditRes.ok) {
+        const auditBuffer = Buffer.from(await auditRes.arrayBuffer());
+        out.auditSha256 = crypto.createHash('sha256').update(auditBuffer).digest('hex');
+        out.auditDocId = await storePdfAsDocument({
+          sr,
+          fileName: `certificate-${sr.docuseal_submission_id}.pdf`,
+          pdfBuffer: auditBuffer,
+          documentType: 'signing_certificate',
+          pathPrefix: 'audit',
+        });
+        if (!out.auditDocId) out.auditFetchFailed = true;
+      } else {
+        console.error('[esign-webhook] audit_log_url download failed:', auditRes.status);
+        out.auditFetchFailed = true;
+      }
+    } catch (err) {
+      console.error('[esign-webhook] audit log fetch threw:', err && err.message);
+      out.auditFetchFailed = true;
+    }
+  } else {
+    console.warn('[esign-webhook] submission has no audit_log_url (sandbox limitation or not yet generated).');
+    out.auditFetchFailed = true;
+  }
+
+  if (Array.isArray(submission?.submission_events) && submission.submission_events.length > 0) {
+    out.events = submission.submission_events;
+  }
+
+  return out;
+}
+
+// PATCH the audit-trail columns onto signature_requests. Columns ship in
+// api/_migrations/0026 — if that hasn't run, retry without them so a pending
+// migration can never fail the webhook (DocuSeal retries on non-2xx and
+// retries would double-send completion emails).
+async function patchAuditTrail(srId, patch) {
+  const attempt = async (payload) => supa(
+    `signature_requests?id=eq.${encodeURIComponent(srId)}`,
+    { method: 'PATCH', body: JSON.stringify(payload), headers: { Prefer: 'return=minimal' } }
+  );
+  try {
+    let r = await attempt(patch);
+    if (r.ok) return true;
+    const text = await r.text().catch(() => '');
+    const unknownColumn = text.includes('PGRST204')
+      || /could not find the .* column/i.test(text)
+      || /column .* does not exist/i.test(text);
+    if (unknownColumn) {
+      console.warn('[esign-webhook] audit-trail PATCH hit unknown column — run '
+        + 'api/_migrations/0026-esign-packets-audit.sql. Audit data NOT saved for sr', srId);
+      return false;
+    }
+    console.error('[esign-webhook] audit-trail PATCH failed:', r.status, text.slice(0, 200));
+    return false;
+  } catch (err) {
+    console.error('[esign-webhook] audit-trail PATCH threw:', err && err.message);
+    return false;
+  }
+}
+
 // Email the seller's agent the fully executed PDF as an attachment.
 // dossieUserEmail is the transaction owner's email (from profiles) — used as reply_to
 // so the seller's agent can reply directly to the Dossie user who initiated the signing.
-async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, dossieUserEmail) {
+async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName, pdfBuffer, propertyAddress, dossieUserEmail, attachments) {
   if (!RESEND_API_KEY || !sellerAgentEmail) return;
   try {
     const base64Pdf = pdfBuffer.toString('base64');
@@ -262,12 +342,16 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
           <p>Sent via <strong>DossieSign</strong> - transaction management for Texas REALTORS.</p>
           <p style="color:#888;font-size:12px;">Dossie - Your deals. Her job.</p>
         `,
-        attachments: [
-          {
-            filename: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
-            content: base64Pdf,
-          },
-        ],
+        // Multi-document packets attach every signed PDF; single sends keep
+        // the one-attachment behavior.
+        attachments: (attachments && attachments.length > 0)
+          ? attachments
+          : [
+              {
+                filename: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
+                content: base64Pdf,
+              },
+            ],
         // No BCC: customer-file operational email per feedback_bcc_heath_on_all_emails.md
       }),
     });
@@ -282,7 +366,7 @@ async function sendSellerAgentEmail(sellerAgentEmail, sellerAgentName, fileName,
 // broken sandbox download link). Attaches the signed PDF directly so no
 // external link is needed. If the signer email matches a Dossie profile,
 // links to their workspace; otherwise emits a plain closing line.
-async function sendSignerCompletionEmail({ signerName, signerEmail, fileName, pdfBuffer, propertyAddress, dossieUserEmail }) {
+async function sendSignerCompletionEmail({ signerName, signerEmail, fileName, pdfBuffer, propertyAddress, dossieUserEmail, attachments }) {
   if (!RESEND_API_KEY) {
     console.warn('[esign-webhook] RESEND_API_KEY not set — skipping signer completion email.');
     return;
@@ -339,7 +423,9 @@ async function sendSignerCompletionEmail({ signerName, signerEmail, fileName, pd
     subject,
     html,
   };
-  if (pdfBuffer) {
+  if (attachments && attachments.length > 0) {
+    body.attachments = attachments;
+  } else if (pdfBuffer) {
     body.attachments = [{ filename: attachmentName, content: pdfBuffer.toString('base64') }];
   }
 
@@ -373,7 +459,7 @@ async function sendSignerCompletionEmail({ signerName, signerEmail, fileName, pd
 // loop). Attaches the fully-signed PDF so the agent can forward to title / other
 // side of the transaction without logging in. Idempotency is gated in the caller
 // via signature_requests.owner_notified_at.
-async function sendAgentExecutedEmail({ agentEmail, agentName, fileName, pdfBuffer, propertyAddress }) {
+async function sendAgentExecutedEmail({ agentEmail, agentName, fileName, pdfBuffer, propertyAddress, attachments }) {
   if (!RESEND_API_KEY) {
     console.warn('[esign-webhook] RESEND_API_KEY not set — skipping agent executed email.');
     return null;
@@ -425,7 +511,9 @@ async function sendAgentExecutedEmail({ agentEmail, agentName, fileName, pdfBuff
     subject,
     html,
   };
-  if (pdfBuffer) {
+  if (attachments && attachments.length > 0) {
+    body.attachments = attachments;
+  } else if (pdfBuffer) {
     body.attachments = [{ filename: attachmentName, content: pdfBuffer.toString('base64') }];
   }
 
@@ -547,7 +635,12 @@ module.exports = async function handler(req, res) {
     if (allSigned) {
       // Fetch document name for notifications.
       const docRow = await fetchDocumentRow(sr.document_id);
-      const fileName = docRow?.file_name || 'Document.pdf';
+      const packetCount = Array.isArray(sr.document_ids) ? sr.document_ids.length : 1;
+      const baseFileName = docRow?.file_name || 'Document.pdf';
+      // For multi-document packets, notifications reference the whole packet.
+      const fileName = packetCount > 1
+        ? `${baseFileName.replace(/\.pdf$/i, '')} + ${packetCount - 1} more`
+        : baseFileName;
 
       // Fetch property address for seller agent email subject line (best-effort).
       let propertyAddress = null;
@@ -561,34 +654,57 @@ module.exports = async function handler(req, res) {
         } catch (_) { /* non-fatal */ }
       }
 
-      // Download the signed PDF and store it back in Supabase.
-      // We also capture the raw PDF buffer so we can email it to the seller's agent.
+      // 2026-09-08 CARTER — completion leg rebuilt for defensibility (plan
+      // §3): ONE submission fetch feeds signed-PDF storage (EVERY document in
+      // a packet, not just documents[0]), the completion-certificate
+      // download, sha256 hashes of everything that came back, and the
+      // submission_events snapshot.
       let signedDocId = null;
       let signedPdfBuffer = null;
+      let signedAttachments = null;
+      let artifacts = { signedDocs: [], auditDocId: null, auditSha256: null, events: null, auditFetchFailed: true };
 
       if (DOCUSEAL_API_KEY) {
         try {
-          // Fetch submission details to get the signed document URL.
           const detailRes = await fetch(`${DOCUSEAL_BASE}/submissions/${encodeURIComponent(sr.docuseal_submission_id)}`, {
             headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
           });
           if (detailRes.ok) {
             const submission = await detailRes.json().catch(() => null);
-            const signedUrl = submission?.documents?.[0]?.url;
-            if (signedUrl) {
-              const pdfRes = await fetch(signedUrl);
-              if (pdfRes.ok) {
-                signedPdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
-              }
+            if (submission) {
+              artifacts = await storeSignedArtifacts(sr, submission);
             }
+          } else {
+            console.error('[esign-webhook] DocuSeal submission fetch failed:', detailRes.status);
           }
         } catch (err) {
-          console.error('[esign-webhook] Error fetching signed PDF for seller agent email:', err && err.message);
+          console.error('[esign-webhook] Error fetching submission for completion leg:', err && err.message);
         }
+      } else {
+        console.warn('[esign-webhook] DOCUSEAL_API_KEY not set — cannot download signed PDFs.');
       }
 
-      // Use the existing downloadAndStoreSigned path for storage + documents row.
-      signedDocId = await downloadAndStoreSigned(sr, fileName);
+      if (artifacts.signedDocs.length > 0) {
+        signedDocId = artifacts.signedDocs[0].id;
+        signedPdfBuffer = artifacts.signedDocs[0].buffer;
+        signedAttachments = artifacts.signedDocs.map((d) => ({
+          filename: d.fileName,
+          content: d.buffer.toString('base64'),
+        }));
+      }
+
+      // Persist the audit trail (hashes, certificate link, events snapshot).
+      {
+        const signedHashes = {};
+        for (const d of artifacts.signedDocs) signedHashes[d.fileName] = d.sha256;
+        await patchAuditTrail(sr.id, {
+          ...(artifacts.signedDocs.length > 0 ? { signed_pdf_sha256: signedHashes } : {}),
+          ...(artifacts.auditSha256 ? { audit_log_sha256: artifacts.auditSha256 } : {}),
+          ...(artifacts.auditDocId ? { audit_log_document_id: artifacts.auditDocId } : {}),
+          ...(artifacts.events ? { submission_events: artifacts.events } : {}),
+          ...(artifacts.auditFetchFailed ? { audit_fetch_failed_at: new Date().toISOString() } : {}),
+        });
+      }
 
       // Mark the request completed.
       await markRequestCompleted(sr.id, signedDocId);
@@ -609,6 +725,7 @@ module.exports = async function handler(req, res) {
           fileName,
           pdfBuffer: signedPdfBuffer,
           propertyAddress,
+          attachments: signedAttachments,
         });
         if (resendId) {
           // Stamp the timestamp so a webhook retry (DocuSeal retries on non-2xx)
@@ -656,6 +773,7 @@ module.exports = async function handler(req, res) {
                 pdfBuffer: signedPdfBuffer,
                 propertyAddress,
                 dossieUserEmail: dossieUser?.email || null,
+                attachments: signedAttachments,
               }).catch((err) => {
                 console.error(`[esign-webhook] Signer completion email failed for ${s.email}:`, err && err.message);
               })
@@ -672,7 +790,8 @@ module.exports = async function handler(req, res) {
           fileName,
           signedPdfBuffer,
           propertyAddress,
-          dossieUser?.email || null
+          dossieUser?.email || null,
+          signedAttachments
         );
       } else if (sr.seller_agent_email && !signedPdfBuffer) {
         console.warn(`[esign-webhook] seller_agent_email set (${sr.seller_agent_email}) but could not fetch signed PDF buffer — skipping seller email.`);
@@ -742,4 +861,20 @@ module.exports = async function handler(req, res) {
 
   // Unknown event type — ack so DocuSeal does not retry.
   res.status(200).json({ ok: true, note: `unhandled event type: ${eventType}` });
+};
+
+// 2026-09-08 CARTER — the bodyParser:false config set at the top of this file
+// was silently WIPED by the `module.exports = async function handler` line
+// above (it replaces the exports object the config was stamped on). Re-stamp
+// it here so the exported handler actually carries it.
+module.exports.config = { api: { bodyParser: false } };
+
+// Test-only surface (not part of the HTTP contract). Used by
+// scripts/regression-esign-multidoc-packet.js to exercise the completion-leg
+// audit trail without a live webhook round-trip.
+module.exports.__testing = {
+  storeSignedArtifacts,
+  storePdfAsDocument,
+  patchAuditTrail,
+  verifyDocusealSignature,
 };
