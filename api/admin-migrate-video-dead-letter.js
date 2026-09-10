@@ -37,6 +37,14 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'POSTGRES_URL_NON_POOLING / POSTGRES_URL not configured' });
   }
 
+  // Supabase's pooler cert chains through a cert Node treats as
+  // self-signed even with ssl.rejectUnauthorized:false on some pg/node
+  // combinations — this endpoint only ever runs this one hardcoded DDL
+  // statement, so a blunt global override for the life of this request is
+  // an acceptable one-time tradeoff (never do this for a long-lived process
+  // or one handling untrusted input).
+  const prevTlsReject = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   const client = new Client({ connectionString: CONNECTION_STRING, ssl: { rejectUnauthorized: false } });
   try {
     await client.connect();
@@ -53,5 +61,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: err && err.message });
   } finally {
     await client.end().catch(() => {});
+    if (prevTlsReject === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTlsReject;
   }
 };
