@@ -140,9 +140,29 @@ const LISTINGS = {
     priceCompSqft: null,
     photos: {
       bucket: 'listing-media',
-      images: [], // NONE UPLOADED YET -- flag to Heath. No dedicated marketing photos exist
-                  // beyond whatever's in the MLS listing itself (not pulled/verified here).
-                  // Do not draft an image-led post for Senisa until real photos exist.
+      // Selected 2026-09-10 from Heath's professional set at
+      // /mnt/c/Users/Heath/OneDrive/Investments/130 Senisa/Pics/New/ (48 photos,
+      // confirmed by Heath as the finished professional export, not a placeholder).
+      // Every image below was individually opened and reviewed before selection
+      // (per feedback_cma-comps-must-be-photo-verified) -- picked by content, not
+      // filename. DELIBERATELY EXCLUDES every living-room/bedroom shot in that
+      // set: both units are tenant-occupied and every interior common-area photo
+      // showed visible personal belongings (a TV mid-broadcast, family photos,
+      // laundry, moving boxes) -- not marketing-appropriate and a tenant-privacy
+      // concern, not just a staging one. Also excludes "ADDITION RENDERINGS.png"
+      // / "ADDITION SURVEY.png" in the same folder -- those are a preliminary
+      // architect's plan for a POSSIBLE future addition/rebuild (Antonio Escobedo,
+      // "PRELIMINARY, NOT FOR CONSTRUCTION"), not photos of the current structure;
+      // using them would misrepresent the floor plan. Nothing in the 4 images
+      // below suggested stale condition (healthy landscaping, no visible damage,
+      // consistent with the MLS's 2021 "Recent Rehab: Yes") -- flagging per
+      // instruction, not because a problem was found.
+      images: [
+        { file: 'senisa/senisa-01-exterior-twounit-staircase-FB-IG.jpg', label: 'exterior_two_unit', staged: false },
+        { file: 'senisa/senisa-02-exterior-rear-FB-IG.jpg', label: 'exterior', staged: false },
+        { file: 'senisa/senisa-03-kitchen-FB-IG.jpg', label: 'kitchen', staged: false },
+        { file: 'senisa/senisa-04-bath-FB-IG.jpg', label: 'bath', staged: false },
+      ],
     },
     groupVenues: ['realtors_sa_boerne_bulverde_nb', 'tx_re_agents_statewide', 'tx_real_estate_statewide'],
   },
