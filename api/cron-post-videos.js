@@ -56,6 +56,19 @@ const ZERNIO_ACCOUNTS = {
 // YouTube is included — videos are the only thing YouTube accepts, which matches our video_library content.
 const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin', 'youtube'];
 
+// Heath's realtor "Brokerage" Zernio profile only has facebook + instagram
+// (+ youtube, no content plan) connected today (docs/PIPELINE.md) — no
+// tiktok/twitter/linkedin row exists under owner='heath-realtor'. Falling
+// back to the Dossie DEFAULT_PLATFORMS list for a heath-realtor row would
+// just generate loud, expected failures on those three. Used only when a
+// heath-realtor row ships with an empty platforms array (queue-finished-
+// videos.py always sets one explicitly, so this is a legacy-row fallback).
+const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram'];
+
+function defaultPlatformsFor(owner) {
+  return owner === 'heath-realtor' ? REALTOR_DEFAULT_PLATFORMS : DEFAULT_PLATFORMS;
+}
+
 // All posting_schedule rows use America/Chicago; day boundaries and slot
 // times are computed in this zone (with per-row tz override if one appears).
 const DEFAULT_TZ = 'America/Chicago';
@@ -165,6 +178,40 @@ async function lookupZernioPageId(platform, owner = 'dossie') {
   return null;
 }
 
+// Owner-aware Zernio account lookup (Carter 2026-09-10 — weekly recording
+// kit GAP 4). Mirrors cron-publish-approved.js's lookupZernioAccountId():
+// video_library rows now carry target_owner ('dossie' | 'heath-realtor',
+// see 20260910_video_library_target_owner.sql), and each owner has its own
+// row per platform in zernio_accounts (docs/PIPELINE.md). This is the ONLY
+// way a heath-realtor video reaches Heath's own Facebook/Instagram — it
+// must never fall through to the hardcoded ZERNIO_ACCOUNTS map below, which
+// only ever held Dossie's own account IDs.
+async function lookupZernioAccountId(platform, owner = 'dossie') {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/zernio_accounts?platform=eq.${encodeURIComponent(platform)}&owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=zernio_account_id&limit=1`,
+    );
+    if (ok && Array.isArray(data) && data.length > 0) return data[0].zernio_account_id || null;
+  } catch (_) { /* swallow */ }
+  return null;
+}
+
+// Resolves the Zernio account ID for (platform, owner). Looks up
+// zernio_accounts first (owner-aware — the only source of truth for
+// owner='heath-realtor'); falls back to the legacy hardcoded
+// ZERNIO_ACCOUNTS map ONLY for owner='dossie', for backward compatibility
+// with rows that predate the zernio_accounts owner column. A
+// 'heath-realtor' row with no matching zernio_accounts entry (e.g.
+// tiktok/twitter/linkedin — not connected on Heath's Brokerage profile)
+// resolves to null and postToZernio() fails that platform explicitly —
+// it NEVER silently falls back to a Dossie account.
+async function resolveZernioAccountId(platform, owner) {
+  const fromTable = await lookupZernioAccountId(platform, owner);
+  if (fromTable) return fromTable;
+  if (owner === 'dossie') return ZERNIO_ACCOUNTS[platform] || null;
+  return null;
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -215,12 +262,13 @@ async function sendForHeathReview(video) {
     },
   );
 
+  const owner = video.target_owner || 'dossie';
   const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
     ? video.platforms
-    : DEFAULT_PLATFORMS;
+    : defaultPlatformsFor(owner);
 
   const text = [
-    `Video ready for review: ${video.topic || video.id}`,
+    `Video ready for review: ${video.topic || video.id}${owner === 'heath-realtor' ? ' [REALTOR]' : ''}`,
     `Platforms: ${platforms.join(', ')}`,
     ``,
     `Watch it here: ${video.supabase_url}`,
@@ -241,10 +289,14 @@ async function sendForHeathReview(video) {
 // opts.scheduledFor: ISO timestamp → Zernio schedules the post for that
 // slot; null/absent → publishNow: true (required, else Zernio holds a
 // draft while returning 200 — see cron-publish-approved.js).
-async function postToZernio(platform, videoUrl, caption, topic, opts = {}) {
-  const accountId = ZERNIO_ACCOUNTS[platform];
+// owner: 'dossie' (default) | 'heath-realtor' — resolves the Zernio account
+// AND Facebook Page independently per owner (GAP 4, Carter 2026-09-10).
+// A heath-realtor call NEVER falls back to a dossie account — see
+// resolveZernioAccountId().
+async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner = 'dossie') {
+  const accountId = await resolveZernioAccountId(platform, owner);
   if (!accountId) {
-    return { ok: false, error: `No Zernio account ID for platform: ${platform}` };
+    return { ok: false, error: `No Zernio account ID for platform: ${platform} (owner: ${owner})` };
   }
 
   const platformBlock = { platform, accountId };
@@ -253,7 +305,7 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}) {
   // without pageId the post lands on whichever Page happens to be selected
   // on Zernio's dashboard toggle, which may be Heath's realtor Page).
   if (platform === 'facebook') {
-    const pageId = await lookupZernioPageId('facebook', 'dossie');
+    const pageId = await lookupZernioPageId('facebook', owner);
     if (pageId) {
       platformBlock.platformSpecificData = { ...(platformBlock.platformSpecificData || {}), pageId };
     } else {
@@ -393,7 +445,8 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     console.log('[cron-post-videos] No heath_approved videos — nothing to post');
   } else {
     videoId = video.id;
-    console.log(`[cron-post-videos] Posting heath_approved video: ${video.id}`);
+    const owner = video.target_owner || 'dossie';
+    console.log(`[cron-post-videos] Posting heath_approved video: ${video.id} (owner: ${owner})`);
 
     if (!video.supabase_url) {
       const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
@@ -425,7 +478,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         } else {
           const requested = (Array.isArray(video.platforms) && video.platforms.length > 0)
             ? video.platforms
-            : DEFAULT_PLATFORMS;
+            : defaultPlatformsFor(owner);
           const { targets, skipped: platformSkips } = resolvePlatformTargets(
             `video ${video.id}`, requested, scheduleByPlatform, counts,
           );
@@ -454,7 +507,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               for (const t of targets) {
                 const result = await postToZernio(
                   t.platform, video.supabase_url, caption, video.topic,
-                  { scheduledFor: t.scheduledFor },
+                  { scheduledFor: t.scheduledFor }, owner,
                 );
                 videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
                 if (!result.ok) {

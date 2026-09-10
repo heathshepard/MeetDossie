@@ -1,19 +1,40 @@
 """
-queue-finished-videos.py — Dossie Finished Video Uploader
+queue-finished-videos.py — Dossie / Realtor Finished Video Uploader
 
-Scans Media/finished-videos/ for .mp4 files not yet in video_library.
+Watch-folder scanner for Heath's weekly recording kit (docs/WEEKLY-RECORDING-KIT.md).
+Any new .mp4 dropped in one of two folders gets ingested automatically:
+
+  Media/finished-videos/            -> Dossie clips (target_owner='dossie')
+  Media/finished-videos/realtor/    -> Heath's realtor-page clips (target_owner='heath-realtor')
+  (the top-level scan does NOT recurse, so realtor/ never leaks into the
+  Dossie pipeline — this is the kit doc's own stated convention)
+
 For each new file:
-  1. Detects type + platforms from filename
-  2. Generates a caption via Claude Haiku
-  3. Uploads to Supabase Storage bucket 'videos' at path video-library/{filename}
-  4. Gets the public URL
-  5. Upserts a row into video_library with status='approved'
+  1. Classify type/platforms/target_owner from its folder + filename
+     (see classify_video()).
+  2. Caption comes ONLY from docs/WEEKLY-RECORDING-KIT.md's own
+     "Post caption:" line for that script (see parse_kit_captions()) --
+     NEVER a template string / auto-generated caption. A file with no
+     matching script ships with an EMPTY caption and a Telegram flag
+     instead of a stale CTA.
+  3. Uploads to Supabase Storage bucket 'videos' at path video-library/{filename}.
+  4. Upserts a row into video_library with status='approved'.
+
+Idempotent: video_library.id = the file's stem (filename w/o extension --
+unique per week via its date suffix). A stem already present in
+video_library is skipped on every re-run (the filename IS the ledger).
 
 Run: python scripts/queue-finished-videos.py
+
+Test overrides (used by scripts/regression-queue-finished-videos.js, never
+set in production):
+  QUEUE_VIDEOS_DIR  -- override Media/finished-videos/
+  WEEKLY_KIT_PATH   -- override docs/WEEKLY-RECORDING-KIT.md
 """
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -48,117 +69,153 @@ if not _sb_url:
     _sb_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").strip().strip('"').strip("'")
 SUPABASE_URL         = _sb_url
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip().strip('"').strip("'")
-ANTHROPIC_API_KEY    = os.environ.get("ANTHROPIC_API_KEY", "").strip().strip('"').strip("'")
 
-FINISHED_DIR = REPO / "Media" / "finished-videos"
+FINISHED_DIR = Path(os.environ["QUEUE_VIDEOS_DIR"]).expanduser() if os.environ.get("QUEUE_VIDEOS_DIR") else (REPO / "Media" / "finished-videos")
+REALTOR_DIR = FINISHED_DIR / "realtor"
+KIT_DOC_PATH = Path(os.environ["WEEKLY_KIT_PATH"]).expanduser() if os.environ.get("WEEKLY_KIT_PATH") else (REPO / "docs" / "WEEKLY-RECORDING-KIT.md")
+
 STORAGE_BUCKET = "videos"
 STORAGE_PREFIX = "video-library"
 
-# ── Filename classification ───────────────────────────────────────────────────
+# Default platforms per lane. Meet Dossie's FB Page is a real channel, so
+# selfie clips go to all three (2026-09-10 fix -- previously defaulted to
+# tiktok+instagram only, silently dropping Facebook every week). Heath's
+# realtor "Brokerage" Zernio profile only has facebook + instagram connected
+# today (see docs/PIPELINE.md) -- no tiktok, so we don't default to a
+# platform that will just fail at post time.
+DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok"]
+REALTOR_SELFIE_PLATFORMS = ["facebook", "instagram"]
 
-def classify_video(filename: str) -> dict:
+
+# ── Filename / topic-slug helpers ─────────────────────────────────────────────
+
+def slugify_stem(stem: str) -> str:
     """
-    Detect type and platforms from filename.
-    Returns {"type": str, "platforms": list[str], "topic": str}
+    Strip date suffix, -vN suffix, and type/owner markers from a filename
+    stem to get the topic slug used both for classification and for
+    matching against the kit doc's caption list.
+
+    'tc-went-dark-selfie-2026-09-14'               -> 'tc-went-dark'
+    'option-period-waive-realtor-selfie-2026-09-14' -> 'option-period-waive'
     """
-    stem = Path(filename).stem.lower()
-
-    if "selfie" in stem:
-        vtype = "selfie"
-        platforms = ["tiktok", "instagram"]
-    elif stem.startswith("skit-"):
-        vtype = "skit"
-        platforms = ["tiktok", "instagram"]
-    elif "-mobile-" in stem:
-        vtype = "screen_recording"
-        platforms = ["tiktok", "instagram"]
-    elif "-desktop-" in stem:
-        vtype = "screen_recording"
-        platforms = ["facebook", "twitter", "linkedin"]
-    else:
-        # Default: treat as selfie-style short-form
-        vtype = "selfie"
-        platforms = ["tiktok", "instagram"]
-
-    # Derive topic from stem: strip dates and type markers
-    topic = stem
-    # Remove common date patterns like -2026-05-25 or -2026-05-2
-    import re
+    topic = stem.lower()
     topic = re.sub(r'-\d{4}-\d{2}-\d{1,2}[a-z]?$', '', topic)
     topic = re.sub(r'-v\d+$', '', topic)
-    topic = topic.replace('-selfie', '').replace('-mobile', '').replace('-desktop', '')
+    # Strip the trailing type/owner marker as ONE suffix run, not anywhere
+    # in the string — a topic slug can legitimately contain the word
+    # "realtor" itself (e.g. 'ask-a-realtor-earnest-money'), so a blind
+    # `.replace('-realtor', '')` corrupts it. Only the marker copy right
+    # before -selfie/-mobile/-desktop is the naming-convention suffix.
+    topic = re.sub(r'(-realtor)?-(selfie|mobile|desktop)$', '', topic)
     topic = topic.strip('-')
+    return topic
 
-    return {"type": vtype, "platforms": platforms, "topic": topic}
 
-
-# ── Claude Haiku caption generator ───────────────────────────────────────────
-
-def generate_caption(filename: str, vtype: str, topic: str) -> str:
+def classify_video(file_path: Path, is_realtor: bool) -> dict:
     """
-    Generate a warm Dossie-brand caption via Claude Haiku.
-    Falls back to a generic caption if API unavailable.
+    Detect type, platforms, and target_owner from the file's folder + name.
+    Returns {"type": str, "platforms": list[str], "topic": str, "target_owner": str}
     """
-    if not ANTHROPIC_API_KEY:
-        print("  WARN: No ANTHROPIC_API_KEY — using fallback caption")
-        return f"Dossie handles your transactions so you can focus on what matters. meetdossie.com/founding"
+    stem = file_path.stem.lower()
+    topic = slugify_stem(stem)
 
-    prompt = f"""Generate a social media caption for a Dossie video.
+    if is_realtor:
+        # Every realtor clip today is a selfie script (see kit doc); no
+        # Dossie CTA, brokerage name comes from the kit's own caption.
+        return {
+            "type": "selfie",
+            "platforms": list(REALTOR_SELFIE_PLATFORMS),
+            "topic": topic,
+            "target_owner": "heath-realtor",
+        }
 
-Video filename: {filename}
-Video type: {vtype}
-Topic slug: {topic}
+    if "selfie" in stem:
+        vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
+    elif stem.startswith("skit-"):
+        vtype, platforms = "skit", ["tiktok", "instagram"]
+    elif "-mobile-" in stem:
+        vtype, platforms = "screen_recording", ["tiktok", "instagram"]
+    elif "-desktop-" in stem:
+        vtype, platforms = "screen_recording", ["facebook", "twitter", "linkedin"]
+    else:
+        # Default: treat as selfie-style short-form
+        vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
 
-Dossie is an AI transaction coordinator for Texas real estate agents. Brand voice: warm, capable, never corporate. She handles deadlines, documents, and follow-ups.
+    return {"type": vtype, "platforms": platforms, "topic": topic, "target_owner": "dossie"}
 
-Requirements:
-- 1-2 sentences maximum
-- Warm, direct tone (not hype)
-- Reference the specific topic if identifiable from the filename
-- End with: meetdossie.com/founding
-- Max 150 characters total (including URL)
-- No em-dashes, no curly quotes, plain ASCII only
-- Do not start with "I"
 
-Return ONLY the caption text. No quotes, no commentary."""
+# ── Caption sourcing — from the kit doc itself, never a template ─────────────
 
-    payload = json.dumps({
-        "model": "claude-haiku-4-5-20251001",
-        "max_tokens": 200,
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode("utf-8")
+def parse_kit_captions(kit_path: Path) -> dict:
+    """
+    Parse docs/WEEKLY-RECORDING-KIT.md for a topic-slug -> caption map.
 
+    Convention (documented in the kit itself): 7 scripts in a fixed order
+    (4 Meet Dossie, then 3 Realtor), each with exactly one
+    "Post caption: `...`" line, and the "## FILE NAMING" section lists the
+    matching filenames in that SAME order (Dossie bullets first, Realtor
+    bullets second). Zip position-for-position.
+
+    Returns {} (safe-empty) if the doc doesn't match that shape. Callers
+    MUST treat a miss as "flag it, don't ship a stale caption" -- never
+    guess at a mapping.
+    """
+    if not kit_path.exists():
+        print(f"  WARN: kit doc not found at {kit_path} -- no captions available")
+        return {}
+
+    text = kit_path.read_text(encoding="utf-8")
+
+    # 1. Every "Post caption:" line, in document order.
+    captions = re.findall(r'^Post caption:\s*`([^`]*)`', text, flags=re.M)
+
+    # 2. The FILE NAMING section, split into its Dossie list and Realtor list.
+    naming_match = re.search(r'^## FILE NAMING(.*?)(?=^## |\Z)', text, flags=re.M | re.S)
+    if not naming_match:
+        print("  WARN: '## FILE NAMING' section not found in kit doc -- captions will NOT be auto-matched")
+        return {}
+    naming_block = naming_match.group(1)
+
+    realtor_split = re.search(r'^Realtor clips go in', naming_block, flags=re.M)
+    dossie_block = naming_block[:realtor_split.start()] if realtor_split else naming_block
+    realtor_block = naming_block[realtor_split.start():] if realtor_split else ""
+
+    dossie_files = re.findall(r'`([\w.-]+\.mp4)`', dossie_block)
+    realtor_files = re.findall(r'`([\w.-]+\.mp4)`', realtor_block)
+
+    dossie_slugs = [slugify_stem(Path(f).stem) for f in dossie_files]
+    realtor_slugs = [slugify_stem(Path(f).stem) for f in realtor_files]
+    slug_order = dossie_slugs + realtor_slugs
+
+    if not slug_order or len(captions) != len(slug_order):
+        print(f"  WARN: kit doc shape mismatch -- {len(captions)} 'Post caption:' lines vs "
+              f"{len(dossie_slugs)} Dossie + {len(realtor_slugs)} Realtor filenames in FILE NAMING. "
+              f"Captions will NOT be auto-matched this run.")
+        return {}
+
+    return {slug: caption.strip() for slug, caption in zip(slug_order, captions)}
+
+
+# ── Telegram flag (unmatched caption) ─────────────────────────────────────────
+
+def send_telegram_alert(text: str):
+    token = os.environ.get("TELEGRAM_MARKETING_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "7874782923")
+    if not token:
+        print(f"  WARN: no TELEGRAM_MARKETING_BOT_TOKEN/TELEGRAM_BOT_TOKEN configured -- cannot send alert: {text}")
+        return
+    payload = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
     req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
+        f"https://api.telegram.org/bot{token}/sendMessage",
         data=payload,
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        },
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            resp = json.loads(r.read())
-        caption = resp["content"][0]["text"].strip()
-        # Enforce 150 char limit
-        if len(caption) > 150:
-            # Truncate but keep the URL
-            url = "meetdossie.com/founding"
-            if url not in caption:
-                caption = caption[:120] + "... " + url
-            else:
-                caption = caption[:150]
-        print(f"  Caption ({len(caption)} chars): {caption}")
-        return caption
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")
-        print(f"  WARN: Anthropic {e.code}: {body[:200]} — using fallback caption")
-    except Exception as e:
-        print(f"  WARN: Caption generation failed ({e}) — using fallback caption")
-
-    return f"Your transactions, handled. meetdossie.com/founding"
+        with urllib.request.urlopen(req, timeout=15) as r:
+            r.read()
+    except Exception as ex:
+        print(f"  WARN: Telegram alert failed: {ex}")
 
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -298,63 +355,75 @@ def upsert_video_library(row: dict) -> bool:
 
 def main():
     print("=" * 65)
-    print("  Dossie Finished Video Queue Scanner")
+    print("  Dossie / Realtor Finished Video Queue Scanner")
     print("=" * 65)
 
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print("ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
         sys.exit(1)
 
-    # Get list of videos already in DB
+    # Get list of videos already in DB — this IS the idempotency ledger:
+    # a filename (stem) already present in video_library is never re-queued.
     print("\nFetching existing video_library IDs...")
     existing_ids = get_existing_video_ids()
     print(f"  {len(existing_ids)} videos already in DB")
 
-    # Scan finished-videos directory
     if not FINISHED_DIR.exists():
         print(f"ERROR: Directory not found: {FINISHED_DIR}")
         sys.exit(1)
 
-    mp4_files = sorted(FINISHED_DIR.glob("*.mp4"))
-    print(f"\nFound {len(mp4_files)} .mp4 files in {FINISHED_DIR.name}/")
+    # Top-level scan only (no recursion) — Media/finished-videos/realtor/ is
+    # scanned separately below, by design (kit doc convention: keeps realtor
+    # clips from ever entering the Dossie glob).
+    dossie_paths = sorted(FINISHED_DIR.glob("*.mp4"))
+    realtor_paths = sorted(REALTOR_DIR.glob("*.mp4")) if REALTOR_DIR.exists() else []
 
-    # Filter to only the 5 target videos
-    TARGET_STEMS = {
-        "still-an-agent-selfie-2026-05-25",
-        "youre-the-tc-selfie-2026-05-25",
-        "where-are-we-selfie-2026-05-2",
-        "skit-breakup-v2-2026-05-26",
-        "skit-paradise-v2-2026-05-26",
-    }
+    print(f"\nFound {len(dossie_paths)} Dossie .mp4 file(s) in {FINISHED_DIR}")
+    print(f"Found {len(realtor_paths)} Realtor .mp4 file(s) in {REALTOR_DIR}")
+
+    all_paths = [(p, False) for p in dossie_paths] + [(p, True) for p in realtor_paths]
 
     new_files = []
-    for f in mp4_files:
-        stem = f.stem
-        if stem in TARGET_STEMS and stem not in existing_ids:
-            new_files.append(f)
-        elif stem in TARGET_STEMS and stem in existing_ids:
-            print(f"  SKIP (already in DB): {f.name}")
+    for video_path, is_realtor in all_paths:
+        stem = video_path.stem
+        if stem in existing_ids:
+            print(f"  SKIP (already in DB): {video_path.name}")
+        else:
+            new_files.append((video_path, is_realtor))
 
     if not new_files:
-        print("\nAll target videos already in video_library. Nothing to do.")
+        print("\nNo new videos to queue. Nothing to do.")
         return
+
+    print(f"\nParsing captions from {KIT_DOC_PATH}...")
+    kit_captions = parse_kit_captions(KIT_DOC_PATH)
+    print(f"  {len(kit_captions)} script caption(s) loaded from kit doc")
 
     print(f"\nQueueing {len(new_files)} new video(s):")
 
-    results = {"queued": [], "failed": []}
+    results = {"queued": [], "failed": [], "flagged_no_caption": []}
 
-    for video_path in new_files:
+    for video_path, is_realtor in new_files:
         filename = video_path.name
         stem = video_path.stem
         print(f"\n{'─'*55}")
-        print(f"  Processing: {filename}")
+        print(f"  Processing: {filename} ({'realtor' if is_realtor else 'dossie'})")
 
         # 1. Classify
-        info = classify_video(filename)
-        print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']}")
+        info = classify_video(video_path, is_realtor)
+        print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']}")
 
-        # 2. Generate caption
-        caption = generate_caption(filename, info["type"], info["topic"])
+        # 2. Caption — kit doc only, never a template/auto-generated string.
+        caption = kit_captions.get(info["topic"], "")
+        if caption:
+            print(f"  Caption ({len(caption)} chars, from kit doc): {caption}")
+        else:
+            warn = (f"Video pipeline: {filename} has no matching script in "
+                     f"WEEKLY-RECORDING-KIT.md (topic slug '{info['topic']}') — "
+                     f"queued with an EMPTY caption. Write one before approving.")
+            print(f"  WARN: {warn}")
+            send_telegram_alert(warn)
+            results["flagged_no_caption"].append(stem)
 
         # 3. Auto-compress if file is larger than 48 MB
         COMPRESS_THRESHOLD = 48 * 1024 * 1024  # 48 MB
@@ -390,6 +459,7 @@ def main():
             "platforms": info["platforms"],
             "caption": caption,
             "supabase_url": public_url,
+            "target_owner": info["target_owner"],
             "produced_date": datetime.date.today().isoformat(),
             "created_at": datetime.datetime.utcnow().isoformat() + "Z",
         }
@@ -405,6 +475,7 @@ def main():
     print("  SUMMARY")
     print(f"{'='*65}")
     print(f"  Queued ({len(results['queued'])}): {', '.join(results['queued']) or 'none'}")
+    print(f"  Flagged, no caption match ({len(results['flagged_no_caption'])}): {', '.join(results['flagged_no_caption']) or 'none'}")
     print(f"  Failed ({len(results['failed'])}): {', '.join(results['failed']) or 'none'}")
     if results["failed"]:
         sys.exit(1)
