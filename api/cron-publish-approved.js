@@ -254,7 +254,20 @@ function inferMediaItem(url) {
 //
 // Video rotation from the 14 MP4 library in Media/remix-videos/ is wired
 // via the generator paths (not here) — this cron only enforces the gate.
-const IMAGE_CARD_PLATFORMS = new Set(['facebook', 'instagram']);
+//
+// UPDATED 2026-09-09 (Heath, verbatim: "lets do the screen recording
+// pipeline. if creatomate is out of credits" — 402 verified since 2026-06-30):
+// Creatomate is dead, daily FB/IG/TikTok video duty now runs through
+// Pipeline B (video_library -> cron-post-videos), which posts independently
+// of social_posts. cron-generate-posts.js no longer sets video_required=true
+// for facebook, so its daily text captions should flow instead of parking
+// forever. Instagram stays in this set — the Graph API has no text-only
+// feed post, so an IG row with no media genuinely cannot publish regardless
+// of policy; it still holds until Pipeline B (or a future re-enable) gives
+// it a video via video_required. Facebook has no such platform constraint —
+// FB Page posts have always supported text-only, this set just enforced a
+// stricter internal policy while Creatomate was alive.
+const IMAGE_CARD_PLATFORMS = new Set(['instagram']);
 
 async function supabaseFetch(path, init = {}) {
   const headers = {

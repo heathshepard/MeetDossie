@@ -375,7 +375,7 @@ async function main() {
 
         await expandThread(page);
         const postBody = watch.post_body ? null : await scrapePostBody(page);
-        const comments = await scrapeComments(page);
+        const comments = await scrapeComments(page, watch.thread_url);
         rec.scraped = comments.length;
 
         const sel = selectRepliesToHeath(comments, watch);

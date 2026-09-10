@@ -43,10 +43,24 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SUPABASE_URL = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// FIXED 2026-09-09 (Bug 3, docs/POSTING-ENGINE-PLAN-2026-09-09.md): the
+// hardcoded FALLBACK default here (used only when PLAYWRIGHT_PROFILE_DIR
+// isn't set) pointed at Heath's REAL personal Chrome profile
+// (Google/Chrome/User Data/Profile 4) even though every log line and this
+// file's own comments say "DossieBot profile" — a copy-paste leftover.
+// .env.local already sets PLAYWRIGHT_PROFILE_DIR=C:\Users\Heath\DossieBot
+// (the shared automation profile ~14 other scripts in this dir use —
+// fb-group-commenter, fb-lead-scraper, instagram-engager, twitter/reddit
+// scanners, etc. — NOT the same as fb-group-poster.js's separate
+// DossieBot-Sage profile, a naming trap I fell into on first pass), so in
+// practice this fallback was dead code. Verified live (--dry-run,
+// 2026-09-09): C:\Users\Heath\DossieBot IS logged into LinkedIn
+// (logged_in:true, landed on /feed/, not /login). Fallback now matches the
+// real env-configured path so the script is correct even without .env.local.
 const CHROME_PROFILE_PATH = process.env.PLAYWRIGHT_PROFILE_DIR || path.join(
-  os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data'
+  'C:', 'Users', 'Heath', 'DossieBot'
 );
-const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Profile 4';
+const PLAYWRIGHT_PROFILE_NAME = process.env.PLAYWRIGHT_PROFILE_NAME || 'Default';
 
 const SEEN_FILE = path.join(__dirname, '.linkedin-seen.json');
 
@@ -391,9 +405,38 @@ async function runWarmTouchMode(page, seenIds) {
 
 // ─── Post approved LinkedIn posts ───────────────────────────────────────────
 
+// Daily cap (Bug 3, Cole's instruction, 2026-09-09): at most 1 linkedin_personal
+// post/day. Without this, a 30-min scheduled tick would publish a new
+// approved post every single run — this queries how many have already gone
+// out today (UTC day boundary; the cap only needs to be "once per calendar
+// day," not precise to the minute) and skips if the cap is already met.
+async function linkedinDailyCapReached() {
+  const startOfDayIso = new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z';
+  const url = `${SUPABASE_URL}/rest/v1/social_posts?platform=eq.linkedin_personal&status=eq.posted&posted_at=gte.${encodeURIComponent(startOfDayIso)}&select=id&limit=1`;
+  try {
+    const r = await fetch(url, { headers: sbHeaders() });
+    if (!r.ok) {
+      // Fail safe: if we can't confirm the cap, don't post — never risk a
+      // double-post because a query failed.
+      console.warn('[linkedin-engager] cap check failed HTTP', r.status, '- treating as cap reached (fail safe)');
+      return true;
+    }
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (err) {
+    console.warn('[linkedin-engager] cap check errored:', err.message, '- treating as cap reached (fail safe)');
+    return true;
+  }
+}
+
 async function postApprovedLinkedIn(page) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[linkedin-engager] Supabase not configured for --post-approved');
+    return 0;
+  }
+
+  if (await linkedinDailyCapReached()) {
+    console.log('[linkedin-engager] Daily cap (1/day) already reached — skipping --post-approved this run');
     return 0;
   }
 
@@ -483,6 +526,23 @@ async function main() {
   const { chromium } = require('playwright-extra');
   const stealth = require('puppeteer-extra-plugin-stealth')();
   chromium.use(stealth);
+
+  // Cooperative profile unlock (Bug 3, 2026-09-09): DossieBot-Sage is shared
+  // with every FB group/comment script on the same 30-min Task Scheduler
+  // tick (scripts/run-tc-discovery-harvest.cmd). Wait for any FB step still
+  // holding the profile rather than colliding with it — same helper, same
+  // non-force cooperative-wait behavior as fb-group-poster.js.
+  if (!dryRun) {
+    try {
+      const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+      const unlocked = await unlockProfile({ profileDir: CHROME_PROFILE_PATH, reason: 'linkedin-engager' });
+      if (unlocked.killed > 0) {
+        console.log(`[linkedin-engager] profile-unlock: killed ${unlocked.killed} stale chrome process(es) for ${CHROME_PROFILE_PATH}`);
+      }
+    } catch (e) {
+      console.warn(`[linkedin-engager] profile-unlock non-fatal error: ${e.message}`);
+    }
+  }
 
   console.log(`[linkedin-engager] Launching Chrome with DossieBot profile (${PLAYWRIGHT_PROFILE_NAME})${dryRun ? ' [DRY RUN]' : ''}`);
   let context;

@@ -88,6 +88,11 @@ const MOBILE_PLATFORMS = new Set(['instagram', 'tiktok']);
 // Remaining posts render on the next scheduled run (or a self-heal pass).
 const MAX_PER_RUN = 3;
 
+// Dead-letter threshold (Bug 1 fix, 2026-09-09). After this many failed
+// render attempts a row flips to the terminal 'video_failed' status instead
+// of being retried forever — see the catch block below.
+const MAX_RENDER_ATTEMPTS = 3;
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -228,7 +233,9 @@ async function createCreatomateRender(imageUrl, audioUrl, personaName, caption) 
   });
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Creatomate render create failed: ${res.status} ${text.slice(0, 300)}`);
+    const err = new Error(`Creatomate render create failed: ${res.status} ${text.slice(0, 300)}`);
+    err.creatomateStatus = res.status;
+    throw err;
   }
   let data;
   try { data = JSON.parse(text); } catch { throw new Error(`Creatomate returned non-JSON: ${text.slice(0, 200)}`); }
@@ -296,6 +303,9 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   // Query posts that need a video render.
   // Include pending_video: the publish cron parks instagram/tiktok posts there
   // when media_url is null. Without this, backed-up posts are never retried.
+  // status=in.(...) never includes 'video_failed' — that's the dead-letter
+  // terminal state (Bug 1 fix, 2026-09-09) and is permanently excluded from
+  // every render attempt, same technique as image_mismatch_hold.
   const { data: posts, ok: loadOk } = await supabaseFetch(
     `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
@@ -313,6 +323,7 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   const results = [];
   let rendered = 0;
   let failed = 0;
+  let creatomateOutage = false; // set true on a 402 — stops the pass, see below
 
   for (const post of queue) {
     const postId = post.id;
@@ -321,8 +332,9 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
     const topic = String(post.topic || '').toLowerCase();
     const voiceoverText = String(post.voiceover_script || post.hook || post.content || '').slice(0, 1000);
     const caption = String(post.content || '').slice(0, 200);
+    const priorAttempts = Number(post.render_attempts || 0);
 
-    console.log(`[cron-render-videos] processing post ${postId} (${platform}/${persona} topic=${topic})`);
+    console.log(`[cron-render-videos] processing post ${postId} (${platform}/${persona} topic=${topic}) attempt=${priorAttempts + 1}`);
 
     try {
       // 1. Pick screen recording
@@ -372,15 +384,47 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
       rendered++;
     } catch (err) {
       const errMsg = err && err.message ? err.message : String(err);
-      console.error(`[cron-render-videos] FAILED post ${postId}: ${errMsg}`);
-      // Record failure in error_message — don't change status, let the next run retry
+      const isInsufficientCredits = err && err.creatomateStatus === 402;
+      const attempts = priorAttempts + 1;
+      const isDeadLetter = attempts >= MAX_RENDER_ATTEMPTS;
+      console.error(`[cron-render-videos] FAILED post ${postId} (attempt ${attempts}/${MAX_RENDER_ATTEMPTS}): ${errMsg}`);
+
+      // Dead-letter (Bug 1 fix, 2026-09-09): track attempts per row. At
+      // MAX_RENDER_ATTEMPTS, flip to the terminal 'video_failed' status so
+      // this row is excluded from every future query (status=in(...) never
+      // lists video_failed) and can never block newer posts again. Below
+      // the threshold, leave status alone so the next run retries.
+      const patchBody = {
+        error_message: `video render failed: ${errMsg.slice(0, 500)}`,
+        render_attempts: attempts,
+      };
+      if (isDeadLetter) patchBody.status = 'video_failed';
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(postId)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ error_message: `video render failed: ${errMsg.slice(0, 500)}` }),
+        body: JSON.stringify(patchBody),
       }).catch(() => {});
-      results.push({ post_id: postId, platform, ok: false, error: errMsg.slice(0, 300) });
+      results.push({
+        post_id: postId,
+        platform,
+        ok: false,
+        error: errMsg.slice(0, 300),
+        attempts,
+        dead_lettered: isDeadLetter,
+      });
       failed++;
+
+      // 402 = the whole Creatomate account is out of credits, not a
+      // per-post problem. Retrying the rest of this run's queue against
+      // the same dead vendor just burns ElevenLabs credits and wall time
+      // for guaranteed failures. Bail the pass immediately — the row above
+      // is still recorded (attempt + possible dead-letter), everything
+      // else in the queue is untouched and picked up on the next run.
+      if (isInsufficientCredits) {
+        console.error('[cron-render-videos] Creatomate 402 (insufficient credits) — bailing out of render pass, not attempting remaining queue');
+        creatomateOutage = true;
+        break;
+      }
     }
   }
 
@@ -390,9 +434,24 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
     `Video render batch complete`,
     `Rendered: ${rendered}/${queue.length}`,
     failed > 0 ? `Failed: ${failed} (check social_posts.error_message)` : null,
+    creatomateOutage ? `Creatomate account out of credits (402) — pass stopped early, check billing` : null,
     remaining > 0 ? `More posts queued — will render on next run` : null,
   ].filter(Boolean);
   await sendTelegram(lines.join('\n'));
+
+  // A 402 bail is a real failure, not "ok" — return a non-2xx status so
+  // withTelemetry records it as an error in cron_runs instead of silently
+  // logging "ok" the way this cron has for the last 10 weeks (Bug 1 fix).
+  if (creatomateOutage) {
+    return res.status(502).json({
+      ok: false,
+      error: 'creatomate_402_insufficient_credits',
+      rendered,
+      failed,
+      total: queue.length,
+      results,
+    });
+  }
 
   return res.status(200).json({
     ok: failed === 0,
