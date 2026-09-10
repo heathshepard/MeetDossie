@@ -77,18 +77,40 @@
 //                    automated. Ceiling 5/day (exactly one per target
 //                    group), 18-24 min varied spacing. Drop toward 0 at the
 //                    first warning sign, same as facebook_auto.
+// LISTING-MARKETING GROUP POST BUDGET 2026-09-10 (Carter, for Heath's
+// ongoing daily active-listing marketing rotation -- Fawndale/Nopalito/
+// Senisa -- pending Heath's approval of the first cycle before this runs
+// live). SEPARATE budget key from facebook_group_post (daily5/TC-discovery)
+// even though BOTH drive the SAME DossieBot-Sage Facebook profile via the
+// SAME fb-group-poster.js -- separate bookkeeping so listing-post volume
+// can never silently eat into the TC-discovery budget or vice versa, but
+// see the combined-volume note below: it is still one profile.
+//   facebook_group_post_listing = automated ORIGINATED group posts from the
+//                    listing-marketing rotation (scripts/listing-marketing-
+//                    generator.js -> Telegram lst_approve/lst_edit/lst_skip
+//                    -> scripts/fb-listing-group-post-queue.js ->
+//                    scripts/fb-group-poster.js). Ceiling 3/day, 30-40 min
+//                    varied spacing (wider floor than daily5's 18-24 as
+//                    extra margin since it's the same profile). Drop toward
+//                    0 at the first warning sign, same as facebook_auto.
+// COMBINED VOLUME NOTE: facebook_group_post (5) + facebook_group_post_listing
+// (3) = up to 8 automated group posts/day on ONE Facebook profile. That is
+// still comfortably under the pre-shadowban volume that caused the June
+// incident, but it has not been run and observed yet -- watch real results
+// for 2 clean weeks before considering raising either cap.
 const PLATFORM_DAILY_CAPS = Object.freeze({
   facebook: 15,       // initiated comments (human-pasted; see split note above)
   facebook_auto: 8,   // automated initiated comments (daily hunt; see note above)
   facebook_reply: 10, // automated threaded replies to replies-to-Heath
   facebook_group_post: 5, // automated ORIGINATED group posts (daily 5-group pipeline; see note above)
+  facebook_group_post_listing: 3, // automated ORIGINATED group posts (listing-marketing rotation; see note above)
   instagram: 5,
   linkedin: 3,
   reddit: 3,
   twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 54; // sum of the above; hard ceiling across all platforms
+const TOTAL_DAILY_CAP = 57; // sum of the above; hard ceiling across all platforms
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -104,6 +126,7 @@ const MIN_GAP_MINUTES = Object.freeze({
 
   facebook_reply: 30, // replying promptly to a reply-to-you reads as normal human behavior
   facebook_group_post: 18, // FLOOR only — fb-group5-post-queue.js adds 0-6 min random jitter per run so spacing is 18-24, varied, never exactly 20:00 (Heath, 2026-09-09: "do the posts like 20 minutes apart")
+  facebook_group_post_listing: 30, // FLOOR only — fb-listing-group-post-queue.js adds 0-10 min random jitter per run so spacing is 30-40, varied. Wider floor than facebook_group_post since it's the same profile posting both.
   instagram: 20,
   twitter: 45,
   linkedin: 90,

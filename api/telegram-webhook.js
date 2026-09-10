@@ -24,6 +24,7 @@ const {
 
 const { handleGroupPostCallback } = require('./group-post-callback');
 const { handleGroup5PostCallback } = require('./group5-post-callback');
+const { handleListingGroupPostCallback } = require('./listing-group-post-callback');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
 
@@ -594,6 +595,8 @@ const OPPC_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised commen
 // approved in the same step (his edit is his approval).
 const GP5_EDIT_PROMPT_PREFIX = '✏️ Editing group post ';
 const GP5_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised post — it posts as-is on the next local queue-runner tick.';
+const LST_EDIT_PROMPT_PREFIX = '✏️ Editing listing group post ';
+const LST_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised post — it posts as-is on the next local queue-runner tick (must still pass the TREC/owner-disclosure compliance gate).';
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -807,6 +810,27 @@ async function handleCallbackQuery(cb) {
       editMessage,
       sendMessage: (cid, text) => sendMessage(cid, text, messageId, true),
       editPromptText: `${GP5_EDIT_PROMPT_PREFIX}${gp5[2]}${GP5_EDIT_PROMPT_SUFFIX}`,
+      callbackId,
+      chatId,
+      messageId,
+      originalMessageText: originalBody,
+    });
+  }
+
+  // Listing-marketing rotation Tier-2 (FB Group) pipeline:
+  // lst_approve:<id> / lst_edit:<id> / lst_skip:<id>
+  // (scripts/listing-marketing-generator.js). Separate prefix + pipeline
+  // filter ('listing-groups') keeps this fully distinct from gp5_ above —
+  // different generator, different content, same underlying Facebook
+  // profile/poster.
+  const lst = data.match(/^(lst_approve|lst_edit|lst_skip):([\w-]+)$/);
+  if (lst) {
+    const originalBody = String(message?.text || '');
+    return handleListingGroupPostCallback(lst[1], lst[2], {
+      answerCallback,
+      editMessage,
+      sendMessage: (cid, text) => sendMessage(cid, text, messageId, true),
+      editPromptText: `${LST_EDIT_PROMPT_PREFIX}${lst[2]}${LST_EDIT_PROMPT_SUFFIX}`,
       callbackId,
       chatId,
       messageId,
@@ -2007,6 +2031,78 @@ async function handleTextMessage(msg, logStep) {
           msg.message_id, null, logStep,
         );
         if (logStep) logStep({ step: 'gp5_edit_saved', rowId, won });
+        return;
+      }
+    }
+
+    // Listing-marketing rotation Tier-2 edit: Heath's revised text becomes
+    // post_body and the row is APPROVED in the same step (his edit is his
+    // approval). Guarded on draft/approved so an already-posting row can't
+    // be mutated mid-flight. Runs the listing compliance gate (TREC
+    // attribution + owner disclosure when agent-owned, no fabricated
+    // urgency) — an edit that drops the required disclosure is rejected,
+    // not silently approved.
+    if (replyText.startsWith(LST_EDIT_PROMPT_PREFIX)) {
+      if (logStep) logStep({ step: 'processing_lst_edit' });
+      const after = replyText.slice(LST_EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(LST_EDIT_PROMPT_SUFFIX);
+      const rowId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].replace(/\.$/, '').trim();
+      const newText = messageText.trim();
+      if (rowId && newText) {
+        const { checkListingPostCompliance } = require('../scripts/_lib/listing-post-compliance-gate');
+        const { LISTINGS } = require('../scripts/_lib/listing-marketing-facts');
+        const { data: rows } = await supabaseFetch(
+          `/rest/v1/group_posts?id=eq.${encodeURIComponent(rowId)}&pipeline=eq.listing-groups&limit=1&select=id,group_key,status,post_body`,
+        );
+        const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+        if (!row) {
+          await sendMessage(chatId, 'Could not find that listing group post.', msg.message_id, null, logStep);
+          return;
+        }
+        // Best-effort: figure out which listing this row belongs to from its
+        // original post_body isn't reliable, so the gate here checks the
+        // universal rules only (attribution required; owner-disclosure /
+        // staged-label checks still ran at generation time and are
+        // preserved unless Heath's edit deletes them — checked generically
+        // via presence, not re-derived from a specific listing).
+        const gate = checkListingPostCompliance({
+          body: newText,
+          isAgentOwned: /Seller\/Owner is a licensed Texas real estate/i.test(row.post_body || ''),
+          usesStagedImage: /virtually staged/i.test(row.post_body || ''),
+          hasRealMilestone: false,
+        });
+        if (!gate.allowed) {
+          await sendMessage(
+            chatId,
+            `Blocked — your edit is missing required compliance language (${gate.reasons.join(', ')}). Revise and reply again.`,
+            msg.message_id, null, logStep,
+          );
+          if (logStep) logStep({ step: 'lst_edit_gate_blocked', rowId, reasons: gate.reasons });
+          return;
+        }
+        const nowIso = new Date().toISOString();
+        const patch = await supabaseFetch(
+          `/rest/v1/group_posts?id=eq.${encodeURIComponent(rowId)}&status=in.(draft,approved)`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              post_body: newText,
+              status: 'approved',
+              approved_at: nowIso,
+              auto_post_at: nowIso,
+            }),
+          },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        await sendMessage(
+          chatId,
+          won
+            ? '✏️ Saved and approved — your text posts as the group post on the next local queue-runner tick.'
+            : 'Could not save — that post is no longer editable (already posting/posted/skipped).',
+          msg.message_id, null, logStep,
+        );
+        if (logStep) logStep({ step: 'lst_edit_saved', rowId, won });
         return;
       }
     }
