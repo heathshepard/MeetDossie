@@ -15,6 +15,15 @@
 // Idempotent: transactions.testimonial_draft_created_at is stamped after a
 // successful draft and gates every future run for that dossier, forever.
 //
+// Freshness window (2026-09-10, post-incident): the first-ever run scanned
+// every closed transaction in history (no floor on closing_date) and
+// drafted 47 "ask for a testimonial" action items in one shot, including
+// deals that closed months earlier -- a stale, out-of-place to-do for the
+// member. Query is now floored to TESTIMONIAL_WINDOW_DAYS (14) so only
+// recently-closed deals are ever drafted, regardless of how far back
+// testimonial_draft_created_at=is.null reaches. See
+// scripts/regression/testimonial-draft-window.test.js.
+//
 // Multi-tenant: every read/write is scoped to the transaction's own user_id
 // (transactions-table-is-multi-tenant.md) -- there is no cross-tenant query.
 //
@@ -36,6 +45,16 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const BATCH_LIMIT = 50;
+const TESTIMONIAL_WINDOW_DAYS = 14;
+
+// Floor date (YYYY-MM-DD) for the closing_date filter -- never draft a
+// testimonial ask for a deal that closed more than TESTIMONIAL_WINDOW_DAYS
+// ago, no matter how far back the testimonial_draft_created_at=is.null
+// backlog reaches.
+function windowFloorDate(now = new Date()) {
+  const floor = new Date(now.getTime() - TESTIMONIAL_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  return floor.toISOString().slice(0, 10);
+}
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -153,9 +172,14 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
       return res.status(500).json({ ok: false, error: 'Supabase env vars not configured' });
     }
 
+    // closing_date=gte.<floor> keeps this to recently-closed deals only.
+    // (gte against a null closing_date never matches in PostgREST, so a
+    // missing closing_date is skipped rather than silently drafted.)
+    const windowFloor = windowFloorDate();
     const txResp = await supabaseFetch(
       `/rest/v1/transactions?status=eq.closed&testimonial_draft_created_at=is.null` +
-      `&select=id,user_id,property_address,city_state_zip,role,` +
+      `&closing_date=gte.${windowFloor}` +
+      `&select=id,user_id,property_address,city_state_zip,role,closing_date,` +
       `buyer_name,buyer2_name,buyer_email,buyer2_email,` +
       `seller_name,seller2_name,seller_email,seller2_email` +
       `&order=updated_at.asc&limit=${BATCH_LIMIT}`,
@@ -165,7 +189,7 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
     }
     const transactions = txResp.data || [];
 
-    const summary = { ok: true, scanned: transactions.length, drafted: 0, skipped_no_contact: 0, errors: [] };
+    const summary = { ok: true, window_floor: windowFloor, scanned: transactions.length, drafted: 0, skipped_no_contact: 0, errors: [] };
 
     for (const tx of transactions) {
       // Multi-tenant: every write below is scoped to this tx's own user_id.

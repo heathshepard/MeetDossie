@@ -309,6 +309,38 @@ async function runDbTests() {
     });
   }
 
+  // testimonial-draft freshness window (2026-09-10 incident: the first
+  // cron-request-testimonial-draft.js run had no closing_date floor and
+  // drafted 39 stale "ask for a testimonial" action items for deals closed
+  // months earlier. Query is now floored to 14 days -- this invariant
+  // catches a regression of that floor without needing to re-run the cron.
+  {
+    const TESTIMONIAL_WINDOW_DAYS = 14;
+    const aiR = await sb(`/rest/v1/action_items?action_type=eq.testimonial_request&select=id,transaction_id`);
+    const items = aiR.ok && Array.isArray(aiR.data) ? aiR.data : [];
+    let staleCount = 0;
+    let detail = {};
+    if (items.length > 0) {
+      const txIds = Array.from(new Set(items.map(i => i.transaction_id).filter(Boolean)));
+      const filter = txIds.map(id => `"${id}"`).join(',');
+      const txR = await sb(`/rest/v1/transactions?id=in.(${filter})&select=id,closing_date`);
+      const txById = new Map((txR.ok && Array.isArray(txR.data) ? txR.data : []).map(t => [String(t.id), t.closing_date]));
+      const floor = new Date(Date.now() - TESTIMONIAL_WINDOW_DAYS * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const staleIds = [];
+      for (const item of items) {
+        const cd = txById.get(String(item.transaction_id));
+        if (!cd || cd < floor) { staleCount++; staleIds.push(item.transaction_id); }
+      }
+      detail = { stale_ids: staleIds.slice(0, 10), floor };
+    }
+    rows.push({
+      id: 'db.testimonial.no_stale_drafts', category: 'db', tier: 'db',
+      verdict: staleCount === 0 ? 'PASS' : 'FAIL', response_ms: 0,
+      error: staleCount === 0 ? null : `${staleCount} testimonial_request action_items reference a transaction closed >${TESTIMONIAL_WINDOW_DAYS}d ago`,
+      detail: Object.assign({ stale_count: staleCount, total_checked: items.length }, detail),
+    });
+  }
+
   // critical incidents recent
   {
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
