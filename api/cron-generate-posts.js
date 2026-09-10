@@ -1347,6 +1347,14 @@ async function lookupZernioAccountId(platform, owner = 'dossie') {
   return null;
 }
 
+// Single source of truth for which platforms require a real video before
+// they can publish (see the video-only policy comment at the call site
+// below). Hoisted to module scope so end-of-run logging/response payloads
+// can derive the current list instead of hardcoding a copy that goes stale
+// when this set changes (see Quinn QA gate, 2026-09-09).
+const VIDEO_REQUIRED_PLATFORMS = new Set(["youtube"]);
+const ALLOWED_VIDEO_REQUIRED = new Set(["tiktok", "youtube", "facebook", "instagram"]);
+
 module.exports = withTelemetry('cron-generate-posts', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
@@ -1608,7 +1616,6 @@ function classifyCTA(ctaText) {
     // Pipeline B or a future re-enable attaches a video. YouTube left as-is
     // per Cole's instruction (also currently posting_schedule.is_active=false,
     // so it isn't generating today regardless).
-    const VIDEO_REQUIRED_PLATFORMS = new Set(["youtube"]);
     const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
     // Safety guard: VIDEO_REQUIRED_PLATFORMS must only contain the platforms
@@ -1616,7 +1623,6 @@ function classifyCTA(ctaText) {
     // this set causes posts to park as pending_video forever with nothing
     // ever picking them up. Fail loudly at generation time rather than
     // silently parking posts.
-    const ALLOWED_VIDEO_REQUIRED = new Set(["tiktok", "youtube", "facebook", "instagram"]);
     for (const vp of VIDEO_REQUIRED_PLATFORMS) {
       if (!ALLOWED_VIDEO_REQUIRED.has(vp)) {
         throw new Error(`[cron-generate-posts] BUG: VIDEO_REQUIRED_PLATFORMS contains "${vp}" which cron-render-videos.js does not know how to render. This causes ${vp} posts to go dark (pending_video forever). Remove it from VIDEO_REQUIRED_PLATFORMS.`);
@@ -1739,7 +1745,7 @@ function classifyCTA(ctaText) {
       topic: topic.key,
       media_url: mediaUrl, // always null at insert — video attached downstream by cron-render-videos.js (Creatomate)
       voiceover_script: voiceoverScript || null, // spoken TTS text for Creatomate render
-      video_required: platformVideoRequired, // true for facebook/instagram/tiktok/youtube; twitter/linkedin publish text-only
+      video_required: platformVideoRequired, // derived from VIDEO_REQUIRED_PLATFORMS above — see that set for the current list
       generated_at: now.toISOString(),
       created_at: now.toISOString(),
       // Store format in verifier_result metadata — no new column needed
@@ -1806,7 +1812,7 @@ function classifyCTA(ctaText) {
 
   const verifierApproved = verifierSummary.filter((v) => v.verdict === 'approve').length;
   const verifierRejected = verifierSummary.filter((v) => v.verdict === 'needs_revision').length;
-  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected, '(video-only: facebook+instagram+tiktok+youtube all video_required, no card fallback)');
+  console.log('[cron-generate-posts] done — inserted', inserted, 'of', generated.length, 'errors:', insertErrors.length, 'verifier approve:', verifierApproved, 'needs_revision:', verifierRejected, `(video_required: ${[...VIDEO_REQUIRED_PLATFORMS].join('+')}, no card fallback)`);
 
   // Batch rejection rate alert: if 2+ posts rejected in a single run, send an alert via Claudy.
   if (verifierRejected >= 2) {
@@ -1836,7 +1842,8 @@ function classifyCTA(ctaText) {
     topic: topic.key,
     force_day: forceDay,
     errors: insertErrors,
-    card_fallback_removed: true, // 2026-08-26: no static HCTI cards anywhere; facebook+instagram+tiktok+youtube all video_required
+    card_fallback_removed: true, // 2026-08-26: no static HCTI cards anywhere
+    video_required: [...VIDEO_REQUIRED_PLATFORMS].join('+'),
     verifier_summary: verifierSummary,
     verifier_totals: { approve: verifierApproved, needs_revision: verifierRejected },
     sage_intelligence: sageIntel ? {
