@@ -113,11 +113,16 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const body = req.body || {};
-    const { id, status, completedAt } = body;
+    const { id, status, completedAt, replyText, consentToUseName } = body;
     if (!id) return res.status(400).json({ ok: false, error: 'id required' });
     const patch = { updated_at: new Date().toISOString() };
     if (status) patch.status = status;
     if (completedAt || status === 'completed') patch.completed_at = completedAt || new Date().toISOString();
+    // v1 testimonial capture (dossie-post-closing-testimonial-request.md):
+    // a free-text reply plus an explicit yes/no on using the client's name.
+    // No dedicated testimonials UI beyond these two fields in v1.
+    if (typeof replyText === 'string') patch.reply_text = replyText;
+    if (typeof consentToUseName === 'boolean') patch.consent_to_use_name = consentToUseName;
     const { ok } = await supabaseFetch(
       `/rest/v1/action_items?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`,
       {
