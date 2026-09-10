@@ -22,6 +22,16 @@ rem 'facebook_group_post' 5/day budget (1 per target group), 18-24 min
 rem varied spacing, shares Step 5's circuit breaker (one FB profile). Exits
 rem in ~2s without Chrome when nothing is approved, the spacing gap hasn't
 rem elapsed, or the pipeline is halted.
+rem Step 7 (added 2026-09-09, Carter — Bug 3, docs/POSTING-ENGINE-PLAN-2026-09-09.md):
+rem post Heath-APPROVED linkedin_personal posts (his own voice) — at most
+rem ONE per calendar day (linkedinDailyCapReached() in linkedin-engager.js),
+rem cooperative DossieBot profile unlock shared with Steps 1-6 above (waits
+rem for FB steps to release the profile rather than colliding with them).
+rem 18 posts were sitting approved with zero scheduled trigger anywhere
+rem before this. Verified live 2026-09-09 (--dry-run): the DossieBot profile
+rem (C:\Users\Heath\DossieBot, env PLAYWRIGHT_PROFILE_DIR) IS logged into
+rem LinkedIn — logged_in:true, landed on /feed/, not /login. Exits in ~2s
+rem without Chrome when the daily cap is already met or nothing is approved.
 cd /d "C:\Users\Heath\Projects\MeetDossie"
 node scripts\harvest-tc-discovery-responses.js >> scripts\tc-discovery-harvest.log 2>&1
 node scripts\watch-guest-thread-replies.js >> scripts\guest-thread-watch.log 2>&1
@@ -29,3 +39,4 @@ node scripts\fb-group-commenter.js --tc-reply-queue >> scripts\tc-reply-queue.lo
 node scripts\fb-comment-hunt-daily.js >> scripts\comment-hunt.log 2>&1
 node scripts\fb-comment-opp-poster.js >> scripts\comment-opp-poster.log 2>&1
 node scripts\fb-group5-post-queue.js >> scripts\group5-post-queue.log 2>&1
+node scripts\linkedin-engager.js --post-approved --warm-touch-only >> scripts\linkedin-post-approved.log 2>&1

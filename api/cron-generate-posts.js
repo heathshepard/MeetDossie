@@ -287,6 +287,12 @@ function applyFoundingCount(promptText, founding) {
     .replace(/__FOUNDING_REMAINING__/g, String(founding.remaining));
 }
 
+// Currently-accepted, non-retired formats. PERSONA_STORY (Brenda/Patricia/
+// Victor) was retired 2026-06-14 (25aa1b02) and must never be treated as
+// valid output again, regardless of what a generation call returns. See the
+// format/persona enforcement in the generation loop below (Bug 2 fix, 2026-09-09).
+const BRAND_VOICE_FORMATS_ENFORCED = ['CAPABILITY_ONELINER', 'TREC_EDUCATION', 'FOUNDER_STORY'];
+
 const PERSONAS = {
   brenda: {
     name: 'Brenda',
@@ -690,13 +696,35 @@ function getDayOfYear() {
 // which runs at 06:00 UTC, 5 hours before this cron). Used to weight content pillar
 // and persona selection based on what's actually performing.
 // Fails gracefully — returns null if table is empty or query fails.
+//
+// STALENESS GUARD (Bug 2 fix, 2026-09-09): the row that would have matched
+// this query was last written 2026-07-13 — cron-sage-intelligence-update.js
+// has no schedule entry in vercel.json and hasn't run since. Its daily_brief
+// text was injected VERBATIM into every generation prompt for 8+ weeks
+// ("RECOMMENDATIONS FOR cron-generate-posts: 40% LinkedIn: Victor persona...
+// 30% Instagram: Patricia persona... 20% Facebook: Brenda persona...") even
+// though POST_PLAN_BASE has contained zero PERSONA_STORY slots since
+// 2026-06-14 (25aa1b02). That stale directive is the confirmed source of the
+// 35 retired-persona-format auto-rejections in the last 45 days (verified via
+// social_posts.verifier_result content_format="PERSONA_STORY" rows). Treat
+// intelligence older than MAX_INTEL_AGE_DAYS as if the table were empty —
+// same graceful-degradation shape as the rest of this fetch.
+const MAX_INTEL_AGE_DAYS = 14;
+
 async function fetchSageIntelligence() {
   try {
     const { data, ok } = await supabaseFetch(
-      `/rest/v1/sage_intelligence?select=top_platform,top_pillar,top_persona,top_format,daily_brief,material_low,queue_depth&order=created_at.desc&limit=1`,
+      `/rest/v1/sage_intelligence?select=top_platform,top_pillar,top_persona,top_format,daily_brief,material_low,queue_depth,created_at&order=created_at.desc&limit=1`,
     );
     if (!ok || !Array.isArray(data) || data.length === 0) return null;
-    return data[0];
+    const row = data[0];
+    const ageMs = Date.now() - Date.parse(row.created_at || 0);
+    const ageDays = ageMs / (24 * 60 * 60 * 1000);
+    if (!Number.isFinite(ageDays) || ageDays > MAX_INTEL_AGE_DAYS) {
+      console.warn(`[cron-generate-posts] sage_intelligence is ${Math.round(ageDays)}d stale (>${MAX_INTEL_AGE_DAYS}d limit) — ignoring, treating as unavailable`);
+      return null;
+    }
+    return row;
   } catch (err) {
     console.warn('[cron-generate-posts] fetchSageIntelligence failed:', err && err.message);
     return null;
@@ -1492,7 +1520,27 @@ function classifyCTA(ctaText) {
   for (let i = 0; i < generated.length; i++) {
     const p = generated[i];
     if (!p || typeof p !== 'object') continue;
-    const format = String(p.format || 'PERSONA_STORY').toUpperCase();
+
+    // Bug 2 fix (2026-09-09): don't trust the model's own "format" field.
+    // Sonnet 5 has been observed returning format="PERSONA_STORY" (or
+    // omitting format, which used to silently default HERE to the retired
+    // 'PERSONA_STORY') with persona="victor"/"brenda"/"patricia" even though
+    // POST_PLAN_BASE has contained zero PERSONA_STORY slots since 2026-06-14
+    // (25aa1b02) — root cause traced to a stale sage_intelligence.daily_brief
+    // (fixed above in fetchSageIntelligence) that kept telling it to use
+    // retired personas. 35 auto-rejections in 45 days resulted. Rather than
+    // rely solely on prompt wording holding, enforce the contract in code:
+    // the PLANNED slot (plan[i]) is authoritative for format, since the
+    // prompt is generated directly from it in this exact order.
+    const modelFormat = String(p.format || '').toUpperCase();
+    const slotFormat = String((plan[i] && plan[i].format) || '').toUpperCase();
+    const format = BRAND_VOICE_FORMATS_ENFORCED.includes(modelFormat)
+      ? modelFormat
+      : (BRAND_VOICE_FORMATS_ENFORCED.includes(slotFormat) ? slotFormat : 'CAPABILITY_ONELINER');
+    if (modelFormat && modelFormat !== format) {
+      console.warn(`[cron-generate-posts] slot ${i} (platform=${p.platform}): model returned retired/invalid format "${modelFormat}" — overriding to "${format}" from the planned slot`);
+    }
+
     let persona = String(p.persona || '').toLowerCase();
     const platform = String(p.platform || '').toLowerCase();
     let caption = String(p.caption || p.content || '').trim(); // caption = full post text
@@ -1503,11 +1551,17 @@ function classifyCTA(ctaText) {
     const stat_label = String(p.stat_label || '').trim();
     const hashtags = Array.isArray(p.hashtags) ? p.hashtags.map((h) => String(h).replace(/^#/, '').trim()).filter(Boolean) : [];
 
-    // BUG FIX 2: For brand-voice formats (CAPABILITY_ONELINER, TREC_EDUCATION, FOUNDER_STORY),
-    // default persona to 'dossie' if null/empty. This fixes the YouTube slot (TREC_EDUCATION)
-    // which has persona=null in the plan but should be a valid brand-voice post.
-    const BRAND_VOICE_FORMATS = ['CAPABILITY_ONELINER', 'TREC_EDUCATION', 'FOUNDER_STORY'];
-    if (!persona && BRAND_VOICE_FORMATS.includes(format)) {
+    // BUG FIX 2 (original): For brand-voice formats (CAPABILITY_ONELINER,
+    // TREC_EDUCATION, FOUNDER_STORY), default persona to 'dossie' if null/empty.
+    // EXTENDED 2026-09-09: force it to 'dossie' even when the model returned a
+    // retired persona name (victor/brenda/patricia) — those are never valid
+    // for a brand-voice format regardless of what the model output. This is
+    // the second half of the format-enforcement fix above: format is now
+    // guaranteed to be a brand-voice format, so persona must match.
+    if (BRAND_VOICE_FORMATS_ENFORCED.includes(format)) {
+      if (persona && persona !== 'dossie') {
+        console.warn(`[cron-generate-posts] slot ${i} (platform=${p.platform}): model returned retired persona "${persona}" for brand-voice format ${format} — overriding to "dossie"`);
+      }
       persona = 'dossie';
     }
 
@@ -1532,11 +1586,29 @@ function classifyCTA(ctaText) {
     const postId = `${now.toISOString().slice(0, 10)}-${persona}-${platform}-${i}${testSuffix}`;
 
     // Video-only policy (Heath, 2026-08-18 + reaffirmed 2026-08-26): every
-    // platform that renders visually — facebook, instagram, tiktok, youtube —
-    // requires a real video before it can publish. No HCTI card fallback,
-    // ever. Twitter and LinkedIn stay text-only (video_required=false, no
-    // media gate) — they were never part of the card violation.
-    const VIDEO_REQUIRED_PLATFORMS = new Set(["tiktok", "youtube", "facebook", "instagram"]);
+    // platform that renders visually requires a real video before it can
+    // publish. No HCTI card fallback, ever.
+    //
+    // UPDATED 2026-09-09 (Heath, verbatim: "lets do the screen recording
+    // pipeline. if creatomate is out of credits" — 402 verified since
+    // 2026-06-30, docs/POSTING-ENGINE-PLAN-2026-09-09.md item 2): removed
+    // facebook, instagram, tiktok from this set. Their daily video duty was
+    // 100% dependent on the dead Creatomate render (cron-render-videos.js)
+    // and had been parking every single post since 06-30. Video on those
+    // three platforms is now carried by Pipeline B instead — independent of
+    // social_posts entirely (scripts/feature-demo-recorder.js ->
+    // generate-voiceover.py -> video_library -> cron-video-approval ->
+    // cron-post-videos, verified working: 8 videos heath_approved, 1 posted
+    // this week). Facebook's daily caption now flows as a plain text post
+    // (cron-publish-approved.js IMAGE_CARD_PLATFORMS narrowed to
+    // instagram-only for the same reason). Instagram/TikTok stay
+    // video_required=false too, but structurally still can't post without
+    // media (TikTok has its own always-on park gate; Instagram's Graph API
+    // has no text-only feed post) — their daily captions sit inert until
+    // Pipeline B or a future re-enable attaches a video. YouTube left as-is
+    // per Cole's instruction (also currently posting_schedule.is_active=false,
+    // so it isn't generating today regardless).
+    const VIDEO_REQUIRED_PLATFORMS = new Set(["youtube"]);
     const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
     // Safety guard: VIDEO_REQUIRED_PLATFORMS must only contain the platforms
