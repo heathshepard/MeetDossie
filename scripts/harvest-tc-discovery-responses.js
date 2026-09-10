@@ -359,8 +359,37 @@ function parseRelativeTimestamp(raw, nowMs = Date.now()) {
   return new Date(nowMs - ms).toISOString();
 }
 
-async function scrapeComments(page) {
-  const raw = await page.evaluate(() => {
+// Pull the numeric FB post id out of a permalink, group or profile post alike
+// (".../groups/<gid>/posts/<id>/..." or ".../<user>/posts/<id>/..."). Shared
+// by the live scraper (below) and the regression test (pure, no DOM needed).
+function extractPostId(url) {
+  const m = String(url || '').match(/\/posts\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+// STOP-THE-LINE FIX (2026-09-09): a comment permalink whose /posts/<id> does
+// not equal the target post's own id is a HARD REJECT, never a row — no
+// relevance judgment, purely mechanical. Verified live against
+// facebook.com/groups/531847711158328/posts/1792845771725176/: Facebook
+// renders unrelated/suggested posts further down the same permalink page as
+// additional div[role="article"] comment nodes, and their "time ago" link is
+// a PROFILE url (facebook.com/<username>?comment_id=<base64 graphql id>)
+// with no /posts/<id> segment at all — that shape can never pass this check.
+// Genuine comments on the target post always carry
+// facebook.com/groups/<gid>/posts/<id>/?comment_id=<numeric>, matching
+// exactly (confirmed live: all 5 real DFW commenters — Holly Peery Osborne,
+// Ben Howard, Nicole Roth-Volentine, Chaska Wilkinson, Andy Bearden — pass;
+// the contaminating "Adrienne Lewis / belongs in a magazine!" row fails).
+// A missing permalink is also a reject: never guess a comment belongs here
+// without a permalink to check it against.
+function permalinkMatchesPost(permalink, postUrl) {
+  const targetId = extractPostId(postUrl);
+  if (!targetId) return true; // post_url is NOT NULL / always has an id in practice; don't block on a shape we've never seen
+  return extractPostId(permalink) === targetId;
+}
+
+async function scrapeComments(page, postUrl) {
+  const raw = await page.evaluate((targetPostId) => {
     const out = [];
     const articles = Array.from(document.querySelectorAll('div[role="article"]'));
     for (const art of articles) {
@@ -394,10 +423,20 @@ async function scrapeComments(page) {
       const permA = art.querySelector('a[href*="comment_id"]');
       const permalink = permA ? permA.href.split('&__cft__')[0] : null;
       const atRaw = permA ? (permA.innerText || '').trim() || null : null;
+
+      // POST-BOUNDARY GATE — hard reject, no exceptions. See
+      // permalinkMatchesPost() above for the live-verified rationale; this
+      // inline copy exists only because it must run inside page.evaluate()
+      // (no access to the outer Node closure in the browser context).
+      if (targetPostId) {
+        const permId = permalink ? (String(permalink).match(/\/posts\/(\d+)/) || [])[1] : null;
+        if (permId !== targetPostId) continue;
+      }
+
       if (author && text) out.push({ author, text, permalink, atRaw });
     }
     return out;
-  }).catch(() => []);
+  }, extractPostId(postUrl)).catch(() => []);
 
   return raw.map((c) => ({ ...c, at: parseRelativeTimestamp(c.atRaw) }));
 }
@@ -482,7 +521,7 @@ async function main() {
         }
 
         await expandThread(page);
-        const comments = await scrapeComments(page);
+        const comments = await scrapeComments(page, post.post_url);
         rec.scraped = comments.length;
 
         if (DRY_RUN) {
@@ -528,6 +567,10 @@ module.exports = {
   launchContext,
   normHash,
   HEATH_FB_NAMES,
+  // Post-boundary permalink gate (2026-09-09 cross-post contamination fix) —
+  // pure, regression-tested without a browser.
+  extractPostId,
+  permalinkMatchesPost,
 };
 
 if (require.main === module) {
