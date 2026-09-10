@@ -93,10 +93,12 @@ async function main() {
     for (const mls of Object.keys(LISTINGS)) {
       const listing = LISTINGS[mls];
       try {
+        await page.waitForTimeout(1500); // let the prior search's page state settle before the next SmartBar query
         const text = await smartBarSearch(page, mls);
         const parsed = parseListingRow(text || '', mls);
         if (!parsed) {
           console.error(`[status-sync] COULD NOT PARSE status for ${mls} (${listing.address}) -- leaving existing DB row untouched, flagging for manual check`);
+          try { fs.writeFileSync(path.join('C:\\Users\\Heath\\Projects\\MeetDossie\\.tmp\\listing-status-check', `debug-${mls}.txt`), text || ''); } catch (e) {}
           results.push({ mls, ok: false, reason: 'parse_failed' });
           continue;
         }

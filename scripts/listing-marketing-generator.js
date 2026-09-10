@@ -354,7 +354,13 @@ async function run() {
       return (a.lastPostedAt || '').localeCompare(b.lastPostedAt || '');
     });
 
-  const groupPick = ranked[0];
+  // Prefer a DIFFERENT listing than today's Tier-1 pick so a single day's
+  // output doesn't put the same house in front of both audiences at once —
+  // falls back to allowing overlap only if no other candidate exists.
+  const rankedPreferDifferent = ownedPick
+    ? ranked.filter((p) => p.mls !== ownedPick.mls).concat(ranked.filter((p) => p.mls === ownedPick.mls))
+    : ranked;
+  const groupPick = rankedPreferDifferent[0];
   if (groupPick) {
     const { mls, venueKey } = groupPick;
     const listing = LISTINGS[mls];
