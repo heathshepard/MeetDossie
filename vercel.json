@@ -392,10 +392,6 @@
       "maxDuration": 30,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
     },
-    "api/cron-generate-pages.js": {
-      "maxDuration": 60,
-      "includeFiles": "marketing/{guides-data,features-data,answers-data}/*.json"
-    },
     "api/jarvis-session-log.js": {
       "maxDuration": 10,
       "includeFiles": "SESSION-DIARY.md"
@@ -405,13 +401,24 @@
     },
     "api/cron-reddit-scanner.js": {
       "maxDuration": 120
+    },
+    "api/cron-monday-digest-1100.js": {
+      "maxDuration": 60
+    },
+    "api/cron-monday-digest-1300.js": {
+      "maxDuration": 30
+    },
+    "api/cron-monday-digest-1400.js": {
+      "maxDuration": 30
+    },
+    "api/cron-request-testimonial-draft.js": {
+      "maxDuration": 60
+    },
+    "api/cron-testimonial-nudge.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
-    {
-      "path": "/api/cron-agent-worker-tick",
-      "schedule": "* * * * *"
-    },
     {
       "path": "/api/alert-health",
       "schedule": "*/5 * * * *"
@@ -489,10 +496,6 @@
       "schedule": "0 21 * * 4"
     },
     {
-      "path": "/api/cron-coverage-check",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-analytics-sync",
       "schedule": "0 2 * * 0"
     },
@@ -529,22 +532,6 @@
       "schedule": "*/10 * * * *"
     },
     {
-      "path": "/api/cron-growth-alerts",
-      "schedule": "0 14 * * 1"
-    },
-    {
-      "path": "/api/cron-weekly-scorecard",
-      "schedule": "0 14 * * 1"
-    },
-    {
-      "path": "/api/cron-weekly-boost-alert",
-      "schedule": "0 13 * * 1"
-    },
-    {
-      "path": "/api/cron-weekly-team-risk-digest",
-      "schedule": "0 13 * * 1"
-    },
-    {
       "path": "/api/cron-reddit-scanner",
       "schedule": "0 13,17,21,1 * * *"
     },
@@ -571,10 +558,6 @@
     {
       "path": "/api/cron-competitor-monitor",
       "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron-fb-unlock-alerts",
-      "schedule": "0 14 * * 1"
     },
     {
       "path": "/api/cron-mission-watchdog",
@@ -607,10 +590,6 @@
     {
       "path": "/api/cron-kpi-drift-detector",
       "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-customer-view-digest",
-      "schedule": "0 11 * * 1"
     },
     {
       "path": "/api/cron-affiliate-qualify-referrals",
@@ -737,10 +716,6 @@
       "schedule": "0 12,15,18,23 * * *"
     },
     {
-      "path": "/api/cron-weekly-post-review",
-      "schedule": "0 11 * * 1"
-    },
-    {
       "path": "/api/cron-competitor-scan-weekly",
       "schedule": "0 1 * * 1"
     },
@@ -777,10 +752,6 @@
       "schedule": "30 4 * * *"
     },
     {
-      "path": "/api/cron-generate-pages",
-      "schedule": "0 0 1 1 *"
-    },
-    {
       "path": "/api/cron-content-pipeline-review",
       "schedule": "*/20 * * * *"
     },
@@ -807,6 +778,26 @@
     {
       "path": "/api/cron-daily-group5-posts",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-monday-digest-1100",
+      "schedule": "0 11 * * 1"
+    },
+    {
+      "path": "/api/cron-monday-digest-1300",
+      "schedule": "0 13 * * 1"
+    },
+    {
+      "path": "/api/cron-monday-digest-1400",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/cron-request-testimonial-draft",
+      "schedule": "15 14 * * *"
+    },
+    {
+      "path": "/api/cron-testimonial-nudge",
+      "schedule": "0 15 * * *"
     }
   ]
 }

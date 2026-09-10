@@ -61,7 +61,6 @@ const CRONS = [
   ['cron-staging-watcher',             0.5],
   ['cron-send-outbound-emails',        0.5],
   ['cron-agent-queue-tick',            0.5],
-  ['cron-agent-worker-tick',           0.5],
   ['cron-pull-post-analytics',         30],
   ['cron-platform-health-checker',     4],
   ['cron-followup-check',              1],

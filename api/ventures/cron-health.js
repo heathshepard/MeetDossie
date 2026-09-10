@@ -65,7 +65,6 @@ const KNOWN_CRONS = [
   { name: 'cron-followup',              schedule: '0 12 * * *',     expectedMinutes: 1440, label: 'Follow-up (daily 12PM UTC)' },
   { name: 'cron-weekly-newsletter',     schedule: '0 15 * * 5',     expectedMinutes: 10080, label: 'Weekly Newsletter (Fri 3PM UTC)' },
   { name: 'cron-content-brief',         schedule: '0 14 * * 1-5',   expectedMinutes: 1440, label: 'Content Brief (weekdays 2PM UTC)' },
-  { name: 'cron-coverage-check',        schedule: '0 1 * * *',      expectedMinutes: 1440, label: 'Coverage Check (daily 1AM UTC)' },
   { name: 'cron-analytics-sync',        schedule: '0 2 * * 0',      expectedMinutes: 10080, label: 'Analytics Sync (weekly Sun 2AM UTC)' },
   { name: 'cron-video-approval',        schedule: '0 10 * * *',     expectedMinutes: 1440, label: 'Video Approval (daily 10AM UTC)' },
   { name: 'cron-post-videos',           schedule: '0 13 * * *',     expectedMinutes: 1440, label: 'Post Videos (daily 1PM UTC)' },
