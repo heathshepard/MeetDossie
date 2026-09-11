@@ -323,14 +323,36 @@ function translateEditorFieldNames(fv) {
   // editor's 10 keys use different names than the checkbox logic reads;
   // the other 6 (addendum_buyers_temporary_lease, _sellers_temporary_lease,
   // _hydrostatic_testing, _environmental_assessment, _propane_gas_service_
-  // area, _mineral_reservation) already match exactly — see RESALE_CHECKBOX
-  // in fill-trec-20-19.js for the position-verified widget map, no alias
-  // needed for those.
+  // area, _mineral_reservation) already match exactly by NAME — see
+  // RESALE_CHECKBOX in fill-trec-20-19.js for the position-verified widget
+  // map — but still need normalizing here. Real bug found in real-browser
+  // verification 2026-09-11 (not caught by the direct-API render test,
+  // which passed a literal JS boolean and so never exercised this path):
+  // CheckboxField.jsx's onChange always sends the STRING 'true'/'false'
+  // (`onChange(e.target.checked ? 'true' : 'false')`), never a real
+  // boolean, for every checkbox in the editor. fillTrec2019's checkbox
+  // gates use strict `=== true`, so an unrenamed key sailing straight
+  // through with no truthy() pass silently never checks the box — same
+  // failure mode as a naming mismatch, just one level down. Every
+  // PRE-EXISTING checkbox alias in this file already goes through
+  // truthy() for exactly this reason (see title_seller_expense,
+  // hoa_mandatory, accepts_as_is above) — these 6 are the only ones that
+  // needed it and didn't get it, because they don't need a name change.
   if (out.addendum_financing == null && hasValue(src.addendum_third_party_financing)) {
     out.addendum_financing = truthy(src.addendum_third_party_financing);
   }
   if (out.addendum_lead_paint == null && hasValue(src.addendum_lead_based_paint)) {
     out.addendum_lead_paint = truthy(src.addendum_lead_based_paint);
+  }
+  for (const key of [
+    'addendum_buyers_temporary_lease',
+    'addendum_sellers_temporary_lease',
+    'addendum_hydrostatic_testing',
+    'addendum_environmental_assessment',
+    'addendum_propane_gas_service_area',
+    'addendum_mineral_reservation',
+  ]) {
+    if (hasValue(src[key])) out[key] = truthy(src[key]);
   }
 
   // 2026-09-11 CARTER — ¶23 CONSULT AN ATTORNEY. Editor sends
