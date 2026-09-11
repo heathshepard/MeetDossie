@@ -2,9 +2,20 @@
 // Auto-approves draft social posts that have already been previewed via
 // Telegram (telegram_sent_at IS NOT NULL) and whose veto window has expired.
 //
-// Two windows:
-//   requires_approval=false (veto mode): auto-approve after 10 minutes
-//   requires_approval=true  (manual)  : auto-approve after 30 minutes
+//   requires_approval=false (veto mode): auto-approve after 10 minutes.
+//     Deliberate lower-stakes design — the Telegram card shows an explicit
+//     STOP/PREVIEW keyboard and an "auto-posting in 10 min" header so Heath
+//     sees exactly what will happen and can stop it. Unchanged by the
+//     2026-09-11 fix below.
+//   requires_approval=true  (manual)  : NEVER auto-approved. FIXED 2026-09-11
+//     (Carter) — this used to silently flip to 'approved' after 30 min of
+//     silence, with a Telegram card offering only Reject/Edit (no Approve
+//     button) under an "Auto-posting in 30 min" header. That is an inverted
+//     approval gate: silence equalled consent for content posting under
+//     Heath's real name and real estate license. Now: an explicit Approve
+//     tap (api/telegram-webhook.js action==='approve') is the ONLY path to
+//     status='approved'. A draft that sits unanswered past
+//     EXPIRE_APPROVAL_HOURS is marked 'rejected' (expired) — it NEVER posts.
 //   fb_comment_replies (veto mode)    : auto-approve after 10 minutes
 //
 // Runs every 10 minutes (vercel.json schedule: */10 * * * *).
@@ -53,29 +64,60 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
 
   const now = new Date();
   const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
-  const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+  // requires_approval=true drafts NEVER auto-approve (see header comment,
+  // 2026-09-11 fix). Instead an unanswered draft expires — unpublished —
+  // after this many hours, so the queue doesn't rot forever. Heath's
+  // explicit approve/reject/edit tap is still the only way one ever posts.
+  const EXPIRE_APPROVAL_HOURS = 24;
+  const expireApprovalCutoff = new Date(now.getTime() - EXPIRE_APPROVAL_HOURS * 60 * 60 * 1000).toISOString();
 
   // ── Social posts — two separate queries by requires_approval ────────────
   // Veto mode (requires_approval=false): approve after 10 min silence
   const { ok: loadVetoOk, data: vetoPosts } = await supabaseFetch(
     `/rest/v1/social_posts?status=eq.draft&telegram_sent_at=not.is.null&requires_approval=eq.false&telegram_sent_at=lte.${encodeURIComponent(tenMinutesAgo)}&select=id`,
   );
-  // Approval mode (requires_approval=true): approve after 30 min silence
-  const { ok: loadApprOk, data: apprPosts } = await supabaseFetch(
-    `/rest/v1/social_posts?status=eq.draft&telegram_sent_at=not.is.null&requires_approval=eq.true&telegram_sent_at=lte.${encodeURIComponent(thirtyMinutesAgo)}&select=id`,
+  // Approval mode (requires_approval=true): NEVER auto-approved. Only
+  // expired (marked rejected, never posted) after EXPIRE_APPROVAL_HOURS
+  // of silence.
+  const { ok: loadExpireOk, data: expirePosts } = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.draft&telegram_sent_at=not.is.null&requires_approval=eq.true&telegram_sent_at=lte.${encodeURIComponent(expireApprovalCutoff)}&select=id`,
   );
 
-  if (!loadVetoOk || !loadApprOk) {
+  if (!loadVetoOk || !loadExpireOk) {
     console.error('[cron-auto-approve] failed to load posts');
     return res.status(502).json({ ok: false, error: 'failed to load posts' });
   }
 
-  const allIds = [
-    ...((Array.isArray(vetoPosts) ? vetoPosts : []).map((p) => p.id)),
-    ...((Array.isArray(apprPosts) ? apprPosts : []).map((p) => p.id)),
-  ].filter(Boolean);
+  const allIds = (Array.isArray(vetoPosts) ? vetoPosts : []).map((p) => p.id).filter(Boolean);
+  const expireIds = (Array.isArray(expirePosts) ? expirePosts : []).map((p) => p.id).filter(Boolean);
 
-  console.log('[cron-auto-approve] veto-mode eligible:', (Array.isArray(vetoPosts) ? vetoPosts : []).length, '| approval-mode eligible:', (Array.isArray(apprPosts) ? apprPosts : []).length);
+  console.log('[cron-auto-approve] veto-mode eligible:', allIds.length, '| approval-mode expiring unanswered:', expireIds.length);
+
+  // ── Expire unanswered requires_approval=true drafts — NEVER posts them ──
+  let expired = 0;
+  for (const id of expireIds) {
+    const { ok: expireOk } = await supabaseFetch(
+      // Conditional filter so this can never race a human's approve/reject tap.
+      `/rest/v1/social_posts?id=eq.${encodeURIComponent(id)}&status=eq.draft`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          status: 'rejected',
+          rejection_reason: `auto-expired: no Approve/Reject tap within ${EXPIRE_APPROVAL_HOURS}h — never posted`,
+        }),
+      },
+    );
+    if (expireOk) {
+      expired++;
+      console.log('[cron-auto-approve] expired unanswered draft (never posted):', id);
+    } else {
+      console.warn('[cron-auto-approve] expire patch failed for', id);
+    }
+  }
+  if (expired > 0) {
+    console.log('[cron-auto-approve] expired', expired, 'unanswered requires_approval drafts — none posted');
+  }
 
   // ── FB comment replies — approve after 10 min silence ───────────────────
   const { ok: loadReplyOk, data: replyRows } = await supabaseFetch(
@@ -212,5 +254,5 @@ module.exports = withTelemetry('cron-auto-approve', async function handler(req, 
     }
   }
 
-  return res.status(200).json({ ok: true, autoApproved, approvedReplies, autoApprovedComments });
+  return res.status(200).json({ ok: true, autoApproved, expired, approvedReplies, autoApprovedComments });
 });

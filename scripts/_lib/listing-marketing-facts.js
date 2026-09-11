@@ -22,7 +22,7 @@
 const LISTINGS = {
   '2015607': {
     key: 'fawndale',
-    address: '702 Fawndale Dr',
+    address: '702 Fawndale Ln',
     city: 'Windcrest',
     zip: '78239',
     mlsNumber: '2015607',
@@ -62,6 +62,19 @@ const LISTINGS = {
         { file: 'fawndale/fawndale-06-primary-bedroom-VIRTUALLY-STAGED-FB-IG.jpg', label: 'primary_bedroom', staged: true },
       ],
     },
+    // Purpose-built marketing clips (generate-listing-video.js, config at
+    // scripts/listing-video-configs/702-fawndale.json), uploaded to the
+    // public 'videos' bucket 2026-09-11 (the 'listing-media' bucket's mime
+    // allowlist is images-only, so video lives in the 'videos' bucket
+    // instead -- see 'listing-marketing/' prefix). Preferred over the
+    // static photos above wherever a video-capable slot is available (see
+    // pickMedia() in listing-marketing-generator.js) -- Heath's standing
+    // rule is video, not static cards.
+    videos: {
+      bucket: 'videos',
+      vertical: 'listing-marketing/fawndale/702-fawndale-vertical.mp4',
+      square: 'listing-marketing/fawndale/702-fawndale-square.mp4',
+    },
     groupVenues: ['realtors_sa_boerne_bulverde_nb', 'tx_re_agents_statewide', 'tx_real_estate_statewide'],
   },
   '1916402': {
@@ -89,10 +102,15 @@ const LISTINGS = {
       'Guest suite / 4th bedroom above the 3-car garage with kitchenette - in-law or game room potential',
     ],
     conditionCaveat: null,
-    // PRICE: DO NOT hardcode -- read live from listing_marketing_status. A signed
-    // amendment dropping this to $999,000 was sent to the Whytes 2026-09-10 but is
-    // NOT YET reflected in MLS as of the last sync -- MLS still shows $1,195,000.
-    // Never say "$999,000" or "under a million" anywhere until MLS actually flips.
+    // PRICE: DO NOT hardcode -- read live from listing_marketing_status.
+    // 2026-09-10 incident: a manual "verified" snapshot said $1,195,000 and
+    // a listing-groups draft went out advertising that, but live MLS had
+    // already moved to $999,000 (status PCH, stat date 2026-09-10) by the
+    // time it mattered. That draft was caught and rejected before posting.
+    // Never hand-copy a price into this comment again -- it goes stale the
+    // moment it's written. The only correct source is a live connectMLS
+    // read taken in the same process as generation (see
+    // scripts/listing-marketing-generate-live.js).
     photos: {
       bucket: 'listing-media',
       images: [
@@ -101,6 +119,12 @@ const LISTINGS = {
         { file: 'nopalito/nopalito-03-great-room-fireplace-FB-IG.jpg', label: 'great_room', staged: false },
         { file: 'nopalito/nopalito-04-kitchen-bar-FB-IG.jpg', label: 'kitchen', staged: false },
       ],
+    },
+    // See fawndale's videos comment above -- same source/upload, 2026-09-11.
+    videos: {
+      bucket: 'videos',
+      vertical: 'listing-marketing/nopalito/23-nopalito-vertical.mp4',
+      square: 'listing-marketing/nopalito/23-nopalito-square.mp4',
     },
     groupVenues: [
       'realtors_sa_boerne_bulverde_nb',

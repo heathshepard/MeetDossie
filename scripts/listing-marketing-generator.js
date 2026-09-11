@@ -44,7 +44,7 @@
 const path = require('path');
 const fs = require('fs');
 const { LISTINGS, GROUP_VENUES, ANGLES, TREC_ATTRIBUTION, OWNER_DISCLOSURE } = require('./_lib/listing-marketing-facts');
-const { checkListingPostCompliance } = require('./_lib/listing-post-compliance-gate');
+const { checkListingPostCompliance, MAX_STATUS_AGE_MINUTES } = require('./_lib/listing-post-compliance-gate');
 
 try {
   const envPath = path.join(__dirname, '..', '.env.local');
@@ -95,6 +95,44 @@ function pickImage(listing, preferredLabel) {
   if (!imgs.length) return null;
   const byLabel = imgs.find((i) => i.label === preferredLabel);
   return byLabel || imgs[0];
+}
+
+// 2026-09-11 (Carter, urgent fix): media_url was landing null on every
+// queued listing row even though real cards and video existed on Heath's
+// Desktop -- nothing in this pipeline ever pointed at them. Purpose-built
+// marketing video (see listing.videos in listing-marketing-facts.js) is now
+// preferred over a plain MLS photo wherever available, matching Heath's
+// standing "video only" rule. Falls back to the still-photo path only when
+// no video asset is on file for that listing yet (e.g. Senisa).
+function pickMedia(listing, preferredImageLabel) {
+  if (!STORAGE_BASE) return { url: null, isVideo: false, image: null };
+  if (listing.videos && listing.videos.vertical) {
+    return {
+      url: `${STORAGE_BASE}/${listing.videos.bucket}/${listing.videos.vertical}`,
+      isVideo: true,
+      image: pickImage(listing, preferredImageLabel), // still returned for staged-label/compliance checks
+    };
+  }
+  const image = pickImage(listing, preferredImageLabel);
+  return {
+    url: image ? `${STORAGE_BASE}/${listing.photos.bucket}/${image.file}` : null,
+    isVideo: false,
+    image,
+  };
+}
+
+// Instagram cannot post text-only content via the API at all -- a queued IG
+// row with no media_url is a guaranteed-fail dead row (2026-09-11 bug: three
+// listings' worth of IG rows sat in the approval queue with "no media yet"
+// and would have failed outright the moment Heath tapped Approve). Call
+// this immediately before any social_posts insert; it refuses (returns
+// false, logs why) rather than letting a doomed row reach Telegram at all.
+function refuseIfInstagramWithoutMedia(platform, mediaUrl, context) {
+  if (String(platform).toLowerCase() === 'instagram' && !mediaUrl) {
+    console.error(`[listing-gen] REFUSING to queue an Instagram post with no media (${context}) -- Instagram cannot post text-only via the API, this would be a guaranteed-fail dead row.`);
+    return true;
+  }
+  return false;
 }
 
 function ownerLine(listing) {
@@ -183,10 +221,29 @@ function buildGroupPost(listing, status, angle, venue) {
 
 // ─── Rotation selection ─────────────────────────────────────────────────────
 
+// Root cause of the 2026-09-10 23 Nopalito incident: this function used to
+// hand back ANY row with is_active=true regardless of how old
+// last_verified_at was, so a real MLS price change that happened after the
+// last sync silently rode along as fact. Never trust a snapshot past
+// MAX_STATUS_AGE_MINUTES old -- refuse (skip) that listing entirely rather
+// than draft off it. This is belt-and-suspenders alongside the same check
+// in listing-post-compliance-gate.js; both must independently refuse.
 async function loadActiveListings() {
   const { ok, data } = await sbFetch(`/rest/v1/listing_marketing_status?is_active=eq.true&is_paused=eq.false`);
   if (!ok || !Array.isArray(data)) return [];
-  return data.filter((row) => LISTINGS[row.mls_number]); // only tracked listings
+  const tracked = data.filter((row) => LISTINGS[row.mls_number]); // only tracked listings
+  const fresh = [];
+  for (const row of tracked) {
+    const ageMinutes = row.last_verified_at
+      ? (Date.now() - new Date(row.last_verified_at).getTime()) / 60000
+      : Infinity;
+    if (!Number.isFinite(ageMinutes) || ageMinutes > MAX_STATUS_AGE_MINUTES) {
+      console.error(`[listing-gen] REFUSING ${row.mls_number} (${row.address || 'unknown address'}) -- listing_marketing_status is ${Number.isFinite(ageMinutes) ? Math.round(ageMinutes) + 'min' : 'never'} old (max ${MAX_STATUS_AGE_MINUTES}min). Run status-sync immediately before generating -- prefer scripts/listing-marketing-generate-live.js, which does both in one process with zero gap.`);
+      continue;
+    }
+    fresh.push(row);
+  }
+  return fresh;
 }
 
 async function loadRotation(mlsNumbers, tier) {
@@ -259,10 +316,19 @@ function lstKeyboard(rowId) {
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
-async function run() {
-  const statuses = await loadActiveListings();
+// opts.freshStatuses -- when the caller (scripts/listing-marketing-generate-live.js)
+// just performed a live connectMLS pull in THIS SAME process, it passes the
+// resulting rows straight through here, bypassing the DB re-read (and its
+// staleness window) entirely. This is the actual "live read at generation
+// time" path. Falling back to the DB read (loadActiveListings, which itself
+// enforces MAX_STATUS_AGE_MINUTES) is only safe for a manual/one-off run
+// immediately after a sync -- it is NOT what should run unattended.
+async function run(opts = {}) {
+  const statuses = Array.isArray(opts.freshStatuses) && opts.freshStatuses.length
+    ? opts.freshStatuses.filter((row) => LISTINGS[row.mls_number] && row.is_active)
+    : await loadActiveListings();
   if (!statuses.length) {
-    console.log('[listing-gen] No active, unpaused listings in listing_marketing_status -- run listing-marketing-status-sync.js first, or all listings are paused/under contract.');
+    console.log('[listing-gen] No active, unpaused, FRESH listings in listing_marketing_status -- run listing-marketing-status-sync.js first (or scripts/listing-marketing-generate-live.js for the atomic path), or all listings are paused/under contract/stale.');
     return { ownedDrafted: 0, groupDrafted: 0 };
   }
   const statusByMls = Object.fromEntries(statuses.map((s) => [s.mls_number, s]));
@@ -287,14 +353,22 @@ async function run() {
     const angle = nextAngle(rot.angle_history, deck);
     const { body, image, hasMilestone } = buildOwnedPost(listing, status, angle);
     const usesStaged = !!(image && image.staged);
-    const gate = checkListingPostCompliance({ body, isAgentOwned: listing.isAgentOwned, usesStagedImage: usesStaged, hasRealMilestone: hasMilestone });
+    const gate = checkListingPostCompliance({ body, isAgentOwned: listing.isAgentOwned, usesStagedImage: usesStaged, hasRealMilestone: hasMilestone, status });
     if (!gate.allowed) {
       console.error(`[listing-gen] TIER1 compliance gate BLOCKED ${mls}: ${gate.reasons.join(', ')} -- not inserted.`);
     } else {
-      const mediaUrl = image && STORAGE_BASE ? `${STORAGE_BASE}/${listing.photos.bucket}/${image.file}` : null;
+      const preferredLabel = angle === 'room_feature' ? 'kitchen' : null;
+      const media = pickMedia(listing, preferredLabel);
+      const mediaUrl = media.url;
+      const platform = 'facebook';
+      if (refuseIfInstagramWithoutMedia(platform, mediaUrl, `${listing.key} owned/${angle}`)) {
+        // Not reachable today (Tier-1 is facebook-only) -- guard kept here so
+        // this insert path can never silently regress if a future edit adds
+        // an 'instagram' platform without also carrying media forward.
+      } else {
       const row = {
         post_id: `listing-${listing.key}-owned-${new Date().toISOString().slice(0, 10)}`,
-        platform: 'facebook',
+        platform,
         content: body,
         status: 'draft',
         target_owner: 'heath-realtor',
@@ -328,6 +402,7 @@ async function run() {
         out.ownedDrafted++;
       }
       out.results.push({ tier: 'owned', mls, address: listing.address, angle, body });
+      }
     }
   }
 
@@ -370,7 +445,7 @@ async function run() {
     const GROUP_ANGLES = ['agent_to_agent', 'buyer_fit', 'price_value', 'room_feature'];
     const angle = nextAngle(rot.angle_history, GROUP_ANGLES);
     const body = buildGroupPost(listing, status, angle, venue);
-    const gate = checkListingPostCompliance({ body, isAgentOwned: listing.isAgentOwned, usesStagedImage: false, hasRealMilestone: false });
+    const gate = checkListingPostCompliance({ body, isAgentOwned: listing.isAgentOwned, usesStagedImage: false, hasRealMilestone: false, status });
     if (!gate.allowed) {
       console.error(`[listing-gen] TIER2 compliance gate BLOCKED ${mls}/${venueKey}: ${gate.reasons.join(', ')} -- not inserted.`);
     } else if (!venue.url) {
@@ -427,4 +502,4 @@ if (require.main === module) {
   run().catch((e) => { console.error('[listing-gen] FATAL', e.message); process.exitCode = 1; });
 }
 
-module.exports = { run, buildOwnedPost, buildGroupPost, nextAngle };
+module.exports = { run, buildOwnedPost, buildGroupPost, nextAngle, pickMedia, refuseIfInstagramWithoutMedia };

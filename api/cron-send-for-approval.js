@@ -200,6 +200,7 @@ function formatFullContent(post) {
 function inlineKeyboard(postId) {
   return {
     inline_keyboard: [[
+      { text: '✅ Approve', callback_data: `approve_${postId}` },
       { text: '❌ Reject', callback_data: `reject_${postId}` },
       { text: '✏️ Edit', callback_data: `edit_${postId}` },
     ]],
@@ -286,19 +287,46 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
   console.log('[cron-send-for-approval] posts to send:', items.length, '— draft:', items.filter(p => p.status === 'draft').length, 'approved:', items.filter(p => p.status === 'approved').length);
 
   if (items.length === 0) {
-    console.warn('[cron-send-for-approval] 0 draft posts ready — sending pipeline gap alert');
-    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: 'PIPELINE GAP: approval cron found 0 draft posts ready to send.\nCheck: did generate cron run today? Were all posts auto-rejected?',
-          disable_web_page_preview: true,
-        }),
-      }).catch((err) => console.error('[cron-send-for-approval] gap alert send failed:', err && err.message));
+    console.warn('[cron-send-for-approval] 0 draft posts ready — pipeline gap detected');
+    // 2026-09-11 (Carter, urgent fix): Heath got three identical PIPELINE GAP
+    // alerts in one minute. This condition (0 draft posts) stays true across
+    // every run until something changes it, and this cron can fire more than
+    // once in quick succession (manual triggers, cron-job.org overlap) — so
+    // it kept re-alerting on the same unchanged condition. Dedupe via
+    // cron_notifications (same claim pattern as cron-mission-watchdog.js):
+    // only the FIRST alert in the cooldown window actually sends.
+    const GAP_ALERT_COOLDOWN_MINUTES = 360;
+    const notificationKey = 'cron-send-for-approval-pipeline-gap';
+    const cooldownCutoff = new Date(Date.now() - GAP_ALERT_COOLDOWN_MINUTES * 60 * 1000).toISOString();
+    let shouldAlert = true;
+    try {
+      const recent = await supabaseFetch(
+        `/rest/v1/cron_notifications?notification_key=eq.${encodeURIComponent(notificationKey)}&sent_at=gte.${encodeURIComponent(cooldownCutoff)}&select=id&limit=1`,
+      );
+      if (recent.ok && Array.isArray(recent.data) && recent.data.length > 0) {
+        shouldAlert = false;
+        console.log('[cron-send-for-approval] pipeline gap alert suppressed — already sent within the last', GAP_ALERT_COOLDOWN_MINUTES, 'min');
+      }
+    } catch (err) {
+      console.warn('[cron-send-for-approval] gap alert dedupe lookup failed, alerting anyway (fail-open, never fail-silent):', err && err.message);
     }
-    return res.status(200).json({ ok: true, sent: 0, total: 0, errors: [] });
+
+    if (shouldAlert && TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      const sendRes = await telegramSend(
+        TELEGRAM_CHAT_ID,
+        'PIPELINE GAP: approval cron found 0 draft posts ready to send.\nCheck: did generate cron run today? Were all posts auto-rejected?',
+        null,
+        null,
+      );
+      if (sendRes.ok && !wasSuppressed(sendRes.data)) {
+        supabaseFetch('/rest/v1/cron_notifications', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ notification_key: notificationKey, meta: { source: 'cron-send-for-approval' } }),
+        }).catch((err) => console.warn('[cron-send-for-approval] gap alert dedupe claim failed:', err && err.message));
+      }
+    }
+    return res.status(200).json({ ok: true, sent: 0, total: 0, errors: [], gapAlerted: shouldAlert });
   }
 
   let sent = 0;
@@ -394,8 +422,16 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
       prefix = `✅ AUTO-APPROVED\n\n${scoreLine}`;
     } else if (needsApproval) {
       buttons = inlineKeyboard(post.id);
-      const autoPostHeader = '⏱ Auto-posting in 30 min — tap Reject to cancel\n\n';
-      prefix = `${autoPostHeader}${warningPrefix}${scoreLine}`;
+      // 2026-09-11 (Carter, urgent fix): this used to say "Auto-posting in
+      // 30 min — tap Reject to cancel" with ONLY Reject/Edit buttons — no
+      // way to affirmatively approve, and cron-auto-approve.js silently
+      // published it after 30 min of silence. Silence must never equal
+      // consent for anything posting under Heath's real name/license.
+      // requires_approval=true now means exactly that: nothing posts
+      // without an explicit Approve tap, and an unanswered draft expires
+      // (see cron-auto-approve.js EXPIRE_APPROVAL_HOURS) instead of publishing.
+      const approvalHeader = '✋ Awaiting your approval — tap Approve to post, Reject to discard, Edit to revise. Expires unposted if not answered.\n\n';
+      prefix = `${approvalHeader}${warningPrefix}${scoreLine}`;
     } else {
       // Veto mode: show compact preview, auto-posts in 10 min
       buttons = vetoKeyboard(post.id);
