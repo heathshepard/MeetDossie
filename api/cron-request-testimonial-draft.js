@@ -127,18 +127,25 @@ function agentDisplayName(profile) {
   return customerFirstName(profile);
 }
 
-// Builds the email + one-line SMS variant. Warm, short, 3-5 sentences per
-// spec: congratulate, ask for a Google review (agent's own link if set,
-// else a placeholder they fill in), ask for a two-sentence quote for
-// social, and an explicit permission line to use the client's name/street.
+// Builds the email + one-line SMS variant for the ONE closing-day ask.
+// Heath, 2026-09-10 (round 2): "I don't think we can post testimonials
+// ourselves to every place" -- this is Google ONLY, never Zillow/Facebook/
+// realtor.com in the same message (collapses response rate; Zillow in
+// particular won't even attribute a review from a pasted link -- see
+// cron-request-zillow-review-prompt.js for that separate, later, agent-only
+// ask). Warm, short, 3-5 sentences: congratulate, ask for the Google
+// review, ask for a two-sentence quote for social/website, explicit
+// permission line for name + street.
+//
+// Requires profile.google_review_url to exist -- callers must not invoke
+// this without one (see hasGoogleLink gate below); there is no
+// placeholder-link fallback because a broken link in a client email is
+// worse than not sending one.
 function buildTestimonialDraft({ tx, profile, contacts }) {
   const clientFirst = contacts.firstName || 'there';
   const property = tx.property_address || 'your recent closing';
   const agentFirst = customerFirstName(profile);
   const signature = buildAgentSignature(profile);
-  const reviewLine = profile && profile.google_review_url
-    ? `If you have a minute, a quick Google review here would mean a lot: ${profile.google_review_url}`
-    : `If you have a minute, a quick Google review would mean a lot -- I'll send the link over shortly (add yours in Settings first).`;
 
   const subject = `Congratulations on closing ${property}!`;
 
@@ -146,7 +153,9 @@ function buildTestimonialDraft({ tx, profile, contacts }) {
 
 Congratulations on closing ${property}! It was a pleasure working with you and I'm so glad it's done.
 
-${reviewLine} And if you have a moment, I'd love a two-sentence quote I could use on social media about your experience working with me.
+If you have a minute, a quick Google review here would mean a lot: ${profile.google_review_url}
+
+And if you have a moment, I'd love a two-sentence quote I could reuse on social media and my website about your experience working with me.
 
 Would it be okay if I used your name and the ${property.split(',')[0]} address if I share that quote? No worries either way -- just let me know.
 
@@ -154,8 +163,7 @@ Thank you again -- it really was a joy.
 
 ${agentFirst}${signature}`;
 
-  const smsReviewLink = profile && profile.google_review_url ? ` ${profile.google_review_url}` : '';
-  const sms = `Hi ${clientFirst}! Congrats again on closing ${property} -- if you have a minute, I'd love a quick Google review${smsReviewLink ? ':' + smsReviewLink : ' (link coming your way soon)'}. Thank you! - ${agentFirst}`;
+  const sms = `Hi ${clientFirst}! Congrats again on closing ${property} -- if you have a minute, I'd love a quick Google review: ${profile.google_review_url} Thank you! - ${agentFirst}`;
 
   return { subject, body, sms };
 }
@@ -189,7 +197,7 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
     }
     const transactions = txResp.data || [];
 
-    const summary = { ok: true, window_floor: windowFloor, scanned: transactions.length, drafted: 0, skipped_no_contact: 0, errors: [] };
+    const summary = { ok: true, window_floor: windowFloor, scanned: transactions.length, drafted: 0, skipped_no_contact: 0, skipped_no_google_link: 0, errors: [] };
 
     for (const tx of transactions) {
       // Multi-tenant: every write below is scoped to this tx's own user_id.
@@ -202,10 +210,20 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
       const profile = profResp.ok && Array.isArray(profResp.data) && profResp.data[0] ? profResp.data[0] : null;
 
       const contacts = resolveClientContacts(tx);
-      const draft = buildTestimonialDraft({ tx, profile, contacts });
+      const hasClientEmail = contacts.emails.length > 0;
+      const hasGoogleLink = Boolean(profile && profile.google_review_url);
 
+      // Only ever draft the client-facing email when BOTH the client's
+      // contact info and the agent's own Google review link are on file.
+      // A drafted email that says "add your link in Settings" would be a
+      // client-facing message revealing internal product plumbing -- Heath,
+      // 2026-09-10: "the action item should prompt them to add it rather
+      // than sending a broken link." So a missing link skips the email
+      // entirely and the action item says so plainly instead.
       let emailQueueId = null;
-      if (contacts.emails.length > 0) {
+      let draft = null;
+      if (hasClientEmail && hasGoogleLink) {
+        draft = buildTestimonialDraft({ tx, profile, contacts });
         const eqInsert = await supabaseFetch('/rest/v1/email_queue', {
           method: 'POST',
           headers: { Prefer: 'return=representation' },
@@ -225,13 +243,22 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
         } else {
           summary.errors.push({ tx_id: tx.id, user_id: userId, error: `email_queue insert failed: ${eqInsert.status}` });
         }
-      } else {
+      } else if (!hasClientEmail) {
         summary.skipped_no_contact++;
+      } else {
+        summary.skipped_no_google_link++;
       }
 
-      const description = contacts.emails.length > 0
-        ? `Ask ${contacts.displayName} for a testimonial`
-        : `Ask ${contacts.displayName} for a testimonial -- add their email first, no contact on file`;
+      let description;
+      if (!hasClientEmail && !hasGoogleLink) {
+        description = `Ask ${contacts.displayName} for a testimonial -- add your Google review link in Settings AND their email on this dossier first`;
+      } else if (!hasClientEmail) {
+        description = `Ask ${contacts.displayName} for a testimonial -- add their email on this dossier first, no contact on file`;
+      } else if (!hasGoogleLink) {
+        description = `Ask ${contacts.displayName} for a testimonial -- add your Google review link in Settings first, then Dossie can send this`;
+      } else {
+        description = `Ask ${contacts.displayName} for a testimonial`;
+      }
 
       const aiInsert = await supabaseFetch('/rest/v1/action_items', {
         method: 'POST',
@@ -247,9 +274,9 @@ module.exports = withTelemetry('cron-request-testimonial-draft', async function 
           // overdue. A testimonial ask must never auto-send -- see
           // send-testimonial-request.js for the only send path.
           due_date: null,
-          email_subject: draft.subject,
-          email_body: draft.body,
-          sms_draft: draft.sms,
+          email_subject: draft ? draft.subject : null,
+          email_body: draft ? draft.body : null,
+          sms_draft: draft ? draft.sms : null,
           email_queue_id: emailQueueId,
           status: 'pending',
         }),

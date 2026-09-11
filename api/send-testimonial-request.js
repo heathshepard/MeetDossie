@@ -8,9 +8,13 @@
 //
 // Loads the action_items row (ownership enforced via the caller's own
 // user_id -- multi-tenant safe), sends the linked email_queue draft
-// verbatim via Resend, marks the email_queue row 'sent' and the action item
-// 'completed'. Idempotent: calling again on an already-completed item is a
-// no-op 200, not a second send.
+// verbatim via Resend, marks the email_queue row and the action item
+// 'sent', and stamps transactions.google_requested_at (the marker the
+// 7-day Zillow-prompt cron watches). "Sent" is deliberately NOT
+// "completed" -- completed means the review actually came back, which the
+// agent confirms later via the ordinary Done button. Idempotent: calling
+// again on an already-sent or already-completed item is a no-op 200, not
+// a second send.
 //
 // Auth: Supabase JWT (Bearer token in Authorization header)
 
@@ -113,7 +117,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, already_sent: true });
   }
   if (!item.email_queue_id) {
-    return res.status(400).json({ ok: false, error: 'No draft on file for this action item -- add the client email and try again.' });
+    return res.status(400).json({ ok: false, error: 'No draft on file for this action item -- add the client email and your Google review link in Settings, then try again.' });
   }
 
   const eqResp = await supabaseFetch(
@@ -128,11 +132,13 @@ module.exports = async function handler(req, res) {
   if (draft.status === 'sent') {
     // Draft already went out (e.g. a retried request) -- reconcile the
     // action item and report success rather than double-sending.
-    await supabaseFetch(`/rest/v1/action_items?id=eq.${encodeURIComponent(item.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }),
-    });
+    if (item.status !== 'sent') {
+      await supabaseFetch(`/rest/v1/action_items?id=eq.${encodeURIComponent(item.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'sent', updated_at: new Date().toISOString() }),
+      });
+    }
     return res.status(200).json({ ok: true, already_sent: true });
   }
 
@@ -152,6 +158,12 @@ module.exports = async function handler(req, res) {
   }
 
   const now = new Date().toISOString();
+  // Status here is 'sent', not 'completed' -- "completed" on a
+  // testimonial_request item means the review actually came back (agent
+  // confirms via the ordinary Done button, which stamps
+  // transactions.google_received_at -- see action-items.js PATCH). Sending
+  // only means the ask went out; transactions.google_requested_at is the
+  // marker the 7-day Zillow-prompt cron watches.
   await Promise.all([
     supabaseFetch(`/rest/v1/email_queue?id=eq.${encodeURIComponent(draft.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
       method: 'PATCH',
@@ -161,7 +173,12 @@ module.exports = async function handler(req, res) {
     supabaseFetch(`/rest/v1/action_items?id=eq.${encodeURIComponent(item.id)}&user_id=eq.${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ status: 'completed', completed_at: now, updated_at: now }),
+      body: JSON.stringify({ status: 'sent', updated_at: now }),
+    }),
+    supabaseFetch(`/rest/v1/transactions?id=eq.${encodeURIComponent(item.transaction_id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ google_requested_at: now, updated_at: now }),
     }),
   ]);
 

@@ -115,6 +115,22 @@ module.exports = async function handler(req, res) {
     const body = req.body || {};
     const { id, status, completedAt, replyText, consentToUseName } = body;
     if (!id) return res.status(400).json({ ok: false, error: 'id required' });
+
+    // Testimonial platform-state mirroring (dossie-post-closing-testimonial-
+    // request.md): completing a testimonial_request item means "the Google
+    // review came back," completing a zillow_review_prompt item means "I
+    // went and did the Zillow ask myself." Needs the item's action_type,
+    // which the caller doesn't send — fetch it first, scoped to this user.
+    let itemForStateSync = null;
+    if (status === 'completed' || typeof replyText === 'string') {
+      const lookup = await supabaseFetch(
+        `/rest/v1/action_items?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}&select=action_type,transaction_id&limit=1`,
+      );
+      if (lookup.ok && Array.isArray(lookup.data) && lookup.data[0]) {
+        itemForStateSync = lookup.data[0];
+      }
+    }
+
     const patch = { updated_at: new Date().toISOString() };
     if (status) patch.status = status;
     if (completedAt || status === 'completed') patch.completed_at = completedAt || new Date().toISOString();
@@ -132,6 +148,27 @@ module.exports = async function handler(req, res) {
       },
     );
     if (!ok) return res.status(500).json({ ok: false, error: 'Could not update action item' });
+
+    if (itemForStateSync && itemForStateSync.transaction_id) {
+      const txPatch = {};
+      if (status === 'completed' && itemForStateSync.action_type === 'testimonial_request') {
+        txPatch.google_received_at = new Date().toISOString();
+      }
+      if (status === 'completed' && itemForStateSync.action_type === 'zillow_review_prompt') {
+        txPatch.zillow_requested_at = new Date().toISOString();
+      }
+      if (typeof replyText === 'string' && replyText.trim() && itemForStateSync.action_type === 'testimonial_request') {
+        txPatch.quote_received = true;
+      }
+      if (Object.keys(txPatch).length > 0) {
+        txPatch.updated_at = new Date().toISOString();
+        await supabaseFetch(
+          `/rest/v1/transactions?id=eq.${encodeURIComponent(itemForStateSync.transaction_id)}&user_id=eq.${encodeURIComponent(userId)}`,
+          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(txPatch) },
+        );
+      }
+    }
+
     return res.status(200).json({ ok: true });
   }
 
