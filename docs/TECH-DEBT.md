@@ -12,7 +12,7 @@
 
 ## NOT DONE / ACTIVE BLOCKERS
 
-- **🚨 `cron-comment-opp-approval` never left staging — 21 rows stuck at `comment_opportunities.status='found'`** (2026-09-09, Atlas). `api/cron-comment-opp-approval.js` + its `vercel.json` `*/30 * * * *` entry shipped in commit `65cb15a8` (staging only) — `origin/main` has neither the file nor the schedule (`vercel crons ls` confirms: `/api/cron-comment-opp-approval ... not deployed`, "1 local change pending deploy"). Vercel Cron only fires against the Production deployment, so it has never actually ticked; the single `cron_runs` row (22:21:02 2026-09-08, `created_at`==`last_run`) was a one-off manual/preview test, not a real schedule hit. Code, schema, and env vars (`ANTHROPIC_API_KEY`/`TELEGRAM_MARKETING_BOT_TOKEN`/`TELEGRAM_CHAT_ID`, all present in Production already) all check out — this is a merge gap, not a code bug. **Fix = merge staging→main** (Heath's call per Section 3); nothing further to build. Once merged, the 21 `found` rows will pick up on the first `*/30` tick.
+- ~~`cron-comment-opp-approval` never left staging~~ — RESOLVED 2026-09-09 (same day as flagged), merged in `b9264c58` ("Merge branch 'staging'", 2026-09-09 20:15). Verified 2026-09-11 (Carter): file + `*/30 * * * *` schedule both present on `origin/main`; live query of `comment_opportunities` shows 0 rows at `status='found'` (39 total: 1 approved, 1 posted, 1 post_failed, 36 rejected) — cron has been ticking in Production for two days. Stale entry, no action needed.
 - Brokerage compliance document sending (specced, not built — high value)
 - Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
 - MCP server registry submissions: MCPT / OpenTools (Smithery ✅ live)
