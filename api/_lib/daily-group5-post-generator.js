@@ -56,7 +56,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { FORMATS, pickFormat, pickStory, effectiveHookType, baseHookType, buildPrompt, DRAFT_MODEL } = require('./group-post5-formats');
+const { FORMATS, pickFormat, pickScaffold, pickStory, effectiveHookType, baseHookType, buildPrompt, DRAFT_MODEL } = require('./group-post5-formats');
 const { eligibleStories } = require('./verified-story-library');
 const { checkFabrication } = require('./fabrication-guard');
 const { checkPractitionerTest } = require('./practitioner-test-guard');
@@ -118,6 +118,73 @@ async function callClaude(anthropicKey, prompt) {
   return JSON.parse(s.slice(fb, lb + 1));
 }
 
+// Cheap/fast model for the semantic-duplicate safety net — same class of
+// judgment call as telegram-webhook.js's SCORER_MODEL, not the drafting
+// model (DRAFT_MODEL).
+const DEDUP_JUDGE_MODEL = 'claude-haiku-4-5-20251001';
+
+/**
+ * Semantic near-duplicate check against cross-group recent bodies — the
+ * safety net for what word-overlap dedupe (scripts/_lib/group-post-dedup.js)
+ * demonstrably misses: two posts can be a near-zero string match while
+ * making the exact same argument in different words. Fails OPEN (returns
+ * not-duplicate) on any network/parse error — this is a second layer on
+ * top of two deterministic checks, never the sole gate.
+ * @param {string} anthropicKey
+ * @param {string} newBody
+ * @param {string[]} recentBodies  most-recent-first, already capped by caller
+ * @returns {Promise<{duplicate: boolean, reason?: string}>}
+ */
+async function checkSemanticDuplicateViaClaude(anthropicKey, newBody, recentBodies) {
+  const bodies = (Array.isArray(recentBodies) ? recentBodies : []).filter(Boolean).slice(0, 15);
+  if (!anthropicKey || !bodies.length) return { duplicate: false };
+
+  const prompt = `You are checking a new Facebook group post for a Texas real estate agent against his own recent posts to OTHER groups (members overlap, so a reworded repeat reads as a bot).
+
+NEW POST:
+"""
+${newBody}
+"""
+
+RECENT POSTS (last 30 days, other groups):
+${bodies.map((b, i) => `${i + 1}. "${String(b).slice(0, 400)}"`).join('\n')}
+
+Does the NEW POST make substantially the SAME core argument/claim/story as any one of the recent posts, even if the wording, examples, or sentence structure differ? Judge the underlying idea, not the phrasing -- "waiving the option period isn't automatically brave or reckless, it depends who's doing it" and "waiving the option period gets called bold or reckless but it's really about who's doing it" are THE SAME CLAIM restated, and must be flagged as a duplicate.
+
+Return STRICT JSON only, no markdown:
+{"duplicate": true|false, "matched_index": N or null, "reason": "one sentence"}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': anthropicKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: DEDUP_JUDGE_MODEL,
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${text.slice(0, 200)}`);
+  const data = JSON.parse(text);
+  const raw = ((data?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('No JSON object in semantic-dup response: ' + raw.slice(0, 200));
+  const parsed = JSON.parse(match[0]);
+  return {
+    duplicate: parsed.duplicate === true,
+    reason: parsed.reason || null,
+    matchedIndex: typeof parsed.matched_index === 'number' ? parsed.matched_index : null,
+  };
+}
+
 function buildTelegramMessage(group, format, postBody) {
   return [
     `GROUP POST DRAFT — ${group.name}`,
@@ -165,26 +232,56 @@ function storyIdsRecentlyUsedInGroup(recentPosts) {
 }
 
 /**
+ * Which scaffold variant ids are off the table for a given format: any
+ * variant whose compound hook_type ("<formatId>:<scaffoldId>") shows up
+ * ANYWHERE in the last 30 days, in ANY group (cross-group, not just this
+ * one). This is the primary fix for the 2026-09-11 "reads like a bot"
+ * bug — a scaffold used in one group yesterday can't be picked for a
+ * different group today, closing the gap that let the same 'contrarian'
+ * paragraph get rewritten into two different groups a day apart.
+ * @param {Array<{hook_type:string}>} crossGroupRecent  ALL daily5 posts,
+ *   any group, within the dedupe window (not per-group filtered)
+ * @param {string} formatId
+ */
+function scaffoldIdsRecentlyUsed(crossGroupRecent, formatId) {
+  const prefix = `${formatId}:`;
+  return crossGroupRecent
+    .map((r) => r.hook_type)
+    .filter((h) => typeof h === 'string' && h.startsWith(prefix))
+    .map((h) => h.slice(prefix.length));
+}
+
+/**
  * Generate one post for one group, with content-gate + dedup + voice +
  * fabrication enforcement and one retry on any failure. Returns null if it
  * can't produce a clean post after the retry (never inserts a
  * blocked/duplicate/off-voice/fabricated row).
  *
- * @param {object} deps { generate, group, recentPosts, painLines, log, recentOpeners, usedFormatsThisRun, usedStoriesThisRun }
+ * @param {object} deps { generate, group, recentPosts, crossGroupRecent, painLines, log, recentOpeners, usedFormatsThisRun, usedStoriesThisRun, usedScaffoldsThisRun, checkSemanticDup }
  * @returns {Promise<{ post_body: string, format: object, story: object|null, hookType: string } | null>}
  */
-async function generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners = [], usedFormatsThisRun = [], usedStoriesThisRun = [] }) {
+async function generateCleanPost({
+  generate, group, recentPosts, crossGroupRecent = [], painLines, log,
+  recentOpeners = [], usedFormatsThisRun = [], usedStoriesThisRun = [],
+  usedScaffoldsThisRun = {}, checkSemanticDup = null,
+}) {
   let lastHookType = recentPosts.length ? baseHookType(recentPosts[0].hook_type) : null;
-  // Combine explicit cross-group recentOpeners (passed by the caller) with
-  // this group's own recent post bodies — either can produce the "sounds
-  // like the last one" failure Heath named.
-  const openersForPrompt = [...recentOpeners, ...recentPosts.map((r) => r.post_body)];
+  // Combine explicit cross-group recentOpeners (passed by the caller), this
+  // group's own recent post bodies, AND cross-group recent bodies (last 30
+  // days, every group) — any of the three can produce the "sounds like the
+  // last one" failure Heath named. Capped inside buildRecentIdeasBlock /
+  // buildRecentOpenersBlock so the prompt doesn't grow unbounded.
+  const openersForPrompt = [
+    ...recentOpeners,
+    ...recentPosts.map((r) => r.post_body),
+    ...crossGroupRecent.map((r) => r.post_body),
+  ];
 
   const groupExcludeStoryIds = storyIdsRecentlyUsedInGroup(recentPosts);
   const excludeStoryIds = [...new Set([...usedStoriesThisRun, ...groupExcludeStoryIds])];
   const eligibleStoryIds = eligibleStories({ excludeIds: excludeStoryIds }).map((s) => s.id);
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const format = pickFormat(lastHookType, usedFormatsThisRun, eligibleStoryIds);
     const story = format.requiresStory ? pickStory(eligibleStoryIds) : null;
     if (format.requiresStory && !story) {
@@ -194,8 +291,18 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
       log(`[daily-group5] "${group.name}" (attempt ${attempt + 1}): verified_anecdote picked with no story available — skipping attempt`);
       continue;
     }
+    // Cross-group scaffold cooldown — never reuse the same scaffold variant
+    // for a format anywhere in the pipeline within the dedupe window. Runs
+    // for every attempt this run has already used, too (usedScaffoldsThisRun)
+    // so two groups TODAY can't land on the same variant either.
+    const scaffoldExclude = [
+      ...scaffoldIdsRecentlyUsed(crossGroupRecent, format.id),
+      ...(usedScaffoldsThisRun[format.id] || []),
+    ];
+    const scaffold = format.requiresStory ? null : pickScaffold(format, scaffoldExclude);
+
     const promoAllowed = false; // Sage's finding, 2026-09-09: none of the 5 groups are confirmed-safe for product-adjacent content today
-    const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt, story });
+    const prompt = buildPrompt({ group, format, painLines, promoAllowed, recentOpeners: openersForPrompt, story, scaffold });
 
     let result;
     try {
@@ -216,12 +323,49 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
       continue;
     }
 
-    const hookType = effectiveHookType(format, story);
+    const hookType = effectiveHookType(format, story, scaffold);
+    // Layer 1: exact/near-exact string dedupe, PER-GROUP (never repeat in
+    // this specific group within 30 days).
     const dup = checkDuplicate(postBody, hookType, recentPosts);
     if (dup.duplicate) {
       log(`[daily-group5] Dedup BLOCKED "${group.name}" (attempt ${attempt + 1}): ${dup.reason}`);
       lastHookType = format.id; // force a different format on the retry
       continue;
+    }
+    // Layer 2: exact/near-exact string dedupe, CROSS-GROUP (the actual
+    // 2026-09-11 bug — a near-identical body or the same hook_type/scaffold
+    // showing up in a DIFFERENT group is exactly as much of a "bot" tell as
+    // it showing up twice in the same group; members overlap across these
+    // 5 groups).
+    const crossDup = checkDuplicate(postBody, hookType, crossGroupRecent);
+    if (crossDup.duplicate) {
+      log(`[daily-group5] CROSS-GROUP Dedup BLOCKED "${group.name}" (attempt ${attempt + 1}): ${crossDup.reason}`);
+      lastHookType = format.id;
+      continue;
+    }
+    // Layer 3: semantic near-duplicate check against cross-group recent
+    // bodies — word-overlap alone misses a synonym-swapped paraphrase (the
+    // exact failure mode Heath flagged: "Waiving the option period gets
+    // talked about like a character flag..." vs "...like a personality
+    // trait..." scored well under the Jaccard threshold despite being the
+    // same argument). Optional dependency so tests/regressions can run with
+    // zero network access; production always supplies it.
+    if (checkSemanticDup) {
+      let semanticDup;
+      try {
+        semanticDup = await checkSemanticDup(postBody, crossGroupRecent.map((r) => r.post_body));
+      } catch (err) {
+        // Fail OPEN — this is a safety net on top of two deterministic
+        // layers above, not the primary gate. A Claude/network hiccup must
+        // never block the whole run.
+        log(`[daily-group5] Semantic dedup check errored for "${group.name}" (attempt ${attempt + 1}, non-fatal): ${err.message}`);
+        semanticDup = { duplicate: false };
+      }
+      if (semanticDup && semanticDup.duplicate) {
+        log(`[daily-group5] SEMANTIC Dedup BLOCKED "${group.name}" (attempt ${attempt + 1}): ${semanticDup.reason || 'same core claim as a recent post'}`);
+        lastHookType = format.id;
+        continue;
+      }
     }
 
     const voiceCheck = heathVoiceGuard.checkVoiceCompliance(postBody);
@@ -252,7 +396,7 @@ async function generateCleanPost({ generate, group, recentPosts, painLines, log,
       continue;
     }
 
-    return { post_body: postBody, format, story, hookType };
+    return { post_body: postBody, format, story, scaffold, hookType };
   }
 
   return null;
@@ -282,6 +426,12 @@ async function runDailyGroup5PostGeneration(opts) {
     generate = (prompt) => callClaude(anthropicKey, prompt),
     send = (text, kb) => telegramSend(telegramToken, telegramChatId, text, kb),
     loadPainLines = defaultLoadPainLines,
+    // Semantic near-duplicate safety net (layer 3, see generateCleanPost).
+    // opts.checkSemanticDup = null lets tests/regressions explicitly opt
+    // out with zero network access; production always gets the real check.
+    checkSemanticDup = opts.checkSemanticDup === null
+      ? null
+      : (opts.checkSemanticDup || ((newBody, recentBodies) => checkSemanticDuplicateViaClaude(anthropicKey, newBody, recentBodies))),
     log = console.log,
     now = () => new Date(),
   } = opts;
@@ -318,11 +468,20 @@ async function runDailyGroup5PostGeneration(opts) {
   // (2026-09-09): don't put the same verified story in two groups the same
   // day.
   const usedStoriesThisRun = [];
+  // Cross-group SCAFFOLD variety within this run, keyed by format id — the
+  // cross-group 30-day cooldown (scaffoldIdsRecentlyUsed) already blocks
+  // reuse across DAYS; this closes the same-day gap for two groups landing
+  // on the same format in one run.
+  const usedScaffoldsThisRun = {};
 
   for (const group of groups) {
     const recentPosts = withinDedupeWindow(allRecent, group.key, now());
 
-    const clean = await generateCleanPost({ generate, group, recentPosts, painLines, log, recentOpeners: runOpeners, usedFormatsThisRun, usedStoriesThisRun });
+    const clean = await generateCleanPost({
+      generate, group, recentPosts, crossGroupRecent: allRecent, painLines, log,
+      recentOpeners: runOpeners, usedFormatsThisRun, usedStoriesThisRun,
+      usedScaffoldsThisRun, checkSemanticDup,
+    });
     if (!clean) {
       log(`[daily-group5] Skipping "${group.name}" — could not produce a clean, non-duplicate, gate-passing, fabrication-free post after retry`);
       out.skipped++;
@@ -363,6 +522,9 @@ async function runDailyGroup5PostGeneration(opts) {
     runOpeners.unshift(clean.post_body);
     usedFormatsThisRun.push(clean.format.id);
     if (clean.story) usedStoriesThisRun.push(clean.story.id);
+    if (clean.scaffold) {
+      (usedScaffoldsThisRun[clean.format.id] = usedScaffoldsThisRun[clean.format.id] || []).push(clean.scaffold.id);
+    }
 
     const sendRes = await send(
       buildTelegramMessage(group, clean.format, clean.post_body),

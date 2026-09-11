@@ -130,11 +130,25 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
       return;
     }
 
-    await patchGroupPost(postId, {
+    const patch = await patchGroupPost(postId, {
       status: 'approved',
       approved_at: now,
       auto_post_at: now,
     });
+
+    if (!patch.ok) {
+      // Never silently claim "Approved" on a failed write -- Heath needs to
+      // see the tap didn't take. Root cause 2026-09-11: auto_post_at was
+      // missing from the live schema for three months; this branch used to
+      // say "Approved" regardless of what patchGroupPost returned.
+      const errText = patch.data?.message || `HTTP ${patch.status}`;
+      console.error(`[group-post-callback] Approve PATCH failed for ${postId}:`, errText);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ Approve failed — ${errText}. Still in draft, tap Approve again once fixed.`);
+      }
+      if (callbackQueryId) await answerCallback(callbackQueryId, 'Approve failed — see message');
+      return;
+    }
 
     // Edit the approval message to show it's approved and queued
     if (chatId && messageId) {
@@ -154,7 +168,17 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
   }
 
   if (action === 'group_reject') {
-    await patchGroupPost(postId, { status: 'rejected' });
+    const patch = await patchGroupPost(postId, { status: 'rejected' });
+
+    if (!patch.ok) {
+      const errText = patch.data?.message || `HTTP ${patch.status}`;
+      console.error(`[group-post-callback] Reject PATCH failed for ${postId}:`, errText);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ Reject failed — ${errText}. Still in draft.`);
+      }
+      if (callbackQueryId) await answerCallback(callbackQueryId, 'Reject failed — see message');
+      return;
+    }
 
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${originalBody}\n\nRejected.`);
@@ -166,7 +190,17 @@ async function handleGroupPostCallback(action, postId, callbackQueryId, chatId, 
   }
 
   if (action === 'group_skip') {
-    await patchGroupPost(postId, { status: 'skipped' });
+    const patch = await patchGroupPost(postId, { status: 'skipped' });
+
+    if (!patch.ok) {
+      const errText = patch.data?.message || `HTTP ${patch.status}`;
+      console.error(`[group-post-callback] Skip PATCH failed for ${postId}:`, errText);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ Skip failed — ${errText}. Still in draft.`);
+      }
+      if (callbackQueryId) await answerCallback(callbackQueryId, 'Skip failed — see message');
+      return;
+    }
 
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${originalBody}\n\nSkipped.`);

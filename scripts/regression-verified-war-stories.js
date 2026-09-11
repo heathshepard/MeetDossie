@@ -262,7 +262,7 @@ async function main() {
   };
   const blockedResult = await gen.generateCleanPost({ generate: alwaysFabricates, group: group1, recentPosts: [], painLines: [], log: () => {}, usedFormatsThisRun: [], usedStoriesThisRun: [] });
   assert.strictEqual(blockedResult, null, 'a persistently fabricating generator produces NO clean post -- generateCleanPost returns null (skip), never a fabricated row');
-  assert.strictEqual(fabCalls, 2, 'exactly one retry attempted before giving up (2 calls total), never an unbounded loop and never "post it anyway"');
+  assert.strictEqual(fabCalls, 3, 'exactly two retries attempted before giving up (3 calls total, bumped from 2 on 2026-09-11 for the extra dedup layers), never an unbounded loop and never "post it anyway"');
 
   let fixCalls = 0;
   const fabricatesThenFixes = async () => {

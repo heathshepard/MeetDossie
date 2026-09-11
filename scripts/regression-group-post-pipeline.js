@@ -256,10 +256,24 @@ async function main() {
     'target groups match comment-hunt-groups.json exactly',
   );
 
+  // Distinct low-overlap bodies per call -- a real Claude call against 3
+  // scaffold variants per format produces genuinely different text, not
+  // "Fresh genuine question number N" with one word swapped. Using
+  // near-identical mock bodies here used to sail through because nothing
+  // compared across groups; now that CROSS-GROUP dedup is real (the actual
+  // 2026-09-11 bug fix), the mock has to behave like real generation does.
+  const CLEAN_BODIES = [
+    'Anyone else had a seller flat refuse every repair after inspection even the ones that will come right back up with the next buyer, curious how common that stance is these days.',
+    'Had a closing slide at the very end over a documentation gap, a septic record nobody chased down early, curious what paperwork gap has bitten other people lately.',
+    'Escalation clauses get pitched as a guaranteed win and they are not, they make sense with a real ceiling and real discipline, they backfire when someone uses one to avoid picking a number.',
+    'Genuine question on how thoroughly folks actually read a seller disclosure notice before writing an offer versus after the contract is already executed, what is the real habit not the textbook answer.',
+    'Curious what everyone actually does for multiple offer communication once you know there is competition, a deadline and highest and best call versus just letting it play out quietly.',
+  ];
   let genCalls = 0;
   const cleanGenerate = async () => {
+    const body = CLEAN_BODIES[genCalls % CLEAN_BODIES.length];
     genCalls++;
-    return { post_body: `Fresh genuine question number ${genCalls} about option periods and appraisals in my market this week, curious what others are seeing out there right now.` };
+    return { post_body: body };
   };
   const sentMessages = [];
   const okSend = async (text, kb) => { sentMessages.push({ text, kb }); return { ok: true, status: 200, data: { ok: true, result: { message_id: 1000 + sentMessages.length } } }; };
@@ -305,7 +319,7 @@ async function main() {
   });
   assert.strictEqual(result2.drafted, 0, 'nothing drafted when every attempt is promotional');
   assert.strictEqual(result2.skipped, 5, 'all 5 groups skipped rather than posting blocked content');
-  assert.strictEqual(promoGenCalls, 10, 'exactly ONE retry per group (2 attempts x 5 groups), never an unbounded retry loop');
+  assert.strictEqual(promoGenCalls, 15, 'exactly TWO retries per group (3 attempts x 5 groups, bumped from 2 on 2026-09-11 for the extra dedup layers), never an unbounded retry loop');
   assert.strictEqual(db.group_posts.length, 0, 'zero rows inserted — a blocked draft is never written to the DB at all');
 
   // ── A generator that keeps returning the same duplicate body also gets
@@ -325,6 +339,85 @@ async function main() {
   });
   assert.strictEqual(result3.drafted, 0, 'duplicate body for kw_re_group never gets drafted');
   assert.strictEqual(result3.skipped, 1, 'kw_re_group skipped for today rather than repeating a body');
+
+  // ── CROSS-GROUP DEDUPE (2026-09-11 bug): a near-verbatim body posted to
+  //    one group yesterday must block a different group TODAY, not just the
+  //    same group. Real-world case: the exact same "contrarian" scaffold got
+  //    posted to tc_vas on 9/10 and kw_re_group on 9/11, one word-swap apart,
+  //    because dedupe only ever compared within a single group. ────────────
+  db.group_posts.length = 0;
+  db.group_posts.push({
+    id: 'seed-crossgroup-1', group_key: 'tc_vas', pipeline: 'daily5',
+    post_body: 'Waiving the option period gets talked about like a character flag, either you are bold or you are an idiot.',
+    hook_type: 'contrarian:option_period_waiver',
+    created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString(), // "yesterday"
+  });
+  let crossGenCalls = 0;
+  const crossGroupNearDupThenClean = async () => {
+    crossGenCalls++;
+    if (crossGenCalls === 1) {
+      // Near-verbatim (word-overlap-catchable) repeat of yesterday's OTHER
+      // group's post -- layer 2 (cross-group string dedupe) must block this
+      // without needing the semantic check at all.
+      return { post_body: 'Waiving the option period gets talked about like a character flag, either you are bold or you are reckless.' };
+    }
+    // Genuinely different topic -- must succeed.
+    return { post_body: 'Had a closing slide at the very end over a documentation gap, a septic record nobody chased down early, curious what paperwork gap has bitten other people lately.' };
+  };
+  const result3b = await gen.runDailyGroup5PostGeneration({
+    sbFetch: mockSbFetch, generate: crossGroupNearDupThenClean, send: okSend,
+    loadPainLines: async () => [], log: () => {},
+    groups: groups.filter((g) => g.key === 'kw_re_group'),
+    checkSemanticDup: null, // isolate layer 2 (string dedupe) from layer 3 (semantic)
+  });
+  assert.strictEqual(result3b.drafted, 1, 'kw_re_group still gets a post once it lands on genuinely different content');
+  assert.strictEqual(crossGenCalls, 2, 'attempt 1 (cross-group near-dup) blocked, attempt 2 (distinct topic) succeeded');
+  const crossRow = db.group_posts.find((r) => r.group_key === 'kw_re_group');
+  assert.ok(crossRow, 'kw_re_group row was inserted');
+  assert.ok(!/character flag/.test(crossRow.post_body), 'the near-duplicate attempt never made it into the DB');
+
+  // ── SEMANTIC near-duplicate (2026-09-11 bug, paraphrase case): word-overlap
+  //    alone measurably misses this exact pair (Jaccard 0.53, below the 0.55
+  //    threshold) -- confirmed against the real two posts Heath flagged. The
+  //    semantic layer (LLM judgment, mocked here -- zero network access in
+  //    regressions) is what has to catch it. ─────────────────────────────────
+  db.group_posts.length = 0;
+  db.group_posts.push({
+    id: 'seed-semantic-1', group_key: 'tc_vas', pipeline: 'daily5',
+    post_body: 'Waiving the option period gets talked about like it is a character flag, either you are bold or you are an idiot. It is neither by default.',
+    hook_type: 'contrarian:option_period_waiver',
+    created_at: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+  });
+  let semGenCalls = 0;
+  const semanticParaphraseThenClean = async () => {
+    semGenCalls++;
+    if (semGenCalls === 1) {
+      // Same core claim, different enough wording that layer 2's
+      // word-overlap check alone would NOT catch it (see contrarian ratio
+      // 0.53 computed against the real Heath-flagged pair).
+      return { post_body: 'People treat waiving the option period as a personality trait, either you are the bold buyer or the reckless one, when really it just depends on who is doing it.' };
+    }
+    return { post_body: 'Escalation clauses get pitched as a guaranteed win and they are not, they make sense with a real ceiling and real discipline, they backfire when someone avoids picking a number.' };
+  };
+  let semanticCheckCalls = 0;
+  const mockSemanticDup = async (newBody, recentBodies) => {
+    semanticCheckCalls++;
+    // Simulate what the real Haiku judge call returns: flag the paraphrase,
+    // clear the genuinely different topic.
+    const isParaphrase = /personality trait/.test(newBody) && recentBodies.some((b) => /character flag/.test(b));
+    return { duplicate: isParaphrase, reason: isParaphrase ? 'same core claim, reworded' : null };
+  };
+  const result3c = await gen.runDailyGroup5PostGeneration({
+    sbFetch: mockSbFetch, generate: semanticParaphraseThenClean, send: okSend,
+    loadPainLines: async () => [], log: () => {},
+    groups: groups.filter((g) => g.key === 'kw_re_group'),
+    checkSemanticDup: mockSemanticDup,
+  });
+  assert.ok(semanticCheckCalls >= 1, 'semantic dedup check actually ran');
+  assert.strictEqual(result3c.drafted, 1, 'kw_re_group still lands a post once the paraphrase is rejected and a real new topic is drafted');
+  assert.strictEqual(semGenCalls, 2, 'attempt 1 (semantic paraphrase) blocked, attempt 2 (distinct topic) succeeded');
+  const semRow = db.group_posts.find((r) => r.group_key === 'kw_re_group');
+  assert.ok(!/personality trait/.test(semRow.post_body), 'the semantic-duplicate paraphrase never made it into the DB');
 
   // ── 8. SUPPRESSION LIES: a suppressed send must not stamp telegram_sent_at ─
   db.group_posts.length = 0;

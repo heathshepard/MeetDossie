@@ -46,13 +46,84 @@
 const { eligibleStories, getStory } = require('./verified-story-library');
 const { POSITION_TAKING_FORMATS } = require('./practitioner-test-guard');
 
+// Each non-anecdote format carries MULTIPLE scaffolds (distinct topics, not
+// just distinct wording of the same topic). Root cause of the 2026-09-11
+// "these all read like the same post" bug: every format had exactly ONE
+// fixed scaffold that got "rewritten" every single time it was picked --
+// so two different days landing on the same format (e.g. 'contrarian')
+// were, structurally, always a paraphrase of the identical source
+// paragraph about option-period waivers. Widening the pool and rotating
+// scaffold id (tracked cross-group, not just per-group -- see
+// scaffoldIdsRecentlyUsed() in api/_lib/daily-group5-post-generator.js) is
+// the actual fix; the dedup layer in scripts/_lib/group-post-dedup.js is
+// the safety net, not the primary defense.
+const ASK_ADVICE_SCAFFOLDS = [
+  {
+    id: 'option_period_surprise',
+    text: `Anyone here ever had a deal almost fall apart because of something buried in the option period? Not asking for tips, just want to know I'm not the only one who's had that stomach-drop moment. What happened?`,
+  },
+  {
+    id: 'seller_repair_pushback',
+    text: `Anyone else run into a seller who just flat refuses to take on ANY repairs after inspection, even the ones that'll almost certainly come back up with the next buyer? Not asking how to handle it, more curious how common that stance actually is right now versus a year or two ago. What's the standoff usually look like on your end?`,
+  },
+  {
+    id: 'closing_delay_paperwork',
+    text: `Had a closing slide because of a documentation gap nobody caught until the very end, something like a well or septic record, an HOA doc, a survey issue. Curious how often that's happening to other people lately versus it just being bad luck on my file. What's the paperwork gap that's bitten you most?`,
+  },
+];
+
+const CONTRARIAN_SCAFFOLDS = [
+  {
+    id: 'option_period_waiver',
+    text: `Waiving the option period isn't automatically brave, and it isn't automatically reckless either. For a typical retail buyer it's still a bad idea, you're giving up your one clean way out before you know what's actually wrong with the house. For a cash investor planning a full gut anyway, or a contractor who can price that risk himself, it can genuinely make sense. Most buyers waiving it in this market are neither of those. I just don't think we walk clients through which one they actually are before they sign off on it.`,
+  },
+  {
+    id: 'escalation_clause_oversold',
+    text: `Escalation clauses get pitched like a guaranteed win and they aren't. They make sense when you already know the ceiling you're comfortable with and you're disciplined enough to stop there. They backfire when a buyer uses one to avoid deciding their real number and ends up escalated past what they'd have offered outright. For a buyer with a firm budget and real nerve, it can genuinely win the house clean. For a buyer who's just anxious about losing, it just delays the moment they overpay. Worth being honest with a client about which one they are before you write it in.`,
+  },
+  {
+    id: 'pre_approval_vs_pre_qual',
+    text: `"Always require a pre-approval, never accept a pre-qual" gets repeated like gospel and it's not that simple. In a slow market with one offer on the table, a solid pre-qual from a known local lender is usually fine, you've got time to firm it up before option period ends. In a multiple-offer situation, though, a pre-qual next to someone else's full pre-approval is basically asking your seller to bet on the weaker paper. Same document, completely different amount of risk depending on how many other offers are in the room.`,
+  },
+];
+
+const PROCESS_OBSERVATION_SCAFFOLDS = [
+  {
+    id: 'option_vs_provision_termination',
+    text: `Something I see mixed up a lot: terminating during the option period and terminating under a specific contract provision later on are not the same animal. During the option period you can walk for any reason and it costs you the option fee, nothing else has to be proven. Later on, whether it's the financing addendum or a repair dispute, you need an actual contractual basis, not just a change of mind. Worth walking a buyer through that difference before they're staring at a deadline instead of after.`,
+  },
+  {
+    id: 'earnest_money_vs_option_fee',
+    text: `Earnest money and the option fee get treated as basically the same thing and they're not. The option fee buys the unrestricted right to walk during the option period, full stop, and it's usually non-refundable no matter why you leave. Earnest money is a good-faith deposit toward the purchase that's refundable in a lot more scenarios later in the contract, financing falling through, an unmet contingency, whatever the contract actually allows. Clients hear "deposit" for both and assume they work the same way. They really don't, and the difference matters most exactly when someone's trying to figure out what they get back.`,
+  },
+  {
+    id: 'buyer_rep_agreement_scope',
+    text: `A buyer's representation agreement isn't just paperwork you get signed and forget about, the SCOPE of it actually matters. Some agents write a broad geographic and price range on autopilot without really thinking about whether it matches what the buyer's actually looking at. Then three months later the buyer's interested in something slightly outside that box and nobody remembers to amend it. Worth actually reading your own scope language against what the client's really shopping for instead of treating it as a formality to get past.`,
+  },
+];
+
+const TRACKING_QUESTION_SCAFFOLDS = [
+  {
+    id: 'deadline_tracking_system',
+    text: `Curious what everyone's actual system is for tracking the dates you can't afford to miss. Not the software name, the real workflow behind it. I'm always tightening mine up. What's actually working for you?`,
+  },
+  {
+    id: 'disclosure_review_habit',
+    text: `Genuine question, how thoroughly do you actually read a seller's disclosure notice before you write an offer for a buyer versus after it's already executed and you're in option period? I go back and forth on whether reading it cover to cover upfront saves more headaches than it costs in time. What's your actual habit here, not the textbook answer?`,
+  },
+  {
+    id: 'multiple_offer_communication',
+    text: `Question for the group on multiple-offer situations specifically, what's your actual practice for communicating with the other agents once you know there's competition? Some agents give a deadline and a highest-and-best call, some just let it play out silently and take whatever lands. Curious what you've found actually gets the best result for your client without burning a relationship with the other side.`,
+  },
+];
+
 const FORMATS = [
   {
     id: 'ask_advice',
     label: 'Ask-for-advice / discovery question',
     risk: 'zero',
     requiresStory: false,
-    scaffold: `Anyone here ever had a deal almost fall apart because of something buried in the option period? Not asking for tips, just want to know I'm not the only one who's had that stomach-drop moment. What happened?`,
+    scaffolds: ASK_ADVICE_SCAFFOLDS,
   },
   {
     id: 'verified_anecdote',
@@ -68,21 +139,21 @@ const FORMATS = [
     label: 'Contrarian take',
     risk: 'medium',
     requiresStory: false,
-    scaffold: `Waiving the option period isn't automatically brave, and it isn't automatically reckless either. For a typical retail buyer it's still a bad idea, you're giving up your one clean way out before you know what's actually wrong with the house. For a cash investor planning a full gut anyway, or a contractor who can price that risk himself, it can genuinely make sense. Most buyers waiving it in this market are neither of those. I just don't think we walk clients through which one they actually are before they sign off on it.`,
+    scaffolds: CONTRARIAN_SCAFFOLDS,
   },
   {
     id: 'process_observation',
     label: 'Observation about the TREC process itself',
     risk: 'very_low',
     requiresStory: false,
-    scaffold: `Something I see mixed up a lot: terminating during the option period and terminating under a specific contract provision later on are not the same animal. During the option period you can walk for any reason and it costs you the option fee, nothing else has to be proven. Later on, whether it's the financing addendum or a repair dispute, you need an actual contractual basis, not just a change of mind. Worth walking a buyer through that difference before they're staring at a deadline instead of after.`,
+    scaffolds: PROCESS_OBSERVATION_SCAFFOLDS,
   },
   {
     id: 'tracking_question',
     label: 'Genuine question about deadline-tracking practices',
     risk: 'zero',
     requiresStory: false,
-    scaffold: `Curious what everyone's actual system is for tracking the dates you can't afford to miss. Not the software name, the real workflow behind it. I'm always tightening mine up. What's actually working for you?`,
+    scaffolds: TRACKING_QUESTION_SCAFFOLDS,
   },
 ];
 
@@ -90,6 +161,24 @@ const HOOK_TYPES = FORMATS.map((f) => f.id);
 
 function getFormat(id) {
   return FORMATS.find((f) => f.id === id) || null;
+}
+
+/**
+ * Pick a scaffold variant for a format, avoiding any scaffold id already
+ * used (cross-group, within the dedupe window -- see
+ * scaffoldIdsRecentlyUsed() in api/_lib/daily-group5-post-generator.js).
+ * Falls back to "any scaffold for this format" only if every variant has
+ * been used recently -- never returns nothing, since a slightly-stale
+ * topic beats silently skipping the group.
+ * @param {object} format  a FORMATS entry with a `scaffolds` array
+ * @param {string[]} [excludeScaffoldIds]
+ * @returns {{id: string, text: string}}
+ */
+function pickScaffold(format, excludeScaffoldIds = []) {
+  const pool = Array.isArray(format.scaffolds) ? format.scaffolds : [];
+  const fresh = pool.filter((s) => !excludeScaffoldIds.includes(s.id));
+  const candidates = fresh.length ? fresh : pool;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 /**
@@ -140,17 +229,22 @@ function pickStory(eligibleStoryIds) {
 const DRAFT_MODEL = 'claude-sonnet-5';
 
 /**
- * The compound hook_type stored for an anecdote post, e.g.
- * "verified_anecdote:tc_went_dark" -- lets recency checks (both the
- * generator's per-group story cooldown and the existing hook-type dedupe
- * in scripts/_lib/group-post-dedup.js) tell WHICH story was used, not just
- * that the format was.
+ * The compound hook_type stored for a post, e.g. "verified_anecdote:tc_went_dark"
+ * or "contrarian:option_period_waiver" -- lets recency checks (both the
+ * generator's per-group cooldown and the cross-group hook-type dedupe in
+ * scripts/_lib/group-post-dedup.js) tell WHICH story/scaffold was used, not
+ * just that the format was. Added for non-anecdote formats 2026-09-11: the
+ * bare format id was too coarse to catch "same scaffold, different day"
+ * reuse -- see scaffoldIdsRecentlyUsed() in
+ * api/_lib/daily-group5-post-generator.js.
  */
-function effectiveHookType(format, story) {
-  return format.requiresStory && story ? `${format.id}:${story.id}` : format.id;
+function effectiveHookType(format, story, scaffold) {
+  if (format.requiresStory && story) return `${format.id}:${story.id}`;
+  if (scaffold && scaffold.id) return `${format.id}:${scaffold.id}`;
+  return format.id;
 }
 
-/** Strips any ":<storyId>" suffix back down to a plain format id. */
+/** Strips any ":<storyId>" or ":<scaffoldId>" suffix back down to a plain format id. */
 function baseHookType(hookType) {
   return typeof hookType === 'string' ? hookType.split(':')[0] : hookType;
 }
@@ -164,7 +258,7 @@ function baseHookType(hookType) {
  * it may only adjust wording/tone, never facts.
  */
 function buildAnecdotePrompt({ group, story, painLines, recentOpeners }) {
-  const { VOICE_PROMPT_BLOCK, buildRecentOpenersBlock } = require('./heath-voice-guard');
+  const { VOICE_PROMPT_BLOCK, buildRecentOpenersBlock, buildRecentIdeasBlock } = require('./heath-voice-guard');
   const painBlock = (painLines && painLines.length)
     ? `\nREAL PAIN LANGUAGE FROM REALTORS ONLINE (fuel for authenticity elsewhere in the post, e.g. the closing line -- never use it to add a fact to the story itself, never mention Reddit):\n${painLines.map((p) => `- "${p}"`).join('\n')}\n`
     : '';
@@ -195,7 +289,7 @@ RULES:
 2. 60-180 words. Contractions always.
 3. Ending in a question is optional here -- do not force one if the story reads better as a flat statement (vary this across the run; do not make every post in this run end in "?").
 4. Never mention Dossie, meetdossie.com, "the app", "the tool", or any link.
-${buildRecentOpenersBlock(recentOpeners)}
+${buildRecentOpenersBlock(recentOpeners)}${buildRecentIdeasBlock(recentOpeners)}
 Return STRICT JSON only. No markdown, no commentary.
 {
   "post_body": "<the post, plain text, newlines allowed>"
@@ -211,14 +305,23 @@ Return STRICT JSON only. No markdown, no commentary.
  * routes to buildAnecdotePrompt() in that case -- the free-form
  * "rewrite this scaffold with different specifics" path below is never
  * used for an anecdote format.
+ *
+ * `scaffold` is REQUIRED for every other format -- the specific
+ * {id, text} variant picked by pickScaffold(), not the format's whole
+ * scaffolds array. Passing the wrong one is a caller bug, not a silent
+ * fallback, since silently defaulting to "some scaffold" is exactly the
+ * "everything reads like the same post" failure mode this was built to fix.
  */
-function buildPrompt({ group, format, painLines, promoAllowed, recentOpeners, story }) {
+function buildPrompt({ group, format, painLines, promoAllowed, recentOpeners, story, scaffold }) {
   if (format.requiresStory) {
     if (!story) throw new Error(`buildPrompt: format "${format.id}" requires a verified story but none was provided`);
     return buildAnecdotePrompt({ group, story, painLines, recentOpeners });
   }
+  if (!scaffold || !scaffold.text) {
+    throw new Error(`buildPrompt: format "${format.id}" requires a scaffold variant (from pickScaffold()) but none was provided`);
+  }
 
-  const { buildRecentOpenersBlock } = require('./heath-voice-guard');
+  const { buildRecentOpenersBlock, buildRecentIdeasBlock } = require('./heath-voice-guard');
   const painBlock = (painLines && painLines.length)
     ? `\nREAL PAIN LANGUAGE FROM REALTORS ONLINE (fuel for authenticity — never quote verbatim, never mention Reddit):\n${painLines.map((p) => `- "${p}"`).join('\n')}\n`
     : '';
@@ -232,7 +335,7 @@ HARD RULE: this format carries NO personal anecdote. Do not write "I had a clien
 ${POSITION_TAKING_FORMATS.includes(format.id) ? `HARD RULE (practitioner test, memory/heath-marketing-must-pass-practitioner-test.md): this post is worthless to Heath if it reads as a flat absolute a 20-year agent would dismiss. If you're taking any evaluative position (something is a bad idea, risky, not worth it, etc.), you MUST also name the legitimate exception -- who or what situation it does NOT apply to (e.g. waiving the option period is bad for a typical retail buyer, but can make sense for a cash investor planning a gut renovation or a contractor who can price the risk himself). If you genuinely cannot name a real exception, do not take a flat position at all -- write the post as a neutral observation or question instead. A position with no stated exception will be rejected.
 ` : ''}SCAFFOLD (rewrite this — do not copy verbatim, write fresh copy with the same shape and topic, but do not add any new personal-anecdote claim that isn't already in the scaffold):
 ---
-${format.scaffold}
+${scaffold.text}
 ---
 ${painBlock}
 RULES — NON-NEGOTIABLE:
@@ -242,7 +345,8 @@ RULES — NON-NEGOTIABLE:
 4. Ending in a question is optional -- vary it across the run (do not make every post end in "?").
 5. Never mention Dossie, meetdossie.com, "the app", "the tool", or any link — this post pipeline never self-promotes, in ANY of the 5 target groups, today.
 6. All facts must be plausible/accurate for a working Texas agent (option periods, TREC deadlines, earnest money, etc.) — do not invent a specific dollar figure or date that reads as a real, checkable claim; keep numbers illustrative ("a few thousand", "a couple days") unless the scaffold already used a specific one you're rewriting.
-${buildRecentOpenersBlock(recentOpeners)}
+7. Do not reuse the SAME opening line/hook shape or the SAME core claim as any post listed below under "recent posts" -- those are real posts already published to other groups in the last 30 days. A different scaffold topic still has to read like a genuinely different post, not the same idea in new words.
+${buildRecentOpenersBlock(recentOpeners)}${buildRecentIdeasBlock(recentOpeners)}
 Return STRICT JSON only. No markdown, no commentary.
 {
   "post_body": "<the rewritten post, plain text, newlines allowed>"
@@ -255,6 +359,7 @@ module.exports = {
   DRAFT_MODEL,
   getFormat,
   pickFormat,
+  pickScaffold,
   pickStory,
   effectiveHookType,
   baseHookType,

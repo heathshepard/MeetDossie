@@ -103,7 +103,21 @@ async function handleGroup5PostCallback(action, postId, deps) {
         body: JSON.stringify({ status: 'approved', approved_at: nowIso, auto_post_at: nowIso }),
       },
     );
-    const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+    if (!patch.ok) {
+      // Never collapse a real write failure into "Already handled" -- that
+      // reads as someone else beat you to it when the row is actually still
+      // draft. Root cause 2026-09-11: auto_post_at was missing from the live
+      // schema for three months, so this branch always fell into the "not
+      // won" case and every approve tap silently no-opped.
+      const errText = patch.data?.message || `HTTP ${patch.status}`;
+      console.error(`[group5-post-callback] Approve PATCH failed for ${postId}:`, errText);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ Approve failed — ${errText}. Still in draft, tap Approve again once fixed.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Approve failed — see message');
+      return { ok: false, reason: 'patch_error', status: patch.status, error: patch.data };
+    }
+    const won = Array.isArray(patch.data) && patch.data.length > 0;
     const tail = won
       ? 'Approved — posts on the next local queue-runner tick (5/day budget, 18-24 min varied spacing; queued if over cap or spacing).'
       : 'Already handled.';
@@ -113,7 +127,7 @@ async function handleGroup5PostCallback(action, postId, deps) {
   }
 
   if (action === 'gp5_skip') {
-    await supabaseFetch(
+    const patch = await supabaseFetch(
       `/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}&status=eq.draft`,
       {
         method: 'PATCH',
@@ -121,6 +135,15 @@ async function handleGroup5PostCallback(action, postId, deps) {
         body: JSON.stringify({ status: 'skipped', updated_at: nowIso }),
       },
     );
+    if (!patch.ok) {
+      const errText = patch.data?.message || `HTTP ${patch.status}`;
+      console.error(`[group5-post-callback] Skip PATCH failed for ${postId}:`, errText);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ Skip failed — ${errText}. Still in draft.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Skip failed — see message');
+      return { ok: false, reason: 'patch_error', status: patch.status, error: patch.data };
+    }
     if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\nSkipped.`);
     if (callbackId) await answerCallback(callbackId, 'Skipped');
     return { ok: true, action: 'skipped' };

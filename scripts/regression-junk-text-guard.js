@@ -90,6 +90,54 @@ async function main() {
   // strings, only tuned so genuine short replies survive.
   assert.ok(isJunkText('lol lol lol lol lol lol').junk, 'repeated-word spam in a short string is still rejected');
 
+  // ── 3c. REAL INCIDENT #2 (found 2026-09-11 auditing a 92% comment-reject
+  //    rate): a retroactive sweep on 2026-09-09 used isJunkText() to kill
+  //    FOUR already-scored (62-72), already-drafted candidates purely
+  //    because every scrape from this source carries the same ~33x
+  //    "Facebook" loading-skeleton prefix, real content or not. A repeated
+  //    chrome-word run wrapping real content is NOT the same failure mode
+  //    as the Christina Morgan incident (nothing else in the string at
+  //    all) and must not be rejected the same way. These 4 strings are the
+  //    real post_text values pulled from comment_opportunities (author
+  //    names/identifiers kept, rest verbatim). ──────────────────────────────
+  const NOISE_WRAPPED_REAL_POSTS = [
+    // DFW Realtors -- landlord/bank-statement thread. Real scored 72,
+    // real comment_draft. Wrongly killed by the 2026-09-09 sweep.
+    'Facebook\n'.repeat(33)
+      + 'DiEma Hicks\n \n·\nFollow\n·\nLandlords and property managers, I need your expertise!\n'
+      + 'I have a client who is 1099. Her income started in April of this year, so she hasn’t filed taxes yet '
+      + 'and doesn’t have a return to show.\nShe also doesn’t have pay stubs since she pays herself. '
+      + 'I’ve advised her to start doing that going forward, but that doesn’t help her right now.\nSee more\n'
+      + '1\n22\nView more comments\nTina Griffith\n \n·\n2d\nIn this case I would not rent to any one that didn’t '
+      + 'have 12 months of bank statements, good credit and reserves. Also, I woul… See more\nReply\nShare\n3\n'
+      + 'Tasia Russell\n \n·\n2d\nBank statement loan, what is her credit score?\nReply\nShare\n1\n\n\n\n\nComment as Heath\n'
+      + 'Facebook\n'.repeat(11),
+    // TC VAs -- new-TC welcome thread. Real scored 62, real comment_draft.
+    'Facebook\n'.repeat(33)
+      + 'Christina Morgan\n \n·\nNew TC here!\nHey TC friends! I’ve just started TC work.\n'
+      + 'I have a history of administrative work, and needed to make a career change. So I’ve started '
+      + 'learning TC work with my mom, who is an RE Agent. After I get it down, I’ll be adding agents, '
+      + 'but I need some input so I can set it up correctly.\nSee more\n2\n5\nView more answers\n'
+      + 'Lauren Heier\n \n·\n1h\nFollowing along! I have the same questions \nReply\nShare\n1\n'
+      + 'Lisa Huck\n \n·\n2h\nHi \nReply\nShare\n1\nView 2 replies\n\n\n\n\nAnswer as Heath\n'
+      + 'Facebook\n'.repeat(11),
+  ];
+  for (const [i, text] of NOISE_WRAPPED_REAL_POSTS.entries()) {
+    const verdict = isJunkText(text);
+    assert.ok(!verdict.junk, `noise-wrapped REAL post #${i} must survive the guard (got: ${JSON.stringify(verdict)})`);
+  }
+  // Sanity: these strings DO trip the repeated-token-run condition -- the
+  // fix is that real content downstream saves them, not that the run
+  // detection stopped firing.
+  assert.ok(
+    NOISE_WRAPPED_REAL_POSTS.every((t) => /(?:facebook\s*){5,}/i.test(t)),
+    'sanity: the test fixtures actually contain a >=5 repeated-token run',
+  );
+
+  // The Christina Morgan incident itself must NOT be "fixed" into passing --
+  // it is nothing BUT the repeated run, no real content survives stripping it.
+  assert.ok(isJunkText(CHRISTINA_MORGAN_JUNK).junk, 'pure noise with nothing else must still be rejected after the fix');
+
   // ── 4. Integration: the exact incident is rejected at prefilterPost() —
   //    the real ingest point in scripts/fb-comment-hunt-daily.js, not just
   //    the standalone helper. ──────────────────────────────────────────────

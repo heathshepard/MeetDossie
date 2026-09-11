@@ -110,6 +110,30 @@ function buildRecentOpenersBlock(recentTexts) {
 }
 
 /**
+ * Build the "do not reuse this IDEA" prompt fragment -- the full-body
+ * counterpart to buildRecentOpenersBlock() above. Added 2026-09-11 after
+ * two group posts one day apart, in different groups, turned out to be the
+ * same core claim in synonym-swapped wording ("Waiving the option period
+ * gets talked about like a character flag..." vs "...like a personality
+ * trait..."). Opener-shape checking alone missed it because the two posts
+ * didn't open the same way -- the whole body was the same argument
+ * restated. This shows the model full recent bodies (capped + truncated,
+ * not just the first 6 words) and tells it explicitly not to reuse the
+ * ARGUMENT, not just the phrasing.
+ * @param {string[]} recentBodies  full post_body strings, most-recent-first
+ * @param {number} [limit]  max number of bodies to include (keep the
+ *   prompt from growing unbounded as the pipeline accumulates history)
+ */
+function buildRecentIdeasBlock(recentBodies, limit = 12) {
+  const bodies = (Array.isArray(recentBodies) ? recentBodies : [])
+    .filter(Boolean)
+    .slice(0, limit);
+  if (!bodies.length) return '';
+  const snippets = bodies.map((b) => String(b).trim().replace(/\s+/g, ' ').slice(0, 220));
+  return `\nDO NOT REUSE ANY OF THESE IDEAS OR ARGUMENTS, even reworded (these already posted to other groups in the last 30 days -- members overlap across groups, a reworded repeat reads as a bot):\n${snippets.map((s) => `- "${s}${s.length >= 220 ? '...' : ''}"`).join('\n')}\n`;
+}
+
+/**
  * Batch-level check across a set of drafts generated in the same run — the
  * actual failure mode Heath named was three drafts with the SAME shape,
  * not any single draft being wrong in isolation.
@@ -146,5 +170,6 @@ module.exports = {
   openerSimilarity,
   openerTooSimilar,
   buildRecentOpenersBlock,
+  buildRecentIdeasBlock,
   batchVoiceCheck,
 };

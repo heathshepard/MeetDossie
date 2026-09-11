@@ -39,6 +39,14 @@ const CHROME_PHRASES = [
   /\ball comments\b/i,
 ];
 
+// How many real (non-chrome, length > 1) words must survive stripping a
+// repeated-token noise run before we trust that a post has genuine content
+// wrapped in DOM chrome rather than being nothing but chrome. Set well
+// above what any single genuine short comment needs (those never trip the
+// repeated-run rule in the first place -- this only gates posts that DO
+// have a >=5-run of one token somewhere in them).
+const REAL_CONTENT_MIN_WORDS = 15;
+
 function toWords(text) {
   return String(text || '')
     .toLowerCase()
@@ -60,6 +68,19 @@ function isJunkText(text) {
 
   // 1. A single token repeated back-to-back over threshold — the Christina
   //    Morgan shape exactly ("Facebook Facebook Facebook...").
+  //
+  //    REAL INCIDENT #2 (2026-09-09, found 2026-09-11 auditing a 92%
+  //    rejection rate): a one-off retroactive sweep applied this rule to
+  //    FOUR already-scored, already-drafted candidates (scores 62-72, real
+  //    comment_draft text) and killed all four, because every scrape from
+  //    this source carries the SAME ~33x "Facebook" loading-skeleton prefix
+  //    (and a matching suffix) regardless of whether the post underneath it
+  //    is junk or genuine -- it is page-load chrome, not a junk SIGNAL, when
+  //    real content follows it. A bare repeated-run count can't tell those
+  //    two shapes apart; whether real content remains AFTER the noise can.
+  //    So: only reject outright here if, after collapsing repeated-token
+  //    runs and stripping chrome vocabulary, no substantive content is left
+  //    (the true Christina Morgan case: nothing else in the string at all).
   let maxRun = 1;
   let run = 1;
   for (let i = 1; i < w.length; i++) {
@@ -70,7 +91,20 @@ function isJunkText(text) {
       run = 1;
     }
   }
-  if (maxRun >= 5) return { junk: true, reason: `repeated_token_run:${maxRun}` };
+  if (maxRun >= 5) {
+    const collapsed = [];
+    for (const tok of w) {
+      if (collapsed.length && collapsed[collapsed.length - 1] === tok) continue;
+      collapsed.push(tok);
+    }
+    const realWords = collapsed.filter((tok) => tok.length > 1 && !CHROME_WORDS.has(tok));
+    if (realWords.length < REAL_CONTENT_MIN_WORDS) {
+      return { junk: true, reason: `repeated_token_run:${maxRun}` };
+    }
+    // Otherwise: real content survives the noise wrapper -- fall through to
+    // rules 2-4 below, evaluated against the FULL original text, as a
+    // second opinion rather than an automatic pass.
+  }
 
   // 2. One word dominates the whole blob (only meaningful with enough tokens
   //    that a short genuine "congrats congrats congrats!" doesn't trip it).
@@ -105,4 +139,4 @@ function isJunkText(text) {
   return { junk: false };
 }
 
-module.exports = { isJunkText, CHROME_WORDS, CHROME_PHRASES };
+module.exports = { isJunkText, CHROME_WORDS, CHROME_PHRASES, REAL_CONTENT_MIN_WORDS };
