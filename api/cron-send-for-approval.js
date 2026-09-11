@@ -14,6 +14,17 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
+// Brokerage rubric (Heath's own listing marketing, target_owner='heath-realtor')
+// — separate from the software rubric below it, which stays untouched and
+// keeps scoring Dossie SaaS content. See api/_lib/post-scorer.js header.
+const {
+  isBrokeragePost,
+  checkBrokerageCompliance,
+  scoreBrokeragePost,
+  formatBrokerageScoreLine,
+  BROKERAGE_WARN_THRESHOLD,
+  BROKERAGE_RULES_SUMMARY,
+} = require('./_lib/post-scorer.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -190,7 +201,7 @@ function formatFullContent(post) {
   const hashtags = Array.isArray(post.hashtags) && post.hashtags.length
     ? post.hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '';
-  const algo = PLATFORM_RULES_SUMMARY[platform] || '';
+  const algo = isBrokeragePost(post) ? BROKERAGE_RULES_SUMMARY : (PLATFORM_RULES_SUMMARY[platform] || '');
   const algoLine = algo ? `\n\n📐 Algorithm: ${algo}` : '';
   const verifierSection = formatVerifierSection(post);
 
@@ -334,43 +345,81 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
   for (const post of items) {
     if (!post || !post.id) continue;
 
-    // ─── Quality score (Improvement 1) ───────────────────────────────────
-    // Score the post before sending for approval. Non-fatal: if scoring fails
-    // we still send — just without the score line. Store scores back to DB.
     const caption = String(post.content || '');
     const platform = String(post.platform || '');
-    let scoreData = null;
-    // Only score if not already scored (idempotent on re-runs)
-    if (post.score_hook == null) {
-      scoreData = await scorePost(caption, platform);
-      if (scoreData) {
-        // Persist scores to DB — fire-and-forget, non-fatal
-        supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+    const isBrokerage = isBrokeragePost(post);
+
+    // ─── Brokerage compliance gate (hard block, TREC §535.155) ───────────
+    // Brokerage-name presence is checked deterministically and blocks the
+    // send outright — it is never a score. Everything else about a
+    // brokerage post's quality goes to Heath for his own review; this is
+    // the one thing that never should. Software-rubric (Dossie) posts are
+    // unaffected — this check only runs for target_owner='heath-realtor'.
+    if (isBrokerage) {
+      const compliance = checkBrokerageCompliance(caption);
+      if (!compliance.allowed) {
+        await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
           method: 'PATCH',
           headers: { Prefer: 'return=minimal' },
           body: JSON.stringify({
-            score_hook: scoreData.hook,
-            score_platform_fit: scoreData.platform_fit,
-            score_cta: scoreData.cta,
+            status: 'rejected',
+            rejection_reason: `Blocked by brokerage compliance gate: ${compliance.reason}`,
           }),
-        }).catch((err) => console.warn('[cron-send-for-approval] score patch failed:', err && err.message));
-        console.log(`[cron-send-for-approval] scored ${post.id}: ${scoreData.composite}/10`);
-      }
-    } else {
-      // Already scored — reconstruct for display
-      const h = post.score_hook || 0;
-      const f = post.score_platform_fit || 0;
-      const c = post.score_cta || 0;
-      if (h && f && c) {
-        scoreData = {
-          hook: h,
-          platform_fit: f,
-          cta: c,
-          composite: computeComposite(h, f, c, platform),
-        };
+        }).catch((err) => console.warn('[cron-send-for-approval] compliance reject patch failed:', err && err.message));
+        console.warn(`[cron-send-for-approval] BLOCKED ${post.id} — compliance gate: ${compliance.reason}`);
+        continue;
       }
     }
-    const scoreLine = formatScoreLine(scoreData);
+
+    // ─── Quality score (Improvement 1) ───────────────────────────────────
+    // Score the post before sending for approval. Non-fatal: if scoring fails
+    // we still send — just without the score line.
+    // Brokerage posts (target_owner='heath-realtor') use the SEPARATE
+    // brokerage rubric (Hook/Local/Media/Reply/Specifics) from
+    // api/_lib/post-scorer.js — recomputed each run rather than persisted,
+    // since social_posts' score_* columns are software-rubric-specific
+    // (score_platform_fit/score_cta feed Sage's Dossie-content weekly
+    // review) and reusing them here would corrupt that reporting.
+    // Software-rubric (Dossie) posts keep their EXISTING behavior below,
+    // untouched, including the score_* persistence.
+    let scoreData = null;
+    let scoreLine = '';
+    if (isBrokerage) {
+      scoreData = await scoreBrokeragePost(post);
+      scoreLine = formatBrokerageScoreLine(scoreData);
+    } else {
+      // Only score if not already scored (idempotent on re-runs)
+      if (post.score_hook == null) {
+        scoreData = await scorePost(caption, platform);
+        if (scoreData) {
+          // Persist scores to DB — fire-and-forget, non-fatal
+          supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              score_hook: scoreData.hook,
+              score_platform_fit: scoreData.platform_fit,
+              score_cta: scoreData.cta,
+            }),
+          }).catch((err) => console.warn('[cron-send-for-approval] score patch failed:', err && err.message));
+          console.log(`[cron-send-for-approval] scored ${post.id}: ${scoreData.composite}/10`);
+        }
+      } else {
+        // Already scored — reconstruct for display
+        const h = post.score_hook || 0;
+        const f = post.score_platform_fit || 0;
+        const c = post.score_cta || 0;
+        if (h && f && c) {
+          scoreData = {
+            hook: h,
+            platform_fit: f,
+            cta: c,
+            composite: computeComposite(h, f, c, platform),
+          };
+        }
+      }
+      scoreLine = formatScoreLine(scoreData);
+    }
 
     // ─── Vision claim-match gate ──────────────────────────────────────────
     // Before any approval card with a media_url goes out, confirm the image
@@ -396,8 +445,11 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
     // Thresholds: Twitter 4.5 (punchy statements don't need a CTA);
     //             all other platforms 5.5.
     // Composite 5.5-7.3 (non-Twitter) gets a warning prepended; 7.4+ goes through normally.
+    // NEVER applies to brokerage posts (target_owner='heath-realtor') — Heath
+    // reviews every one himself; a low score there flags the card instead
+    // (see warningPrefix below). Only the compliance gate above can block one.
     const qualityThreshold = getThreshold(platform);
-    if (post.status === 'draft' && scoreData && scoreData.composite < qualityThreshold) {
+    if (!isBrokerage && post.status === 'draft' && scoreData && scoreData.composite < qualityThreshold) {
       const rejectReason = `Auto-rejected by quality scorer: composite ${scoreData.composite}/10 (Hook:${scoreData.hook} Fit:${scoreData.platform_fit} CTA:${scoreData.cta}) — below ${qualityThreshold} threshold`;
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
@@ -414,7 +466,12 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
     const fullContent = formatFullContent(post);
     const isDraft = post.status === 'draft';
     const needsApproval = post.requires_approval === true;
-    const warningPrefix = (scoreData && scoreData.composite >= qualityThreshold && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '';
+    // Brokerage posts never auto-reject, so the warning banner only needs
+    // the upper bound (below BROKERAGE_WARN_THRESHOLD = flag it); software
+    // posts keep the original "survived auto-reject but still low" band.
+    const warningPrefix = isBrokerage
+      ? ((scoreData && scoreData.composite < BROKERAGE_WARN_THRESHOLD) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '')
+      : ((scoreData && scoreData.composite >= qualityThreshold && scoreData.composite < 7.4) ? '⚠️ LOW SCORE — review carefully before approving\n\n' : '');
 
     let buttons, prefix;
     if (!isDraft) {
