@@ -18,10 +18,10 @@ module.exports = async function handler(req, res) {
   }
   try {
     const rls = await runAdminQuery(`
-      select schemaname, tablename, rowsecurity, forcerowsecurity
+      select schemaname, tablename, rowsecurity
       from pg_tables
-      where tablename = ANY($1::text[])
-    `.replace('$1::text[]', `ARRAY['${TABLES.join("','")}']`));
+      where tablename = ANY(ARRAY['${TABLES.join("','")}'])
+    `);
 
     const policies = await runAdminQuery(`
       select schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
