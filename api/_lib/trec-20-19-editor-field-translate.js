@@ -176,6 +176,66 @@ function translateEditorFieldNames(fv) {
     if (combined) out.broker_relationship_disclosure = combined;
   }
 
+  // 2026-09-11 CARTER — ¶2A LAND naming mismatch. Verified directly against
+  // the live dossiesign_auto_map_runs row (interactive-editor-init.js POST
+  // response, real transaction, staging): the editor's actual Fable5 field
+  // keys for this section are land_lot / land_block / land_addition /
+  // land_city / land_county, NOT legal_lot / legal_block / addition_name /
+  // city / county that fill-trec-20-19.js's coordMap has drawn (and had
+  // bbox-verified coordinates for) since the 2026-08-19 fix. Same disease as
+  // every other section this file already patches: the member's typed value
+  // never reached fv under a key fillTrec2019 reads, so it silently never
+  // appeared in their own live preview OR the sent document. Aliased onto
+  // the EXISTING calibrated keys (not new coordinates — those five blanks
+  // were already correctly bbox-verified, just never fed).
+  if (!hasValue(out.legal_lot) && hasValue(src.land_lot)) out.legal_lot = src.land_lot;
+  if (!hasValue(out.legal_block) && hasValue(src.land_block)) out.legal_block = src.land_block;
+  if (!hasValue(out.addition_name) && hasValue(src.land_addition)) out.addition_name = src.land_addition;
+  if (!hasValue(out.city) && hasValue(src.land_city)) out.city = src.land_city;
+  if (!hasValue(out.county) && hasValue(src.land_county)) out.county = src.land_county;
+
+  // 2026-09-11 CARTER — ¶21 NOTICES naming mismatch (page 8). Same
+  // verification method as ¶2A above. The editor's real keys:
+  //   buyer_notice_address_line1 / seller_notice_address_line1  -> the SAME
+  //     first blank fillTrec2019 already draws as buyer_notice_address /
+  //     seller_notice_address (bbox-verified 2026-08-19/08-30). Aliased, not
+  //     re-coordinated.
+  //   buyer_notice_address_line2 / seller_notice_address_line2  -> a real,
+  //     separate, previously-unmapped second blank line directly below the
+  //     first (confirmed via a fresh AcroForm widget-rect dump of the live
+  //     blank asset, 2026-09-11: buyer "at7" rect x=61.3 y=343.7, seller
+  //     "at_28" rect x=326.7 y=342.7 — NOT a duplicate of line1's rect).
+  //     These get their own new coordMap entries in fill-trec-20-19.js
+  //     (genuinely new blanks, not a naming fix), so they are deliberately
+  //     NOT aliased here — fillTrec2019 reads them directly under their own
+  //     editor key names.
+  //   buyer_notice_email_fax_2 / seller_notice_email_fax_2  -> the SAME
+  //     Email(s)/Fax blank already drawn as buyer_notice_email /
+  //     seller_notice_email (which already has its own bbox-verified
+  //     secondLine overflow-wrap — no change needed there).
+  //   buyer_agent_notice_copy_address / seller_agent_notice_copy_address ->
+  //     the ¶21 "To Buyer's/Seller's agent at:" Address line, which
+  //     fillTrec2019 already draws (bbox-verified 2026-08-30) as
+  //     buyers_agent_address / sellers_agent_address.
+  if (!hasValue(out.buyer_notice_address) && hasValue(src.buyer_notice_address_line1)) {
+    out.buyer_notice_address = src.buyer_notice_address_line1;
+  }
+  if (!hasValue(out.seller_notice_address) && hasValue(src.seller_notice_address_line1)) {
+    out.seller_notice_address = src.seller_notice_address_line1;
+  }
+  if (!hasValue(out.buyer_notice_email) && hasValue(src.buyer_notice_email_fax_2)) {
+    out.buyer_notice_email = src.buyer_notice_email_fax_2;
+  }
+  if (!hasValue(out.seller_notice_email) && hasValue(src.seller_notice_email_fax_2)) {
+    out.seller_notice_email = src.seller_notice_email_fax_2;
+  }
+  if (!hasValue(out.buyers_agent_address) && hasValue(src.buyer_agent_notice_copy_address)) {
+    out.buyers_agent_address = src.buyer_agent_notice_copy_address;
+  }
+  if (!hasValue(out.sellers_agent_address) && hasValue(src.seller_agent_notice_copy_address)) {
+    out.sellers_agent_address = src.seller_agent_notice_copy_address;
+  }
+
   return out;
 }
 

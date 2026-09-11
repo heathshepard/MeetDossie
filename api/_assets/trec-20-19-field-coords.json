@@ -414,6 +414,24 @@
       "secondLine": { "x": 375.35, "y": 211.49 },
       "notes": "¶21 Seller notice email. secondLine -- see buyer_notice_email's note; same two-blank-line structure mirrored on the Seller side."
     },
+    "buyer_notice_address_line2": {
+      "page": 8,
+      "x": 62.4,
+      "y": 346.23,
+      "fontSize": 10,
+      "maxWidth": 235,
+      "align": "left",
+      "notes": "2026-09-11 CARTER -- ¶21 Buyer notice address SECOND blank line (unlabeled continuation directly under the labeled 'Address:' line, e.g. street on line1 / city-state-zip on line2). NOT the same field as buyer_notice_address (line1) -- a separate, previously-unmapped AcroForm widget on the live blank asset (rect x0=61.3 y0=343.7, w=237.9 -- confirmed via a fresh pdf-lib widget-rect dump, field internally misnamed 'at7'). x/y offset from the widget's own rect (+1.1x/+2.53y) matches the SAME offset already proven correct on line1 (buyer_notice_address: rect x0=106.6/y0=376.6 vs calibrated x=107.7/y=379.13). Render-verified 2026-09-11 against the live FormEditor + downloaded PDF."
+    },
+    "seller_notice_address_line2": {
+      "page": 8,
+      "x": 328.21,
+      "y": 345.63,
+      "fontSize": 10,
+      "maxWidth": 232,
+      "align": "left",
+      "notes": "2026-09-11 CARTER -- ¶21 Seller notice address SECOND blank line, mirrors buyer_notice_address_line2. Widget rect x0=326.7 y0=342.7 w=233.8 (internally misnamed 'at_28'). Render-verified 2026-09-11."
+    },
     "sellers_agent_address": {
       "page": 8,
       "x": 373.31,

@@ -571,6 +571,15 @@ async function fillTrec2019(pdfDoc, fv) {
   // ¶21 Notice addresses / phones / emails
   drawFieldText('buyer_notice_address', fv.buyer_notice_address || '');
   drawFieldText('seller_notice_address', fv.seller_notice_address || '');
+  // 2026-09-11 CARTER -- second, previously-unmapped address blank (editor
+  // keys buyer_notice_address_line2 / seller_notice_address_line2). See
+  // trec-20-19-field-coords.json notes on these two keys for the widget-rect
+  // verification. Independent of the maxWidth/secondLine overflow wrap used
+  // elsewhere in this file -- this is a real SEPARATE field the member types
+  // into directly (e.g. city/state/zip under a street on line1), not an
+  // auto-wrapped overflow of line1's own value.
+  drawFieldText('buyer_notice_address_line2', fv.buyer_notice_address_line2 || '');
+  drawFieldText('seller_notice_address_line2', fv.seller_notice_address_line2 || '');
   drawFieldText('buyer_notice_phone', fv.buyer_notice_phone || '');
   drawFieldText('seller_notice_phone', fv.seller_notice_phone || '');
   drawFieldText('buyer_notice_email', fv.buyer_notice_email || '');
