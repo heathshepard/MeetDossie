@@ -176,6 +176,203 @@ function translateEditorFieldNames(fv) {
     if (combined) out.broker_relationship_disclosure = combined;
   }
 
+  // 2026-09-11 CARTER — ¶2A LAND naming mismatch. Verified directly against
+  // the live dossiesign_auto_map_runs row (interactive-editor-init.js POST
+  // response, real transaction, staging): the editor's actual Fable5 field
+  // keys for this section are land_lot / land_block / land_addition /
+  // land_city / land_county, NOT legal_lot / legal_block / addition_name /
+  // city / county that fill-trec-20-19.js's coordMap has drawn (and had
+  // bbox-verified coordinates for) since the 2026-08-19 fix. Same disease as
+  // every other section this file already patches: the member's typed value
+  // never reached fv under a key fillTrec2019 reads, so it silently never
+  // appeared in their own live preview OR the sent document. Aliased onto
+  // the EXISTING calibrated keys (not new coordinates — those five blanks
+  // were already correctly bbox-verified, just never fed).
+  if (!hasValue(out.legal_lot) && hasValue(src.land_lot)) out.legal_lot = src.land_lot;
+  if (!hasValue(out.legal_block) && hasValue(src.land_block)) out.legal_block = src.land_block;
+  if (!hasValue(out.addition_name) && hasValue(src.land_addition)) out.addition_name = src.land_addition;
+  if (!hasValue(out.city) && hasValue(src.land_city)) out.city = src.land_city;
+  if (!hasValue(out.county) && hasValue(src.land_county)) out.county = src.land_county;
+
+  // 2026-09-11 CARTER — ¶21 NOTICES naming mismatch (page 8). Same
+  // verification method as ¶2A above. The editor's real keys:
+  //   buyer_notice_address_line1 / seller_notice_address_line1  -> the SAME
+  //     first blank fillTrec2019 already draws as buyer_notice_address /
+  //     seller_notice_address (bbox-verified 2026-08-19/08-30). Aliased, not
+  //     re-coordinated.
+  //   buyer_notice_address_line2 / seller_notice_address_line2  -> a real,
+  //     separate, previously-unmapped second blank line directly below the
+  //     first (confirmed via a fresh AcroForm widget-rect dump of the live
+  //     blank asset, 2026-09-11: buyer "at7" rect x=61.3 y=343.7, seller
+  //     "at_28" rect x=326.7 y=342.7 — NOT a duplicate of line1's rect).
+  //     These get their own new coordMap entries in fill-trec-20-19.js
+  //     (genuinely new blanks, not a naming fix), so they are deliberately
+  //     NOT aliased here — fillTrec2019 reads them directly under their own
+  //     editor key names.
+  //   buyer_notice_email_fax_2 / seller_notice_email_fax_2  -> the SAME
+  //     Email(s)/Fax blank already drawn as buyer_notice_email /
+  //     seller_notice_email (which already has its own bbox-verified
+  //     secondLine overflow-wrap — no change needed there).
+  //   buyer_agent_notice_copy_address / seller_agent_notice_copy_address ->
+  //     the ¶21 "To Buyer's/Seller's agent at:" Address line, which
+  //     fillTrec2019 already draws (bbox-verified 2026-08-30) as
+  //     buyers_agent_address / sellers_agent_address.
+  if (!hasValue(out.buyer_notice_address) && hasValue(src.buyer_notice_address_line1)) {
+    out.buyer_notice_address = src.buyer_notice_address_line1;
+  }
+  if (!hasValue(out.seller_notice_address) && hasValue(src.seller_notice_address_line1)) {
+    out.seller_notice_address = src.seller_notice_address_line1;
+  }
+  if (!hasValue(out.buyer_notice_email) && hasValue(src.buyer_notice_email_fax_2)) {
+    out.buyer_notice_email = src.buyer_notice_email_fax_2;
+  }
+  if (!hasValue(out.seller_notice_email) && hasValue(src.seller_notice_email_fax_2)) {
+    out.seller_notice_email = src.seller_notice_email_fax_2;
+  }
+  if (!hasValue(out.buyers_agent_address) && hasValue(src.buyer_agent_notice_copy_address)) {
+    out.buyers_agent_address = src.buyer_agent_notice_copy_address;
+  }
+  if (!hasValue(out.sellers_agent_address) && hasValue(src.seller_agent_notice_copy_address)) {
+    out.sellers_agent_address = src.seller_agent_notice_copy_address;
+  }
+
+  // 2026-09-11 CARTER — BROKER CONTACT INFORMATION page (page 11 on the live
+  // asset; Fable5's own metadata mislabels it page 10, same page-attribution
+  // drift already seen elsewhere in this run). fillBrokerContactPage() reads
+  // NESTED fv.listing_side / fv.buyer_side objects (8 sub-keys each) against
+  // coordinates bbox-verified 2026-08-19/08-30 — but the editor has never
+  // sent those nested objects; it sends 37 FLAT listing_broker_* /
+  // other_broker_* / selling_associate_* keys instead, so this whole page
+  // silently filled 0 of 37 from the editor despite the coordinate pipeline
+  // being fully wired.
+  //
+  // Render-verified 2026-09-11 (test values through the existing
+  // fillBrokerContactPage coordinates, rendered to PNG against the live
+  // blank page): the real printed page has exactly TWO fillable broker
+  // blocks — "(Broker Firm) represents Seller only as Seller's agent" and
+  // "...represents Buyer only as Buyer's agent" — each with firm, address,
+  // broker license no., associate name/team/email/phone/license. Per this
+  // module's existing per-agent convention (see fillBrokerContactPage's own
+  // docstring), listing_side = the Seller's-agent block, buyer_side = the
+  // Buyer's-agent block. The editor's "listing_broker_*" keys plainly
+  // correspond to the Seller's-agent block (standard listing-side
+  // terminology) and "other_broker_*" to the Buyer's-agent block.
+  //
+  // NOT aliased here (confirmed NOT real gaps — no corresponding printed
+  // blank exists on this page at all, rendered and checked):
+  //   other_broker_represents / listing_broker_represents — the "represents
+  //     Seller only" / "represents Buyer only" text is FIXED printed
+  //     language, not a checkbox election; there is nothing to check.
+  //   other_broker_office_phone / listing_broker_office_phone — no separate
+  //     office-phone blank exists; each block has exactly one "Address:"
+  //     line (already covered by *_address / *_office_address above).
+  //   other_broker_city / other_broker_state / other_broker_zip /
+  //     listing_broker_city / listing_broker_state — no City/State/Zip
+  //     blanks exist on this page. The AcroForm widgets Fable5's rationale
+  //     was generated from (literal field names "City"/"State"/"Zip") are
+  //     real widgets but sit on the "Licensed Supervisor of Associate" /
+  //     "Phone No. of Licensed Supervisor" / "License No." row instead —
+  //     same "field names lie" trap this file's other fixes hit. Confirmed
+  //     by rendering, not by name.
+  //
+  // NOT aliased here (real printed blanks, but NOT wired — see session
+  // report; needs its own coordinate-calibration pass, out of scope for
+  // this alias-only fix):
+  //   selling_associate_* (9) + licensed_supervisor_of_selling_associate(+
+  //     license_no) (2) — the printed page DOES have a separate
+  //     "Intermediary" block (2 sub-associates, "for Seller" / "for Buyer",
+  //     19 blanks total) that these 11 editor keys most plausibly target,
+  //     but zero coordinates exist for it today and the correspondence
+  //     hasn't been bbox-verified field-by-field the way every other fix in
+  //     this file requires before landing.
+  //   broker_fee_disclosure_line_1 — no matching printed text found on this
+  //     page at all; likely mis-attributed by Fable5. Left untouched.
+  //   The 6 "Licensed Supervisor of Associate" / "Phone No. of Licensed
+  //     Supervisor" / "License No." blanks that DO exist under both the
+  //     Seller's-agent and Buyer's-agent blocks have no editor field at all
+  //     (not a naming mismatch — the editor simply never asks for them) —
+  //     a product gap, not something this translation layer can alias.
+  if (!out.listing_side) {
+    const listing = {
+      firm: src.listing_broker_firm_name,
+      brokerLicenseNo: src.listing_broker_license_no,
+      associateName: src.listing_associate_name,
+      teamName: src.listing_associate_team_name,
+      associateEmail: src.listing_associate_email,
+      associatePhone: src.listing_associate_phone,
+      associateLicenseNo: src.listing_associate_license_no,
+      address: src.listing_broker_office_address,
+    };
+    if (Object.values(listing).some((v) => hasValue(v))) out.listing_side = listing;
+  }
+  if (!out.buyer_side) {
+    const buyer = {
+      firm: src.other_broker_firm_name,
+      brokerLicenseNo: src.other_broker_license_no,
+      associateName: src.other_associate_name,
+      teamName: src.other_associate_team_name,
+      associateEmail: src.other_associate_email,
+      associatePhone: src.other_associate_phone,
+      associateLicenseNo: src.other_associate_license_no,
+      address: src.other_broker_address,
+    };
+    if (Object.values(buyer).some((v) => hasValue(v))) out.buyer_side = buyer;
+  }
+
+  // 2026-09-11 CARTER — ¶22 AGREEMENT OF PARTIES addenda. Two of the
+  // editor's 10 keys use different names than the checkbox logic reads;
+  // the other 6 (addendum_buyers_temporary_lease, _sellers_temporary_lease,
+  // _hydrostatic_testing, _environmental_assessment, _propane_gas_service_
+  // area, _mineral_reservation) already match exactly by NAME — see
+  // RESALE_CHECKBOX in fill-trec-20-19.js for the position-verified widget
+  // map — but still need normalizing here. Real bug found in real-browser
+  // verification 2026-09-11 (not caught by the direct-API render test,
+  // which passed a literal JS boolean and so never exercised this path):
+  // CheckboxField.jsx's onChange always sends the STRING 'true'/'false'
+  // (`onChange(e.target.checked ? 'true' : 'false')`), never a real
+  // boolean, for every checkbox in the editor. fillTrec2019's checkbox
+  // gates use strict `=== true`, so an unrenamed key sailing straight
+  // through with no truthy() pass silently never checks the box — same
+  // failure mode as a naming mismatch, just one level down. Every
+  // PRE-EXISTING checkbox alias in this file already goes through
+  // truthy() for exactly this reason (see title_seller_expense,
+  // hoa_mandatory, accepts_as_is above) — these 6 are the only ones that
+  // needed it and didn't get it, because they don't need a name change.
+  if (out.addendum_financing == null && hasValue(src.addendum_third_party_financing)) {
+    out.addendum_financing = truthy(src.addendum_third_party_financing);
+  }
+  if (out.addendum_lead_paint == null && hasValue(src.addendum_lead_based_paint)) {
+    out.addendum_lead_paint = truthy(src.addendum_lead_based_paint);
+  }
+  for (const key of [
+    'addendum_buyers_temporary_lease',
+    'addendum_sellers_temporary_lease',
+    'addendum_hydrostatic_testing',
+    'addendum_environmental_assessment',
+    'addendum_propane_gas_service_area',
+    'addendum_mineral_reservation',
+  ]) {
+    if (hasValue(src[key])) out[key] = truthy(src[key]);
+  }
+
+  // 2026-09-11 CARTER — ¶23 CONSULT AN ATTORNEY. Editor sends
+  // buyer/seller_attorney_name; backend reads buyer/seller_attorney (see
+  // fill-trec-20-19.js coordMap notes: "renamed from buyer_attorney_name to
+  // match handler" — i.e. this exact mismatch was already known, just never
+  // patched here). buyer/seller_attorney_phone already match exactly, no
+  // alias needed. buyer/seller_attorney_fax are genuinely new blanks (see
+  // fill-trec-20-19.js coordMap). buyer/seller_attorney_address are NOT
+  // aliased — render-verified 2026-09-11 against the live blank ¶23 box:
+  // there is no Address blank on this page at all, only Attorney-is/Phone/
+  // Fax/Email; the AcroForm widget between the name and phone rows is an
+  // unlabeled second line for a long attorney name, not an address field.
+  if (!hasValue(out.buyer_attorney) && hasValue(src.buyer_attorney_name)) {
+    out.buyer_attorney = src.buyer_attorney_name;
+  }
+  if (!hasValue(out.seller_attorney) && hasValue(src.seller_attorney_name)) {
+    out.seller_attorney = src.seller_attorney_name;
+  }
+
   return out;
 }
 

@@ -567,10 +567,21 @@ async function fillTrec2019(pdfDoc, fv) {
   drawFieldText('seller_attorney_phone', fv.seller_attorney_phone || '');
   drawFieldText('buyer_attorney_email', fv.buyer_attorney_email || '');
   drawFieldText('seller_attorney_email', fv.seller_attorney_email || '');
+  drawFieldText('buyer_attorney_fax', fv.buyer_attorney_fax || '');
+  drawFieldText('seller_attorney_fax', fv.seller_attorney_fax || '');
 
   // ¶21 Notice addresses / phones / emails
   drawFieldText('buyer_notice_address', fv.buyer_notice_address || '');
   drawFieldText('seller_notice_address', fv.seller_notice_address || '');
+  // 2026-09-11 CARTER -- second, previously-unmapped address blank (editor
+  // keys buyer_notice_address_line2 / seller_notice_address_line2). See
+  // trec-20-19-field-coords.json notes on these two keys for the widget-rect
+  // verification. Independent of the maxWidth/secondLine overflow wrap used
+  // elsewhere in this file -- this is a real SEPARATE field the member types
+  // into directly (e.g. city/state/zip under a street on line1), not an
+  // auto-wrapped overflow of line1's own value.
+  drawFieldText('buyer_notice_address_line2', fv.buyer_notice_address_line2 || '');
+  drawFieldText('seller_notice_address_line2', fv.seller_notice_address_line2 || '');
   drawFieldText('buyer_notice_phone', fv.buyer_notice_phone || '');
   drawFieldText('seller_notice_phone', fv.seller_notice_phone || '');
   drawFieldText('buyer_notice_email', fv.buyer_notice_email || '');
@@ -659,6 +670,38 @@ async function fillTrec2019(pdfDoc, fv) {
       drawFieldText('execution_year_2digit', year2);
     } else {
       console.warn('[fill-trec-20-19] contract_effective_date not in YYYY-MM-DD form, skipping execution block:', fv.contract_effective_date);
+    }
+  } else if (fv.executed_day != null && fv.executed_day !== ''
+      || fv.executed_month != null && fv.executed_month !== ''
+      || fv.executed_year != null && fv.executed_year !== '') {
+    // 2026-09-11 CARTER — the editor also exposes THIS block directly as 3
+    // free-typed fields (executed_day / executed_month / executed_year —
+    // trec-20-19-transaction-field-map.js's executedPart() pre-fills them
+    // from contract_effective_date when it's set, but the editor lets the
+    // agent type over that, and a brand-new dossier with no
+    // contract_effective_date yet shows them blank and directly typeable).
+    // This branch only ever fires when contract_effective_date is ABSENT
+    // (the `if` above already handles the set case, and recomputes from the
+    // date rather than trusting these three independently — left
+    // unchanged), so it can only be reached by the agent's own explicit
+    // keystrokes into these 3 fields, never a silent default — the same
+    // "never guess this blank" standing instruction the 2026-08-19/08-25
+    // history above is about. Does NOT alias onto the execution_day/month/
+    // year_2digit keys directly (those keys are draw-call-local variables,
+    // not fv reads, in the branch above — an alias alone would have been a
+    // silent no-op) — this is the real transform Cole flagged: executed_year
+    // is a plain 4-digit (or already-2-digit) string, the printed blank
+    // wants 2 digits only.
+    if (fv.executed_day != null && fv.executed_day !== '') {
+      drawFieldText('execution_day', String(fv.executed_day));
+    }
+    if (fv.executed_month != null && fv.executed_month !== '') {
+      drawFieldText('execution_month', String(fv.executed_month));
+    }
+    if (fv.executed_year != null && fv.executed_year !== '') {
+      const year4 = String(fv.executed_year);
+      const year2 = year4.length >= 4 ? year4.slice(-2) : year4;
+      drawFieldText('execution_year_2digit', year2);
     }
   }
   drawFieldText('buyer_email', fv.buyer_email || '');
@@ -829,6 +872,24 @@ const RESALE_CHECKBOX = {
   // and Notices" section, first row) against the y-descending sort of
   // page 9's 24 checkboxes in all-fields-FRESH.txt.
   addendum_lead_paint: 'Loan Assumption Addendum_2',
+
+  // 2026-09-11 CARTER -- 6 more ¶22 rows the editor exposes
+  // (agreement_of_parties section, 10 keys total). Position-verified from
+  // scratch against a fresh widget-rect dump of the live blank asset cross-
+  // referenced with the real printed checklist text (pdftotext -bbox), same
+  // methodology as every other fix in this file -- NOT by trusting these
+  // widgets' own internal names, several of which are actively misleading
+  // (e.g. the widget literally named "Environmental Assessment Threatened
+  // or..." sits at the Loan Assumption Addendum row, not Environmental
+  // Assessment -- verified by y-position against the real printed label,
+  // not the field's own name). Each row below independently confirmed this
+  // way; do not re-derive from field names.
+  addendum_buyers_temporary_lease: 'Short Sale Addendum',
+  addendum_sellers_temporary_lease: 'Addendum for Property Subject to',
+  addendum_hydrostatic_testing: 'Addendum for Property Located Seaward',
+  addendum_environmental_assessment: 'Buyers Temporary Residential Lease',
+  addendum_propane_gas_service_area: 'Addendum for Sale of Other Property by',
+  addendum_mineral_reservation: 'Buyer only',
 };
 
 // Text blanks on pages 4/5/7 that sit on the SAME printed line as a
@@ -1075,6 +1136,27 @@ function applyResaleContractCheckboxes(pdfDoc, fv) {
   // requirement; never guessed here).
   if (fv.addendum_lead_paint === true) {
     check(RESALE_CHECKBOX.addendum_lead_paint, 'Lead-Based Paint Addendum (¶22)');
+  }
+  // 2026-09-11 CARTER -- 6 more ¶22 addenda checkboxes the editor exposes.
+  // Same rule as every other addendum election in this file: explicit flag
+  // only, never inferred/guessed from other transaction data.
+  if (fv.addendum_buyers_temporary_lease === true) {
+    check(RESALE_CHECKBOX.addendum_buyers_temporary_lease, "Buyer's Temporary Residential Lease Addendum (¶22)");
+  }
+  if (fv.addendum_sellers_temporary_lease === true) {
+    check(RESALE_CHECKBOX.addendum_sellers_temporary_lease, "Seller's Temporary Residential Lease Addendum (¶22)");
+  }
+  if (fv.addendum_hydrostatic_testing === true) {
+    check(RESALE_CHECKBOX.addendum_hydrostatic_testing, 'Addendum for Authorizing Hydrostatic Testing (¶22)');
+  }
+  if (fv.addendum_environmental_assessment === true) {
+    check(RESALE_CHECKBOX.addendum_environmental_assessment, 'Environmental Assessment, Threatened or Endangered Species, and Wetlands Addendum (¶22)');
+  }
+  if (fv.addendum_propane_gas_service_area === true) {
+    check(RESALE_CHECKBOX.addendum_propane_gas_service_area, 'Addendum for Property in a Propane Gas System Service Area (¶22)');
+  }
+  if (fv.addendum_mineral_reservation === true) {
+    check(RESALE_CHECKBOX.addendum_mineral_reservation, 'Addendum for Reservation of Oil, Gas, and Other Minerals (¶22)');
   }
 
   try { form.updateFieldAppearances(); } catch (e) { /* non-fatal */ }
