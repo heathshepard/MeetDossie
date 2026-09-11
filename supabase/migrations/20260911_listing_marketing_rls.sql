@@ -1,0 +1,38 @@
+-- SECURITY FIX 2026-09-11: listing_marketing_status + listing_marketing_rotation
+-- (created in 20260910b_listing_marketing_pipeline.sql) shipped with RLS
+-- disabled. Supabase's default public-schema grants give anon/authenticated
+-- full SELECT/INSERT/UPDATE/DELETE -- meaning anyone holding the published
+-- anon key could read AND write Heath's own listing-marketing gate/rotation
+-- data (pause state, MLS status/price snapshot, rotation history).
+--
+-- Audited every reader/writer before writing this:
+--   - scripts/listing-marketing-status-sync.js    -> SUPABASE_SERVICE_ROLE_KEY
+--     (REST, apikey/Authorization headers) -- bypasses RLS
+--   - scripts/listing-marketing-generator.js      -> SUPABASE_SERVICE_ROLE_KEY
+--     (REST, apikey/Authorization headers) -- bypasses RLS
+--   - api/admin-migrate-listing-marketing.js       -> direct Postgres via
+--     POSTGRES_URL_NON_POOLING (api/_lib/pg-admin.js), connects as the
+--     project owner role -- bypasses RLS entirely, not PostgREST at all
+--   - api/cron-daily-listing-posts.js              -> DISABLED 2026-09-11
+--     (no-ops); when active it only calls the generator above, never
+--     queries these tables directly itself
+--   - scripts/listing-marketing-generate-live.js,
+--     scripts/_lib/listing-post-compliance-gate.js -> take a status row as
+--     a function argument, never query the table themselves
+--
+-- Zero callers anywhere in MeetDossie or the Dossie frontend repo use the
+-- anon/publishable key against these two tables (grep confirmed across
+-- api/, scripts/, and /mnt/c/Users/Heath/Projects/Dossie). Both tables are
+-- global config -- one row per Heath's own MLS# -- with no user_id/tenant
+-- column (not the multi-tenant `transactions` pattern), but still must not
+-- be world-readable/writable since the anon key is public by design.
+--
+-- Fix: enable RLS, add ZERO policies. service_role (used by both scripts
+-- above) and the direct-Postgres owner connection (used by the admin
+-- migration endpoint) both bypass RLS regardless of policies, so every real
+-- caller keeps working unchanged. anon/authenticated default to deny-all
+-- once RLS is on with no matching policy -- correct here, since nothing
+-- legitimate should ever reach these tables through the anon key.
+
+ALTER TABLE public.listing_marketing_status ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.listing_marketing_rotation ENABLE ROW LEVEL SECURITY;
