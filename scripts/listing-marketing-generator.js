@@ -304,6 +304,61 @@ async function telegramSend(text, replyMarkup) {
   return { ok: res.ok && data?.ok === true, data };
 }
 
+// Detect if a media URL is a video (MP4) or a still image. Same pattern as
+// api/cron-send-for-approval.js's isVideoUrl -- kept local here since this
+// script runs standalone (node, not the Vercel function bundle).
+function isVideoUrl(url) {
+  return /\.(mp4|mov|webm)(\?|$)/i.test(String(url || ''));
+}
+
+// Pick the listing's marketing video for a given orientation. Group posts
+// (Tier 2, FB-only audience) use the SQUARE cut; Tier 1 owned-channel posts
+// stay on the vertical cut already returned by pickMedia() above. Returns
+// null if the listing has no video asset on file yet (e.g. Senisa) --
+// callers must fall back to the text-only card and say so explicitly.
+function pickMediaUrlForOrientation(listing, orientation) {
+  if (!STORAGE_BASE || !listing.videos) return null;
+  const file = orientation === 'square' ? listing.videos.square : listing.videos.vertical;
+  if (!file) return null;
+  return `${STORAGE_BASE}/${listing.videos.bucket}/${file}`;
+}
+
+// 2026-09-11 (Carter): the Tier-2 (FB group) approval card used to be
+// text-only even when the listing had a real marketing video on file --
+// Heath never saw what he was approving, just a caption. group_posts has
+// no media_url column, so this sends the actual video as its OWN Telegram
+// message (sendVideo/sendPhoto) BEFORE the text+buttons card, mirroring the
+// safe two-message pattern already shipped in api/cron-send-for-approval.js
+// (buttons stay on the text message so editMessageText in
+// api/telegram-webhook.js keeps working unmodified -- Telegram can't
+// editMessageText on a photo/video message). Best-effort and non-fatal: a
+// failed media send never blocks the actual approval card from going out.
+async function telegramSendMediaPreview(mediaUrl, caption) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || !mediaUrl) {
+    return { ok: false, reason: 'no_media_or_telegram_env' };
+  }
+  const method = isVideoUrl(mediaUrl) ? 'sendVideo' : 'sendPhoto';
+  const body = { chat_id: TELEGRAM_CHAT_ID, caption: String(caption || '').slice(0, 1020) };
+  if (method === 'sendVideo') body.video = mediaUrl; else body.photo = mediaUrl;
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const raw = await res.text();
+    let data = null;
+    try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
+    if (!res.ok || data?.ok !== true) {
+      console.error(`[listing-gen] media preview send failed (${method}):`, raw.slice(0, 300));
+    }
+    return { ok: res.ok && data?.ok === true, data };
+  } catch (err) {
+    console.error('[listing-gen] media preview send threw:', err && err.message);
+    return { ok: false, reason: err && err.message };
+  }
+}
+
 function lstKeyboard(rowId) {
   return {
     inline_keyboard: [[
@@ -474,7 +529,20 @@ async function run(opts = {}) {
           const post = ins.data[0];
           out.groupDrafted++;
           await upsertRotation(mls, 'group', angle, venueKey);
-          const msg = `LISTING GROUP POST DRAFT\n${listing.address} -> ${venue.name}\nAngle: ${angle}\n\n${body}`;
+          // Show the real marketing video before the text card -- group_posts
+          // has no media_url column, so this is a standalone preview message,
+          // never persisted. Square cut (FB-group audience). Falls back to
+          // the plain text card, saying so explicitly, if no video is on
+          // file for this listing yet.
+          const mediaUrl = pickMediaUrlForOrientation(listing, 'square');
+          let mediaLine;
+          if (mediaUrl) {
+            await telegramSendMediaPreview(mediaUrl, `${listing.address} -> ${venue.name}`);
+            mediaLine = '(video above)';
+          } else {
+            mediaLine = '(no media yet for this listing -- text only)';
+          }
+          const msg = `LISTING GROUP POST DRAFT\n${listing.address} -> ${venue.name}\nAngle: ${angle}\n${mediaLine}\n\n${body}`;
           const sendRes = await telegramSend(msg, lstKeyboard(post.id));
           if (sendRes.ok) {
             await sbFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(post.id)}`, {
@@ -502,4 +570,7 @@ if (require.main === module) {
   run().catch((e) => { console.error('[listing-gen] FATAL', e.message); process.exitCode = 1; });
 }
 
-module.exports = { run, buildOwnedPost, buildGroupPost, nextAngle, pickMedia, refuseIfInstagramWithoutMedia };
+module.exports = {
+  run, buildOwnedPost, buildGroupPost, nextAngle, pickMedia, refuseIfInstagramWithoutMedia,
+  pickMediaUrlForOrientation, telegramSendMediaPreview, telegramSend, lstKeyboard, isVideoUrl,
+};
