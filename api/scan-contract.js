@@ -632,7 +632,10 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "debugParagraph3C": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 3 showing all three lines: "3A. $ [value]", "3B. $ [value]", "3C. Sales Price (Sum of A and B): $ [value]". Show all dollar amounts exactly as they appear.
     "debugParagraph5A": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text from Paragraph 5A "EARNEST MONEY", including the dollar figure exactly as it appears (e.g. "Buyer shall deposit $ 7,600.00 as earnest money with escrow agent...").
     "debugParagraph5B": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Copy the exact verbatim text of the ENTIRE Paragraph 5B "TERMINATION OPTION" paragraph, including both the "...within [X] days after the Effective Date" sentence AND the "Buyer must pay Seller $ [value] (Option Fee)" sentence, with the dollar figure exactly as it appears.
-    "debugParagraph6C": string | null                   // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Paragraph 6C SURVEY has three numbered sub-options (1)/(2)/(3), each a checkbox followed by "Within ___ days after the Effective Date...". Copy the verbatim text of ALL THREE options, and for each one write [X] immediately before it if its checkbox is marked, or [ ] if it is not. Example: "[X] (1) Within 15 days after the Effective Date... [ ] (2) Within ___ days... [ ] (3) Within ___ days...". This lets deterministic code (not you) identify which option is checked and its day count — the checkbox marks are the critical part, do not omit them.
+    "debugParagraph6C": string | null,                  // DEBUG ONLY: ALWAYS POPULATE THIS FIELD. Paragraph 6C SURVEY has three numbered sub-options (1)/(2)/(3), each a checkbox followed by "Within ___ days after the Effective Date...". Copy the verbatim text of ALL THREE options, and for each one write [X] immediately before it if its checkbox is marked, or [ ] if it is not. Example: "[X] (1) Within 15 days after the Effective Date... [ ] (2) Within ___ days... [ ] (3) Within ___ days...". This lets deterministic code (not you) identify which option is checked and its day count — the checkbox marks are the critical part, do not omit them.
+    "debugThirdPartyFinancing": string | null,          // DEBUG ONLY: ONLY if the Third Party Financing Addendum is attached. Copy the verbatim Paragraph 2A sentence containing the day count, e.g. "Buyer may give written notice to Seller within 21 days after the Effective Date." Null if the addendum isn't attached.
+    "debugAppraisalAddendum": string | null,            // DEBUG ONLY: ONLY if the Addendum Concerning Right to Terminate Due to Lender's Appraisal is attached. Copy the verbatim sentence containing the day count (e.g. "Buyer may terminate ... by giving Seller written notice within 21 days after the Effective Date"). Null if not attached.
+    "debugHoaAddendum": string | null                   // DEBUG ONLY: ONLY if the HOA Addendum (TREC 36-x) is attached. Copy the verbatim sentence stating how many days Seller has to deliver the subdivision information/resale certificate(s) after the Effective Date. Null if not attached.
   },
   "confidence": {
     // For EVERY field above (including nested parties.*), include a 0-1 score reflecting how certain you are
@@ -1078,6 +1081,40 @@ async function scanContract(pdfBase64) {
     t.setUTCDate(t.getUTCDate() + days);
     return t.toISOString().slice(0, 10);
   };
+  // CRITICAL: Parse the addenda day counts (financing/appraisal/HOA) directly
+  // from their verbatim debug sentences via regex, same reasoning and same
+  // pattern as optionDays/surveyDeadline elsewhere in this file — asking the
+  // model to both find AND transcribe a day count in one JSON number field is
+  // exactly the failure mode that made those unreliable (confirmed via a live
+  // scan 2026-09-10: financingDays/appraisalTerminationDays/
+  // hoaDocumentDeadlineDays all came back null on a real contract that
+  // plainly states 21 days for all three, while the verbatim debug sentence
+  // was available to parse deterministically). Must run BEFORE the
+  // loanApprovalDeadline/appraisalDeadline/hoaDocumentDeadline computations
+  // directly below, which depend on these day counts.
+  const parseDaysSentence = (s) => {
+    if (typeof s !== 'string') return null;
+    const m = s.match(/within\s+[_\s]*(\d+)[_\s]*\s+days/i);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    return (Number.isFinite(n) && n >= 1 && n <= 90) ? n : null;
+  };
+  if (!extracted.financingDays) {
+    const days = parseDaysSentence(extracted.debugThirdPartyFinancing);
+    if (days) {
+      extracted.financingDays = days;
+      extracted.addenda.thirdPartyFinancingDays = days;
+    }
+  }
+  if (typeof extracted.addenda.appraisalTerminationDays !== 'number') {
+    const days = parseDaysSentence(extracted.debugAppraisalAddendum);
+    if (days) extracted.addenda.appraisalTerminationDays = days;
+  }
+  if (typeof extracted.addenda.hoaDocumentDeadlineDays !== 'number') {
+    const days = parseDaysSentence(extracted.debugHoaAddendum);
+    if (days) extracted.addenda.hoaDocumentDeadlineDays = days;
+  }
+
   if (!extracted.loanApprovalDeadline) {
     const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
     if (calc) extracted.loanApprovalDeadline = calc;
@@ -1344,6 +1381,7 @@ async function scanContract(pdfBase64) {
   // possessionDate/earnestMoneyReceiptDate immediately above, applied to
   // every field a backstop can touch.
   if (typeof extracted.optionDays === 'number') confidence.optionDays = 1.0;
+  if (typeof extracted.financingDays === 'number') confidence.financingDays = 1.0;
   if (typeof extracted.earnestMoney === 'number') confidence.earnestMoney = 1.0;
   if (typeof extracted.optionFee === 'number') confidence.optionFee = 1.0;
   if (extracted.surveyDeadline) confidence.surveyDeadline = 1.0;
