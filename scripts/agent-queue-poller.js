@@ -567,6 +567,7 @@ async function claimNext() {
             result_summary: 'Released by poller — task not tagged autonomous. Cole/Heath to retag if safe.',
             completed_by_agent_session: SESSION_ID,
             metadata: { _released_by_poller: true },
+            steal: false, // this poller never reads stolen_next — see claude-code-worker.js comment, same bug, fixed 2026-09-10
           });
         } catch (e) {
           log(`release-via-complete failed: ${e.message}`, 'ERROR');
@@ -608,6 +609,7 @@ async function complete(taskId, result) {
         _poller_finished_at: new Date().toISOString(),
         ...(pass ? {} : { _audit_failure_reason: reason }),
       },
+      steal: false, // see claude-code-worker.js comment — this poller never reads stolen_next, fixed 2026-09-10
     });
     return;
   }
@@ -623,6 +625,7 @@ async function complete(taskId, result) {
       _poller_session: SESSION_ID,
       _poller_finished_at: new Date().toISOString(),
     },
+    steal: false, // see claude-code-worker.js comment — this poller never reads stolen_next, fixed 2026-09-10
   });
 }
 

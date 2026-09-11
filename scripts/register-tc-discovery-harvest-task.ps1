@@ -30,9 +30,23 @@ if (-not (Test-Path $Wrapper)) {
     exit 1
 }
 
+# Routed through a hidden VBScript launcher (WScript.Shell.Run, window style
+# 0), not cmd.exe directly -- most 30-min ticks have nothing due and exit in
+# ~2s, which as a bare cmd.exe task action flashed a console window on screen
+# every 30 minutes and interrupted Heath's voice dictation (fixed 2026-09-10,
+# Atlas; same pattern as scripts/sms-poller-hidden.vbs from 2026-08-27). Does
+# NOT hide the headed DossieBot-Sage Chrome window the wrapped scripts launch
+# when there IS approved content to post -- see
+# scripts/tc-discovery-harvest-hidden.vbs.
+$VbsLauncher = Join-Path $RepoRoot 'scripts\tc-discovery-harvest-hidden.vbs'
+if (-not (Test-Path $VbsLauncher)) {
+    Write-Error "Hidden launcher not found: $VbsLauncher"
+    exit 1
+}
+
 $Action = New-ScheduledTaskAction `
-    -Execute 'cmd.exe' `
-    -Argument "/c `"$Wrapper`"" `
+    -Execute 'wscript.exe' `
+    -Argument "`"$VbsLauncher`"" `
     -WorkingDirectory $RepoRoot
 
 # Every 30 minutes, indefinitely: a Daily trigger carrying a 30-min/24-h

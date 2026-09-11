@@ -24,7 +24,11 @@ const fs = require('fs');
 const path = require('path');
 const { runClaude, extractJsonTail, sbFetch } = require('./_lib/claude-spawn.js');
 
-const MIRROR_PATH = 'C:\\Users\\Heath Shepard\\Desktop\\Shepard-Ventures\\Marketing\\sage\\trending-audio-live.json';
+// Profile is "Heath", not "Heath Shepard" — that path hasn't existed since
+// the 2026-07-28 machine rebuild (CLAUDE.md Section 24). Was silently
+// swallowed by the try/catch below (mirror_write_failed logged, task still
+// completed) but fixed while in this file, 2026-09-10.
+const MIRROR_PATH = 'C:\\Users\\Heath\\Desktop\\Shepard-Ventures\\Marketing\\sage\\trending-audio-live.json';
 
 function buildPrompt(p) {
   return [

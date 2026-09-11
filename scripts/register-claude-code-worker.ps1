@@ -79,15 +79,23 @@ $principal = New-ScheduledTaskPrincipal `
     -LogonType Interactive `
     -RunLevel Limited
 
-$nodePath = (Get-Command node -ErrorAction SilentlyContinue).Source
-if (-not $nodePath) {
-    Write-Host "FATAL: node.exe not on PATH. Install Node.js 18+ first." -ForegroundColor Red
+# Routed through a hidden PowerShell wrapper (-WindowStyle Hidden), not
+# called directly as the task action -- raw node.exe as a bare scheduled-task
+# action opens a visible console window (Heath reported a terminal flashing
+# and disappearing periodically, interrupting voice dictation; fixed
+# 2026-09-10, Atlas). The wrapper runs node.exe in ITS foreground and
+# propagates the exit code, so Task Scheduler's RestartOnFailure (999x/1min,
+# below) still supervises the real process -- see
+# scripts/claude-code-worker-hidden.ps1 for the full reasoning.
+$HiddenLauncher = Join-Path $RepoDir 'scripts\claude-code-worker-hidden.ps1'
+if (!(Test-Path $HiddenLauncher)) {
+    Write-Host "FATAL: $HiddenLauncher not found." -ForegroundColor Red
     exit 1
 }
 
 $action = New-ScheduledTaskAction `
-    -Execute $nodePath `
-    -Argument "`"$WorkerScript`"" `
+    -Execute 'powershell.exe' `
+    -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$HiddenLauncher`"" `
     -WorkingDirectory $RepoDir
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"

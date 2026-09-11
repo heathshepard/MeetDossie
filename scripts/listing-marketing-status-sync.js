@@ -66,12 +66,34 @@ function parseListingRow(text, mls) {
   //   "<MLS#> <STATUS> <Class> <Type> <Area> \n <Address> \n <City> Texas <Zip> $<price> ..."
   const re = new RegExp(`${mls}\\s+([A-Z]+)\\s+[^\\n]*\\n[^\\n]*\\n\\s*([\\w .]+?)\\s+Texas\\s+(\\d{5})\\s+\\$?([\\d,]+)`);
   const m = text.match(re);
-  if (!m) return null;
+  if (m) {
+    return {
+      status: m[1],
+      city: m[2].trim(),
+      zip: m[3],
+      price: Number(m[4].replace(/,/g, '')),
+    };
+  }
+
+  // 2026-09-11 fallback (Brokerage, urgent fix): confirmed live that
+  // smartBarSearch's detail-report pane can go stale -- body.innerText
+  // still shows the PREVIOUSLY-viewed listing's full detail report (wrong
+  // MLS#, wrong Days on Market, wrong everything) with only the SmartBar's
+  // own results dropdown at the bottom actually reflecting the new query.
+  // That dropdown line is itself clean, correctly-scoped, and safe to
+  // parse directly -- format confirmed live:
+  //   "<MLS#> - <Address>, <City> | <STATUS> | $<price>"
+  // Zip isn't present in this format; caller already falls back to the
+  // fact-pack zip via parsed.zip || listing.zip, so returning zip:null
+  // here is safe and never silently wrong.
+  const fallbackRe = new RegExp(`${mls}\\s*-\\s*([^,\\n]+),\\s*([^\\n|]+?)\\s*\\|\\s*([A-Z]+)\\s*\\|\\s*\\$?([\\d,]+)`);
+  const fm = text.match(fallbackRe);
+  if (!fm) return null;
   return {
-    status: m[1],
-    city: m[2].trim(),
-    zip: m[3],
-    price: Number(m[4].replace(/,/g, '')),
+    status: fm[3],
+    city: fm[2].trim(),
+    zip: null,
+    price: Number(fm[4].replace(/,/g, '')),
   };
 }
 

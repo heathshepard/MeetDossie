@@ -92,6 +92,9 @@ const API_BASE = (process.env.CLAUDE_CODE_WORKER_API_BASE || 'https://meetdossie
 const POLL_MS = Math.max(5000, parseInt(process.env.POLL_MS || '30000', 10));
 const MAX_PER_TICK = Math.max(1, parseInt(process.env.MAX_PER_TICK || '3', 10));
 const SESSION_ID = `ccworker_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+const PC_HEARTBEAT_SECRET = process.env.PC_HEARTBEAT_SECRET;
+const PC_NAME = process.env.PC_HEARTBEAT_NAME || 'SHEPARDVENTURES';
+const HEARTBEAT_MS = 120000; // pc_heartbeats STALE_MINUTES=10 in cron-pc-heartbeat-check.js — well under that
 
 // ---- Logging ---------------------------------------------------------------
 
@@ -148,6 +151,38 @@ async function post(pathname, body) {
   try { json = text ? JSON.parse(text) : null; } catch { /* leave null */ }
   if (!res.ok) throw new Error(`POST ${pathname} -> ${res.status}: ${(json && json.error) || text || res.statusText}`);
   return json || {};
+}
+
+// ---- PC heartbeat ------------------------------------------------------
+// pc_heartbeats had zero rows, ever, as of 2026-09-10 — /api/pc-heartbeat
+// existed and /api/cron-pc-heartbeat-check watches for staleness, but
+// nothing was ever registered to call the former, so the latter never had
+// anything to alert on (an empty table can't go stale). This worker's tick
+// loop is the natural place: it already runs continuously with network
+// access, and "the worker loop stopped ticking" is exactly the failure this
+// is meant to surface (would have caught the 8/29 stall instead of 9/10).
+let _lastHeartbeatAt = 0;
+async function sendHeartbeat() {
+  if (!PC_HEARTBEAT_SECRET) return; // best-effort; missing secret just skips silently
+  const now = Date.now();
+  if (now - _lastHeartbeatAt < HEARTBEAT_MS) return;
+  _lastHeartbeatAt = now;
+  try {
+    const res = await fetch(`${API_BASE}/api/pc-heartbeat`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PC_HEARTBEAT_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        pc_name: PC_NAME,
+        meta: { source: 'claude-code-worker', session_id: SESSION_ID, tick: tickCount },
+      }),
+    });
+    if (!res.ok) log(`heartbeat POST -> ${res.status}`, 'WARN');
+  } catch (err) {
+    log(`heartbeat failed: ${err.message}`, 'WARN');
+  }
 }
 
 // ---- Handler registry ------------------------------------------------------
@@ -208,6 +243,18 @@ async function complete(taskId, status, resultSummary, extraMeta) {
     result_summary: resultSummary,
     completed_by_agent_session: SESSION_ID,
     metadata: extraMeta || {},
+    // steal:false — agent-queue-complete-core.js defaults to atomically
+    // work-stealing the agent's next ready row and returning it as
+    // `stolen_next` on the response. This worker never reads that field, so
+    // leaving the default true silently claims (status='in_progress',
+    // metadata._stolen_by_complete=true) a row nobody is actually working —
+    // it then sits orphaned until the 4h cron-agent-queue-orphan-reset sweep
+    // resets it back to pending. Confirmed live 2026-09-10: task
+    // 8f9afc90 (trending_audio_scan 2026-08-22) was stranded exactly this
+    // way before this worker ever ran it directly. cron-agent-queue-dispatch.js
+    // is the one legitimate consumer of steal:true (it processes stolen_next
+    // in-process within the same invocation) — this worker is not.
+    steal: false,
   });
 }
 
@@ -314,6 +361,8 @@ function writeState(inflight) {
 async function tick() {
   tickCount += 1;
   if (shuttingDown) return;
+
+  sendHeartbeat(); // fire-and-forget, debounced internally to HEARTBEAT_MS
 
   let candidates;
   try {

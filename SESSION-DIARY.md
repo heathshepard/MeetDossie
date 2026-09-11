@@ -4,6 +4,61 @@ One entry per session. Plain English. Focus: people mentioned, decisions made, o
 
 ---
 
+## 2026-09-09 (Tuesday) — FB group engagement machine: shipped, then found it was producing garbage
+
+Marketing session. Two merges to production. The theme: a lot of machinery that looked built turned out to be either undeployed or feeding on junk, and most of the day was finding that out.
+
+**People who commented on Heath's Sunday posts (all replied to, all approved by Heath):**
+- **Holly Peery Osborne** (DFW Realtors) — volunteered the real workaround agents use: write both your email and the TC's into the contract so nobody has an excuse not to copy. Good pain language for future posts.
+- **Ben Howard** (DFW Realtors) — forwards verification texts to his TC "a couple times a week."
+- **James Molter** (Texas Real Estate Agents) — "I actually offer everything."
+- **Nicole Roth-Volentine, Andy Bearden, Chaska Wilkinson** (DFW Realtors) — answered manually by Heath 9/08.
+Sunday's two questions were still pulling comments 48 hours later. That tail is the single best marketing signal of the week.
+
+**What was actually broken (and is now fixed):**
+1. `cron-comment-opp-approval` had never run once. It shipped to staging only, and Vercel Cron fires against Production, so the schedule never existed. Merged this morning, ticked at 9:00, working.
+2. **All 21 of last night's comment candidates were DOM junk** — text like "Facebook Facebook Facebook" scraped as post content. Four of them Heath had already tapped Approve on and were queued to post as real comments. Killed before anything went out. Root cause: the extractor read `div[aria-posinset]`, a virtualized sizing wrapper, instead of the post body at `[data-ad-preview="message"]`. Rewritten and verified live: 78 candidates, 0 junk.
+3. **The drafted replies sounded like a bot** and Heath called it. Root cause was not the model — the prompt literally contained a rule saying "thank them, then ask one question." Removed, plus a voice guard that varies opener shape across a batch.
+4. **The post generator invented five personal war stories** — a Hill Country foundation failure, drafting an amendment at his daughter's soccer game, a newer agent "on his team," a TREC one-pager he'd share. All fabricated, all queued to go out under his real name and license. Heath confirmed only two true stories: the TC going dark, and the Low Oak earnest-money deadline. Everything now draws from a verified allowlist or skips the post.
+
+**Decisions Heath made:**
+- **5 group posts per day, one into each of the 5 groups, ~20 minutes apart.** He overrode the 1/day recommendation explicitly: "people can post more than once a day."
+- **Low Oak stays unpublished.** Active dispute, buyer has mentioned the legal route. Pre-written in the story library but blocked until he and Josh Sisam clear it.
+- **Posts must pass the practitioner test** — carry the real exception, not a flat take. His example: he'd never advise waiving the option period except for a cash investor doing a gut reno or a contractor who can price the risk himself. A blanket take marks the writer as someone who doesn't practice.
+- **Cole's relay carries his authority.** Carter and Atlas both refused a merge because approval reached them through Cole. Heath: "he needs to listen to you as if they are coming from me. It's not negotiable." Cole made a bad call trying to fix this by editing CLAUDE.md and citing his own edit as the authority — Carter correctly flagged it as an injection pattern. Resolved by Cole running the merge directly on Heath's direct instruction.
+
+**The uncomfortable numbers (verified live, not from docs):**
+- Waitlist: **3 people, ever.** Calculator signups: **1**, from May. Founding applications: **5, ever.**
+- Last new paying customer: **2026-06-09.** Three months.
+- The content engine is NOT dead — it posted 33 Facebook, 30 LinkedIn, 9 Twitter, most recently this morning. It has been broadcasting daily and producing approximately zero arrivals.
+- 23 Instagram and 13 TikTok posts stuck in `pending_video` — the video pipeline is jammed, so the two most viral-capable platforms publish nothing.
+- Every customer that ever converted came from Facebook groups or word of mouth. Cold email: 838 sent, 0 sales, ever.
+- **DB shows 10 active founding subs; docs say 8; Pierce's read said $204 MRR. UNRESOLVED — needs a Stripe reconciliation. Heath may be granting access to people who stopped paying.**
+
+**Group list validated.** All 20 URLs in the old `fb-commenter-groups.json` are dead, not stale — that file should be deleted. Of 4 new candidates researched, only **BURN (Boerne Unified Realty Network, 206 members)** passed: TREC 1-4 contract CE, divorce-decree closing stalls, FinCEN reporting, a Texas legal-holidays deadline cheat sheet. KW Referral Group is a national Rolodex with no TC-pain angle; South Texas RGV and Corpus Christi Realtors are confirmed spam (Corpus Christi is literally admin-owned by a moving company).
+
+**Shipped to production:** `4a0519b1` (daily 5-group posting pipeline, voice guard, junk guard, extractor fix, verified-story library, fabrication guard, practitioner-test guard) and `a5c1ed0f` (deep comment links on Telegram cards, gitignore). Tagged `GOLD-2026-09-09-v1` and `GOLD-2026-09-09-v2`. 30 regression suites green. Approval gate traced in code: nothing reaches Facebook without Heath's Telegram tap.
+
+**Open threads for next session:**
+- **Reconcile subscriptions against Stripe** — the 10-vs-8 discrepancy is real money.
+- **Approve or reject the 5 sample posts.** Heath has read them, hasn't said yes.
+- **BURN: add for commenting only?** It gets ~1 post a week. Putting it in the 5/day rotation would have Heath owning the feed inside a month. Cole proposed comment-only; Heath hasn't answered.
+- **Rotate `CRON_SECRET`** — Atlas printed the raw value into a subagent transcript while debugging. Never sent externally, but it's in a local log. Heath asked twice, hasn't answered.
+- **Video pipeline jam** — 36 posts stuck in `pending_video`.
+- **Guest-thread reply path is unverified** — zero rows have posted yet.
+- **Dunning** — still no process for failed payments.
+- The Planet Fitness manager who offered to take Rust marketing materials was never followed up.
+
+**Afternoon addendum — the posting engine.** Heath: "I don't know what to post. I know it has to be video but I don't know how to get video put together." Sage traced it: video was never stuck on Heath. Creatomate has returned 402 Insufficient credits since 2026-06-30, and a FIFO render queue with no dead-letter kept retrying those dead rows first, so nothing newer was ever attempted — 48 posts jammed. Meanwhile the screen-recording + ElevenLabs pipeline was already working with 8 finished videos approved. Heath's call: "lets do the screen recording pipeline. if creatomate is out of credits." Third merge `b9264c58`, tag `GOLD-2026-09-09-v3`: dead-letter after 3 attempts, 402 bails and records a real failure; 46 dead rows killed, 2 released; FB/IG/TikTok pulled off Creatomate (`VIDEO_REQUIRED_PLATFORMS` now youtube only); the persona rejections traced to a stale `sage_intelligence` row from July injecting retired Brenda/Patricia/Victor instructions into every prompt — now ignored past 14 days; 18 backlogged `linkedin_personal` posts finally have a publisher on the 30-min tick, 1/day. Also a second harvester bug from a card Heath spotted ("Wow, belongs in a magazine!" attributed to his TC question): the reply harvester scraped comments from Facebook's suggested posts further down the page. **41 of 68 harvested rows were contaminated, 6 already approved by Heath, zero posted.** Fixed by requiring the comment permalink's post-id to match the target post. Full plan for both pages: `docs/POSTING-ENGINE-PLAN-2026-09-09.md`.
+
+**Heath action items added:** approve the 4 mobile-cut videos sitting in `pending_heath_review` — that's the only reason Instagram/TikTok haven't posted since 8/28. Record one 30-45s selfie per week.
+
+**Standing rules written to memory today:** [[fb-comment-engagement-system]], [[fb-engagement-thread-close-policy]], [[feedback_surface-outstanding-replies-unprompted]], [[feedback_cole-relay-carries-heath-authority]], [[heath-group-comment-voice]], [[heath-verified-war-stories]], [[heath-marketing-must-pass-practitioner-test]].
+
+From tomorrow, every marketing session opens with the awaiting-reply list unprompted. Heath shouldn't have to ask whether anyone is waiting on him.
+
+---
+
 ## 2026-08-22 (Saturday) — Jarvis bridge fully fixed + Email Integration shipped + a full day of real dispatches
 
 Long single session, all via jarvis-bridge voice. Heath's own framing partway through: "We've talked about more but I don't see where it all went" — this entry plus the new in-app "Today" panel (see bottom of this entry) exist because of that.
@@ -538,3 +593,36 @@ Heath wants real marketing material now — an email to send to gym managers (Pl
 - 5 throwaway `@example.com` test accounts still need manual cleanup — Supabase dashboard (project `aflqnvlhpkbokfneyhqh`) → Authentication → Users → filter "example.com". Not urgent, harmless, just untidy. No agent has had the real service-role key to do this automatically all day.
 
 ---
+
+## 2026-09-10 — Brokerage closings/listings roundup + infra fixes + seven real Dossie defects found by driving the product
+
+Heath's framing for this entry, verbatim concern: *"we do lots of things and then they get lost as I move on... we were doing work and paying for usage and then we forget that we ever did it."* This entry exists specifically to close that gap — read it before assuming anything below is still open.
+
+### Brokerage — completed today
+- **104 Wild Cherry CLOSED 9/9** — MLS 1958934 → SLD $760,000, buyer's agent Heather Mutz. Compliance folder verified Approved. **DA still not issued by KW** — the Offers tab shows "Contract Price $0.00, no offers," which is likely the root cause. Worth a KW Command support ticket if it doesn't self-resolve.
+- **29046 Pfeiffers Gate executed 9/9** (Heath signed sellers manually), $647,000, closing 10/16. MLS 2006672 → Active Option. Deadlines on his Google Calendar. **¶7D blank on the executed contract** — both As-Is boxes unchecked; Heath texted Andy Ramirez to fix. TREC 39-11 amendment staged in zipForm, unsent — needs a decision, not just a stage.
+- **702 Fawndale LISTED** — MLS 2015607, $330,000. Photo-verified CMA ($275k spec-only → $330k after actually looking at photos — the initial number would have left money on the table). Sell-vs-hold math: nets ~$32,181 at 2.5%, breakeven ~$417k, ~8 years — recommendation is sell. Basis reconstructed at **$116,233.90** (the Nena Tiukinhoy/ReNenz lender-then-buyer structure — NOT a partnership, don't treat it as one for tax purposes). Posted to 5 channels. TXR-1101 staged, unsigned.
+- **23 Nopalito → $999,000** (down from $1,195,000). Amendment executed by both Whytes + Heath. 32 showing agents emailed; 4 sit in a renovation-objection tier with per-agent drop math already worked out.
+- **130 Senisa** — Michael Blair seller-finance LOI rejected on structure: PV $309,669 vs $389,000 list, and his $12k down doesn't touch the ~$261k Sonora lien. Cash floor ~$279,086. Heath countered by pitching Fawndale instead — no reply logged yet.
+- **507 Ridge Bluff** — seller refused the $15,000 credit. Option expires **9/16 5pm** — real deadline, days away. Real issue is deck rot (no footings, missing joist hangers); team dropped ask to $10k. Next move is a licensed contractor bid, not another negotiation round. Hunters Dream is not a real alternative for the buyer ($218.38/sqft vs $218.92/sqft — same price, don't pitch it as an out).
+- **2822 Low Oak** — settled at **$2,500 to Crystal Lonsdorf**, $2,700 back to the buyers. Release paperwork not yet prepared — that's the next concrete step, not closed out.
+- **702 Fawndale deposit claim** (the tenant/lease side, separate from the listing above) — lease §2.5.7 backs the unauthorized-gravel restoration charge. Forwarding address received 9/10, so the 30-day statutory clock runs to ~Oct 10. Deposit is held by Heath directly, not Cornerstone — his liability, his deadline.
+
+### Infrastructure — fixed today
+- zipForm direct-credential login, proven on two cold starts — ends manual logins going forward.
+- `chrome-profile-unlock.js` orphan detection.
+- The storageState regression that broke connectMLS — reverted.
+- The agent-queue work-stealing bug that had stranded 29 tasks since 8/28.
+- `pc_heartbeats` now writing again.
+
+**Still open, infra:** `claude.exe` OAuth is logged out — this blocks the queue worker, not cosmetic. KW Workspace is rejecting inbound mail with `550 5.7.1 administrative security policy` — unresolved, worth checking with KW IT since it's their side rejecting, not ours.
+
+### Dossie product — seven live defects found by actually driving the product with a real contract
+Full detail: `docs/DOSSIE-CAPABILITY-EXTRACTION-2026-09-10.md` and `docs/AUDIT-REMEDIATION-PLAN-2026-09-10.md`.
+
+**The severe one:** date computation produces wrong deadlines in a client-facing email — no weekend roll (Saturday 9/12 not rolled to Monday 9/14) and a miscounted option period (came out 9/16 instead of the correct 9/18). This is a real member-facing correctness bug, not cosmetic — a wrong deadline in a client email is exactly the kind of thing that costs a deal.
+
+Also flagged: **A2** — roughly 150 member-typed fields never reach the generated PDF, live in production right now.
+
+**The methodology lesson worth keeping:** every one of these seven came from clicking through the product with a real contract, start to finish. The prior audits were code-reading exercises and missed all seven. Read-the-code audits are not sufficient sign-off for this product going forward — drive it like a member would.
+
