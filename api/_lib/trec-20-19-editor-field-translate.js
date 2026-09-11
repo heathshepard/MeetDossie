@@ -236,6 +236,121 @@ function translateEditorFieldNames(fv) {
     out.sellers_agent_address = src.seller_agent_notice_copy_address;
   }
 
+  // 2026-09-11 CARTER — BROKER CONTACT INFORMATION page (page 11 on the live
+  // asset; Fable5's own metadata mislabels it page 10, same page-attribution
+  // drift already seen elsewhere in this run). fillBrokerContactPage() reads
+  // NESTED fv.listing_side / fv.buyer_side objects (8 sub-keys each) against
+  // coordinates bbox-verified 2026-08-19/08-30 — but the editor has never
+  // sent those nested objects; it sends 37 FLAT listing_broker_* /
+  // other_broker_* / selling_associate_* keys instead, so this whole page
+  // silently filled 0 of 37 from the editor despite the coordinate pipeline
+  // being fully wired.
+  //
+  // Render-verified 2026-09-11 (test values through the existing
+  // fillBrokerContactPage coordinates, rendered to PNG against the live
+  // blank page): the real printed page has exactly TWO fillable broker
+  // blocks — "(Broker Firm) represents Seller only as Seller's agent" and
+  // "...represents Buyer only as Buyer's agent" — each with firm, address,
+  // broker license no., associate name/team/email/phone/license. Per this
+  // module's existing per-agent convention (see fillBrokerContactPage's own
+  // docstring), listing_side = the Seller's-agent block, buyer_side = the
+  // Buyer's-agent block. The editor's "listing_broker_*" keys plainly
+  // correspond to the Seller's-agent block (standard listing-side
+  // terminology) and "other_broker_*" to the Buyer's-agent block.
+  //
+  // NOT aliased here (confirmed NOT real gaps — no corresponding printed
+  // blank exists on this page at all, rendered and checked):
+  //   other_broker_represents / listing_broker_represents — the "represents
+  //     Seller only" / "represents Buyer only" text is FIXED printed
+  //     language, not a checkbox election; there is nothing to check.
+  //   other_broker_office_phone / listing_broker_office_phone — no separate
+  //     office-phone blank exists; each block has exactly one "Address:"
+  //     line (already covered by *_address / *_office_address above).
+  //   other_broker_city / other_broker_state / other_broker_zip /
+  //     listing_broker_city / listing_broker_state — no City/State/Zip
+  //     blanks exist on this page. The AcroForm widgets Fable5's rationale
+  //     was generated from (literal field names "City"/"State"/"Zip") are
+  //     real widgets but sit on the "Licensed Supervisor of Associate" /
+  //     "Phone No. of Licensed Supervisor" / "License No." row instead —
+  //     same "field names lie" trap this file's other fixes hit. Confirmed
+  //     by rendering, not by name.
+  //
+  // NOT aliased here (real printed blanks, but NOT wired — see session
+  // report; needs its own coordinate-calibration pass, out of scope for
+  // this alias-only fix):
+  //   selling_associate_* (9) + licensed_supervisor_of_selling_associate(+
+  //     license_no) (2) — the printed page DOES have a separate
+  //     "Intermediary" block (2 sub-associates, "for Seller" / "for Buyer",
+  //     19 blanks total) that these 11 editor keys most plausibly target,
+  //     but zero coordinates exist for it today and the correspondence
+  //     hasn't been bbox-verified field-by-field the way every other fix in
+  //     this file requires before landing.
+  //   broker_fee_disclosure_line_1 — no matching printed text found on this
+  //     page at all; likely mis-attributed by Fable5. Left untouched.
+  //   The 6 "Licensed Supervisor of Associate" / "Phone No. of Licensed
+  //     Supervisor" / "License No." blanks that DO exist under both the
+  //     Seller's-agent and Buyer's-agent blocks have no editor field at all
+  //     (not a naming mismatch — the editor simply never asks for them) —
+  //     a product gap, not something this translation layer can alias.
+  if (!out.listing_side) {
+    const listing = {
+      firm: src.listing_broker_firm_name,
+      brokerLicenseNo: src.listing_broker_license_no,
+      associateName: src.listing_associate_name,
+      teamName: src.listing_associate_team_name,
+      associateEmail: src.listing_associate_email,
+      associatePhone: src.listing_associate_phone,
+      associateLicenseNo: src.listing_associate_license_no,
+      address: src.listing_broker_office_address,
+    };
+    if (Object.values(listing).some((v) => hasValue(v))) out.listing_side = listing;
+  }
+  if (!out.buyer_side) {
+    const buyer = {
+      firm: src.other_broker_firm_name,
+      brokerLicenseNo: src.other_broker_license_no,
+      associateName: src.other_associate_name,
+      teamName: src.other_associate_team_name,
+      associateEmail: src.other_associate_email,
+      associatePhone: src.other_associate_phone,
+      associateLicenseNo: src.other_associate_license_no,
+      address: src.other_broker_address,
+    };
+    if (Object.values(buyer).some((v) => hasValue(v))) out.buyer_side = buyer;
+  }
+
+  // 2026-09-11 CARTER — ¶22 AGREEMENT OF PARTIES addenda. Two of the
+  // editor's 10 keys use different names than the checkbox logic reads;
+  // the other 6 (addendum_buyers_temporary_lease, _sellers_temporary_lease,
+  // _hydrostatic_testing, _environmental_assessment, _propane_gas_service_
+  // area, _mineral_reservation) already match exactly — see RESALE_CHECKBOX
+  // in fill-trec-20-19.js for the position-verified widget map, no alias
+  // needed for those.
+  if (out.addendum_financing == null && hasValue(src.addendum_third_party_financing)) {
+    out.addendum_financing = truthy(src.addendum_third_party_financing);
+  }
+  if (out.addendum_lead_paint == null && hasValue(src.addendum_lead_based_paint)) {
+    out.addendum_lead_paint = truthy(src.addendum_lead_based_paint);
+  }
+
+  // 2026-09-11 CARTER — ¶23 CONSULT AN ATTORNEY. Editor sends
+  // buyer/seller_attorney_name; backend reads buyer/seller_attorney (see
+  // fill-trec-20-19.js coordMap notes: "renamed from buyer_attorney_name to
+  // match handler" — i.e. this exact mismatch was already known, just never
+  // patched here). buyer/seller_attorney_phone already match exactly, no
+  // alias needed. buyer/seller_attorney_fax are genuinely new blanks (see
+  // fill-trec-20-19.js coordMap). buyer/seller_attorney_address are NOT
+  // aliased — render-verified 2026-09-11 against the live blank ¶23 box:
+  // there is no Address blank on this page at all, only Attorney-is/Phone/
+  // Fax/Email; the AcroForm widget between the name and phone rows is an
+  // unlabeled second line for a long attorney name, not an address field.
+  if (!hasValue(out.buyer_attorney) && hasValue(src.buyer_attorney_name)) {
+    out.buyer_attorney = src.buyer_attorney_name;
+  }
+  if (!hasValue(out.seller_attorney) && hasValue(src.seller_attorney_name)) {
+    out.seller_attorney = src.seller_attorney_name;
+  }
+
   return out;
 }
 

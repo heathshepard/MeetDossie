@@ -531,6 +531,24 @@
       "align": "left",
       "notes": "¶23 Buyer's Attorney email"
     },
+    "buyer_attorney_fax": {
+      "page": 9,
+      "x": 106.98,
+      "y": 87.72,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "2026-09-11 CARTER -- ¶23 Buyer's Attorney fax. NEW -- editor exposes buyer_attorney_fax with no prior coordinate. Real printed row confirmed via pdftotext -bbox (page 9): 'Fax ( ) ___' sits directly between the already-calibrated Phone row (y=114.62) and Email row (y=60.86). Widget rect for this row (internal name 'Text6', x0=163.8 y0=85.2) offset by the SAME +2.52y/-30.4x pattern already proven correct on buyer_attorney_phone (widget 'Text1' x0=164.3 y0=112.1 -> calibrated x=106.98 y=114.62). Render-verified 2026-09-11."
+    },
+    "seller_attorney_fax": {
+      "page": 9,
+      "x": 362.87,
+      "y": 88.02,
+      "fontSize": 10,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "2026-09-11 CARTER -- ¶23 Seller's Attorney fax. Mirrors buyer_attorney_fax. Widget rect (internal name 'Text23', x0=394.0 y0=85.1) offset by the same pattern proven on seller_attorney_phone (widget 'Phone11'-adjacent x0=394.6 y0=112.5 -> calibrated x=362.87 y=114.62). Render-verified 2026-09-11."
+    },
     "seller_attorney_email": {
       "page": 9,
       "x": 364.43,
