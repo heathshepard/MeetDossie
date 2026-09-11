@@ -474,12 +474,13 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   - Sale of Other Property Addendum -> the date by which the buyer must close on the other property (addenda.saleOfOtherPropertyDeadline, ISO yyyy-MM-dd)
   - Right to Terminate Due to Lender's Appraisal -> number of days notice (addenda.appraisalTerminationDays)
   - Back-Up Contract -> number of days the buyer has to deliver notice once the primary contract terminates (addenda.backupContractNoticeDays)
+  - HOA Addendum (TREC 36-x) -> number of days Seller must deliver the subdivision information / resale certificate(s) after the effective date (addenda.hoaDocumentDeadlineDays). If the property is subject to more than one association, this is still a single day count off the same effective date — do not average or pick one.
 - Paragraph 23 TERMINATION OPTION: number of option days (also referenced in 5). Mirror into paragraph23TerminationOption.optionDays and paragraph23TerminationOption.optionFee. The option fee is usually payable to Seller, but the contract sometimes names the title company or another party — capture whoever appears on the "payable to" line into paragraph23TerminationOption.optionFeePayableTo.
 - Effective Date: bottom of contract near signatures, labeled "Effective Date".
 - Broker Information section (last page): two side-by-side blocks — see BROKER BLOCK DISAMBIGUATION below.
 
 EXTENDED FIELDS (top-level, look across the whole contract + any attached addenda):
-- titleCompany, titleOfficerName, titleOfficerEmail, titleOfficerPhone — the title company (Paragraph 6A) plus the named escrow / closing officer if listed (sometimes appears in 6A, in the title commitment block, or in special provisions). Email/phone are uncommon on TREC 20-17 itself but capture them when present.
+- titleCompany, titleOfficerName, titleOfficerEmail, titleOfficerPhone — the title company (Paragraph 6A) plus the named escrow / closing officer if listed. The officer's name most commonly appears in PARAGRAPH 5A itself, in the earnest money delivery line — e.g. "Buyer shall deposit earnest money ... with Escrow Agent ... deliver to Melissa Torres of University Title" — read that line in full, not just the company name. It can also appear in the title commitment block or special provisions. Email/phone are uncommon on TREC 20-17 itself but capture them when present.
 - lenderName, loanOfficerName, loanOfficerEmail, loanOfficerPhone — institution name and individual loan officer. Often blank on the contract; pull from the Third Party Financing Addendum if attached. Otherwise null.
 - hoaName, hoaManagementCompany — populated from the HOA Addendum (TREC 36-x) if attached: hoaName is the association name, hoaManagementCompany is the management company / agent that fulfills resale certificates. Both null when no HOA addendum.
 - mlsNumber, bedrooms, bathrooms, sqft, yearBuilt — TREC 20-17 itself does NOT carry these. Only populate if you see them written into Paragraph 11 Special Provisions or a side note. Otherwise null.
@@ -583,6 +584,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
       "saleOfOtherPropertyDeadline": string | null,    // ISO yyyy-MM-dd
       "appraisalTerminationDays": number | null,
       "backupContractNoticeDays": number | null,
+      "hoaDocumentDeadlineDays": number | null,        // days after effective date Seller must deliver HOA resale certs/subdivision info
       "notes": string | null                            // free-form description of any "Other" addendum or unusual terms
     },
     "possession": {
@@ -901,6 +903,7 @@ function emptyResult(warning) {
         saleOfOtherPropertyDeadline: null,
         appraisalTerminationDays: null,
         backupContractNoticeDays: null,
+        hoaDocumentDeadlineDays: null,
         notes: null,
       },
       possession: {
@@ -1089,6 +1092,17 @@ async function scanContract(pdfBase64) {
   if (!extracted.appraisalDeadline && extracted.addenda && typeof extracted.addenda.appraisalTerminationDays === 'number') {
     const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
     if (calc) extracted.appraisalDeadline = calc;
+  }
+
+  // hoaDocumentDeadline — same shape/reasoning as appraisalDeadline directly
+  // above: the HOA Addendum states a day count ("Seller shall deliver ...
+  // within N days after the Effective Date"), never a literal calendar date,
+  // so asking the model for a finished date left this null on every real
+  // HOA-addendum scan. addenda.hoaDocumentDeadlineDays is the reliably
+  // extracted day count; compute the date deterministically from it.
+  if (!extracted.hoaDocumentDeadline && extracted.addenda && typeof extracted.addenda.hoaDocumentDeadlineDays === 'number') {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.hoaDocumentDeadlineDays);
+    if (calc) extracted.hoaDocumentDeadline = calc;
   }
 
   // CRITICAL: Parse the survey day count directly from debugParagraph6C using
@@ -1312,6 +1326,33 @@ async function scanContract(pdfBase64) {
   if (earnestMoneyReceiptDateOverridden) {
     confidence.earnestMoneyReceiptDate = Math.max(0.8, typeof confidence.earnestMoneyReceiptDate === 'number' ? confidence.earnestMoneyReceiptDate : 0);
   }
+
+  // CRITICAL FIX 2026-09-10 — every deterministic backstop above
+  // (optionDays/earnestMoney/optionFee regex parses, surveyDeadline/
+  // appraisalDeadline/loanApprovalDeadline/optionExpirationDate/
+  // earnestMoneyDueDate/optionFeeDueDate computed from day-counts) overwrites
+  // extracted.<field> with a real, verified value, but the CONFIDENCE score
+  // for that same key was left at whatever the model originally self-reported
+  // — frequently 0, because the model correctly said "I can't see a literal
+  // date here" for fields that are supposed to be CALCULATED, not read
+  // (appraisalDeadline/loanApprovalDeadline are explicitly "not calculated"
+  // in the model's own instructions above). The frontend's 0.70 confidence
+  // gate (dossie-app.jsx handleUploadDocument) then silently drops the
+  // correct backstop value and leaves the dossier field blank or at its
+  // prior default — this is the exact "0 days" / blank Key Dates bug Heath
+  // found live on the Pfeiffers Gate dossier. Same fix pattern as
+  // possessionDate/earnestMoneyReceiptDate immediately above, applied to
+  // every field a backstop can touch.
+  if (typeof extracted.optionDays === 'number') confidence.optionDays = 1.0;
+  if (typeof extracted.earnestMoney === 'number') confidence.earnestMoney = 1.0;
+  if (typeof extracted.optionFee === 'number') confidence.optionFee = 1.0;
+  if (extracted.surveyDeadline) confidence.surveyDeadline = 1.0;
+  if (extracted.appraisalDeadline) confidence.appraisalDeadline = 1.0;
+  if (extracted.loanApprovalDeadline) confidence.loanApprovalDeadline = 1.0;
+  if (extracted.hoaDocumentDeadline) confidence.hoaDocumentDeadline = 1.0;
+  if (extracted.optionExpirationDate) confidence.optionExpirationDate = 1.0;
+  if (extracted.earnestMoneyDueDate) confidence.earnestMoneyDueDate = 1.0;
+  if (extracted.optionFeeDueDate) confidence.optionFeeDueDate = 1.0;
 
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
 
