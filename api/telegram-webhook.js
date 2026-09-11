@@ -1687,7 +1687,15 @@ async function handleCallbackQuery(cb) {
     // Single-gate approval — card already rendered at generation time.
     // Approve goes straight to status='approved'.
     console.log(`[telegram-webhook] Post object:`, JSON.stringify(post));
-    const patchBody = { status: 'approved', approved_at: now, approved_by: 'telegram' };
+    // NOTE (2026-09-11, Carter, urgent fix): social_posts.approved_by is a
+    // uuid column, not text. Writing the literal string 'telegram' here made
+    // EVERY social_posts approve PATCH 400 at the DB while the code below
+    // unconditionally told Heath "Approved" anyway — his taps looked like
+    // they worked but the row never left status='draft'. group_posts never
+    // had this bug because its approve handler never sets approved_by.
+    // Leave approved_by unset here (null) for telegram-originated approvals;
+    // it's only ever populated with a real user id elsewhere (jarvis-approve.js).
+    const patchBody = { status: 'approved', approved_at: now };
     // Assign next available slot so the publish cron respects platform daily caps.
     // (Without this, scheduled_for=NULL caused the publish cron to fire all
     // approved rows immediately, bypassing caps. Ridge caught it twice 6/26-6/27.)
@@ -1703,6 +1711,22 @@ async function handleCallbackQuery(cb) {
     console.log(`[telegram-webhook] Patch body:`, JSON.stringify(patchBody));
     const patchResult = await patchPost(postId, patchBody);
     console.log(`[telegram-webhook] Patch result:`, JSON.stringify(patchResult));
+
+    // NEVER tell Heath "Approved" if the DB write actually failed — a
+    // failure must be visible in Telegram, not silently leave the row as
+    // draft while the card appears to respond. This is the fix for the
+    // "taps aren't registering" bug (2026-09-11): the code used to skip
+    // this check entirely.
+    if (!patchResult || patchResult.ok === false) {
+      const errDetail = patchResult?.data?.message || patchResult?.error || `HTTP ${patchResult?.status || '?'}`;
+      console.error(`[telegram-webhook] APPROVE PATCH FAILED for ${postId}:`, errDetail);
+      if (chatId && messageId) {
+        await editMessage(chatId, messageId, `${originalBody}\n\n❌ APPROVE FAILED — still draft. Error: ${errDetail}\nTap Approve again after this is fixed.`);
+      }
+      if (callbackId) await answerCallback(callbackId, 'Approve failed — see message');
+      return;
+    }
+
     await bumpBatchCounter(postId, 'approved_posts');
     if (chatId && messageId) {
       await editMessage(chatId, messageId, `${originalBody}\n\n✅ Approved — will post at next slot.`);
