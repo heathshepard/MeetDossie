@@ -28,7 +28,7 @@
 //   - hoa_document_deadline     → "HOA document deadline"
 //   - loan_approval_deadline    → "Loan approval deadline"
 //   - possession_date           → "Possession"
-//   - option_fee_due_date       → "Option fee delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once option_fee_receipt_date is set
+//   - option_fee_due_date       → "Option fee delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once option_fee_paid_at is set
 //   - earnest_money_due_date    → "Earnest money delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once deposited/confirmed
 //   - expected_completion_date  → "Expected completion (new construction)" — T-7 if CO not received
 //   - builder_warranty_expiration → "Builder warranty expiration" — T-30
@@ -85,13 +85,13 @@ const DEADLINE_FIELDS = [
   { col: 'possession_date',        label: 'Possession date' },
   // TREC ¶5.A funds delivery — the 3-day window means T-7 can never fire, so
   // these run T-3/T-1/T-0. Receipt suppression uses the *received* fields
-  // (option_fee_receipt_date / earnest_money_deposited_at|confirmed_at),
+  // (option_fee_paid_at / earnest_money_deposited_at|confirmed_at),
   // never "instructions sent" — sent is not received (spec Gate 6).
   {
     col: 'option_fee_due_date',
     label: 'Option fee delivery deadline (TREC ¶5.A)',
     milestones: [3, 1, 0],
-    suppressWhen: (tx) => Boolean(tx.option_fee_receipt_date),
+    suppressWhen: (tx) => Boolean(tx.option_fee_paid_at),
     deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).option_fee_due_date,
   },
   {
@@ -252,7 +252,7 @@ async function loadOpenTransactions(userId) {
     // (option_fee_due_date / earnest_money_due_date ride in via baseFields —
     // they're DEADLINE_FIELDS columns. Requires the 20260903 migration.)
     'contract_effective_date',
-    'option_fee_receipt_date',
+    'option_fee_paid_at',
     'earnest_money_deposited_at',
     'earnest_money_confirmed_at',
     'inspection_scheduled_at',
