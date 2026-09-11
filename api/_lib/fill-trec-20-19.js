@@ -375,6 +375,14 @@ async function fillTrec2019(pdfDoc, fv) {
   drawFieldText('addition_name', fv.addition_name);
   drawFieldText('exclusions', fv.exclusions);
 
+  // ¶11 SPECIAL PROVISIONS (Section 11) — 2026-09-10 CARTER regression fix
+  // (Defect A2). These two keys are exactly what the Phase 1 FormEditor's
+  // Fable5-derived field list already sends (no translate-layer renaming
+  // needed) — the only thing missing was a coordinate + draw call. See
+  // trec-20-19-field-coords.json for the bbox-verified placement.
+  drawFieldText('special_provisions_line1', fv.special_provisions_line1);
+  drawFieldText('special_provisions_line2', fv.special_provisions_line2);
+
   // SALES PRICE (Section 3)
   let cashPortion = (fv.down_payment_amt != null && fv.down_payment_amt !== '') ? Number(fv.down_payment_amt) : null;
   if (cashPortion == null && fv.sale_price != null && fv.loan_amount != null) {

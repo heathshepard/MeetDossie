@@ -304,6 +304,24 @@
       "align": "left",
       "notes": "¶12A(2)(b) Seller expense cap for Buyer"
     },
+    "special_provisions_line1": {
+      "page": 6,
+      "x": 350,
+      "y": 237.4,
+      "fontSize": 9,
+      "maxWidth": 200,
+      "align": "left",
+      "notes": "¶11 SPECIAL PROVISIONS -- bbox-verified against the blank template (pdftotext -bbox) AND render-calibrated (pdftoppm) 2026-09-10 CARTER regression fix -- the raw 792-minus-topOriginY conversion this file's other fields document lands text one full line (~11pt) too high; every entry here was confirmed by actually rendering a test fill and reading the page, not by formula alone. This is the trailing blank on the SAME printed line as the closing '...attorney.)' text, running to the right margin. NEW -- there was previously no coordinate at all for either special-provisions blank; the Phase 1 FormEditor's Fable5-derived keys special_provisions_line1/line2 were never wired into this file, so anything a member typed here was silently dropped from every document ever sent (Defect A2, docs/DOSSIESIGN-GAP-ANALYSIS-2026-09-01.md)."
+    },
+    "special_provisions_line2": {
+      "page": 6,
+      "x": 62,
+      "y": 226.36,
+      "fontSize": 9,
+      "maxWidth": 488,
+      "align": "left",
+      "notes": "¶11 SPECIAL PROVISIONS -- the first fully-blank printed line below the 'attorney.)' row (line1 above). A THIRD blank segment exists below this one (ending in the paragraph's closing period) but is intentionally left undrawn -- the editor exposes exactly 2 field keys, matching the escrow_agent_address_line1/line2 pattern elsewhere in this file. Render-calibrated, not formula-only -- see line1 note."
+    },
     "broker_compensation_other_broker_amt": {
       "page": 7,
       "x": 311.84,
