@@ -11,6 +11,7 @@ const {
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
+const { addCalendarDaysYMD, rollForwardYMD } = require('./_lib/business-calendar.js');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -788,6 +789,43 @@ function splitPartyNames(combined) {
     .filter(Boolean);
 }
 
+// Ordered, human-labeled deadline chain for the scan-result UI. Pure
+// presentation over fields the deterministic backstops above already
+// computed — this function does no date math of its own beyond ordering, so
+// it can't drift from the transactions columns cron-deadline-reminders.js
+// reads (option_expiration_date, earnest_money_due_date, option_fee_due_date,
+// loan_approval_deadline, appraisal_deadline, survey_deadline,
+// hoa_document_deadline, closing_date).
+function buildDeadlineChain(extracted) {
+  if (!extracted || !extracted.contractEffectiveDate) return [];
+  const items = [];
+  const add = (key, label, date, extra) => {
+    if (!date) return;
+    items.push({ key, label, date, ...(extra || {}) });
+  };
+
+  add('effective', 'Effective', extracted.contractEffectiveDate);
+  add('optionFee', 'Option fee due', extracted.optionFeeDueDate, {
+    amount: extracted.optionFee || null,
+    rolled: !!extracted.fundsDeliveryRolled,
+    rolledFromDate: extracted.fundsDeliveryRolled ? extracted.fundsDeliveryDueDateRaw : null,
+  });
+  add('earnestMoney', 'Earnest money due', extracted.earnestMoneyDueDate, {
+    amount: extracted.earnestMoney || null,
+    rolled: !!extracted.fundsDeliveryRolled,
+    rolledFromDate: extracted.fundsDeliveryRolled ? extracted.fundsDeliveryDueDateRaw : null,
+  });
+  add('optionExpiration', 'Option period expires', extracted.optionExpirationDate);
+  add('financing', 'Financing approval due', extracted.loanApprovalDeadline);
+  add('appraisal', 'Appraisal termination deadline', extracted.appraisalDeadline);
+  add('survey', 'Survey deadline', extracted.surveyDeadline);
+  add('hoaDocs', 'HOA resale certificates due', extracted.hoaDocumentDeadline);
+  add('closing', 'Closing', extracted.closingDate);
+
+  items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return items;
+}
+
 function emptyResult(warning) {
   return {
     extracted: {
@@ -826,6 +864,12 @@ function emptyResult(warning) {
       surveyDeadline: null,
       hoaDocumentDeadline: null,
       loanApprovalDeadline: null,
+      optionExpirationDate: null,
+      earnestMoneyDueDate: null,
+      optionFeeDueDate: null,
+      fundsDeliveryDueDateRaw: null,
+      fundsDeliveryRolled: false,
+      deadlineChain: [],
       earnestMoneyReceiptDate: null,
       debugEarnestMoneyReceiptBlock: null,
       debugOptionFeeReceiptDate: null,
@@ -1172,6 +1216,42 @@ async function scanContract(pdfBase64) {
       }
     }
   }
+
+  // DEADLINE CHAIN — turn the Effective Date into the actual TREC deadline
+  // dates. Reuses api/_lib/business-calendar.js (the canonical ¶5A(2)
+  // weekend/Texas-Legal-Holiday rollover implementation — same module the
+  // deadline-reminder cron and the manual-edit endpoints already use) rather
+  // than re-deriving rollover logic here. Per that module's ROLLOVER_APPLIES,
+  // rollover is scoped ONLY to option-fee/earnest-money delivery — option
+  // expiration, financing, appraisal, survey, and closing are fixed calendar
+  // dates and never roll, even on a weekend or Legal Holiday.
+  //
+  // Day counts always come from THIS contract's own extraction (optionDays,
+  // paragraph5.earnestMoneyDeadlineDays), never a hardcoded default, except
+  // for the TREC-standard 3-day ¶5A funds-delivery window when the model
+  // didn't capture a deviation from that printed default.
+  if (extracted.contractEffectiveDate) {
+    const effective = extracted.contractEffectiveDate;
+
+    if (!extracted.optionExpirationDate && typeof extracted.optionDays === 'number' && extracted.optionDays > 0) {
+      extracted.optionExpirationDate = addCalendarDaysYMD(effective, extracted.optionDays);
+    }
+
+    const deliveryDays = (extracted.paragraph5 && typeof extracted.paragraph5.earnestMoneyDeadlineDays === 'number' && extracted.paragraph5.earnestMoneyDeadlineDays > 0)
+      ? extracted.paragraph5.earnestMoneyDeadlineDays
+      : 3; // TREC ¶5.A printed default
+    const rawDeliveryDate = addCalendarDaysYMD(effective, deliveryDays);
+    const rolledDeliveryDate = rollForwardYMD(rawDeliveryDate);
+    if (!extracted.earnestMoneyDueDate) extracted.earnestMoneyDueDate = rolledDeliveryDate;
+    if (!extracted.optionFeeDueDate) extracted.optionFeeDueDate = rolledDeliveryDate;
+    extracted.fundsDeliveryDueDateRaw = rawDeliveryDate;
+    extracted.fundsDeliveryRolled = rolledDeliveryDate !== rawDeliveryDate;
+  }
+
+  // Ordered, display-ready deadline chain for the scan-result UI. Built
+  // AFTER all the deterministic backstops above so it reflects the final,
+  // corrected values (not the model's raw, less-reliable first pass).
+  extracted.deadlineChain = buildDeadlineChain(extracted);
 
   // CRITICAL: Cross-check earnestMoneyReceiptDate against the two neighboring
   // receipt boxes on the same page (debugOptionFeeReceiptDate /
