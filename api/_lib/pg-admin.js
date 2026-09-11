@@ -46,4 +46,34 @@ async function runAdminSql(sql) {
   }
 }
 
-module.exports = { runAdminSql };
+/**
+ * Run a single read-only SQL query directly against Postgres and return rows.
+ * Same connection/TLS handling as runAdminSql — for admin introspection
+ * endpoints (pg_tables/pg_policies/information_schema checks), never for
+ * app-data reads.
+ * @param {string} sql
+ * @returns {Promise<object[]>}
+ */
+async function runAdminQuery(sql) {
+  if (!CONNECTION_STRING) {
+    throw new Error('postgres_connection_env_missing');
+  }
+
+  const prevTlsFlag = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  const client = new Client({
+    connectionString: CONNECTION_STRING,
+    ssl: { rejectUnauthorized: false, require: true },
+  });
+
+  try {
+    await client.connect();
+    const result = await client.query(sql);
+    return result.rows;
+  } finally {
+    await client.end().catch(() => {});
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = prevTlsFlag;
+  }
+}
+
+module.exports = { runAdminSql, runAdminQuery };
