@@ -36,27 +36,27 @@
     {
       "@type": "Question",
       "name": "How long is the Texas option period?",
-      "acceptedAnswer": { "@type": "Answer", "text": "The Texas option period is whatever number of days the buyer and seller negotiate in Paragraph 5B of TREC Form 20-17. Typical option periods run 5 to 14 days. The option period begins on the Effective Date and ends at 5:00 PM local time on the day specified — calendar days, no weekend or holiday rollover." }
+      "acceptedAnswer": { "@type": "Answer", "text": "The Texas option period is whatever number of days the buyer and seller negotiate in Paragraph 5B of TREC Form 20-19. Typical option periods run 5 to 14 days. The option period begins on the Effective Date and ends at 5:00 PM local time on the day specified — calendar days, no weekend or holiday rollover." }
     },
     {
       "@type": "Question",
       "name": "When is earnest money due in Texas?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Per TREC 20-17 Paragraph 5A, earnest money is due within 3 days after the Effective Date by default. If that 3rd day falls on a Saturday, Sunday, or legal holiday, the deadline rolls forward to the next business day per Paragraph 23." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Per TREC 20-19 Paragraph 5A, earnest money is due within 3 days after the Effective Date by default. If that 3rd day falls on a Saturday, Sunday, or legal holiday, the deadline rolls forward to the next business day per Paragraph 5A(2)." }
     },
     {
       "@type": "Question",
       "name": "Does the option period expire on weekends in Texas?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Yes. The option period (TREC 20-17 Paragraph 5B) uses calendar days and does NOT roll over for weekends or holidays. If the option period ends on a Saturday, the buyer must still deliver any termination notice by 5:00 PM that Saturday." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. The option period (TREC 20-19 Paragraph 5B) uses calendar days and does NOT roll over for weekends or holidays. If the option period ends on a Saturday, the buyer must still deliver any termination notice by 5:00 PM that Saturday." }
     },
     {
       "@type": "Question",
       "name": "How does TREC handle deadlines that fall on a holiday?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Paragraph 23 of TREC 20-17 rolls deadlines that fall on Saturday, Sunday, or a legal holiday to the next business day — except for the option period, which never rolls. This calculator applies the rollover rule automatically to earnest money, option fee, financing, and title commitment deadlines." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Paragraph 5A(2) of TREC 20-19 rolls earnest money and option fee deadlines that fall on a Saturday, Sunday, or legal holiday to the next business day. That rollover is scoped narrowly — it does NOT apply to the option period, survey, financing, title, or closing deadlines, which stay on their calendar date even if it lands on a weekend or holiday." }
     },
     {
       "@type": "Question",
       "name": "When is the financing deadline in Texas?",
-      "acceptedAnswer": { "@type": "Answer", "text": "The financing deadline is set in the Third Party Financing Addendum (TREC Form 40-11) — typically 21 days after the Effective Date. It rolls forward per Paragraph 23 of the main contract if it lands on a weekend or holiday." }
+      "acceptedAnswer": { "@type": "Answer", "text": "The financing deadline is set in the Third Party Financing Addendum (TREC Form 40-11) — typically 21 days after the Effective Date. It's a fixed calendar-day count and does NOT roll forward for weekends or holidays." }
     }
   ]
 }
@@ -185,7 +185,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
   <p class="hero-sub">
     Plug in your contract dates. We'll compute your option period, earnest money,
     financing, and closing deadlines using the same TREC engine that powers Dossie —
-    weekend and holiday rollover applied automatically per Paragraph 23.
+    weekend and holiday rollover applied automatically per ¶ 5A(2) (earnest money & option fee only).
   </p>
 </header>
 
@@ -193,7 +193,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
   <div class="calc-grid">
     <section class="panel" aria-labelledby="inputs-title">
       <h2 class="panel-title" id="inputs-title">Contract dates</h2>
-      <p class="panel-sub">Match the values from your TREC 20-17 contract.</p>
+      <p class="panel-sub">Match the values from your TREC 20-19 contract.</p>
 
       <label class="field">
         <span class="field-label">Effective date</span>
@@ -225,13 +225,13 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
       <label class="field">
         <span class="field-label">Financing days (0 if cash)</span>
         <input class="field-input" type="number" id="financingDays" min="0" step="1" value="21">
-        <span class="field-hint">Third Party Financing Addendum (40-11). Rolls per ¶ 23.</span>
+        <span class="field-hint">Third Party Financing Addendum (40-11). Calendar days — no rollover.</span>
       </label>
 
       <label class="field">
         <span class="field-label">Survey days (0 if waived)</span>
         <input class="field-input" type="number" id="surveyDays" min="0" step="1" value="10">
-        <span class="field-hint">Per ¶ 6C. Calendar days with rollover.</span>
+        <span class="field-hint">Per ¶ 6C. Calendar days — no rollover.</span>
       </label>
     </section>
 
@@ -279,7 +279,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
     </details>
     <details class="faq-item">
       <summary class="faq-q">When is earnest money due in Texas? <span class="faq-toggle">+</span></summary>
-      <div class="faq-a">Per TREC 20-17 ¶ 5A, earnest money is due within 3 days after the Effective Date by default. If that day is a Saturday, Sunday, or legal holiday, ¶ 23 rolls it to the next business day.</div>
+      <div class="faq-a">Per TREC 20-19 ¶ 5A, earnest money is due within 3 days after the Effective Date by default. If that day is a Saturday, Sunday, or legal holiday, ¶ 5A(2) rolls it to the next business day.</div>
     </details>
     <details class="faq-item">
       <summary class="faq-q">Does the option period expire on weekends? <span class="faq-toggle">+</span></summary>
@@ -287,11 +287,11 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
     </details>
     <details class="faq-item">
       <summary class="faq-q">How does TREC handle deadlines on a holiday? <span class="faq-toggle">+</span></summary>
-      <div class="faq-a">¶ 23 rolls deadlines that fall on Saturday, Sunday, or a legal holiday to the next business day — except the option period, which never rolls. Earnest money, option fee, financing, title commitment, and survey all roll automatically.</div>
+      <div class="faq-a">¶ 5A(2) rolls earnest money and option fee deadlines that fall on Saturday, Sunday, or a legal holiday to the next business day. That's a narrow rule — the option period, survey, financing, title, and closing deadlines are all fixed calendar dates and do NOT roll, even on a weekend or holiday.</div>
     </details>
     <details class="faq-item">
       <summary class="faq-q">When is the financing deadline? <span class="faq-toggle">+</span></summary>
-      <div class="faq-a">It's set in the Third Party Financing Addendum (40-11) — typically 21 days after the Effective Date. It rolls per ¶ 23 of the main contract if it lands on a weekend or holiday.</div>
+      <div class="faq-a">It's set in the Third Party Financing Addendum (40-11) — typically 21 days after the Effective Date. It's a fixed calendar-day count and does not roll for weekends or holidays.</div>
     </details>
   </div>
 </section>
@@ -303,8 +303,11 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
 <script>
 // ============================================================================
 // TREC Deadline Engine — port of Dossie's src/utils/trec-deadline-engine.js
-// Pure functions. No deps. Computes calendar-days + rollover per Paragraph 23,
-// with the option period explicitly NOT rolling.
+// Pure functions. No deps. Per ¶ 5A(2) of TREC 20-19, weekend/holiday rollover
+// applies ONLY to earnest money and option fee. Option period, survey,
+// financing, and closing are fixed calendar dates and never roll — see
+// api/_lib/business-calendar.js's CRITICAL SCOPE RULE for the authoritative
+// source of this scoping.
 // ============================================================================
 (function () {
   'use strict';
@@ -454,19 +457,23 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
       }));
     }
 
-    // Survey — ¶ 6C (rollover)
+    // Survey — ¶ 6C (fixed calendar date, NO rollover per ¶5A(2) scope)
     if (inputs.surveyDays > 0) {
-      var sv = addDaysWithRollover(effective, inputs.surveyDays);
-      deadlines.push(build('Survey Deadline', '📐', '¶ 6C', setDeadlineHour(sv.date, 17), today, {
-        id: 'survey', rolled: sv.rolled, reason: sv.reason
+      var svEnd = addDays(effective, inputs.surveyDays);
+      var svWarn = [];
+      if (isRolloverDay(svEnd)) svWarn.push('Survey deadline lands on a weekend or holiday. This is a fixed calendar date and does NOT roll — it stays due that day.');
+      deadlines.push(build('Survey Deadline', '📐', '¶ 6C', setDeadlineHour(svEnd, 17), today, {
+        id: 'survey', warnings: svWarn
       }));
     }
 
-    // Financing — TPFA 40-11 (rollover)
+    // Financing — TPFA 40-11 (fixed calendar date, NO rollover per ¶5A(2) scope)
     if (inputs.financingDays > 0) {
-      var fn = addDaysWithRollover(effective, inputs.financingDays);
-      deadlines.push(build('Financing Deadline', '🏦', 'TPFA 40-11', setDeadlineHour(fn.date, 17), today, {
-        id: 'financing', rolled: fn.rolled, reason: fn.reason
+      var fnEnd = addDays(effective, inputs.financingDays);
+      var fnWarn = [];
+      if (isRolloverDay(fnEnd)) fnWarn.push('Financing deadline lands on a weekend or holiday. This is a fixed calendar date and does NOT roll — it stays due that day.');
+      deadlines.push(build('Financing Deadline', '🏦', 'TPFA 40-11', setDeadlineHour(fnEnd, 17), today, {
+        id: 'financing', warnings: fnWarn
       }));
     }
 
@@ -595,7 +602,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
         el('div', { class: 'dl-pill', 'data-tone': d.tone }, [d.pillLabel])
       ];
       if (d.rolledOver && d.rolloverReason) {
-        children.push(el('div', { class: 'dl-rollover' }, ['Rolled per ¶ 23: ' + d.rolloverReason]));
+        children.push(el('div', { class: 'dl-rollover' }, ['Rolled per ¶ 5A(2): ' + d.rolloverReason]));
       }
       if (d.warnings && d.warnings.length > 0) {
         d.warnings.forEach(function (w) {
@@ -605,7 +612,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 24px 24px 80px; }
       list.appendChild(el('div', { class: 'dl-row', 'data-tone': d.tone }, children));
     });
 
-    $('resultsSub').textContent = result.deadlines.length + ' deadlines computed. Weekend & holiday rollover applied per ¶ 23.';
+    $('resultsSub').textContent = result.deadlines.length + ' deadlines computed. Weekend & holiday rollover applied per ¶ 5A(2) (earnest money & option fee only).';
     $('emailCapture').hidden = false;
   }
 
