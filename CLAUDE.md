@@ -239,6 +239,17 @@ Applies to every agent, every session.
    code/config was actually read first. Escalate immediately — without
    working around it — only for genuinely human-only actions: physical device
    access, a personal credential, OAuth consent, or client sign-off.
+5. **Isolate every repo-touching dispatch.** Any Agent dispatch that will edit
+   files, run git, or build gets `isolation: "worktree"` — no exceptions for
+   "it's a small edit." Before any browser dispatch, run
+   `node scripts/agent-dispatch-preflight.js` — read-only, ~2s, checks whether
+   `~/.brokerage-browser-profile` (zipForm + connectMLS — one profile, not
+   two), `.brokerage-command-profile`, or DossieBot-Sage is already held.
+   **Never force-kill a Chrome holding an authenticated session** — wait, or
+   `TaskStop` the owning agent. 2026-09-10: three same-day collisions
+   (profile deadlock, a killed zipForm session, a wiped uncommitted edit)
+   from skipping this. Detail: `feedback_isolate-agents-in-worktrees.md`,
+   `feedback_self-detect-stalls-dont-wait-for-heath.md`.
 
 ### COLE'S ROLE — NON-NEGOTIABLE
 
@@ -588,3 +599,4 @@ Topic depth lives here. Read before working in that area — don't carry the who
 | `docs/DEMO-ACCOUNTS.md` | Demo passwords, persona mapping, analytics exclusion rule. |
 | `docs/CONTENT-PIPELINE.md` | Nightly guide/feature/answer page generation — topic selection, agent research contract, Telegram approve/reject flow, promotion to `marketing/*-data/`. |
 | `scripts/preflight-check.js` | Session start, or before relying on Gmail send/read, connectMLS, zipForm, Supabase, the agent queue, or SMS freshness. Run `node scripts/preflight-check.js` — read-only, ~2s, prints a pass/fail table. |
+| `scripts/agent-dispatch-preflight.js` | Before dispatching any browser-driving or repo-touching agent. Checks whether the 3 exclusive Chrome profiles are held, shared-tree git dirty state, and worktree pool usage. Run `node scripts/agent-dispatch-preflight.js` — read-only, ~2s. |
