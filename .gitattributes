@@ -1,0 +1,32 @@
+# Normalize line endings for everything Git considers text; let Git decide
+# text vs binary by content, but never silently rewrite files it can't tell.
+# This is the default fix for the recurring CRLF-rewrite-at-scale problem
+# (2026-09-11 incident: an agent's edit tool touched ~1,092 files with pure
+# line-ending churn while making 10 real edits, blocking a merge).
+* text=auto eol=lf
+
+# Windows-native scripts stay LF in the repo too (matches existing convention
+# — every .ps1/.vbs/.bat/.cmd already committed here is LF; Windows tooling
+# reads LF batch/PowerShell files fine, so there's no reason to diverge).
+*.ps1 text eol=lf
+*.vbs text eol=lf
+*.bat text eol=lf
+*.cmd text eol=lf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.mp4 binary
+*.mov binary
+*.mp3 binary
+*.wav binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
