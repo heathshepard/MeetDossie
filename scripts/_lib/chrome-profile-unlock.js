@@ -95,7 +95,27 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
+
+// Run a PowerShell one-liner via execFileSync (argv array), never execSync
+// (shell-string). execSync's default shell on WSL is /bin/sh, which
+// interprets `$`-prefixed tokens in the command string BEFORE powershell
+// ever sees it — `$_` in particular resolves to bash's "last argument of
+// previous command" special var, silently mangling every PowerShell
+// pipeline that uses `$_.CommandLine` etc. Confirmed live 2026-09-10: this
+// corrupted `$_.ProcessId` into `.../node.ProcessId`, produced a PowerShell
+// ParserError, and the existing catch-and-return-null fail-open swallowed
+// it — every chrome-profile check silently reported "no holder" when run
+// from WSL bash, exactly the false "safe to launch" this file's own header
+// warns against. execFileSync bypasses the shell entirely: the script
+// string is one argv element, untouched by anything but PowerShell itself.
+function runPowerShell(psScript, timeoutMs) {
+  return execFileSync(
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', psScript],
+    { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: timeoutMs }
+  );
+}
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const RUN_DIR = path.join(REPO_ROOT, 'scripts', 'atlas-runs');
@@ -140,10 +160,7 @@ function queryHoldingChromeProcesses(profileDir) {
 
   let out = '';
   try {
-    out = execSync(
-      `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"')}"`,
-      { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: 15000 }
-    );
+    out = runPowerShell(psScript, 15000);
   } catch (e) {
     // Fail open on query error (matches old behavior of treating a
     // powershell error as "nothing found" rather than blocking forever).
@@ -177,10 +194,7 @@ function describeProcessOwner(pid) {
     let currentPid = pid;
     for (let hop = 0; hop < 6; hop++) {
       const psScript = `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${currentPid}'; if ($p) { Write-Output ($p.Name + '|' + $p.ParentProcessId.ToString() + '|' + ($p.CommandLine -replace '[\\r\\n]',' ')) }`;
-      const out = execSync(
-        `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"')}"`,
-        { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: 10000 }
-      ).toString().trim();
+      const out = runPowerShell(psScript, 10000).toString().trim();
       if (!out) break;
       const idx1 = out.indexOf('|');
       const idx2 = out.indexOf('|', idx1 + 1);
@@ -207,7 +221,7 @@ function killProcesses(holders, reason, dryRun, result) {
       continue;
     }
     try {
-      execSync(`powershell -NoProfile -Command "Stop-Process -Id ${h.pid} -Force -ErrorAction Stop"`, {
+      execFileSync('powershell.exe', ['-NoProfile', '-Command', `Stop-Process -Id ${h.pid} -Force -ErrorAction Stop`], {
         stdio: ['ignore', 'pipe', 'pipe'], timeout: 10000,
       });
       result.killed += 1;
@@ -367,7 +381,21 @@ async function unlockProfile(opts = {}) {
   throw err;
 }
 
-module.exports = { unlockProfile };
+// queryHoldingChromeProcesses / describeProcessOwner are exported so other
+// read-only tooling (scripts/agent-dispatch-preflight.js) can reuse the exact
+// same detection logic instead of re-deriving its own WMI query. Both are
+// read-only: they never wait, kill, or touch lock files — callers that need
+// those side effects should go through unlockProfile() instead.
+//
+// IMPORTANT for callers: queryHoldingChromeProcesses() returns `null` (not
+// `[]`) when the PowerShell query itself fails (WSL->Windows quoting is the
+// known flake point here). unlockProfile() treats null as "no holder" —
+// fail-open, so a job can proceed even though the query didn't actually
+// answer the question. That's an accepted tradeoff for launch-blocking code
+// (better to occasionally race than hang forever on a flaky query), but a
+// read-only advisory check should NOT make the same tradeoff silently —
+// treat `null` as "unknown", not "free".
+module.exports = { unlockProfile, queryHoldingChromeProcesses, describeProcessOwner };
 
 // Allow direct CLI invocation:
 //   node scripts/_lib/chrome-profile-unlock.js <profile-dir> [reason] [--dry-run] [--force] [--timeout-ms N]
