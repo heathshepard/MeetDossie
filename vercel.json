@@ -416,6 +416,9 @@
     },
     "api/cron-testimonial-nudge.js": {
       "maxDuration": 60
+    },
+    "api/cron-request-zillow-review-prompt.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -798,6 +801,10 @@
     {
       "path": "/api/cron-testimonial-nudge",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-request-zillow-review-prompt",
+      "schedule": "45 15 * * *"
     }
   ]
 }
