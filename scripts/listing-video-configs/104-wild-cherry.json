@@ -1,0 +1,33 @@
+{
+  "id": "104-wild-cherry",
+  "address_line1": "104 Wild Cherry Ln",
+  "address_line2": "Boerne, TX 78006",
+  "eyebrow": "JUST SOLD",
+  "hook": "2.2 acres of\nHill Country, sold.",
+  "show_price": false,
+  "price": null,
+  "specs": "4 BD  |  2 BA  |  2,254 SQFT  |  2.2 ACRES",
+  "photo_prefix": "wildcherry-photo",
+  "photo_order": [
+    4,
+    43,
+    32,
+    2,
+    9,
+    1,
+    13,
+    10,
+    18,
+    39
+  ],
+  "intro_photo_count": 1,
+  "voice_marker": "shop",
+  "voiceover_mp3": "Media/voiceovers/listing-videos/104-wild-cherry.mp3",
+  "voiceover_timing": "Media/voiceovers/listing-videos/104-wild-cherry-timing.json",
+  "music": "Media/Music/cinematic-acreage-luxury.mp3",
+  "agent": {
+    "name": "Heath Shepard, REALTOR",
+    "brokerage": "Keller Williams City View",
+    "phone": "(808) 392-3032"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "id": "702-fawndale",
+  "address_line1": "702 Fawndale Ln",
+  "address_line2": "Windcrest, TX 78239",
+  "eyebrow": "JUST LISTED",
+  "hook": "Fully renovated,\nnot \"updated.\"",
+  "show_price": true,
+  "price": "$330,000",
+  "specs": "4 BD  |  3 BA  |  2,334 SQFT  |  NO HOA",
+  "photo_prefix": "fawndale-sale-photo",
+  "photo_order": [
+    0,
+    4,
+    12,
+    13,
+    9,
+    11,
+    19,
+    26,
+    32,
+    39
+  ],
+  "intro_photo_count": 2,
+  "voice_marker": "kitchen",
+  "voiceover_mp3": "Media/voiceovers/listing-videos/702-fawndale.mp3",
+  "voiceover_timing": "Media/voiceovers/listing-videos/702-fawndale-timing.json",
+  "music": "Media/Music/upbeat-renovation.mp3",
+  "agent": {
+    "name": "Heath Shepard, REALTOR",
+    "brokerage": "Keller Williams City View",
+    "phone": "(808) 392-3032"
+  }
+}

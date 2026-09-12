@@ -1,0 +1,33 @@
+{
+  "id": "23-nopalito",
+  "address_line1": "23 Nopalito",
+  "address_line2": "San Antonio, TX 78261",
+  "eyebrow": "NEW PRICE",
+  "hook": "Now under\n$1 million.",
+  "show_price": true,
+  "price": "$999,000",
+  "specs": "SENDERO RANCH  |  3.48 ACRES  |  KEITH ZARS POOL",
+  "photo_prefix": "nopalito-photo",
+  "photo_order": [
+    2,
+    7,
+    16,
+    18,
+    1,
+    0,
+    14,
+    24,
+    41,
+    43
+  ],
+  "intro_photo_count": 4,
+  "voice_marker": "pool",
+  "voiceover_mp3": "Media/voiceovers/listing-videos/23-nopalito.mp3",
+  "voiceover_timing": "Media/voiceovers/listing-videos/23-nopalito-timing.json",
+  "music": "Media/Music/cinematic-acreage-luxury.mp3",
+  "agent": {
+    "name": "Heath Shepard, REALTOR",
+    "brokerage": "Keller Williams City View",
+    "phone": "(808) 392-3032"
+  }
+}
