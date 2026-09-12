@@ -92,16 +92,34 @@ function saveSeen(set) {
 // ─── Telegram notification ────────────────────────────────────────────────────
 
 async function sendTelegram(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
-  await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text,
-      disable_web_page_preview: true,
-    }),
-  }).catch(err => console.warn('[linkedin-engager] Telegram failed:', err.message));
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('[linkedin-engager] Telegram not sent — TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID missing');
+    return;
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        disable_web_page_preview: true,
+      }),
+    });
+    // FIXED 2026-09-12: fetch only rejects on a network-level failure, not on
+    // a non-2xx HTTP response — a bad/placeholder token (e.g. Vercel's
+    // "[SENSITIVE]" write-only stand-in leaking into a local .env.local pull)
+    // returns 404 here and was previously swallowed as a silent success. This
+    // was the exact same head-of-line-blocking bug shape applied to the
+    // alert channel itself: an "alert" that can silently fail to deliver is
+    // no alert at all.
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.warn(`[linkedin-engager] Telegram send failed: HTTP ${res.status} ${body.slice(0, 200)}`);
+    }
+  } catch (err) {
+    console.warn('[linkedin-engager] Telegram failed:', err.message);
+  }
 }
 
 // ─── Claude Haiku comment drafting ───────────────────────────────────────────
