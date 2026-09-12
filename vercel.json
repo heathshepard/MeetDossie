@@ -783,6 +783,10 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron-retry-unsent-approvals",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron-monday-digest-1100",
       "schedule": "0 11 * * 1"
     },

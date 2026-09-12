@@ -4,7 +4,18 @@
 // telegram_message_id once the message has been delivered.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json — 30 11 * * * (11:30 UTC, ~30 min after generation).
+// Schedule: NOT in vercel.json — triggered externally via cron-job.org at
+// 11:30 UTC daily (per docs/PIPELINE.md; see this file's own pipeline-gap
+// comment below re: cron-job.org overlap). 2026-09-12 (Carter): added
+// bounded-attempt tracking + a telegram_send_log entry + a named
+// final-failure alert (api/_lib/telegram-send-retry.js, MAX_ATTEMPTS) so a
+// failed/suppressed send doesn't retry forever with no signal — same
+// contract as api/cron-retry-unsent-approvals.js for group_posts. Could NOT
+// widen this to a 30-min cadence the way that one is, since the trigger
+// lives in cron-job.org, outside this repo — ask Heath to shorten the
+// external schedule if a sub-daily retry window on social_posts matters.
+// The run is idempotent either way (only ever touches telegram_sent_at IS
+// NULL rows), so a shorter interval costs nothing on an already-quiet queue.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -14,6 +25,7 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
+const { MAX_ATTEMPTS, recordAttempt, alertFinalFailure, summarizeError } = require('./_lib/telegram-send-retry.js');
 // Brokerage rubric (Heath's own listing marketing, target_owner='heath-realtor')
 // — separate from the software rubric below it, which stays untouched and
 // keeps scoring Dossie SaaS content. See api/_lib/post-scorer.js header.
@@ -288,8 +300,12 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
 
   // Find posts that haven't been pushed to Telegram yet (both draft and approved).
   // Draft posts get approval buttons, approved posts get preview notifications only.
+  // 2026-09-12 (Carter): telegram_send_attempts=lt.MAX_ATTEMPTS excludes rows
+  // that already hit the bounded-retry cap and got their final-failure alert
+  // below — otherwise this cron (now running every 30 min) would keep
+  // re-attempting and re-alerting on the same dead row forever.
   const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?telegram_sent_at=is.null&status=in.(draft,approved)&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/social_posts?telegram_sent_at=is.null&status=in.(draft,approved)&telegram_send_attempts=lt.${MAX_ATTEMPTS}&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
     return res.status(502).json({ ok: false, error: 'failed to load posts' });
@@ -499,18 +515,32 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
       const captionPreview = String(post.content || '').slice(0, 300);
       const vetoText = `⏱ Auto-posting in 10 min — tap STOP to cancel\n\n${platform} · ${persona}${scoreStr ? ' · ' + scoreStr : ''}\n\n${hook}\n\n${captionPreview}${post.content && post.content.length > 300 ? '...' : ''}`;
       const textResult = await telegramSend(TELEGRAM_CHAT_ID, vetoText, buttons, null);
-      if (!textResult.ok) {
-        console.error('[cron-send-for-approval] veto send failed for', post.id, textResult.status, textResult.raw?.slice(0, 200));
-        sendErrors.push({ id: post.id, step: 'veto', status: textResult.status });
-        continue;
-      }
-      // 2026-09-07 (Carter): NEVER stamp telegram_sent_at on a gate-suppressed
-      // send. cron-auto-approve treats telegram_sent_at as "Heath saw this and
-      // his veto window is running" — a suppressed veto message would auto-post
-      // content he never laid eyes on.
-      if (wasSuppressed(textResult.data)) {
-        console.warn(`[cron-send-for-approval] veto message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
-        sendErrors.push({ id: post.id, step: 'veto', error: 'suppressed_by_telegram_gate' });
+      const vetoSuppressed = wasSuppressed(textResult.data);
+      if (!textResult.ok || vetoSuppressed) {
+        const attemptNumber = (post.telegram_send_attempts || 0) + 1;
+        await recordAttempt(supabaseFetch, {
+          table: 'social_posts', rowId: post.id, identifier: `${post.platform}/${post.persona || ''} (veto)`,
+          attemptNumber, sendRes: textResult, suppressed: vetoSuppressed,
+        });
+        if (!textResult.ok) {
+          console.error('[cron-send-for-approval] veto send failed for', post.id, textResult.status, textResult.raw?.slice(0, 200));
+          sendErrors.push({ id: post.id, step: 'veto', status: textResult.status });
+        } else {
+          // 2026-09-07 (Carter): NEVER stamp telegram_sent_at on a gate-suppressed
+          // send. cron-auto-approve treats telegram_sent_at as "Heath saw this and
+          // his veto window is running" — a suppressed veto message would auto-post
+          // content he never laid eyes on.
+          console.warn(`[cron-send-for-approval] veto message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+          sendErrors.push({ id: post.id, step: 'veto', error: 'suppressed_by_telegram_gate' });
+        }
+        if (attemptNumber >= MAX_ATTEMPTS) {
+          await alertFinalFailure({
+            telegramToken: TELEGRAM_BOT_TOKEN, telegramChatId: TELEGRAM_CHAT_ID,
+            label: `social_posts veto card could not be delivered for approval: "${String(post.hook || post.content || '').slice(0, 80)}"`,
+            groupOrPlatform: post.platform,
+            lastError: vetoSuppressed ? 'suppressed by telegram-gate (TELEGRAM_CRON_NOTIFICATIONS)' : summarizeError(textResult),
+          });
+        }
         continue;
       }
       const messageId = textResult.data?.result?.message_id || null;
@@ -526,16 +556,29 @@ module.exports = withTelemetry('cron-send-for-approval', async function handler(
     }
 
     const textResult = await telegramSend(TELEGRAM_CHAT_ID, prefix + fullContent, buttons, null);
-    if (!textResult.ok) {
-      console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
-      sendErrors.push({ id: post.id, step: 'text', status: textResult.status, body: textResult.raw?.slice(0, 200) });
-      continue;
-    }
-
-    // Same suppression guard as the veto branch — see comment above.
-    if (wasSuppressed(textResult.data)) {
-      console.warn(`[cron-send-for-approval] approval message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
-      sendErrors.push({ id: post.id, step: 'text', error: 'suppressed_by_telegram_gate' });
+    const fullSuppressed = wasSuppressed(textResult.data);
+    if (!textResult.ok || fullSuppressed) {
+      const attemptNumber = (post.telegram_send_attempts || 0) + 1;
+      await recordAttempt(supabaseFetch, {
+        table: 'social_posts', rowId: post.id, identifier: `${post.platform}/${post.persona || ''}`,
+        attemptNumber, sendRes: textResult, suppressed: fullSuppressed,
+      });
+      if (!textResult.ok) {
+        console.error('[cron-send-for-approval] full content send failed for', post.id, 'status', textResult.status, 'body', textResult.raw?.slice(0, 200));
+        sendErrors.push({ id: post.id, step: 'text', status: textResult.status, body: textResult.raw?.slice(0, 200) });
+      } else {
+        // Same suppression guard as the veto branch — see comment above.
+        console.warn(`[cron-send-for-approval] approval message for post ${post.id} SUPPRESSED by telegram-gate — NOT stamping telegram_sent_at`);
+        sendErrors.push({ id: post.id, step: 'text', error: 'suppressed_by_telegram_gate' });
+      }
+      if (attemptNumber >= MAX_ATTEMPTS) {
+        await alertFinalFailure({
+          telegramToken: TELEGRAM_BOT_TOKEN, telegramChatId: TELEGRAM_CHAT_ID,
+          label: `social_posts approval card could not be delivered for approval: "${String(post.hook || post.content || '').slice(0, 80)}"`,
+          groupOrPlatform: post.platform,
+          lastError: fullSuppressed ? 'suppressed by telegram-gate (TELEGRAM_CRON_NOTIFICATIONS)' : summarizeError(textResult),
+        });
+      }
       continue;
     }
     const messageId = textResult.data?.result?.message_id || null;

@@ -561,15 +561,25 @@ async function runDailyGroup5PostGeneration(opts) {
  * never got delivered (suppressed by telegram-gate or a transient send
  * failure). Never re-generates content — the draft persists exactly as
  * written so a retry never re-bills Claude.
+ *
+ * Bounded at MAX_ATTEMPTS (2026-09-12, Carter): this used to retry forever
+ * with no cap and no failure log — fine as long as it kept eventually
+ * succeeding, but a genuinely broken send (bad token, chat blocked) would
+ * have looped silently forever with no signal to Heath. Every attempt is
+ * now logged to telegram_send_log via recordAttempt(), and the 3rd failed
+ * attempt fires a named alertFinalFailure() instead of trying again next run.
  */
 async function retryPendingNotifications(opts) {
   const { telegramToken, telegramChatId, log = console.log, now = () => new Date() } = opts;
   const sbFetch = opts.sbFetch || makeSupabaseFetch(opts.supabaseUrl, opts.supabaseKey);
   const send = opts.send || ((text, kb) => telegramSend(telegramToken, telegramChatId, text, kb));
+  const { MAX_ATTEMPTS, RETRY_AFTER_MINUTES, recordAttempt, alertFinalFailure, summarizeError } = require('./telegram-send-retry');
 
+  const cutoff = new Date(Date.now() - RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
   const { ok, data } = await sbFetch(
     '/rest/v1/group_posts?pipeline=eq.daily5&status=eq.draft&telegram_sent_at=is.null'
-    + '&select=id,group_name,group_key,post_body,template_id',
+    + `&telegram_send_attempts=lt.${MAX_ATTEMPTS}&created_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,group_name,group_key,post_body,template_id,telegram_send_attempts',
   );
   if (!ok || !Array.isArray(data)) return { retried: 0, notified: 0 };
 
@@ -580,7 +590,19 @@ async function retryPendingNotifications(opts) {
       buildTelegramMessage({ name: row.group_name }, format, row.post_body),
       gp5Keyboard(row.id),
     );
-    if (sendRes.ok && !wasSuppressed(sendRes.data)) {
+    const suppressed = wasSuppressed(sendRes.data);
+    const delivered = sendRes.ok && !suppressed;
+    const attemptNumber = (row.telegram_send_attempts || 0) + 1;
+    await recordAttempt(sbFetch, {
+      table: 'group_posts',
+      rowId: row.id,
+      identifier: `${row.group_name} (daily5)`,
+      attemptNumber,
+      sendRes,
+      suppressed,
+    });
+
+    if (delivered) {
       const nowIso = now().toISOString();
       await sbFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
@@ -592,7 +614,16 @@ async function retryPendingNotifications(opts) {
       });
       notified++;
     } else {
-      log(`[daily-group5] Retry send still failing for post ${row.id} (${row.group_name})`);
+      log(`[daily-group5] Retry send still failing for post ${row.id} (${row.group_name}), attempt ${attemptNumber}/${MAX_ATTEMPTS}`);
+      if (attemptNumber >= MAX_ATTEMPTS) {
+        await alertFinalFailure({
+          telegramToken,
+          telegramChatId,
+          label: `daily5 group post could not be delivered for approval: "${row.post_body.slice(0, 80)}..."`,
+          groupOrPlatform: row.group_name,
+          lastError: suppressed ? 'suppressed by telegram-gate (TELEGRAM_CRON_NOTIFICATIONS)' : summarizeError(sendRes),
+        });
+      }
     }
   }
   return { retried: data.length, notified };

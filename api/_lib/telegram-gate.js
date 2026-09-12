@@ -78,6 +78,11 @@ const ALWAYS_ALLOW = new Set([
                                // Same class as cron-comment-opp-approval: interactive approval plumbing, exactly
                                // 5 sends/day (one per target group). A swallowed send here means a whole day's
                                // group post for that group never gets approved — Carter, 2026-09-09.
+  'cron-retry-unsent-approvals', // */30 — bounded retry for group_posts drafts whose approval card never
+                                  // reached Heath (daily5 + listing-groups pipelines). Gating THIS job would
+                                  // defeat its entire purpose (delivering an approval Heath already missed once)
+                                  // and its final-failure alert is exactly the outage signal this floor exists
+                                  // for — Carter, 2026-09-12.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.

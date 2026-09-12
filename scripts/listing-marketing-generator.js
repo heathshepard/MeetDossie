@@ -359,6 +359,87 @@ async function telegramSendMediaPreview(mediaUrl, caption) {
   }
 }
 
+/**
+ * Retry Telegram notification for pipeline='listing-groups' rows that never
+ * got delivered on the first attempt (crashed run, transient send failure --
+ * this pipeline has NO other retry path today, unlike daily5). Never
+ * re-generates content -- the stored post_body is resent exactly as written.
+ *
+ * Media: best-effort. This pipeline doesn't store which MLS a group_posts
+ * row was drafted for, so the original listing object isn't directly
+ * recoverable -- we match by scanning LISTINGS for a listing whose address
+ * appears verbatim in the stored post_body (true for every template in this
+ * file) and attach that listing's square video if found. Falls back to
+ * text-only, same as the original send path, if no match.
+ *
+ * Bounded at MAX_ATTEMPTS with a named final-failure alert -- see
+ * api/_lib/telegram-send-retry.js for the shared contract.
+ */
+async function retryPendingListingGroupNotifications(opts = {}) {
+  const send = opts.send || telegramSend;
+  const sendMediaPreview = opts.sendMediaPreview || telegramSendMediaPreview;
+  const fetcher = opts.sbFetch || sbFetch;
+  const log = opts.log || console.error;
+  const telegramToken = opts.telegramToken || TELEGRAM_BOT_TOKEN;
+  const telegramChatId = opts.telegramChatId || TELEGRAM_CHAT_ID;
+  const { MAX_ATTEMPTS, RETRY_AFTER_MINUTES, recordAttempt, alertFinalFailure, summarizeError } = require('../api/_lib/telegram-send-retry');
+
+  const cutoff = new Date(Date.now() - RETRY_AFTER_MINUTES * 60 * 1000).toISOString();
+  const { ok, data } = await fetcher(
+    '/rest/v1/group_posts?pipeline=eq.listing-groups&status=eq.draft&telegram_sent_at=is.null'
+    + `&telegram_send_attempts=lt.${MAX_ATTEMPTS}&created_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,group_name,group_url,post_body,hook_type,telegram_send_attempts,created_at',
+  );
+  if (!ok || !Array.isArray(data)) return { retried: 0, notified: 0 };
+
+  let notified = 0;
+  for (const row of data) {
+    const match = Object.values(LISTINGS).find((l) => row.post_body.includes(l.address));
+    const mediaUrl = match ? pickMediaUrlForOrientation(match, 'square') : null;
+    let mediaLine;
+    if (mediaUrl) {
+      await sendMediaPreview(mediaUrl, `${match.address} -> ${row.group_name}`);
+      mediaLine = '(video above)';
+    } else {
+      mediaLine = '(no media match -- text only)';
+    }
+    const msg = `LISTING GROUP POST DRAFT (retry)\n-> ${row.group_name}\n${mediaLine}\n\n${row.post_body}`;
+    const sendRes = await send(msg, lstKeyboard(row.id));
+    const attemptNumber = (row.telegram_send_attempts || 0) + 1;
+    await recordAttempt(fetcher, {
+      table: 'group_posts',
+      rowId: row.id,
+      identifier: `${row.group_name} (listing-groups)`,
+      attemptNumber,
+      sendRes,
+    });
+
+    if (sendRes.ok) {
+      await fetcher(`/rest/v1/group_posts?id=eq.${encodeURIComponent(row.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          telegram_sent_at: new Date().toISOString(),
+          telegram_message_id: sendRes.data?.result?.message_id != null ? String(sendRes.data.result.message_id) : null,
+        }),
+      });
+      notified++;
+    } else {
+      log(`[listing-gen] Retry send still failing for post ${row.id} (${row.group_name}), attempt ${attemptNumber}/${MAX_ATTEMPTS}`);
+      if (attemptNumber >= MAX_ATTEMPTS) {
+        await alertFinalFailure({
+          telegramToken,
+          telegramChatId,
+          label: `listing-groups post could not be delivered for approval: "${row.post_body.slice(0, 80)}..."`,
+          groupOrPlatform: row.group_name,
+          lastError: summarizeError(sendRes),
+        });
+      }
+    }
+  }
+  return { retried: data.length, notified };
+}
+
 function lstKeyboard(rowId) {
   return {
     inline_keyboard: [[
@@ -573,4 +654,5 @@ if (require.main === module) {
 module.exports = {
   run, buildOwnedPost, buildGroupPost, nextAngle, pickMedia, refuseIfInstagramWithoutMedia,
   pickMediaUrlForOrientation, telegramSendMediaPreview, telegramSend, lstKeyboard, isVideoUrl,
+  retryPendingListingGroupNotifications,
 };
