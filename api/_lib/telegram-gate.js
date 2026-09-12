@@ -83,6 +83,11 @@ const ALWAYS_ALLOW = new Set([
                                   // defeat its entire purpose (delivering an approval Heath already missed once)
                                   // and its final-failure alert is exactly the outage signal this floor exists
                                   // for — Carter, 2026-09-12.
+  'cron-silence-alarm', // daily — sends NOTHING on a healthy pipeline; only alerts when a platform has gone
+                        // dark, approvals are stuck, drafts never reached Telegram, or a status is
+                        // accumulating rows without moving. This is the exact class of alert the 2026-09-12
+                        // Instagram/TikTok silence (18 days unnoticed) proves must never be gateable —
+                        // Carter, 2026-09-12.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
