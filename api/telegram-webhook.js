@@ -25,6 +25,14 @@ const {
 const { handleGroupPostCallback } = require('./group-post-callback');
 const { handleGroup5PostCallback } = require('./group5-post-callback');
 const { handleListingGroupPostCallback } = require('./listing-group-post-callback');
+const {
+  loadLatestOpenSurface,
+  markSurfaceApprovedAll,
+  approveAllItems,
+  approveOneItem,
+  rejectOneItem,
+  resolveItemByNumber,
+} = require('./_lib/weekly-batch-digest.js');
 const { assignNextScheduledFor } = require('./_lib/scheduling.js');
 const { gateBeforeApprovalSend } = require('./_lib/verify-image-match.js');
 
@@ -795,6 +803,33 @@ async function handleCallbackQuery(cb) {
   if (groupPost) {
     const originalBody = String(message?.text || '');
     return handleGroupPostCallback(groupPost[1], groupPost[2], callbackId, chatId, messageId, originalBody);
+  }
+
+  // Weekly batch digest — "Approve all" button (api/cron-weekly-batch-digest.js).
+  // Single explicit tap, no timeout. Resolves against the most recent OPEN
+  // digest surface for this chat and flips every item that's still
+  // status='draft' — anything Heath already handled individually via a text
+  // command in the meantime is left alone (approveAllItems re-checks status
+  // at write time).
+  if (data === 'wdigest_approve_all') {
+    const surface = await loadLatestOpenSurface(chatId);
+    if (!surface) {
+      if (callbackId) await answerCallback(callbackId, 'No open weekly digest found');
+      return;
+    }
+    const { approved, skipped, errors } = await approveAllItems(surface.items || []);
+    await markSurfaceApprovedAll(surface.id);
+    const originalBody = String(message?.text || '');
+    const summary = [
+      `✅ Approved ${approved.length} of ${(surface.items || []).length}.`,
+      skipped.length ? `Skipped ${skipped.length} (already handled or blocked).` : null,
+      errors.length ? `⚠️ ${errors.length} write error(s) — check logs.` : null,
+    ].filter(Boolean).join(' ');
+    if (chatId && messageId) {
+      await editMessage(chatId, messageId, `${originalBody}\n\n${summary}`);
+    }
+    if (callbackId) await answerCallback(callbackId, `Approved ${approved.length}`);
+    return;
   }
 
   // Daily 5-group-post pipeline: gp5_approve:<id> / gp5_edit:<id> / gp5_skip:<id>
@@ -1898,6 +1933,89 @@ async function handleImprovementApproval(msg, decision, numbers, logStep) {
   if (logStep) logStep({ step: 'improvement_decision_recorded', decision, updated: updated.length });
 }
 
+// ─── Weekly batch digest — text-command handling ─────────────────────────
+// See api/cron-weekly-batch-digest.js for the digest itself and
+// api/_lib/weekly-batch-digest.js for the shared item-resolution logic.
+function parseWeeklyDigestCommand(text) {
+  const trimmed = String(text || '').trim().toLowerCase();
+  if (trimmed === 'approve all') return { action: 'approve_all' };
+  const m = trimmed.match(/^(approve|reject|edit)\s+post\s+(\d+)$/);
+  if (!m) return null;
+  return { action: m[1], n: parseInt(m[2], 10) };
+}
+
+async function handleWeeklyDigestCommand(msg, cmd, logStep) {
+  const chatId = msg?.chat?.id;
+  const messageId = msg?.message_id;
+
+  const surface = await loadLatestOpenSurface(chatId);
+  if (!surface) {
+    await sendMessage(chatId, 'No open weekly digest found — nothing to act on.', messageId, null, logStep);
+    return;
+  }
+
+  if (cmd.action === 'approve_all') {
+    const { approved, skipped, errors } = await approveAllItems(surface.items || []);
+    await markSurfaceApprovedAll(surface.id);
+    const summary = [
+      `✅ Approved ${approved.length} of ${(surface.items || []).length}.`,
+      skipped.length ? `Skipped ${skipped.length} (already handled or blocked).` : null,
+      errors.length ? `⚠️ ${errors.length} write error(s) — check logs.` : null,
+    ].filter(Boolean).join(' ');
+    await sendMessage(chatId, summary, messageId, null, logStep);
+    if (logStep) logStep({ step: 'weekly_digest_approve_all', approved: approved.length, skipped: skipped.length });
+    return;
+  }
+
+  const item = resolveItemByNumber(surface.items || [], cmd.n);
+  if (!item) {
+    await sendMessage(chatId, `#${cmd.n} isn't in the last digest — it had ${(surface.items || []).length} item(s).`, messageId, null, logStep);
+    return;
+  }
+
+  if (cmd.action === 'approve') {
+    const { approved, skipped, errors } = await approveOneItem(item);
+    const label = item.table === 'social_posts' ? item.platform : item.group_name;
+    if (approved.length) {
+      await sendMessage(chatId, `✅ Approved #${cmd.n} (${label}).`, messageId, null, logStep);
+    } else {
+      const reason = (skipped[0] && skipped[0].reason) || (errors[0] && errors[0].error) || 'unknown';
+      await sendMessage(chatId, `❌ Could not approve #${cmd.n} (${label}): ${reason}`, messageId, null, logStep);
+    }
+    return;
+  }
+
+  if (cmd.action === 'reject') {
+    const res = await rejectOneItem(item);
+    const label = item.table === 'social_posts' ? item.platform : item.group_name;
+    if (res.ok) {
+      await sendMessage(chatId, `❌ Rejected #${cmd.n} (${label}).`, messageId, null, logStep);
+    } else {
+      await sendMessage(chatId, `Could not reject #${cmd.n}: ${res.data?.message || `HTTP ${res.status}`}`, messageId, null, logStep);
+    }
+    return;
+  }
+
+  if (cmd.action === 'edit') {
+    if (item.table === 'social_posts') {
+      await sendMessage(chatId, `${EDIT_PROMPT_PREFIX}${item.id}${EDIT_PROMPT_SUFFIX}`, messageId, true, logStep);
+      return;
+    }
+    // group_posts — prompt varies by pipeline; legacy has no edit path today
+    // (api/group-post-callback.js only supports approve/reject/skip).
+    if (item.pipeline === 'daily5') {
+      await sendMessage(chatId, `${GP5_EDIT_PROMPT_PREFIX}${item.id}${GP5_EDIT_PROMPT_SUFFIX}`, messageId, true, logStep);
+      return;
+    }
+    if (item.pipeline === 'listing-groups') {
+      await sendMessage(chatId, `${LST_EDIT_PROMPT_PREFIX}${item.id}${LST_EDIT_PROMPT_SUFFIX}`, messageId, true, logStep);
+      return;
+    }
+    await sendMessage(chatId, `#${cmd.n} (${item.group_name}) is a legacy group post — no inline edit exists for it. Reject it instead; a replacement generates automatically.`, messageId, null, logStep);
+    return;
+  }
+}
+
 async function handleTextMessage(msg, logStep) {
   const chatId = msg?.chat?.id;
   const messageText = String(msg?.text || '');
@@ -1914,6 +2032,18 @@ async function handleTextMessage(msg, logStep) {
   const improvementCmd = parseImprovementCommand(messageText);
   if (improvementCmd) {
     await handleImprovementApproval(msg, improvementCmd.decision, improvementCmd.numbers, logStep);
+    return;
+  }
+
+  // Weekly batch digest commands (api/cron-weekly-batch-digest.js):
+  //   "approve all"          — same effect as the digest's button
+  //   "approve post N" / "reject post N" / "edit post N" — handle one item
+  // The "post N" wording (vs. bare "approve 5") is deliberate — it can never
+  // collide with the self-improvement digest's "approve 1 3 5" numbered-list
+  // convention above, so both systems can be live in the same chat at once.
+  const digestCmd = parseWeeklyDigestCommand(messageText);
+  if (digestCmd) {
+    await handleWeeklyDigestCommand(msg, digestCmd, logStep);
     return;
   }
 
