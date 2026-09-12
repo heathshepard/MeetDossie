@@ -403,6 +403,45 @@ async function runWarmTouchMode(page, seenIds) {
   return { engaged, not_found: notFound };
 }
 
+// ─── Failure alerting (silence-alarm) ────────────────────────────────────────
+//
+// FIXED 2026-09-12 (head-of-line blocking bug): a publisher that can't
+// publish must alert Heath, not log one line and retry forever. Reuses the
+// shared alert_state dedupe path from api/_lib/silence-alarm.js instead of
+// building a parallel Telegram mechanism — shouldFire()/markFired() are the
+// exact functions cron-silence-alarm.js uses for its own conditions.
+async function alertPublishFailure(key, message) {
+  try {
+    const { shouldFire, markFired } = require('../api/_lib/silence-alarm.js');
+    const fire = await shouldFire(key);
+    if (fire) {
+      await markFired(key, message, null);
+      await sendTelegram(message);
+    } else {
+      console.log(`[linkedin-engager] alert "${key}" suppressed (already fired within cooldown)`);
+    }
+  } catch (e) {
+    console.warn('[linkedin-engager] alert wiring failed, falling back to direct Telegram:', e.message);
+    // Fail safe: a broken alert path must never mean total silence.
+    await sendTelegram(message).catch(() => {});
+  }
+}
+
+const FAILURE_SCREENSHOT_DIR = path.join(__dirname, '.linkedin-post-failures');
+
+async function captureFailureScreenshot(page, postId) {
+  try {
+    if (!fs.existsSync(FAILURE_SCREENSHOT_DIR)) fs.mkdirSync(FAILURE_SCREENSHOT_DIR, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filePath = path.join(FAILURE_SCREENSHOT_DIR, `${postId}-${stamp}.png`);
+    await page.screenshot({ path: filePath });
+    return filePath;
+  } catch (e) {
+    console.warn('[linkedin-engager] screenshot capture failed:', e.message);
+    return null;
+  }
+}
+
 // ─── Post approved LinkedIn posts ───────────────────────────────────────────
 
 // Daily cap (Bug 3, Cole's instruction, 2026-09-09): at most 1 linkedin_personal
@@ -440,8 +479,11 @@ async function postApprovedLinkedIn(page) {
     return 0;
   }
 
-  // Fetch one approved linkedin_personal post (oldest first)
-  const url = `${SUPABASE_URL}/rest/v1/social_posts?platform=eq.linkedin_personal&status=eq.approved&order=created_at.asc&limit=1`;
+  // Fetch one approved linkedin_personal post (oldest first). A row that has
+  // already dead-lettered (status flipped to 'failed' below) is excluded
+  // automatically — this is what stops a permanently-broken row from ever
+  // blocking newer approved rows again.
+  const url = `${SUPABASE_URL}/rest/v1/social_posts?platform=eq.linkedin_personal&status=eq.approved&order=created_at.asc&limit=1&select=id,post_id,content,linkedin_publish_attempts`;
   const r = await fetch(url, { headers: sbHeaders() });
   if (!r.ok) {
     console.error('[linkedin-engager] Failed to fetch approved posts:', r.status);
@@ -468,17 +510,33 @@ async function postApprovedLinkedIn(page) {
 
     const currentUrl = page.url();
     if (currentUrl.includes('/login') || currentUrl.includes('/authwall')) {
-      console.warn('[linkedin-engager] Redirected to login - cannot post. Check DossieBot profile.');
+      const msg = '[linkedin-engager] Redirected to login - cannot post. Check DossieBot profile.';
+      console.warn(msg);
+      // Environment failure, not this row's fault — don't burn an attempt on
+      // the row, but this must still be loud (Rule: a publisher that can't
+      // publish must alert, not silently retry forever).
+      await alertPublishFailure(
+        'linkedin_login_required',
+        `LinkedIn publisher can't post — DossieBot profile redirected to login/authwall. Re-log in at linkedin.com/in/heath-shepard-b8849135 in the DossieBot Chrome profile.`,
+      );
       return 0;
     }
 
-    // Click "Start a post" button
-    const startPostBtn = page.locator('button.share-box-feed-entry__trigger, button:has-text("Start a post")').first();
+    // Click "Start a post". FIXED 2026-09-12: LinkedIn's DOM now uses
+    // hashed/obfuscated CSS classes (button.share-box-feed-entry__trigger no
+    // longer exists — verified live, 0 matches). The composer trigger is a
+    // <div role="button" aria-label="Start a post"> instead, and the old
+    // button:has-text() fallback also matched 0 because the text lives on a
+    // sibling node, not the button itself. getByRole() resolves by computed
+    // accessible name/role regardless of tag, so it survives LinkedIn's class
+    // hashing. Verified live in a real browser with the DossieBot profile,
+    // 2026-09-12: composer opens, editor accepts text, Post button renders.
+    const startPostBtn = page.getByRole('button', { name: 'Start a post', exact: false }).first();
     await startPostBtn.waitFor({ state: 'visible', timeout: 10000 });
     await startPostBtn.click();
 
     // Wait for the post editor modal and text area
-    const editor = page.locator('.ql-editor, div[role="textbox"], div[contenteditable="true"]').first();
+    const editor = page.getByRole('textbox').first();
     await editor.waitFor({ state: 'visible', timeout: 10000 });
     await editor.click();
 
@@ -489,7 +547,7 @@ async function postApprovedLinkedIn(page) {
     await page.waitForTimeout(2000);
 
     // Click the Post button
-    const postBtn = page.locator('button.share-actions__primary-action, button:has-text("Post")').first();
+    const postBtn = page.getByRole('button', { name: 'Post', exact: true }).first();
     await postBtn.waitFor({ state: 'visible', timeout: 10000 });
     await postBtn.click();
 
@@ -508,6 +566,42 @@ async function postApprovedLinkedIn(page) {
     return 1;
   } catch (err) {
     console.error(`[linkedin-engager] Failed to post ${post.post_id}:`, err.message);
+
+    const screenshotPath = await captureFailureScreenshot(page, post.post_id);
+    const attempts = (post.linkedin_publish_attempts || 0) + 1;
+    const DEAD_LETTER_THRESHOLD = 3;
+    const isDeadLetter = attempts >= DEAD_LETTER_THRESHOLD;
+
+    // Dead-letter: after 3 failed attempts, flip to the existing terminal
+    // 'failed' status (already excluded from every status=eq.approved query)
+    // so this row can never block newer approved rows again — same
+    // technique as the Creatomate video-render dead letter
+    // (20260909_social_posts_video_dead_letter.sql).
+    const patch = {
+      linkedin_publish_attempts: attempts,
+      error_message: `${err.message}${screenshotPath ? ` | screenshot: ${screenshotPath}` : ''}`.slice(0, 500),
+    };
+    if (isDeadLetter) patch.status = 'failed';
+
+    const patchUrl = `${SUPABASE_URL}/rest/v1/social_posts?id=eq.${post.id}`;
+    await fetch(patchUrl, {
+      method: 'PATCH',
+      headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+      body: JSON.stringify(patch),
+    }).catch((e) => console.error('[linkedin-engager] Failed to record attempt/dead-letter:', e.message));
+
+    if (isDeadLetter) {
+      await alertPublishFailure(
+        `linkedin_publish_dead_letter:${post.post_id}`,
+        `LinkedIn post ${post.post_id} DEAD-LETTERED after ${attempts} failed attempts and will not retry — needs a human look. Last error: ${err.message}${screenshotPath ? `\nScreenshot: ${screenshotPath}` : ''}`,
+      );
+    } else {
+      await alertPublishFailure(
+        'linkedin_publish_failed',
+        `LinkedIn publisher failed to post ${post.post_id} (attempt ${attempts}/${DEAD_LETTER_THRESHOLD}). Error: ${err.message}${screenshotPath ? `\nScreenshot: ${screenshotPath}` : ''}`,
+      );
+    }
+
     return 0;
   }
 }
