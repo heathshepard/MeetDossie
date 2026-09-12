@@ -58,7 +58,7 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
   }
 
   const dryRun = req.query && req.query.dry_run === '1';
-  const { fired, suppressed, totalConditions } = await runAllChecks();
+  const { fired, suppressed, totalConditions } = await runAllChecks({ dryRun });
 
   if (fired.length === 0) {
     return res.status(200).json({ ok: true, fired: 0, suppressed: suppressed.length, total_conditions: totalConditions });

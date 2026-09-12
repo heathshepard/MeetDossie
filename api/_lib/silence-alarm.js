@@ -289,6 +289,16 @@ async function runAllChecks(opts = {}) {
   const fired = [];
   const suppressed = [];
 
+  // dryRun is READ-ONLY: it must never consult or mutate alert_state. A
+  // diagnostic peek marking a condition "fired" would make the NEXT real
+  // run silently suppress it inside the cooldown window — dry_run would
+  // itself become a silent-failure vector. Bug found + fixed same day it
+  // shipped (Carter, 2026-09-12): a dry_run call ate 2 of the first real
+  // alarm's conditions, including the video_library nudge.
+  if (opts.dryRun) {
+    return { fired: all, suppressed: [], totalConditions: all.length };
+  }
+
   for (const condition of all) {
     const ok = await shouldFire(condition.key);
     if (ok) {
