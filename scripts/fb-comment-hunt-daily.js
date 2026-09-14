@@ -381,6 +381,23 @@ async function expandRepliesReadOnly(page) {
   }
 }
 
+/**
+ * Re-checks a previously-posted comment's thread and returns one of THREE
+ * distinct outcomes — collapsing these into one boolean is exactly what let
+ * a harmless author-deleted post look identical to a moderator removing
+ * Heath's comment:
+ *   { live: true,  reason: 'ok' }              — comment still there, nothing to do
+ *   { live: false, reason: 'post_unavailable' } — the POST itself is gone
+ *       (author deleted it, or it's behind a content wall). Nothing was
+ *       done TO Heath's comment specifically — harmless, not a moderation
+ *       signal, never halts anything.
+ *   { live: false, reason: 'comment_removed' }  — the post still renders,
+ *       other comments are still there, but Heath's specific comment is
+ *       gone. THIS is the moderation signal.
+ *   { live: false, reason: 'evaluate_error' }   — DOM read failed; treated
+ *       as inconclusive, logged, not halted (avoid halting on a flaky page
+ *       load).
+ */
 async function verifyPostedCommentStillLive(page, row) {
   await page.goto(row.post_url, { waitUntil: 'domcontentloaded', timeout: 45000 });
   recordScan(1);
@@ -392,16 +409,26 @@ async function verifyPostedCommentStillLive(page, row) {
   const wanted = normText(row.comment_final).slice(0, 80);
   return page.evaluate(({ names, wanted: w }) => {
     const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const bodyText = norm(document.body.innerText || '');
+    const postGone = /this content isn.t available|content isn.t available right now|page not found|this page isn.t available/i.test(bodyText);
     const articles = Array.from(document.querySelectorAll('div[role="article"]'));
+    if (postGone || articles.length === 0) {
+      // The post container itself never rendered — the post is gone
+      // (author-deleted or fully walled), not a targeted removal of
+      // Heath's comment.
+      return { live: false, reason: 'post_unavailable' };
+    }
     for (const art of articles) {
       const label = art.getAttribute('aria-label') || '';
       if (!/^(Comment|Reply) by /i.test(label)) continue;
       const isOwn = names.some((n) => label.toLowerCase().includes(n.toLowerCase()));
       if (!isOwn) continue;
-      if (norm(art.innerText).includes(w)) return true;
+      if (norm(art.innerText).includes(w)) return { live: true, reason: 'ok' };
     }
-    return false;
-  }, { names: HEATH_FB_NAMES, wanted }).catch(() => false);
+    // The post rendered with other content still there, but Heath's own
+    // comment specifically didn't — that's a moderation removal.
+    return { live: false, reason: 'comment_removed' };
+  }, { names: HEATH_FB_NAMES, wanted }).catch(() => ({ live: false, reason: 'evaluate_error' }));
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -412,9 +439,12 @@ async function main() {
     process.exit(1);
   }
 
-  const haltEntry = halt.getHalt();
+  // Only a GLOBAL halt stops the whole run before it starts. A single
+  // paused group is checked per-group below (inside the reverify and scan
+  // loops) so the other groups keep running.
+  const haltEntry = halt.getGlobalHalt();
   if (haltEntry) {
-    console.log(`[comment-hunt] HALTED (${haltEntry.reason} @ ${haltEntry.halted_at}) — doing nothing. Clear with: node scripts/fb-comment-opp-poster.js --clear-halt`);
+    console.log(`[comment-hunt] GLOBALLY HALTED (${haltEntry.reason} @ ${haltEntry.halted_at}) — doing nothing. Clear with: node scripts/fb-comment-opp-poster.js --clear-halt`);
     return;
   }
 
@@ -482,23 +512,57 @@ async function main() {
   const page = context.pages()[0] || await context.newPage();
 
   try {
-    // 1. Re-verify recent posted comments. A removed comment is a moderation
-    //    warning sign — halt EVERYTHING and tell Heath.
+    // 1. Re-verify recent posted comments.
+    //    - post_unavailable (author deleted the post, or it's walled) is
+    //      HARMLESS — nothing was done to Heath's comment, skip and move on.
+    //    - comment_removed (post still there, Heath's comment specifically
+    //      isn't) is a moderation signal — pauses THAT GROUP only. Escalates
+    //      to a global halt automatically once 2+ distinct groups have a
+    //      removal paused simultaneously (comment-hunt-halt.js handles the
+    //      escalation; this file just reports it).
     for (const row of toReverify) {
       if (visitsUsed >= visitBudget) break;
+      if (halt.isHalted(row.group_name)) {
+        console.log(`[comment-hunt] skipping reverify for ${row.group_name} — already paused`);
+        continue; // don't burn a visit re-checking a group we already know is paused
+      }
       visitsUsed++;
-      const live = await verifyPostedCommentStillLive(page, row);
-      if (!live) {
-        halt.setHalt('posted comment no longer present in thread', {
-          opportunity_id: row.id, post_url: row.post_url, group: row.group_name,
-        });
+      const result = await verifyPostedCommentStillLive(page, row);
+      if (result.live) {
+        await randDelay(SCAN_DWELL_MS);
+        continue;
+      }
+
+      if (result.reason === 'post_unavailable') {
+        console.log(`[comment-hunt] ${row.group_name}: post itself is gone (author-deleted or walled) — harmless, not a moderation signal: ${row.post_url}`);
+        await randDelay(SCAN_DWELL_MS);
+        continue;
+      }
+
+      if (result.reason === 'evaluate_error') {
+        console.warn(`[comment-hunt] ${row.group_name}: verify inconclusive (DOM read failed) — not treated as a removal: ${row.post_url}`);
+        await randDelay(SCAN_DWELL_MS);
+        continue;
+      }
+
+      // result.reason === 'comment_removed' — the real moderation signal.
+      const escalated = halt.setHalt('posted comment removed by moderation', {
+        opportunity_id: row.id, post_url: row.post_url, group: row.group_name,
+        scope: 'group',
+      });
+      const nowGlobal = halt.getGlobalHalt();
+      if (nowGlobal && Array.isArray(nowGlobal.groups)) {
         await notifyHeath(
-          `COMMENT PIPELINE HALTED — a comment you posted in ${row.group_name} is GONE from its thread (removed by a mod or by Facebook).\n${row.post_url}\n\nNothing will scan or post until you check the profile and clear the halt:\nnode scripts/fb-comment-opp-poster.js --clear-halt`,
+          `COMMENT PIPELINE HALTED (ALL GROUPS) — comments removed in ${nowGlobal.groups.length} distinct groups (${nowGlobal.groups.join(', ')}), most recently ${row.group_name}. This looks like a pattern, not one strict moderator — everything is stopped until you check the profile and clear the halt:\nnode scripts/fb-comment-opp-poster.js --clear-halt`,
         );
-        console.error('[comment-hunt] HALT: posted comment missing:', row.post_url);
+        console.error('[comment-hunt] GLOBAL HALT: comment removals across 2+ groups:', nowGlobal.groups.join(', '));
         return;
       }
-      await randDelay(SCAN_DWELL_MS);
+      await notifyHeath(
+        `${row.group_name} PAUSED — a comment you posted there is GONE from its thread (likely removed by a moderator). Other groups keep running.\n${row.post_url}\n\nClear just this group:\nnode scripts/fb-comment-opp-poster.js --clear-halt --group "${row.group_name}"`,
+      );
+      console.error(`[comment-hunt] GROUP PAUSED (${row.group_name}): comment removed:`, row.post_url);
+      // Not a return — other groups' reverify/scan continues below.
     }
 
     // 2. Scan the active groups.
@@ -506,6 +570,10 @@ async function main() {
       if (visitsUsed >= visitBudget) {
         console.log('[comment-hunt] visit budget reached — remaining groups roll to tomorrow');
         break;
+      }
+      if (halt.isHalted(group.name)) {
+        console.log(`[comment-hunt] skipping ${group.name} — paused`);
+        continue; // paused groups don't consume visit budget
       }
       visitsUsed++;
       let posts = [];

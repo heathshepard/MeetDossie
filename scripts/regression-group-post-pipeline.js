@@ -249,12 +249,17 @@ async function main() {
   // ── Generator integration: 5 formats, gate + dedup enforced end-to-end ────
   db.group_posts.length = 0;
   const groups = gen.loadTargetGroups();
-  assert.strictEqual(groups.length, 5, 'exactly 5 target groups loaded from comment-hunt-groups.json');
+  // 2026-09-14: tc_admins ("Transaction Coordinators and Admins for Real
+  // Estate") moved to skip_groups -- TC-only per its own Rule 1, Heath is a
+  // realtor, and a human moderator removed a comment there 2026-09-10. Down
+  // to 4 active groups.
+  assert.strictEqual(groups.length, 4, 'exactly 4 target groups loaded from comment-hunt-groups.json (tc_admins moved to skip_groups 2026-09-14)');
   assert.deepStrictEqual(
     groups.map((g) => g.key).sort(),
-    ['dfw_network_collab', 'kw_re_group', 'tc_admins', 'tc_vas', 'tx_re_agents'].sort(),
+    ['dfw_network_collab', 'kw_re_group', 'tc_vas', 'tx_re_agents'].sort(),
     'target groups match comment-hunt-groups.json exactly',
   );
+  assert.ok(!groups.some((g) => g.key === 'tc_admins'), 'tc_admins never appears as a live target group');
 
   // Distinct low-overlap bodies per call -- a real Claude call against 3
   // scaffold variants per format produces genuinely different text, not
@@ -282,20 +287,24 @@ async function main() {
     sbFetch: mockSbFetch, generate: cleanGenerate, send: okSend,
     loadPainLines: async () => [], log: () => {},
   });
-  assert.strictEqual(result1.drafted, 5, 'one draft generated per group (5 total)');
-  assert.strictEqual(result1.notified, 5, 'all 5 sent to Telegram');
-  assert.strictEqual(db.group_posts.filter((r) => r.pipeline === 'daily5').length, 5, '5 daily5 rows in group_posts');
+  // 2026-09-14: tc_admins dropped to 4 active groups (see comment-hunt-groups.json
+  // skip_groups) — FORMATS still has 5 entries (group-post5-formats.js), the
+  // generator just uses 4 of them per run now. Not a hardcoded 5-groups coupling.
+  assert.strictEqual(result1.drafted, 4, 'one draft generated per group (4 total)');
+  assert.strictEqual(result1.notified, 4, 'all 4 sent to Telegram');
+  assert.strictEqual(db.group_posts.filter((r) => r.pipeline === 'daily5').length, 4, '4 daily5 rows in group_posts');
   assert.ok(db.group_posts.every((r) => r.status === 'draft'), 'every generated row starts status=draft, never auto-approved');
   const groupKeysUsed = db.group_posts.map((r) => r.group_key).sort();
   assert.deepStrictEqual(groupKeysUsed, groups.map((g) => g.key).sort(), 'exactly one post per group, no group skipped or doubled');
   // Real sample output 2026-09-09 caught this: without cross-group format
   // tracking, 2 of 5 groups landed on the SAME format in the same run
   // ('resource_giveaway' twice, 'contrarian' twice) — "one idea rewritten
-  // five ways", the exact failure this pipeline exists to avoid. At exactly
-  // 5 formats / 5 groups, every hook_type in a single day's run must be distinct.
+  // five ways", the exact failure this pipeline exists to avoid. With 4
+  // groups and 5 available formats, every hook_type in a single day's run
+  // must still be distinct (4 distinct picks out of the 5).
   const hookTypesUsed = db.group_posts.filter((r) => r.pipeline === 'daily5').map((r) => r.hook_type);
-  assert.strictEqual(new Set(hookTypesUsed).size, 5, `all 5 daily posts use a DIFFERENT format in the same run, got: ${hookTypesUsed.join(', ')}`);
-  assert.strictEqual(sentMessages.length, 5, 'exactly 5 Telegram approval messages sent');
+  assert.strictEqual(new Set(hookTypesUsed).size, 4, `all 4 daily posts use a DIFFERENT format in the same run, got: ${hookTypesUsed.join(', ')}`);
+  assert.strictEqual(sentMessages.length, 4, 'exactly 4 Telegram approval messages sent');
   for (const msg of sentMessages) {
     const buttons = msg.kb.inline_keyboard[0].map((b) => b.text).join(',');
     assert.strictEqual(buttons, 'Approve,Edit,Skip', 'buttons are exactly Approve / Edit / Skip');
@@ -318,8 +327,8 @@ async function main() {
     loadPainLines: async () => [], log: () => {},
   });
   assert.strictEqual(result2.drafted, 0, 'nothing drafted when every attempt is promotional');
-  assert.strictEqual(result2.skipped, 5, 'all 5 groups skipped rather than posting blocked content');
-  assert.strictEqual(promoGenCalls, 15, 'exactly TWO retries per group (3 attempts x 5 groups, bumped from 2 on 2026-09-11 for the extra dedup layers), never an unbounded retry loop');
+  assert.strictEqual(result2.skipped, 4, 'all 4 groups skipped rather than posting blocked content');
+  assert.strictEqual(promoGenCalls, 12, 'exactly TWO retries per group (3 attempts x 4 groups, bumped from 2 on 2026-09-11 for the extra dedup layers), never an unbounded retry loop');
   assert.strictEqual(db.group_posts.length, 0, 'zero rows inserted — a blocked draft is never written to the DB at all');
 
   // ── A generator that keeps returning the same duplicate body also gets
@@ -426,11 +435,11 @@ async function main() {
   const result4 = await gen.runDailyGroup5PostGeneration({
     sbFetch: mockSbFetch, generate: cleanGenerate, send: suppressedSend,
     loadPainLines: async () => [], log: () => {},
-    groups: groups.filter((g) => g.key === 'tc_admins'),
+    groups: groups.filter((g) => g.key === 'tx_re_agents'),
   });
   assert.strictEqual(result4.drafted, 1, 'row is drafted even though the send is suppressed');
   assert.strictEqual(result4.notified, 0, 'suppressed send counts 0 notified');
-  const suppressedRow = db.group_posts.find((r) => r.group_key === 'tc_admins');
+  const suppressedRow = db.group_posts.find((r) => r.group_key === 'tx_re_agents');
   assert.strictEqual(suppressedRow.status, 'draft', 'row stays draft on a suppressed send');
   assert.strictEqual(suppressedRow.telegram_sent_at, undefined, 'telegram_sent_at NOT stamped on suppressed send');
 

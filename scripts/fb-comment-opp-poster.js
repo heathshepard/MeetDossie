@@ -11,9 +11,11 @@
 // scripts/watch-guest-thread-replies.js catches replies to Heath.
 //
 // Usage:
-//   node scripts/fb-comment-opp-poster.js               # post (at most ONE per run)
-//   node scripts/fb-comment-opp-poster.js --dry-run     # list the approved queue
-//   node scripts/fb-comment-opp-poster.js --clear-halt  # clear the circuit breaker
+//   node scripts/fb-comment-opp-poster.js                              # post (at most ONE per run)
+//   node scripts/fb-comment-opp-poster.js --dry-run                    # list the approved queue
+//   node scripts/fb-comment-opp-poster.js --clear-halt                 # clear the GLOBAL halt only
+//   node scripts/fb-comment-opp-poster.js --clear-halt --group "NAME"  # clear one paused group only
+//   node scripts/fb-comment-opp-poster.js --clear-halt --all           # clear global + every paused group
 //
 // HARD RULES (same doctrine as fb-group-commenter.js --tc-reply-queue):
 //   - NOTHING posts without status='approved' (Heath's explicit tap/edit).
@@ -28,9 +30,12 @@
 //     so spacing never looks metronomic. The profile was shadowbanned in
 //     June at 12/day from automated bursts; losing it ends the entire
 //     distribution strategy.
-//   - CIRCUIT BREAKER (scripts/_lib/comment-hunt-halt.js): a verify failure,
-//     a login/checkpoint redirect, or a removed comment (detected by the
-//     daily scanner) halts scanner AND poster until a human clears it.
+//   - CIRCUIT BREAKER (scripts/_lib/comment-hunt-halt.js): a verify failure
+//     or a login/checkpoint redirect halts scanner AND poster GLOBALLY. A
+//     single comment removed by a group's moderator (detected by the daily
+//     scanner) only PAUSES that one group — rows targeting other groups
+//     keep posting here. A removal pattern across 2+ distinct groups
+//     auto-escalates to a global halt.
 //   - Every post is VERIFIED by re-rendering the thread before the row is
 //     marked posted. DossieBot-Sage profile, headed, cooperative unlock.
 //
@@ -313,7 +318,14 @@ async function runOppQueue(deps = {}) {
   }
 
   // ONE post per run — spacing comes from the run cadence + gap, never bursts.
+  // A group-level pause (scripts/_lib/comment-hunt-halt.js) only blocks rows
+  // for THAT group — skip past them to the next candidate in a different,
+  // unpaused group rather than stalling the whole queue.
   for (const row of rows) {
+    if (haltState.isHalted(row.group_name)) {
+      out.skipped++;
+      continue;
+    }
     const commentText = String(row.comment_final || '').trim();
     if (!commentText) {
       // Approved with no text should be impossible — park it, don't guess.
@@ -407,10 +419,34 @@ async function mainCli() {
   const args = process.argv.slice(2);
 
   if (args.includes('--clear-halt')) {
-    const entry = halt.getHalt();
-    if (!entry) { console.log('[opp-poster] no halt set'); return; }
+    const groupIdx = args.indexOf('--group');
+    const groupArg = groupIdx >= 0 ? args[groupIdx + 1] : null;
+
+    if (args.includes('--all')) {
+      const hadGlobal = halt.getGlobalHalt();
+      const hadGroups = Object.keys(halt.listPausedGroups());
+      if (!hadGlobal && hadGroups.length === 0) { console.log('[opp-poster] no halt set'); return; }
+      halt.clearAll();
+      console.log(`[opp-poster] ALL halts cleared (global: ${hadGlobal ? hadGlobal.reason : 'none'}; groups: ${hadGroups.join(', ') || 'none'})`);
+      return;
+    }
+
+    if (groupArg) {
+      const entry = halt.getGroupHalt(groupArg);
+      if (!entry) { console.log(`[opp-poster] no halt set for group "${groupArg}"`); return; }
+      halt.clearGroupHalt(groupArg);
+      console.log(`[opp-poster] halt cleared for "${groupArg}" (was: ${entry.reason} @ ${entry.halted_at})`);
+      return;
+    }
+
+    const entry = halt.getGlobalHalt();
+    if (!entry) {
+      const paused = Object.keys(halt.listPausedGroups());
+      console.log(`[opp-poster] no GLOBAL halt set${paused.length ? ` (but ${paused.length} group(s) still individually paused: ${paused.join(', ')} — clear with --group "<name>")` : ''}`);
+      return;
+    }
     halt.clearHalt();
-    console.log(`[opp-poster] halt cleared (was: ${entry.reason} @ ${entry.halted_at})`);
+    console.log(`[opp-poster] global halt cleared (was: ${entry.reason} @ ${entry.halted_at})`);
     return;
   }
 
@@ -426,14 +462,19 @@ async function mainCli() {
     );
     const rows = Array.isArray(data) ? data : [];
     console.log(`[opp-poster][dry-run] ${rows.length} approved comment(s) queued:`);
-    for (const r of rows) console.log(`  - ${r.group_name}: ${String(r.comment_final || '').slice(0, 100)}`);
-    console.log(`[opp-poster][dry-run] halted: ${halt.isHalted()}`);
+    for (const r of rows) {
+      const paused = halt.isHalted(r.group_name) ? ' [PAUSED]' : '';
+      console.log(`  - ${r.group_name}${paused}: ${String(r.comment_final || '').slice(0, 100)}`);
+    }
+    const globalHalt = halt.getGlobalHalt();
+    const pausedGroups = Object.keys(halt.listPausedGroups());
+    console.log(`[opp-poster][dry-run] global halt: ${globalHalt ? globalHalt.reason : 'none'}; paused groups: ${pausedGroups.join(', ') || 'none'}`);
     return;
   }
 
   if (halt.isHalted()) {
-    const entry = halt.getHalt();
-    console.log(`[opp-poster] HALTED (${entry.reason} @ ${entry.halted_at}) — exiting`);
+    const entry = halt.getGlobalHalt();
+    console.log(`[opp-poster] GLOBALLY HALTED (${entry.reason} @ ${entry.halted_at}) — exiting`);
     return;
   }
 

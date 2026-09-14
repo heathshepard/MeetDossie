@@ -16,12 +16,6 @@
       "note": "27 posts/day, real conversation — best group of the 2026-09-08 hunt"
     },
     {
-      "key": "tc_admins",
-      "name": "Transaction Coordinators and Admins for Real Estate (29.8K)",
-      "url": "https://www.facebook.com/groups/transactioncoordinatorsforrealestate/",
-      "note": "real TC/paperwork threads"
-    },
-    {
       "key": "tc_vas",
       "name": "Transaction Coordinators and Virtual Assistants for Real Estate (10.9K)",
       "url": "https://www.facebook.com/groups/transactioncoordinatorsandvirtualassistants/",
@@ -41,6 +35,11 @@
     }
   ],
   "skip_groups": [
+    {
+      "name": "Transaction Coordinators and Admins for Real Estate (29.8K)",
+      "url": "https://www.facebook.com/groups/transactioncoordinatorsforrealestate/",
+      "why": "TC-ONLY per the group's own Rule 1 (\"TC MUST be located in the United States\") -- Heath is a realtor, not a TC. Rule 5 also bans any promotional content. A human moderator removed a comment Heath posted here on 2026-09-10 (not a bot/spam detector -- FB violations page shows 'No violations', Account Quality clean Aug 16-Sep 14, no checkpoint). Continuing to post here risks a member removal and a report, which is a real account-level risk to the one shared Facebook profile the whole distribution strategy runs on. DO NOT re-add without reading this and getting Heath's sign-off."
+    },
     {
       "name": "Real Estate Agents Group (108K)",
       "url": "https://www.facebook.com/groups/LizLuxuryRealEstateAgent/",
