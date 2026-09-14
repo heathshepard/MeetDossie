@@ -87,9 +87,11 @@ module.exports = async function handler(req, res) {
     );
 
     // Real insert test — proves PostgREST (not just raw psql) accepts the
-    // new value, then cleans up immediately. Uses status='failed' (never
+    // new value, then cleans up immediately. Uses status='draft' (never
     // 'approved') as a belt-and-suspenders guard against cron-publish-approved
-    // picking it up if cleanup somehow didn't run.
+    // picking it up if cleanup somehow didn't run -- draft is never touched
+    // by the publish cron, unlike 'failed' which requires error_message per
+    // the no_failed_without_error check constraint (unrelated to this fix).
     let insertTest = { attempted: false };
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       const testPostId = `test-youtube-constraint-${Date.now()}`;
@@ -104,7 +106,7 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           post_id: testPostId,
           platform: 'youtube',
-          status: 'failed',
+          status: 'draft',
           content: 'constraint-verification-test-row',
           persona: 'dossie',
           topic: 'test',
