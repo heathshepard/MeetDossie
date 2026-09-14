@@ -1,0 +1,48 @@
+-- SECURITY FIX 2026-09-14: telegram_send_log, weekly_digest_surfaces, and
+-- alert_state (created in 20260912_batch_digest_and_alerts.sql +
+-- 20260912_telegram_retry.sql / api/admin-migrate-telegram-retry.js)
+-- shipped with RLS disabled. Supabase's default public-schema grants give
+-- anon/authenticated full SELECT/INSERT/UPDATE/DELETE -- confirmed live via
+-- a real anon-key request: GET returned real rows from all three tables,
+-- and a POST + DELETE against alert_state both succeeded (201/200), proving
+-- the public anon key could read AND write every row in all three tables.
+--
+-- Audited every reader/writer before writing this (api/, scripts/, and the
+-- Dossie frontend repo at /mnt/c/Users/Heath/Projects/Dossie):
+--   - api/_lib/telegram-send-retry.js (recordAttempt -> telegram_send_log)
+--     called from api/cron-send-for-approval.js and
+--     api/_lib/daily-group5-post-generator.js (via api/cron-daily-group5-posts.js
+--     and api/cron-retry-unsent-approvals.js) -- all pass sbFetch built with
+--     SUPABASE_SERVICE_ROLE_KEY -- bypasses RLS
+--   - api/_lib/weekly-batch-digest.js (weekly_digest_surfaces) called from
+--     api/cron-weekly-batch-digest.js -- SUPABASE_SERVICE_ROLE_KEY -- bypasses RLS
+--   - api/_lib/silence-alarm.js (alert_state) called from
+--     api/cron-silence-alarm.js -- SUPABASE_SERVICE_ROLE_KEY -- bypasses RLS
+--   - scripts/linkedin-engager.js references alert_state in a comment only
+--     (defers to silence-alarm.js's shared dedupe path); its own DB calls
+--     use SUPABASE_SERVICE_ROLE_KEY
+--   - scripts/regression-silence-alarm.js exercises alert_state only against
+--     an in-memory PostgREST mock on 127.0.0.1 -- zero production access
+--   - api/_lib/team-risk-alerts-runner.js uses a DIFFERENT table
+--     (team_risk_alert_state, not alert_state) -- not in scope here
+--
+-- Zero callers anywhere in MeetDossie or the Dossie frontend repo use the
+-- anon/publishable key against these three tables (grep confirmed). All
+-- three are global operational/log tables -- no user_id/tenant column (not
+-- the multi-tenant `transactions` pattern) -- and hold no customer/PII data:
+-- telegram_send_log logs Telegram API responses for Heath's own approval-card
+-- sends (group names, error text), weekly_digest_surfaces logs Heath's own
+-- Telegram chat_id + previews of Dossie's own generated post drafts, and
+-- alert_state is pure internal alert-dedupe state (platform silence,
+-- stale-approval counts). Still must not be world-readable/writable since
+-- the anon key is public by design.
+--
+-- Fix: enable RLS, add ZERO policies. service_role (used by every real
+-- caller above) bypasses RLS regardless of policies, so every real caller
+-- keeps working unchanged. anon/authenticated default to deny-all once RLS
+-- is on with no matching policy -- correct here, since nothing legitimate
+-- should ever reach these tables through the anon key.
+
+ALTER TABLE public.telegram_send_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weekly_digest_surfaces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.alert_state ENABLE ROW LEVEL SECURITY;
