@@ -82,6 +82,9 @@ module.exports = async function handler(req, res) {
     const zernioRows = await queryAdminSql(
       `SELECT platform, account_handle, zernio_account_id, owner, is_active FROM public.zernio_accounts WHERE platform = 'youtube' AND owner = 'heath-realtor'`
     );
+    const allCheckConstraints = await queryAdminSql(
+      `SELECT conname, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conrelid = 'public.social_posts'::regclass AND contype = 'c'`
+    );
 
     // Real insert test — proves PostgREST (not just raw psql) accepts the
     // new value, then cleans up immediately. Uses status='failed' (never
@@ -110,7 +113,7 @@ module.exports = async function handler(req, res) {
         }),
       });
       const insertOk = insRes.ok;
-      const insertBody = insertOk ? null : (await insRes.text()).slice(0, 500);
+      const insertBody = insertOk ? null : (await insRes.text()).slice(0, 2000);
 
       const delRes = await fetch(
         `${SUPABASE_URL}/rest/v1/social_posts?post_id=eq.${encodeURIComponent(testPostId)}`,
@@ -176,6 +179,7 @@ module.exports = async function handler(req, res) {
       ok: true,
       message: "social_posts_platform_check now allows 'youtube'; zernio_accounts youtube/heath-realtor row confirmed",
       constraint: constraintRows[0] || null,
+      all_check_constraints: allCheckConstraints,
       zernio_account: zernioRows[0] || null,
       insert_test: insertTest,
       posting_schedule: postingSchedule,
