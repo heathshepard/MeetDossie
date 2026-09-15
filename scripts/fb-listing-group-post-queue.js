@@ -153,7 +153,7 @@ async function runListingGroupPostQueue(deps = {}) {
   }
 
   const { data: lastData } = await sbFetch(
-    '/rest/v1/group_posts?pipeline=eq.listing-groups&status=eq.posted&posted_at=not.is.null&order=posted_at.desc&limit=1&select=posted_at',
+    '/rest/v1/group_posts?pipeline=eq.listing-groups&status=in.(posted,pending_admin_approval)&posted_at=not.is.null&order=posted_at.desc&limit=1&select=posted_at',
   );
   if (Array.isArray(lastData) && lastData.length > 0) {
     const ageMin = (Date.now() - new Date(lastData[0].posted_at).getTime()) / 60000;
@@ -182,6 +182,18 @@ async function runListingGroupPostQueue(deps = {}) {
     await caps.recordComment(BUDGET, sbFetch);
     out.posted++;
     log.log(`[listing-group-post-queue] posted listing group post ${row.id} (${row.group_name})`);
+    return out;
+  }
+
+  // Submitted successfully but the group requires a moderator to approve it
+  // first (fb-group-poster.js's pending_admin_approval status). A genuine
+  // submit happened -- this is NOT a posting/verify failure and must not
+  // trip the shared circuit breaker (2026-09-14 incident: exactly this case
+  // silently halted comment + reply posting for ~24h on a healthy account).
+  if (after && after.status === 'pending_admin_approval') {
+    await caps.recordComment(BUDGET, sbFetch);
+    out.posted++;
+    log.log(`[listing-group-post-queue] submitted listing group post ${row.id} (${row.group_name}) -- pending admin approval, not a failure`);
     return out;
   }
 
