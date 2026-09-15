@@ -36,6 +36,14 @@ const BACKLOG_THRESHOLD = 5;
 const VIDEO_REVIEW_STALE_HOURS = 48;
 const ALERT_COOLDOWN_HOURS = 20; // < 24 so a once-daily cron always re-fires next day, never skips one
 
+// scripts/harvest-tc-discovery-responses.js's own HOT_WINDOW_MS/HOT_INTERVAL_MS
+// (48h hot window, 45-min cadence within it) — duplicated as plain hours here
+// rather than imported, so this file never pulls in that script's playwright
+// dependency chain into the Vercel bundle.
+const TC_HARVEST_HOT_WINDOW_HOURS = 48;
+const TC_HARVEST_HOT_STALE_HOURS = 24; // Heath's ask, 2026-09-15: no host harvest in 24h -> alert
+const TC_HARVEST_SCOPE_GAP_HOURS = 3; // a posted row should get its first harvest pass well inside this
+
 // (platform, target_owner) pairs worth tracking. Kept explicit (not derived
 // from zernio_accounts) so a brand-new/experimental owner doesn't silently
 // start alerting before anyone's decided it should be monitored — see
@@ -249,6 +257,93 @@ async function checkVideoLibraryPendingReview(staleHours = VIDEO_REVIEW_STALE_HO
   }];
 }
 
+// 5. TC-discovery/group-post HOST COMMENT HARVEST gone silent while a post
+// is still in its hot window (Heath, 2026-09-15: people commenting on our
+// own FB group posts and never getting a reply, because the harvester
+// running on Heath's PC via Task Scheduler had no way to distinguish
+// "correctly waiting for its next cadence tick" from "actually dead"). Only
+// checks posts still inside the 48h hot window (45-min harvest cadence) —
+// a post past that window legitimately goes days between harvests (3-day
+// long-tail cadence), so silence there is NOT alarm-worthy and checking it
+// would false-positive constantly.
+async function checkTcHarvestHotWindowStale(staleHours = TC_HARVEST_HOT_STALE_HOURS, hotWindowHours = TC_HARVEST_HOT_WINDOW_HOURS) {
+  const hotSince = hoursAgoIso(hotWindowHours);
+  const staleCutoff = hoursAgoIso(staleHours);
+
+  const res = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.posted&post_url=not.is.null&posted_at=gte.${encodeURIComponent(hotSince)}`
+    + '&select=id,group_name,category,post_url,posted_at,last_harvested_at,harvest_count&order=posted_at.asc',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  // Only rows with a REAL permalink are harvestable at all — a group-URL
+  // fallback row (see checkTcHarvestScopeGap()) would never show a harvest
+  // regardless of whether the task is alive, so it can't be used as
+  // evidence the harvester died.
+  const eligible = res.data.filter((p) => /\/posts\/\d+/.test(String(p.post_url || '')));
+  if (eligible.length === 0) return [];
+
+  const freshest = eligible.reduce((max, p) => {
+    const t = p.last_harvested_at ? new Date(p.last_harvested_at).getTime() : 0;
+    return t > max ? t : max;
+  }, 0);
+
+  if (freshest >= new Date(staleCutoff).getTime()) return []; // something harvested recently enough — healthy
+
+  const oldest = eligible.reduce((o, p) => (!o || p.posted_at < o.posted_at ? p : o), null);
+  return [{
+    key: 'tc_harvest_hot_window_stale',
+    count: eligible.length,
+    oldest,
+    message: `${eligible.length} FB group post(s) still in their 48h hot window have had NO host-comment harvest in >${staleHours}h (oldest: "${oldest.group_name}", posted ${oldest.posted_at}). Check the "Dossie TC Discovery Harvest" Windows Task Scheduler task is actually running (Get-ScheduledTaskInfo) — scripts/harvest-tc-discovery-harvest.cmd should tick every 30 min.`,
+  }];
+}
+
+// 6. SCOPE GAP — a posted row that should have gotten at least its first
+// harvest pass by now but never has (harvest_count 0/null or
+// last_harvested_at null). This is the exact bug found live 2026-09-15: the
+// harvester's category filter silently excluded 4 of the last 10 posts
+// (daily5/listing-groups/heath_realtor_listing) from ever being scanned —
+// harvest_count stayed 0 forever with no signal anywhere. Also separately
+// flags rows whose post_url has no real /posts/<id> permalink (the
+// fb-group-poster.js group-URL fallback) — those can NEVER be harvested
+// until re-posted, a different problem from "just hasn't run yet".
+async function checkTcHarvestScopeGap(staleHours = TC_HARVEST_SCOPE_GAP_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const res = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.posted&post_url=not.is.null&posted_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,group_name,category,post_url,posted_at,last_harvested_at,harvest_count&order=posted_at.asc',
+  );
+  if (!res.ok || !Array.isArray(res.data)) return [];
+
+  const neverHarvested = res.data.filter((p) => !p.last_harvested_at && !p.harvest_count);
+  if (neverHarvested.length === 0) return [];
+
+  const noPermalink = neverHarvested.filter((p) => !/\/posts\/\d+/.test(String(p.post_url || '')));
+  const scopeGap = neverHarvested.filter((p) => /\/posts\/\d+/.test(String(p.post_url || '')));
+
+  const results = [];
+  if (scopeGap.length > 0) {
+    const groups = [...new Set(scopeGap.map((p) => `${p.group_name}${p.category ? ` (${p.category})` : ''}`))];
+    results.push({
+      key: 'tc_harvest_scope_gap',
+      count: scopeGap.length,
+      groups,
+      message: `${scopeGap.length} posted group_posts row(s) >${staleHours}h old have NEVER been harvested for host comments: ${groups.join(', ')}. If the harvester's own category/pipeline filter changed, these are falling outside it — check scripts/harvest-tc-discovery-responses.js fetchCampaignPosts().`,
+    });
+  }
+  if (noPermalink.length > 0) {
+    const groups = [...new Set(noPermalink.map((p) => `${p.group_name}${p.category ? ` (${p.category})` : ''}`))];
+    results.push({
+      key: 'tc_harvest_no_permalink',
+      count: noPermalink.length,
+      groups,
+      message: `${noPermalink.length} posted group_posts row(s) have no real post permalink captured (post_url falls back to the group URL) and can NEVER be auto-harvested for comments: ${groups.join(', ')}. This is scripts/fb-group-poster.js's permalink-capture-failed fallback — comments on these posts need a manual check.`,
+    });
+  }
+  return results;
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -277,15 +372,17 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
     checkAccumulatingBacklog(opts.backlogThreshold),
     checkVideoLibraryPendingReview(opts.videoReviewStaleHours),
+    checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
+    checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap];
   const fired = [];
   const suppressed = [];
 
@@ -320,11 +417,16 @@ module.exports = {
   BACKLOG_THRESHOLD,
   VIDEO_REVIEW_STALE_HOURS,
   ALERT_COOLDOWN_HOURS,
+  TC_HARVEST_HOT_WINDOW_HOURS,
+  TC_HARVEST_HOT_STALE_HOURS,
+  TC_HARVEST_SCOPE_GAP_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
   checkAccumulatingBacklog,
   checkVideoLibraryPendingReview,
+  checkTcHarvestHotWindowStale,
+  checkTcHarvestScopeGap,
   shouldFire,
   markFired,
   runAllChecks,

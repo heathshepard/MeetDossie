@@ -554,10 +554,18 @@ async function postToGroup(post) {
       console.warn('[fb-group-poster] Could not capture post permalink:', err.message);
     }
 
-    // Fallback: use group URL so the comment monitor can at least navigate there
+    // Fallback: use group URL so the comment monitor can at least navigate
+    // there. NOT SILENT (2026-09-15, Heath) — this used to report full
+    // success with no signal that the row is now unharvestable (post_url
+    // points at the group homepage, not the post; comments on it can never
+    // be scraped by scripts/harvest-tc-discovery-responses.js, which
+    // hard-excludes any post_url without a real /posts/<id> segment). The
+    // caller surfaces permalinkCaptured=false in the Telegram confirmation.
+    let permalinkCaptured = true;
     if (!postUrl) {
       postUrl = post.group_url;
-      console.log('[fb-group-poster] Permalink not found — falling back to group URL');
+      permalinkCaptured = false;
+      console.warn('[fb-group-poster] Permalink not found — falling back to group URL; this post will NOT be auto-harvestable for comments');
     }
 
     // Post first comment if needed (keeps page open)
@@ -577,7 +585,7 @@ async function postToGroup(post) {
       }
     }
 
-    return { status: 'posted', postUrl };
+    return { status: 'posted', postUrl, permalinkCaptured };
   } finally {
     await context.close();
   }
@@ -651,7 +659,10 @@ async function main() {
   if (result && result.status === 'posted' && result.postUrl) {
     await markPosted(POST_ID, post.group_registry_id, result.postUrl);
     console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${result.postUrl}`);
-    await sendTelegramConfirmation(post.group_name, post.post_body, true, null);
+    const statusLabel = result.permalinkCaptured === false
+      ? 'permalink NOT captured — comments on this post cannot be auto-harvested'
+      : null;
+    await sendTelegramConfirmation(post.group_name, post.post_body, true, null, statusLabel);
 
     // Part 2 (comment_watchlist, Sage 2026-08-28): "heath_own_post" direction.
     // Fires automatically on a real confirmed post -- fb-group-poster.js is

@@ -156,7 +156,14 @@ async function run() {
       // stale draft: created 30h ago, never sent to telegram.
       { id: 'stale-draft-1', platform: 'twitter', target_owner: 'dossie', status: 'draft', telegram_sent_at: null, created_at: hoursAgo(30) },
     ],
-    group_posts: [],
+    group_posts: [
+      // In the 48h hot window, real permalink, but no harvest in >24h — must fire tc_harvest_hot_window_stale.
+      { id: 'gp-hot-stale', group_name: 'DFW Realtors', category: 'tc_discovery_research', status: 'posted', post_url: 'https://www.facebook.com/groups/1/posts/111/', posted_at: hoursAgo(30), last_harvested_at: hoursAgo(28), harvest_count: 3 },
+      // Never-harvested, real permalink, >3h old -> scope-gap fires (this is the exact 2026-09-15 bug: category filter excluded it).
+      { id: 'gp-scope-gap', group_name: 'Stone Oak Neighborhood', category: 'listing-groups', status: 'posted', post_url: 'https://www.facebook.com/groups/2/posts/222/', posted_at: hoursAgo(10), last_harvested_at: null, harvest_count: 0 },
+      // Never-harvested, NO real permalink (group-URL fallback) -> separate no-permalink condition, not scope-gap.
+      { id: 'gp-no-permalink', group_name: 'Realtors SA Boerne', category: 'listing-groups', status: 'posted', post_url: 'https://www.facebook.com/groups/999999/', posted_at: hoursAgo(10), last_harvested_at: null, harvest_count: 0 },
+    ],
     video_library: [
       { id: 'vid-1', status: 'pending_heath_review', topic: 'feature-demo-x', platforms: ['tiktok', 'instagram'], created_at: hoursAgo(96) },
     ],
@@ -168,7 +175,7 @@ async function run() {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
   delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
-  const lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  let lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
 
   console.log('\nTest 1: platform silence — fires for instagram/dossie, names the real reason');
   const silence = await lib.checkPlatformSilence(3);
@@ -201,6 +208,46 @@ async function run() {
     assert.strictEqual(videoReview.length, 1);
     assert.ok(/tiktok/.test(videoReview[0].message) && /instagram/.test(videoReview[0].message), `expected platforms named, got: ${videoReview[0].message}`);
   });
+
+  console.log('\nTest 2b: TC-discovery host-comment harvest staleness + scope-gap (2026-09-15)');
+  const hotStale = await lib.checkTcHarvestHotWindowStale(24, 48);
+  check('hot-window post with no harvest in >24h fires tc_harvest_hot_window_stale', () => {
+    const c = hotStale.find((x) => x.key === 'tc_harvest_hot_window_stale');
+    assert.ok(c, `expected tc_harvest_hot_window_stale to fire, got: ${JSON.stringify(hotStale.map((x) => x.key))}`);
+    // Both gp-hot-stale (last harvested 28h ago) AND gp-scope-gap (posted
+    // 10h ago, never harvested) are within the 48h hot window with no
+    // harvest inside the last 24h — count covers every eligible row, not
+    // just the one that triggered the check.
+    assert.strictEqual(c.count, 2);
+  });
+
+  const scopeGap = await lib.checkTcHarvestScopeGap(3);
+  check('never-harvested row with a real permalink fires tc_harvest_scope_gap', () => {
+    const c = scopeGap.find((x) => x.key === 'tc_harvest_scope_gap');
+    assert.ok(c, `expected tc_harvest_scope_gap to fire, got: ${JSON.stringify(scopeGap.map((x) => x.key))}`);
+    assert.ok(/Stone Oak Neighborhood/.test(c.message), `expected the scope-gap post named, got: ${c.message}`);
+    assert.ok(!/Realtors SA Boerne/.test(c.message), 'the no-permalink row must NOT be counted as a scope gap');
+  });
+  check('never-harvested row with NO real permalink fires the separate tc_harvest_no_permalink condition', () => {
+    const c = scopeGap.find((x) => x.key === 'tc_harvest_no_permalink');
+    assert.ok(c, `expected tc_harvest_no_permalink to fire, got: ${JSON.stringify(scopeGap.map((x) => x.key))}`);
+    assert.ok(/Realtors SA Boerne/.test(c.message), `expected the no-permalink post named, got: ${c.message}`);
+  });
+
+  console.log('\nTest 2c: legitimate long-tail silence (past the 48h hot window) does NOT fire — avoids false alarms');
+  const quietSeed = [{ id: 'gp-long-tail', group_name: 'Texas Realtors', category: 'tc_discovery_research', status: 'posted', post_url: 'https://www.facebook.com/groups/3/posts/333/', posted_at: daysAgo(6), last_harvested_at: daysAgo(3), harvest_count: 8 }];
+  const quietMock = await startMockSupabase({ ...seed, group_posts: quietSeed });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${quietMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const quietLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const quietHotStale = await quietLib.checkTcHarvestHotWindowStale(24, 48);
+  check('a post 6 days old, last harvested 3 days ago (legit long-tail cadence) does NOT fire hot-window-stale', () => {
+    assert.strictEqual(quietHotStale.length, 0, `expected no hot-window alert for a long-tail-only post, got: ${JSON.stringify(quietHotStale)}`);
+  });
+  quietMock.server.close();
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
 
   console.log('\nTest 3: dedupe — fires once, second run within cooldown is suppressed');
   const run1 = await lib.runAllChecks({ silenceDays: 3, approvalStaleHours: 48, draftStaleHours: 24, videoReviewStaleHours: 48 });
