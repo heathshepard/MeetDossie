@@ -89,28 +89,40 @@ async function loadTodaySchedule() {
   return byPlatform;
 }
 
-// Count today's posts per platform (video + text), today = America/Chicago
-// day. Counts social_posts in posted/publishing state plus video_library
-// rows posted today (each such row counts 1 against every platform in its
-// platforms array). Returns Map platform -> count, or null on query failure.
+// Count today's posts per (owner, platform) pair (video + text), today =
+// America/Chicago day. Counts social_posts in posted/publishing state plus
+// video_library rows posted today (each such row counts 1 against every
+// platform in its platforms array). Returns Map "owner::platform" -> count,
+// or null on query failure.
+//
+// Owner-scoped (Carter 2026-09-15 — mirrors cron-publish-approved.js's
+// countPostedToday(platform, tz, owner), Atlas 2026-08-18). Previously this
+// counted every owner's posts into ONE shared bucket per platform, so
+// Dossie's own facebook/instagram posts exhausted the SAME daily cap
+// Heath's realtor Page needs — a realtor listing video got silently
+// blocked behind Dossie's own posts and had to be manually cap-raised.
+// target_owner defaults to 'dossie' on both tables (see
+// 20260817_social_posts_target_owner.sql / 20260910_video_library_target_owner.sql)
+// so a legacy/null row still counts correctly.
 async function getPostCountsToday() {
   const now = DateTime.now().setZone(DEFAULT_TZ);
   const startIso = encodeURIComponent(now.startOf('day').toUTC().toISO());
 
   const { data: socialRows, ok: socialOk } = await supabaseFetch(
-    `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform`,
+    `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform,target_owner`,
   );
   const { data: videoRows, ok: videoOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms`,
+    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms,target_owner`,
   );
   if (!socialOk || !videoOk) return null;
 
   const counts = new Map();
-  const bump = (p) => counts.set(p, (counts.get(p) || 0) + 1);
-  if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.platform));
+  const key = (owner, platform) => `${owner || 'dossie'}::${platform}`;
+  const bump = (owner, p) => counts.set(key(owner, p), (counts.get(key(owner, p)) || 0) + 1);
+  if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.target_owner, r.platform));
   if (Array.isArray(videoRows)) {
     videoRows.forEach((r) => {
-      if (Array.isArray(r.platforms)) r.platforms.forEach(bump);
+      if (Array.isArray(r.platforms)) r.platforms.forEach((p) => bump(r.target_owner, p));
     });
   }
   return counts;
@@ -121,7 +133,10 @@ async function getPostCountsToday() {
 // scheduledFor = next slot later today in the schedule tz; null = every slot
 // already passed, publish immediately (slot-passed == due, matching
 // cron-publish-approved semantics).
-function gatePlatform(platform, scheduleByPlatform, counts) {
+// owner scopes the daily-cap count (see getPostCountsToday) — the
+// posting_schedule row (slots + cap number) is still shared across owners
+// on the same platform, only the COUNT against that cap is per-owner.
+function gatePlatform(platform, scheduleByPlatform, counts, owner = 'dossie') {
   const row = scheduleByPlatform.get(platform);
   if (!row) {
     return { post: false, reason: 'no posting_schedule row for today' };
@@ -130,9 +145,9 @@ function gatePlatform(platform, scheduleByPlatform, counts) {
     return { post: false, reason: 'posting_schedule row is INACTIVE' };
   }
   const cap = row.max_per_day;
-  const already = counts.get(platform) || 0;
+  const already = counts.get(`${owner}::${platform}`) || 0;
   if (cap != null && already >= cap) {
-    return { post: false, reason: `daily cap reached (${already}/${cap})` };
+    return { post: false, reason: `daily cap reached for owner=${owner} (${already}/${cap})` };
   }
 
   const tz = row.timezone || DEFAULT_TZ;
@@ -149,11 +164,11 @@ function gatePlatform(platform, scheduleByPlatform, counts) {
 }
 
 // Split a video's platform list into postable targets and skips, with logs.
-function resolvePlatformTargets(label, platforms, scheduleByPlatform, counts) {
+function resolvePlatformTargets(label, platforms, scheduleByPlatform, counts, owner = 'dossie') {
   const targets = []; // { platform, scheduledFor }
   const skipped = []; // { platform, reason }
   for (const platform of platforms) {
-    const gate = gatePlatform(platform, scheduleByPlatform, counts);
+    const gate = gatePlatform(platform, scheduleByPlatform, counts, owner);
     if (gate.post) {
       console.log(`[cron-post-videos] ${label}: ${platform} → ${gate.scheduledFor ? `scheduled for ${gate.scheduledFor}` : 'publish now (all slots passed)'}`);
       targets.push({ platform, scheduledFor: gate.scheduledFor });
@@ -499,7 +514,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
           : defaultPlatformsFor(owner);
-        const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts);
+        const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
 
         if (resolved.targets.length === 0) {
           console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
@@ -683,8 +698,10 @@ async function postApprovedSkits() {
     console.error(`[cron-post-videos] Skit ${skitId}: schedule/cap query failed — failing closed, not posting`);
     return { posted: [], skipped: [skitId] };
   }
+  // Skits are always Dossie's own content (SKIT_PLATFORMS never carries a
+  // target_owner) — explicit 'dossie' here, not relying on the default.
   const { targets, skipped: platformSkips } = resolvePlatformTargets(
-    `skit ${skitId}`, SKIT_PLATFORMS, scheduleByPlatform, counts,
+    `skit ${skitId}`, SKIT_PLATFORMS, scheduleByPlatform, counts, 'dossie',
   );
   if (targets.length === 0) {
     console.log(`[cron-post-videos] Skit ${skitId}: no platform eligible today (${platformSkips.map((s) => `${s.platform}: ${s.reason}`).join('; ')}) — leaving video_approved for a later run`);
