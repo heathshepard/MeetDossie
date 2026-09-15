@@ -425,13 +425,24 @@ const PLATFORM_RULES = {
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry format-flavor guidance, not length conflicts.
 //
-// Weekly format mix (updated 2026-05-29 — 9 posts/day, YouTube added):
+// Weekly format mix (updated 2026-09-15 — instagram/tiktok removed, 7 posts/day):
 //   2x CAPABILITY_ONELINER (facebook + linkedin)
-//   2x TREC_EDUCATION (instagram + twitter)
+//   1x TREC_EDUCATION (twitter)
 //   1x FOUNDER_STORY (facebook — high-credibility platform)
 //   2x PERSONA_STORY/brenda+victor (twitter — fills 3/day cap)
-//   1x PERSONA_STORY/victor (tiktok — feeds DONE video pipeline)
 //   1x TREC_EDUCATION (youtube — educational long-form, 60-90s voiceover)
+//
+// 2026-09-15 (Carter): removed the instagram + tiktok slots below. Both
+// platforms retired the per-post Creatomate video path on 2026-09-09 in
+// favor of Pipeline B (video_library -> cron-post-videos.js — see
+// docs/PIPELINE.md). With video_required=false but no card fallback (video-
+// only policy, 2026-08-18/26), every instagram/tiktok row this cron
+// generated sat inert forever — 79 accumulated before this fix. Instagram
+// Reels and TikTok content now come exclusively from Pipeline B
+// (scripts/feature-demo-recorder.js -> video_library -> cron-post-videos.js)
+// or one-off scripts like scripts/sage-reel-builder.js that attach real
+// media at insert time. Do not re-add instagram/tiktok here without wiring
+// a real video source first.
 const POST_PLAN_BASE = [
   // CAPABILITY_ONELINER — shows one specific shipped feature in plain Dossie voice
   {
@@ -439,13 +450,6 @@ const POST_PLAN_BASE = [
     persona: null,
     platform: 'facebook',
     notes: 'Feature name -> what it does -> one concrete outcome -> CTA. Plain language, no hype. Facebook audience skews experienced agents — make the feature feel obvious and useful, not trendy.',
-  },
-  // TREC_EDUCATION — teaches Texas agents something real about TREC
-  {
-    format: 'TREC_EDUCATION',
-    persona: null,
-    platform: 'instagram',
-    notes: 'TREC fact/rule -> why it matters -> how Dossie handles it -> CTA. Keep it crisp and mobile-readable. Line breaks between each beat.',
   },
   // CAPABILITY_ONELINER — first Twitter slot (replaces brenda persona_story)
   {
@@ -481,15 +485,6 @@ const POST_PLAN_BASE = [
     persona: null,
     platform: 'twitter',
     notes: 'Operational insight for volume agents. Margins, deal capacity, efficiency angle. One specific feature that unlocks scale. Third Twitter slot — make it math-driven and confident.',
-  },
-  // TREC_EDUCATION — TikTok slot. Generates caption+hook for the DONE video pipeline.
-  // cron-publish-approved parks these as pending_video; a video must be attached
-  // before they publish. Short-form, curiosity-first, under 150 words.
-  {
-    format: 'TREC_EDUCATION',
-    persona: null,
-    platform: 'tiktok',
-    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. Teach one TREC rule, show how Dossie solves it. End with "Link in bio" or "Comment YES if this applies to you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
   },
   // TREC_EDUCATION — YouTube slot. Educational long-form (60-90s voiceover).
   // YouTube rewards watch time — more depth than TikTok/Instagram.
@@ -1416,18 +1411,6 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
   const founding = await getFoundingMemberCount();
   const dayOfYear = getDayOfYear();
 
-  // If an Instagram Reel is already queued for today (status draft/approved/pending_video),
-  // skip generating a static Instagram post — Reels get 3,173% more reach than static posts.
-  const todayUtc = now.toISOString().slice(0, 10);
-  const reelCheck = await supabaseFetch(
-    `/rest/v1/social_posts?platform=eq.instagram&status=in.(draft,approved,pending_video)&created_at=gte.${todayUtc}T00:00:00Z&created_at=lt.${todayUtc}T23:59:59Z&select=id&limit=1`,
-  );
-  const reelAlreadyQueued = reelCheck.ok && Array.isArray(reelCheck.data) && reelCheck.data.length > 0;
-  if (reelAlreadyQueued) {
-    console.log('[cron-generate-posts] Instagram Reel already queued for today — skipping static post');
-    plan = plan.filter((p) => p.platform !== 'instagram');
-  }
-
   // Log which hook formulas are assigned to today's batch for diagnostics.
   const hookAssignments = plan.map((p, i) => {
     const f = pickHookFormula(dayOfYear, i);
@@ -1631,13 +1614,20 @@ function classifyCTA(ctaText) {
     // cron-post-videos, verified working: 8 videos heath_approved, 1 posted
     // this week). Facebook's daily caption now flows as a plain text post
     // (cron-publish-approved.js IMAGE_CARD_PLATFORMS narrowed to
-    // instagram-only for the same reason). Instagram/TikTok stay
-    // video_required=false too, but structurally still can't post without
-    // media (TikTok has its own always-on park gate; Instagram's Graph API
-    // has no text-only feed post) — their daily captions sit inert until
-    // Pipeline B or a future re-enable attaches a video. YouTube left as-is
-    // per Cole's instruction (also currently posting_schedule.is_active=false,
-    // so it isn't generating today regardless).
+    // instagram-only for the same reason).
+    //
+    // UPDATED 2026-09-15 (Carter): the 2026-09-09 fix above stopped setting
+    // video_required=true for instagram/tiktok but did NOT stop this cron
+    // from generating instagram/tiktok rows in the first place — those rows
+    // still had no card fallback and no video source, so they sat inert
+    // (pending_video / draft, never postable) forever. 79 had piled up.
+    // instagram + tiktok are now removed from POST_PLAN_BASE entirely — see
+    // the comment above that array. This platform can still theoretically
+    // appear here if activePlatforms/posting_schedule ever re-adds it, so
+    // the video_required derivation below is left platform-driven rather
+    // than hardcoded. YouTube left as-is per Cole's instruction (also
+    // currently posting_schedule.is_active=false, so it isn't generating
+    // today regardless).
     const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
     // Safety guard: VIDEO_REQUIRED_PLATFORMS must only contain the platforms

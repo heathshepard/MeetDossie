@@ -424,134 +424,165 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   }
 
   // --- STEP 2: Post any 'heath_approved' videos to Zernio ---
+  // Fetch a BATCH, not just the single oldest row (Carter 2026-09-15 fix).
+  // Previously this pulled limit=1 — when the oldest row's platforms were
+  // all at their daily cap, it sat back at 'heath_approved' and every newer
+  // row behind it was silently blocked, forever, since the same oldest row
+  // gets re-selected on every run. Now we scan up to CANDIDATE_BATCH_SIZE
+  // oldest rows and post the first one that has at least one platform with
+  // cap room today. Rows skipped this pass are untouched and re-considered
+  // next run (or picked up sooner once cap room frees up).
+  const CANDIDATE_BATCH_SIZE = 20;
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    '/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=1',
+    `/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
   );
 
   if (!heathApprovedOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query heath_approved videos' });
   }
 
-  const video = Array.isArray(heathApprovedRows) && heathApprovedRows.length > 0
-    ? heathApprovedRows[0]
-    : null;
+  const candidates = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
 
   let libraryOk = true;
   let videoResults = [];
   let videoId = null;
   let platformsAttempted = [];
 
-  if (!video) {
+  if (candidates.length === 0) {
     console.log('[cron-post-videos] No heath_approved videos — nothing to post');
   } else {
-    videoId = video.id;
-    const owner = video.target_owner || 'dossie';
-    console.log(`[cron-post-videos] Posting heath_approved video: ${video.id} (owner: ${owner})`);
+    // Schedule + cap gate (2026-09-07). Fail CLOSED: if we can't read the
+    // schedule or today's counts, we cannot prove ANY post is within cap,
+    // so nothing posts this run (all candidate rows stay heath_approved).
+    // Loaded once for the whole batch scan — every candidate is evaluated
+    // against the same schedule/counts snapshot.
+    const scheduleByPlatform = await loadTodaySchedule();
+    const counts = scheduleByPlatform ? await getPostCountsToday() : null;
 
-    if (!video.supabase_url) {
-      const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
-      console.warn(`[cron-post-videos] ${warn}`);
-      await sendTelegramMessage(`Video pipeline: ${warn}`);
-      summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
+    if (!scheduleByPlatform || !counts) {
+      console.error('[cron-post-videos] posting_schedule / post-count query failed — failing closed, not posting');
+      libraryOk = false;
+      summary.skipped.push({ reason: 'schedule/cap query failed — fail closed', candidates: candidates.length });
     } else {
-      const captionCheck = (video.caption || '').trim().toLowerCase();
-      if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
-        const warn = `Video ${video.id} has an invalid caption ("${(video.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
-        console.warn(`[cron-post-videos] ${warn}`);
-        await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
-        await supabaseFetch(
-          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
-        );
-        summary.skipped.push({ id: video.id, reason: 'invalid caption' });
-      } else {
-        // Schedule + cap gate (2026-09-07). Fail CLOSED: if we can't read
-        // the schedule or today's counts, we cannot prove a post is within
-        // cap, so nothing posts this run (row stays heath_approved).
-        const scheduleByPlatform = await loadTodaySchedule();
-        const counts = scheduleByPlatform ? await getPostCountsToday() : null;
+      // Scan candidates oldest-first for the first one with eligible platform
+      // room. Rows with a hard blocker (no supabase_url, invalid caption)
+      // are resolved immediately (warned/failed) and skipped, same as
+      // before, but scanning continues to the next candidate instead of
+      // stopping the whole run.
+      let video = null;
+      let targets = [];
+      let platformSkips = [];
 
-        if (!scheduleByPlatform || !counts) {
-          console.error('[cron-post-videos] posting_schedule / post-count query failed — failing closed, not posting');
-          libraryOk = false;
-          summary.skipped.push({ id: video.id, reason: 'schedule/cap query failed — fail closed' });
-        } else {
-          const requested = (Array.isArray(video.platforms) && video.platforms.length > 0)
-            ? video.platforms
-            : defaultPlatformsFor(owner);
-          const { targets, skipped: platformSkips } = resolvePlatformTargets(
-            `video ${video.id}`, requested, scheduleByPlatform, counts,
+      for (const candidate of candidates) {
+        if (!candidate.supabase_url) {
+          const warn = `Video ${candidate.id} is heath_approved but supabase_url is null`;
+          console.warn(`[cron-post-videos] ${warn}`);
+          await sendTelegramMessage(`Video pipeline: ${warn}`);
+          summary.skipped.push({ id: candidate.id, reason: 'no supabase_url' });
+          continue;
+        }
+
+        const captionCheck = (candidate.caption || '').trim().toLowerCase();
+        if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+          const warn = `Video ${candidate.id} has an invalid caption ("${(candidate.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
+          console.warn(`[cron-post-videos] ${warn}`);
+          await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+          await supabaseFetch(
+            `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
+            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
           );
-          summary.platform_skips = platformSkips;
+          summary.skipped.push({ id: candidate.id, reason: 'invalid caption' });
+          continue;
+        }
 
-          if (targets.length === 0) {
-            console.log(`[cron-post-videos] Video ${video.id}: no platform eligible today — leaving heath_approved for a later run`);
-            summary.skipped.push({ id: video.id, reason: 'no eligible platform today', platform_skips: platformSkips });
-          } else {
-            const { ok: lockOk } = await supabaseFetch(
-              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
+        const owner = candidate.target_owner || 'dossie';
+        const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
+          ? candidate.platforms
+          : defaultPlatformsFor(owner);
+        const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts);
+
+        if (resolved.targets.length === 0) {
+          console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
+          summary.skipped.push({ id: candidate.id, reason: 'no eligible platform today', platform_skips: resolved.skipped });
+          continue;
+        }
+
+        video = candidate;
+        targets = resolved.targets;
+        platformSkips = resolved.skipped;
+        break;
+      }
+
+      if (!video) {
+        console.log(`[cron-post-videos] No candidate among ${candidates.length} heath_approved rows has an eligible platform today`);
+      } else {
+        videoId = video.id;
+        const owner = video.target_owner || 'dossie';
+        console.log(`[cron-post-videos] Posting heath_approved video: ${video.id} (owner: ${owner})`);
+        summary.platform_skips = platformSkips;
+
+        const { ok: lockOk } = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({ status: 'posting' }),
+          },
+        );
+
+        if (!lockOk) {
+          console.error('[cron-post-videos] Failed to acquire posting lock');
+          libraryOk = false;
+        } else {
+          platformsAttempted = targets.map((t) => t.platform);
+          const caption = video.caption || '';
+
+          for (const t of targets) {
+            const result = await postToZernio(
+              t.platform, video.supabase_url, caption, video.topic,
+              { scheduledFor: t.scheduledFor }, owner,
+            );
+            videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
+            if (!result.ok) {
+              libraryOk = false;
+              console.error(`[cron-post-videos] Failed on ${t.platform}:`, result.error);
+            } else {
+              console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
+            }
+          }
+
+          if (libraryOk) {
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
-                headers: { Prefer: 'return=representation' },
-                body: JSON.stringify({ status: 'posting' }),
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString() }),
               },
             );
-
-            if (!lockOk) {
-              console.error('[cron-post-videos] Failed to acquire posting lock');
-              libraryOk = false;
-            } else {
-              platformsAttempted = targets.map((t) => t.platform);
-              const caption = video.caption || '';
-
-              for (const t of targets) {
-                const result = await postToZernio(
-                  t.platform, video.supabase_url, caption, video.topic,
-                  { scheduledFor: t.scheduledFor }, owner,
-                );
-                videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
-                if (!result.ok) {
-                  libraryOk = false;
-                  console.error(`[cron-post-videos] Failed on ${t.platform}:`, result.error);
-                } else {
-                  console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
-                }
-              }
-
-              if (libraryOk) {
-                await supabaseFetch(
-                  `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-                  {
-                    method: 'PATCH',
-                    headers: { Prefer: 'return=minimal' },
-                    body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString() }),
-                  },
-                );
-                const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
-                const msgLines = [
-                  `Video posted: ${video.id}`,
-                  `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
-                ];
-                if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
-                if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
-                msgLines.push(caption.slice(0, 100));
-                await sendTelegramMessage(msgLines.join('\n'));
-                console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
-                summary.posted.push(video.id);
-              } else {
-                const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
-                await supabaseFetch(
-                  `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-                  {
-                    method: 'PATCH',
-                    headers: { Prefer: 'return=minimal' },
-                    body: JSON.stringify({ status: 'failed', posted_date: null }),
-                  },
-                );
-                await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
-                console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
-              }
-            }
+            const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
+            const msgLines = [
+              `Video posted: ${video.id}`,
+              `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
+            ];
+            if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
+            if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
+            msgLines.push(caption.slice(0, 100));
+            await sendTelegramMessage(msgLines.join('\n'));
+            console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+            summary.posted.push(video.id);
+          } else {
+            const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+              {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'failed', posted_date: null }),
+              },
+            );
+            await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
+            console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
           }
         }
       }
@@ -562,6 +593,14 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   const skitPostResult = await postApprovedSkits();
   summary.skit_posted = skitPostResult.posted;
 
+  // --- STEP 4: Alert if approved videos have sat unposted for 48h+ ---
+  // Silent-failure guard: without this, the batch-scan fix in STEP 2 can
+  // still leave a video capped-out on every one of its platforms for days
+  // and nobody would know until Heath noticed the gap himself. video_library
+  // has no approved_at column, so created_at is the best available proxy
+  // for "how long has this been sitting."
+  summary.stale_approved = await alertStaleApprovedVideos();
+
   return res.status(200).json({
     ok: libraryOk,
     video_id: videoId,
@@ -570,6 +609,30 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     summary,
   });
 });
+
+// video_library rows stuck at 'heath_approved' (or still 'approved',
+// awaiting Heath's review tap) past 48h mean the video pipeline is backed
+// up — either every platform is capped out day after day, or a review
+// message never got tapped. Reuses the same sendTelegramMessage helper as
+// the rest of this cron; runs every invocation (daily), so this is at most
+// one extra message/day while the condition persists — acceptable given
+// there's no separate alert-dedup table for this cron today.
+async function alertStaleApprovedVideos() {
+  const cutoffIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(approved,heath_approved)&created_at=lt.${encodeURIComponent(cutoffIso)}&select=id,status,topic,created_at&order=created_at.asc`,
+  );
+  if (!ok || !Array.isArray(data) || data.length === 0) return { count: 0 };
+
+  const lines = [
+    `Video pipeline alert: ${data.length} video(s) approved but unposted for 48h+`,
+    ...data.slice(0, 10).map((v) => `- ${v.id} (${v.status}, since ${v.created_at})`),
+    data.length > 10 ? `...and ${data.length - 10} more` : null,
+  ].filter(Boolean);
+  console.warn(`[cron-post-videos] STALE ALERT: ${data.length} approved video(s) unposted 48h+`);
+  await sendTelegramMessage(lines.join('\n'));
+  return { count: data.length, ids: data.map((v) => v.id) };
+}
 
 // --- Skit video posting handler ---
 // Called from this same cron run to post video_approved skits to Zernio.

@@ -170,7 +170,13 @@ function basePost(over = {}) {
   return {
     id: `id-${Math.random().toString(36).slice(2)}`,
     post_id: 'p-1',
-    platform: 'tiktok',
+    // Carter 2026-09-15: was 'tiktok'. instagram/tiktok are now permanently
+    // excluded from this cron's render queue (Pipeline B handles them —
+    // see docs/PIPELINE.md + SKIP_RENDER_PLATFORMS in cron-render-videos.js),
+    // so a tiktok fixture here would get skipped before ever reaching the
+    // dead-letter logic this test is pinning down. facebook is still a
+    // valid render-videos platform.
+    platform: 'facebook',
     persona: 'dossie',
     topic: 'trec_education',
     content: 'Some caption text.',

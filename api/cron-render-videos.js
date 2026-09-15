@@ -83,6 +83,17 @@ const SUPABASE_VOICEOVERS_PREFIX =
 
 const MOBILE_PLATFORMS = new Set(['instagram', 'tiktok']);
 
+// Retired 2026-09-09 (docs/POSTING-ENGINE-PLAN-2026-09-09.md item 2): the
+// per-post Creatomate render path for instagram/tiktok is dead. Both
+// platforms are carried by Pipeline B now (video_library ->
+// cron-post-videos.js — docs/PIPELINE.md). cron-generate-posts.js was fixed
+// 2026-09-15 to stop generating instagram/tiktok rows at all, but this cron
+// still excludes them defensively at both the query and the per-row level
+// so any legacy row (pre-2026-09-09, video_required=true) never gets a real
+// render attempt against a vendor path that's been retired for this
+// platform pair — never re-add without wiring a live video source first.
+const SKIP_RENDER_PLATFORMS = new Set(['instagram', 'tiktok']);
+
 // How many posts to render in one Vercel invocation. Creatomate renders take
 // ~30-60s each; 3 posts = ~3 min, safely under the 90s maxDuration.
 // Remaining posts render on the next scheduled run (or a self-heal pass).
@@ -307,13 +318,22 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   // terminal state (Bug 1 fix, 2026-09-09) and is permanently excluded from
   // every render attempt, same technique as image_mismatch_hold.
   const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&platform=not.in.(instagram,tiktok)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render' });
   }
 
-  const queue = Array.isArray(posts) ? posts : [];
+  // Defensive second gate (see SKIP_RENDER_PLATFORMS comment above) — belt
+  // and suspenders in case a row slips past the query filter.
+  const queue = (Array.isArray(posts) ? posts : []).filter((post) => {
+    const platform = String(post.platform || '').toLowerCase();
+    if (SKIP_RENDER_PLATFORMS.has(platform)) {
+      console.log(`[cron-render-videos] skipping post ${post.id} — platform "${platform}" is on the retired per-post render path (Pipeline B handles it now)`);
+      return false;
+    }
+    return true;
+  });
   console.log(`[cron-render-videos] ${queue.length} posts need video render`);
 
   if (queue.length === 0) {
