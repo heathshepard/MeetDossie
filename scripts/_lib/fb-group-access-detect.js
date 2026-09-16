@@ -17,6 +17,14 @@
 // These must stay distinguishable from each other and from a genuine
 // posting failure -- see scripts/fb-group-poster.js and
 // scripts/_lib/fb-post-verify-outcome.js.
+//
+// IDENTITY DECISION (Heath's call, asked by the coordinator 2026-09-16, not
+// made here): switching DossieBot's posting identity from the Page to
+// Heath's personal profile would make Founding Files reachable again (the
+// block is Page-specific -- "Switch to your main profile"). It would NOT
+// automatically fix Stone Oak Neighborhood -- membership there is per-
+// account, and whether Heath's personal profile is already a member of
+// Stone Oak was not checked/confirmed in this pass.
 
 const IDENTITY_REJECTED_PATTERNS = [
   /switch to (your )?(main |personal )?profile/i,
