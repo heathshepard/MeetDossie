@@ -1641,7 +1641,36 @@ function classifyCTA(ctaText) {
     }
 
     let persona = String(p.persona || '').toLowerCase();
-    const platform = String(p.platform || '').toLowerCase();
+
+    // Bug fix (2026-09-16): the PLANNED slot is authoritative for platform
+    // too, for exactly the reason it is for format and persona above — the
+    // model's own field was being trusted verbatim.
+    //
+    // getPostPlan() strips GENERATION_DISABLED_PLATFORMS (instagram, tiktok)
+    // out of the slot plan, but nothing re-checked the platform the model
+    // handed back. So the model could — and did — return platform:"instagram"
+    // for a planned facebook/linkedin slot, and that row got inserted anyway.
+    // Those rows can NEVER publish: instagram and tiktok both require media,
+    // cron-publish-approved parks a media-less row at status='pending_video',
+    // and cron-render-videos explicitly excludes them
+    // (`platform=not.in.(instagram,tiktok)`) because the per-post Creatomate
+    // path is dead. The row sits in that graveyard forever — 53 rejected
+    // instagram + 53 rejected tiktok rows are the accumulated result.
+    // Video duty for those platforms belongs to Pipeline B (video_library),
+    // not social_posts. See the video-only policy note further down.
+    const modelPlatform = String(p.platform || '').toLowerCase();
+    const slotPlatform = String((plan[i] && plan[i].platform) || '').toLowerCase();
+    let platform = modelPlatform;
+    if (GENERATION_DISABLED_PLATFORMS.has(modelPlatform)) {
+      if (slotPlatform && !GENERATION_DISABLED_PLATFORMS.has(slotPlatform)) {
+        console.warn(`[cron-generate-posts] slot ${i}: model returned disabled platform "${modelPlatform}" — overriding to planned slot platform "${slotPlatform}"`);
+        platform = slotPlatform;
+      } else {
+        console.warn(`[cron-generate-posts] slot ${i}: model returned disabled platform "${modelPlatform}" and the planned slot is no better — skipping (a row here could never publish)`);
+        insertErrors.push({ index: i, error: 'disabled platform', got: { platform: modelPlatform, slot_platform: slotPlatform || null } });
+        continue;
+      }
+    }
     let caption = String(p.caption || p.content || '').trim(); // caption = full post text
     const voiceoverScript = String(p.voiceover_script || '').trim(); // spoken TTS script for Creatomate video
     const hook = String(p.hook || '').trim();
