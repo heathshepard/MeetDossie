@@ -38,7 +38,11 @@ rem before this. Verified live 2026-09-09 (--dry-run): the DossieBot profile
 rem (C:\Users\Heath\DossieBot, env PLAYWRIGHT_PROFILE_DIR) IS logged into
 rem LinkedIn — logged_in:true, landed on /feed/, not /login. Exits in ~2s
 rem without Chrome when the daily cap is already met or nothing is approved.
-cd /d "C:\Users\Heath\Projects\MeetDossie"
+rem 2026-09-16 (Atlas): self-locates via %~dp0 instead of a hardcoded
+rem C:\Users\Heath\Projects\MeetDossie literal, so this exact tracked file
+rem works unmodified whether launched from the dev tree or the separate
+rem MeetDossie-scheduler checkout (see docs/SCHEDULER-CHECKOUT.md).
+cd /d "%~dp0.."
 node scripts\harvest-tc-discovery-responses.js >> scripts\tc-discovery-harvest.log 2>&1
 node scripts\watch-guest-thread-replies.js >> scripts\guest-thread-watch.log 2>&1
 node scripts\fb-group-commenter.js --tc-reply-queue >> scripts\tc-reply-queue.log 2>&1
