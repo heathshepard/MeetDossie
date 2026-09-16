@@ -82,12 +82,16 @@ const {
   scrapeComments,
   launchContext,
   normHash,
-  HEATH_FB_NAMES,
+  isOwnAuthor,
 } = harvester;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-const isHeath = (author) => HEATH_FB_NAMES.some((n) => norm(author).toLowerCase() === n.toLowerCase());
+// Robust prefix/normalized match (scripts/_lib/fb-own-identity.js), not
+// exact equality -- Facebook's acting identity renders as "Heath Shepard,
+// Realtor with Keller Williams City View" (the Page), not the bare personal
+// name (2026-09-16 bug fix, same root cause as the harvester).
+const isHeath = (author) => isOwnAuthor(author);
 
 // ─── Supabase helpers ─────────────────────────────────────────────────────────
 

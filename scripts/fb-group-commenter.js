@@ -581,7 +581,7 @@ async function runTcReplyQueue(deps = {}) {
     // too, not just at auto-approve time — so flipping the switch off ALSO
     // stops anything already auto-approved but not yet posted. Manually
     // approved rows (auto_approved=false) are unaffected either way.
-    if (row.auto_approved && !autoReplyKillSwitch.isAutoReplyEnabled()) {
+    if (row.auto_approved && !(await autoReplyKillSwitch.isAutoReplyEnabled())) {
       await finalizeReply(sbFetch, row.id, { reply_status: 'notified', reply_error: null });
       await notify(`Auto-reply is switched off — held back an already-auto-approved reply to ${row.commenter_name}. Needs your manual Approve/Edit/Skip.`);
       out.skipped++;

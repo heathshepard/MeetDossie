@@ -33,9 +33,13 @@
  *      one alert (sla_alerted_at gates the repeat).
  *
  * All against in-memory mocks — ZERO production access, no browser, no
- * Telegram, no Claude, and the kill-switch state file is redirected to a
- * scratch path via AUTO_REPLY_SWITCH_FILE so this test can never touch the
- * real production switch.
+ * Telegram, no Claude. The kill switch itself now lives in Supabase
+ * (public.ops_flags, key='auto_reply' — see
+ * supabase/migrations/20260916c_ops_flags.sql), so this test drives it
+ * through an in-memory sbFetch mock (killSwitchDb below) passed explicitly
+ * into every kill-switch call — it can never reach the real project
+ * because SUPABASE_URL below points at a closed port and nothing here ever
+ * calls killSwitch.envSbFetch().
  *
  * Run manually:
  *   node scripts/regression-auto-reply-veto.js
@@ -43,13 +47,6 @@
 
 const assert = require('assert');
 const path = require('path');
-const os = require('os');
-const fs = require('fs');
-
-// Redirect the kill-switch state file to a scratch path BEFORE any module
-// loads it — never touch the real production switch from a test.
-const SCRATCH_SWITCH_FILE = path.join(os.tmpdir(), `auto-reply-switch-test-${process.pid}-${Date.now()}.json`);
-process.env.AUTO_REPLY_SWITCH_FILE = SCRATCH_SWITCH_FILE;
 
 process.env.SUPABASE_URL = 'http://127.0.0.1:1';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key-not-real';
@@ -121,6 +118,21 @@ function makeSbFetch(db) {
       const wantsRep = String((init.headers || {}).Prefer || '').includes('return=representation');
       return { ok: true, status: wantsRep ? 200 : 204, data: wantsRep ? matched.map((r) => ({ ...r })) : null };
     }
+    if (method === 'POST') {
+      // Generic upsert-on-conflict — used by the ops_flags kill-switch
+      // writes (POST /rest/v1/ops_flags?on_conflict=key).
+      const body = JSON.parse(init.body);
+      const conflictCol = q.on_conflict;
+      let stored = body;
+      if (conflictCol) {
+        const idx = rows.findIndex((r) => r[conflictCol] === body[conflictCol]);
+        if (idx >= 0) { Object.assign(rows[idx], body); stored = rows[idx]; } else { rows.push(body); }
+      } else {
+        rows.push(body);
+      }
+      const wantsRep = String((init.headers || {}).Prefer || '').includes('return=representation');
+      return { ok: true, status: wantsRep ? 200 : 201, data: wantsRep ? [{ ...stored }] : null };
+    }
     return { ok: false, status: 405, data: null };
   };
 }
@@ -160,6 +172,16 @@ const killSwitch = require('./_lib/auto-reply-kill-switch.js');
 const cron = require(path.join(__dirname, '..', 'api', 'cron-tc-reply-approval.js'));
 const vetoCheck = require(path.join(__dirname, '..', 'api', 'cron-auto-reply-veto-check.js'));
 
+// The kill switch now lives in public.ops_flags (Supabase), not a local
+// file — one in-memory "table", shared across this whole test run, exactly
+// mirroring the single production row every environment reads/writes.
+const killSwitchDb = { ops_flags: [] };
+const killSwitchSbFetch = makeSbFetch(killSwitchDb);
+// Bound dep passed into cron.processPendingReplies / vetoCheck.processVetoDeadlines
+// wherever a test wants the REAL kill-switch module logic (not a hardcoded
+// () => true/false) evaluated against this mock table.
+const isAutoReplyEnabledDep = () => killSwitch.isAutoReplyEnabled(killSwitchSbFetch);
+
 const DELIVERED_PAYLOAD = { ok: true, result: { message_id: 4242, date: 0 } };
 const CLEAN_DRAFT = 'yeah, mine went dark on me too once mid-option. built in a backup contact after that.';
 
@@ -181,14 +203,21 @@ async function main() {
   console.log('auto-reply-with-veto: kill switch + veto window + SLA alert');
 
   // ── 1. Kill switch defaults OFF ─────────────────────────────────────────
-  check('kill switch defaults to disabled on a fresh state file', () => {
-    if (fs.existsSync(SCRATCH_SWITCH_FILE)) fs.unlinkSync(SCRATCH_SWITCH_FILE);
-    assert.strictEqual(killSwitch.isAutoReplyEnabled(), false);
+  await checkAsync('kill switch defaults to disabled with no ops_flags row (missing row = fail closed)', async () => {
+    killSwitchDb.ops_flags = [];
+    assert.strictEqual(await killSwitch.isAutoReplyEnabled(killSwitchSbFetch), false);
+  });
+
+  await checkAsync('kill switch defaults to disabled if the read errors (unreachable/malformed = fail closed)', async () => {
+    const brokenSbFetch = async () => { throw new Error('simulated network failure'); };
+    assert.strictEqual(await killSwitch.isAutoReplyEnabled(brokenSbFetch), false);
+    const badResponseSbFetch = async () => ({ ok: false, status: 500, data: null });
+    assert.strictEqual(await killSwitch.isAutoReplyEnabled(badResponseSbFetch), false);
   });
 
   // ── 2. Switch OFF: low-risk comment never enters pending_veto ──────────
   await checkAsync('switch OFF: low-risk comment gets the ORIGINAL notified flow, not pending_veto', async () => {
-    killSwitch.disableAutoReply('test');
+    await killSwitch.disableAutoReply('test', killSwitchSbFetch);
     const db = makeDb();
     const row = seedComment(db);
     const sbFetch = makeSbFetch(db);
@@ -196,6 +225,7 @@ async function main() {
     const send = async (text, markup) => { sentMarkup = markup; return DELIVERED_PAYLOAD; };
     const res = await cron.processPendingReplies({
       sbFetch, draft: fakeDraftClean(), classifyRisk: highConfidenceEligible(), send, isSuppressed: () => false,
+      isAutoReplyEnabled: isAutoReplyEnabledDep,
     });
     assert.strictEqual(res.notified, 1);
     assert.strictEqual(row.reply_status, 'notified');
@@ -210,7 +240,7 @@ async function main() {
   let vetoRow;
   let vetoDb;
   await checkAsync('switch ON: low-risk comment enters pending_veto with a STOP-only keyboard and a ~10-min deadline', async () => {
-    killSwitch.enableAutoReply('test');
+    await killSwitch.enableAutoReply('test', killSwitchSbFetch);
     vetoDb = makeDb();
     vetoRow = seedComment(vetoDb);
     const sbFetch = makeSbFetch(vetoDb);
@@ -219,6 +249,7 @@ async function main() {
     const send = async (text, markup) => { sentText = text; sentMarkup = markup; return DELIVERED_PAYLOAD; };
     const res = await cron.processPendingReplies({
       sbFetch, draft: fakeDraftClean(), classifyRisk: highConfidenceEligible(), send, isSuppressed: () => false,
+      isAutoReplyEnabled: isAutoReplyEnabledDep,
     });
     assert.strictEqual(res.notified, 1);
     assert.strictEqual(res.autoVetoed, 1);
@@ -311,7 +342,58 @@ async function main() {
     assert.ok(sends.some((t) => /switched off/i.test(t)));
   });
 
-  // ── 7. SLA alert: fires once, past 60 minutes, never twice ─────────────
+  // ── 6b. Defense-in-depth: fb-group-commenter refuses to post an
+  // already-auto-approved row if the switch is off by post time ──────────
+  await checkAsync('fb-group-commenter holds back an auto_approved row when the kill switch reads OFF', async () => {
+    const commenter = require('./fb-group-commenter.js');
+    const db = makeDb();
+    const row = seedComment(db, {
+      reply_status: 'approved',
+      reply_final: CLEAN_DRAFT,
+      reply_approved_at: new Date().toISOString(),
+      auto_approved: true,
+    });
+    const sbFetch = makeSbFetch(db);
+    let posterCalls = 0;
+    const notifications = [];
+    const res = await commenter.runTcReplyQueue({
+      sbFetch,
+      caps: { canComment: async () => ({ allowed: true }), minGapElapsed: async () => ({ elapsed: true }), recordComment: async () => {} },
+      poster: async () => { posterCalls++; return { submitted: true }; },
+      verifier: async () => true,
+      notify: async (t) => { notifications.push(t); },
+      autoReplyKillSwitch: { isAutoReplyEnabled: async () => false },
+      log: { log: () => {}, warn: () => {}, error: () => {} },
+    });
+    assert.strictEqual(posterCalls, 0, 'poster never called — switch reads OFF');
+    assert.strictEqual(res.skipped, 1);
+    assert.strictEqual(row.reply_status, 'notified', 'held back for manual Approve/Edit/Skip');
+    assert.ok(notifications.some((t) => /switched off/i.test(t)));
+  });
+
+  // ── 7. Toggle round-trip + local-write visible to the cron-side read ───
+  await checkAsync('toggle round-trip: enable -> disable -> status reflects each write, and the write is visible on the very next cron-side read', async () => {
+    const tripDb = { ops_flags: [] };
+    const tripSbFetch = makeSbFetch(tripDb);
+
+    // Simulates `node scripts/toggle-auto-reply.js on` writing locally...
+    await killSwitch.enableAutoReply('qa pass complete', tripSbFetch);
+    // ...and the Vercel cron's very next read (same table, same key) seeing it.
+    assert.strictEqual(await killSwitch.isAutoReplyEnabled(tripSbFetch), true);
+    let state = await killSwitch.getState(tripSbFetch);
+    assert.strictEqual(state.enabled, true);
+    assert.strictEqual(state.reason, 'qa pass complete');
+
+    // Simulates `node scripts/toggle-auto-reply.js off` — one row, overwritten.
+    await killSwitch.disableAutoReply('rolling back', tripSbFetch);
+    assert.strictEqual(await killSwitch.isAutoReplyEnabled(tripSbFetch), false);
+    state = await killSwitch.getState(tripSbFetch);
+    assert.strictEqual(state.enabled, false);
+    assert.strictEqual(state.reason, 'rolling back');
+    assert.strictEqual(tripDb.ops_flags.length, 1, 'one row per flag, overwritten in place — not appended');
+  });
+
+  // ── 8. SLA alert: fires once, past 60 minutes, never twice ─────────────
   await checkAsync('SLA sweep alerts once for a comment unanswered past 60 minutes', async () => {
     const db = makeDb();
     const stale = seedComment(db, { harvested_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(), reply_status: 'notified' });

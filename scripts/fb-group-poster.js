@@ -94,13 +94,19 @@ async function fetchPost(postId) {
   return data[0];
 }
 
+// status='posted' is written ONLY here, and ONLY when the caller has
+// positive evidence (a real permalink, or a feed-text match — see
+// scripts/_lib/fb-post-verify-outcome.js). verified_at is stamped alongside
+// it as the record of when that evidence was captured.
 async function markPosted(postId, groupRegistryId, postUrl) {
   const now = new Date().toISOString();
 
   await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ status: 'posted', posted_at: now, post_url: postUrl || null }),
+    body: JSON.stringify({
+      status: 'posted', posted_at: now, post_url: postUrl || null, verified_at: now, failure_reason: null,
+    }),
   });
 
   if (groupRegistryId) {
@@ -112,14 +118,48 @@ async function markPosted(postId, groupRegistryId, postUrl) {
   }
 }
 
+// Pre-submit failure (never reached/clicked the Post button, or Facebook
+// showed an explicit rejection before any content could have gone live) --
+// safe to reset to 'approved' so the queue can retry, because no submit
+// action occurred that could have created a duplicate live post.
 async function markFailed(postId, reason) {
-  // Reset to approved so Heath can retry
   await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=minimal' },
-    body: JSON.stringify({ status: 'approved' }),
+    body: JSON.stringify({ status: 'approved', failure_reason: reason || null }),
   });
   console.error(`[fb-group-poster] Marked as failed (reset to approved): ${reason}`);
+}
+
+// A submit action DID occur (Post button clicked, composer behavior
+// observed) but neither a permalink nor a feed match confirms the post
+// exists. This is the false-'posted' bug fix (2026-09-16): previously this
+// case defaulted to status='posted'. It must NOT auto-reset to 'approved'
+// either -- retrying blindly risks a duplicate real post if the original
+// submit actually succeeded and we simply failed to verify it (Heath's
+// "never retry an unverified send" rule). Status stays 'failed', terminal,
+// posted_at stamped (the submit click really happened), pending a manual
+// check on Facebook.
+async function markUnconfirmed(postId, groupRegistryId, reason) {
+  const now = new Date().toISOString();
+  await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'failed', posted_at: now, post_url: null, failure_reason: reason || null }),
+  });
+}
+
+// Terminal, non-retryable outcomes: the account/Page can't post here at all
+// right now (per-group truth audit, 2026-09-16). No submit was attempted
+// (or none could succeed), so posted_at stays null. Auto-retrying without a
+// human fixing the underlying access problem (join the group, or switch
+// posting identity) would just fail identically every time.
+async function markTerminal(postId, status, reason) {
+  await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status, post_url: null, failure_reason: reason || null }),
+  });
 }
 
 // The submit genuinely happened -- Facebook accepted the post and queued it
@@ -154,6 +194,20 @@ async function markPendingApproval(postId, groupRegistryId) {
 // rationale (extracted so it's testable without launching a browser).
 
 const { detectPendingApproval } = require('./_lib/fb-pending-approval-detect');
+
+// ─── Identity-rejected / not-a-member detection ───────────────────────────────
+// See scripts/_lib/fb-group-access-detect.js. Per-group truth audit,
+// 2026-09-16: the acting identity is the Page, not Heath's personal
+// profile, and some groups block or never admitted it.
+
+const { detectIdentityRejected, detectNotAMember } = require('./_lib/fb-group-access-detect');
+
+// ─── Post-outcome resolver (pure, unit-tested) ────────────────────────────────
+// See scripts/_lib/fb-post-verify-outcome.js. This is where the false-
+// 'posted' bug (2026-09-16) is actually closed: status='posted' requires
+// positive evidence, full stop.
+
+const { resolvePostStatus } = require('./_lib/fb-post-verify-outcome');
 
 // ─── Telegram confirmation ────────────────────────────────────────────────────
 
@@ -320,6 +374,21 @@ async function postToGroup(post) {
       await page.waitForTimeout(800);
     } catch {}
 
+    // Identity/membership gate — checked BEFORE hunting for the post box.
+    // Per-group truth audit (2026-09-16): the acting identity is the Page
+    // "Heath Shepard, Realtor with Keller Williams City View", not Heath's
+    // personal profile. Some groups block Pages outright (Founding Files:
+    // "Switch to your main profile") or were never actually joined by it
+    // (Stone Oak Neighborhood: "Join group" live). Both are real, distinct,
+    // non-retryable outcomes -- return early rather than let the composer
+    // hunt below fall through to a generic "layout may have changed" error.
+    if (await detectIdentityRejected(page)) {
+      return resolvePostStatus({ identityRejected: true });
+    }
+    if (await detectNotAMember(page)) {
+      return resolvePostStatus({ notAMember: true });
+    }
+
     // Find the "Write something" / "What's on your mind?" post box.
     // Facebook uses multiple selectors; we prefer specific aria-labels and
     // ignore the generic tabindex=0 div fallback because it's nearly always
@@ -367,6 +436,11 @@ async function postToGroup(post) {
     }
 
     if (!postBox) {
+      // Second pass, in case the identity/membership signal only rendered
+      // after the box-hunt (e.g. a late-loading banner) rather than on
+      // initial page load.
+      if (await detectIdentityRejected(page)) return resolvePostStatus({ identityRejected: true });
+      if (await detectNotAMember(page)) return resolvePostStatus({ notAMember: true });
       throw new Error('Could not find the post input box on the group page. The group layout may have changed or you may not be a member.');
     }
 
@@ -482,10 +556,15 @@ async function postToGroup(post) {
     console.log('[fb-group-poster] Clicking Post button...');
     await postButton.click();
 
-    // Wait up to 30s for the post to appear (poll for success)
+    // Wait up to 30s, watching for the two known non-failure submit
+    // outcomes. composerClosed is recorded as a WEAK signal only -- a click
+    // happened -- it is deliberately never treated as proof of a live post
+    // (that was the 2026-09-16 false-'posted' bug: composer-closed alone,
+    // or "no error after 30s" alone, both used to satisfy verification).
     console.log('[fb-group-poster] Waiting for post confirmation...');
-    let posted = false;
     let pendingApproval = false;
+    let composerClosed = false;
+    let fbErrorText = null;
     for (let i = 0; i < 10; i++) {
       await page.waitForTimeout(3000);
 
@@ -494,54 +573,48 @@ async function postToGroup(post) {
       // is a successful submit, not a failure. Must not fall through to the
       // generic error-alert check below, which would misread it as one.
       if (await detectPendingApproval(page)) {
-        posted = true;
         pendingApproval = true;
         console.log('[fb-group-poster] Post submitted but requires group admin approval (pending_admin_approval) -- not a failure');
         break;
       }
 
-      // Check if the composer closed (success indicator)
-      const composerGone = !(await page.locator('div[contenteditable="true"]').isVisible().catch(() => false));
-      if (composerGone) {
-        posted = true;
-        console.log('[fb-group-poster] Composer closed - post likely submitted successfully');
-        break;
+      if (!composerClosed) {
+        composerClosed = !(await page.locator('div[contenteditable="true"]').isVisible().catch(() => false));
+        if (composerClosed) {
+          console.log('[fb-group-poster] Composer closed -- a submit occurred, still needs positive evidence before counting as posted');
+        }
       }
 
       // Check for error message
       const errorEl = await page.locator('[data-testid="error-message"], [role="alert"]').first();
       const errorVisible = await errorEl.isVisible().catch(() => false);
       if (errorVisible) {
-        const errorText = await errorEl.innerText().catch(() => 'unknown error');
-        throw new Error(`Facebook showed an error: ${errorText}`);
+        fbErrorText = await errorEl.innerText().catch(() => 'unknown error');
+        break;
       }
-    }
-
-    if (!posted) {
-      // Best-effort: assume it posted if no error after 30s
-      console.warn('[fb-group-poster] Could not confirm post - no error shown, assuming success');
-      posted = true;
     }
 
     if (pendingApproval) {
       // No permalink exists yet (post isn't in the feed until a mod
       // approves it) and there's nothing to attach a first comment to.
-      return { status: 'pending_admin_approval', postUrl: null };
+      return resolvePostStatus({ pendingApproval: true });
     }
 
-    // Try to capture the post permalink from the feed.
-    // Facebook renders a timestamp <a href="/groups/.../posts/..."> once the
-    // post appears. Give the feed a moment to render before querying.
+    // ── Positive-evidence search ──────────────────────────────────────────
+    // Runs regardless of composerClosed/fbErrorText -- an error banner can
+    // be stale/unrelated, and a still-open composer doesn't rule out the
+    // post having rendered behind it. Only real evidence here can produce
+    // status='posted'.
+
+    // 1. Real permalink. Facebook renders a timestamp
+    //    <a href="/groups/.../posts/..."> once the post appears.
     let postUrl = null;
     try {
       await page.waitForTimeout(3000);
-      // Look for the most recent post permalink in the feed — links containing
-      // /posts/ that are not navigation links (skip if they contain /permalink/).
       const links = await page.$$('a[href*="/posts/"]');
       for (const link of links) {
         const href = await link.getAttribute('href').catch(() => null);
         if (!href) continue;
-        // Normalize to absolute URL
         const absolute = href.startsWith('http') ? href : `https://www.facebook.com${href}`;
         // Must look like a group post URL: /groups/[id]/posts/[id]
         if (/\/groups\/[^/]+\/posts\/\d+/.test(absolute)) {
@@ -554,21 +627,33 @@ async function postToGroup(post) {
       console.warn('[fb-group-poster] Could not capture post permalink:', err.message);
     }
 
-    // Fallback: use group URL so the comment monitor can at least navigate
-    // there. NOT SILENT (2026-09-15, Heath) — this used to report full
-    // success with no signal that the row is now unharvestable (post_url
-    // points at the group homepage, not the post; comments on it can never
-    // be scraped by scripts/harvest-tc-discovery-responses.js, which
-    // hard-excludes any post_url without a real /posts/<id> segment). The
-    // caller surfaces permalinkCaptured=false in the Telegram confirmation.
-    let permalinkCaptured = true;
+    // 2. No permalink element found -- fall back to locating the post's own
+    //    text in the visible feed (the instructions' "or the post located
+    //    in the group feed afterward" case). NEVER falls back to the bare
+    //    group_url as a stand-in postUrl (2026-09-16 fix) -- that string
+    //    used to satisfy the old "posted && postUrl" truthy check in main()
+    //    with zero evidence anything published.
+    let feedConfirmed = false;
     if (!postUrl) {
-      postUrl = post.group_url;
-      permalinkCaptured = false;
-      console.warn('[fb-group-poster] Permalink not found — falling back to group URL; this post will NOT be auto-harvestable for comments');
+      feedConfirmed = await confirmPostInFeed(page, post.post_body);
+      if (feedConfirmed) {
+        console.log('[fb-group-poster] No permalink element, but post text located in the group feed -- counting as posted (unharvestable for comments, no /posts/ link)');
+      }
     }
 
-    // Post first comment if needed (keeps page open)
+    const outcome = resolvePostStatus({
+      errorShown: !!fbErrorText,
+      errorText: fbErrorText,
+      permalinkFound: !!postUrl,
+      feedConfirmed,
+    });
+
+    if (outcome.status !== 'posted') {
+      return { ...outcome, postUrl: null };
+    }
+
+    // Post first comment if needed (keeps page open) -- only for a
+    // confirmed-posted outcome; nothing to comment on otherwise.
     if (post.first_comment_body) {
       console.log('[fb-group-poster] Posting first comment...');
       const firstCommentSuccess = await postFirstComment(page, post.first_comment_body);
@@ -585,9 +670,25 @@ async function postToGroup(post) {
       }
     }
 
-    return { status: 'posted', postUrl, permalinkCaptured };
+    return { status: 'posted', postUrl, permalinkCaptured: !!postUrl, reason: null };
   } finally {
     await context.close();
+  }
+}
+
+// Secondary positive-evidence check: search the visible feed for a
+// distinctive snippet of the post body we just submitted. Used only when no
+// permalink element could be found. Deliberately requires a reasonably long,
+// low-collision snippet (first 40 non-trivial chars) rather than a single
+// word, to avoid a false match against someone else's unrelated post.
+async function confirmPostInFeed(page, postBody) {
+  const snippet = String(postBody || '').trim().slice(0, 40);
+  if (snippet.length < 15) return false; // too short to be a reliable signal
+  try {
+    const match = page.getByText(snippet, { exact: false }).first();
+    return await match.isVisible({ timeout: 5000 }).catch(() => false);
+  } catch {
+    return false;
   }
 }
 
@@ -656,10 +757,14 @@ async function main() {
     console.error('[fb-group-poster] Playwright error:', err.message);
   }
 
-  if (result && result.status === 'posted' && result.postUrl) {
+  if (result && result.status === 'posted') {
+    // postUrl may be null here (feed-text-confirmed but no /posts/ link
+    // element found) -- status alone is the posted/not-posted decision now,
+    // never `&& result.postUrl` (that gate is exactly what let the old
+    // group_url fallback masquerade as evidence).
     await markPosted(POST_ID, post.group_registry_id, result.postUrl);
-    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${result.postUrl}`);
-    const statusLabel = result.permalinkCaptured === false
+    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${result.postUrl || '(none — feed-confirmed only)'}`);
+    const statusLabel = !result.postUrl
       ? 'permalink NOT captured — comments on this post cannot be auto-harvested'
       : null;
     await sendTelegramConfirmation(post.group_name, post.post_body, true, null, statusLabel);
@@ -670,10 +775,13 @@ async function main() {
     // autonomously (RULE 4), unlike the comment/reply pipeline this table
     // otherwise only feeds from confirmed-by-Heath actions. Also covers the
     // daily5 pipeline (api/_lib/daily-group5-post-generator.js) -- same
-    // markPosted path, no separate wiring needed.
-    const { registerGroupPostWatch } = require('./_lib/group-post-watchlist');
-    await registerGroupPostWatch(supabaseFetch, post, POST_ID, result.postUrl)
-      .catch((err) => console.warn('[fb-group-poster] comment_watchlist insert non-fatal:', err && err.message));
+    // markPosted path, no separate wiring needed. Only registered when a
+    // real permalink exists -- nothing to watch without one.
+    if (result.postUrl) {
+      const { registerGroupPostWatch } = require('./_lib/group-post-watchlist');
+      await registerGroupPostWatch(supabaseFetch, post, POST_ID, result.postUrl)
+        .catch((err) => console.warn('[fb-group-poster] comment_watchlist insert non-fatal:', err && err.message));
+    }
   } else if (result && result.status === 'pending_admin_approval') {
     // Genuine submit -- Facebook queued it for a group admin's review. This
     // is a SUCCESSFUL run (exit 0), not a failure: the queue-runner reads
@@ -682,7 +790,28 @@ async function main() {
     await markPendingApproval(POST_ID, post.group_registry_id);
     console.log('[fb-group-poster] Submitted - status "pending_admin_approval" (awaiting a group admin, not a failure)');
     await sendTelegramConfirmation(post.group_name, post.post_body, true, null, 'pending admin approval');
+  } else if (result && (result.status === 'not_a_member' || result.status === 'identity_rejected')) {
+    // Terminal, not retryable without a human fixing access (join the
+    // group, or switch posting identity). Per-group truth audit, 2026-09-16.
+    await markTerminal(POST_ID, result.status, result.reason);
+    console.log(`[fb-group-poster] Terminal - status "${result.status}": ${result.reason}`);
+    await sendTelegramConfirmation(post.group_name, post.post_body, false, `${result.status.toUpperCase().replace(/_/g, ' ')} — ${result.reason} (will NOT auto-retry; needs a human fix)`);
+    process.exit(1);
+  } else if (result && result.status === 'failed') {
+    // A submit action occurred (composer closed / an error banner appeared
+    // after clicking Post) but neither a permalink nor a feed match
+    // confirms the post exists. Do NOT reset to 'approved' for auto-retry --
+    // if the original submit actually succeeded, retrying would create a
+    // duplicate live post (Heath's "never retry an unverified send" rule).
+    await markUnconfirmed(POST_ID, post.group_registry_id, result.reason);
+    console.warn(`[fb-group-poster] UNCONFIRMED - status "failed": ${result.reason}`);
+    await sendTelegramConfirmation(post.group_name, post.post_body, false, `UNCONFIRMED — ${result.reason}. Check Facebook manually before retrying.`);
+    process.exit(1);
   } else {
+    // No result object at all -- an exception was thrown before any submit
+    // was attempted (login redirect, post box/editor never found, etc.).
+    // Nothing was clicked that could have created a duplicate, so this is
+    // still safe to reset to 'approved' for a normal retry.
     await markFailed(POST_ID, errorMsg || 'unknown error');
     await sendTelegramConfirmation(post.group_name, post.post_body, false, errorMsg);
     process.exit(1);
