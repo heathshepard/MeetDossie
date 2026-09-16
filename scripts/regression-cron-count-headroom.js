@@ -110,6 +110,21 @@ async function run() {
     assert.ok(funcCount <= FUNCTIONS_HEADROOM_CEILING, `${funcCount} > ${FUNCTIONS_HEADROOM_CEILING} — re-run the glob-merge pass`);
   });
 
+  // Vercel's functions-key schema pattern is `^.{1,256}$` — a THIRD cap we
+  // hit live on 2026-09-16 (a 577-char glob key got rejected outright, same
+  // deploy, right after fixing the property-count cap above). Real
+  // headroom under 256, not a squeak-under number.
+  const KEY_HARD_CAP = 256;
+  const KEY_HEADROOM_CEILING = 220;
+  for (const key of Object.keys(v.functions || {})) {
+    check(`functions key length (${key.length}) for "${key.slice(0, 40)}..." is under the ${KEY_HARD_CAP}-char schema cap`, () => {
+      assert.ok(key.length < KEY_HARD_CAP, `${key.length} >= ${KEY_HARD_CAP}`);
+    });
+    check(`functions key length (${key.length}) leaves real headroom (<= ${KEY_HEADROOM_CEILING})`, () => {
+      assert.ok(key.length <= KEY_HEADROOM_CEILING, `${key.length} > ${KEY_HEADROOM_CEILING} — chunk this glob group further`);
+    });
+  }
+
   console.log('\nTest 2: every dispatcher file is itself a registered cron');
   const dispatcherFiles = fs.readdirSync(API_DIR).filter((f) => /^cron-dispatch-.*\.js$/.test(f));
   check(`found at least one cron-dispatch-*.js file (got ${dispatcherFiles.length})`, () => {
