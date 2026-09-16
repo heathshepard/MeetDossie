@@ -57,13 +57,13 @@ DEALS = {
     "DEMO-2026-003": {
         "id": "d99b0b44-46e9-4d2b-b9af-c50bf10e1b78",
         "address": "3309 Faux Glen, San Antonio, TX 78258",
-        "context": "Buyer rep — Patel Group. Closing Wed; clear-to-close received.",
+        "context": "Buyer rep — Dorset Group. Closing Wed; clear-to-close received.",
         "docs": [
-            ("Executed Contract — Patel.pdf",            "Executed Contract (TREC 20-17)",      "contract",            ["Buyer: Patel Group", "Sale price: $615,000", "Effective date: 2026-03-30", "Closing date: 2026-05-08", "Option period: 10 days"]),
+            ("Executed Contract — Dorset.pdf",            "Executed Contract (TREC 20-17)",      "contract",            ["Buyer: Dorset Group", "Sale price: $615,000", "Effective date: 2026-03-30", "Closing date: 2026-05-08", "Option period: 10 days"]),
             ("Sellers Disclosure — 3309 Faux Glen.pdf",  "Seller's Disclosure Notice",          "sellers_disclosure",  ["Roof: 2020", "Hot water heater replaced 2024"]),
             ("Inspection Report — 3309 Faux Glen.pdf",   "General Home Inspection Report",      "inspection",          ["Inspector: Demo Inspections LLC", "Date: 2026-04-04", "Findings: minor stucco crack, attic insulation low"]),
-            ("Repair Amendment — Patel.pdf",             "Amendment for Repairs",               "amendment",           ["Negotiated repairs: stucco crack remedy, attic insulation R-30 top-up", "Seller credit at closing: $2,200"]),
-            ("Closing Disclosure — Patel.pdf",           "Closing Disclosure (CD)",             "closing_disclosure",  ["Buyer: Patel Group", "Cash to close: $128,431.22", "Closing date: 2026-05-08"]),
+            ("Repair Amendment — Dorset.pdf",             "Amendment for Repairs",               "amendment",           ["Negotiated repairs: stucco crack remedy, attic insulation R-30 top-up", "Seller credit at closing: $2,200"]),
+            ("Closing Disclosure — Dorset.pdf",           "Closing Disclosure (CD)",             "closing_disclosure",  ["Buyer: Dorset Group", "Cash to close: $128,431.22", "Closing date: 2026-05-08"]),
         ],
     },
     "DEMO-2026-004": {
