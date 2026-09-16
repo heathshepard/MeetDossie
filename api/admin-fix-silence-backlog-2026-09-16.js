@@ -88,7 +88,7 @@ module.exports = async function handler(req, res) {
            order by approved_at asc`,
         );
         const deadRows = await client.query(
-          `select id, platform, target_owner, status, created_at, updated_at
+          `select id, platform, target_owner, status, created_at
            from public.social_posts
            where platform in ('instagram','tiktok')
              and status in ('pending_video','video_failed')
@@ -125,7 +125,13 @@ module.exports = async function handler(req, res) {
       const status = body.status;
       const reason = body.reason;
       const ids = Array.isArray(body.ids) ? body.ids : [];
-      const extraColumn = 'rejection_reason';
+      // Reason column differs per table (verified live via ?mode=schema):
+      // social_posts has rejection_reason (matches
+      // api/cron-sage-autonomous-review.js's own hard-reject convention);
+      // group_posts has no rejection_reason column at all, but does have
+      // failure_reason (used elsewhere for posting failures — closest fit
+      // for "why we killed this row" here).
+      const extraColumn = table === 'social_posts' ? 'rejection_reason' : 'failure_reason';
 
       if (!ALLOWED_TABLES.has(table)) {
         return res.status(400).json({ ok: false, error: `table not allowed: ${table}` });
@@ -145,7 +151,7 @@ module.exports = async function handler(req, res) {
         if (extraColumn) {
           updated = await client.query(
             `update public.${table}
-             set status = $1, ${extraColumn} = $2, updated_at = now()
+             set status = $1, ${extraColumn} = $2
              where id = ANY($3)
              returning id`,
             [status, reason, ids],
@@ -153,7 +159,7 @@ module.exports = async function handler(req, res) {
         } else {
           updated = await client.query(
             `update public.${table}
-             set status = $1, updated_at = now()
+             set status = $1
              where id = ANY($2)
              returning id`,
             [status, ids],
