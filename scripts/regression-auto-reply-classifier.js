@@ -247,6 +247,76 @@ check('"thanks" immediately followed by a live question is not a clean thanks', 
   assert.strictEqual(r.eligible, false);
 });
 
+// ─── Quinn's 2nd QA round, 2026-09-16 — PERMANENT FIXTURES ─────────────────
+// 22 fresh adversarial cases, 21 escalated correctly, 1 real miss — both
+// root causes are SHAPE problems, not string problems:
+//   1. AGREEMENT_RE matched the bare word "exactly" anywhere in the
+//      comment, even as an ordinary adverb. Fixed by anchoring
+//      thanks/agreement to the START of the comment (the actual SHAPE of
+//      an agreement, not a word occurring anywhere).
+//   2. The named-third-party check only caught "Name's <noun>". It missed
+//      the general PERSON-REFERENCE shape: a social-interaction verb next
+//      to a capitalized name, in either word order.
+// Fixtures below: Quinn's exact case, plus harder variants that change the
+// wording entirely (different verb, different name, different sentence
+// shape) to prove the fix generalizes rather than pattern-matching one
+// reported string.
+
+check('Quinn case (agreement word "exactly" as an adverb mid-sentence, not agreement): escalates via named third party', () => {
+  const r = classifyCommentRisk("Sharing this with Miguel since he's been asking about exactly this for his group.", 'happy to chat with him too');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
+check('root-cause isolation: "exactly" as a bare adverb, no third party at all, still does not carry eligibility alone', () => {
+  // Deliberately strips the third-party reference to isolate the FIRST
+  // root cause on its own: this must not become eligible just because
+  // "exactly" appears somewhere in it.
+  const r = classifyCommentRisk('It works exactly like you would expect honestly.', 'yeah pretty much');
+  assert.notStrictEqual(r.category, 'auto_eligible');
+});
+
+check('harder variant, different social verb + different name ("telling Dana about this"): escalates', () => {
+  const r = classifyCommentRisk('telling Dana about this later, she is going to want to know', 'sounds good, keep me posted');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
+check('harder variant, name BEFORE the verb ("my buddy Ray asked"): escalates', () => {
+  const r = classifyCommentRisk('my buddy Ray asked about this too the other day', 'small world, happens a lot');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
+check('harder variant, "wanted to know" instead of "asked" ("Zoe wanted to know"): escalates', () => {
+  const r = classifyCommentRisk('Zoe wanted to know if this happens as often as it sounds', 'more than people think honestly');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
+check('harder variant, forwarding language ("forwarded it to James"): escalates', () => {
+  const r = classifyCommentRisk('forwarded it to James since he was dealing with the exact same thing', 'hope it helps him too');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
+check('precision check: the common idiom "That said" must NOT trip the named-third-party shape', () => {
+  // Guards against an over-broad fix: "That said" is a discourse
+  // connective, not a reference to a person named "That". This is the one
+  // false-positive class worth explicitly excluding rather than accepting
+  // (unlike a day/place name, which is a harmless over-escalate).
+  const r = classifyCommentRisk('That said, mine went dark too for a while and it was rough.', 'yeah it happens more than it should');
+  assert.notStrictEqual(r.category, 'specific_client');
+});
+
+check('precision check: "100% agree with this" still auto-eligible after anchoring the agreement shape', () => {
+  // The anchoring fix must not collateral-damage the real, clean agreement
+  // case it's supposed to keep working.
+  const r = classifyCommentRisk('100% agree with this', 'yeah, same here');
+  assert.strictEqual(r.eligible, true);
+  assert.strictEqual(r.category, 'auto_eligible');
+});
+
 // ─── Real fixture: the exact row scripts/regression-tc-reply-approval.js
 // treats as a real harvested tc_discovery_responses comment ─────────────────
 

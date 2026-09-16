@@ -171,6 +171,23 @@ const ESCALATE_PATTERNS = [
       /\b[A-Z][a-zA-Z]+'s (?:closing|deal|transaction|file|listing|contract|escrow|option period|earnest money|paperwork)\b/,
       /\bfor [A-Z][a-zA-Z]+(?:'s)?\b.{0,20}\b(?:closing|deal|transaction|file|listing|contract|escrow)\b/,
       /\bhandled? it for [A-Z][a-zA-Z]+\b/i,
+      // ROOT SHAPE, added 2026-09-16 (Quinn's 2nd QA round): "Sharing this
+      // with Miguel since he's been asking about exactly this for his
+      // group" names no address, no possessive transaction noun — it just
+      // pulls a third party into the thread by name. Catch the PERSON-
+      // REFERENCE shape generally (a social-interaction verb next to a
+      // capitalized name, in either word order) rather than any specific
+      // phrasing: an auto-reply that lands in front of someone Heath
+      // hasn't met is exactly what must never happen.
+      //   forward:  "<verb> ... <Name>"   e.g. "sharing this with Miguel",
+      //             "telling Dana about this", "forwarded it to James"
+      //   backward: "<Name> <verb>"       e.g. "my buddy Ray asked",
+      //             "Zoe wanted to know", "Priya kept asking"
+      // Deliberately broad — a false hit on a capitalized non-name word
+      // (a day, a place) just escalates one extra comment to manual
+      // review, which is the safe direction, not a real cost.
+      /\b(?:with|told|tell(?:ing)?|ask(?:ed|ing)?|mentioned|mentioning|said to|forward(?:ed|ing)?|show(?:ed|ing)?|shar(?:ed|ing)|sen(?:t|ding)|texted|called|emailed|cc'?d|loop(?:ed|ing)? in|introduc(?:ed|ing))\b(?:\s+\S+){0,3}?\s+[A-Z][a-z]+\b/,
+      /\b(?!(?:That|This|It|He|She|They|We|You|I)\b)[A-Z][a-z]+\s+(?:asked|has been asking|is asking|kept asking|mentioned|wanted to know|wondered|texted me|called me|emailed me)\b/,
     ],
   },
   {
@@ -223,9 +240,20 @@ const HEDGE_DOUBT_CRITICISM_RE = /\b(?:i guess|not sure|though|but\b|however|i d
 // ── Auto-eligible positive shapes ────────────────────────────────────────────
 // Necessary but NOT sufficient: clearing ESCALATE_PATTERNS and
 // HEDGE_DOUBT_CRITICISM_RE still requires positively matching one of these.
-const THANKS_RE = /\b(?:thanks?|thank you|appreciate (?:it|that|this)|much appreciated)\b/i;
-const NEGATED_THANKS_RE = /\bno thanks\b/i;
-const AGREEMENT_RE = /\b(?:yes|yeah|yep|yup|agreed?|exactly|100%|so true|same here|totally|spot on|couldn'?t agree more)\b/i;
+//
+// ANCHORED TO THE START, added 2026-09-16 (Quinn's 2nd QA round): "Sharing
+// this with Miguel since he's been asking about exactly this for his
+// group" was called eligible because AGREEMENT_RE matched the bare word
+// "exactly" — an adverb buried mid-sentence, not agreement. A single common
+// word can't be allowed to carry an eligibility decision by itself. Thanks
+// and agreement have to be the actual SHAPE of the comment — how it opens —
+// not a word that happens to appear anywhere in it.
+const THANKS_RE = /^(?:thanks?|thank you|appreciate (?:it|that|this)|much appreciated)\b/i;
+const NEGATED_THANKS_RE = /^no thanks\b/i;
+// "100%" gets its own lookahead instead of a trailing \b — \b can't fire
+// between two non-word characters ("%" then a space), which silently broke
+// this alternative the moment the regex was anchored to the start.
+const AGREEMENT_RE = /^(?:100%(?=\s|[.,!?]|$)|yes\b|yeah\b|yep\b|yup\b|agreed?\b|exactly\b|so true\b|same here\b|totally\b|spot on\b|couldn'?t agree more\b)/i;
 const THANKS_AGREEMENT_MAX_WORDS = 20; // a real thanks/agreement is short; a long one carrying "thanks" plus three more sentences of commentary is not a clean thanks
 
 // SAFE_QUESTION_PATTERNS — Quinn's mandate: a question must be POSITIVELY
