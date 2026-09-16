@@ -95,7 +95,19 @@ STORAGE_PREFIX = "video-library"
 # realtor "Brokerage" Zernio profile only has facebook + instagram connected
 # today (see docs/PIPELINE.md) -- no tiktok, so we don't default to a
 # platform that will just fail at post time.
-DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok"]
+#
+# 'youtube' added to the Dossie vertical lanes 2026-09-16 (Carter,
+# fix(video-pipeline): YouTube attach-path). cron-post-videos.js and
+# zernio_accounts/posting_schedule were fixed live the same day (78c1c876)
+# so Pipeline B CAN post to youtube, but nothing upstream ever tagged a
+# video_library row with 'youtube' -- this file is that upstream. YouTube
+# Shorts wants the same 1080x1920 vertical asset tiktok/instagram already
+# get from build-shortform-video.py, so it rides the same selfie/skit/mobile
+# lanes. Desktop (landscape) screen recordings stay off youtube -- Shorts is
+# vertical-only. Not added to REALTOR_SELFIE_PLATFORMS: Heath's realtor
+# Zernio profile has a youtube destination wired but explicitly "no content
+# plan" (docs/PIPELINE.md) -- don't originate realtor content for it.
+DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok", "youtube"]
 REALTOR_SELFIE_PLATFORMS = ["facebook", "instagram"]
 
 
@@ -144,9 +156,9 @@ def classify_video(file_path: Path, is_realtor: bool) -> dict:
     if "selfie" in stem:
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
     elif stem.startswith("skit-"):
-        vtype, platforms = "skit", ["tiktok", "instagram"]
+        vtype, platforms = "skit", ["tiktok", "instagram", "youtube"]
     elif "-mobile-" in stem:
-        vtype, platforms = "screen_recording", ["tiktok", "instagram"]
+        vtype, platforms = "screen_recording", ["tiktok", "instagram", "youtube"]
     elif "-desktop-" in stem:
         vtype, platforms = "screen_recording", ["facebook", "twitter", "linkedin"]
     else:
