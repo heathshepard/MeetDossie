@@ -63,3 +63,21 @@ rem launching Chrome). If the live read fails or the connectMLS session
 rem is dead, it generates ZERO posts and alerts Heath on Telegram --
 rem it never falls back to a cached/stale DB snapshot.
 node scripts\listing-marketing-generate-live.js >> scripts\listing-marketing-generate-live.log 2>&1
+rem Step 10 (added 2026-09-16, Atlas): stale-scheduled-script drift check
+rem (scripts\detect-scheduled-script-drift.js). Twice in one day a merged
+rem fix did NOTHING because THIS machine's working tree was stale -- Task
+rem Scheduler runs local files and nothing pulls `main` into them. This
+rem step follows every scheduled task's real invocation graph (including
+rem require()'d _lib files no .cmd/.ps1 ever names directly), compares the
+rem local working-tree copy of each file against origin/main, and alerts
+rem Heath on Telegram ONLY when a locally-CLEAN tracked file has diverged --
+rem a file Heath is actively editing is reported differently (never
+rem alerted, never touched). Cost per tick: one `git fetch origin main` +
+rem two `git diff --name-only` calls (the schtasks enumeration itself is
+rem cached 24h) -- no Chrome, no meaningful slowdown. Detect and report
+rem only -- never checks out/stashes/resets anything. Dedupes like
+rem api/_lib/silence-alarm.js (same alert_state table, 12h cooldown per
+rem unresolved file set) and its latest result is also surfaced in the
+rem daily heartbeat (api/cron-dossie-full-diagnostic.js) so a quiet drift
+rem still shows up even if this Telegram alert is missed.
+node scripts\detect-scheduled-script-drift.js >> scripts\stale-script-detector.log 2>&1
