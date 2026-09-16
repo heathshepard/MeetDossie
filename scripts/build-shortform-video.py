@@ -44,6 +44,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -196,6 +197,37 @@ def assert_copy_allowed(brand, brand_name, texts):
             + "Fix the copy. Do NOT loosen the pattern list to make this pass.")
 
 
+def assert_cta_url_resolves(brand, brand_name):
+    """Render-time REFUSAL if a brand's CTA points at a domain that does not
+    resolve, checked with a real DNS lookup (not a format check) before a
+    single frame renders.
+
+    2026-09-16: Rust's CTA was `rustfitness.app`, which returns NXDOMAIN — a
+    dead link burned into a published short-form video and its captions. A
+    working link beats a dead one; this makes shipping a dead one impossible
+    instead of relying on someone noticing by hand, same class of guard as
+    assert_copy_allowed above.
+
+    Skipped for CTAs that are not URLs at all — e.g. heath-realtor's
+    "Text me for a private showing" is a sentence, not a link. Detected by a
+    space in the value, since no real domain contains one.
+    """
+    cta = (brand or {}).get("cta") or {}
+    url = cta.get("url")
+    if not url or " " in url:
+        return
+    host = re.sub(r"^https?://", "", url).split("/")[0]
+    try:
+        socket.gethostbyname(host)
+    except OSError as e:
+        raise SystemExit(
+            f"REFUSING to build: brand={brand_name!r} CTA URL {url!r} (host {host!r}) "
+            f"does not resolve ({e}).\n"
+            f"Fix brands.{brand_name}.cta.url in {BRANDS_JSON} before building — a dead "
+            "link in published marketing is exactly the silent-failure class this gate "
+            "exists to catch.")
+
+
 def assert_caption_font_allowed(cfg, style):
     """§5a check 12 — caption typeface must be a heavy sans. A serif is an
     automatic gate FAIL, and Cormorant Garamond is a Dossie brand/heading face
@@ -243,11 +275,21 @@ CARD_RENDERER = Path(__file__).parent / "render-card-png.js"
 CARD_DIR = REPO / "scripts" / "video-cards"
 
 
-def card_source(card):
+def card_source(card, brand=None):
     """Resolve a card declaration to its final HTML source, without rendering.
 
     Split out from render_card() so the forbidden-copy refusal can read what a
     card will SAY before paying for a Playwright launch per card.
+
+    If `card`'s template is the brand's own CTA card (brand.cta.card), CTA_URL
+    / CTA_OFFER are auto-injected from brand.cta.url / brand.cta.offer before
+    the spec's own `vars` are applied. This is what makes the CTA URL an
+    actual single config value per brand: before this, cta-rust.html hardcoded
+    "rustfitness.app" directly in its markup and scripts/_lib/shortform-brands.json's
+    cta.url was consulted only for the forbidden-copy regex, never rendered —
+    so fixing the JSON alone would not have changed a single frame. A spec's
+    own `vars` can still override CTA_URL/CTA_OFFER explicitly if a one-off
+    ever needs to.
     """
     tpl = card.get("template")
     if tpl:
@@ -255,7 +297,15 @@ def card_source(card):
         if not src_path.exists():
             raise SystemExit(f"card template not found: {src_path}")
         src = src_path.read_text(encoding="utf-8")
-        for k, v in (card.get("vars") or {}).items():
+        cta_cfg = (brand or {}).get("cta") or {}
+        auto_vars = {}
+        if tpl == cta_cfg.get("card"):
+            if cta_cfg.get("url"):
+                auto_vars["CTA_URL"] = cta_cfg["url"]
+            if cta_cfg.get("offer"):
+                auto_vars["CTA_OFFER"] = cta_cfg["offer"]
+        merged_vars = {**auto_vars, **(card.get("vars") or {})}
+        for k, v in merged_vars.items():
             src = src.replace("{{" + k + "}}", _html.escape(str(v)))
         leftover = re.findall(r"\{\{([A-Z0-9_]+)\}\}", src)
         if leftover:
@@ -271,7 +321,7 @@ def card_source(card):
     return src
 
 
-def render_card(card, out_png, work):
+def render_card(card, out_png, work, brand=None):
     """Render one full-bleed 1080x1920 card PNG from an HTML source.
 
     card = {"html": "<path to .html>"}
@@ -300,7 +350,7 @@ def render_card(card, out_png, work):
     work = Path(work)
     work.mkdir(parents=True, exist_ok=True)
 
-    src = card_source(card)
+    src = card_source(card, brand)
     tpl = card.get("template")
     if tpl:
         # Rendered into the template's own directory so its relative
@@ -597,6 +647,7 @@ def main():
         assert_caption_font_allowed(brand_cfg, caption_style)
 
     assert_voices_allowed(brand, brand_name, spec.get("voice", []))
+    assert_cta_url_resolves(brand, brand_name)
 
     # ---- render any declarative cards up front ----
     card_pngs = {}
@@ -605,7 +656,7 @@ def main():
     # Rendering is a Playwright launch per card; refusing before that keeps the
     # guardrail fast enough that nobody is tempted to bypass it.
     for name, card in (spec.get("cards") or {}).items():
-        card_texts.append((f"card:{name}", visible_text(card_source(card))))
+        card_texts.append((f"card:{name}", visible_text(card_source(card, brand))))
 
     # ---- forbidden-copy refusal, across EVERY word that reaches the screen
     # or the speaker: card text, caption/VO text, and the post caption if the
@@ -640,7 +691,7 @@ def main():
 
     for name, card in (spec.get("cards") or {}).items():
         png = work / f"card-{name}.png"
-        render_card(card, png, work)
+        render_card(card, png, work, brand)
         card_pngs[name] = str(png)
         print(f"[card] {name} -> {png.name}")
 

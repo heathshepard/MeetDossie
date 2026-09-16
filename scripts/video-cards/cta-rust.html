@@ -8,6 +8,15 @@
   "Not in the app stores yet" is the honest line and it stays. The compositor
   refuses any Rust card whose visible text matches /download|app store|.../ -
   see cta.forbidden in scripts/_lib/shortform-brands.json.
+
+  {{CTA_URL}} is filled in by build-shortform-video.py's card_source() from
+  brands.rust.cta.url in scripts/_lib/shortform-brands.json - that is the ONE
+  place the URL is set. Never hardcode a domain in this file again: 2026-09-16,
+  this card had "rustfitness.app" typed directly into the markup below, which
+  meant fixing the JSON alone (to the working waitlist link, since
+  rustfitness.app is NXDOMAIN) would not have changed what actually rendered.
+  assert_cta_url_resolves() in build-shortform-video.py also refuses to build
+  if brands.rust.cta.url stops resolving, so this can't go dead silently again.
 -->
 <style>
   body{background:#0D0D0F}
@@ -24,8 +33,8 @@
   <div class="kick">Rust</div>
   <h1>Coaching that<br><span class="hl">actually adjusts</span></h1>
   <div class="rule"></div>
-  <div class="url">rustfitness.app</div>
-  <div class="offer">join the waitlist</div>
+  <div class="url">{{CTA_URL}}</div>
+  <div class="offer">{{CTA_OFFER}}</div>
   <div class="note">Not in the app stores yet</div>
 </div>
 </body></html>

@@ -165,7 +165,8 @@
       },
       "cta": {
         "card": "cta-rust.html",
-        "url": "rustfitness.app",
+        "url": "rust-eight-rosy.vercel.app/waitlist.html",
+        "url_note": "rustfitness.app is NXDOMAIN as of 2026-09-16 (verified: no A or NS record). This Vercel URL is the real, live waitlist (confirmed 200, API validating) - ugly beats dead. Swap this ONE value back to rustfitness.app once Heath buys the domain; build-shortform-video.py renders cta-rust.html's {{CTA_URL}} from this field, so nothing else needs to change.",
         "offer": "join the waitlist",
         "hold_seconds": 2.2,
         "forbidden": [
