@@ -79,6 +79,32 @@
  *   10. opening_not_login_or_empty: when vision reports a login opening, the
  *       gate fails with exactly that rule and surfaces the disqualifier.
  *
+ * OPENING-RULE NARROWING TESTS (added 2026-09-16, same day as the rule)
+ * -----------------------------------------------------------------------
+ * The rule above shipped in commit 6364ffb8 and, hours later, wrongly held
+ * two of our OWN hook-card opens: the Rust `readiness-marcus-v3` cut and a
+ * Dossie hook-card cut. A hook card is a solid-colour frame carrying large
+ * title text — exactly what §5 item 1 / feedback_every-video-needs-scroll-
+ * stopping-hook.md asks every video to open on. The rule's actual intent was
+ * to catch a real login screen or a dead/blank/loading opening, never a
+ * designed title card. Narrowed same-day; these tests lock in both sides of
+ * that exact disagreement so it can't regress back to the over-broad wording.
+ *
+ *   11a. REAL POSITIVE: Media/rust-videos-v2/2026-09-16/readiness-marcus-v3.mp4
+ *        — the real cut that got wrongly held. Frame 0 is measured (not
+ *        assumed) to be a near-uniform solid-colour card, which is exactly
+ *        the shape the old wording banned; the narrowed rule must pass it.
+ *   11b. SYNTHETIC POSITIVE: a Dossie-brand hook card (Navy #1A1A2E background,
+ *        large white title text) built on the fly with ffmpeg drawtext — the
+ *        same solid-colour-plus-text shape as the real Dossie cut Heath
+ *        flagged. No specific "new Dossie video" file was checked into git
+ *        to reuse verbatim, so this reproduces the shape synthetically rather
+ *        than fabricating a source file.
+ *   11c. REAL NEGATIVE: the same feature-demo-stage-checklist-desktop-2026-09-07.mp4
+ *        used in Tests 6-9 — its frame 1.5s really is the Dossie sign-in
+ *        page (confirmed by direct frame extraction, not assumed). A true
+ *        login screen must still fail after the narrowing.
+ *
  * Run manually:
  *   node scripts/regression-video-quality-gate.js
  */
@@ -93,6 +119,8 @@ const execFileAsync = promisify(execFile);
 
 const REPO = path.join(__dirname, '..');
 const BAD_FIXTURE = '/mnt/c/Users/Heath/Projects/MeetDossie/Media/rust-conversations/rust-conv-founder-val-vertical.mp4';
+const RUST_HOOK_CARD_FIXTURE = '/mnt/c/Users/Heath/Projects/MeetDossie/Media/rust-videos-v2/2026-09-16/readiness-marcus-v3.mp4';
+const RUST_HOOK_CARD_COVER = '/mnt/c/Users/Heath/Projects/MeetDossie/Media/rust-videos-v2/2026-09-16/cover-readiness-marcus-v3.png';
 
 const failures = [];
 const check = (name, fn) => {
@@ -151,6 +179,12 @@ async function makeGoodFixture(tmpDir) {
       '(§6) — it must exist for this regression to mean anything. Media/ is gitignored, so ' +
       'this only exists on Heath\'s real checkout, not in an isolated worktree that never ' +
       'pulled it. Not skipping — failing loudly instead.');
+    process.exit(1);
+  }
+  if (!fs.existsSync(RUST_HOOK_CARD_FIXTURE) || !fs.existsSync(RUST_HOOK_CARD_COVER)) {
+    console.error(`FATAL: required opening-rule positive fixture not found at ${RUST_HOOK_CARD_FIXTURE}\n` +
+      'This is the real readiness-marcus-v3 cut the opening rule wrongly held on 2026-09-16 — ' +
+      'the narrowing regression (Test 11) means nothing without it. Not skipping — failing loudly instead.');
     process.exit(1);
   }
 
@@ -397,6 +431,85 @@ async function makeGoodFixture(tmpDir) {
   });
   check('the disqualifier is surfaced in detail for the Telegram alert', () => {
     assert.strictEqual(loginOpenResult.detail.opening_disqualifier, 'login');
+  });
+
+  // ── Test 11: narrowed opening rule — hook cards pass, real login still fails ──
+  console.log('\nTest 11: opening_not_login_or_empty narrowing — hook cards pass, a real login screen still fails');
+
+  // 11a/11b vision mock: a hook card (solid colour + large legible text) is
+  // exactly what the narrowed prompt is supposed to call GOOD.
+  const hookCardVision = {
+    visionResponder: (promptText) => {
+      if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'SLEPT A 2 OUT OF 5', reason: 'mock' };
+      if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) {
+        return { opening_meaningful: true, screen_seen: 'solid-colour hook card with large title text', disqualifier: 'none', reason: 'designed hook/title card, not a dead frame' };
+      }
+      return { frames_with_captions: 3, reason: 'mock' };
+    },
+    supabaseState: { patches: [] },
+    telegramSent: [],
+  };
+
+  // 11a — REAL: the readiness-marcus-v3 cut that got wrongly held.
+  const restoreHookReal = installFetchMock(hookCardVision);
+  const hookCardRealResult = await checkVideoQuality({ videoPath: RUST_HOOK_CARD_FIXTURE, coverPath: RUST_HOOK_CARD_COVER });
+  restoreHookReal();
+
+  check('REAL hook card (readiness-marcus-v3): opening_not_login_or_empty PASSES under the narrowed rule', () => {
+    assert.strictEqual(hookCardRealResult.rules.opening_not_login_or_empty.pass, true,
+      `note: ${hookCardRealResult.rules.opening_not_login_or_empty.note}`);
+  });
+
+  // 11b — SYNTHETIC: a Dossie-brand hook card (Navy bg + large white title
+  // text), reproducing the same solid-colour-plus-text shape as the real
+  // Dossie cut Heath flagged (no specific checked-in file to reuse verbatim).
+  // Built via the `ass` filter (libass), not `drawtext` — this ffmpeg build
+  // has no drawtext filter, same constraint noted in build-shortform-video.py.
+  const dossieHookCard = path.join(tmpDir, 'synthetic-dossie-hook-card.mp4');
+  const dossieHookAss = path.join(tmpDir, 'synthetic-dossie-hook-card.ass');
+  fs.writeFileSync(dossieHookAss, [
+    '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: 1080', 'PlayResY: 1920', '',
+    '[V4+ Styles]',
+    'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+    'Style: Hook,Sans,80,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,60,60,0,1', '',
+    '[Events]',
+    'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+    'Dialogue: 0,0:00:00.00,0:00:03.00,Hook,,0,0,0,,YOUR DEALS. HER JOB.',
+  ].join('\n') + '\n');
+  await execFileAsync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=0x1A1A2E:s=1080x1920:d=3:r=30',
+    '-vf', `ass=${dossieHookAss}`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an', dossieHookCard]);
+  const restoreHookSynthetic = installFetchMock(hookCardVision);
+  const hookCardSyntheticResult = await checkVideoQuality({ videoPath: dossieHookCard, coverPath: dossieHookCard });
+  restoreHookSynthetic();
+
+  check('SYNTHETIC Dossie hook card: opening_not_login_or_empty PASSES under the narrowed rule', () => {
+    assert.strictEqual(hookCardSyntheticResult.rules.opening_not_login_or_empty.pass, true,
+      `note: ${hookCardSyntheticResult.rules.opening_not_login_or_empty.note}`);
+  });
+
+  // 11c — REAL NEGATIVE: reuse the real login-screen file from Tests 6-9
+  // (its frame 1.5s really is the Dossie sign-in page — confirmed by direct
+  // frame extraction, not assumed). A true login screen must still fail.
+  const loginScreenVision = {
+    visionResponder: (promptText) => {
+      if (promptText.includes('hook_visible')) return { hook_visible: false, text_seen: '', reason: 'mock' };
+      if (promptText.includes('hook_cleared')) return { hook_cleared: false, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) {
+        return { opening_meaningful: false, screen_seen: 'Frame A blank white; Frame B the Dossie sign-in page with email/password fields', disqualifier: 'login', reason: 'real auth screen, not a hook card' };
+      }
+      return { frames_with_captions: 0, reason: 'mock' };
+    },
+    supabaseState: { patches: [] },
+    telegramSent: [],
+  };
+  const restoreLoginReal = installFetchMock(loginScreenVision);
+  const loginScreenRealResult = await checkVideoQuality({ videoPath: realBad, coverPath: realBad });
+  restoreLoginReal();
+
+  check('REAL login screen (stage-checklist-desktop): opening_not_login_or_empty still FAILS after the narrowing', () => {
+    assert.strictEqual(loginScreenRealResult.rules.opening_not_login_or_empty.pass, false);
+    assert.strictEqual(loginScreenRealResult.detail.opening_disqualifier, 'login');
   });
 
   // ── Test 5: gateBeforePublish() ───────────────────────────────────────────

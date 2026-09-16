@@ -46,12 +46,17 @@
 //                                 frame 0.0s.
 //   - hook_cleared_by_3s          that same hook text has cleared off the
 //                                 footage by ~3s (frame 0 vs frame ~3s).
-//   - opening_not_login_or_empty  frames 0.0s and 1.5s show neither a
-//                                 login/sign-in screen nor a blank/empty/
-//                                 loading state. Added 2026-09-16: both bad
-//                                 videos opened on Dossie's sign-in page, one
-//                                 with the demo account's credentials filled
-//                                 in and visible.
+//   - opening_not_login_or_empty  frames 0.0s and 1.5s show neither a real
+//                                 login/sign-in screen nor a dead frame with
+//                                 no legible text and no product UI. Added
+//                                 2026-09-16: both bad videos opened on
+//                                 Dossie's sign-in page, one with the demo
+//                                 account's credentials filled in and
+//                                 visible. Narrowed same day so a designed
+//                                 hook/title card (solid-colour frame, large
+//                                 legible text — exactly what Heath's
+//                                 scroll-stopping-hook rule asks for) is
+//                                 never treated as a dead opening.
 //   - captions_present            burned-in captions legible across 3
 //                                 sample points through the runtime.
 //
@@ -511,18 +516,31 @@ Respond with JSON only, no markdown fences:
 // ~3 seconds sitting on the Dossie sign-in page — one of them with the demo
 // account's email and password visibly filled in. A product demo must open on
 // the product doing something, never on the front door.
+//
+// Narrowed same day: the original wording also disqualified a "blank/
+// solid-colour frame", which caught our OWN designed hook cards (the Rust
+// readiness-marcus-v3 cut and a Dossie hook-card cut) — a hook card is
+// deliberately a solid-colour frame carrying large title text
+// (feedback_every-video-needs-scroll-stopping-hook.md: frame 1 must carry a
+// text hook). The rule's actual intent is to catch a login screen or a
+// dead/blank/loading opening with NOTHING on it — not a designed title card.
+// So: fail on a real auth screen, OR on a frame with neither legible text
+// nor product UI. A frame with large hook text, or real populated product
+// UI, passes either way.
 const OPENING_MEANINGFUL_PROMPT = `These are two frames from the very start of a short-form product-demo video: Frame A is time 0.0s, Frame B is roughly 1.5s in.
 
-A product demo must open on a meaningful moment — actual product content, real data, a populated screen. It must NOT open on any of these:
-- a login / sign-in / sign-up / "welcome back" / password / magic-link / authentication screen
-- a blank, near-blank, or solid-colour frame
-- an empty state, a bare logo splash, or a "no data yet" placeholder
-- a loading screen, skeleton placeholder, or spinner
+An opening frame is BAD ONLY if it is one of these:
+- a login / sign-in / sign-up / "welcome back" / password / magic-link / authentication screen — a real screen asking someone to enter or confirm credentials. This is bad even if the credentials are already pre-filled in.
+- a frame with NEITHER legible on-screen text NOR visible product/app UI — e.g. a blank/near-blank frame, a bare loading spinner or skeleton placeholder, or an "empty state" / "no data yet" screen with no real text or content on it.
 
-Judge the TWO frames together: if EITHER frame shows one of the disqualifying screens above, the opening is bad.
+An opening frame is GOOD if it shows EITHER of these — judge generously, this is the common and desired case:
+- a designed hook/title card: large, legible on-screen text making a claim, even on a plain solid-colour background. This is a deliberate scroll-stopping opening, not a dead one, and must NOT be flagged just for having a solid-colour background.
+- real product content/UI: an actual populated app screen, chat, dashboard, or data view.
+
+Judge the TWO frames together: if EITHER frame shows one of the two disqualifying screens above, the opening is bad. Otherwise it's good.
 
 Respond with JSON only, no markdown fences:
-{"opening_meaningful": true or false, "screen_seen": "short description of what each frame shows", "disqualifier": "login|blank|empty_state|loading|none", "reason": "one sentence"}`;
+{"opening_meaningful": true or false, "screen_seen": "short description of what each frame shows", "disqualifier": "login|blank_or_empty|none", "reason": "one sentence"}`;
 
 const CAPTIONS_PRESENT_PROMPT = `These are 3 frames sampled across a short-form video's runtime (roughly 25%, 50%, and 75% of the way through), in that order.
 
