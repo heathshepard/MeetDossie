@@ -16,7 +16,15 @@
 ' notes headed Chrome is required here), not the console flash being fixed.
 '
 ' Behavior is otherwise unchanged: same wrapper script, same log files.
+'
+' 2026-09-16 (Atlas): self-locates via WScript.ScriptFullName instead of a
+' hardcoded C:\Users\Heath\Projects\MeetDossie literal, so this exact
+' tracked file works unmodified from either the dev tree or the separate
+' MeetDossie-scheduler checkout (see docs/SCHEDULER-CHECKOUT.md).
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 
 Set WshShell = CreateObject("WScript.Shell")
-cmd = "cmd.exe /c ""C:\Users\Heath\Projects\MeetDossie\scripts\run-tc-discovery-harvest.cmd"""
+cmd = "cmd.exe /c """ & scriptDir & "\run-tc-discovery-harvest.cmd"""
 WshShell.Run cmd, 0, True
