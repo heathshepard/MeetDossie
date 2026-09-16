@@ -1,0 +1,32 @@
+/* Shared card styling for short-form video hook + CTA cards.
+   Rendered to PNG by scripts/render-card-png.js at 1080x1920.
+   Brand tokens are CLAUDE.md §4 — do not invent new hexes here.
+
+   SAFE ZONES (playbook §1.2, on a 1080x1920 canvas): top ~200px,
+   bottom ~484px, right ~140px, left ~44px are reserved by TikTok's UI.
+   All card content therefore lives inside .safe, which pads to clear them. */
+@font-face { font-family:'PJS';  src:url('../../public/fonts/PlusJakartaSans-Bold.ttf') format('truetype'); font-weight:700; }
+@font-face { font-family:'PJSR'; src:url('../../public/fonts/PlusJakartaSans-Regular.ttf') format('truetype'); font-weight:400; }
+@font-face { font-family:'Cormorant'; src:url('../../public/fonts/CormorantGaramond-Bold.ttf') format('truetype'); font-weight:700; }
+
+:root{
+  --blush:#F5E6E0; --blush-deep:#D4A0A0; --sage:#8BA888;
+  --gold:#C9A96E; --navy:#1A1A2E; --coral:#E8836B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden}
+body{background:var(--navy);}
+.safe{
+  position:absolute; top:200px; left:44px; right:140px; bottom:484px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  padding:0 46px; text-align:center;
+}
+.kick{font-family:'PJS';font-size:40px;letter-spacing:.24em;color:var(--gold);
+      text-transform:uppercase;margin-bottom:48px}
+h1{font-family:'PJS';font-weight:700;font-size:118px;line-height:1.05;
+   color:var(--blush);letter-spacing:-.02em}
+h1 .hl{color:var(--coral)}
+.rule{width:280px;height:14px;background:var(--coral);margin-top:56px}
+.sub{font-family:'PJSR';font-size:46px;line-height:1.35;color:var(--blush-deep);margin-top:44px}
+.url{font-family:'PJS';font-size:60px;color:var(--blush);margin-top:40px;letter-spacing:.01em}
+.tagline{font-family:'Cormorant';font-size:92px;color:var(--blush);line-height:1.1}
