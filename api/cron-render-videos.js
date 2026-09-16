@@ -92,7 +92,14 @@ const MOBILE_PLATFORMS = new Set(['instagram', 'tiktok']);
 // so any legacy row (pre-2026-09-09, video_required=true) never gets a real
 // render attempt against a vendor path that's been retired for this
 // platform pair — never re-add without wiring a live video source first.
-const SKIP_RENDER_PLATFORMS = new Set(['instagram', 'tiktok']);
+//
+// 'youtube' added 2026-09-16 (Carter) for the same reason: it hit the
+// identical dead-Creatomate path (only dormant because posting_schedule.
+// is_active was false, until 78c1c876 flipped it live for Pipeline B and
+// silently re-armed this cron for youtube too). youtube is now generated
+// exclusively via Pipeline B (scripts/queue-finished-videos.py) — see
+// GENERATION_DISABLED_PLATFORMS in cron-generate-posts.js.
+const SKIP_RENDER_PLATFORMS = new Set(['instagram', 'tiktok', 'youtube']);
 
 // How many posts to render in one Vercel invocation. Creatomate renders take
 // ~30-60s each; 3 posts = ~3 min, safely under the 90s maxDuration.
@@ -318,7 +325,7 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   // terminal state (Bug 1 fix, 2026-09-09) and is permanently excluded from
   // every render attempt, same technique as image_mismatch_hold.
   const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&platform=not.in.(instagram,tiktok)&order=created_at.asc&limit=${MAX_PER_RUN}`,
+    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&platform=not.in.(instagram,tiktok,youtube)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render' });

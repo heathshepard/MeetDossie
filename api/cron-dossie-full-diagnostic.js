@@ -934,6 +934,64 @@ async function runDataHealth() {
     });
   }
 
+  // 4g: Local PC scheduled-script drift (scripts/detect-scheduled-script-drift.js,
+  // folded into the 15-min TC-discovery-harvest tick). Heath, 2026-09-16: a
+  // merged fix did nothing twice in one day because the LOCAL working tree
+  // Task Scheduler runs never got pulled. That detector writes its latest
+  // result to alert_state (key='scheduled_script_drift') on every run, same
+  // table/pattern api/_lib/silence-alarm.js uses -- surfaced here too so a
+  // quiet drift still shows up in the daily heartbeat even if the Telegram
+  // alert was missed or the PC was off when it would have fired.
+  {
+    const startedAt = Date.now();
+    const as = await sb(`/rest/v1/alert_state?key=eq.scheduled_script_drift&select=metadata,updated_at,last_fired_at`);
+    let status = 'pass';
+    let severity = 'info';
+    let errorMessage = null;
+    let evidence = { checked: false };
+    if (as.ok && Array.isArray(as.data) && as.data[0]) {
+      const row = as.data[0];
+      const meta = row.metadata || {};
+      const ageHours = (Date.now() - new Date(row.updated_at).getTime()) / 3600000;
+      evidence = {
+        checked: true,
+        checked_at: meta.checked_at || row.updated_at,
+        age_hours: Math.round(ageHours * 10) / 10,
+        stale_count: meta.stale_count ?? null,
+        stale_files: (meta.stale_files || []).map((s) => s.file),
+        modified_count: meta.modified_count ?? null,
+      };
+      if (ageHours > 6) {
+        // Detector hasn't checked in in >6h (well beyond the 15-min tick) --
+        // the local PC is likely off/silent. pc_heartbeats already pages for
+        // that separately; this is just a non-critical note here.
+        status = 'warn';
+        severity = 'info';
+        errorMessage = `Local script-drift check hasn't reported in ${evidence.age_hours}h (PC may be off)`;
+      } else if ((meta.stale_count || 0) > 0) {
+        status = 'fail';
+        severity = 'critical';
+        errorMessage = `${meta.stale_count} scheduled script file(s) on the local PC differ from origin/main: ${evidence.stale_files.join(', ')}`;
+      }
+    } else {
+      // No row yet = detector has never run (not deployed to the PC's
+      // scheduler yet, or hasn't ticked once). Not a failure, just unknown.
+      status = 'warn';
+      severity = 'info';
+      errorMessage = 'No scheduled-script-drift check has ever reported (detector not yet running on the local PC)';
+    }
+    checks.push({
+      category: 'data',
+      check_key: 'data.scheduled-script-drift',
+      label: 'Local PC: scheduled scripts vs origin/main',
+      status,
+      severity,
+      duration_ms: Date.now() - startedAt,
+      evidence,
+      error_message: errorMessage,
+    });
+  }
+
   return checks;
 }
 

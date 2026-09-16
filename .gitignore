@@ -263,6 +263,11 @@ scripts/_oh_v3_lib.js
 # from public history. Kept on disk, never staged again.
 scripts/.sa-realtor-v3-state.json
 
+# scripts/detect-scheduled-script-drift.js's own cached Task Scheduler
+# enumeration (refreshed automatically every 24h) -- local state, never
+# tracked (Atlas, 2026-09-16).
+scripts/.stale-script-detector-task-cache.json
+
 # Ad-hoc audit/debug scripts dropped at scripts/.audit-* during live
 # investigations (e.g. Wild Cherry Command recon, group-access checks) —
 # throwaway, local-only, never commit (2026-09-09 gitignore audit)

@@ -442,6 +442,63 @@ async function tcNotifyHeath(text) {
   }).catch(() => {});
 }
 
+// ─── 60-minute reply SLA alarm (Carter, 2026-09-16) ────────────────────────
+// Heath was promised a 1-hour reply SLA once a reply is Heath-approved (or
+// auto-approved via the veto-timeout path). Nothing watched that promise:
+// api/_lib/silence-alarm.js's tc_discovery_responses check only covers
+// reply_status='notified' (drafted, awaiting Approve/Edit/Skip) on a
+// once-daily cadence — it never looks at 'approved' rows stuck AFTER
+// approval (cap hit, min-gap, locked profile, or the 15-min tick simply not
+// running), and a daily check can't serve an hour-scale SLA anyway.
+//
+// This runs on EVERY --tc-reply-queue tick (~every 15 min, see
+// run-tc-discovery-harvest.cmd Step 3) — a pure DB read with no Chrome
+// dependency, called FIRST in tcReplyQueueMain so a locked profile or an
+// empty queue can never prevent the alarm from checking.
+//
+// Dedup reuses the same alert_state table/shape as api/_lib/silence-alarm.js
+// (key + last_fired_at) but with its own short cooldown — the point is a
+// near-real-time alert on an hour-scale SLA, not a once-a-day digest.
+const REPLY_SLA_STALE_MINUTES = 60;
+const REPLY_SLA_ALERT_COOLDOWN_MINUTES = 55; // < 60 so a persisting breach re-fires roughly once per SLA window, not every 15-min tick
+const REPLY_SLA_ALERT_KEY = 'tc_reply_queue:approved_unposted_over_sla';
+
+async function checkApprovedReplyStale(sbFetch, notify = tcNotifyHeath, log = console) {
+  const cutoff = new Date(Date.now() - REPLY_SLA_STALE_MINUTES * 60000).toISOString();
+  const { ok, data } = await sbFetch(
+    '/rest/v1/tc_discovery_responses'
+    + '?reply_status=eq.approved&replied=eq.false&reply_posted_at=is.null'
+    + `&reply_approved_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,commenter_name,reply_approved_at&order=reply_approved_at.asc',
+  );
+  if (!ok || !Array.isArray(data) || data.length === 0) return { fired: false, count: 0 };
+
+  const state = await sbFetch(`/rest/v1/alert_state?key=eq.${REPLY_SLA_ALERT_KEY}&select=last_fired_at`);
+  const lastFiredAt = state.ok && Array.isArray(state.data) && state.data[0] ? state.data[0].last_fired_at : null;
+  const cooledDown = !lastFiredAt || (Date.now() - new Date(lastFiredAt).getTime()) > REPLY_SLA_ALERT_COOLDOWN_MINUTES * 60000;
+  if (!cooledDown) return { fired: false, count: data.length, suppressed: true };
+
+  const oldest = data[0];
+  const ageMin = Math.round((Date.now() - new Date(oldest.reply_approved_at).getTime()) / 60000);
+  await notify(
+    `TC reply SLA MISS: ${data.length} Heath-approved repl${data.length === 1 ? 'y' : 'ies'} unposted >${REPLY_SLA_STALE_MINUTES} min `
+    + `(oldest: ${oldest.commenter_name || 'unknown'}, approved ${ageMin} min ago). `
+    + `Check the DossieBot-Sage profile / reply caps — the 1-hour reply SLA is at risk.`,
+  );
+  await sbFetch('/rest/v1/alert_state?on_conflict=key', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({
+      key: REPLY_SLA_ALERT_KEY,
+      last_fired_at: new Date().toISOString(),
+      last_reason: `${data.length} approved unposted >${REPLY_SLA_STALE_MINUTES}min (oldest ${ageMin}min)`,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+  (log.log || log)(`[tc-reply-queue] SLA alarm fired: ${data.length} stale approved repl${data.length === 1 ? 'y' : 'ies'}`);
+  return { fired: true, count: data.length };
+}
+
 // Read-only-style thread expansion (mirrors the harvester's whitelist).
 async function expandRepliesReadOnly(page) {
   const EXPAND_RE = /^(View (all )?\d+ (more )?(comments|replies)|View more comments|View more replies|Previous comments|\d+ (reply|replies))$/i;
@@ -667,35 +724,60 @@ async function runTcReplyQueue(deps = {}) {
 }
 
 // Browser-wired entrypoint for --tc-reply-queue.
-async function tcReplyQueueMain({ dryRun }) {
+// `deps` is test-only injection (sbFetch, unlockProfile, log, notify) — real
+// callers (the .cmd tick) pass none and get the live network/browser path.
+async function tcReplyQueueMain({ dryRun } = {}, deps = {}) {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[tc-reply-queue] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing');
     process.exit(1);
   }
-  const sbFetch = makeSbFetch();
+  const sbFetch = deps.sbFetch || makeSbFetch();
+  const log = deps.log || console;
+  const notify = deps.notify || tcNotifyHeath;
+
+  // Runs on EVERY tick, before dry-run/empty-queue/lock checks below — pure
+  // DB read, no Chrome. An alarm-check failure must never block posting.
+  try {
+    await checkApprovedReplyStale(sbFetch, notify, log);
+  } catch (err) {
+    const errLog = log.error || log.log || log;
+    errLog(`[tc-reply-queue] SLA alarm check failed (non-fatal): ${err.message}`);
+  }
 
   if (dryRun) {
     const { data } = await sbFetch(
       '/rest/v1/tc_discovery_responses?reply_status=eq.approved&replied=eq.false&select=id,commenter_name,reply_final,source_group&order=reply_approved_at.asc',
     );
     const rows = Array.isArray(data) ? data : [];
-    console.log(`[tc-reply-queue][dry-run] ${rows.length} approved repl${rows.length === 1 ? 'y' : 'ies'} queued:`);
-    for (const r of rows) console.log(`  - ${r.commenter_name} (${r.source_group}): ${String(r.reply_final || '').slice(0, 100)}`);
+    log.log(`[tc-reply-queue][dry-run] ${rows.length} approved repl${rows.length === 1 ? 'y' : 'ies'} queued:`);
+    for (const r of rows) log.log(`  - ${r.commenter_name} (${r.source_group}): ${String(r.reply_final || '').slice(0, 100)}`);
     return;
   }
 
   // Quick emptiness probe before launching Chrome at all.
   const probe = await sbFetch('/rest/v1/tc_discovery_responses?reply_status=eq.approved&replied=eq.false&select=id&limit=1');
   if (!probe.ok || !Array.isArray(probe.data) || probe.data.length === 0) {
-    console.log('[tc-reply-queue] nothing approved — exiting without launching Chrome');
+    log.log('[tc-reply-queue] nothing approved — exiting without launching Chrome');
     return;
   }
 
   const { chromium } = require('playwright');
-  const { unlockProfile } = require('./_lib/chrome-profile-unlock');
+  const unlockProfileFn = deps.unlockProfile || require('./_lib/chrome-profile-unlock').unlockProfile;
   // Cooperative unlock (NO force) — same as the harvester: if another job
-  // holds the profile, this throws/waits and the next scheduled tick retries.
-  await unlockProfile({ profileDir: SAGE_PROFILE_PATH, reason: 'tc-reply-queue' });
+  // holds the profile, wait up to its internal timeout; if it's STILL held,
+  // skip this tick quietly (BROKERAGE_PROFILE_LOCKED) rather than crashing
+  // or force-killing a Chrome holding a live session. Next 15-min tick
+  // retries on its own — nothing was claimed, nothing is lost.
+  try {
+    await unlockProfileFn({ profileDir: SAGE_PROFILE_PATH, reason: 'tc-reply-queue' });
+  } catch (err) {
+    if (err && err.code === 'BROKERAGE_PROFILE_LOCKED') {
+      log.log(`[tc-reply-queue] profile locked by another process — skipping this tick quietly (will retry next tick): ${err.message}`);
+      return;
+    }
+    throw err;
+  }
+
   const context = await chromium.launchPersistentContext(SAGE_PROFILE_PATH, {
     headless: false, // headless has twice falsely reported logged-out on this profile
     channel: 'chrome',
@@ -710,8 +792,10 @@ async function tcReplyQueueMain({ dryRun }) {
       sbFetch,
       poster: (row, replyText) => postReplyToComment(page, row, replyText),
       verifier: (row, replyText) => verifyReplyPosted(page, row, replyText),
+      log,
+      notify,
     });
-    console.log('[tc-reply-queue] done:', JSON.stringify(result));
+    log.log('[tc-reply-queue] done:', JSON.stringify(result));
   } finally {
     await context.close().catch(() => {});
   }
@@ -843,6 +927,8 @@ module.exports = {
   finalizeReply,
   postReplyToComment,
   verifyReplyPosted,
+  checkApprovedReplyStale,
+  tcReplyQueueMain,
 };
 
 if (require.main === module) {
