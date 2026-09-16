@@ -11,6 +11,12 @@
 //
 // Remove this file once the backlog is resolved and verified.
 //
+// Modes (all gated by CRON_SECRET):
+//   ?mode=schema        GET  -- live columns for group_posts/social_posts
+//   ?mode=inspect        GET  -- full stale-drafts/stale-approved/dead-rows lists
+//   ?mode=apply          POST -- {table,status,ids,reason} -- terminal-mark rows
+//   ?mode=notify_heath    POST -- {text} -- plain Telegram message, no keyboard
+//
 //   curl -H "Authorization: Bearer $CRON_SECRET" \
 //     "https://<preview>/api/admin-fix-silence-backlog-2026-09-16?mode=inspect"
 //
@@ -20,6 +26,8 @@ const { Client } = require('pg');
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const CONNECTION_STRING = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ALLOWED_TABLES = new Set(['group_posts', 'social_posts']);
 // 'skipped' for group_posts (matches scripts/regression-group-post-pipeline.js
@@ -168,6 +176,31 @@ module.exports = async function handler(req, res) {
         return updated.rows;
       });
       return res.status(200).json({ ok: true, table, status, updated_count: result.length, updated_ids: result.map((r) => r.id) });
+    }
+
+    if (mode === 'notify_heath') {
+      if (req.method !== 'POST') {
+        return res.status(405).json({ ok: false, error: 'notify_heath requires POST' });
+      }
+      if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+        return res.status(500).json({ ok: false, error: 'telegram_env_missing' });
+      }
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = {}; }
+      }
+      const text = (body && body.text) || '';
+      if (!text) return res.status(400).json({ ok: false, error: 'text required' });
+
+      const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
+      });
+      const raw = await tgRes.text();
+      let data = null;
+      try { data = raw ? JSON.parse(raw) : null; } catch { /* noop */ }
+      return res.status(200).json({ ok: tgRes.ok && data?.ok === true, telegram: data });
     }
 
     return res.status(400).json({ ok: false, error: `unknown mode: ${mode}` });
