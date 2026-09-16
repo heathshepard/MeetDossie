@@ -105,7 +105,7 @@ async function processVetoDeadlines(deps) {
   const rows = Array.isArray(data) ? data : [];
   if (rows.length === 0) return out;
 
-  const switchOn = isAutoReplyEnabled();
+  const switchOn = await isAutoReplyEnabled();
 
   for (const row of rows) {
     try {

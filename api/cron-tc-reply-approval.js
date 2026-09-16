@@ -353,6 +353,7 @@ async function processPendingReplies(deps) {
     classifyRisk = classifyCommentRisk,
     send = telegramSend,
     isSuppressed = wasSuppressed,
+    isAutoReplyEnabled = autoReplyKillSwitch.isAutoReplyEnabled,
     log = console,
   } = deps || {};
 
@@ -372,6 +373,11 @@ async function processPendingReplies(deps) {
   }
   const rows = Array.isArray(data) ? data : [];
   if (rows.length === 0) return out;
+
+  // Fetched once per run, not per row — same value for every row in this
+  // pass, and this is a network call now (Supabase ops_flags), not a local
+  // file stat.
+  const autoReplySwitchOn = await isAutoReplyEnabled();
 
   // Recent opener shapes (last 8 delivered replies) so THIS run doesn't
   // repeat a recently-used opening — grows in-memory as this run drafts
@@ -478,7 +484,7 @@ async function processPendingReplies(deps) {
       const isFlag = row.reply_status === 'flagged';
       const isAutoVeto = !isFlag
         && row.auto_reply_eligible === true
-        && autoReplyKillSwitch.isAutoReplyEnabled();
+        && autoReplySwitchOn;
 
       let text;
       let markup;
