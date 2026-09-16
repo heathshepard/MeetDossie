@@ -58,7 +58,17 @@ const ZERNIO_ACCOUNTS = {
   facebook:  '69f253c3985e734bf3d8f9bc',
   twitter:   '69f255c6985e734bf3d90ba1',
   linkedin:  '69fccd7392b3d8e85f8f12be',
-  youtube:   process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null,
+  // Dossie's own YouTube channel (@meetdossie, UCLtSlBEakQh-ClTVd_KGhWA).
+  // Was `process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null` — that env var was
+  // NEVER set in Vercel, so this resolved to null and every YouTube target
+  // failed account resolution silently. That is the whole reason YouTube has
+  // never published a single post despite the channel being connected to
+  // Zernio since 2026-05-29 with the youtube.upload scope granted.
+  // Hardcoded now for the same reason every other platform here is: a Zernio
+  // account id is not a secret, and an unset env var must not be able to
+  // silently disable a whole platform. The zernio_accounts table lookup in
+  // resolveZernioAccountId() still takes precedence over this map.
+  youtube:   '6a19ef442b2567671a6aa273',
 };
 
 // Default: post video to all connected platforms unless overridden by video.platforms row.

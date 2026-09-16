@@ -68,6 +68,18 @@ const TRACKED_PAIRS = [
   { platform: 'twitter', target_owner: 'dossie' },
   { platform: 'linkedin', target_owner: 'dossie' },
   { platform: 'tiktok', target_owner: 'dossie' },
+  // YouTube was missing from this list until 2026-09-16, which is exactly why
+  // nobody noticed it had NEVER published a single post. The channel
+  // (@meetdossie) has been connected to Zernio with the youtube.upload scope
+  // since 2026-05-29, but ZERNIO_ACCOUNTS.youtube read an env var
+  // (ZERNIO_YOUTUBE_ACCOUNT_ID) that was never set in Vercel, and
+  // zernio_accounts held the literal string
+  // 'PLACEHOLDER_SET_ZERNIO_YOUTUBE_ACCOUNT_ID' with is_active=false. Account
+  // resolution therefore returned null and every YouTube target failed
+  // silently. An untracked platform cannot go "silent" — it just never
+  // existed as far as the alarm was concerned. That is the precise shape of
+  // failure feedback_silent-failure-is-the-enemy.md exists to prevent.
+  { platform: 'youtube', target_owner: 'dossie' },
   { platform: 'facebook', target_owner: 'heath-realtor' },
   { platform: 'instagram', target_owner: 'heath-realtor' },
 ];
