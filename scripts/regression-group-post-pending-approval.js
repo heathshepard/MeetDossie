@@ -102,7 +102,21 @@ function testPosterWiring() {
   assert.ok(errorAlertIdx > -1, 'the generic error-alert scan still exists (real failures must still be caught)');
   assert.ok(pendingIdx < errorAlertIdx, 'pending-approval check runs BEFORE the generic error-alert scan, not after');
 
-  assert.ok(src.includes("status: 'pending_admin_approval'"), 'postToGroup can return status pending_admin_approval');
+  // 2026-09-16 refactor: the status decision moved into the shared, unit-
+  // tested resolver (scripts/_lib/fb-post-verify-outcome.js) so the
+  // false-'posted' fix has a pure function backing it. Verify the wiring
+  // (postToGroup calls the resolver for this outcome) AND the resolver
+  // itself still produces this status.
+  assert.ok(
+    src.includes("require('./_lib/fb-post-verify-outcome')"),
+    'fb-group-poster.js uses the shared resolvePostStatus resolver',
+  );
+  assert.ok(
+    src.includes('resolvePostStatus({ pendingApproval: true })'),
+    'postToGroup resolves the pending-approval outcome via the shared resolver',
+  );
+  const resolverSrc = fs.readFileSync(path.join(__dirname, '_lib', 'fb-post-verify-outcome.js'), 'utf8');
+  assert.ok(resolverSrc.includes("status: 'pending_admin_approval'"), 'resolvePostStatus can return status pending_admin_approval');
   assert.ok(src.includes('async function markPendingApproval'), 'markPendingApproval helper exists');
 
   const markFn = src.slice(src.indexOf('async function markPendingApproval'), src.indexOf('async function markPendingApproval') + 800);

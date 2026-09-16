@@ -100,7 +100,13 @@ const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
   os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
 
-const HEATH_FB_NAMES = ['Heath Shepard'];
+// Own-identity name list + matcher: scripts/_lib/fb-own-identity.js. Config
+// (HEATH_FB_OWN_NAMES env var), not a literal here -- and matched with a
+// normalized prefix match, not exact equality, because Facebook's acting
+// identity renders as "Heath Shepard, Realtor with Keller Williams City
+// View" (the Page), not the bare personal name (2026-09-16 bug fix).
+const { getOwnNames, isOwnAuthor } = require('./_lib/fb-own-identity');
+const HEATH_FB_NAMES = getOwnNames();
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -295,7 +301,7 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
       comment_permalink: c.permalink || null,
       commented_at: c.at || null,
       commented_at_raw: c.atRaw || null,
-      is_own_comment: HEATH_FB_NAMES.some((n) => author.toLowerCase() === n.toLowerCase()),
+      is_own_comment: isOwnAuthor(author),
       harvested_at: nowIso,
       last_seen_at: nowIso,
     });
@@ -626,6 +632,7 @@ module.exports = {
   launchContext,
   normHash,
   HEATH_FB_NAMES,
+  isOwnAuthor,
   // Post-boundary permalink gate (2026-09-09 cross-post contamination fix) —
   // pure, regression-tested without a browser.
   extractPostId,
