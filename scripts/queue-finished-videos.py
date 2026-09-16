@@ -560,24 +560,34 @@ def main():
         info = classify_video(video_path, owner)
         print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']}")
 
-        # 2. Caption. Dossie/realtor: kit doc only, never a template/auto-
-        # generated string (docs/WEEKLY-RECORDING-KIT.md has no rust entries
-        # at all -- rust doesn't use this convention). Rust: a `{stem}.caption.txt`
-        # sidecar file next to the video, if the generator staged one --
-        # same "real copy, never a template" rule, different source file
-        # since rust has no kit doc.
-        caption = ""
-        if owner == "rust":
-            sidecar = video_path.parent / f"{stem}.caption.txt"
-            if sidecar.exists():
-                caption = sidecar.read_text(encoding="utf-8").strip()
-        else:
-            caption = kit_captions.get(info["topic"], "")
+        # 2. Caption — a human-written kit-doc script, or a sidecar written by
+        # the generator that produced the video. Still never a template or an
+        # auto-generated filler string.
+        #
+        # SIDECAR (<stem>.caption.txt, added 2026-09-16): the kit doc is the
+        # right source for a video Heath RECORDS from a written script. It is
+        # the wrong source for the generated formats in
+        # docs/CONTENT-FORMAT-LIBRARY.md, whose copy does not and must not
+        # exist before render: R1's listing copy is written from a LIVE MLS
+        # read in the same atomic run (a kit-doc caption would be a cached
+        # price, which is the exact defect that killed cron-daily-listing-posts
+        # on 2026-09-11), and D1's copy is built around a real sourced question.
+        # Rust has no kit-doc entries at all, so it always fell through to the
+        # sidecar even before generated formats existed. Without this, every
+        # generated video queued with an empty caption. The sidecar is
+        # authored by the generator that already ran the brand copy gate over
+        # that text, so it is not an unchecked string.
+        caption = kit_captions.get(info["topic"], "")
+        caption_src = "kit doc"
+        sidecar = video_path.with_suffix(".caption.txt")
+        if not caption and sidecar.exists():
+            caption = sidecar.read_text(encoding="utf-8").strip()
+            caption_src = f"sidecar {sidecar.name}"
 
         if caption:
-            print(f"  Caption ({len(caption)} chars): {caption}")
+            print(f"  Caption ({len(caption)} chars, from {caption_src}): {caption}")
         else:
-            source = "a staged .caption.txt sidecar" if owner == "rust" else "WEEKLY-RECORDING-KIT.md"
+            source = "a staged .caption.txt sidecar" if owner == "rust" else "WEEKLY-RECORDING-KIT.md or a staged .caption.txt sidecar"
             warn = (f"Video pipeline: {filename} has no matching caption in "
                      f"{source} (topic slug '{info['topic']}') — "
                      f"queued with an EMPTY caption. Write one before approving.")
