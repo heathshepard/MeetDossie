@@ -1,59 +1,139 @@
 {
   "_readme": [
-    "Group list for scripts/fb-comment-hunt-daily.js (daily comment-opportunity finder).",
+    "Group list for scripts/fb-comment-hunt-daily.js (daily comment-opportunity finder)",
+    "AND api/_lib/daily-group5-post-generator.js (the real POSTING target list for the",
+    "daily5 group-post pipeline -- generate -> Telegram approve -> ",
+    "scripts/fb-group5-post-queue.js -> scripts/fb-group-poster.js --post-id).",
     "ONLY the groups verified to carry real conversation on the 2026-09-08 hunt are active.",
-    "The big 'agent' groups (108K/85K/31K) are almost pure listing spam — scanning them",
+    "The big 'agent' groups (108K/85K/31K) are almost pure listing spam -- scanning them",
     "burned most of that day's 25-visit budget for nothing. They live in skip_groups so",
     "nobody re-adds them without reading why.",
-    "The POSTING ceiling is NOT here — it is PLATFORM_DAILY_CAPS.facebook_auto in",
-    "scripts/_lib/comment-caps.js (8/day default; ramp only with Heath's sign-off)."
+    "The POSTING ceiling is NOT here -- it is PLATFORM_DAILY_CAPS.facebook_auto in",
+    "scripts/_lib/comment-caps.js (8/day default; ramp only with Heath's sign-off).",
+    "",
+    "SCHEMA (added 2026-09-16, Carter, after a live browser audit of Heath's real",
+    "Facebook account disproved 'Boerne Real Estate' and 'Real Estate in Austin TX' --",
+    "neither exists under those names, and neither happened to be in THIS file, but",
+    "nothing would have caught it if they had been. Every group entry below now carries:",
+    "  - existence_verified / existence_verified_date: has someone actually loaded this",
+    "    URL live and confirmed the group is real? scripts/_lib/group-resolvability-check.js",
+    "    refuses to scan/post to any entry where this isn't true -- see startup check",
+    "    wiring in fb-comment-hunt-daily.js and daily-group5-post-generator.js.",
+    "  - acting_identity: which Facebook identity actually interacts with this group --",
+    "    'page' | 'personal' | 'unverified'. CORRECTED 2026-09-16: the DossieBot-Sage",
+    "    Chrome profile (shared by fb-comment-hunt-daily.js, fb-comment-opp-poster.js,",
+    "    AND fb-group-poster.js -- see scripts/_lib/fb-group-access-detect.js) was",
+    "    confirmed live to be logged in as the PAGE 'Heath Shepard, Realtor with Keller",
+    "    Williams City View', not Heath's personal profile. Every group in this file is",
+    "    touched by that same profile, so acting_identity is 'page' throughout -- this",
+    "    was previously assumed 'personal' off HEATH_FB_NAMES=['Heath Shepard'] in",
+    "    fb-comment-hunt-daily.js, which is a plausible-looking name match, not a",
+    "    verified identity. That HEATH_FB_NAMES assumption has NOT been re-audited as",
+    "    part of this pass -- flagging it here rather than silently leaving stale intel.",
+    "  - identity_membership_verified: has the acting_identity's actual membership/",
+    "    posting access to THIS SPECIFIC group been confirmed live? Existence being",
+    "    verified (readable feed) is NOT the same claim -- reading a group's posts does",
+    "    not prove the posting identity is a member able to post there.",
+    "  - requires_admin_approval: true | false | 'unknown' -- whether a post/comment",
+    "    from here needs moderator sign-off before it's actually live.",
+    "  - verification_note: how/when verified, or why still marked unverified.",
+    "Per Heath's explicit instruction: unverified entries stay in the list marked",
+    "unverified, never silently deleted -- the list should be honest, not short."
   ],
   "groups": [
     {
       "key": "dfw_network_collab",
       "name": "DFW Realtors - Network & Collaborate (38.7K)",
       "url": "https://www.facebook.com/groups/531847711158328/",
-      "note": "27 posts/day, real conversation — best group of the 2026-09-08 hunt"
+      "note": "27 posts/day, real conversation — best group of the 2026-09-08 hunt",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "page",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live and real conversation confirmed by the 2026-09-08 read-only hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit (fb-group-poster.js posts here for the daily5 pipeline via that same profile). Whether the Page identity specifically is an accepted member here, and whether a post needs pre-approval, has NOT been tested — no daily5 post has actually gone out to this group yet as of 2026-09-16."
     },
     {
       "key": "tc_vas",
       "name": "Transaction Coordinators and Virtual Assistants for Real Estate (10.9K)",
       "url": "https://www.facebook.com/groups/transactioncoordinatorsandvirtualassistants/",
-      "note": "real TC/paperwork threads"
+      "note": "real TC/paperwork threads",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "page",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live, real TC/paperwork conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested."
     },
     {
       "key": "kw_re_group",
       "name": "Keller Williams Real Estate Group (28.6K)",
       "url": "https://www.facebook.com/groups/kwrealestategroup/",
-      "note": "real conversation; Heath is a KW agent — home turf"
+      "note": "real conversation; Heath is a KW agent — home turf",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "page",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit — note this is a KW-branded group, which is exactly the kind of group worth re-checking Page-vs-personal access on directly given Heath's own KW affiliation. Not yet tested."
     },
     {
       "key": "tx_re_agents",
       "name": "Texas Real Estate Agents (22K)",
       "url": "https://www.facebook.com/groups/texasusarealestateagents/",
-      "note": "real conversation, Texas-specific"
+      "note": "real conversation, Texas-specific",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "page",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested."
     }
   ],
   "skip_groups": [
     {
       "name": "Transaction Coordinators and Admins for Real Estate (29.8K)",
       "url": "https://www.facebook.com/groups/transactioncoordinatorsforrealestate/",
-      "why": "TC-ONLY per the group's own Rule 1 (\"TC MUST be located in the United States\") -- Heath is a realtor, not a TC. Rule 5 also bans any promotional content. A human moderator removed a comment Heath posted here on 2026-09-10 (not a bot/spam detector -- FB violations page shows 'No violations', Account Quality clean Aug 16-Sep 14, no checkpoint). Continuing to post here risks a member removal and a report, which is a real account-level risk to the one shared Facebook profile the whole distribution strategy runs on. DO NOT re-add without reading this and getting Heath's sign-off."
+      "why": "TC-ONLY per the group's own Rule 1 (\"TC MUST be located in the United States\") -- Heath is a realtor, not a TC. Rule 5 also bans any promotional content. A human moderator removed a comment posted here on 2026-09-10 (not a bot/spam detector -- FB violations page shows 'No violations', Account Quality clean Aug 16-Sep 14, no checkpoint). Continuing to post here risks a member removal and a report, which is a real account-level risk to the shared DossieBot-Sage Facebook session the whole distribution strategy runs on. DO NOT re-add without reading this and getting Heath's sign-off.",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-10",
+      "acting_identity": "page",
+      "identity_membership_verified": true,
+      "requires_admin_approval": false,
+      "verification_note": "A comment WAS successfully posted here on 2026-09-10 (later removed by a human moderator, not blocked outright) -- direct proof of posting access at that time. This entry previously said 'Heath posted' implying personal-profile attribution; corrected 2026-09-16 per the DossieBot-Sage truth audit -- the posting profile is the Page, not Heath's personal account. Stays in skip_groups regardless of resolvability; the reason above is a content-rules/account-risk call, not an existence question."
     },
     {
       "name": "Real Estate Agents Group (108K)",
       "url": "https://www.facebook.com/groups/LizLuxuryRealEstateAgent/",
-      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "unverified",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live 2026-09-08 to assess content quality (spam ratio) only -- posting identity/access never tested and never will be while this stays a skip_group."
     },
     {
       "name": "All Realtors and related Professionals (85K)",
       "url": "https://www.facebook.com/groups/350007408391439/",
-      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "unverified",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live 2026-09-08 to assess content quality (spam ratio) only -- posting identity/access never tested and never will be while this stays a skip_group."
     },
     {
       "name": "Real Estate Agents in USA (31.3K)",
       "url": "https://www.facebook.com/groups/2071832753093090/",
-      "why": "almost pure listing spam (verified 2026-09-08 hunt)"
+      "why": "almost pure listing spam (verified 2026-09-08 hunt)",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-08",
+      "acting_identity": "unverified",
+      "identity_membership_verified": false,
+      "requires_admin_approval": "unknown",
+      "verification_note": "URL loaded live 2026-09-08 to assess content quality (spam ratio) only -- posting identity/access never tested and never will be while this stays a skip_group."
     }
   ],
   "scan": {

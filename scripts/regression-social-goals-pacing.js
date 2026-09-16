@@ -30,6 +30,16 @@
  *   7. Drift guard: ASSUMED_ORGANIC_FACEBOOK_POSTS_PER_DAY (the scheduler's
  *      belief about cron-generate-posts.js's fixed facebook slot count)
  *      matches the REAL POST_PLAN_BASE facebook count.
+ *   8. PERIOD ROLLOVER — currentWeekPeriod() computes Sun-Sat fresh from
+ *      `now` (2026-09-16 live-audit correction: was hardcoded Mon-Sun and
+ *      would have gone stale forever), including an explicit rollover from
+ *      one week into the next.
+ *   9. 5TH TARGET (reels) — the target the first pass at this config missed
+ *      entirely. manualTargetProgress() only trusts a manual snapshot when
+ *      its as_of date actually falls inside the period being graded, so a
+ *      "2/2 done" from last week doesn't silently carry into this week.
+ *  10. isConfigStale() flags target numbers nobody has re-confirmed in over
+ *      a cycle, independent of the (now self-rolling) period.
  *
  * Real in-memory PostgREST mock over HTTP — ZERO production access.
  *
@@ -260,10 +270,10 @@ async function run() {
     });
 
     await checkAsync('computeGoalProgress end-to-end: dossie_fb_page, far-behind + unreachable group flag', async () => {
-      // Freeze "now" inside the seeded period at Wednesday (matches the
-      // real screenshot's 2026-09-16 read) by monkeypatching the goal
-      // set's own period — social-goals.js already ships with
-      // period 2026-09-14..2026-09-20, so pass now= that Wednesday.
+      // Freeze "now" at the real screenshot's Wednesday, 2026-09-16 —
+      // social-goals.js computes the Sun-Sat period fresh from this `now`
+      // (Sep 13-19), so the seeded posted_at values (Sep 15-16) land inside
+      // it without needing any hardcoded period in the config itself.
       const progress = await lib.computeGoalProgress('dossie_fb_page', { now: new Date('2026-09-16T18:00:00.000Z') });
       assert.ok(progress, 'progress should compute');
       assert.strictEqual(progress.targets.public_posts.current, 2);
@@ -275,10 +285,95 @@ async function run() {
       // combined need never double counts.
       const combined = progress.combined_public_post_need;
       assert.strictEqual(combined.totalRemaining, Math.max(progress.targets.public_posts.remaining, progress.targets.public_posts_with_photos.remaining));
+      // 5th target: reels. manual_progress.as_of=2026-09-16 falls inside
+      // the Sep13-19 period computed for this `now`, so it counts as 2/2.
+      assert.strictEqual(progress.period.start, '2026-09-13', `expected corrected Sun-Sat period, got start=${progress.period.start}`);
+      assert.strictEqual(progress.period.end, '2026-09-19');
+      assert.ok(progress.targets.reels, 'reels target must be present (5th target, was missing)');
+      assert.strictEqual(progress.targets.reels.target, 2);
+      assert.strictEqual(progress.targets.reels.current, 2);
+      assert.strictEqual(progress.targets.reels.paceStatus, 'met');
+      // targets_last_verified is 2026-09-16, `now` is the same day -> not stale.
+      assert.strictEqual(progress.config_stale, false);
     });
 
     mock.server.close();
   })();
+
+  console.log('\n4b. PERIOD ROLLOVER — currentWeekPeriod() (2026-09-16 live-audit correction)');
+
+  {
+    delete require.cache[require.resolve(path.join(REPO, 'api/_lib/social-goals.js'))];
+    const sg = require(path.join(REPO, 'api/_lib/social-goals.js'));
+
+    check('mid-week Wednesday resolves to the real Sep13-19 Sun-Sat period, not Mon-Sun', () => {
+      const p = sg.currentWeekPeriod(0, new Date('2026-09-16T18:00:00.000Z'));
+      assert.strictEqual(p.start, '2026-09-13');
+      assert.strictEqual(p.end, '2026-09-19');
+    });
+
+    check('Sunday itself (the anchor day) resolves to the period it starts, not the prior week', () => {
+      const p = sg.currentWeekPeriod(0, new Date('2026-09-13T00:00:01.000Z'));
+      assert.strictEqual(p.start, '2026-09-13');
+      assert.strictEqual(p.end, '2026-09-19');
+    });
+
+    check('Saturday (last day) still resolves inside the same period', () => {
+      const p = sg.currentWeekPeriod(0, new Date('2026-09-19T23:00:00.000Z'));
+      assert.strictEqual(p.start, '2026-09-13');
+      assert.strictEqual(p.end, '2026-09-19');
+    });
+
+    check('ROLLOVER: the very next day (the new Sunday) rolls to the next 7-day period', () => {
+      const p = sg.currentWeekPeriod(0, new Date('2026-09-20T00:00:01.000Z'));
+      assert.strictEqual(p.start, '2026-09-20', 'must roll forward, not stay pinned on the prior week');
+      assert.strictEqual(p.end, '2026-09-26');
+    });
+
+    check('getGoalSet() no longer stores a static period — it is computed per call from `now`', () => {
+      const a = sg.getGoalSet('dossie_fb_page', new Date('2026-09-16T00:00:00.000Z'));
+      const b = sg.getGoalSet('dossie_fb_page', new Date('2026-09-21T00:00:00.000Z'));
+      assert.notDeepStrictEqual(a.period, b.period, 'two different `now`s a week apart must produce two different periods');
+      assert.strictEqual(sg.SOCIAL_GOALS.dossie_fb_page.period, undefined, 'raw config object must not carry a hardcoded period field');
+    });
+
+    check('isConfigStale: false the day targets were verified, true well past one cycle', () => {
+      const goalSet = sg.getGoalSet('dossie_fb_page', new Date('2026-09-16T00:00:00.000Z'));
+      assert.strictEqual(sg.isConfigStale(goalSet, new Date('2026-09-16T12:00:00.000Z')), false);
+      assert.strictEqual(sg.isConfigStale(goalSet, new Date('2026-09-30T00:00:00.000Z')), true, 'targets_last_verified 2026-09-16 is 2+ weeks stale by 2026-09-30');
+    });
+  }
+
+  console.log('\n4c. manualTargetProgress() — the reels (5th target) manual snapshot');
+
+  {
+    const progressLib2 = require(path.join(REPO, 'api/_lib/social-goals-progress.js'));
+
+    check('manual snapshot inside the current period counts as-is', () => {
+      const r = progressLib2.manualTargetProgress(
+        { manual_progress: { current: 2, as_of: '2026-09-16' } },
+        { start: '2026-09-13', end: '2026-09-19' },
+      );
+      assert.strictEqual(r.current, 2);
+      assert.strictEqual(r.stale, false);
+    });
+
+    check('ROLLOVER: a manual snapshot from LAST week does not silently carry into the new period', () => {
+      const r = progressLib2.manualTargetProgress(
+        { manual_progress: { current: 2, as_of: '2026-09-16' } },
+        { start: '2026-09-20', end: '2026-09-26' }, // next week's period
+      );
+      assert.strictEqual(r.current, 0, 'stale snapshot must not be reported as this week\'s progress');
+      assert.strictEqual(r.stale, true);
+      assert.ok(r.reason.includes('outside the current period'));
+    });
+
+    check('missing manual_progress reports stale with current=0, never throws', () => {
+      const r = progressLib2.manualTargetProgress({}, { start: '2026-09-13', end: '2026-09-19' });
+      assert.strictEqual(r.current, 0);
+      assert.strictEqual(r.stale, true);
+    });
+  }
 
   console.log('\n5. planExtraFacebookSlots — spread + ceiling');
 

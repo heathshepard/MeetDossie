@@ -224,7 +224,7 @@ async function runWeeklyScheduler({ dryRun = false } = {}) {
       for (const { key } of ownerGoalSets) {
         const progress = await computeGoalProgress(key);
         goalProgress[key] = progress;
-        if (progress && !progress.period_expired) {
+        if (progress && !progress.config_stale) {
           const thisPlan = planExtraFacebookSlots({ emptyDates, progress });
           // Multiple goal sets for the same owner would stack here — none
           // exist yet, so this is a straight assign, not a merge, kept

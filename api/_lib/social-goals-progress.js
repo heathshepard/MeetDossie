@@ -19,7 +19,7 @@
 //
 // Owner: Carter, 2026-09-16
 
-const { getGoalSet, periodBounds, isPeriodExpired } = require('./social-goals.js');
+const { getGoalSet, periodBounds, isConfigStale } = require('./social-goals.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,6 +131,31 @@ function combinedPublicPostNeed(postsPacing, photosPacing) {
   };
 }
 
+/**
+ * Resolves a manual (non-queryable) target's current count for THIS period.
+ * A manual_progress snapshot only counts if its `as_of` date actually falls
+ * inside the period being graded — once the period rolls to the next week,
+ * last week's "2/2 done" must NOT silently carry forward as still true.
+ * Returns current=0 + stale=true when the snapshot is missing or from a
+ * different period, so callers can flag it instead of over-reporting.
+ */
+function manualTargetProgress(targetConfig, period, now = new Date()) {
+  const manual = targetConfig && targetConfig.manual_progress;
+  if (!manual || !manual.as_of) {
+    return { current: 0, stale: true, reason: 'no manual snapshot recorded for this target' };
+  }
+  const { start, end } = periodBounds(period);
+  const asOf = new Date(`${manual.as_of}T12:00:00.000Z`); // midday — avoids TZ edge flipping it to the adjacent day
+  const withinPeriod = asOf.getTime() >= start.getTime() && asOf.getTime() <= end.getTime();
+  return {
+    current: withinPeriod ? manual.current : 0,
+    stale: !withinPeriod,
+    reason: withinPeriod
+      ? null
+      : `manual snapshot from ${manual.as_of} is outside the current period (${period.start} to ${period.end}) — needs a fresh dashboard read`,
+  };
+}
+
 // ─── real counts (network) ────────────────────────────────────────────────
 
 async function countPublicPosts({ platform, target_owner, start, end }) {
@@ -179,11 +204,11 @@ async function countCommentReplies({ platform, start, end }) {
  * Returns null if the goal set key doesn't exist.
  */
 async function computeGoalProgress(goalSetKey, { now = new Date() } = {}) {
-  const goalSet = getGoalSet(goalSetKey);
+  const goalSet = getGoalSet(goalSetKey, now);
   if (!goalSet) return null;
 
   const { start, end } = periodBounds(goalSet.period);
-  const expired = isPeriodExpired(goalSet.period, now);
+  const configStale = isConfigStale(goalSet, now);
 
   const [publicPostCounts, groupPostTotal, commentReplyTotal] = await Promise.all([
     countPublicPosts({ platform: goalSet.platform, target_owner: goalSet.target_owner, start, end }),
@@ -215,15 +240,30 @@ async function computeGoalProgress(goalSetKey, { now = new Date() } = {}) {
     start, end, now,
   });
 
+  const reelsInfo = manualTargetProgress(goalSet.targets.reels, goalSet.period, now);
+  const reelsPacing = computePacing({
+    target: goalSet.targets.reels.target,
+    current: reelsInfo.current,
+    start, end, now,
+  });
+
   return {
     goalSetKey,
     label: goalSet.label,
     weekly_focus: goalSet.weekly_focus,
     period: goalSet.period,
-    period_expired: expired,
+    targets_last_verified: goalSet.targets_last_verified,
+    config_stale: configStale,
     query_failed: queryFailed,
     note: 'Counts are OUR OWN posted records (social_posts / group_posts / social_comment_replies) — Facebook does not expose its dashboard target counters to us.',
     targets: {
+      reels: {
+        label: goalSet.targets.reels.label,
+        ...reelsPacing,
+        note: reelsInfo.stale
+          ? `STALE — ${reelsInfo.reason}`
+          : `Manual snapshot (${goalSet.targets.reels.manual_progress.source}) — no automated publisher tags a post as a "reel" yet, this is not a live query.`,
+      },
       public_posts: { label: goalSet.targets.public_posts.label, ...postsPacing },
       public_posts_with_photos: { label: goalSet.targets.public_posts_with_photos.label, ...photosPacing },
       group_posts: {
@@ -248,13 +288,13 @@ function formatGoalProgressLines(progress) {
   if (!progress) return [];
   const lines = [];
   lines.push(`GOALS (${progress.label}, ${progress.period.start} to ${progress.period.end}, focus: "${progress.weekly_focus}") — our counts, not Facebook's:`);
-  if (progress.period_expired) {
-    lines.push('  ⚠ PERIOD EXPIRED — api/_lib/social-goals.js needs a fresh Facebook dashboard screenshot + updated period/targets before these numbers mean anything.');
+  if (progress.config_stale) {
+    lines.push(`  ⚠ CONFIG STALE — targets last verified ${progress.targets_last_verified || 'unknown'}, over a week ago. Re-read the live Facebook dashboard and update api/_lib/social-goals.js's targets/targets_last_verified before trusting these numbers (the period itself is current — it rolls automatically).`);
   }
   if (progress.query_failed) {
     lines.push('  ⚠ one or more count queries failed — numbers below may be incomplete.');
   }
-  for (const key of ['public_posts', 'public_posts_with_photos', 'group_posts', 'comment_replies']) {
+  for (const key of ['reels', 'public_posts', 'public_posts_with_photos', 'group_posts', 'comment_replies']) {
     const t = progress.targets[key];
     const paceLabel = {
       met: 'MET', on_pace: 'on pace', behind: 'BEHIND', unreachable: 'UNREACHABLE',
@@ -268,6 +308,7 @@ function formatGoalProgressLines(progress) {
 module.exports = {
   computePacing,
   combinedPublicPostNeed,
+  manualTargetProgress,
   countPublicPosts,
   countGroupPosts,
   countCommentReplies,

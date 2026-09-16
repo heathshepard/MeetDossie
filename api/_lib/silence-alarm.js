@@ -593,7 +593,7 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
   // social-goals.js) — computed fresh every heartbeat, same as everything
   // else here. Never dedup'd (this is the "state of the world" half of the
   // file, not the alarm half). Any single goal set failing to compute
-  // (e.g. period_expired or a query error) never blocks the rest of the
+  // (e.g. config_stale or a query error) never blocks the rest of the
   // heartbeat — caught per-key so one bad goal set can't silence the
   // entire morning message.
   const goalSetResults = await Promise.all(
