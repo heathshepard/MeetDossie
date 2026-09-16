@@ -5,370 +5,490 @@
  * Regression test for the auto-reply-with-veto risk classifier + content
  * gates (scripts/_lib/auto-reply-risk-classifier.js +
  * scripts/_lib/auto-reply-content-gates.js — Heath's explicit approval,
- * 2026-09-16, supabase/migrations/20260916_auto_reply_veto.sql).
+ * 2026-09-16, supabase/migrations/20260916_auto_reply_veto.sql +
+ * 20260916b_auto_reply_model_verdict.sql).
  *
- * Pure unit coverage, zero network/DB/browser. Every ESCALATE category from
- * the spec gets a real example, plus a gate failure, plus one real fixture
- * from tc_discovery_responses (the same "TC went dark for 9 days mid-option"
- * comment scripts/regression-tc-reply-approval.js treats as a real harvested
- * row — reused here rather than inventing a new one).
+ * ARCHITECTURE NOTE — READ BEFORE EDITING THIS FILE
+ * --------------------------------------------------
+ * The classifier is now a Claude Haiku 4.5 model call (rewritten
+ * 2026-09-16, 3rd QA round — a fixed regex list kept losing to genuinely
+ * semantic categories: named third parties and comparative/implied pricing
+ * take unbounded surface forms a pattern list can't enumerate). This suite
+ * stays ZERO-NETWORK, so it can only prove two things offline:
+ *   1. THE HARNESS is correct: the hard pre-filter can only escalate and
+ *      never calls the model, the confidence gate downgrades anything
+ *      short of "high" to not-eligible, and every failure mode (missing
+ *      key, network error, timeout, malformed JSON, schema-invalid field)
+ *      fails closed. This is exercised against the REAL classifyWithModel
+ *      code by monkey-patching global.fetch — not just asserting a
+ *      contract.
+ *   2. THE PROMPT still contains the specific semantic instructions that
+ *      fixed each previously-reported miss (comparative pricing, indirect
+ *      demo asks, named third party in ANY phrasing) — a silent prompt
+ *      edit that drops one of these lines is caught here even though the
+ *      suite can't call the real model to prove the rubric still WORKS.
+ * It CANNOT prove the model will classify any given sentence correctly in
+ * production — that is Quinn's job, running live adversarial cases against
+ * the real API (see scripts/classify-sanity-check.js for the opt-in,
+ * real-network tool built for exactly that). Fixtures below that represent
+ * "cases Quinn found" inject a STUBBED model verdict of what a correctly-
+ * instructed model should return, to prove the harness relays it right —
+ * they are not proof the model actually will. Don't mistake a green run
+ * here for "the classifier is right"; it only means "the harness isn't
+ * broken and the rubric still says the right things."
  *
  * Run manually:
  *   node scripts/regression-auto-reply-classifier.js
  */
 
 const assert = require('assert');
-const { classifyCommentRisk } = require('./_lib/auto-reply-risk-classifier.js');
+const {
+  classifyCommentRisk,
+  classifyWithModel,
+  CLASSIFY_PROMPT,
+  CLASSIFY_MODEL,
+  PRE_FILTER_PATTERNS,
+  KNOWN_CATEGORIES,
+} = require('./_lib/auto-reply-risk-classifier.js');
 const { checkContentGates } = require('./_lib/auto-reply-content-gates.js');
 
 let passed = 0;
-function check(name, fn) {
+async function check(name, fn) {
   try {
-    fn();
+    await fn();
     passed++;
     console.log(`  ok - ${name}`);
   } catch (err) {
-    console.error(`  FAIL - ${name}\n    ${err.message}`);
+    console.error(`  FAIL - ${name}\n    ${err.stack || err.message}`);
     process.exitCode = 1;
   }
 }
 
-console.log('auto-reply risk classifier + content gates');
+// ─── Stub helpers ────────────────────────────────────────────────────────────
 
-// ─── Escalate categories — every one from the spec, with a real example ────
+/** A model call that resolves to a fixed verdict — never touches the network. */
+function stubVerdict(verdict) {
+  return async () => ({ source: 'model', ...verdict });
+}
 
-check('pricing: "what does it cost?" escalates', () => {
-  const r = classifyCommentRisk('What does it cost?', 'It runs $29/mo on the founding rate.');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'pricing');
+/** A model call that FAILS the test if invoked at all — for pre-filter tests. */
+function throwingClassify() {
+  return async () => { throw new Error('classify() must never be called — the pre-filter should have short-circuited'); };
+}
+
+async function main() {
+  console.log('auto-reply risk classifier (model-based) + content gates');
+
+  // ─── 1. Hard pre-filter — ESCALATE-ONLY, never calls the model ──────────
+
+  await check('pre-filter: an explicit $ figure escalates WITHOUT calling the model', async () => {
+    const r = await classifyCommentRisk('what do you use for TC work?', 'runs about $29/mo honestly', { classify: throwingClassify() });
+    assert.strictEqual(r.eligible, false);
+    assert.strictEqual(r.category, 'pricing');
+    assert.strictEqual(r.source, 'pre_filter');
+  });
+
+  await check('pre-filter: the word "demo" escalates WITHOUT calling the model', async () => {
+    const r = await classifyCommentRisk('can I see a demo?', 'sure, happy to show you', { classify: throwingClassify() });
+    assert.strictEqual(r.eligible, false);
+    assert.strictEqual(r.category, 'demo_request');
+    assert.strictEqual(r.source, 'pre_filter');
+  });
+
+  await check('pre-filter: the word "trial" escalates WITHOUT calling the model', async () => {
+    const r = await classifyCommentRisk('is there a free trial?', 'not currently', { classify: throwingClassify() });
+    assert.strictEqual(r.eligible, false);
+    assert.strictEqual(r.category, 'demo_request');
+  });
+
+  await check('pre-filter: a $ figure leaking into the DRAFT (not the comment) still escalates', async () => {
+    const r = await classifyCommentRisk('what do you use for TC work?', 'honestly it costs about $30/mo and worth it', { classify: throwingClassify() });
+    assert.strictEqual(r.eligible, false);
+    assert.strictEqual(r.category, 'pricing');
+  });
+
+  await check('pre-filter can NEVER certify eligible, even if it matched nothing — only escalate paths use it', () => {
+    // Structural check on the module itself: PRE_FILTER_PATTERNS has no
+    // notion of "eligible" — it's a flat escalate-category list.
+    assert.ok(Array.isArray(PRE_FILTER_PATTERNS) && PRE_FILTER_PATTERNS.length > 0);
+    for (const p of PRE_FILTER_PATTERNS) {
+      assert.ok(p.category && p.category !== 'auto_eligible', 'a pre-filter entry must never be the eligible category');
+    }
+  });
+
+  // ─── 2. Confidence gate — model eligible=true is necessary, NOT sufficient ─
+
+  await check('model says eligible=true, confidence="high" -> final eligible=true', async () => {
+    const r = await classifyCommentRisk('thanks, that helps!', 'anytime', {
+      classify: stubVerdict({ eligible: true, category: 'auto_eligible', confidence: 'high', reason: 'clean thanks' }),
+    });
+    assert.strictEqual(r.eligible, true);
+    assert.strictEqual(r.category, 'auto_eligible');
+    assert.strictEqual(r.confidence, 'high');
+  });
+
+  await check('model says eligible=true, confidence="medium" -> final eligible=FALSE (gate)', async () => {
+    const r = await classifyCommentRisk('thanks I guess', 'anytime', {
+      classify: stubVerdict({ eligible: true, category: 'auto_eligible', confidence: 'medium', reason: 'mostly clean' }),
+    });
+    assert.strictEqual(r.eligible, false);
+  });
+
+  await check('model says eligible=true, confidence="low" -> final eligible=FALSE (gate)', async () => {
+    const r = await classifyCommentRisk('sure', 'ok', {
+      classify: stubVerdict({ eligible: true, category: 'auto_eligible', confidence: 'low', reason: 'uncertain' }),
+    });
+    assert.strictEqual(r.eligible, false);
+  });
+
+  await check('model says eligible=false regardless of confidence -> final eligible=FALSE, category propagated', async () => {
+    const r = await classifyCommentRisk('what does it cost?', 'depends', {
+      classify: stubVerdict({ eligible: false, category: 'pricing', confidence: 'high', reason: 'asks about cost' }),
+    });
+    assert.strictEqual(r.eligible, false);
+    assert.strictEqual(r.category, 'pricing');
+  });
+
+  await check('reason and confidence from the model are always forwarded onto the row (diagnosability)', async () => {
+    const r = await classifyCommentRisk('anything', 'anything', {
+      classify: stubVerdict({ eligible: false, category: 'low_confidence', confidence: 'low', reason: 'the exact reason string' }),
+    });
+    assert.strictEqual(r.reason, 'the exact reason string');
+    assert.strictEqual(r.confidence, 'low');
+  });
+
+  // ─── 3. Fail-closed paths — real classifyWithModel, network monkey-patched ─
+
+  const realFetch = global.fetch;
+  function restoreFetch() { global.fetch = realFetch; }
+
+  await check('fail-closed: missing ANTHROPIC_API_KEY escalates without any network call', async () => {
+    const savedKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    let fetchCalled = false;
+    global.fetch = async () => { fetchCalled = true; throw new Error('must not be called'); };
+    try {
+      // Re-require with a clean module cache so the module-level
+      // ANTHROPIC_API_KEY constant re-reads the (now-deleted) env var.
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+      assert.ok(/API_KEY/.test(verdict.reason));
+      assert.strictEqual(fetchCalled, false);
+    } finally {
+      restoreFetch();
+      if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: a network error (fetch throws) escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => { throw new Error('ECONNRESET'); };
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: a timeout (AbortError) escalates as model_error with a timeout reason', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    };
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+      assert.ok(/timed out/i.test(verdict.reason));
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: a non-200 API response escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({ ok: false, status: 500, text: async () => 'internal error' });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+      assert.ok(/500/.test(verdict.reason));
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: a response with no JSON block at all escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: 'sorry, I cannot help with that request' }] }),
+    });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: JSON present but eligible is not a boolean (schema-invalid) escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: '{"eligible": "yes", "category": "auto_eligible", "confidence": "high", "reason": "ok"}' }] }),
+    });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: an unknown/invented category (schema-invalid) escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: '{"eligible": true, "category": "totally_fine", "confidence": "high", "reason": "ok"}' }] }),
+    });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+      assert.ok(KNOWN_CATEGORIES.size > 0);
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: an invalid confidence value (schema-invalid) escalates as model_error', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: '{"eligible": true, "category": "auto_eligible", "confidence": "very-high", "reason": "ok"}' }] }),
+    });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('hi', 'hi');
+      assert.strictEqual(verdict.eligible, false);
+      assert.strictEqual(verdict.source, 'model_error');
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: a genuinely valid, well-formed response IS accepted (positive control for the parser)', async () => {
+    process.env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'test-key-not-real';
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => ({ content: [{ type: 'text', text: '{"eligible": true, "category": "auto_eligible", "confidence": "high", "reason": "clean agreement"}' }] }),
+    });
+    try {
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+      const fresh = require('./_lib/auto-reply-risk-classifier.js');
+      const verdict = await fresh.classifyWithModel('100% agree', 'yeah same here');
+      assert.strictEqual(verdict.eligible, true);
+      assert.strictEqual(verdict.source, 'model');
+      assert.strictEqual(verdict.reason, 'clean agreement');
+    } finally {
+      restoreFetch();
+      delete require.cache[require.resolve('./_lib/auto-reply-risk-classifier.js')];
+    }
+  });
+
+  await check('fail-closed: an empty draft escalates before any model call, source=pre_filter', async () => {
+    const r = await classifyCommentRisk('thanks!', '', { classify: throwingClassify() });
+    assert.strictEqual(r.eligible, false);
+  });
+
+  // ─── 4. Rubric content — the specific instructions that fixed each     ────
+  // reported miss must still be IN the prompt. This can't prove the model
+  // obeys them; it catches a silent edit that deletes the instruction.
+
+  await check('rubric: comparative/implied pricing is explicitly named (not just a $ figure)', () => {
+    const prompt = CLASSIFY_PROMPT('x', 'y');
+    assert.ok(/comparative|implied/i.test(prompt), 'prompt must instruct escalating comparative/implied pricing');
+    assert.ok(/cheaper than what I pay now|worth it|pay for itself/i.test(prompt), 'prompt should give a concrete comparative-pricing example');
+  });
+
+  await check('rubric: a named third party escalates "at all", "any phrasing", "any verb", regardless of capitalization', () => {
+    const prompt = CLASSIFY_PROMPT('x', 'y');
+    assert.ok(/named third party/i.test(prompt));
+    assert.ok(/any phrasing/i.test(prompt) && /any verb/i.test(prompt), 'prompt must generalize beyond a fixed verb list');
+    assert.ok(/any capitalization/i.test(prompt), 'prompt must cover a lowercase name, not just Title-Case');
+  });
+
+  await check('rubric: indirect demo/access requests are covered, not just the literal word "demo"', () => {
+    const prompt = CLASSIFY_PROMPT('x', 'y');
+    assert.ok(/walked through|any phrasing/i.test(prompt));
+  });
+
+  await check('rubric: eligible=true requires confidence="high" explicitly stated', () => {
+    const prompt = CLASSIFY_PROMPT('x', 'y');
+    assert.ok(/ONLY with confidence="high"/i.test(prompt));
+  });
+
+  await check('rubric: default posture is to escalate, stated explicitly', () => {
+    const prompt = CLASSIFY_PROMPT('x', 'y');
+    assert.ok(/Default to ESCALATE/i.test(prompt));
+  });
+
+  await check(`model choice is the pinned small/fast model (${CLASSIFY_MODEL})`, () => {
+    assert.strictEqual(CLASSIFY_MODEL, 'claude-haiku-4-5');
+  });
+
+  // ─── 5. Quinn's reported misses, all three QA rounds — harness-level   ────
+  // regression via a stubbed "what a correctly-instructed model should say"
+  // verdict. See the file header: this proves the harness relays the
+  // verdict correctly, NOT that the live model will produce it — that's
+  // scripts/classify-sanity-check.js's job against the real API.
+
+  const REPORTED_MISS_FIXTURES = [
+    // Round 1 (e4201198)
+    ['pricing, indirect ("worth the money")', 'Is it worth the money though?', 'yeah honestly it has paid for itself', 'pricing'],
+    ['pricing, indirect, harder ("pay for itself")', 'Would this pay for itself for someone only doing 3 deals a month?', 'for sure, especially at that volume', 'pricing'],
+    ['demo request, indirect ("walk me through... back end")', 'Could you walk me through what it actually looks like on the back end?', 'sure, happy to show you sometime', 'demo_request'],
+    ['demo request, indirect, harder ("behind the scenes")', 'What happens behind the scenes when a contract comes in?', 'happy to walk through it sometime', 'demo_request'],
+    ['backhanded thanks carrying doubt', 'Thanks, I guess, not sure it actually works though', 'fair enough, it works for me', 'low_confidence'],
+    ['legal/compliance, indirect (earnest money forfeiture)', 'If a buyer backs out after the option period ends, is the earnest money automatically forfeited?', 'depends on the contract terms honestly', 'legal_compliance'],
+    ['legal/compliance, indirect, harder (pronoun instead of "forfeited")', 'Can the buyer just walk away and keep their earnest money too?', 'not usually, no', 'legal_compliance'],
+    ['named third party via possessive ("Sarah\'s closing")', "How did you handle it for Sarah's closing?", 'we just extended the option period a few days', 'specific_client'],
+    // Round 2 (c57c6c69 / 97210f17)
+    ['named third party, unlisted-verb shape ("sharing this with Miguel")', "Sharing this with Miguel since he's been asking about exactly this for his group.", 'happy to chat with him too', 'specific_client'],
+    ['named third party, name-before-verb ("my buddy Ray asked")', 'my buddy Ray asked about this too the other day', 'small world, happens a lot', 'specific_client'],
+    // Round 3 (this pass) — Quinn's 4 newest misses, 3 with exact text given
+    ['named third party, unlisted verb + first person plural ("Miguel and I were just talking")', 'Miguel and I were just talking about TC stuff the other day, small world.', 'yeah it comes up more than you would think', 'specific_client'],
+    ['named third party, LOWERCASE name + unlisted verb ("dana loved the checklist feature")', 'dana loved the checklist feature when I showed her', 'glad it landed well', 'specific_client'],
+    ['pricing by comparison, no $ and no listed keyword ("way cheaper than what I pay now")', 'honestly this looks way cheaper than what I pay now', 'depends on your current setup', 'pricing'],
+    // Round 3, 4th miss: Cole's message reported "a live miss on a real row
+    // in production data" but did not include the row's text. NOT
+    // fabricated here — flagged instead so Quinn/Cole can supply the exact
+    // text for a real fixture rather than this suite inventing one.
+  ];
+
+  for (const [label, comment, draft, expectCategory] of REPORTED_MISS_FIXTURES) {
+    await check(`Quinn miss (${label}): harness escalates given a correctly-instructed verdict`, async () => {
+      const r = await classifyCommentRisk(comment, draft, {
+        classify: stubVerdict({ eligible: false, category: expectCategory, confidence: 'high', reason: `stubbed: ${label}` }),
+      });
+      assert.strictEqual(r.eligible, false);
+      assert.strictEqual(r.category, expectCategory);
+    });
+  }
+
+  console.log('\n  NOTE: the 4th reported miss (a real production row) has no fixture here —');
+  console.log('  Cole\'s report did not include the row\'s text, and this suite does not');
+  console.log('  fabricate production data. Ask Quinn/Cole for the exact row content to');
+  console.log('  add it as a permanent fixture.');
+
+  // ─── 6. Auto-eligible archetypes, still covered end to end ─────────────
+
+  const ELIGIBLE_FIXTURES = [
+    ['a clean thanks', 'Thanks, that helps a lot!', 'anytime'],
+    ['a clean agreement', '100% agree with this', 'yeah, same here'],
+    ['a neutral peer question about general practice', 'did you have to switch title companies too?', 'no, kept the same one the whole time'],
+    ['a plain factual TC/transaction answer', 'what tripped mine up was the option period deadline', 'yeah that one gets people every time'],
+  ];
+  for (const [label, comment, draft] of ELIGIBLE_FIXTURES) {
+    await check(`eligible archetype (${label}) passes through end to end given a high-confidence model verdict`, async () => {
+      const r = await classifyCommentRisk(comment, draft, {
+        classify: stubVerdict({ eligible: true, category: 'auto_eligible', confidence: 'high', reason: `stubbed: ${label}` }),
+      });
+      assert.strictEqual(r.eligible, true);
+      assert.strictEqual(r.category, 'auto_eligible');
+    });
+  }
+
+  // ─── Real fixture: the exact row scripts/regression-tc-reply-approval.js
+  // treats as a real harvested tc_discovery_responses comment ─────────────
+
+  await check('real fixture ("TC went dark for 9 days mid-option") passes through given a high-confidence eligible verdict', async () => {
+    const realComment = 'Communication. My last TC went dark for 9 days mid-option.';
+    const cleanDraft = 'yeah, mine went dark on me too once mid-option. built in a backup contact after that.';
+    const r = await classifyCommentRisk(realComment, cleanDraft, {
+      classify: stubVerdict({ eligible: true, category: 'auto_eligible', confidence: 'high', reason: 'clean shared-experience reply' }),
+    });
+    assert.strictEqual(r.eligible, true, `expected eligible, got category=${r.category} reason=${r.reason}`);
+    const gates = checkContentGates(cleanDraft);
+    assert.strictEqual(gates.pass, true, `expected gates to pass, got failures=${JSON.stringify(gates.failures)}`);
+  });
+
+  await check('real fixture with an UNVERIFIED anecdote fails the war-story gate regardless of classifier verdict', async () => {
+    const fabricatedDraft = 'ha, reminds me of a client of mine who waived the option period and hit a foundation issue in the hill country.';
+    // Content gates are independent of the classifier and untouched by this
+    // rewrite — still checked directly.
+    const gates = checkContentGates(fabricatedDraft);
+    assert.strictEqual(gates.pass, false);
+    assert.ok(gates.failures.some((f) => f.code === 'unverified_war_story'));
+  });
+
+  // ─── Content gates, one failure per gate (unchanged by this rewrite) ──────
+
+  await check('gate: pricing figure in the draft fails', () => {
+    const g = checkContentGates('it runs $7.50/mo on the founding rate');
+    assert.strictEqual(g.pass, false);
+    assert.ok(g.failures.some((f) => f.code === 'pricing_figure'));
+  });
+
+  await check('gate: unverified capability claim fails', () => {
+    const g = checkContentGates('yeah she pulls comps straight from MLS for you');
+    assert.strictEqual(g.pass, false);
+    assert.ok(g.failures.some((f) => f.code === 'unverified_capability_claim'));
+  });
+
+  await check('gate: AI-tell opener fails (reuses heath-voice-guard)', () => {
+    const g = checkContentGates('Haha love that, such a great point!');
+    assert.strictEqual(g.pass, false);
+    assert.ok(g.failures.some((f) => f.code === 'voice_violation'));
+  });
+
+  await check('gate: too-long draft fails length', () => {
+    const g = checkContentGates('this is a very long draft. '.repeat(20));
+    assert.strictEqual(g.pass, false);
+    assert.ok(g.failures.some((f) => f.code === 'length_out_of_range'));
+  });
+
+  await check('gate: a short, clean, on-voice draft passes every gate', () => {
+    const g = checkContentGates('yeah, same. built in a backup contact after that.');
+    assert.strictEqual(g.pass, true, JSON.stringify(g.failures));
+  });
+
+  console.log(`\n${passed} passed${process.exitCode ? ', with failures' : ''}`);
+  if (!process.exitCode) console.log('ALL PASS');
+}
+
+main().catch((err) => {
+  console.error('FATAL', err);
+  process.exitCode = 1;
 });
-
-check('pricing: "how much do you pay your TC" escalates even with a clean draft', () => {
-  const r = classifyCommentRisk('How much do you pay your TC per file?', 'depends on the brokerage honestly');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'pricing');
-});
-
-check('demo_request: "can I see a demo" escalates', () => {
-  const r = classifyCommentRisk('This sounds cool, can I see a demo?', 'sure, send me your email');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'demo_request');
-});
-
-check('demo_request: "can I try it out" escalates', () => {
-  const r = classifyCommentRisk('Can I try it out before committing?', 'happy to set that up');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'demo_request');
-});
-
-check('complaint: negative sentiment escalates', () => {
-  const r = classifyCommentRisk('honestly this whole thing sounds like a scam, my last TC ripped me off', 'sorry to hear that');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'complaint');
-});
-
-check('complaint: "this is terrible" escalates', () => {
-  const r = classifyCommentRisk('this is terrible advice honestly', 'fair, everyone runs it differently');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'complaint');
-});
-
-check('legal_compliance: a TREC question escalates', () => {
-  const r = classifyCommentRisk('does TREC require the buyer to sign that same day?', 'good question, I always double check with my broker');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'legal_compliance');
-});
-
-check('legal_compliance: liability question escalates', () => {
-  const r = classifyCommentRisk('could you be liable if the TC misses that deadline?', 'depends on the E&O policy honestly');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'legal_compliance');
-});
-
-check('specific_client: naming a specific transaction escalates', () => {
-  const r = classifyCommentRisk('my client at 123 Main Street wants to know how you handled that', 'that sounds like a normal fix honestly');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('contact_request: asking to DM escalates', () => {
-  const r = classifyCommentRisk('can you DM me the details?', 'sure thing');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'contact_request');
-});
-
-check('contact_request: "reach out" escalates', () => {
-  const r = classifyCommentRisk('mind if I reach out directly?', 'go ahead');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'contact_request');
-});
-
-check('competitor_mention: naming a known competitor escalates', () => {
-  const r = classifyCommentRisk('we switched to dotloop last year, way better', 'good to know, thanks');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'competitor_mention');
-});
-
-check('a claim leaking into the DRAFT (not the comment) still escalates', () => {
-  const r = classifyCommentRisk('what do you use for TC work?', 'honestly it costs about $30/mo and worth it');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'pricing');
-});
-
-// ─── Quinn's QA pass, 2026-09-16 — PERMANENT FIXTURES ──────────────────────
-// e4201198 shipped a classifier that let these 5 through as auto-eligible,
-// all via the same root defect (positive shapes were "innocent until
-// proven guilty" instead of "positively confirmed safe"). Locked in here so
-// this exact regression can never recur, plus a harder variant per case
-// that changes the wording rather than reusing Quinn's exact strings — the
-// point is the ROOT SHAPE is fixed, not these 5 sentences.
-
-check('Quinn case 1 (pricing, indirect — "worth the money"): escalates', () => {
-  const r = classifyCommentRisk('Is it worth the money though?', 'yeah honestly it has paid for itself');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'pricing');
-});
-check('Quinn case 1, harder variant (indirect pricing via "pay for itself"): escalates', () => {
-  const r = classifyCommentRisk('Would this pay for itself for someone only doing 3 deals a month?', 'for sure, especially at that volume');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'pricing');
-});
-
-check('Quinn case 2 (demo request with no "demo" word — "walk me through... back end"): escalates', () => {
-  const r = classifyCommentRisk('Could you walk me through what it actually looks like on the back end?', 'sure, happy to show you sometime');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'demo_request');
-});
-check('Quinn case 2, harder variant (different indirect demo phrasing — "behind the scenes"): escalates', () => {
-  const r = classifyCommentRisk('What happens behind the scenes when a contract comes in?', 'happy to walk through it sometime');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'demo_request');
-});
-
-check('Quinn case 3 (backhanded thanks carrying doubt — "thanks, I guess, not sure... though"): escalates', () => {
-  const r = classifyCommentRisk('Thanks, I guess, not sure it actually works though', 'fair enough, it works for me');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-check('Quinn case 3, harder variant (different backhanded phrasing — "appreciate it, but"): escalates', () => {
-  const r = classifyCommentRisk("Appreciate you sharing, but I feel like there's got to be a catch.", 'no catch, it really is that simple');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-check('Quinn case 4 (legal/compliance question with no "TREC"/"legal" word — earnest money forfeiture): escalates', () => {
-  const r = classifyCommentRisk('If a buyer backs out after the option period ends, is the earnest money automatically forfeited?', 'depends on the contract terms honestly');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'legal_compliance');
-});
-check('Quinn case 4, harder variant (different phrasing, pronoun instead of "forfeited") escalates', () => {
-  const r = classifyCommentRisk('Can the buyer just walk away and keep their earnest money too?', 'not usually, no');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'legal_compliance');
-});
-
-check('Quinn case 5 (names a specific client\'s transaction — "for Sarah\'s closing"): escalates', () => {
-  const r = classifyCommentRisk("How did you handle it for Sarah's closing?", 'we just extended the option period a few days');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-check('Quinn case 5, harder variant (different name, different transaction noun — "file"): escalates', () => {
-  const r = classifyCommentRisk("What did you end up doing for Marcus's file?", 'ended up pushing the closing date a week');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-// ─── Fail-closed defaults ────────────────────────────────────────────────────
-
-check('an ambiguous off-topic comment with no positive shape escalates as low_confidence', () => {
-  const r = classifyCommentRisk('anyway, hope everyone has a good weekend', 'you too');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-check('an empty draft never auto-posts', () => {
-  const r = classifyCommentRisk('thanks!', '');
-  assert.strictEqual(r.eligible, false);
-});
-
-check('an overlong/rambling comment escalates regardless of shape', () => {
-  const longComment = 'thanks so much for this, '.repeat(15);
-  const r = classifyCommentRisk(longComment, 'no problem');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-// ─── Auto-eligible archetypes ────────────────────────────────────────────────
-
-check('thanks is auto-eligible', () => {
-  const r = classifyCommentRisk('Thanks, that helps a lot!', 'anytime');
-  assert.strictEqual(r.eligible, true);
-  assert.strictEqual(r.category, 'auto_eligible');
-});
-
-check('agreement is auto-eligible', () => {
-  const r = classifyCommentRisk('100% agree with this', 'yeah, same here');
-  assert.strictEqual(r.eligible, true);
-});
-
-check('a neutral follow-up question is auto-eligible', () => {
-  const r = classifyCommentRisk('did you have to switch title companies too?', 'no, kept the same one the whole time');
-  assert.strictEqual(r.eligible, true);
-});
-
-check('a factual TC/transaction answer is auto-eligible', () => {
-  const r = classifyCommentRisk('what tripped mine up was the option period deadline', 'yeah that one gets people every time');
-  assert.strictEqual(r.eligible, true);
-});
-
-// ─── Post-Quinn tightening: prove the fix doesn't just re-wire escalate
-// keywords, it genuinely requires POSITIVE confirmation ─────────────────────
-
-check('a hedged "thanks" (no escalate keyword at all) still escalates, not just Quinn\'s exact wording', () => {
-  const r = classifyCommentRisk('Thanks, kind of makes sense I guess', 'glad it helps');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-check('a question that ends in "?" but does NOT match the safe-question allowlist escalates (no longer eligible by default)', () => {
-  const r = classifyCommentRisk('Is that even a real thing that happens?', 'yeah it comes up more than you would think');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-check('a long thanks padded with extra commentary is not "clean" and escalates', () => {
-  const r = classifyCommentRisk('Thanks for this, it is genuinely one of the more useful threads I have seen on this whole topic in a long time', 'glad it helped');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'low_confidence');
-});
-
-check('"thanks" immediately followed by a live question is not a clean thanks', () => {
-  const r = classifyCommentRisk('Thanks — does that happen a lot?', 'more than people expect honestly');
-  assert.strictEqual(r.eligible, false);
-});
-
-// ─── Quinn's 2nd QA round, 2026-09-16 — PERMANENT FIXTURES ─────────────────
-// 22 fresh adversarial cases, 21 escalated correctly, 1 real miss — both
-// root causes are SHAPE problems, not string problems:
-//   1. AGREEMENT_RE matched the bare word "exactly" anywhere in the
-//      comment, even as an ordinary adverb. Fixed by anchoring
-//      thanks/agreement to the START of the comment (the actual SHAPE of
-//      an agreement, not a word occurring anywhere).
-//   2. The named-third-party check only caught "Name's <noun>". It missed
-//      the general PERSON-REFERENCE shape: a social-interaction verb next
-//      to a capitalized name, in either word order.
-// Fixtures below: Quinn's exact case, plus harder variants that change the
-// wording entirely (different verb, different name, different sentence
-// shape) to prove the fix generalizes rather than pattern-matching one
-// reported string.
-
-check('Quinn case (agreement word "exactly" as an adverb mid-sentence, not agreement): escalates via named third party', () => {
-  const r = classifyCommentRisk("Sharing this with Miguel since he's been asking about exactly this for his group.", 'happy to chat with him too');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('root-cause isolation: "exactly" as a bare adverb, no third party at all, still does not carry eligibility alone', () => {
-  // Deliberately strips the third-party reference to isolate the FIRST
-  // root cause on its own: this must not become eligible just because
-  // "exactly" appears somewhere in it.
-  const r = classifyCommentRisk('It works exactly like you would expect honestly.', 'yeah pretty much');
-  assert.notStrictEqual(r.category, 'auto_eligible');
-});
-
-check('harder variant, different social verb + different name ("telling Dana about this"): escalates', () => {
-  const r = classifyCommentRisk('telling Dana about this later, she is going to want to know', 'sounds good, keep me posted');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('harder variant, name BEFORE the verb ("my buddy Ray asked"): escalates', () => {
-  const r = classifyCommentRisk('my buddy Ray asked about this too the other day', 'small world, happens a lot');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('harder variant, "wanted to know" instead of "asked" ("Zoe wanted to know"): escalates', () => {
-  const r = classifyCommentRisk('Zoe wanted to know if this happens as often as it sounds', 'more than people think honestly');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('harder variant, forwarding language ("forwarded it to James"): escalates', () => {
-  const r = classifyCommentRisk('forwarded it to James since he was dealing with the exact same thing', 'hope it helps him too');
-  assert.strictEqual(r.eligible, false);
-  assert.strictEqual(r.category, 'specific_client');
-});
-
-check('precision check: the common idiom "That said" must NOT trip the named-third-party shape', () => {
-  // Guards against an over-broad fix: "That said" is a discourse
-  // connective, not a reference to a person named "That". This is the one
-  // false-positive class worth explicitly excluding rather than accepting
-  // (unlike a day/place name, which is a harmless over-escalate).
-  const r = classifyCommentRisk('That said, mine went dark too for a while and it was rough.', 'yeah it happens more than it should');
-  assert.notStrictEqual(r.category, 'specific_client');
-});
-
-check('precision check: "100% agree with this" still auto-eligible after anchoring the agreement shape', () => {
-  // The anchoring fix must not collateral-damage the real, clean agreement
-  // case it's supposed to keep working.
-  const r = classifyCommentRisk('100% agree with this', 'yeah, same here');
-  assert.strictEqual(r.eligible, true);
-  assert.strictEqual(r.category, 'auto_eligible');
-});
-
-// ─── Real fixture: the exact row scripts/regression-tc-reply-approval.js
-// treats as a real harvested tc_discovery_responses comment ─────────────────
-
-check('real fixture ("TC went dark for 9 days mid-option") is auto-eligible with a clean, verified-story-matching draft', () => {
-  const realComment = 'Communication. My last TC went dark for 9 days mid-option.';
-  const cleanDraft = 'yeah, mine went dark on me too once mid-option. built in a backup contact after that.';
-  const r = classifyCommentRisk(realComment, cleanDraft);
-  assert.strictEqual(r.eligible, true, `expected eligible, got category=${r.category} reason=${r.reason}`);
-  const gates = checkContentGates(cleanDraft);
-  assert.strictEqual(gates.pass, true, `expected gates to pass, got failures=${JSON.stringify(gates.failures)}`);
-});
-
-check('real fixture with an UNVERIFIED anecdote fails the war-story gate even though the comment itself is low-risk', () => {
-  const realComment = 'Communication. My last TC went dark for 9 days mid-option.';
-  const fabricatedDraft = 'ha, reminds me of a client of mine who waived the option period and hit a foundation issue in the hill country.';
-  const r = classifyCommentRisk(realComment, fabricatedDraft);
-  // Classifier alone doesn't know about story fabrication -- the gate does.
-  const gates = checkContentGates(fabricatedDraft);
-  assert.strictEqual(gates.pass, false);
-  assert.ok(gates.failures.some((f) => f.code === 'unverified_war_story'));
-});
-
-// ─── Content gates, one failure per gate ────────────────────────────────────
-
-check('gate: pricing figure in the draft fails', () => {
-  const g = checkContentGates('it runs $7.50/mo on the founding rate');
-  assert.strictEqual(g.pass, false);
-  assert.ok(g.failures.some((f) => f.code === 'pricing_figure'));
-});
-
-check('gate: unverified capability claim fails', () => {
-  const g = checkContentGates('yeah she pulls comps straight from MLS for you');
-  assert.strictEqual(g.pass, false);
-  assert.ok(g.failures.some((f) => f.code === 'unverified_capability_claim'));
-});
-
-check('gate: AI-tell opener fails (reuses heath-voice-guard)', () => {
-  const g = checkContentGates('Haha love that, such a great point!');
-  assert.strictEqual(g.pass, false);
-  assert.ok(g.failures.some((f) => f.code === 'voice_violation'));
-});
-
-check('gate: too-long draft fails length', () => {
-  const g = checkContentGates('this is a very long draft. '.repeat(20));
-  assert.strictEqual(g.pass, false);
-  assert.ok(g.failures.some((f) => f.code === 'length_out_of_range'));
-});
-
-check('gate: a short, clean, on-voice draft passes every gate', () => {
-  const g = checkContentGates('yeah, same. built in a backup contact after that.');
-  assert.strictEqual(g.pass, true, JSON.stringify(g.failures));
-});
-
-console.log(`\n${passed} passed${process.exitCode ? ', with failures' : ''}`);
-if (!process.exitCode) console.log('ALL PASS');

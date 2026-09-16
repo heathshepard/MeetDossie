@@ -167,6 +167,16 @@ function fakeDraftClean() {
   return async () => ({ hostile: false, hostileReason: '', reply: CLEAN_DRAFT });
 }
 
+// Stub for the risk classifier (now a real Claude Haiku 4.5 call in
+// production — scripts/_lib/auto-reply-risk-classifier.js). This file
+// tests the VETO WINDOW plumbing, not the model's judgment, so every row
+// here gets a fixed high-confidence-eligible verdict — zero network,
+// deterministic. See scripts/regression-auto-reply-classifier.js for the
+// classifier's own harness/fail-closed coverage.
+function highConfidenceEligible() {
+  return async () => ({ eligible: true, category: 'auto_eligible', confidence: 'high', reason: 'stubbed for veto-window test', source: 'model' });
+}
+
 async function main() {
   console.log('auto-reply-with-veto: kill switch + veto window + SLA alert');
 
@@ -185,7 +195,7 @@ async function main() {
     let sentMarkup = null;
     const send = async (text, markup) => { sentMarkup = markup; return DELIVERED_PAYLOAD; };
     const res = await cron.processPendingReplies({
-      sbFetch, draft: fakeDraftClean(), send, isSuppressed: () => false,
+      sbFetch, draft: fakeDraftClean(), classifyRisk: highConfidenceEligible(), send, isSuppressed: () => false,
     });
     assert.strictEqual(res.notified, 1);
     assert.strictEqual(row.reply_status, 'notified');
@@ -208,7 +218,7 @@ async function main() {
     let sentMarkup = null;
     const send = async (text, markup) => { sentText = text; sentMarkup = markup; return DELIVERED_PAYLOAD; };
     const res = await cron.processPendingReplies({
-      sbFetch, draft: fakeDraftClean(), send, isSuppressed: () => false,
+      sbFetch, draft: fakeDraftClean(), classifyRisk: highConfidenceEligible(), send, isSuppressed: () => false,
     });
     assert.strictEqual(res.notified, 1);
     assert.strictEqual(res.autoVetoed, 1);

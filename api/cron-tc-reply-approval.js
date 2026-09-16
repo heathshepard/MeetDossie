@@ -343,13 +343,14 @@ async function telegramSend(text, replyMarkup) {
  * Process pending rows: draft where needed, notify Heath, advance state.
  * State only advances to 'notified'/'flagged'+notified_at on a DELIVERED send.
  *
- * @param {object} deps { sbFetch, draft, send, isSuppressed, log }
+ * @param {object} deps { sbFetch, draft, classifyRisk, send, isSuppressed, log }
  * @returns {Promise<{drafted:number, notified:number, flagged:number, errors:Array}>}
  */
 async function processPendingReplies(deps) {
   const {
     sbFetch = supabaseFetch,
     draft = draftReply,
+    classifyRisk = classifyCommentRisk,
     send = telegramSend,
     isSuppressed = wasSuppressed,
     log = console,
@@ -362,7 +363,7 @@ async function processPendingReplies(deps) {
   const { ok, data, status } = await sbFetch(
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=in.(new,flagged)&reply_notified_at=is.null&is_own_comment=eq.false'
-    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id,auto_reply_eligible,auto_reply_category`
+    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id,auto_reply_eligible,auto_reply_category,auto_reply_confidence,auto_reply_reason,auto_reply_source`
     + `&order=harvested_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!ok) {
@@ -434,15 +435,20 @@ async function processPendingReplies(deps) {
           if (!d.reply) throw new Error('empty draft for non-hostile comment');
           row.reply_draft = d.reply;
 
-          // Risk classification + content gates, logged on EVERY drafted
-          // row regardless of outcome (spec: "log every auto-reply with its
-          // classification and gate results"). A gate failure or an
-          // ineligible classification never blocks the reply — it just
+          // Risk classification (model call, api/../scripts/_lib/
+          // auto-reply-risk-classifier.js) + content gates, logged on
+          // EVERY drafted row regardless of outcome (spec: "log the
+          // model's verdict and reason on the row, so a wrong call is
+          // diagnosable later"). A gate failure or an ineligible/low-
+          // confidence classification never blocks the reply — it just
           // means this row takes the existing manual notified path below.
-          const risk = classifyCommentRisk(row.comment_text, d.reply);
+          const risk = await classifyRisk(row.comment_text, d.reply);
           const gates = risk.eligible ? checkContentGates(d.reply) : { pass: false, failures: [] };
           row.auto_reply_eligible = risk.eligible && gates.pass;
           row.auto_reply_category = risk.category;
+          row.auto_reply_confidence = risk.confidence;
+          row.auto_reply_reason = risk.reason;
+          row.auto_reply_source = risk.source;
           row.auto_reply_gate_failures = gates.failures.map((f) => f.code);
 
           await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
@@ -452,6 +458,9 @@ async function processPendingReplies(deps) {
               reply_draft: d.reply,
               auto_reply_eligible: row.auto_reply_eligible,
               auto_reply_category: row.auto_reply_category,
+              auto_reply_confidence: row.auto_reply_confidence,
+              auto_reply_reason: row.auto_reply_reason,
+              auto_reply_source: row.auto_reply_source,
               auto_reply_gate_failures: row.auto_reply_gate_failures,
               updated_at: new Date().toISOString(),
             }),

@@ -617,8 +617,17 @@ async function main() {
   const migrationSrc = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20260909_group_post5_daily.sql'), 'utf8');
   assert.ok(migrationSrc.includes("pipeline"), 'migration adds the pipeline column');
   assert.ok(migrationSrc.includes('content_hash'), 'migration adds the content_hash dedupe column');
+  // TIGHTENED 2026-09-16 (Atlas, same-day, unrelated staging cron-count
+  // fix): vercel.json hit Vercel's 100-item crons-array schema cap, so
+  // /api/cron-daily-group5-posts no longer has its own standalone entry —
+  // it's now fanned out from api/cron-dispatch-daily-0900.js alongside
+  // other daily-9am jobs (api/_lib/cron-multiplex.js). Check BOTH: the
+  // dispatcher's own vercel.json entry exists, and the handler is actually
+  // wired into that dispatcher's HANDLERS list (not just present on disk).
   const vercelJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
-  assert.ok(vercelJson.crons.some((c) => c.path === '/api/cron-daily-group5-posts'), 'cron is registered in vercel.json');
+  assert.ok(vercelJson.crons.some((c) => c.path === '/api/cron-dispatch-daily-0900'), 'the 9am dispatcher cron is registered in vercel.json');
+  const dispatcherSrc = fs.readFileSync(path.join(__dirname, '..', 'api', 'cron-dispatch-daily-0900.js'), 'utf8');
+  assert.ok(dispatcherSrc.includes("require('./cron-daily-group5-posts.js')"), 'cron-daily-group5-posts is fanned out from the 9am dispatcher');
 
   console.log('PASS: daily 5-group-post pipeline (approval gate, 5/day cap, 18-24 varied spacing, one-per-run, per-group 30-day dedupe x3 layers, DFW hard no-promo gate, shared circuit breaker, watchlist handoff, suppression-lies contract, gp5_ callbacks)');
 }

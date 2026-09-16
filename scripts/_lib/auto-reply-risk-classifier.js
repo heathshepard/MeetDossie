@@ -2,379 +2,280 @@
 
 // scripts/_lib/auto-reply-risk-classifier.js
 //
-// Deterministic, rule-based risk classifier for the auto-reply-with-veto
-// feature (Heath's explicit approval, 2026-09-16 — see
+// MODEL-BASED risk classifier for the auto-reply-with-veto feature (Heath's
+// explicit approval, 2026-09-16 — see
 // supabase/migrations/20260916_auto_reply_veto.sql for the full contract).
 //
-// FAIL-CLOSED BY DESIGN: this is intentionally NOT an LLM call. A model can
-// be argued into "this looks fine" on an edge case; a fixed rule set can't.
-// classifyCommentRisk() defaults to ESCALATE and only returns eligible=true
-// when the comment+draft clear every escalate trigger AND the comment is
-// POSITIVELY identified as one of a small number of safe shapes.
+// REWRITTEN 2026-09-16 (3rd pass) after the regex-only version failed a
+// THIRD adversarial QA round in a row on the same failure class: named
+// third parties and comparative/implied language keep taking new shapes
+// ("Miguel and I were just talking about TC stuff", "dana loved the
+// checklist feature" — lowercase name, unlisted verb; "way cheaper than
+// what I pay now" — pricing with no $ sign and no listed keyword) that no
+// fixed pattern list generalizes to, because the categories this
+// classifier judges are SEMANTIC, not lexical. Cole's directive, verbatim:
+// "stop patching regexes — the approach is wrong, not the patterns...
+// Regex will keep losing this game because the categories are semantic."
 //
-// REWRITTEN 2026-09-16 after Quinn's QA pass on the first version failed 5
-// real cases, all through the same root defect: the "positive shape" checks
-// were "innocent until proven guilty" (any question that didn't match an
-// escalate keyword was called safe; any comment containing "thanks" was
-// called safe regardless of what else it said). Quinn's fix mandate,
-// verbatim: "a question is only neutral_follow_up_question when it's
-// positively identified as safe, not when it fails to match a bad-word
-// list, and thanks only counts when the comment carries no doubt, criticism
-// or question at all... It's fine if the eligible set gets small."
+// ARCHITECTURE NOW:
+//   1. A SMALL, deterministic PRE-FILTER (PRE_FILTER_PATTERNS below) that
+//      can ONLY force an escalation — an explicit $ figure or an explicit
+//      "demo"/"trial" ask. It can NEVER certify something eligible; it
+//      exists purely to catch the two highest-confidence, cheapest-to-
+//      detect signals before spending an API call.
+//   2. A Claude Haiku 4.5 call (classifyWithModel) that judges everything
+//      else against a tight rubric: the same escalate categories as
+//      before, PLUS "a named third party appears at all" (any name, any
+//      phrasing, either word order) and "any implied or comparative
+//      pricing" (not just a literal $ figure).
+//   3. eligible=true requires BOTH the model's eligible=true AND
+//      confidence="high". Medium/low confidence escalates regardless of
+//      what the model thought was eligible — ties directly to the spec:
+//      "Require high confidence AND eligible to auto-send; anything else
+//      escalates."
+//   4. FAIL-CLOSED on every failure mode: missing API key, network error,
+//      timeout, non-200 status, no JSON in the response, JSON that fails
+//      schema validation — every one of these returns the same shape as a
+//      real escalate verdict (eligible:false), tagged with a distinct
+//      category/source so a bad call is diagnosable separately from a
+//      real "the model said no."
 //
-// This version:
-//   1. Widens the escalate patterns themselves to catch indirect phrasing
-//      (money without "cost", demo asks without "demo", legal questions
-//      without "TREC", named third parties without "my client") — fixing
-//      the ROOT SHAPE, not the 5 reported strings.
-//   2. Adds a HEDGE/DOUBT/CRITICISM lexicon that overrides thanks/agreement/
-//      question eligibility — a "thanks" sitting next to "I guess" or
-//      "not sure" or "though" is not a clean thanks.
-//   3. Replaces the blanket "any question is eligible" rule with a small,
-//      positive SAFE_QUESTION allowlist of general peer-experience
-//      phrasings ("did you have to...", "how do you handle...") — a
-//      question has to affirmatively look like harmless small talk, not
-//      merely fail to trip a keyword.
-// The eligible surface is deliberately small. Any comment the rules don't
-// recognize falls into 'low_confidence' and escalates.
+// Model choice: Claude Haiku 4.5 (`claude-haiku-4-5`). This is a short,
+// single-turn classification call (a few sentences of input, a one-line
+// JSON verdict out) — exactly the "classification... high-volume or
+// latency-sensitive" workload the current model-selection guidance says
+// does NOT need a bigger/slower model. At current published rates
+// ($1.00 / $5.00 per MTok in/out) a call this size (~250 input + ~60
+// output tokens) costs well under $0.001 — at a few comments a day this
+// pipeline runs, monthly cost is cents, not dollars.
 //
 // Used by:
 //   - api/cron-tc-reply-approval.js (decides veto-path vs manual-approval-path)
 //   - scripts/regression-auto-reply-classifier.js (unit coverage, incl.
-//     Quinn's 5 reported cases + harder variants as permanent fixtures)
+//     Quinn's reported misses across all three QA rounds + fail-closed paths)
 //
 // Owner: Carter, 2026-09-16
 
-// ── Escalate categories ──────────────────────────────────────────────────────
-// Checked against comment_text AND the drafted reply — a claim that leaks
-// into Heath's own drafted reply is just as disqualifying as one in the
-// inbound comment (e.g. the draft itself naming a price or a competitor).
-//
-// Order matters: first match wins, so list the most specific/highest-signal
-// categories first where two could plausibly both match the same text.
-const ESCALATE_PATTERNS = [
-  {
-    category: 'pricing',
-    patterns: [
-      /\bhow much\b/i,
-      /\bhow's much\b/i,
-      /\bcost[s]?\b/i,
-      /\bpricing\b/i,
-      /\bprice[sd]?\b/i,
-      /\bdiscount\b/i,
-      /\brefund(?:ed|s)?\b/i,
-      /\bbilling\b/i,
-      /\bcharge[sd]?\b/i,
-      /\bfee[s]?\b/i,
-      /\$\s?\d/,
-      /\d+\s?(?:\/|per)\s?(?:mo|month|yr|year)\b/i,
-      /\bsubscription\b/i,
-      // Indirect money phrasing — Quinn 2026-09-16 case 1: "Is it worth the
-      // money though?" never says cost/price/how much.
-      /\bworth (?:it|the money|paying(?: for)?)\b/i,
-      /\bis it worth\b/i,
-      /\bpay for\b/i,
-      /\baffordable\b/i,
-      /\bcan('?t| not) afford\b/i,
-    ],
-  },
-  {
-    category: 'demo_request',
-    patterns: [
-      /\bdemo\b/i,
-      /\btrial\b/i,
-      /\bcan i (?:see|try|check out)\b/i,
-      /\bshow me\b/i,
-      /\btry it out\b/i,
-      /\bsign\s?up\b/i,
-      /\bwhere (?:can|do) i (?:sign up|get (?:it|access))\b/i,
-      // Indirect demo phrasing — Quinn case 2: "Could you walk me through
-      // what it actually looks like on the back end?" never says "demo."
-      /\bwalk (?:me|us) through\b/i,
-      /\bshow (?:me|us) how\b/i,
-      /\bwhat (?:does|do) it (?:actually )?look like\b/i,
-      /\bback[- ]?end\b/i,
-      /\bunder the hood\b/i,
-      /\bhow (?:does|do) it (?:actually )?work\b/i,
-      /\bcould you (?:show|walk)\b/i,
-      /\bcan you (?:show|walk)\b/i,
-      /\btake a look at it\b/i,
-      /\bbehind the scenes\b/i,
-    ],
-  },
-  {
-    category: 'complaint',
-    patterns: [
-      /\bscam\b/i,
-      /\brip\s?off\b/i,
-      /\bwaste of (?:time|money)\b/i,
-      /\bhate\b/i,
-      /\bterrible\b/i,
-      /\bworst\b/i,
-      /\bawful\b/i,
-      /\bdisappoint(?:ed|ing)\b/i,
-      /\bfrustrat(?:ed|ing)\b/i,
-      /\bangry\b/i,
-      /\bannoy(?:ed|ing)\b/i,
-      /\bdoesn'?t work\b/i,
-      /\bnot working\b/i,
-      /\bbroken\b/i,
-      /\bbull\s?shit\b/i,
-      /\bsucks?\b/i,
-      /\blied\b|\blying\b/i,
-      /\bunacceptable\b/i,
-      /\bfurious\b/i,
-      /\bpissed\b/i,
-      /\bcomplain(?:t|ing)?\b/i,
-    ],
-  },
-  {
-    category: 'legal_compliance',
-    patterns: [
-      /\btrec\b/i,
-      /\bcompliance\b/i,
-      /\blegal(?:ly)?\b/i,
-      /\blawsuit\b/i,
-      /\bsue[ds]?\b/i,
-      /\bliab(?:le|ility)\b/i,
-      /\be\s?&\s?o\b/i,
-      /\bstatute\b/i,
-      /\bregulat(?:ion|ory|ed)\b/i,
-      /\bviolat(?:ion|ed|es)\b/i,
-      /\blicens(?:e|ing) (?:board|complaint|violation)\b/i,
-      // Legal/compliance questions that never say the word "legal" or
-      // "TREC" — Quinn case 4: an earnest-money-forfeiture question.
-      /\bforfeit(?:ed|ure)?\b/i,
-      /\blose (?:the |his |her |their )?earnest money\b/i,
-      /\bkeep (?:the |their |his |her )?earnest money\b/i,
-      /\bwalk away\b/i,
-      /\bwho'?s (?:liable|responsible)\b/i,
-      /\bwho is (?:liable|responsible)\b/i,
-      /\bbreach(?: of contract)?\b/i,
-      /\bin default\b/i,
-      /\bentitled to\b/i,
-      /\blegally (?:required|obligated|entitled)\b/i,
-      /\bcan (?:they|he|she|the buyer|the seller) (?:sue|be sued)\b/i,
-    ],
-  },
-  {
-    category: 'specific_client',
-    patterns: [
-      /\bmy client\b/i,
-      /\bmy (?:deal|transaction|file|listing|buyer|seller)\b/i,
-      /\bthis (?:client|deal|transaction|file)\b/i,
-      /\b\d{2,6}\s+[A-Za-z][A-Za-z.'-]*\s+(?:st|street|ave|avenue|rd|road|dr|drive|ln|lane|ct|court|blvd|way|cir|circle|pl|place|trl|trail)\b/i,
-      /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // phone number
-      // A named third party's transaction — Quinn case 5: "How did you
-      // handle it for Sarah's closing?" names no address, no "my client",
-      // just a specific person's name + a transaction noun.
-      /\b[A-Z][a-zA-Z]+'s (?:closing|deal|transaction|file|listing|contract|escrow|option period|earnest money|paperwork)\b/,
-      /\bfor [A-Z][a-zA-Z]+(?:'s)?\b.{0,20}\b(?:closing|deal|transaction|file|listing|contract|escrow)\b/,
-      /\bhandled? it for [A-Z][a-zA-Z]+\b/i,
-      // ROOT SHAPE, added 2026-09-16 (Quinn's 2nd QA round): "Sharing this
-      // with Miguel since he's been asking about exactly this for his
-      // group" names no address, no possessive transaction noun — it just
-      // pulls a third party into the thread by name. Catch the PERSON-
-      // REFERENCE shape generally (a social-interaction verb next to a
-      // capitalized name, in either word order) rather than any specific
-      // phrasing: an auto-reply that lands in front of someone Heath
-      // hasn't met is exactly what must never happen.
-      //   forward:  "<verb> ... <Name>"   e.g. "sharing this with Miguel",
-      //             "telling Dana about this", "forwarded it to James"
-      //   backward: "<Name> <verb>"       e.g. "my buddy Ray asked",
-      //             "Zoe wanted to know", "Priya kept asking"
-      // Deliberately broad — a false hit on a capitalized non-name word
-      // (a day, a place) just escalates one extra comment to manual
-      // review, which is the safe direction, not a real cost.
-      /\b(?:with|told|tell(?:ing)?|ask(?:ed|ing)?|mentioned|mentioning|said to|forward(?:ed|ing)?|show(?:ed|ing)?|shar(?:ed|ing)|sen(?:t|ding)|texted|called|emailed|cc'?d|loop(?:ed|ing)? in|introduc(?:ed|ing))\b(?:\s+\S+){0,3}?\s+[A-Z][a-z]+\b/,
-      /\b(?!(?:That|This|It|He|She|They|We|You|I)\b)[A-Z][a-z]+\s+(?:asked|has been asking|is asking|kept asking|mentioned|wanted to know|wondered|texted me|called me|emailed me)\b/,
-    ],
-  },
-  {
-    category: 'contact_request',
-    patterns: [
-      /\bdm\b/i,
-      /\bdirect message\b/i,
-      /\breach out\b/i,
-      /\bcontact me\b/i,
-      /\bcall me\b/i,
-      /\btext me\b/i,
-      /\bemail me\b/i,
-      /\bmessage me\b/i,
-      /\bpm me\b/i,
-    ],
-  },
-  {
-    category: 'competitor_mention',
-    // Known competitors (memory: competitor-agentalent-orion) + common
-    // TC/transaction-management tools that could come up in this exact
-    // peer-discussion group. Extend this list as new names surface — a
-    // name NOT on it simply won't trigger this category (a known limit of
-    // a fixed list, not a bug).
-    patterns: [
-      /\bagentalent(?:\.ai)?\b/i,
-      /\borion\b/i,
-      /\bdotloop\b/i,
-      /\bskyslope\b/i,
-      /\bbrokermint\b/i,
-      /\breesio\b/i,
-      /\btrackxi\b/i,
-      /\bhomelight\b/i,
-      /\blone\s?wolf\b/i,
-      /\bzillow premier\b/i,
-      /\bkw command\b/i,
-    ],
-  },
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const CLASSIFY_MODEL = 'claude-haiku-4-5';
+const CLASSIFY_TIMEOUT_MS = 8000;
+const CLASSIFY_MAX_TOKENS = 200;
+
+// ── Hard pre-filter — ESCALATE-ONLY, never certifies eligible ──────────────
+// Deliberately tiny. Everything that used to live in a big keyword list
+// (competitors, contact requests, legal terms, complaint words, named
+// third parties, indirect pricing...) is now the model's job. These two
+// stay as a pattern match because they're unambiguous, free, and catch the
+// highest-frequency cases before spending an API call at all.
+const PRE_FILTER_PATTERNS = [
+  { category: 'pricing', re: /\$\s?\d/ },
+  { category: 'demo_request', re: /\b(?:demo|trial)\b/i },
 ];
 
-// ── Hedge / doubt / criticism lexicon ────────────────────────────────────────
-// Quinn case 3: "Thanks, I guess, not sure it actually works though" —
-// "thanks" alone used to be sufficient. It never should have been: a thanks
-// carrying doubt, a backhanded qualifier, or a live question is not a clean
-// thanks. This lexicon BLOCKS the thanks/agreement/question/factual
-// archetypes below — it does not itself escalate to a specific category
-// (there's no clean signal WHICH category), it just forces low_confidence,
-// which escalates by the same default-deny rule as everything else.
-const HEDGE_DOUBT_CRITICISM_RE = /\b(?:i guess|not sure|though|but\b|however|i don'?t know|idk|kind of|sort of|not really|doubt(?:ful)?|skeptical|questionable|not convinced|supposedly|allegedly|eh[,.]?|meh\b|not (?:totally|entirely|fully) sure|still not sure|not (?:so|too) sure)\b/i;
-
-// ── Auto-eligible positive shapes ────────────────────────────────────────────
-// Necessary but NOT sufficient: clearing ESCALATE_PATTERNS and
-// HEDGE_DOUBT_CRITICISM_RE still requires positively matching one of these.
-//
-// ANCHORED TO THE START, added 2026-09-16 (Quinn's 2nd QA round): "Sharing
-// this with Miguel since he's been asking about exactly this for his
-// group" was called eligible because AGREEMENT_RE matched the bare word
-// "exactly" — an adverb buried mid-sentence, not agreement. A single common
-// word can't be allowed to carry an eligibility decision by itself. Thanks
-// and agreement have to be the actual SHAPE of the comment — how it opens —
-// not a word that happens to appear anywhere in it.
-const THANKS_RE = /^(?:thanks?|thank you|appreciate (?:it|that|this)|much appreciated)\b/i;
-const NEGATED_THANKS_RE = /^no thanks\b/i;
-// "100%" gets its own lookahead instead of a trailing \b — \b can't fire
-// between two non-word characters ("%" then a space), which silently broke
-// this alternative the moment the regex was anchored to the start.
-const AGREEMENT_RE = /^(?:100%(?=\s|[.,!?]|$)|yes\b|yeah\b|yep\b|yup\b|agreed?\b|exactly\b|so true\b|same here\b|totally\b|spot on\b|couldn'?t agree more\b)/i;
-const THANKS_AGREEMENT_MAX_WORDS = 20; // a real thanks/agreement is short; a long one carrying "thanks" plus three more sentences of commentary is not a clean thanks
-
-// SAFE_QUESTION_PATTERNS — Quinn's mandate: a question must be POSITIVELY
-// identified as safe small talk about the peer's own general practice, not
-// merely fail to match an escalate keyword. Deliberately narrow.
-const SAFE_QUESTION_PATTERNS = [
-  /\bdid you (?:have to|end up|switch|use|try)\b/i,
-  /\bhow (?:do|did) you (?:handle|deal with|manage|switch|find|end up)\b/i,
-  /\bwhat (?:do|did) you (?:do|use|find)\b/i,
-  /\bhow long (?:did|does|do)\b/i,
-  /\bhow often (?:do|does|did)\b/i,
-  /\bdoes? (?:yours|it) (?:also|ever|always|usually)\b/i,
-  /\bwhat tripped you up\b/i,
-  /\bwhat worked for you\b/i,
-  /\bhave you (?:had|ever)\b/i,
-  /\bwas (?:that|it|yours) (?:always|ever)\b/i,
-];
-const QUESTION_MAX_WORDS = 25;
-
-// Domain-relevance signal for the "factual answer about how TC/transaction
-// work goes" archetype — a plain declarative statement (no hedge, no
-// question) with no other positive shape above still counts as eligible IF
-// it's clearly on-topic (peer TC/transaction-coordination talk). Off-topic
-// or ambiguous declaratives stay low_confidence and escalate.
-const DOMAIN_KEYWORDS_RE = /\b(?:tc|transaction coordinator|coordinator|contract|closing|close(?:s|d)?|deadline|option period|earnest money|escrow|title|file|dossier|checklist|paperwork|compliance packet|brokerage|commission split)\b/i;
-
-const MAX_COMMENT_WORDS_FOR_CONFIDENCE = 60; // long/rambling comments aren't safe to auto-classify
-
-function firstMatch(patternGroups, text) {
-  const t = String(text || '');
-  for (const group of patternGroups) {
-    for (const re of group.patterns) {
-      if (re.test(t)) return { category: group.category, pattern: re.toString() };
-    }
+function preFilter(combinedText) {
+  for (const { category, re } of PRE_FILTER_PATTERNS) {
+    if (re.test(combinedText)) return { category, pattern: re.toString() };
   }
   return null;
 }
 
-function wordCount(text) {
-  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+// ── The rubric ────────────────────────────────────────────────────────────
+const KNOWN_CATEGORIES = new Set([
+  'auto_eligible',
+  'pricing',
+  'demo_request',
+  'complaint',
+  'legal_compliance',
+  'specific_client',
+  'contact_request',
+  'competitor_mention',
+  'low_confidence',
+]);
+
+const CLASSIFY_PROMPT = (commentText, replyDraft) => `You are a risk classifier for an automated Facebook comment-reply system. Heath is a real, licensed Texas real estate agent. His name and license are attached to every reply this system might post. You decide whether a DRAFTED reply is safe to auto-post with zero human review, or must be escalated to Heath for a manual decision.
+
+Default to ESCALATE. Only call something eligible when you are genuinely confident it is harmless small talk.
+
+ESCALATE (eligible=false) whenever the COMMENT or the DRAFT touches any of these — judge the MEANING, not just specific words:
+- pricing: any price, cost, discount, refund, billing question, OR any comparative/implied money reference at all (e.g. "cheaper than what I pay now", "worth it", "afford", "pay for itself") — even with no dollar sign and no word like "cost".
+- demo_request: any request to see, try, access, or be walked through the product or how it works, in any phrasing.
+- complaint: negative sentiment, doubt, skepticism, or backhanded criticism — including a "thanks" that also carries doubt ("thanks, I guess, not sure it works though").
+- legal_compliance: anything touching TREC, legal exposure, liability, contract breach, earnest money forfeiture, or similar — even if it never says "legal" or "TREC".
+- specific_client: a NAMED THIRD PARTY appears AT ALL, in any phrasing, any verb, any capitalization, any word order — "Miguel and I were talking about this", "dana loved the checklist feature", "my buddy Ray asked", "told Sarah about it". Treat any personal name reference as disqualifying regardless of how casual or friendly it sounds. This is the single most important rule: an auto-reply must never land in front of, or reference, someone Heath hasn't met.
+- contact_request: asking Heath to DM, message, call, text, or otherwise reach out directly.
+- competitor_mention: naming any competing product, tool, or platform (TC software, transaction-management tools, etc.).
+- low_confidence: anything else you are not fully sure is harmless — including long or rambling comments, unclear intent, or a question/statement that doesn't cleanly resemble ordinary small talk between two working agents.
+
+ELIGIBLE (eligible=true, and ONLY with confidence="high") is reserved for: a clean thanks, a clean agreement, a neutral question about the other agent's own general practice (not Heath's, not a third party's), or a plain factual answer about how TC/transaction work goes — with NONE of the above present anywhere in the comment or the draft.
+
+COMMENT:
+"""
+${String(commentText || '').slice(0, 900)}
+"""
+
+DRAFTED REPLY (also check this for leaked pricing, capability claims, or anything else that would make posting it risky):
+"""
+${String(replyDraft || '').slice(0, 900)}
+"""
+
+Return ONLY this JSON shape, nothing else:
+{"eligible": boolean, "category": "auto_eligible|pricing|demo_request|complaint|legal_compliance|specific_client|contact_request|competitor_mention|low_confidence", "confidence": "high|medium|low", "reason": "one short sentence"}`;
+
+/**
+ * Real API call. Injectable via deps for tests — never hits the network in
+ * a regression run.
+ * @returns {Promise<{eligible, category, confidence, reason, source, raw?}>}
+ *   ALWAYS a fully-formed, fail-closed-safe result. Never throws.
+ */
+async function classifyWithModel(commentText, replyDraft) {
+  if (!ANTHROPIC_API_KEY) {
+    return { eligible: false, category: 'low_confidence', confidence: 'low', reason: 'ANTHROPIC_API_KEY not configured', source: 'model_error' };
+  }
+
+  let res;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CLASSIFY_TIMEOUT_MS);
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: CLASSIFY_MODEL,
+          max_tokens: CLASSIFY_MAX_TOKENS,
+          temperature: 0,
+          messages: [{ role: 'user', content: CLASSIFY_PROMPT(commentText, replyDraft) }],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch (err) {
+    const isTimeout = err && (err.name === 'AbortError' || /abort/i.test(String(err.message)));
+    return {
+      eligible: false, category: 'low_confidence', confidence: 'low',
+      reason: isTimeout ? 'classification call timed out' : `classification call failed: ${String(err.message || err).slice(0, 150)}`,
+      source: 'model_error',
+    };
+  }
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    return {
+      eligible: false, category: 'low_confidence', confidence: 'low',
+      reason: `classification API returned ${res.status}: ${errText.slice(0, 150)}`,
+      source: 'model_error',
+    };
+  }
+
+  let json;
+  try {
+    json = await res.json();
+  } catch (err) {
+    return { eligible: false, category: 'low_confidence', confidence: 'low', reason: 'classification response was not valid JSON envelope', source: 'model_error' };
+  }
+
+  const text = ((json?.content || [])
+    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+    .map((b) => b.text)
+    .join('')
+    .trim());
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return { eligible: false, category: 'low_confidence', confidence: 'low', reason: 'no JSON found in classification response', source: 'model_error', raw: text.slice(0, 200) };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch (err) {
+    return { eligible: false, category: 'low_confidence', confidence: 'low', reason: 'classification JSON failed to parse', source: 'model_error', raw: match[0].slice(0, 200) };
+  }
+
+  // Schema validation — a malformed field is treated exactly like a
+  // network failure: fail closed, never guess at what was meant.
+  const eligibleOk = typeof parsed.eligible === 'boolean';
+  const categoryOk = typeof parsed.category === 'string' && KNOWN_CATEGORIES.has(parsed.category);
+  const confidenceOk = parsed.confidence === 'high' || parsed.confidence === 'medium' || parsed.confidence === 'low';
+  if (!eligibleOk || !categoryOk || !confidenceOk) {
+    return {
+      eligible: false, category: 'low_confidence', confidence: 'low',
+      reason: 'classification response failed schema validation',
+      source: 'model_error', raw: match[0].slice(0, 200),
+    };
+  }
+
+  return {
+    eligible: parsed.eligible,
+    category: parsed.category,
+    confidence: parsed.confidence,
+    reason: String(parsed.reason || '').slice(0, 300),
+    source: 'model',
+  };
 }
 
 /**
- * classifyCommentRisk(commentText, replyDraft)
+ * classifyCommentRisk(commentText, replyDraft, deps)
  *
  * @param {string} commentText  the inbound FB comment
  * @param {string} replyDraft   Heath's drafted reply to it
- * @returns {{
+ * @param {object} [deps]       { classify } — injectable model-call fn for tests
+ * @returns {Promise<{
  *   eligible: boolean,
- *   category: string,           // 'auto_eligible' or an escalate reason
- *   reason: string,              // human-readable explanation
- *   matched: string|null         // the regex source that triggered escalation, if any
- * }}
+ *   category: string,
+ *   confidence: 'high'|'medium'|'low',
+ *   reason: string,
+ *   source: 'pre_filter'|'model'|'model_error'
+ * }>}
  */
-function classifyCommentRisk(commentText, replyDraft) {
+async function classifyCommentRisk(commentText, replyDraft, deps = {}) {
+  const { classify = classifyWithModel } = deps;
   const comment = String(commentText || '');
   const draft = String(replyDraft || '');
   const combined = `${comment}\n${draft}`;
 
-  // 1. Any escalate trigger anywhere in comment OR draft wins immediately.
-  const hit = firstMatch(ESCALATE_PATTERNS, combined);
+  // 1. Hard pre-filter — cheap, deterministic, ESCALATE-ONLY.
+  const hit = preFilter(combined);
   if (hit) {
     return {
       eligible: false,
       category: hit.category,
-      reason: `matched escalate pattern for "${hit.category}"`,
-      matched: hit.pattern,
+      confidence: 'high',
+      reason: `pre-filter matched ${hit.pattern}`,
+      source: 'pre_filter',
     };
   }
 
-  // 2. Empty draft (shouldn't happen post-hostile-filter, but fail closed).
   if (!draft.trim()) {
-    return { eligible: false, category: 'low_confidence', reason: 'empty draft', matched: null };
+    return { eligible: false, category: 'low_confidence', confidence: 'low', reason: 'empty draft', source: 'pre_filter' };
   }
 
-  // 3. Too long / rambling to safely auto-classify.
-  const trimmed = comment.trim();
-  if (wordCount(trimmed) > MAX_COMMENT_WORDS_FOR_CONFIDENCE) {
-    return { eligible: false, category: 'low_confidence', reason: 'comment too long to classify with confidence', matched: null };
-  }
+  // 2. Model judgment for everything semantic.
+  const verdict = await classify(comment, draft);
 
-  // 4. Hedge / doubt / criticism blocks EVERY positive shape below — a
-  // "thanks, I guess" or "does it even work though?" never qualifies via
-  // thanks/agreement/question/factual, no matter what else it contains.
-  const hasHedge = HEDGE_DOUBT_CRITICISM_RE.test(trimmed);
+  // 3. Confidence gate — the model's own eligible=true is necessary but
+  // NOT sufficient. Anything short of "high" confidence escalates.
+  const eligible = verdict.eligible === true && verdict.confidence === 'high';
 
-  if (!hasHedge) {
-    if (NEGATED_THANKS_RE.test(trimmed)) {
-      return { eligible: false, category: 'low_confidence', reason: 'negated thanks reads ambiguous', matched: null };
-    }
-    // Thanks/agreement: positively safe only when clean (no hedge, tested
-    // above) AND short AND not itself a live question tacked onto the end.
-    const shortEnough = wordCount(trimmed) <= THANKS_AGREEMENT_MAX_WORDS;
-    const isAlsoAQuestion = trimmed.endsWith('?');
-    if (THANKS_RE.test(trimmed) && shortEnough && !isAlsoAQuestion) {
-      return { eligible: true, category: 'auto_eligible', reason: 'thanks', matched: null };
-    }
-    if (AGREEMENT_RE.test(trimmed) && shortEnough && !isAlsoAQuestion) {
-      return { eligible: true, category: 'auto_eligible', reason: 'agreement', matched: null };
-    }
-    // A question is eligible ONLY when it positively matches a known-safe
-    // peer-experience shape — not merely for ending in "?".
-    if (trimmed.endsWith('?') && wordCount(trimmed) <= QUESTION_MAX_WORDS) {
-      const safeQuestion = SAFE_QUESTION_PATTERNS.some((re) => re.test(trimmed));
-      if (safeQuestion) {
-        return { eligible: true, category: 'auto_eligible', reason: 'neutral_follow_up_question', matched: null };
-      }
-    }
-    // Plain declarative, on-topic, no hedge, no question mark.
-    if (!trimmed.endsWith('?') && DOMAIN_KEYWORDS_RE.test(trimmed)) {
-      return { eligible: true, category: 'auto_eligible', reason: 'factual_tc_transaction_answer', matched: null };
-    }
-  }
-
-  // 5. Nothing positively matched — default to escalate.
-  return { eligible: false, category: 'low_confidence', reason: 'no positively-safe shape matched', matched: null };
+  return {
+    eligible,
+    category: verdict.category,
+    confidence: verdict.confidence,
+    reason: verdict.reason,
+    source: verdict.source || 'model',
+  };
 }
 
 module.exports = {
-  ESCALATE_PATTERNS,
-  HEDGE_DOUBT_CRITICISM_RE,
-  SAFE_QUESTION_PATTERNS,
+  CLASSIFY_MODEL,
+  PRE_FILTER_PATTERNS,
+  KNOWN_CATEGORIES,
+  CLASSIFY_PROMPT,
+  classifyWithModel,
   classifyCommentRisk,
 };
