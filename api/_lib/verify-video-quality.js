@@ -73,6 +73,19 @@
 // on an otherwise-working pipeline). This gate is the one Heath asked for
 // specifically so a bad video CANNOT ship — a missing API key or missing
 // ffmpeg binary must hold the video, not wave it through.
+//
+// VISION TRANSPORT (added 2026-09-16) — ANTHROPIC_API_KEY is a write-only
+// Vercel Sensitive var Heath's local machine cannot read (CLAUDE.md §19).
+// callVisionModel() calls api.anthropic.com directly ONLY when a real key
+// is present (ANTHROPIC_KEY_USABLE); otherwise it POSTs the same
+// sampled/compressed frames to api/verify-video-vision.js (a CRON_SECRET-
+// gated Vercel route — CRON_SECRET IS a real value locally) which runs the
+// same call where the real key lives. Either transport failing —
+// unreachable endpoint, 401, a non-2xx status, a malformed/unparseable
+// response, or a payload too large to send — throws, and every call site
+// below already treats a thrown vision check as a failed rule. Neither
+// transport being available at all (no usable key AND no CRON_SECRET) also
+// fails every vision rule closed, same as before.
 
 const { execFile } = require('child_process');
 const fs = require('fs');
@@ -81,7 +94,28 @@ const path = require('path');
 const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 
+const { extractVisionJson } = require('./vision-parse.js');
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+// Heath's local .env.local carries the literal string "[SENSITIVE]" for
+// this var — it's a Vercel write-only Sensitive type (`vercel env pull`
+// cannot return the real value) with no usable Bitwarden backup (CLAUDE.md
+// §19). Treat that placeholder as "no usable key," never as a real one —
+// otherwise this would silently try to authenticate to Anthropic with the
+// literal word "[SENSITIVE]", always get a 401, and never fall through to
+// the CRON_SECRET-gated proxy route below (the whole point of this file).
+const ANTHROPIC_KEY_USABLE = !!ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== '[SENSITIVE]';
+// CRON_SECRET IS a real value in .env.local locally (Bitwarden-backed).
+// When there's no usable ANTHROPIC_API_KEY in this environment, the 4
+// vision rules are run by POSTing sampled/compressed frames to
+// api/verify-video-vision.js instead of calling api.anthropic.com directly
+// — same approved manual-trigger pattern as any other CRON_SECRET-gated
+// route (CLAUDE.md §15). Production/Vercel still takes the direct-call path
+// unchanged, because ANTHROPIC_API_KEY is a real value there.
+const CRON_SECRET = process.env.CRON_SECRET;
+// Override for testing against a staging/preview deployment; defaults to
+// production (CLAUDE.md §20, Live URLs).
+const VIDEO_QUALITY_VISION_URL = process.env.VIDEO_QUALITY_VISION_URL || 'https://meetdossie.com/api/verify-video-vision';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
@@ -341,55 +375,122 @@ async function computeSsim(pathA, pathB) {
 
 // ── Vision helper (same Anthropic Messages API shape as verify-image-match.js) ──
 
-function mimeFromPath(p) {
-  const lower = String(p).toLowerCase();
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-  if (lower.endsWith('.webp')) return 'image/webp';
-  return 'image/png';
+// Frames come out of extractFrame() at full source resolution (needed for
+// the exact-pixel measurable rules). The vision checks don't need that —
+// they need to be legible to a model and small enough to never risk
+// Vercel's hard, non-configurable 4.5MB request-body cap (confirmed in
+// api/jarvis-bridge-turn.js's own note) when proxied through
+// api/verify-video-vision.js. Downscale + re-encode as JPEG before sending;
+// try progressively smaller/lower-quality passes rather than silently
+// sending an oversized frame that would 413 — a 413 must fail closed like
+// any other transport failure, never silently pass (see
+// MAX_VISION_REQUEST_BYTES below and
+// scripts/regression-video-quality-vision-transport.js).
+const VISION_FRAME_ATTEMPTS = [
+  { width: 900, q: 5 },
+  { width: 640, q: 6 },
+  { width: 480, q: 8 },
+];
+// ~900KB base64 (~675KB decoded) per frame. 3 frames (captions_present, the
+// largest call) stays comfortably under MAX_VISION_REQUEST_BYTES below.
+const MAX_VISION_FRAME_BASE64 = 900_000;
+
+async function compressFrameForVision(localPngPath) {
+  const outPath = `${localPngPath}.vision.jpg`;
+  let lastErr = null;
+  for (const { width, q } of VISION_FRAME_ATTEMPTS) {
+    try {
+      await execFileAsync('ffmpeg', [
+        '-y', '-i', localPngPath,
+        '-vf', `scale='min(${width},iw)':-2`,
+        '-q:v', String(q),
+        outPath,
+      ]);
+      const buf = await fs.promises.readFile(outPath);
+      const base64 = buf.toString('base64');
+      if (base64.length <= MAX_VISION_FRAME_BASE64) {
+        return { base64, mimeType: 'image/jpeg' };
+      }
+      lastErr = new Error(`compressed frame still ${base64.length} base64 chars at width=${width}/q=${q} (budget ${MAX_VISION_FRAME_BASE64})`);
+    } catch (err) {
+      lastErr = err;
+    } finally {
+      // eslint-disable-next-line no-await-in-loop
+      await fs.promises.unlink(outPath).catch(() => {});
+    }
+  }
+  throw lastErr || new Error('could not compress frame for vision transport');
 }
 
-async function pngBase64(localPngPath) {
-  const buf = await fs.promises.readFile(localPngPath);
-  return buf.toString('base64');
-}
+// Stringified-body budget for either transport (direct Anthropic call or
+// the proxy route). Dominated by image bytes either way, so checking the
+// direct-call shape is a safe (slightly conservative) proxy for both. Well
+// under Vercel's hard 4.5MB request-body cap, with real margin for JSON
+// framing/headers.
+const MAX_VISION_REQUEST_BYTES = 3_500_000;
 
 // images: [{ base64, mimeType }, ...] in the order they should appear to the
-// model. Returns the parsed JSON object the prompt asked for, or throws.
+// model (already compressed via compressFrameForVision). Returns the parsed
+// JSON object the prompt asked for, or throws — every throw here is a
+// fail-closed vision-rule failure at the call site.
 async function callVisionModel(images, promptText) {
-  if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
   const content = images.map((img) => ({
     type: 'image',
     source: { type: 'base64', media_type: img.mimeType, data: img.base64 },
   }));
   content.push({ type: 'text', text: promptText });
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: VISION_MODEL,
-      max_tokens: 500,
-      messages: [{ role: 'user', content }],
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Anthropic call failed: ${res.status} ${errText.slice(0, 300)}`);
+  const anthropicBody = { model: VISION_MODEL, max_tokens: 500, messages: [{ role: 'user', content }] };
+  const serialized = JSON.stringify(anthropicBody);
+  if (serialized.length > MAX_VISION_REQUEST_BYTES) {
+    throw new Error(`vision request too large (${serialized.length} bytes, budget ${MAX_VISION_REQUEST_BYTES}) — refusing to send (fail-closed, avoids a platform 413)`);
   }
-  const data = await res.json();
-  const text = ((data?.content || [])
-    .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
-    .map((b) => b.text)
-    .join('')
-    .trim());
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error(`no JSON in vision response: ${text.slice(0, 200)}`);
-  return JSON.parse(jsonMatch[0]);
+
+  if (ANTHROPIC_KEY_USABLE) {
+    // Direct call — unchanged from before. Taken whenever a real key IS
+    // present in this environment (Vercel prod/preview today; any future
+    // machine that legitimately has one).
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: serialized,
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Anthropic call failed: ${res.status} ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    return extractVisionJson(data);
+  }
+
+  if (CRON_SECRET) {
+    // Proxy through api/verify-video-vision.js so this machine never needs
+    // ANTHROPIC_API_KEY locally. Any non-ok status, network failure, or
+    // malformed { ok, result } shape throws here — caught by the caller's
+    // try/catch exactly like a direct-call failure, so it fails the rule
+    // closed rather than passing.
+    const res = await fetch(VIDEO_QUALITY_VISION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CRON_SECRET}` },
+      body: JSON.stringify({ images, promptText }),
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`vision proxy ${VIDEO_QUALITY_VISION_URL} failed: ${res.status} ${errText.slice(0, 300)}`);
+    }
+    const data = await res.json().catch((err) => {
+      throw new Error(`vision proxy returned non-JSON: ${err.message}`);
+    });
+    if (!data || data.ok !== true || !data.result) {
+      throw new Error(`vision proxy returned a malformed response: ${JSON.stringify(data).slice(0, 300)}`);
+    }
+    return data.result;
+  }
+
+  throw new Error('neither a usable ANTHROPIC_API_KEY nor CRON_SECRET is set — cannot run vision check (fail-closed)');
 }
 
 const HOOK_VISIBLE_PROMPT = `You are grading the opening frame of a short-form vertical video (TikTok/Reels/Shorts) against a scroll-stopping-hook standard.
@@ -434,7 +535,8 @@ Respond with JSON only, no markdown fences:
 
 /**
  * Runs every quality rule against one video. Requires ffmpeg/ffprobe on PATH
- * and (for the vision rules) ANTHROPIC_API_KEY — both fail CLOSED, not
+ * and (for the vision rules) either a usable ANTHROPIC_API_KEY or a
+ * CRON_SECRET (to reach api/verify-video-vision.js) — all fail CLOSED, not
  * skipped, if unavailable (see file header).
  *
  * @param {object} opts
@@ -624,19 +726,17 @@ async function checkVideoQuality(opts = {}) {
     addRule('hook_cleared_by_3s', { pass: false, note: 'skipped — frame 0 could not be extracted' });
     addRule('opening_not_login_or_empty', { pass: false, note: 'skipped — frame 0 could not be extracted' });
     addRule('captions_present', { pass: false, note: 'skipped — frame 0 could not be extracted' });
-  } else if (!ANTHROPIC_API_KEY) {
-    addRule('hook_visible_frame0', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
-    addRule('hook_cleared_by_3s', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
-    addRule('opening_not_login_or_empty', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
-    addRule('captions_present', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
+  } else if (!ANTHROPIC_KEY_USABLE && !CRON_SECRET) {
+    const note = 'no usable ANTHROPIC_API_KEY and no CRON_SECRET — cannot run vision check via either transport (fail-closed)';
+    addRule('hook_visible_frame0', { pass: false, note });
+    addRule('hook_cleared_by_3s', { pass: false, note });
+    addRule('opening_not_login_or_empty', { pass: false, note });
+    addRule('captions_present', { pass: false, note });
   } else {
-    let frame0B64 = null;
+    let frame0Vision = null;
     try {
-      frame0B64 = await pngBase64(frame0Path);
-      const result = await callVisionModel(
-        [{ base64: frame0B64, mimeType: mimeFromPath(frame0Path) }],
-        HOOK_VISIBLE_PROMPT,
-      );
+      frame0Vision = await compressFrameForVision(frame0Path);
+      const result = await callVisionModel([frame0Vision], HOOK_VISIBLE_PROMPT);
       addRule('hook_visible_frame0', {
         pass: result.hook_visible === true,
         note: `"${String(result.text_seen || '').slice(0, 120)}" — ${result.reason || ''}`,
@@ -647,19 +747,13 @@ async function checkVideoQuality(opts = {}) {
 
     // Hook cleared by ~3s.
     try {
-      if (!frame0B64) throw new Error('frame 0 unavailable');
+      if (!frame0Vision) throw new Error('frame 0 unavailable');
       const clampedT = duration ? Math.min(HOOK_CLEAR_SAMPLE_T, Math.max(0.1, duration - 0.1)) : HOOK_CLEAR_SAMPLE_T;
       const frame3Path = path.join(tmpDir, `qgate-f3-${process.pid}-${Date.now()}.png`);
       cleanupFns.push(async () => fs.promises.unlink(frame3Path).catch(() => {}));
       await extractFrame(localVideo, clampedT, frame3Path);
-      const frame3B64 = await pngBase64(frame3Path);
-      const result = await callVisionModel(
-        [
-          { base64: frame0B64, mimeType: mimeFromPath(frame0Path) },
-          { base64: frame3B64, mimeType: mimeFromPath(frame3Path) },
-        ],
-        HOOK_CLEARED_PROMPT,
-      );
+      const frame3Vision = await compressFrameForVision(frame3Path);
+      const result = await callVisionModel([frame0Vision, frame3Vision], HOOK_CLEARED_PROMPT);
       addRule('hook_cleared_by_3s', { pass: result.hook_cleared === true, note: result.reason || '' });
     } catch (err) {
       addRule('hook_cleared_by_3s', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
@@ -670,19 +764,13 @@ async function checkVideoQuality(opts = {}) {
     // 2026-09-15 defect was a blank frame 0 followed by the sign-in page: one
     // frame alone would have missed one half of it.
     try {
-      if (!frame0B64) throw new Error('frame 0 unavailable');
+      if (!frame0Vision) throw new Error('frame 0 unavailable');
       const openingT = duration ? Math.min(MOTION_SAMPLE_T, Math.max(0.1, duration - 0.1)) : MOTION_SAMPLE_T;
       const openingPath = path.join(tmpDir, `qgate-open-${process.pid}-${Date.now()}.png`);
       cleanupFns.push(async () => fs.promises.unlink(openingPath).catch(() => {}));
       await extractFrame(localVideo, openingT, openingPath);
-      const openingB64 = await pngBase64(openingPath);
-      const result = await callVisionModel(
-        [
-          { base64: frame0B64, mimeType: mimeFromPath(frame0Path) },
-          { base64: openingB64, mimeType: mimeFromPath(openingPath) },
-        ],
-        OPENING_MEANINGFUL_PROMPT,
-      );
+      const openingVision = await compressFrameForVision(openingPath);
+      const result = await callVisionModel([frame0Vision, openingVision], OPENING_MEANINGFUL_PROMPT);
       detail.opening_disqualifier = result.disqualifier || null;
       addRule('opening_not_login_or_empty', {
         pass: result.opening_meaningful === true,
@@ -709,7 +797,7 @@ async function checkVideoQuality(opts = {}) {
       const images = [];
       for (const fp of framePaths) {
         // eslint-disable-next-line no-await-in-loop
-        images.push({ base64: await pngBase64(fp), mimeType: mimeFromPath(fp) });
+        images.push(await compressFrameForVision(fp));
       }
       const result = await callVisionModel(images, CAPTIONS_PRESENT_PROMPT);
       const count = Number(result.frames_with_captions) || 0;
@@ -790,4 +878,12 @@ module.exports = {
   // Measurement primitives, exported for the regression fixtures.
   analyzePersistentCoverage,
   frameLumaSpread,
+  // Vision transport (2026-09-16), exported for
+  // scripts/regression-video-quality-vision-transport.js.
+  VIDEO_QUALITY_VISION_URL,
+  MAX_VISION_REQUEST_BYTES,
+  MAX_VISION_FRAME_BASE64,
+  ANTHROPIC_KEY_USABLE,
+  compressFrameForVision,
+  callVisionModel,
 };
