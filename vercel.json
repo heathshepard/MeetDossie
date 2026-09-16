@@ -432,29 +432,57 @@
     },
     "api/cron-request-zillow-review-prompt.js": {
       "maxDuration": 60
+    },
+    "api/cron-dispatch-every5.js": {
+      "maxDuration": 70
+    },
+    "api/cron-dispatch-daily-1200.js": {
+      "maxDuration": 20
+    },
+    "api/cron-dispatch-every15.js": {
+      "maxDuration": 40
+    },
+    "api/cron-dispatch-daily-1100.js": {
+      "maxDuration": 300
+    },
+    "api/cron-dispatch-every30.js": {
+      "maxDuration": 70
+    },
+    "api/cron-dispatch-daily-1300.js": {
+      "maxDuration": 40
+    },
+    "api/cron-dispatch-daily-1000.js": {
+      "maxDuration": 300
+    },
+    "api/cron-dispatch-daily-1330.js": {
+      "maxDuration": 20
+    },
+    "api/cron-dispatch-daily-1400.js": {
+      "maxDuration": 20
+    },
+    "api/cron-dispatch-daily-1500.js": {
+      "maxDuration": 70
+    },
+    "api/cron-dispatch-every10.js": {
+      "maxDuration": 20
+    },
+    "api/cron-dispatch-hourly.js": {
+      "maxDuration": 70
+    },
+    "api/cron-dispatch-every6h.js": {
+      "maxDuration": 130
+    },
+    "api/cron-dispatch-daily-0800.js": {
+      "maxDuration": 70
+    },
+    "api/cron-dispatch-every20.js": {
+      "maxDuration": 300
+    },
+    "api/cron-dispatch-daily-0900.js": {
+      "maxDuration": 130
     }
   },
   "crons": [
-    {
-      "path": "/api/alert-health",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-followup",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-followup-check",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-pipeline-check",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-generate-posts",
-      "schedule": "0 11 * * *"
-    },
     {
       "path": "/api/cron-weekly-content-scheduler",
       "schedule": "0 9 * * 1"
@@ -472,20 +500,8 @@
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron-publish-approved",
-      "schedule": "*/30 * * * *"
-    },
-    {
       "path": "/api/cron-content-brief",
       "schedule": "0 14 * * 1-5"
-    },
-    {
-      "path": "/api/cron-calculator-deadline-reminders",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-email-digest",
-      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/cron-deadline-reminders",
@@ -500,18 +516,6 @@
       "schedule": "20 13 * * *"
     },
     {
-      "path": "/api/cron-pipeline-health",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-morning-brief",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron-customer-morning-brief",
-      "schedule": "0 12 * * *"
-    },
-    {
       "path": "/api/cron-newsletter-draft-reminder",
       "schedule": "0 21 * * 4"
     },
@@ -520,48 +524,12 @@
       "schedule": "0 2 * * 0"
     },
     {
-      "path": "/api/cron-video-approval",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron-post-videos",
-      "schedule": "30 13 * * *"
-    },
-    {
       "path": "/api/cron-verify-posts",
       "schedule": "45 * * * *"
     },
     {
-      "path": "/api/cron-elevenlabs-monitor",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron-pc-heartbeat-check",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-activation-drip",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron-testimonial-request",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron-auto-approve",
-      "schedule": "*/10 * * * *"
-    },
-    {
       "path": "/api/cron-reddit-scanner",
       "schedule": "0 13,17,21,1 * * *"
-    },
-    {
-      "path": "/api/cron-render-skits",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-assemble-skits",
-      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/cron-daily-platform-health",
@@ -572,76 +540,20 @@
       "schedule": "0 14 * * 0"
     },
     {
-      "path": "/api/cron-social-digest",
-      "schedule": "0 12 * * *"
-    },
-    {
       "path": "/api/cron-competitor-monitor",
       "schedule": "0 12 * * 1"
-    },
-    {
-      "path": "/api/cron-mission-watchdog",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron-morning-ops-digest",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron-cron-fire-verifier",
-      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron-platform-health-checker",
       "schedule": "0 14-23/2 * * *"
     },
     {
-      "path": "/api/cron-account-session-monitor",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron-verify-zernio-deliveries",
-      "schedule": "*/30 * * * *"
-    },
-    {
       "path": "/api/cron-pull-post-analytics",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron-kpi-drift-detector",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-affiliate-qualify-referrals",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron-staging-watcher",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-send-outbound-emails",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-agent-queue-tick",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron-daily-debrief",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron-deletion-reminders",
-      "schedule": "30 13 * * *"
-    },
-    {
-      "path": "/api/cron-dossie-full-diagnostic",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron-reconcile-future-builds",
-      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron-fanout-builds-to-agent-queues",
@@ -652,60 +564,8 @@
       "schedule": "*/2 * * * *"
     },
     {
-      "path": "/api/cron-agent-queue-orphan-reset",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-codebase-facts-indexer",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron-autonomous-loop",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-autonomous-daily-digest",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron-dossie-sign-completion-loop",
-      "schedule": "*/20 * * * *"
-    },
-    {
-      "path": "/api/cron-self-improvement-daily",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron-sage-draft-engagements",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-send-engagement-approvals",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/cron-inbox-scan",
       "schedule": "7 * * * *"
-    },
-    {
-      "path": "/api/cron-relevance-watcher",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-email-to-dossier",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-esign-events",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-showingtime-feedback",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-support-ticket-alert",
-      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron-apply-approved-improvements",
@@ -716,20 +576,8 @@
       "schedule": "0 22 * * 5"
     },
     {
-      "path": "/api/cron-stale-action-escalation",
-      "schedule": "0 15 * * *"
-    },
-    {
       "path": "/api/cron-warm-touch-populate",
       "schedule": "0 12 * * 1-5"
-    },
-    {
-      "path": "/api/cron-unsubscribe-spike-monitor",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron-merge-queue-backfill",
-      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron-social-cadence",
@@ -740,28 +588,12 @@
       "schedule": "0 1 * * 1"
     },
     {
-      "path": "/api/cron-trending-audio-scan",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron-comment-monitor",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/cron-heath-cameo-reminder",
       "schedule": "0 13 * * 5"
     },
     {
       "path": "/api/cron-ridge-watchdog",
       "schedule": "0 */4 * * *"
-    },
-    {
-      "path": "/api/cron-trec-scanner",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron-regression-suite",
-      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron-stripe-reconcile",
@@ -772,40 +604,8 @@
       "schedule": "30 4 * * *"
     },
     {
-      "path": "/api/cron-content-pipeline-review",
-      "schedule": "*/20 * * * *"
-    },
-    {
-      "path": "/api/cron-engagement-review",
-      "schedule": "*/20 * * * *"
-    },
-    {
-      "path": "/api/cron-content-pipeline-promote",
-      "schedule": "*/20 * * * *"
-    },
-    {
       "path": "/api/cron-generate-heath-linkedin",
       "schedule": "0 11 * * 1-5"
-    },
-    {
-      "path": "/api/cron-tc-reply-approval",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-auto-reply-veto-check",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron-comment-opp-approval",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-daily-group5-posts",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron-retry-unsent-approvals",
-      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron-monday-digest-1100",
@@ -824,10 +624,6 @@
       "schedule": "15 14 * * *"
     },
     {
-      "path": "/api/cron-testimonial-nudge",
-      "schedule": "0 15 * * *"
-    },
-    {
       "path": "/api/cron-request-zillow-review-prompt",
       "schedule": "45 15 * * *"
     },
@@ -838,6 +634,70 @@
     {
       "path": "/api/cron-silence-alarm",
       "schedule": "20 15 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every5",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1200",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every15",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1100",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every30",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1300",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1000",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1330",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1400",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-1500",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every10",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-hourly",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every6h",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-0800",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-every20",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron-dispatch-daily-0900",
+      "schedule": "0 9 * * *"
     }
   ]
 }
