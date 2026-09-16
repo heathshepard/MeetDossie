@@ -61,7 +61,17 @@ const flag = (name) => process.argv.includes('--' + name);
 
 const OUT_DIR = arg('out', '/mnt/c/Users/Heath/dossie-capture-' + new Date().toISOString().slice(0, 10));
 const FLOW = arg('flow', 'pipeline-to-dossier');
-const APP_URL = arg('url', 'https://meetdossie.com/app');
+// captureMode=1 is the marketing-capture-only flag the app checks before
+// calling /api/speak / showing the "Speaking..." pill (dossie-app.jsx,
+// isCaptureMode()). Every recording made with this script is marketing
+// footage, so the flag is always forced onto the URL here - not left to the
+// caller to remember - regardless of what --url is passed.
+function withCaptureMode(url) {
+  const u = new URL(url);
+  u.searchParams.set('captureMode', '1');
+  return u.toString();
+}
+const APP_URL = withCaptureMode(arg('url', 'https://meetdossie.com/app'));
 const FPS = Number(arg('fps', 10));
 const QUALITY = Number(arg('quality', 90));
 const DOSSIER = arg('dossier', '29046 Wrenfield Way');
@@ -193,6 +203,16 @@ async function visibleText(page) {
     reducedMotion: 'no-preference',
   });
   const page = await ctx.newPage();
+
+  // Belt-and-suspenders for the "Speaking..." pill (dossie-app.jsx sets it
+  // only after /api/speak returns 200 and the audio decodes - see
+  // isCaptureMode()/speakConfirmation). captureMode=1 on APP_URL already
+  // makes the app skip the call outright once that fix is deployed; aborting
+  // the request here at the network layer means this recorder produces a
+  // clean take TODAY even before that build ships, and keeps working as a
+  // second guard afterward. Real users are never routed through Playwright,
+  // so this changes nothing about what they see.
+  await page.route('**/api/speak', (route) => route.abort());
 
   // ------------------------------------------------------------ sign in ----
   console.log('-> ' + APP_URL);
@@ -428,9 +448,14 @@ async function visibleText(page) {
 
     // transactions is multi-tenant: an address on screen that is not a seeded
     // demo address would mean we are filming another customer's client data.
+    // '29046 Pfeiffers Gate' - a copy of Heath's real, live listing - was
+    // scrubbed out of the demo account by scripts/carter-scrub-demo-pii.js
+    // (2026-09-16); its dossier is now '29046 Windmere Ln'. Do not re-add
+    // Pfeiffers Gate here even if it resurfaces in a future seed - fix the
+    // seed/DB, not this allowlist.
     const addrRe = /\b\d{2,6}\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2}\s+(?:Rd|Road|St|Street|Dr|Drive|Ln|Lane|Way|Ave|Avenue|Ct|Court|Blvd|Falls|Gate|Trail|Trl|Cir|Circle)\b/g;
     const demo = ['29046 Wrenfield Way', '789 Ranch Rd', '321 Oak St', '311 Copperfield Dr',
-      '742 Lakeview Drive', '29046 Pfeiffers Gate', '205 Kendall Falls'];
+      '742 Lakeview Drive', '29046 Windmere Ln', '205 Kendall Falls'];
     const strays = [...new Set(answer.match(addrRe) || [])]
       .filter((a) => !demo.some((d) => d.toLowerCase() === a.toLowerCase().trim()));
     if (strays.length) die('NON-DEMO ADDRESS in the answer: ' + strays.join(', '));
@@ -590,7 +615,7 @@ async function assertSignedIn(page) {
   //    carries 6+ transactions, so we require several concrete addresses.
   const addresses = [
     '29046 Wrenfield Way', '789 Ranch Rd', '321 Oak St', '311 Copperfield Dr',
-    '742 Lakeview Drive', '29046 Pfeiffers Gate', '205 Kendall Falls',
+    '742 Lakeview Drive', '29046 Windmere Ln', '205 Kendall Falls',
   ];
   const seen = addresses.filter((a) => new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(body));
   if (seen.length < 4) {

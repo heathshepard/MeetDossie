@@ -109,7 +109,7 @@ DEALS = {
     "DEMO-2026-003": {
         "id": "d99b0b44-46e9-4d2b-b9af-c50bf10e1b78",
         "address": "3309 Faux Glen, San Antonio, TX 78258",
-        "buyer": "Patel Group",
+        "buyer": "Dorset Group",
         "seller": "Sample Trust",
         "sale_price": "615,000",
         "earnest_money": "6,150",
@@ -118,13 +118,13 @@ DEALS = {
         "effective_date": "2026-03-30",
         "closing_date": "2026-05-08",
         "role": "buyer",
-        "context": "Buyer rep -- Patel Group. Closing Wednesday; clear-to-close received.",
+        "context": "Buyer rep -- Dorset Group. Closing Wednesday; clear-to-close received.",
         "docs": [
-            ("Executed Contract -- Patel.pdf",            "Executed Contract (TREC 20-17)",    "contract"),
+            ("Executed Contract -- Dorset.pdf",            "Executed Contract (TREC 20-17)",    "contract"),
             ("Sellers Disclosure -- 3309 Faux Glen.pdf",  "Seller's Disclosure Notice",        "sellers_disclosure"),
             ("Inspection Report -- 3309 Faux Glen.pdf",   "General Home Inspection Report",    "inspection"),
-            ("Repair Amendment -- Patel.pdf",             "Amendment for Repairs (TREC 39-9)", "amendment"),
-            ("Closing Disclosure -- Patel.pdf",           "Closing Disclosure (CD)",           "closing_disclosure"),
+            ("Repair Amendment -- Dorset.pdf",             "Amendment for Repairs (TREC 39-9)", "amendment"),
+            ("Closing Disclosure -- Dorset.pdf",           "Closing Disclosure (CD)",           "closing_disclosure"),
         ],
     },
     "DEMO-2026-004": {
