@@ -279,3 +279,12 @@ scripts/.audit-*
 # root PNGs. Subdirectory PNGs (icons/, public/, api/_assets/, etc.) are
 # unaffected (2026-09-09 gitignore audit)
 /*.png
+
+# Heath's cloned-voice config. Holds the ElevenLabs voice_id, which docs/ENV.md
+# treats as a secret: that id plus ELEVENLABS_API_KEY is enough for anyone to
+# generate speech in Heath's voice. heathshepard/MeetDossie is a PUBLIC repo
+# (CLAUDE.md §15). Until 2026-09-16 this rule existed only in an uncommitted
+# local .gitignore, so a clean checkout of main had no protection at all.
+scripts/config/heath-voice-clone.json
+scripts/config/heath-voice-clone-test-sample.mp3
+scripts/config/heath-voice-clone-*.mp3

@@ -129,6 +129,58 @@ caption = spoken_span_to_written(normalize_for_speech(D1).segments, 0, 10 ** 6)
 contains("caption keeps written 'Rd'", caption, "789 Ranch Rd.")
 contains("caption does not leak spoken 'Road'", caption, "Ranch Road", present=False)
 
+# --- 6. brand name: confirmed pronunciation, deliberately NO respelling -----
+# Heath confirmed 2026-09-16 that "Dossie" is DOSS-ee, rhyming with "bossy".
+# The D1 render really did say "DAW-see", but the cause was the model/settings,
+# not the spelling: on eleven_v3 at the locked stability 0.3 / style 0.4 the
+# plain spelling measures at the rhyme-control ceiling. The obvious respellings
+# are WORSE ("Dossee"/"Dossy" were heard as "dossier"), so this asserts that
+# nobody "helpfully" adds one later.
+import json  # noqa: E402
+
+_map = json.loads(
+    (Path(__file__).resolve().parent / "config" / "tts-pronunciation-map.json")
+    .read_text(encoding="utf-8"))
+
+check("brand name is never substituted for TTS",
+      normalize_for_speech("I asked Dossie one question.").spoken,
+      "I asked Dossie one question.")
+
+check("no active respelling entry exists for Dossie",
+      [e for e in _map["entries"] if e.get("find", "").lower() == "dossie"], [])
+
+_excluded = {e["word"]: e for e in _map.get("researched_but_excluded", [])}
+CHECKS += 1
+if "Dossie" not in _excluded:
+    FAILURES.append("Dossie's confirmed pronunciation is missing from the map's "
+                    "researched_but_excluded section -- it must stay recorded so the "
+                    "finding is not lost and a bad respelling is not re-added.")
+else:
+    contains("confirmed pronunciation is recorded",
+             _excluded["Dossie"].get("confirmed_pronunciation", ""), "DOSS-ee")
+    contains("the do-not-add warning is recorded",
+             _excluded["Dossie"].get("do_not_add", ""), "Do NOT add a respelling")
+
+# --- 7. the model decision must not silently revert ------------------------
+import importlib.util  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location(
+    "genvo", Path(__file__).resolve().parent / "gen-listing-voiceover.py")
+_genvo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_genvo)
+
+check("clone renders on eleven_v3", _genvo.MODEL_CLONE, "eleven_v3")
+check("stock voices render on eleven_multilingual_v2",
+      _genvo.MODEL_NARRATION, "eleven_multilingual_v2")
+check("Heath's locked stability is applied, not re-tuned",
+      _genvo.CLONE_LOCKED_STABILITY, 0.3)
+check("Heath's locked style is applied, not re-tuned",
+      _genvo.CLONE_LOCKED_STYLE, 0.4)
+CHECKS += 1
+if "turbo" in (_genvo.MODEL_CLONE + _genvo.MODEL_NARRATION):
+    FAILURES.append("eleven_turbo_v2 is back in the video path -- it trades quality "
+                    "for latency and these are pre-rendered assets.")
+
 # --- report ------------------------------------------------------------------
 print(f"tts-normalization regression: {CHECKS - len(FAILURES)}/{CHECKS} checks passed")
 if FAILURES:

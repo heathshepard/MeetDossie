@@ -94,6 +94,13 @@
   ],
   "researched_but_excluded": [
     {
+      "word": "Dossie",
+      "confirmed_pronunciation": "DOSS-ee -- rhymes with 'bossy'. First syllable 'doss', second a short 'ee'. Heath confirmed directly, 2026-09-16.",
+      "reason": "CONFIRMED PRONUNCIATION, DELIBERATELY NO SUBSTITUTION. The brand name really was coming out wrong ('DAW-see') in the Dossie D1 render, but the cause was the MODEL AND VOICE SETTINGS, not the spelling. That render used a non-approved config (turbo/multilingual at stability 0.5 / style 0.15); Heath's clone is approved at eleven_v3, stability 0.3, style 0.4 (heath-voice-clone-settings-locked.md). Once gen-listing-voiceover.py was fixed to actually apply that locked config, 'Dossie' spelled normally comes out correct and no respelling is needed. Measured, not assumed -- see 'measured' below.",
+      "measured": "Cosine similarity of the first-syllable vowel spectrum (40ms nucleus, Hamming-windowed DFT 150-3500Hz, cepstrally smoothed) against same-render rhyme controls 'bossy' and 'posse'. Control-vs-control ceiling (same vowel, different consonant) = 0.870. OLD config 'Dossie' = 0.581/0.610 -- a different vowel. NEW config (eleven_v3 + locked settings) 'Dossie' = 0.784/0.881 -- at the ceiling, i.e. the same vowel as 'bossy'. ElevenLabs scribe_v1 agrees: the old render transcribes as 'Dawsey', the new one as 'dossy'.",
+      "do_not_add": "Do NOT add a respelling entry for Dossie. The obvious candidates were tested in the same render and are WORSE than the plain spelling: 'Dossee' scored 0.386/0.532 and 'Dossy' 0.361/0.422 against the controls, and scribe_v1 heard both as the three-syllable word 'dossier'. If a future render mispronounces the brand name again, check the model and voice settings FIRST -- a respelling here is the wrong lever and makes it worse."
+    },
+    {
       "word": "Guadalupe",
       "reason": "Common enough word (county/river/street name) that eleven_multilingual_v2 reads it correctly by default in spot checks. No confirmed mispronunciation incident. Left out per the 'don't guess, don't fix what isn't broken' rule -- add it if a real render surfaces a problem."
     },
