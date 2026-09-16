@@ -311,75 +311,27 @@
     }
   ],
   "functions": {
-    "api/{cron-process-agent-requests,cron-sage-draft-engagements,cron-sage-autonomous-review,cron-mission-watchdog,cron-verify-zernio-deliveries,cron-kpi-drift-detector}.js": {
-      "maxDuration": 60
-    },
-    "api/cron-comment-opp-approval.js": {
-      "maxDuration": 60
-    },
-    "api/cron-auto-reply-veto-check.js": {
-      "maxDuration": 60
-    },
-    "api/cron-daily-group5-posts.js": {
-      "maxDuration": 60
-    },
-    "api/{cron-affiliate-qualify-referrals,cron-daily-debrief,cron-fanout-builds-to-agent-queues,cron-autonomous-daily-digest,cron-inbox-scan,cron-support-ticket-alert,cron-apply-approved-improvements}.js": {
-      "maxDuration": 60
-    },
-    "api/cron-generate-heath-linkedin.js": {
+    "api/{cron-affiliate-qualify-referrals,cron-apply-approved-improvements,cron-auto-reply-veto-check,cron-autonomous-daily-digest,cron-comment-opp-approval,cron-daily-debrief,cron-daily-group5-posts,cron-fanout-builds-to-agent-queues,cron-generate-heath-linkedin,cron-inbox-scan,cron-kpi-drift-detector,cron-mission-watchdog,cron-monday-digest-1100,cron-process-agent-requests,cron-request-testimonial-draft,cron-request-zillow-review-prompt,cron-sage-autonomous-review,cron-sage-draft-engagements,cron-support-ticket-alert,cron-testimonial-nudge,cron-verify-zernio-deliveries}.js": {
       "maxDuration": 60
     },
     "api/{agent-dispatch,cole-enqueue}.js": {
       "maxDuration": 10
     },
-    "api/{cron-send-engagement-approvals,cron-engagement-summary,cron-send-to-sage,cron-heath-publish-digest,cron-morning-ops-digest,cron-platform-health-checker,cron-account-session-monitor}.js": {
-      "maxDuration": 30
-    },
-    "api/{cron-staging-watcher,cron-send-outbound-emails,cron-agent-queue-orphan-reset,cron-friday-action-summary,cron-stale-action-escalation}.js": {
-      "maxDuration": 30
-    },
-    "api/{cron-content-pipeline-review,cron-content-pipeline-promote,cron-cold-email-review,cron-engagement-review,cron-agent-requests-stale-check}.js": {
-      "maxDuration": 30
-    },
-    "api/{admin-migrate-content-pipeline-queue,cron-cold-email-followup}.js": {
-      "maxDuration": 30
-    },
-    "api/cron-weekly-team-risk-digest.js": {
-      "maxDuration": 30
-    },
-    "api/cron-hourly-team-risk-alerts.js": {
-      "maxDuration": 30
-    },
-    "api/cron-unsubscribe-spike-monitor.js": {
-      "maxDuration": 30
-    },
-    "api/cron-weekly-batch-digest.js": {
+    "api/{admin-migrate-content-pipeline-queue,cron-account-session-monitor,cron-agent-queue-orphan-reset,cron-agent-requests-stale-check,cron-cold-email-followup,cron-cold-email-review,cron-content-pipeline-promote,cron-content-pipeline-review,cron-engagement-review,cron-engagement-summary,cron-friday-action-summary,cron-heath-publish-digest,cron-hourly-team-risk-alerts,cron-monday-digest-1300,cron-monday-digest-1400,cron-morning-ops-digest,cron-platform-health-checker,cron-send-engagement-approvals,cron-send-outbound-emails,cron-send-to-sage,cron-staging-watcher,cron-stale-action-escalation,cron-unsubscribe-spike-monitor,cron-weekly-batch-digest,cron-weekly-team-risk-digest,ventures/social-today}.js": {
       "maxDuration": 30
     },
     "api/cron-silence-alarm.js": {
       "maxDuration": 30,
       "includeFiles": "{vercel.json,api/**/*.js}"
     },
-    "api/cron-weekly-content-scheduler.js": {
+    "api/{cron-dispatch-daily-1000,cron-dispatch-daily-1100,cron-dispatch-every20,cron-dossie-full-diagnostic,cron-generate-posts,cron-weekly-content-scheduler,dossiesign-auto-map,system-diagnostics-trigger}.js": {
       "maxDuration": 300
     },
-    "api/ventures/social-today.js": {
-      "maxDuration": 30
-    },
-    "api/admin-run-reddit-pain-scraper.js": {
-      "maxDuration": 120
-    },
-    "api/{cron-cron-fire-verifier,cron-pull-post-analytics,cron-customer-view-digest,cron-reconcile-future-builds,cron-self-improvement-daily,cron-regression-suite}.js": {
+    "api/{admin-run-reddit-pain-scraper,cron-cron-fire-verifier,cron-customer-view-digest,cron-pull-post-analytics,cron-reconcile-future-builds,cron-reddit-scanner,cron-regression-suite,cron-sage-research,cron-self-improvement-daily}.js": {
       "maxDuration": 120
     },
     "api/cron-sage-intelligence-update.js": {
       "maxDuration": 90
-    },
-    "api/cron-sage-research.js": {
-      "maxDuration": 120
-    },
-    "api/{cron-dossie-full-diagnostic,system-diagnostics-trigger,dossiesign-auto-map}.js": {
-      "maxDuration": 300
     },
     "api/cron-codebase-facts-indexer.js": {
       "maxDuration": 60,
@@ -401,7 +353,7 @@
       "maxDuration": 60,
       "includeFiles": "data/{sa-realtor-leads-final-v2.csv,kw-only-thursday-2026-07-10.csv,kw-only-friday-2026-07-11.csv}"
     },
-    "api/{cron-warm-touch-queue,cron-warm-touch-populate}.js": {
+    "api/{cron-warm-touch-populate,cron-warm-touch-queue}.js": {
       "maxDuration": 30,
       "includeFiles": "data/sa-realtor-leads-final-v2.csv"
     },
@@ -409,76 +361,16 @@
       "maxDuration": 10,
       "includeFiles": "SESSION-DIARY.md"
     },
-    "api/cron-generate-posts.js": {
-      "maxDuration": 300
-    },
-    "api/cron-reddit-scanner.js": {
-      "maxDuration": 120
-    },
-    "api/cron-monday-digest-1100.js": {
-      "maxDuration": 60
-    },
-    "api/cron-monday-digest-1300.js": {
-      "maxDuration": 30
-    },
-    "api/cron-monday-digest-1400.js": {
-      "maxDuration": 30
-    },
-    "api/cron-request-testimonial-draft.js": {
-      "maxDuration": 60
-    },
-    "api/cron-testimonial-nudge.js": {
-      "maxDuration": 60
-    },
-    "api/cron-request-zillow-review-prompt.js": {
-      "maxDuration": 60
-    },
-    "api/cron-dispatch-every5.js": {
+    "api/{cron-dispatch-daily-0800,cron-dispatch-daily-1500,cron-dispatch-every30,cron-dispatch-every5,cron-dispatch-hourly}.js": {
       "maxDuration": 70
     },
-    "api/cron-dispatch-daily-1200.js": {
+    "api/{cron-dispatch-daily-1200,cron-dispatch-daily-1330,cron-dispatch-daily-1400,cron-dispatch-every10}.js": {
       "maxDuration": 20
     },
-    "api/cron-dispatch-every15.js": {
+    "api/{cron-dispatch-daily-1300,cron-dispatch-every15}.js": {
       "maxDuration": 40
     },
-    "api/cron-dispatch-daily-1100.js": {
-      "maxDuration": 300
-    },
-    "api/cron-dispatch-every30.js": {
-      "maxDuration": 70
-    },
-    "api/cron-dispatch-daily-1300.js": {
-      "maxDuration": 40
-    },
-    "api/cron-dispatch-daily-1000.js": {
-      "maxDuration": 300
-    },
-    "api/cron-dispatch-daily-1330.js": {
-      "maxDuration": 20
-    },
-    "api/cron-dispatch-daily-1400.js": {
-      "maxDuration": 20
-    },
-    "api/cron-dispatch-daily-1500.js": {
-      "maxDuration": 70
-    },
-    "api/cron-dispatch-every10.js": {
-      "maxDuration": 20
-    },
-    "api/cron-dispatch-hourly.js": {
-      "maxDuration": 70
-    },
-    "api/cron-dispatch-every6h.js": {
-      "maxDuration": 130
-    },
-    "api/cron-dispatch-daily-0800.js": {
-      "maxDuration": 70
-    },
-    "api/cron-dispatch-every20.js": {
-      "maxDuration": 300
-    },
-    "api/cron-dispatch-daily-0900.js": {
+    "api/{cron-dispatch-daily-0900,cron-dispatch-every6h}.js": {
       "maxDuration": 130
     }
   },

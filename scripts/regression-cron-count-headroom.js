@@ -48,6 +48,15 @@ const API_DIR = path.join(REPO, 'api');
 const HARD_CAP = 100;
 const HEADROOM_CEILING = 85;
 
+// Vercel's vercel.json schema ALSO caps `functions` at 50 properties — hit
+// this ourselves mid-fix on 2026-09-16 (54 properties after adding 16
+// dispatcher maxDuration entries) and had to glob-merge same-config entries
+// back down to 18. Guard it the same way as the crons cap so the next
+// person who adds a per-file maxDuration override doesn't rediscover this
+// the same way (a second failed staging deploy).
+const FUNCTIONS_HARD_CAP = 50;
+const FUNCTIONS_HEADROOM_CEILING = 40;
+
 function loadVercelJson() {
   return JSON.parse(fs.readFileSync(VERCEL_JSON_PATH, 'utf8'));
 }
@@ -91,6 +100,14 @@ async function run() {
   });
   check(`crons.length (${crons.length}) leaves real headroom (<= ${HEADROOM_CEILING}, not a squeak-under fix)`, () => {
     assert.ok(crons.length <= HEADROOM_CEILING, `${crons.length} > ${HEADROOM_CEILING} — consolidation eroded, re-check`);
+  });
+
+  const funcCount = v.functions ? Object.keys(v.functions).length : 0;
+  check(`functions property count (${funcCount}) is under Vercel's hard cap of ${FUNCTIONS_HARD_CAP}`, () => {
+    assert.ok(funcCount < FUNCTIONS_HARD_CAP, `${funcCount} >= ${FUNCTIONS_HARD_CAP}`);
+  });
+  check(`functions property count (${funcCount}) leaves real headroom (<= ${FUNCTIONS_HEADROOM_CEILING})`, () => {
+    assert.ok(funcCount <= FUNCTIONS_HEADROOM_CEILING, `${funcCount} > ${FUNCTIONS_HEADROOM_CEILING} — re-run the glob-merge pass`);
   });
 
   console.log('\nTest 2: every dispatcher file is itself a registered cron');
