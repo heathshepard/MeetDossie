@@ -74,7 +74,7 @@ module.exports = async function handler(req, res) {
       const result = await withClient(async (client) => {
         const staleDrafts = await client.query(
           `select id, group_name, group_url, category, pipeline, status,
-                  telegram_sent_at, created_at, left(post_body, 200) as body_preview
+                  telegram_sent_at, created_at, left(post_body, 2000) as body_preview
            from public.group_posts
            where status = 'draft' and telegram_sent_at is null
              and created_at < now() - interval '24 hours'
@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
         );
         const staleApproved = await client.query(
           `select id, group_name, group_url, category, pipeline, status,
-                  approved_at, posted_at, created_at, left(post_body, 200) as body_preview
+                  approved_at, posted_at, created_at, left(post_body, 2000) as body_preview
            from public.group_posts
            where status = 'approved' and approved_at < now() - interval '48 hours'
            order by approved_at asc`,
