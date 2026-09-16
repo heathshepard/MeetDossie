@@ -25,6 +25,12 @@
  *                        open a dossier -> TREC deadlines + compliance gaps.
  *   pipeline-only        Pipeline Dashboard scroll only.
  *   brief-only           Today / Morning Brief scroll only.
+ *   ask-dossie           D1. Opens the Talk-to-Dossie panel, types --question,
+ *                        waits for the REAL text answer, asserts it is on
+ *                        screen, and holds on it. Also writes <out>/answer.json
+ *                        with the verbatim answer. TYPED question + TEXT answer
+ *                        only (capability #11 WORKS); never imply voice (#12 is
+ *                        PARTIAL/UNVERIFIED).
  *
  * OUTPUT
  *   <out>/frames/NNNNN.jpg     zero-padded JPEG frames
@@ -59,6 +65,10 @@ const APP_URL = arg('url', 'https://meetdossie.com/app');
 const FPS = Number(arg('fps', 10));
 const QUALITY = Number(arg('quality', 90));
 const DOSSIER = arg('dossier', '29046 Wrenfield Way');
+// --question is only read by the `ask-dossie` flow (D1). It must be a question
+// selected by scripts/generate-ask-dossie-video.js from a real sourced quote
+// mapped to a verified-WORKS capability - never typed in by hand here.
+const QUESTION = arg('question', "What's urgent today?");
 const FRAME_DIR = path.join(OUT_DIR, 'frames');
 
 // Mobile capture geometry. 390x844 @ dsf 3 => 1170x2532 real pixels.
@@ -343,10 +353,157 @@ async function visibleText(page) {
     }
   }
 
+  // ------------------------------------------------- D1 "Ask Dossie" ----
+  //
+  // Types a REAL question into the real Talk-to-Dossie command box and waits
+  // for the REAL answer to render, then holds on it long enough to read.
+  //
+  // Scope note, and it is the whole honesty of this format: verified
+  // capability #11 is the TEXT command path - "typed a question, got a real,
+  // data-grounded text answer". Capability #12 (spoken voice I/O) is
+  // PARTIAL/UNVERIFIED. This flow therefore only ever TYPES and only ever
+  // shows a TEXT answer. Nothing here may be edited to imply Dossie spoke.
+  //
+  // The verbatim answer is read off the DOM and written to <out>/answer.json.
+  // Captions and any voiceover must use that string word for word.
+  let askAnswer = null;
+  let askGeom = null;
+
+  async function flowAskDossie() {
+    await tapTab(page, '☀️');
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await mark('Signed-in Today tab, top of the Morning Brief.');
+    await sleep(1400);
+
+    // The Talk-to-Dossie panel is a slide-in. On a 390px viewport its textarea
+    // sits at x=411 until the header button opens it - so this is genuine
+    // motion, and it is also the check that the panel really opened.
+    await page.getByRole('button', { name: 'Talk to Dossie' }).first().click();
+    await sleep(1500);
+    const ta = page.locator('textarea').first();
+    const box = await ta.boundingBox();
+    if (!box || box.x < 0 || box.x > VIEWPORT.width) {
+      die('Talk to Dossie panel did not open - command textarea is at x=' + (box && box.x));
+    }
+    await mark('Talk to Dossie command panel open, empty command box.');
+    await sleep(900);
+
+    // Type the question character by character - real typing, not a paste.
+    await ta.click();
+    await page.keyboard.press('ControlOrMeta+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(QUESTION, { delay: 55 });
+    // The Send button is disabled until React sees the input event; waiting on
+    // it is what proves the text actually landed in component state.
+    await page.waitForFunction(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => /^send$/i.test((x.innerText || '').trim()));
+      return b && !b.disabled;
+    }, null, { timeout: 15000 });
+    await mark('Question typed in full: "' + QUESTION + '"');
+    await sleep(1300);
+
+    const bodyLines = () => page.evaluate(() =>
+      (document.body.innerText || '').split('\n').map((s) => s.trim()).filter(Boolean));
+    const askedAt = Date.now() - t0;
+    await page.getByRole('button', { name: /^send$/i }).first().click();
+    await mark('Send tapped - the question is now in the thread.');
+
+    // Wait for the REAL answer. The thread grows the page rather than an inner
+    // scroller, so keep the newest bubble in view while we wait.
+    let answer = '';
+    const deadline = Date.now() + 90000;
+    while (Date.now() < deadline) {
+      await sleep(800);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      const now = await bodyLines();
+      const qi = now.lastIndexOf(QUESTION);
+      const cand = qi > -1 ? now[qi + 1] : null;
+      if (cand && cand.length > 25
+        && !/^(Send|🎤 Voice call|\?)$/.test(cand)
+        && !/thinking|working on it|one sec/i.test(cand)) { answer = cand; break; }
+    }
+    const answeredAt = Date.now() - t0;
+    if (!answer) die('no answer rendered within 90s - refusing to ship a take with no payoff.');
+
+    // transactions is multi-tenant: an address on screen that is not a seeded
+    // demo address would mean we are filming another customer's client data.
+    const addrRe = /\b\d{2,6}\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2}\s+(?:Rd|Road|St|Street|Dr|Drive|Ln|Lane|Way|Ave|Avenue|Ct|Court|Blvd|Falls|Gate|Trail|Trl|Cir|Circle)\b/g;
+    const demo = ['29046 Wrenfield Way', '789 Ranch Rd', '321 Oak St', '311 Copperfield Dr',
+      '742 Lakeview Drive', '29046 Pfeiffers Gate', '205 Kendall Falls'];
+    const strays = [...new Set(answer.match(addrRe) || [])]
+      .filter((a) => !demo.some((d) => d.toLowerCase() === a.toLowerCase().trim()));
+    if (strays.length) die('NON-DEMO ADDRESS in the answer: ' + strays.join(', '));
+
+    // Bring the whole answer bubble into view, then HOLD. Playbook 5 item 4a:
+    // anything a claim cites must be shown, readably, BEFORE it is said.
+    //
+    // This is NOT optional plumbing. The newest bubble lands BELOW the fold,
+    // behind the pinned composer, and the panel's scroller does not exist yet
+    // when the panel first opens - so a plain window.scrollTo() does nothing
+    // and the take ends up filming a thread whose answer is off-screen. Scroll
+    // the bubble itself into view, then ASSERT it is really in the viewport.
+    const inView = async () => page.evaluate((txt) => {
+      const hits = [...document.querySelectorAll('div,p,span,li')]
+        .filter((e) => (e.innerText || '').trim() === txt);
+      const el = hits[hits.length - 1];
+      if (!el) return { found: false };
+      el.scrollIntoView({ block: 'center' });
+      const r = el.getBoundingClientRect();
+      return {
+        found: true, top: Math.round(r.top), bottom: Math.round(r.bottom),
+        h: Math.round(r.height), vh: window.innerHeight,
+      };
+    }, answer);
+
+    let pos = await inView();
+    await sleep(600);
+    pos = await inView();
+    await sleep(500);
+    if (!pos.found) die('answer bubble not locatable in the DOM - cannot prove it was on screen.');
+    // Allow the bubble to be taller than the viewport, but its TOP must be
+    // visible and at least 60% of it must sit inside the frame.
+    const visiblePx = Math.min(pos.bottom, pos.vh) - Math.max(pos.top, 0);
+    if (pos.top < -20 || visiblePx < Math.min(pos.h, pos.vh) * 0.6) {
+      die('answer bubble is not adequately on screen (top=' + pos.top + ', visible='
+        + visiblePx + 'px of ' + pos.h + 'px, viewport=' + pos.vh + ') - refusing to '
+        + 'ship a take whose payoff never renders.');
+    }
+    console.log('ANSWER ON SCREEN: top=' + pos.top + 'px, ' + visiblePx + '/' + pos.h + 'px visible.');
+
+    await mark("Dossie's answer rendered and fully in view.");
+    await sleep(3400);
+    await mark('Readable hold on the answer (caption / VO sync window).');
+    await sleep(2600);
+
+    // Record the answer bubble's geometry in CSS px so the compositor can pick
+    // a crop_y that keeps the burned caption band off real message text
+    // (playbook 5a check 14). Multiply by DSF (3) for capture pixels.
+    askGeom = { top_css: pos.top, bottom_css: pos.bottom, height_css: pos.h, viewport_css: pos.vh };
+
+    askAnswer = {
+      question_asked: QUESTION,
+      answer_verbatim: answer,
+      asked_at_ms: askedAt,
+      answered_at_ms: answeredAt,
+      answer_latency_ms: answeredAt - askedAt,
+      capability: '#11 Talk to Dossie (typed command, text answer) - WORKS',
+      scope_warning: 'TEXT path only. Capability #12 (spoken voice I/O) is '
+        + 'PARTIAL/UNVERIFIED - the edit must never imply Dossie spoke back.',
+      account: 'demo@meetdossie.com (Sarah Whitley demo profile - no real customer data)',
+      caption_rule: 'answer_verbatim is exactly what the app rendered. Captions and '
+        + 'voiceover must use it verbatim; trailing sentences may be CUT to fit '
+        + 'runtime, but rewording, re-ordering or paraphrasing is not allowed.',
+      answer_bubble_geometry: askGeom,
+      captured_at: new Date().toISOString(),
+    };
+  }
+
   const FLOWS = {
     'pipeline-to-dossier': async () => { await flowBrief(); await flowPipeline(); await flowDossier(); },
     'pipeline-only': flowPipeline,
     'brief-only': flowBrief,
+    'ask-dossie': flowAskDossie,
   };
   const run = FLOWS[FLOW];
   if (!run) die('unknown --flow "' + FLOW + '". Known: ' + Object.keys(FLOWS).join(', '));
@@ -389,6 +546,14 @@ async function visibleText(page) {
     lines.push('');
   });
   fs.writeFileSync(path.join(OUT_DIR, 'timeline.md'), lines.join('\n'));
+
+  // The ask-dossie flow additionally emits the verbatim text the app rendered.
+  // Captions/VO are built from this file, so it must never be hand-edited.
+  if (askAnswer) {
+    fs.writeFileSync(path.join(OUT_DIR, 'answer.json'), JSON.stringify(askAnswer, null, 2));
+    console.log('    ' + path.join(OUT_DIR, 'answer.json'));
+    console.log('\nANSWER (verbatim): ' + askAnswer.answer_verbatim);
+  }
 
   await browser.close();
 
