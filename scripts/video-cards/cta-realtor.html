@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<!--
+  Heath's realtor-page CTA / TREC attribution end card.
+  Playbook §5 item 10 / §5a check 16, plus TREC 535.154-535.155.
+
+  TREC: social media and video ARE advertisements. The BROKER NAME must appear
+  at >= half the size of the largest agent/team contact info, and be "readily
+  noticeable." Sizes here:
+      .agent  (largest agent contact info) .... 46px
+      .broker (Keller Williams City View) ..... 52px   -> ratio 1.13x
+  The broker line is deliberately LARGER than the agent line, which clears the
+  >=0.5 rule with a wide margin and removes the judgment call about what counts
+  as "largest contact info."
+
+  OPEN VERIFICATION ITEM (docs/CONTENT-FORMAT-LIBRARY.md §10.1): the rendered
+  type sizes on the listing closing card have never been measured against the
+  rule by anyone but us. This card is built to over-satisfy it rather than sit
+  near the line, but a TREC reviewer's reading has not been obtained.
+
+  The CTA is reply-driven ("text me"), never a link in the post body.
+  NOTHING on this card may signal weakness - no price cut, no "motivated
+  seller", no DOM. Those patterns are refused at render time by the compositor
+  (cta.forbidden in scripts/_lib/shortform-brands.json).
+-->
+<style>
+  body{background:#2B2B24}
+  .safe{justify-content:center}
+  .kick{color:#C9A96E}
+  h1{color:#F3EFE6;font-size:96px}
+  h1 .hl{color:#8BA888}
+  .rule{background:#8BA888}
+  .cta{font-family:'PJS';font-size:58px;color:#F3EFE6;margin-top:46px;line-height:1.25}
+  .phone{font-family:'PJS';font-size:64px;color:#8BA888;margin-top:20px;letter-spacing:.01em}
+  .trecwrap{margin-top:56px;border-top:3px solid rgba(243,239,230,.28);padding-top:30px}
+  .agent{font-family:'PJSR';font-size:46px;color:#F3EFE6;line-height:1.3}
+  .broker{font-family:'PJS';font-size:52px;color:#F3EFE6;line-height:1.3;margin-top:10px}
+  .lic{font-family:'PJSR';font-size:36px;color:#B9B4A4;margin-top:12px}
+</style></head><body>
+<div class="safe">
+  <div class="kick">{{KICKER}}</div>
+  <h1>{{HEADLINE}}</h1>
+  <div class="rule"></div>
+  <div class="cta">Text me for a private showing</div>
+  <div class="phone">{{PHONE}}</div>
+  <div class="trecwrap">
+    <div class="agent">Heath Shepard, REALTOR&reg;</div>
+    <div class="broker">Keller Williams City View</div>
+    <div class="lic">TX Lic #751964</div>
+  </div>
+</div>
+</body></html>
