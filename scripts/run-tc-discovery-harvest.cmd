@@ -40,3 +40,26 @@ node scripts\fb-comment-hunt-daily.js >> scripts\comment-hunt.log 2>&1
 node scripts\fb-comment-opp-poster.js >> scripts\comment-opp-poster.log 2>&1
 node scripts\fb-group5-post-queue.js >> scripts\group5-post-queue.log 2>&1
 node scripts\linkedin-engager.js --post-approved --warm-touch-only >> scripts\linkedin-post-approved.log 2>&1
+rem Step 8 (added 2026-09-14, Sage): post Heath-APPROVED listing-group posts
+rem (group_posts pipeline='listing-groups') -- at most ONE per tick,
+rem 'facebook_group_post_listing' 3/day budget, 30-40 min varied spacing,
+rem shares Steps 5-6's circuit breaker (one FB profile). First-cycle
+rem approval from Heath received 2026-09-14 (Nopalito/Fawndale/Wild Cherry
+rem group rows) -- see scripts/fb-listing-group-post-queue.js header.
+rem Exits in ~2s without Chrome when nothing is approved, the spacing gap
+rem hasn't elapsed, or the pipeline is halted.
+node scripts\fb-listing-group-post-queue.js >> scripts\listing-group-post-queue.log 2>&1
+rem Step 9 (added 2026-09-16, Carter): once/day live-MLS-read listing
+rem marketing generation (scripts\listing-marketing-generate-live.js).
+rem This is the ONLY safe generator for Heath's own listing posts --
+rem api\cron-daily-listing-posts.js was disabled 2026-09-11 after it
+rem advertised 23 Nopalito at a stale $1,195,000 while the live MLS price
+rem was $999,000 (Vercel serverless can't hold a connectMLS session).
+rem This script does a live connectMLS read AND generation in the same
+rem process; self-gates to once/day via
+rem scripts\.listing-marketing-live-state.json (a 15-30 min tick that
+rem finds it already ran today exits in a couple seconds without
+rem launching Chrome). If the live read fails or the connectMLS session
+rem is dead, it generates ZERO posts and alerts Heath on Telegram --
+rem it never falls back to a cached/stale DB snapshot.
+node scripts\listing-marketing-generate-live.js >> scripts\listing-marketing-generate-live.log 2>&1
