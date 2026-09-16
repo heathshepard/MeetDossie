@@ -395,7 +395,7 @@ Heath's LinkedIn headline and Featured section are part of the conversion path. 
 ### F. Banned behaviors
 - **No automation tools that simulate browser activity on LinkedIn** (Phantombuster's LinkedIn phantom triggers the 2024 LinkedIn bot-detection update — account restricted within 48 hours).
 - **No mass connection requests with templated messages.** LinkedIn's spam classifier kills these.
-- **No external links in the post body.** LinkedIn deprioritizes posts with outbound links — put the link in the first comment instead.
+- **CORRECTED 2026-09-16 (was backwards) — put the link in the post body, never the first comment.** Van der Blom's ~1.3M-post Algorithm Insights study (via Dataslayer, Feb 2026 — `docs/CONTENT-FORMAT-LIBRARY.md` §6 item 3) found link-in-first-comment cuts LinkedIn visibility up to 80%; an in-body external link is the lesser cost at ~18.8% of median reach. Both beat a link nobody sees. If you can avoid a link entirely (drive to the bio/Featured section instead), that's still best — but never park it in a first comment.
 - **No engagement pods.** LinkedIn's 2024 algorithm update specifically demotes posts with engagement-pod signatures (coordinated comments from the same network in the first 10 min).
 
 ### G. Engagement targeting

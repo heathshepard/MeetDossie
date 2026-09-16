@@ -137,7 +137,7 @@ Add-on prices + pricing history → `docs/PRICING-HISTORY.md`.
 
 ## 14. DISTRIBUTION STRATEGY (summary)
 
-Source of truth: `DISTRIBUTION-STRATEGY.md`. 4 pillars: **Cost, Control, Visibility, Speed** (Control = strongest for high-volume agents). URL strategy: `/founding` until 22/25 filled, then `meetdossie.com`. Platforms FB/Twitter/IG/LinkedIn live; LinkedIn gets Victor's Friday slot via `cron-generate-posts.js`. Personas Brenda/Patricia/Victor, algorithm-optimized per platform.
+Source of truth: `DISTRIBUTION-STRATEGY.md`. 4 pillars: **Cost, Control, Visibility, Speed** (Control = strongest for high-volume agents). URL strategy: `/founding` until 22/25 filled, then `meetdossie.com`. Platforms FB/Twitter/IG/LinkedIn live. **Personas Brenda/Patricia/Victor are retired from `cron-generate-posts.js`** (zero `PERSONA_STORY` slots in `POST_PLAN_BASE` since 2026-06-14, enforced in code so the model can't reintroduce one) — LinkedIn's daily slot is `CAPABILITY_ONELINER` (Dossie brand voice, one real shipped feature, link in the post body), per the 2026-09-16 LinkedIn Authenticity Update research in `docs/CONTENT-FORMAT-LIBRARY.md` §6 item 2, which penalizes templated AI-persona content 30-55%.
 
 ---
 

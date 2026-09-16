@@ -423,6 +423,31 @@ async function pushToZernio(post) {
     };
   }
 
+  // AI-disclosure label (Carter, 2026-09-16) — see the identical block in
+  // api/cron-post-videos.js postToZernio() for the full rationale and field
+  // sourcing. This is the other live path a video media_url can reach
+  // Zernio through (social_posts.media_url), so it needs the same gate:
+  // owner === 'heath-realtor' is the proxy for "used Heath's cloned voice"
+  // in this pipeline (Dossie always = Luna; Rust posts elsewhere).
+  const usesHeathClonedVoice = (post.target_owner || 'dossie') === 'heath-realtor';
+  if (usesHeathClonedVoice && post.platform === 'youtube' && post.media_url) {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      containsSyntheticMedia: true,
+    };
+  }
+  if (usesHeathClonedVoice && post.platform === 'tiktok' && post.media_url) {
+    // See cron-post-videos.js note: TikTok's other required tiktokSettings
+    // fields aren't sent here either — pre-existing gap, not fixed here.
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      tiktokSettings: {
+        ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+        video_made_with_ai: true,
+      },
+    };
+  }
+
   const payload = {
     content: topContent,
     platforms: [platformBlock],

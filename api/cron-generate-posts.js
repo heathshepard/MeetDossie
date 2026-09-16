@@ -436,7 +436,9 @@ const PLATFORM_RULES = {
 //   2x CAPABILITY_ONELINER (facebook + linkedin)
 //   1x TREC_EDUCATION (twitter)
 //   1x FOUNDER_STORY (facebook — high-credibility platform)
-//   2x PERSONA_STORY/brenda+victor (twitter — fills 3/day cap)
+//   2x CAPABILITY_ONELINER (twitter — fills 3/day cap; comment below was
+//   stale, said "PERSONA_STORY/brenda+victor" — POST_PLAN_BASE has had zero
+//   PERSONA_STORY slots since 2026-06-14, see BRAND_VOICE_FORMATS_ENFORCED above)
 //
 // 2026-09-15 (Carter): removed the instagram + tiktok slots below. Both
 // platforms retired the per-post Creatomate video path on 2026-09-09 in

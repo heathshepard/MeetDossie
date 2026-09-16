@@ -362,6 +362,44 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     };
   }
 
+  // AI-disclosure label (Carter, 2026-09-16) — YouTube and TikTok both
+  // require disclosure of realistic AI-generated/synthetic voice or face.
+  // heath-voice-clone-usage-scope.md: Heath's ElevenLabs clone
+  // (i41TA0Q36AUrp4axERi3) is approved for realtor listing + Rust content,
+  // NEVER for Dossie (Dossie always speaks as Luna). Rust posts through its
+  // own separate Vercel project/pipeline, not this one — so within THIS
+  // pipeline, owner === 'heath-realtor' is the correct proxy for "this
+  // video used Heath's cloned voice" today. Revisit this proxy if a
+  // realtor video ever ships without the clone, or if Rust content is ever
+  // routed through this cron.
+  // Field names verified against Zernio's own API docs (docs.zernio.com,
+  // 2026-09-16) and Google's YouTube Data API v3 reference:
+  //   YouTube: status.containsSyntheticMedia (realistic Altered/Synthetic content)
+  //   TikTok:  tiktokSettings.video_made_with_ai (Business-app video posts only)
+  const usesHeathClonedVoice = owner === 'heath-realtor';
+  if (usesHeathClonedVoice && platform === 'youtube') {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      containsSyntheticMedia: true,
+    };
+  }
+  if (usesHeathClonedVoice && platform === 'tiktok') {
+    // NOTE: TikTok's other required tiktokSettings fields (privacy_level,
+    // allow_comment, allow_duet, allow_stitch, content_preview_confirmed,
+    // express_consent_given) are not sent anywhere in this file today — a
+    // pre-existing gap, not introduced here. TikTok isn't connected for
+    // owner='heath-realtor' yet either (docs/PIPELINE.md), so this has no
+    // live effect until both are fixed. Flagging, not fixing here — out of
+    // this change's scope.
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      tiktokSettings: {
+        ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+        video_made_with_ai: true,
+      },
+    };
+  }
+
   const payload = {
     content: caption,
     mediaItems: [{ url: videoUrl, type: 'video' }],
