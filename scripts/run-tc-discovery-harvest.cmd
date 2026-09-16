@@ -9,7 +9,13 @@ rem Chrome-free fast exit when nothing is due.
 rem Step 3: post any Heath-APPROVED replies threaded under their comments
 rem (exits without launching Chrome when nothing is approved; respects the
 rem facebook_reply 10/day budget and 30-min min-gap from
-rem scripts\_lib\comment-caps.js).
+rem scripts\_lib\comment-caps.js). A locked DossieBot-Sage Chrome profile
+rem is skipped quietly this tick and retried next tick -- never force-killed.
+rem Added 2026-09-16 (Carter): every run also checks, via a pure DB read
+rem before anything else, whether any approved reply has sat unposted >60
+rem min (the 1-hour reply SLA) and alerts Heath on Telegram if so, deduped
+rem to roughly once per hour while the condition persists
+rem (checkApprovedReplyStale in fb-group-commenter.js).
 rem Step 4: DAILY comment-opportunity hunt (self-gates to once/day; re-verifies
 rem recent posted comments first — a removed comment halts the whole pipeline).
 rem Step 5: post Heath-APPROVED comment opportunities — at most ONE per tick,
