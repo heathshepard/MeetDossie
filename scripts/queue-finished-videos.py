@@ -524,10 +524,29 @@ def main():
         info = classify_video(video_path, is_realtor)
         print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']}")
 
-        # 2. Caption — kit doc only, never a template/auto-generated string.
+        # 2. Caption — a human-written kit-doc script, or a sidecar written by
+        # the generator that produced the video. Still never a template or an
+        # auto-generated filler string.
+        #
+        # SIDECAR (<stem>.caption.txt, added 2026-09-16): the kit doc is the
+        # right source for a video Heath RECORDS from a written script. It is
+        # the wrong source for the generated formats in
+        # docs/CONTENT-FORMAT-LIBRARY.md, whose copy does not and must not
+        # exist before render: R1's listing copy is written from a LIVE MLS
+        # read in the same atomic run (a kit-doc caption would be a cached
+        # price, which is the exact defect that killed cron-daily-listing-posts
+        # on 2026-09-11), and D1's copy is built around a real sourced question.
+        # Without this, every generated video queued with an empty caption.
+        # The sidecar is authored by the generator that already ran the brand
+        # copy gate over that text, so it is not an unchecked string.
         caption = kit_captions.get(info["topic"], "")
+        caption_src = "kit doc"
+        sidecar = video_path.with_suffix(".caption.txt")
+        if not caption and sidecar.exists():
+            caption = sidecar.read_text(encoding="utf-8").strip()
+            caption_src = f"sidecar {sidecar.name}"
         if caption:
-            print(f"  Caption ({len(caption)} chars, from kit doc): {caption}")
+            print(f"  Caption ({len(caption)} chars, from {caption_src}): {caption}")
         else:
             warn = (f"Video pipeline: {filename} has no matching script in "
                      f"WEEKLY-RECORDING-KIT.md (topic slug '{info['topic']}') — "
