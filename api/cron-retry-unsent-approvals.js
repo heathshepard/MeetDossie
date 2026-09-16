@@ -25,6 +25,13 @@
 //                                  retryPendingListingGroupNotifications()
 //                                  (new as of this change -- this pipeline
 //                                  had ZERO retry path before).
+//   - everything else (pipeline NULL or unrecognized)
+//                               -> api/_lib/group-post-retry-catchall.js's
+//                                  retryPendingLegacyGroupPostNotifications()
+//                                  (added 2026-09-16 -- the first real
+//                                  silence-alarm firing found 10 drafts back
+//                                  to 2026-07-09 with pipeline NULL, falling
+//                                  outside BOTH named retries above forever).
 //
 // social_posts gets the same bounded-attempt + log + final-alert treatment
 // directly inside api/cron-send-for-approval.js (that cron already re-scans
@@ -44,6 +51,7 @@ telegramGate.install('cron-retry-unsent-approvals');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { retryPendingNotifications } = require('./_lib/daily-group5-post-generator');
 const { retryPendingListingGroupNotifications } = require('../scripts/listing-marketing-generator');
+const { retryPendingLegacyGroupPostNotifications } = require('./_lib/group-post-retry-catchall');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -82,10 +90,18 @@ module.exports = withTelemetry('cron-retry-unsent-approvals', async function han
       telegramChatId: TELEGRAM_CHAT_ID,
     });
 
+    const legacy = await retryPendingLegacyGroupPostNotifications({
+      supabaseUrl: SUPABASE_URL,
+      supabaseKey: SUPABASE_SERVICE_ROLE_KEY,
+      telegramToken: TELEGRAM_BOT_TOKEN,
+      telegramChatId: TELEGRAM_CHAT_ID,
+    });
+
     return res.status(200).json({
       ok: true,
       daily5,
       listingGroups,
+      legacy,
     });
   } catch (err) {
     console.error('[cron-retry-unsent-approvals] FATAL', err && err.message);

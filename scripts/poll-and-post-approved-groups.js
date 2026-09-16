@@ -58,11 +58,42 @@ async function supabaseFetch(urlPath, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// 2026-09-16 (Carter, silence-alarm first-firing investigation): this
+// runner ONLY ever selects on auto_post_at IS NOT NULL. Every group_posts
+// approve callback has set auto_post_at at approval time since 2026-09-11
+// (api/group-post-callback.js, api/group5-post-callback.js,
+// api/listing-group-post-callback.js), so that's correct for anything
+// approved after that fix. But 3 rows approved BEFORE 2026-09-11 (oldest:
+// Dallas Texas Realtors, 2026-06-10) have status='approved',
+// posted_at=null, auto_post_at=null -- permanently invisible to this
+// query, with nothing here ever saying so. Do NOT silently start
+// auto-posting arbitrary-age approved rows just because auto_post_at is
+// null (stale content risk -- Heath's explicit instruction: review each
+// one's content before it goes anywhere near auto-post). Instead, this
+// This just makes the failure mode loud locally too, so a future instance
+// of the same bug (a new approval path that forgets to set auto_post_at)
+// can't go unnoticed for months again.
 async function getPendingPosts() {
   const { ok, data } = await supabaseFetch(
     `/rest/v1/group_posts?auto_post_at=not.is.null&posted_at=is.null&order=auto_post_at.asc`,
   );
   if (!ok || !Array.isArray(data)) return [];
+
+  // Diagnostic only -- never added to the post queue. Surfaces the exact
+  // failure mode above locally (console) so it can't go unnoticed again;
+  // api/cron-silence-alarm.js's approvals_stale:group_posts condition is
+  // the loud Telegram-facing version of the same check.
+  const orphaned = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.approved&posted_at=is.null&auto_post_at=is.null&select=id,group_name,approved_at&order=approved_at.asc`,
+  );
+  if (orphaned.ok && Array.isArray(orphaned.data) && orphaned.data.length > 0) {
+    console.warn(
+      `[poll-and-post-approved-groups] ${orphaned.data.length} approved row(s) have NO auto_post_at and will NEVER be picked up by this query -- ` +
+      `needs manual review + backfill, not auto-post (oldest: ${orphaned.data[0].group_name}, approved ${orphaned.data[0].approved_at}). ` +
+      `IDs: ${orphaned.data.map((r) => r.id).join(', ')}`,
+    );
+  }
+
   return data;
 }
 
