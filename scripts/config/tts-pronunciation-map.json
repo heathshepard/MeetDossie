@@ -1,0 +1,125 @@
+{
+  "_comment": "TTS-INPUT SUBSTITUTION ONLY. Read this before touching this file. These respellings exist ONLY to fix ElevenLabs mispronunciation of Texas place names -- they are substituted into the text sent to the TTS API inside scripts/gen-listing-voiceover.py and NOWHERE else. NEVER apply this map to on-screen text, captions, social post copy, or anything a human reads -- the correct spelling ('Boerne', 'Bexar', etc.) must stay everywhere except the literal TTS input string. Each entry only exists because it was researched (see 'source') or directly confirmed by Heath -- do not add a guessed respelling; leave it out and flag it instead per CLAUDE.md operating discipline.",
+  "entries": [
+    {
+      "find": "Boerne",
+      "say": "Bernie",
+      "confidence": "confirmed",
+      "note": "Heath confirmed directly, 2026-09-12: pronounced BURN-ee. Caused the Wild Cherry (104 Wild Cherry, Boerne) voiceover to mispronounce it phonetically. Highest-priority entry -- affects every future Hill Country listing near Boerne."
+    },
+    {
+      "find": "Bexar",
+      "say": "Bear",
+      "confidence": "high",
+      "note": "Bexar County (San Antonio). Locally pronounced 'BAIR' -- the X is silent, not read literally. Confirmed via bexar.org FAQ and multiple local sources.",
+      "source": "https://www.bexar.org/FAQ.aspx?QID=832"
+    },
+    {
+      "find": "Refugio",
+      "say": "Ruh-fyur-ee-oh",
+      "confidence": "high",
+      "note": "Coastal-bend town. Local pronunciation departs from standard Spanish ('reh-FOO-hyoh') -- residents say 'ruh-FYUR-ee-oh', and the town itself has embraced this on its welcome sign.",
+      "source": "https://www.kristv.com/news/local-news/refugio-pronunciation-debate-divides-opinions-in-south-texas-during-hispanic-heritage-month"
+    },
+    {
+      "find": "Palacios",
+      "say": "Puh-lash-us",
+      "confidence": "high",
+      "note": "Gulf coast town. Local English pronunciation, not the Spanish 'pah-LAH-see-ohs'.",
+      "source": "https://pronounce.namedrop.io/how-to-pronounce-palacios/"
+    },
+    {
+      "find": "Buda",
+      "say": "Byoo-duh",
+      "confidence": "high",
+      "note": "Hays County town south of Austin. NOT 'BOO-duh'.",
+      "source": "https://www.statesman.com/story/news/state/2025/05/07/mispronounced-texas-city-names-towns/83413874007/"
+    },
+    {
+      "find": "Llano",
+      "say": "Lan-oh",
+      "confidence": "high",
+      "note": "Hill Country town/county/river. Texans say 'LAN-oh', not the Spanish 'YAH-no'.",
+      "source": "https://www.statesman.com/story/news/state/2025/05/07/mispronounced-texas-city-names-towns/83413874007/"
+    },
+    {
+      "find": "Mexia",
+      "say": "Muh-hay-uh",
+      "confidence": "high",
+      "note": "Central Texas town (Limestone County). One of the most commonly cited Texas mispronunciation traps.",
+      "source": "https://www.statesman.com/story/news/state/2025/05/07/mispronounced-texas-city-names-towns/83413874007/"
+    },
+    {
+      "find": "Gruene",
+      "say": "Green",
+      "confidence": "high",
+      "note": "Historic New Braunfels district. German origin ('gruen' = green), pronounced exactly like the English word 'green'.",
+      "source": "https://www.statesman.com/story/news/state/2025/05/07/mispronounced-texas-city-names-towns/83413874007/"
+    },
+    {
+      "find": "Nacogdoches",
+      "say": "Nak-uh-doh-chess",
+      "confidence": "high",
+      "note": "East Texas city. Local pronunciation drops the literal spelling's harder vowels in favor of 'nack-uh-DOH-chess'.",
+      "source": "https://www.statesman.com/story/news/state/2025/05/07/mispronounced-texas-city-names-towns/83413874007/"
+    },
+    {
+      "find": "Helotes",
+      "say": "Huh-loh-tiss",
+      "confidence": "high",
+      "note": "NW Bexar County town, part of Heath's San Antonio market. 'huh-LOH-tiss', not a literal Spanish reading.",
+      "source": "https://www.howtopronounce.com/helotes-texas"
+    },
+    {
+      "find": "Bulverde",
+      "say": "Bull-ver-dee",
+      "confidence": "medium",
+      "note": "Comal County town north of San Antonio, in Heath's Hill Country market. Sources agree on 'buul-VUR-dee' (stress on middle syllable); marked medium because the exact vowel in the last syllable varies slightly by source.",
+      "source": "https://www.howtopronounce.com/bulverde"
+    },
+    {
+      "find": "Comal",
+      "say": "Koh-mal",
+      "confidence": "medium",
+      "note": "Comal County/River (New Braunfels area). Correct is 'KOH-mal' (rhymes with 'pal'); commonly mispronounced as 'KOH-muhl'. Included because it's a documented trap for non-locals, but marked medium since the standard English reading of the spelling may already land close to correct.",
+      "source": "https://activerain.com/blogsview/852769/how-the-heck-do-you-pronounce-that---common-mispronunciations-in-san-antonio--texas"
+    },
+    {
+      "find": "Manchaca",
+      "say": "Man-shack",
+      "confidence": "low",
+      "note": "FLAGGED, NOT VERIFIED IN PRODUCTION. Historically pronounced 'man-SHACK' by Austin locals despite the Spanish-style spelling. But the road was OFFICIALLY RENAMED to 'Menchaca' in 2019, changing the correct pronunciation to 'men-CHAH-kah' for the current legal name. Left in the map at low confidence for the old/colloquial 'Manchaca' spelling only -- if a script ever uses the current legal name 'Menchaca,' do NOT apply this entry; that spelling should be read as 'men-CHAH-kah' via normal TTS, not respelled.",
+      "source": "https://www.kut.org/austin/2016-02-17/whats-in-a-name-the-long-debate-over-manchaca-versus-menchaca"
+    }
+  ],
+  "researched_but_excluded": [
+    {
+      "word": "Guadalupe",
+      "reason": "Common enough word (county/river/street name) that eleven_multilingual_v2 reads it correctly by default in spot checks. No confirmed mispronunciation incident. Left out per the 'don't guess, don't fix what isn't broken' rule -- add it if a real render surfaces a problem."
+    },
+    {
+      "word": "Blanco",
+      "reason": "Standard Spanish word TTS renders correctly by default ('BLAN-koh'). No incident."
+    },
+    {
+      "word": "Kyle",
+      "reason": "Ordinary English word, no pronunciation risk."
+    },
+    {
+      "word": "Sendero Ranch",
+      "reason": "Property name in current inventory (23 Nopalito). No confirmed mispronunciation in the existing render -- 'sen-DEH-roh' is a fairly phonetic Spanish word. Flagging for a listen-check on the next Sendero Ranch render rather than pre-emptively respelling it."
+    },
+    {
+      "word": "Nopalito",
+      "reason": "Property name in current inventory (23 Nopalito). Same as Sendero Ranch -- no confirmed issue in the existing render, phonetic enough that a respelling risks doing more harm than good without a specific bad take to fix."
+    },
+    {
+      "word": "Fawndale",
+      "reason": "Plain English compound (fawn + dale), no pronunciation risk."
+    },
+    {
+      "word": "Windcrest",
+      "reason": "Plain English compound (wind + crest), no pronunciation risk."
+    }
+  ]
+}

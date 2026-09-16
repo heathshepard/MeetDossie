@@ -46,6 +46,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_lib"))
+import tts_normalize  # noqa: E402  (path set immediately above)
+
 W, H = 1080, 1920
 FPS = 30
 
@@ -223,34 +226,76 @@ def phrase_cues(timing_path, start_s, text_assert, max_words=5):
     Returns [(start, end, text)] in OUTPUT-timeline seconds.
 
     Raises on any drift between the caption text and what was actually spoken
-    — playbook §5a check 11 is enforced HERE, in code, not by review."""
+    — playbook §5a check 11 is enforced HERE, in code, not by review.
+
+    TWO TEXTS, ONE CONTENT (2026-09-16). Since the TTS input is normalized for
+    speech (scripts/_lib/tts_normalize.py — "789 Ranch Rd" is SAID as "789
+    Ranch Road"), the spoken string is no longer byte-identical to the caption
+    string, and check 11 can no longer be a string equality. When the timing
+    JSON carries a `segments` alignment, the check becomes stronger instead of
+    weaker: we prove the alignment's written column reproduces the caption
+    text EXACTLY and its spoken column reproduces what was actually voiced
+    EXACTLY. Captions are then emitted in WRITTEN form ("Rd") on SPOKEN
+    timings. A timing JSON with no `segments` key falls back to the original
+    byte equality, so pre-existing renders behave identically.
+    """
     d = json.loads(Path(timing_path).read_text(encoding="utf-8"))
     chars, cs, ce = d["characters"], d["char_start"], d["char_end"]
     spoken = "".join(chars)
-    if text_assert.strip() != spoken.strip():
-        raise SystemExit(
-            "caption/audio mismatch - captions must be verbatim what was spoken.\n"
-            f"  spoken : {spoken!r}\n  caption: {text_assert!r}")
-    cues, buf, w0, w1, words = [], "", None, None, 0
-    i = 0
-    while i < len(chars):
-        ch = chars[i]
-        if w0 is None:
-            w0 = cs[i]
-        buf += ch
+    segments = d.get("segments")
+
+    if segments:
+        segments = [(w, s) for w, s in segments]
+        written_join = "".join(w for w, _ in segments)
+        spoken_join = "".join(s for _, s in segments)
+        if spoken_join.strip() != spoken.strip():
+            raise SystemExit(
+                "alignment/audio mismatch - the normalization alignment does not "
+                "reproduce what was voiced.\n"
+                f"  voiced   : {spoken!r}\n  alignment: {spoken_join!r}")
+        if written_join.strip() != text_assert.strip():
+            raise SystemExit(
+                "caption/alignment mismatch - captions must be the written form of "
+                "exactly what was spoken.\n"
+                f"  alignment: {written_join!r}\n  caption  : {text_assert!r}")
+    else:
+        if text_assert.strip() != spoken.strip():
+            raise SystemExit(
+                "caption/audio mismatch - captions must be verbatim what was spoken.\n"
+                f"  spoken : {spoken!r}\n  caption: {text_assert!r}")
+        segments = [(spoken, spoken)]
+
+    # A phrase may only break where it would not slice a rewritten token in
+    # half. Breaking inside "nine hundred ninety-nine thousand dollars" would
+    # make both halves render the whole written "$999,000" and show the price
+    # twice, so replacement segments are breakable only at their edges.
+    breakable, offset = set(), 0
+    for written, spk in segments:
+        if written == spk:
+            breakable.update(range(offset, offset + len(spk) + 1))
+        else:
+            breakable.add(offset)
+            breakable.add(offset + len(spk))
+        offset += len(spk)
+
+    cues, i0, w0, w1, words = [], None, None, None, 0
+    for i, ch in enumerate(chars):
+        if i0 is None:
+            i0, w0 = i, cs[i]
         w1 = ce[i]
         boundary = ch == " "
         hard = ch in ".?!" or (ch == "," and words >= max_words - 1)
         if boundary:
             words += 1
-        if (words >= max_words and boundary) or hard:
-            t = buf.strip()
-            if t:
-                cues.append([start_s + w0, start_s + w1, t])
-            buf, w0, w1, words = "", None, None, 0
-        i += 1
-    if buf.strip():
-        cues.append([start_s + (w0 or 0.0), start_s + (w1 or 0.0), buf.strip()])
+        if ((words >= max_words and boundary) or hard) and (i + 1) in breakable:
+            text = tts_normalize.spoken_span_to_written(segments, i0, i + 1).strip()
+            if text:
+                cues.append([start_s + w0, start_s + w1, text])
+            i0, w0, w1, words = None, None, None, 0
+    if i0 is not None:
+        text = tts_normalize.spoken_span_to_written(segments, i0, len(chars)).strip()
+        if text:
+            cues.append([start_s + (w0 or 0.0), start_s + (w1 or 0.0), text])
     return cues
 
 

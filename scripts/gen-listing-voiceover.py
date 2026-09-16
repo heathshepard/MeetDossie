@@ -39,6 +39,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_lib"))
+import tts_normalize  # noqa: E402  (path set immediately above)
+
 API_KEY = os.environ.get("ELEVENLABS_API_KEY") or os.environ.get("ELEVENLABS_API_KEY_PERSONAL")
 MODEL = "eleven_turbo_v2"
 DEFAULT_VOICE = "pNInz6obpgDQGcFmaJgB"  # Adam — neutral professional, NOT Bill/Luna
@@ -94,6 +97,10 @@ def main():
     ap.add_argument("--out-mp3", required=True)
     ap.add_argument("--out-timing", required=True)
     ap.add_argument("--voice-id", default=DEFAULT_VOICE)
+    ap.add_argument(
+        "--no-normalize", action="store_true",
+        help="Send the script to the TTS API verbatim, skipping spoken-form "
+             "normalization (debugging only -- abbreviations will be spelled out).")
     ap.add_argument("--target-seconds", type=float, default=30.0)
     ap.add_argument("--tolerance-seconds", type=float, default=5.0)
     args = ap.parse_args()
@@ -110,7 +117,23 @@ def main():
         return 2
 
     text = Path(args.script_file).read_text(encoding="utf-8").strip()
+
+    # TTS-INPUT-ONLY normalization. `text` stays the written form and is what
+    # captions/post copy must use; `spoken` is the only thing the API sees.
+    # Without this, ElevenLabs reads "789 Ranch Rd." as "seven eighty nine
+    # Ranch R D" -- the defect Heath flagged on the Dossie D1 video 2026-09-16.
+    if args.no_normalize:
+        norm = tts_normalize.NormalizedText(text, text, [(text, text)], [])
+    else:
+        norm = tts_normalize.normalize_for_speech(text)
+    spoken = norm.spoken
+
     print(f"[voiceover] script: {len(text)} chars, voice={args.voice_id}")
+    if norm.fired:
+        print(f"[normalize] {len(norm.fired)} TTS-input substitution(s) "
+              f"(on-screen text and captions unaffected):")
+        for rule, was, now in norm.fired:
+            print(f"             [{rule}] {was!r} -> {now!r}")
 
     speed = 1.0
     stability = 0.5
@@ -125,7 +148,7 @@ def main():
     result = None
     for attempt in range(1, 6):
         print(f"[try {attempt}] speed={speed:.2f}")
-        result = synthesize_with_timestamps(text, args.voice_id, stability, similarity, style, speed)
+        result = synthesize_with_timestamps(spoken, args.voice_id, stability, similarity, style, speed)
         audio_bytes = base64.b64decode(result["audio_base64"])
         out_mp3.write_bytes(audio_bytes)
         dur = ffprobe_duration(out_mp3)
@@ -146,11 +169,26 @@ def main():
     alignment = result["alignment"]
     timing = {
         "duration": ffprobe_duration(out_mp3),
-        "text": text,
+        # "text" is the SPOKEN form, because char_start/char_end index into
+        # it. "display_text" + "segments" let the compositor render written
+        # captions ("Rd") on these spoken timings -- see
+        # scripts/build-shortform-video.py phrase_cues().
+        "text": spoken,
+        "display_text": text,
+        "segments": [list(seg) for seg in norm.segments],
         "characters": alignment["characters"],
         "char_start": alignment["character_start_times_seconds"],
         "char_end": alignment["character_end_times_seconds"],
         "voice_id": args.voice_id,
+        # Recorded so a render can be audited after the fact. The Dossie D1
+        # timing JSON (2026-09-16) had no model_id, so "which model produced
+        # this?" was unanswerable when Heath flagged the voiceover.
+        "model_id": MODEL,
+        "voice_settings": {
+            "stability": stability, "similarity_boost": similarity,
+            "style": style, "speed": speed,
+        },
+        "normalized": not args.no_normalize,
     }
     out_timing.write_text(json.dumps(timing), encoding="utf-8")
     print(f"[voiceover] SAVED mp3={out_mp3} timing={out_timing} duration={timing['duration']:.2f}s")
