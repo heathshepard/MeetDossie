@@ -39,8 +39,10 @@ Usage:
   python3 scripts/build-shortform-video.py --spec /path/spec.json --out out.mp4 --work /tmp/work
 """
 import argparse
+import html as _html
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -51,6 +53,31 @@ import tts_normalize  # noqa: E402  (path set immediately above)
 
 W, H = 1080, 1920
 FPS = 30
+
+REPO = Path(__file__).resolve().parent.parent
+BRANDS_JSON = REPO / "scripts" / "_lib" / "shortform-brands.json"
+
+
+def repo_asset(rel):
+    """Resolve a repo-relative asset path, worktree-aware.
+
+    Media/ (music beds, finished videos) is gitignored, so it exists ONLY in
+    the main working tree — a git worktree under .claude/worktrees/<name>/ has
+    the code but not the assets. Resolve against this tree first, then fall
+    back to the main tree, so a build running from a worktree still finds the
+    licence-clean music instead of silently failing ffmpeg five minutes in.
+    """
+    p = REPO / rel
+    if p.exists():
+        return p
+    marker = f"{os.sep}.claude{os.sep}worktrees{os.sep}"
+    s = str(REPO)
+    if marker in s:
+        main_tree = Path(s[:s.index(marker)])
+        alt = main_tree / rel
+        if alt.exists():
+            return alt
+    return p
 
 # Default capture geometry: 390x844 CSS px at deviceScaleFactor 3.
 DEFAULT_SRC_W, DEFAULT_SRC_H = 1170, 2532
@@ -77,14 +104,180 @@ def probe_duration(path):
     return float(p.stdout.strip())
 
 
+# ------------------------------------------------------------------ brand ----
+def load_brands():
+    if not BRANDS_JSON.exists():
+        raise SystemExit(f"missing brand config: {BRANDS_JSON}")
+    return json.loads(BRANDS_JSON.read_text(encoding="utf-8"))
+
+
+def resolve_brand(spec):
+    """Merge per-brand constants under the spec's own values.
+
+    The spec always wins on a key it sets explicitly — the brand file supplies
+    identity (palette, caption face, CTA, voices, capture geometry) so a format
+    generator names a brand instead of restating hexes and URLs and drifting on
+    one of them (docs/CONTENT-FORMAT-LIBRARY.md §5.1).
+    """
+    name = spec.get("brand")
+    if not name:
+        return None, {}
+    cfg = load_brands()
+    brands = cfg.get("brands", {})
+    if name not in brands:
+        raise SystemExit(
+            f"unknown brand {name!r}. Known: {', '.join(sorted(brands))}. "
+            f"Add it to {BRANDS_JSON} rather than hardcoding constants in a spec.")
+    return brands[name], cfg
+
+
+def visible_text(html_src):
+    """Approximate the text a rendered card actually shows.
+
+    Strips <style>/<script> bodies and all tags, unescapes entities. Used for
+    the CTA/copy refusals — matching the raw HTML would false-positive on
+    class names and CSS (e.g. a `.reduced` class is not the word 'reduced' on
+    screen), and matching nothing at all would let a forbidden claim ship.
+    """
+    s = re.sub(r"(?is)<(style|script)\b.*?</\1>", " ", html_src)
+    s = re.sub(r"(?s)<[^>]+>", " ", s)
+    return re.sub(r"\s+", " ", _html.unescape(s)).strip()
+
+
+def assert_copy_allowed(brand, brand_name, texts):
+    """Render-time REFUSAL against the brand's forbidden-copy patterns.
+
+    This is a hard abort, not a warning. Every one of these patterns exists
+    because a real post went out wrong: a stale price, a weakness signal that
+    invites a lowball on a listing Heath represents, a fair-housing steering
+    phrase, a download CTA for an app that is in neither store, or a /founding
+    CTA for an offer that closed. Putting the check in the compositor means a
+    NEW generator cannot forget it.
+    """
+    cta = (brand or {}).get("cta") or {}
+    pats = cta.get("forbidden") or []
+    if not pats:
+        return
+    reason = cta.get("forbidden_reason", "")
+
+    # Narrow, audited exemptions for phrases that CONTAIN a forbidden word but
+    # are the honest negation of it — e.g. Rust's "Not in the app stores yet",
+    # which the playbook itself prescribes as the correct line. These are exact
+    # phrases, removed from the text before matching, so the surrounding rule
+    # still applies to everything else on the card. This is deliberately NOT a
+    # looser regex: "download now" must still fail even on a card that also
+    # carries an honest disclaimer.
+    exempt = cta.get("honest_exemptions") or []
+
+    hits = []
+    for label, text in texts:
+        if not text:
+            continue
+        for phrase in exempt:
+            text = re.sub(re.escape(phrase), " ", text, flags=re.I)
+        for p in pats:
+            m = re.search(p, text)
+            if m:
+                hits.append(f"  {label}: matched /{p}/ on {m.group(0)!r}\n    ...{text[max(0, m.start() - 60):m.end() + 60].strip()}...")
+    if hits:
+        raise SystemExit(
+            f"REFUSING to build: brand={brand_name!r} forbidden copy found.\n"
+            + "\n".join(hits)
+            + (f"\n\nWhy: {reason}\n" if reason else "\n")
+            + "Fix the copy. Do NOT loosen the pattern list to make this pass.")
+
+
+def assert_caption_font_allowed(cfg, style):
+    """§5a check 12 — caption typeface must be a heavy sans. A serif is an
+    automatic gate FAIL, and Cormorant Garamond is a Dossie brand/heading face
+    that is never a caption face."""
+    font = (style or {}).get("font", "Plus Jakarta Sans")
+    deny = cfg.get("caption_font_denylist", [])
+    allow = cfg.get("caption_font_allowlist", [])
+    if any(font.lower() == d.lower() for d in deny):
+        raise SystemExit(
+            f"REFUSING to build: caption font {font!r} is a serif/denylisted face. "
+            f"Playbook §5a check 12 fails this outright. Use one of: {', '.join(allow)}.")
+    if allow and not any(font.lower() == a.lower() for a in allow):
+        sys.stderr.write(
+            f"[warn] caption font {font!r} is not on the heavy-sans allowlist "
+            f"({', '.join(allow)}) — confirm it resolves to weight >=700.\n")
+
+
+def assert_voices_allowed(brand, brand_name, voice_clips):
+    """A named persona must speak in that persona's real voice.
+
+    Only checked when a spec declares `voice_id` on a clip (the ids live in
+    scripts/voice-select.js, which does the actual TTS routing). Silence here
+    is not approval — it means the spec did not tell us, and the routing was
+    the generator's responsibility.
+    """
+    voices = (brand or {}).get("voices") or {}
+    allowed = voices.get("allowed_speaker_voices") or {}
+    forbidden = voices.get("forbidden_speaker_voices") or {}
+    reason = voices.get("forbidden_reason", "")
+    for vo in voice_clips:
+        spk, vid = vo.get("speaker"), vo.get("voice_id")
+        if not spk or not vid:
+            continue
+        if spk in forbidden and vid in forbidden[spk]:
+            raise SystemExit(
+                f"REFUSING to build: brand={brand_name!r} speaker {spk!r} may not use voice {vid!r}.\n{reason}")
+        if spk in allowed and allowed[spk] != vid:
+            raise SystemExit(
+                f"REFUSING to build: brand={brand_name!r} speaker {spk!r} must use voice "
+                f"{allowed[spk]!r}, spec declared {vid!r}.\n{reason}")
+
+
 # ------------------------------------------------------------------ cards ----
 CARD_RENDERER = Path(__file__).parent / "render-card-png.js"
+CARD_DIR = REPO / "scripts" / "video-cards"
+
+
+def card_source(card):
+    """Resolve a card declaration to its final HTML source, without rendering.
+
+    Split out from render_card() so the forbidden-copy refusal can read what a
+    card will SAY before paying for a Playwright launch per card.
+    """
+    tpl = card.get("template")
+    if tpl:
+        src_path = CARD_DIR / tpl
+        if not src_path.exists():
+            raise SystemExit(f"card template not found: {src_path}")
+        src = src_path.read_text(encoding="utf-8")
+        for k, v in (card.get("vars") or {}).items():
+            src = src.replace("{{" + k + "}}", _html.escape(str(v)))
+        leftover = re.findall(r"\{\{([A-Z0-9_]+)\}\}", src)
+        if leftover:
+            raise SystemExit(
+                f"card template {tpl} has unfilled tokens: {sorted(set(leftover))}. "
+                "An unfilled token renders literally on screen.")
+        return src
+    if card.get("html"):
+        return Path(card["html"]).read_text(encoding="utf-8")
+    src = card.get("html_inline")
+    if not src:
+        raise SystemExit("card needs 'template', 'html' or 'html_inline'")
+    return src
 
 
 def render_card(card, out_png, work):
     """Render one full-bleed 1080x1920 card PNG from an HTML source.
 
-    card = {"html": "<path to .html>"}  or  {"html_inline": "<!doctype html>..."}
+    card = {"html": "<path to .html>"}
+         | {"html_inline": "<!doctype html>..."}
+         | {"template": "cta-dossie.html", "vars": {"HEADLINE": "..."}}
+
+    `template` resolves against scripts/video-cards/ and substitutes {{VAR}}
+    tokens, so a brand's CTA/hook card is named once in
+    scripts/_lib/shortform-brands.json instead of being pasted into every spec.
+    Substitution is HTML-escaped: card text is real copy (a listing address, a
+    Reddit quote) and must never be able to inject markup.
+
+    Returns (png_path, html_source) — the source is handed back so the caller
+    can run the brand's forbidden-copy refusals against what the card actually
+    says.
 
     Cards are HTML, not ffmpeg filtergraphs, because the static ffmpeg here
     has NO drawtext/drawbox filter (verified: "No such filter: 'drawtext'")
@@ -97,17 +290,28 @@ def render_card(card, out_png, work):
     """
     work = Path(work)
     work.mkdir(parents=True, exist_ok=True)
-    html_path = card.get("html")
-    if not html_path:
-        inline = card.get("html_inline")
-        if not inline:
-            raise SystemExit("card needs 'html' or 'html_inline'")
+
+    src = card_source(card)
+    tpl = card.get("template")
+    if tpl:
+        # Rendered into the template's own directory so its relative
+        # _base.css / ../../public/fonts links still resolve.
+        html_path = CARD_DIR / f".tmp-{Path(out_png).stem}.html"
+        html_path.write_text(src, encoding="utf-8")
+    elif card.get("html"):
+        html_path = Path(card["html"])
+    else:
         html_path = work / f"{Path(out_png).stem}.html"
-        Path(html_path).write_text(inline, encoding="utf-8")
-    run(["node", str(CARD_RENDERER),
-         "--html", str(html_path), "--out", str(out_png),
-         "--width", str(W), "--height", str(H)])
-    return out_png
+        Path(html_path).write_text(src, encoding="utf-8")
+
+    try:
+        run(["node", str(CARD_RENDERER),
+             "--html", str(html_path), "--out", str(out_png),
+             "--width", str(W), "--height", str(H)])
+    finally:
+        if tpl:
+            Path(html_path).unlink(missing_ok=True)
+    return out_png, src
 
 
 # ---------------------------------------------------------------- frames ----
@@ -359,17 +563,72 @@ def main():
 
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
     work = Path(args.work); work.mkdir(parents=True, exist_ok=True)
-    frames = json.loads(Path(spec["frames_json"]).read_text(encoding="utf-8"))["frames"]
+    # NOTE ON ORDERING: every brand refusal below runs BEFORE the captured
+    # frames are opened and before a single ffmpeg process starts. A guardrail
+    # that only fires after five minutes of rendering is one people learn to
+    # skip, and a missing input file would otherwise mask the refusal behind an
+    # unrelated traceback.
 
-    source = spec.get("source", {})
+    # ---- brand resolution: identity from config, overrides from the spec ----
+    brand_name = spec.get("brand")
+    brand, brand_cfg = resolve_brand(spec)
+    if brand:
+        print(f"[brand] {brand_name} ({brand.get('label')})")
+
+    brand_source = (brand or {}).get("source", {})
+    source = {**brand_source, **spec.get("source", {})}
     src_w = source.get("w", DEFAULT_SRC_W)
     src_h = source.get("h", DEFAULT_SRC_H)
     window_h = source.get("window_h", 2080)
     composer_h = source.get("composer_h", 380)
     fontsdir = spec["fontsdir"]
 
+    caption_style = {**((brand or {}).get("captions") or {}), **spec.get("captions", {})}
+    if brand_cfg:
+        assert_caption_font_allowed(brand_cfg, caption_style)
+
+    assert_voices_allowed(brand, brand_name, spec.get("voice", []))
+
     # ---- render any declarative cards up front ----
     card_pngs = {}
+    card_texts = []
+    # Resolve each card's TEXT first and run the copy refusal, THEN render.
+    # Rendering is a Playwright launch per card; refusing before that keeps the
+    # guardrail fast enough that nobody is tempted to bypass it.
+    for name, card in (spec.get("cards") or {}).items():
+        card_texts.append((f"card:{name}", visible_text(card_source(card))))
+
+    # ---- forbidden-copy refusal, across EVERY word that reaches the screen
+    # or the speaker: card text, caption/VO text, and the post caption if the
+    # spec carries one. A weakness signal in the hook is exactly as damaging
+    # as one on the CTA card, so this is not CTA-only.
+    copy_texts = list(card_texts)
+    copy_texts += [(f"voice:{v.get('speaker', 'vo')}", v.get("text", "")) for v in spec.get("voice", [])]
+    if spec.get("post_caption"):
+        copy_texts.append(("post_caption", spec["post_caption"]))
+    assert_copy_allowed(brand, brand_name, copy_texts)
+
+    # §5a check 9: a bed is required unless the spec explicitly carries
+    # "music": null WITH a written reason. An absent key falls back to the
+    # brand's default track rather than silently shipping dry — "I forgot to
+    # set music" and "no licence-clean source exists" must not look the same.
+    music = spec.get("music")
+    if "music" not in spec and brand and brand.get("music_default"):
+        music = {"file": str(repo_asset(brand["music_default"])), "lufs": -35, "lowpass": 4500}
+        print(f"[music] brand default: {brand['music_default']}")
+    if music is None and not spec.get("music_null_reason"):
+        raise SystemExit(
+            "REFUSING to build: no music bed and no 'music_null_reason'. Playbook §5a "
+            "check 9 allows shipping without a bed ONLY with a written reason (e.g. no "
+            "licence-clean source available). Add \"music_null_reason\": \"...\" to the spec.")
+    if music and not Path(music["file"]).exists():
+        raise SystemExit(
+            f"REFUSING to build: music bed not found: {music['file']}\n"
+            "Only licence-clean tracks from Media/Music/ (Pixabay Content License) may be used.")
+
+    # ---- all refusals cleared; now touch real inputs and render ----
+    frames = json.loads(Path(spec["frames_json"]).read_text(encoding="utf-8"))["frames"]
+
     for name, card in (spec.get("cards") or {}).items():
         png = work / f"card-{name}.png"
         render_card(card, png, work)
@@ -416,7 +675,6 @@ def main():
                        f"volume={vo.get('gain', 1.0)}[v{i}]")
         mixed.append(f"[v{i}]")
     nv = len(spec["voice"])
-    music = spec.get("music")
     filters.append("".join(mixed) + f"amix=inputs={nv}:duration=longest:normalize=0,"
                                     f"loudnorm=I=-15:TP=-1.5:LRA=11,"
                                     f"aresample=48000,apad,atrim=0:{total:.3f}[vox]")
@@ -442,10 +700,10 @@ def main():
     cues = []
     for vo in spec["voice"]:
         c = phrase_cues(vo["timing"], vo["at"], vo["text"],
-                        max_words=spec.get("captions", {}).get("max_words", 5))
+                        max_words=caption_style.get("max_words", 5))
         cues += [[a, b, t, vo.get("speaker", "vo")] for a, b, t in c]
     ass = work / "captions.ass"
-    write_ass(cues, ass, spec.get("captions", {}))
+    write_ass(cues, ass, caption_style)
 
     run(["ffmpeg", "-y", "-v", "error", "-i", str(silent), "-i", str(audio),
          "-filter_complex",

@@ -1,0 +1,215 @@
+{
+  "_doc": [
+    "Per-brand constants for scripts/build-shortform-video.py.",
+    "",
+    "WHY THIS FILE EXISTS: docs/CONTENT-FORMAT-LIBRARY.md §5.1 is explicit that the",
+    "compositor only unlocks ten formats once the *constants* stop being Rust-specific",
+    "code and become per-brand config: 'Hook-card palette, caption style, CTA card text",
+    "and URL - must come from a per-brand config'. build-shortform-video.py had already",
+    "moved capture geometry into the spec; this file moves the brand identity out of the",
+    "individual specs, so a format generator names a brand instead of restating hexes,",
+    "fonts, a CTA URL and a voice id every time (and drifting on one of them).",
+    "",
+    "JSON rather than .py or .js deliberately: the compositor is Python, the card",
+    "renderer and the generators are Node, and both have to agree on these values.",
+    "",
+    "cta.forbidden is a RENDER-TIME REFUSAL, not documentation. build-shortform-video.py",
+    "matches every pattern against the CTA card's visible text and aborts the build. The",
+    "same guard already exists in scripts/generate-conversation-video.js; the playbook",
+    "says it belongs in the compositor too, so it cannot be bypassed by writing a new",
+    "generator that forgets it.",
+    "",
+    "captions.font is asserted against a heavy-sans allowlist (§5a check 12). Cormorant",
+    "Garamond is a Dossie brand/heading face and is an automatic gate FAIL as a caption",
+    "face - it may only appear inside a card's own CSS."
+  ],
+
+  "_voice_note": [
+    "Voice ids are mirrored from scripts/voice-select.js, which is the runtime source of",
+    "truth for TTS routing and is NOT committed on main (it lives uncommitted in the dev",
+    "tree as of 2026-09-16). They are duplicated here ONLY so the compositor can refuse a",
+    "wrong-voice build without importing an untracked file. If the two ever disagree,",
+    "voice-select.js wins and this file is the bug.",
+    "",
+    "THE RULE THAT MATTERS (docs/CONTENT-FORMAT-LIBRARY.md §3): Heath's clone may speak",
+    "AS HEATH in Dossie founder/instructional content. It may NEVER speak AS DOSSIE.",
+    "Dossie's character voice is Luna, always. That is why 'dossie' lists Luna as the",
+    "persona voice and Heath's clone only under allowed_speaker_voices."
+  ],
+
+  "brands": {
+    "dossie": {
+      "target_owner": "dossie",
+      "label": "Dossie",
+      "source": { "w": 1170, "h": 2532, "window_h": 2080, "composer_h": 380 },
+      "captions": {
+        "font": "Plus Jakarta Sans",
+        "size": 64,
+        "primary": "#FFFFFF",
+        "outline": "#1A1A2E",
+        "back": "#1A1A2E",
+        "margin_v": 500,
+        "margin_lr": 150,
+        "max_words": 5
+      },
+      "palette": {
+        "bg": "#1A1A2E",
+        "ink": "#F5E6E0",
+        "accent": "#E8836B",
+        "kicker": "#C9A96E",
+        "muted": "#D4A0A0"
+      },
+      "cta": {
+        "card": "cta-dossie.html",
+        "url": "meetdossie.com/signup",
+        "hold_seconds": 2.2,
+        "forbidden": [
+          "(?i)/?founding",
+          "(?i)founding member",
+          "(?i)\\$29\\b"
+        ],
+        "forbidden_reason": "Founding closed 2026-08-04 and never reopens (CLAUDE.md §5). The CTA is meetdossie.com/signup. A /founding or $29 CTA sends a prospect to an offer that does not exist."
+      },
+      "voices": {
+        "persona": { "name": "Dossie", "voice_id": "lxYfHSkYm1EzQzGhdbfc", "note": "Luna IS Dossie's voice. Never substituted." },
+        "allowed_speaker_voices": {
+          "Dossie": "lxYfHSkYm1EzQzGhdbfc",
+          "Heath": "i41TA0Q36AUrp4axERi3"
+        },
+        "forbidden_speaker_voices": {
+          "Dossie": ["i41TA0Q36AUrp4axERi3"]
+        },
+        "forbidden_reason": "Heath's clone may speak AS HEATH in Dossie founder/instructional content, but never AS DOSSIE."
+      },
+      "music_default": "Media/Music/upbeat-renovation.mp3"
+    },
+
+    "heath-realtor": {
+      "target_owner": "heath-realtor",
+      "label": "Heath Shepard, REALTOR",
+      "source": { "w": 1170, "h": 2532, "window_h": 2080, "composer_h": 380 },
+      "captions": {
+        "font": "Plus Jakarta Sans",
+        "size": 62,
+        "primary": "#FFFFFF",
+        "outline": "#2B2B24",
+        "back": "#2B2B24",
+        "margin_v": 500,
+        "margin_lr": 150,
+        "max_words": 5
+      },
+      "palette": {
+        "bg": "#2B2B24",
+        "ink": "#F3EFE6",
+        "accent": "#8BA888",
+        "kicker": "#C9A96E",
+        "muted": "#B9B4A4"
+      },
+      "cta": {
+        "card": "cta-realtor.html",
+        "url": "Text me for a private showing",
+        "hold_seconds": 2.4,
+        "requires_trec_attribution": true,
+        "forbidden": [
+          "(?i)motivated seller",
+          "(?i)priced to sell",
+          "(?i)price (cut|drop|reduc|improv)",
+          "(?i)reduced",
+          "(?i)back on (the )?market",
+          "(?i)bring (me )?(all )?offers",
+          "(?i)must sell",
+          "(?i)days on market",
+          "(?i)\\bDOM\\b",
+          "(?i)good schools",
+          "(?i)safe (area|neighborhood|neighbourhood)",
+          "(?i)family neighborhood",
+          "(?i)up-and-coming"
+        ],
+        "forbidden_reason": "Two separate hard rules. (1) listing-copy-never-signal-weakness.md: no hint of a price cut, motivated seller, or DOM emphasis - Heath represents the seller and copy that invites lowballs is a fiduciary problem, not a style problem. (2) docs/CONTENT-DO-NOT-WRITE-LIST.md: fair-housing steering language is a HARD_BLOCK."
+      },
+      "trec": {
+        "attribution": "Heath Shepard, REALTOR (R) | Keller Williams City View | TX Lic #751964",
+        "broker_name": "Keller Williams City View",
+        "note": "TREC 535.154/535.155 - social media and video ARE advertisements. The broker name must appear at >= half the size of the largest agent/team contact info and be readily noticeable. OPEN VERIFICATION ITEM (CONTENT-FORMAT-LIBRARY.md §10.1): the rendered type sizes on the closing card have never been measured against the rule. cta-realtor.html sets broker at 0.62x the agent line to clear it with margin, but that ratio has not been checked against a TREC reviewer's reading of 'largest contact info'.",
+        "min_broker_to_agent_size_ratio": 0.5
+      },
+      "voices": {
+        "persona": { "name": "Heath", "voice_id": "i41TA0Q36AUrp4axERi3", "note": "Heath's own cloned voice - his realtor listings ONLY." },
+        "allowed_speaker_voices": { "Heath": "i41TA0Q36AUrp4axERi3" },
+        "forbidden_speaker_voices": {},
+        "forbidden_reason": "Heath's clone is scoped to his realtor listings, Rust, and Dossie founder/instructional content."
+      },
+      "music_default": "Media/Music/cinematic-acreage-luxury.mp3"
+    },
+
+    "rust": {
+      "target_owner": "rust",
+      "label": "Rust",
+      "source": { "w": 1170, "h": 2532, "window_h": 2080, "composer_h": 380 },
+      "captions": {
+        "font": "Plus Jakarta Sans",
+        "size": 64,
+        "primary": "#FFFFFF",
+        "outline": "#120C0A",
+        "back": "#000000",
+        "margin_v": 500,
+        "margin_lr": 150,
+        "max_words": 5
+      },
+      "palette": {
+        "bg": "#0D0D0F",
+        "ink": "#F2F2F2",
+        "accent": "#E4572E",
+        "kicker": "#8A8A8A",
+        "muted": "#9A9A9A"
+      },
+      "cta": {
+        "card": "cta-rust.html",
+        "url": "rustfitness.app",
+        "offer": "join the waitlist",
+        "hold_seconds": 2.2,
+        "forbidden": [
+          "(?i)download",
+          "(?i)app store",
+          "(?i)play store",
+          "(?i)get it now",
+          "(?i)available now",
+          "(?i)install now"
+        ],
+        "honest_exemptions": [
+          "Not in the app stores yet"
+        ],
+        "honest_exemptions_reason": "docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md §5 item 10 prescribes this exact sentence as the correct honest line while the stores are not live. It contains the substring 'app store' and would otherwise trip the download refusal. Exact-phrase exemption only - 'download now' on the same card still fails.",
+        "forbidden_reason": "Rust is in neither store. iOS is in review with manual release; Android is blocked in closed testing behind Google's health-declaration scanner (rust-app-store-submission-state.md). The only honest CTA is the waitlist. This refusal already fires in generate-conversation-video.js; the playbook puts it in the compositor too."
+      },
+      "voices": {
+        "persona": { "name": "coach", "voice_id": null, "note": "Each coach uses THAT coach's own in-app ElevenLabs voice from Rust/api/tts.ts VOICE_MAP, mirrored in voice-select.js RUST_COACH_VOICES. If the real voice cannot be reproduced, ship silent and say so - never substitute a random voice for a named persona." },
+        "allowed_speaker_voices": {
+          "Heath": "i41TA0Q36AUrp4axERi3",
+          "Marcus": "nPczCjzI2devNBz1zQrb"
+        },
+        "forbidden_speaker_voices": {},
+        "forbidden_reason": "A named coach speaking in a voice that is not theirs in the product is a broken promise, not a style choice."
+      },
+      "facts": {
+        "readiness_scale": "1-5, never 1-10",
+        "price": "$19.99",
+        "deload": "NO calendar-based deload exists. The only real mechanic is a per-exercise 10% back-off after missed reps. marketing/rust-hook-library.md line 1 still says 'deload every 5th week' - that line is STALE, do not generate from it."
+      },
+      "music_default": "Media/Music/cinematic-acreage-luxury.mp3"
+    }
+  },
+
+  "caption_font_allowlist": [
+    "Plus Jakarta Sans",
+    "Inter",
+    "Poppins"
+  ],
+  "caption_font_denylist": [
+    "Cormorant Garamond",
+    "Cormorant",
+    "Georgia",
+    "Times New Roman",
+    "Playfair Display"
+  ]
+}
