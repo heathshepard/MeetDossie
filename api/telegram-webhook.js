@@ -1446,12 +1446,44 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Auto-reply-with-veto STOP button (Heath's explicit approval, 2026-09-16
+  // — supabase/migrations/20260916_auto_reply_veto.sql). Only LOW-RISK
+  // comments (risk classifier + content gates both passed, kill switch on)
+  // ever reach reply_status='pending_veto'. A tap here cancels the reply
+  // before it can auto-post; no tap within the 10-minute window and
+  // api/cron-auto-reply-veto-check.js auto-approves it instead. The PATCH
+  // is status-guarded (reply_status=eq.pending_veto) so a STOP that arrives
+  // after the veto-check cron already claimed the row is a safe no-op.
+  const autoReplyStopMatch = data.match(/^autoreply_stop:([\w-]+)$/);
+  if (autoReplyStopMatch) {
+    const rowId = autoReplyStopMatch[1];
+    const originalBody = String(message?.text || '');
+    const nowIso = new Date().toISOString();
+    const patch = await supabaseFetch(
+      `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.pending_veto`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ reply_status: 'skipped', reply_error: 'vetoed_by_heath', updated_at: nowIso }),
+      },
+    );
+    const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+    const tail = won
+      ? 'STOPPED — cancelled, nothing will post.'
+      : 'Too late — already auto-approved/posted, or already handled.';
+    if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+    if (callbackId) await answerCallback(callbackId, tail);
+    return;
+  }
+
   // TC discovery comment-reply approval flow (cron-tc-reply-approval).
   // callback_data: tcreply_approve:<uuid> / tcreply_edit:<uuid> / tcreply_skip:<uuid>
   // Rows live in tc_discovery_responses. NOTHING posts without an explicit
-  // Approve (or an explicit edit-reply, which is a stronger approval) — no
-  // auto-approve, no veto window. The actual Facebook post happens locally
-  // via `node scripts/fb-group-commenter.js --tc-reply-queue`.
+  // Approve (or an explicit edit-reply, which is a stronger approval) —
+  // EXCEPT the narrow, heavily-gated auto-reply-with-veto path above, which
+  // is a separate reply_status ('pending_veto') this matcher never sees.
+  // The actual Facebook post happens locally via
+  // `node scripts/fb-group-commenter.js --tc-reply-queue`.
   const tcReplyMatch = data.match(/^tcreply_(approve|edit|skip):([\w-]+)$/);
   if (tcReplyMatch) {
     const action = tcReplyMatch[1];

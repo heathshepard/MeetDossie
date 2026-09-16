@@ -317,6 +317,9 @@
     "api/cron-comment-opp-approval.js": {
       "maxDuration": 60
     },
+    "api/cron-auto-reply-veto-check.js": {
+      "maxDuration": 60
+    },
     "api/cron-daily-group5-posts.js": {
       "maxDuration": 60
     },
@@ -776,6 +779,10 @@
     {
       "path": "/api/cron-tc-reply-approval",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-auto-reply-veto-check",
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron-comment-opp-approval",

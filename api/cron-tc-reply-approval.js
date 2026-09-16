@@ -53,6 +53,9 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const voiceGuard = require('./_lib/heath-voice-guard');
+const { classifyCommentRisk } = require('../scripts/_lib/auto-reply-risk-classifier.js');
+const { checkContentGates } = require('../scripts/_lib/auto-reply-content-gates.js');
+const autoReplyKillSwitch = require('../scripts/_lib/auto-reply-kill-switch.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,6 +68,15 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const DRAFT_MODEL = 'claude-sonnet-5';
 const MAX_PER_RUN = 5;
+
+// Auto-reply-with-veto (Heath's explicit approval, 2026-09-16 — see
+// supabase/migrations/20260916_auto_reply_veto.sql). 10-minute hold: Heath
+// gets a STOP button instead of Approve/Edit/Skip; no tap by the deadline
+// means api/cron-auto-reply-veto-check.js auto-approves it. Gated by the
+// risk classifier, the content gates, AND the kill switch below — any one
+// of the three failing routes the row through the pre-existing manual
+// notified -> Approve/Edit/Skip flow, unchanged.
+const VETO_WINDOW_MS = 10 * 60 * 1000;
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -295,6 +307,22 @@ function approvalKeyboard(rowId) {
   };
 }
 
+// ─── Auto-reply-with-veto message (low-risk path) ────────────────────────────
+
+function buildVetoMessage(post, row, guest = null) {
+  const base = guest ? buildApprovalMessage(post, row, guest) : buildApprovalMessage(post, row, guest);
+  const header = 'LOW-RISK — AUTO-POSTING IN 10 MIN unless you tap STOP below.';
+  return `${header}\n\n${base}`.slice(0, 4090);
+}
+
+function vetoKeyboard(rowId) {
+  return {
+    inline_keyboard: [[
+      { text: 'STOP — cancel this reply', callback_data: `autoreply_stop:${rowId}` },
+    ]],
+  };
+}
+
 async function telegramSend(text, replyMarkup) {
   const body = { chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true };
   if (replyMarkup) body.reply_markup = replyMarkup;
@@ -334,7 +362,7 @@ async function processPendingReplies(deps) {
   const { ok, data, status } = await sbFetch(
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=in.(new,flagged)&reply_notified_at=is.null&is_own_comment=eq.false'
-    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id`
+    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id,auto_reply_eligible,auto_reply_category`
     + `&order=harvested_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!ok) {
@@ -405,10 +433,28 @@ async function processPendingReplies(deps) {
         } else {
           if (!d.reply) throw new Error('empty draft for non-hostile comment');
           row.reply_draft = d.reply;
+
+          // Risk classification + content gates, logged on EVERY drafted
+          // row regardless of outcome (spec: "log every auto-reply with its
+          // classification and gate results"). A gate failure or an
+          // ineligible classification never blocks the reply — it just
+          // means this row takes the existing manual notified path below.
+          const risk = classifyCommentRisk(row.comment_text, d.reply);
+          const gates = risk.eligible ? checkContentGates(d.reply) : { pass: false, failures: [] };
+          row.auto_reply_eligible = risk.eligible && gates.pass;
+          row.auto_reply_category = risk.category;
+          row.auto_reply_gate_failures = gates.failures.map((f) => f.code);
+
           await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
             method: 'PATCH',
             headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify({ reply_draft: d.reply, updated_at: new Date().toISOString() }),
+            body: JSON.stringify({
+              reply_draft: d.reply,
+              auto_reply_eligible: row.auto_reply_eligible,
+              auto_reply_category: row.auto_reply_category,
+              auto_reply_gate_failures: row.auto_reply_gate_failures,
+              updated_at: new Date().toISOString(),
+            }),
           });
           out.drafted++;
           // So the NEXT draft in this same run also varies (not just against
@@ -417,10 +463,27 @@ async function processPendingReplies(deps) {
         }
       }
 
-      // 2. Notify.
+      // 2. Notify. Three shapes: flagged (no draft, no buttons), low-risk
+      // auto-eligible (STOP button, 10-min veto window — ONLY when the kill
+      // switch is on), everything else (the original Approve/Edit/Skip).
       const isFlag = row.reply_status === 'flagged';
-      const text = isFlag ? buildFlagMessage(post, row, guest) : buildApprovalMessage(post, row, guest);
-      const markup = isFlag ? null : approvalKeyboard(row.id);
+      const isAutoVeto = !isFlag
+        && row.auto_reply_eligible === true
+        && autoReplyKillSwitch.isAutoReplyEnabled();
+
+      let text;
+      let markup;
+      if (isFlag) {
+        text = buildFlagMessage(post, row, guest);
+        markup = null;
+      } else if (isAutoVeto) {
+        text = buildVetoMessage(post, row, guest);
+        markup = vetoKeyboard(row.id);
+      } else {
+        text = buildApprovalMessage(post, row, guest);
+        markup = approvalKeyboard(row.id);
+      }
+
       const sendRes = await send(text, markup);
       if (!sendRes.ok) {
         out.errors.push({ id: row.id, step: 'send', status: sendRes.status });
@@ -439,13 +502,19 @@ async function processPendingReplies(deps) {
         reply_telegram_message_id: sendRes.data?.result?.message_id != null ? String(sendRes.data.result.message_id) : null,
         updated_at: nowIso,
       };
-      if (!isFlag) patch.reply_status = 'notified';
+      if (isAutoVeto) {
+        patch.reply_status = 'pending_veto';
+        patch.veto_deadline_at = new Date(Date.now() + VETO_WINDOW_MS).toISOString();
+      } else if (!isFlag) {
+        patch.reply_status = 'notified';
+      }
       await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify(patch),
       });
       out.notified++;
+      if (isAutoVeto) out.autoVetoed = (out.autoVetoed || 0) + 1;
     } catch (err) {
       log.error(`[cron-tc-reply-approval] row ${row.id} failed: ${err.message}`);
       out.errors.push({ id: row.id, step: 'process', error: err.message });
@@ -480,7 +549,10 @@ module.exports = withTelemetry('cron-tc-reply-approval', async function handler(
 module.exports.processPendingReplies = processPendingReplies;
 module.exports.buildApprovalMessage = buildApprovalMessage;
 module.exports.buildFlagMessage = buildFlagMessage;
+module.exports.buildVetoMessage = buildVetoMessage;
 module.exports.approvalKeyboard = approvalKeyboard;
+module.exports.vetoKeyboard = vetoKeyboard;
+module.exports.VETO_WINDOW_MS = VETO_WINDOW_MS;
 module.exports.DRAFT_PROMPT = DRAFT_PROMPT;
 module.exports.GUEST_DRAFT_PROMPT = GUEST_DRAFT_PROMPT;
 module.exports.draftReply = draftReply;
