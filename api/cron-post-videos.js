@@ -28,6 +28,15 @@ require('./_lib/telegram-gate').install('cron-post-videos');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { DateTime } = require('luxon');
+// Video quality gate (Heath's standing rule 2026-09-15 —
+// feedback_every-video-needs-scroll-stopping-hook.md /
+// docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md). Vercel cannot run ffmpeg, so this
+// checks the quality_status/quality_failed_rules already recorded on the row
+// by scripts/queue-finished-videos.py's ingestion-time gate — see
+// api/_lib/verify-video-quality.js's file header for why. Blocking: any row
+// that isn't quality_status='passed' is held here, never queued for review
+// or posted.
+const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-quality.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -434,6 +443,11 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
       summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
       continue;
     }
+    const qualityOk = await gateVideoQuality(video);
+    if (!qualityOk) {
+      summary.skipped.push({ id: video.id, reason: 'quality gate blocked (see quality_hold alert)' });
+      continue;
+    }
     await sendForHeathReview(video);
     summary.queued_for_review.push(video.id);
   }
@@ -507,6 +521,12 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
             { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
           );
           summary.skipped.push({ id: candidate.id, reason: 'invalid caption' });
+          continue;
+        }
+
+        const qualityOk = await gateVideoQuality(candidate);
+        if (!qualityOk) {
+          summary.skipped.push({ id: candidate.id, reason: 'quality gate blocked at publish (see quality_hold alert)' });
           continue;
         }
 

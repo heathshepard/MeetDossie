@@ -17,8 +17,20 @@ For each new file:
      NEVER a template string / auto-generated caption. A file with no
      matching script ships with an EMPTY caption and a Telegram flag
      instead of a stale CTA.
-  3. Uploads to Supabase Storage bucket 'videos' at path video-library/{filename}.
-  4. Upserts a row into video_library with status='approved'.
+  3. Video quality gate (Heath's standing rule 2026-09-15 --
+     feedback_every-video-needs-scroll-stopping-hook.md /
+     docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md), BLOCKING and brand-agnostic
+     (Dossie, Rust, realtor all go through the same gate): extracts a cover
+     frame, runs scripts/check-video-quality-cli.js (real ffprobe/ffmpeg
+     measurable checks + vision-model hook/caption checks -- see
+     api/_lib/verify-video-quality.js for the rule list). A file that fails
+     ships with status='quality_hold' instead of 'approved', the specific
+     failed rules recorded on the row, and ONE Telegram alert naming them --
+     it is never silently approved and never silently dropped.
+  4. Uploads video (and, on a pass, the cover image) to Supabase Storage
+     bucket 'videos' at path video-library/{filename}.
+  5. Upserts a row into video_library with status='approved' (quality pass)
+     or 'quality_hold' (quality fail).
 
 Idempotent: video_library.id = the file's stem (filename w/o extension --
 unique per week via its date suffix). A stem already present in
@@ -335,6 +347,93 @@ def compress_video(file_path: Path) -> Path | None:
         return None
 
 
+# ── Video quality gate (blocking) ─────────────────────────────────────────────
+# docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md — every video needs a scroll-stopping
+# hook, a cover, and burned captions before it can queue. Brand-agnostic:
+# applies identically whether target_owner is 'dossie' or 'heath-realtor'.
+
+COVER_STORAGE_BUCKET = "social-cards"  # already public, image/png+jpeg (docs CLAUDE.md §21)
+COVER_STORAGE_PREFIX = "video-covers"
+QUALITY_GATE_CLI = REPO / "scripts" / "check-video-quality-cli.js"
+
+
+def extract_cover_frame(video_path: Path) -> Path | None:
+    """
+    Extract the frame at t=0 as the video's explicit cover asset via ffmpeg.
+    Every video needs one (playbook §3) -- the quality gate fails outright
+    without it. Returns a temp PNG path (caller cleans it up), or None if
+    ffmpeg can't produce one.
+    """
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp_path = Path(tmp.name)
+    tmp.close()
+    cmd = ["ffmpeg", "-y", "-ss", "0", "-i", str(video_path), "-frames:v", "1", str(tmp_path)]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode != 0 or not tmp_path.exists() or tmp_path.stat().st_size == 0:
+            print(f"  WARN: cover frame extraction failed: {result.stderr[-300:]}")
+            tmp_path.unlink(missing_ok=True)
+            return None
+        return tmp_path
+    except Exception as ex:
+        print(f"  WARN: cover frame extraction threw: {ex}")
+        tmp_path.unlink(missing_ok=True)
+        return None
+
+
+def upload_cover_to_storage(cover_path: Path, filename_stem: str) -> str | None:
+    """Upload the cover PNG to Storage. Returns public URL, or None on failure."""
+    storage_path = f"{COVER_STORAGE_PREFIX}/{filename_stem}.png"
+    url = f"{SUPABASE_URL}/storage/v1/object/{COVER_STORAGE_BUCKET}/{storage_path}"
+    headers = {
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "image/png",
+        "x-upsert": "true",
+    }
+    req = urllib.request.Request(url, data=cover_path.read_bytes(), headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            r.read()
+        return f"{SUPABASE_URL}/storage/v1/object/public/{COVER_STORAGE_BUCKET}/{storage_path}"
+    except urllib.error.HTTPError as e:
+        print(f"  ERROR cover upload HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
+        return None
+    except Exception as ex:
+        print(f"  ERROR cover upload: {ex}")
+        return None
+
+
+def run_quality_gate(video_path: Path, cover_path: Path | None) -> dict | None:
+    """
+    Shells out to scripts/check-video-quality-cli.js (same subprocess pattern
+    as compress_video()'s ffmpeg call) -- see that file for why this is a
+    Node CLI rather than reimplemented in Python: the vision-model check
+    reuses api/_lib/verify-video-quality.js's Anthropic call, the same path
+    verify-image-match.js already uses.
+
+    Returns the parsed {pass, rules, failedRules, detail} dict, or None if
+    the CLI itself couldn't be run at all (missing node, crashed, etc.) --
+    callers MUST treat None as a hard failure (fail-closed), never as "skip
+    the gate."
+    """
+    cmd = ["node", str(QUALITY_GATE_CLI), "--video", str(video_path)]
+    if cover_path:
+        cmd += ["--cover", str(cover_path)]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    except Exception as ex:
+        print(f"  ERROR: quality gate CLI threw: {ex}")
+        return None
+    try:
+        # The CLI prints exactly one JSON line to stdout.
+        line = [l for l in result.stdout.strip().splitlines() if l.strip()][-1]
+        return json.loads(line)
+    except Exception:
+        print(f"  ERROR: quality gate CLI produced no parseable JSON.\n"
+              f"  stdout: {result.stdout[:400]}\n  stderr: {result.stderr[:400]}")
+        return None
+
+
 def upsert_video_library(row: dict) -> bool:
     """Upsert a row into video_library. Returns True on success."""
     result = supabase_request(
@@ -401,7 +500,7 @@ def main():
 
     print(f"\nQueueing {len(new_files)} new video(s):")
 
-    results = {"queued": [], "failed": [], "flagged_no_caption": []}
+    results = {"queued": [], "failed": [], "flagged_no_caption": [], "quality_held": []}
 
     for video_path, is_realtor in new_files:
         filename = video_path.name
@@ -425,7 +524,41 @@ def main():
             send_telegram_alert(warn)
             results["flagged_no_caption"].append(stem)
 
-        # 3. Auto-compress if file is larger than 48 MB
+        # 3. Video quality gate (BLOCKING, brand-agnostic — Heath's standing
+        # rule 2026-09-15). Cover frame extracted + gate run against the
+        # ORIGINAL file, before any lossy compression. A missing/failed cover
+        # or gate CLI failure is fail-closed, never a silent pass.
+        cover_local = extract_cover_frame(video_path)
+        gate_result = run_quality_gate(video_path, cover_local)
+
+        if gate_result is None:
+            print(f"  ERROR: quality gate could not run for {filename} — failing closed, not approving")
+            send_telegram_alert(f"Video pipeline: quality gate CLI failed to run for {filename} — held, needs manual check.")
+            if cover_local:
+                cover_local.unlink(missing_ok=True)
+            results["failed"].append(stem)
+            continue
+
+        quality_passed = bool(gate_result.get("pass"))
+        failed_rules = gate_result.get("failedRules") or []
+        quality_status_value = "passed" if quality_passed else "held"
+
+        if not quality_passed:
+            rule_notes = "; ".join(
+                f"{r}: {(gate_result.get('rules') or {}).get(r, {}).get('note', '')}" for r in failed_rules
+            )
+            warn = (f"Video HELD (quality gate): {filename} failed: {', '.join(failed_rules)}\n{rule_notes[:600]}")
+            print(f"  QUALITY HOLD: {warn}")
+            send_telegram_alert(warn)
+
+        # 4. Upload cover (if we made one) — needed regardless of pass/fail so
+        # Heath can actually see a held video's cover/frame in the DB row.
+        cover_url = None
+        if cover_local:
+            cover_url = upload_cover_to_storage(cover_local, stem)
+            cover_local.unlink(missing_ok=True)
+
+        # 5. Auto-compress if file is larger than 48 MB
         COMPRESS_THRESHOLD = 48 * 1024 * 1024  # 48 MB
         upload_path = video_path
         tmp_compressed: Path | None = None
@@ -450,31 +583,43 @@ def main():
             results["failed"].append(stem)
             continue
 
-        # 4. Upsert into video_library
+        # 6. Upsert into video_library. status is 'approved' ONLY on a
+        # quality-gate pass -- a held video ships as 'quality_hold' so
+        # cron-post-videos.js's own defense-in-depth gate (which cannot
+        # re-run ffmpeg on Vercel, see api/_lib/verify-video-quality.js) has
+        # nothing to accidentally queue for review or post.
         row = {
             "id": stem,
             "topic": info["topic"],
             "type": info["type"],
-            "status": "approved",
+            "status": "approved" if quality_passed else "quality_hold",
             "platforms": info["platforms"],
             "caption": caption,
             "supabase_url": public_url,
+            "cover_url": cover_url,
+            "quality_status": quality_status_value,
+            "quality_failed_rules": failed_rules,
+            "quality_detail": gate_result,
+            "quality_checked_at": datetime.datetime.utcnow().isoformat() + "Z",
             "target_owner": info["target_owner"],
             "produced_date": datetime.date.today().isoformat(),
             "created_at": datetime.datetime.utcnow().isoformat() + "Z",
         }
 
         ok = upsert_video_library(row)
-        if ok:
+        if not ok:
+            results["failed"].append(stem)
+        elif quality_passed:
             results["queued"].append(stem)
         else:
-            results["failed"].append(stem)
+            results["quality_held"].append(stem)
 
     # Summary
     print(f"\n{'='*65}")
     print("  SUMMARY")
     print(f"{'='*65}")
     print(f"  Queued ({len(results['queued'])}): {', '.join(results['queued']) or 'none'}")
+    print(f"  Quality-held ({len(results['quality_held'])}): {', '.join(results['quality_held']) or 'none'}")
     print(f"  Flagged, no caption match ({len(results['flagged_no_caption'])}): {', '.join(results['flagged_no_caption']) or 'none'}")
     print(f"  Failed ({len(results['failed'])}): {', '.join(results['failed']) or 'none'}")
     if results["failed"]:

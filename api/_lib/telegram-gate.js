@@ -70,6 +70,10 @@ const ALWAYS_ALLOW = new Set([
                              // approval is required before anything can post back. Interactive approval plumbing,
                              // not digest noise. A swallowed message here silently kills the whole reply loop (the
                              // exact failure mode that hid five finished videos for three weeks) — Carter, 2026-09-08.
+  'cron-auto-reply-veto-check', // auto-reply-with-veto resolver + 60-min SLA alert (supabase/migrations/
+                             // 20260916_auto_reply_veto.sql). A swallowed veto-resolution confirmation or SLA
+                             // breach alert here is the exact failure mode Heath is trying to avoid by having
+                             // this feature at all — Carter, 2026-09-16.
   'cron-comment-opp-approval', // daily comment-opportunity Approve/Edit/Skip loop (comment_opportunities).
                                // Same class as cron-tc-reply-approval: interactive approval plumbing, capped at
                                // 12 sends/day, silent when the hunt finds nothing. A swallowed send here stalls
@@ -83,11 +87,15 @@ const ALWAYS_ALLOW = new Set([
                                   // defeat its entire purpose (delivering an approval Heath already missed once)
                                   // and its final-failure alert is exactly the outage signal this floor exists
                                   // for — Carter, 2026-09-12.
-  'cron-silence-alarm', // daily — sends NOTHING on a healthy pipeline; only alerts when a platform has gone
-                        // dark, approvals are stuck, drafts never reached Telegram, or a status is
-                        // accumulating rows without moving. This is the exact class of alert the 2026-09-12
-                        // Instagram/TikTok silence (18 days unnoticed) proves must never be gateable —
-                        // Carter, 2026-09-12.
+  'cron-silence-alarm', // daily. Originally: sends NOTHING on a healthy pipeline, only alerts when a
+                        // platform has gone dark, approvals are stuck, drafts never reached Telegram, or
+                        // a status is accumulating rows without moving — the exact class of alert the
+                        // 2026-09-12 Instagram/TikTok silence (18 days unnoticed) proves must never be
+                        // gateable. EXTENDED 2026-09-16 into a daily morning heartbeat (posted-last-24h,
+                        // scheduled-next-7d, stuck items, comments awaiting reply, cron sanity) that now
+                        // sends EVERY run, healthy or not — Heath's explicit ask, "consistent posting" top
+                        // priority. Stays on this list either way: a digest he asked to always see is not
+                        // the noise this gate exists to quiet — Carter, 2026-09-12 / 2026-09-16.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.

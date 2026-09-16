@@ -167,9 +167,21 @@ function hasRealPermalink(postUrl) {
 // long tail keeps the old every-3-days cadence, stopping at 45 days.
 // (Previous scheme was +24h / +72h / every-3-days — far too slow to feed
 // same-hour reply notifications.)
+//
+// TIGHTENED AGAIN 2026-09-16 (Carter, auto-reply-with-veto's 1-hour SLA —
+// supabase/migrations/20260916_auto_reply_veto.sql): 45 min was too slow to
+// reliably catch, draft, and resolve a comment inside a 60-minute SLA
+// window once you add draft time + the 10-min veto hold. Hot window itself
+// is unchanged (still 48h); only the poll interval inside it drops to 15
+// min. Long tail (after 48h) is UNCHANGED — falls back to the existing
+// every-3-days cadence below.
+// NOTE: this only tightens the code-level cadence. The Windows Task
+// Scheduler trigger for "Dossie TC Discovery Harvest" (run-tc-discovery-
+// harvest.cmd) must ALSO be lowered to a <=15-min tick for this to have
+// any effect — that's an OS-level scheduled task, outside this repo.
 const HOT_WINDOW_MS = 48 * HOUR;
-const HOT_INTERVAL_MS = 45 * 60 * 1000;
-const FIRST_PASS_DELAY_MS = 30 * 60 * 1000;
+const HOT_INTERVAL_MS = 15 * 60 * 1000;
+const FIRST_PASS_DELAY_MS = 15 * 60 * 1000;
 
 function isDue(post, nowMs = Date.now()) {
   if (!post || !post.posted_at || !post.post_url) return false;

@@ -555,6 +555,7 @@ async function verifyReplyPosted(page, row, replyText) {
 async function runTcReplyQueue(deps = {}) {
   const sbFetch = deps.sbFetch || makeSbFetch();
   const caps = deps.caps || require('./_lib/comment-caps.js');
+  const autoReplyKillSwitch = deps.autoReplyKillSwitch || require('./_lib/auto-reply-kill-switch.js');
   const poster = deps.poster;     // async (row, replyText) => { submitted }
   const verifier = deps.verifier; // async (row, replyText) => boolean
   const notify = deps.notify || tcNotifyHeath;
@@ -565,7 +566,7 @@ async function runTcReplyQueue(deps = {}) {
   const { ok, data } = await sbFetch(
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=eq.approved&replied=eq.false&reply_posted_at=is.null'
-    + '&select=id,post_url,comment_permalink,commenter_name,comment_text,reply_final,reply_draft,source_group'
+    + '&select=id,post_url,comment_permalink,commenter_name,comment_text,reply_final,reply_draft,source_group,auto_approved'
     + '&order=reply_approved_at.asc',
   );
   if (!ok) throw new Error('failed to load approved replies');
@@ -574,6 +575,19 @@ async function runTcReplyQueue(deps = {}) {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+
+    // Kill-switch defense-in-depth: a row that reached 'approved' via the
+    // veto-timeout auto-approve (auto_approved=true) gets re-checked here
+    // too, not just at auto-approve time — so flipping the switch off ALSO
+    // stops anything already auto-approved but not yet posted. Manually
+    // approved rows (auto_approved=false) are unaffected either way.
+    if (row.auto_approved && !autoReplyKillSwitch.isAutoReplyEnabled()) {
+      await finalizeReply(sbFetch, row.id, { reply_status: 'notified', reply_error: null });
+      await notify(`Auto-reply is switched off — held back an already-auto-approved reply to ${row.commenter_name}. Needs your manual Approve/Edit/Skip.`);
+      out.skipped++;
+      continue;
+    }
+
     const replyText = String(row.reply_final || '').trim();
     if (!replyText) {
       // Approved with no text should be impossible — park it, don't guess.

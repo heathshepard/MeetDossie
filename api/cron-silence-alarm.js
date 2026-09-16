@@ -10,7 +10,24 @@
 // account) hadn't posted in 18 days and TikTok has essentially never
 // posted, both invisible until Heath checked manually.
 //
-// This cron checks, once a day:
+// EXTENDED 2026-09-16 (Heath's top priority: consistent posting) from
+// "alarm only, silent when healthy" to a DAILY HEARTBEAT — one Telegram
+// message every morning regardless of whether anything's wrong, so the
+// pipeline's actual state is never something Heath has to go check for
+// himself. The alarm half is unchanged (still dedup'd via alert_state, still
+// fires loud); the heartbeat half is new and always shown:
+//   - posted last 24h, per platform+brand
+//   - scheduled next 7 days, per platform+brand
+//   - stuck items (approved-unposted, pending_video, failed, pending admin
+//     approval, video quality_hold/failed)
+//   - comments awaiting reply (TC-discovery + organic social)
+//   - per-tracked-pair last-posted status (healthy pairs shown too, not
+//     just silent ones)
+//   - a static vercel.json cron sanity scan (api/_lib/cron-sanity.js) — the
+//     exact "0 0 1 1 *"-style trick that hid the 2026-07 content-engine
+//     shutdown for weeks, plus any cron pointing at a deleted handler file.
+//
+// This cron checks, once a day (ALARM half, dedup'd):
 //   1. Platform silence — no successful post on a (platform, owner) pair in
 //      N days (default 3).
 //   2. Approvals sitting >48h without publishing.
@@ -26,19 +43,26 @@
 //      harvested at all, either because it fell outside the harvester's
 //      scan (the real 2026-09-15 bug) or because fb-group-poster.js never
 //      captured a real post permalink for it.
+//   7. (2026-09-16) Comments notified/drafted >24h with no decision.
+//   8. (2026-09-16) vercel.json cron sanity issues.
 //
-// Dedup: api/_lib/silence-alarm.js's alert_state table — each condition
-// alerts once per ~20h regardless of how often this cron runs.
+// Dedup: api/_lib/silence-alarm.js's alert_state table — each ALARM
+// condition alerts once per ~20h regardless of how often this cron runs.
+// The heartbeat section is NEVER dedup'd — it's a fresh snapshot every run.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET} OR x-vercel-cron header.
 // Schedule: vercel.json — 0 15 * * * (10am CDT daily)
+// includeFiles: vercel.json's functions block gives this route
+// {vercel.json,api/**/*.js} so api/_lib/cron-sanity.js can read the cron
+// config + check handler files exist at runtime (same pattern as
+// api/cron-codebase-facts-indexer.js).
 //
-// Owner: Carter, 2026-09-12
+// Owner: Carter, 2026-09-12 (heartbeat extension 2026-09-16)
 
 require('./_lib/telegram-gate').install('cron-silence-alarm');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
-const { runAllChecks } = require('./_lib/silence-alarm.js');
+const { runAllChecks, buildHeartbeatSnapshot } = require('./_lib/silence-alarm.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -54,6 +78,62 @@ async function sendTelegram(text) {
   return { ok: res.ok, status: res.status };
 }
 
+function fmtPlatformOwnerList(list) {
+  if (!Array.isArray(list) || list.length === 0) return '(none)';
+  return list.map((r) => `${r.platform}${r.target_owner !== 'dossie' ? ` (${r.target_owner})` : ''}: ${r.count}`).join(', ');
+}
+
+function formatHeartbeatMessage(snapshot, fired, suppressed) {
+  const lines = [`DOSSIE MORNING HEARTBEAT — ${new Date().toISOString().slice(0, 10)}`, ''];
+
+  lines.push('POSTED last 24h:');
+  lines.push(`  ${fmtPlatformOwnerList(snapshot.posted_last_24h.by_platform_owner)}`);
+  lines.push(`  FB groups: ${snapshot.posted_last_24h.group_posts ?? 'unknown'}`);
+
+  lines.push('', 'SCHEDULED next 7 days:');
+  lines.push(`  ${fmtPlatformOwnerList(snapshot.scheduled_next_7d.by_platform_owner)}`);
+  lines.push(`  unscheduled drafts: ${snapshot.scheduled_next_7d.unscheduled_drafts ?? 'unknown'}   video ready-to-post: ${snapshot.scheduled_next_7d.video_ready_to_post ?? 'unknown'}`);
+
+  lines.push('', 'STUCK:');
+  const s = snapshot.stuck;
+  lines.push(`  approved-unposted: ${s.approved_unposted ?? '?'}   pending_video: ${s.pending_video ?? '?'}   failed(7d): ${s.failed_last_7d ?? '?'}   pending admin approval: ${s.pending_admin_approval ?? '?'}   video quality_hold: ${s.video_quality_hold ?? '?'}   video failed: ${s.video_failed ?? '?'}`);
+
+  lines.push('', 'COMMENTS awaiting reply:');
+  lines.push(`  TC-discovery notified: ${snapshot.comments_awaiting_reply.tc_discovery_notified ?? '?'}   drafted (organic): ${snapshot.comments_awaiting_reply.social_draft ?? '?'}`);
+
+  lines.push('', 'PLATFORM STATUS:');
+  for (const p of snapshot.platform_status) {
+    const label = `${p.platform}${p.target_owner !== 'dossie' ? ` (${p.target_owner})` : ''}`;
+    const status = p.last_posted_at
+      ? `${p.days_silent}d since last post`
+      : 'never posted';
+    lines.push(`  ${label}: ${status}`);
+  }
+
+  if (snapshot.cron_sanity.ok) {
+    lines.push('', `CRON SANITY: ${snapshot.cron_sanity.totalCrons} crons scanned, ${snapshot.cron_sanity.issues.length} issue(s)`);
+    for (const issue of snapshot.cron_sanity.issues) {
+      lines.push(`  - ${issue.path} (${issue.schedule}): ${issue.detail}`);
+    }
+  } else {
+    lines.push('', `CRON SANITY: scan failed — ${snapshot.cron_sanity.error}`);
+  }
+
+  if (fired.length > 0) {
+    lines.push('', `⚠ ALARM — ${fired.length} condition(s):`);
+    for (const c of fired) lines.push(`  - ${c.message}`);
+    if (suppressed.length) {
+      lines.push(`  (${suppressed.length} more condition(s) still true but already alerted today — not re-sent)`);
+    }
+  } else if (suppressed.length > 0) {
+    lines.push('', `(${suppressed.length} alarm condition(s) still true, already alerted — not re-sent)`);
+  } else {
+    lines.push('', 'ALARM: all clear.');
+  }
+
+  return lines.join('\n');
+}
+
 module.exports = withTelemetry('cron-silence-alarm', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
@@ -66,21 +146,16 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
   }
 
   const dryRun = req.query && req.query.dry_run === '1';
-  const { fired, suppressed, totalConditions } = await runAllChecks({ dryRun });
+  const [{ fired, suppressed, totalConditions }, snapshot] = await Promise.all([
+    runAllChecks({ dryRun }),
+    buildHeartbeatSnapshot(),
+  ]);
 
-  if (fired.length === 0) {
-    return res.status(200).json({ ok: true, fired: 0, suppressed: suppressed.length, total_conditions: totalConditions });
-  }
-
-  const lines = [`SILENCE ALARM — ${fired.length} condition(s)`, ''];
-  for (const c of fired) lines.push(`- ${c.message}`);
-  if (suppressed.length) {
-    lines.push('', `(${suppressed.length} more condition(s) still true but already alerted today — not re-sent)`);
-  }
+  const text = formatHeartbeatMessage(snapshot, fired, suppressed);
 
   let telegram = { ok: false, reason: 'dry_run' };
   if (!dryRun) {
-    telegram = await sendTelegram(lines.join('\n'));
+    telegram = await sendTelegram(text);
   }
 
   return res.status(200).json({
@@ -89,7 +164,9 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
     suppressed: suppressed.length,
     total_conditions: totalConditions,
     conditions: fired.map((c) => c.key),
+    heartbeat: snapshot,
     telegram_sent: !!telegram.ok,
     dry_run: !!dryRun,
+    preview: dryRun ? text : undefined,
   });
 });
