@@ -134,12 +134,21 @@ def resolve_brand(spec):
 def visible_text(html_src):
     """Approximate the text a rendered card actually shows.
 
-    Strips <style>/<script> bodies and all tags, unescapes entities. Used for
-    the CTA/copy refusals — matching the raw HTML would false-positive on
-    class names and CSS (e.g. a `.reduced` class is not the word 'reduced' on
-    screen), and matching nothing at all would let a forbidden claim ship.
+    Strips HTML comments, <style>/<script> bodies and all tags, then unescapes
+    entities. Used for the CTA/copy refusals — matching the raw HTML would
+    false-positive on class names and CSS (e.g. a `.reduced` class is not the
+    word 'reduced' on screen), and matching nothing at all would let a
+    forbidden claim ship.
+
+    COMMENTS MUST GO FIRST, and this is not hypothetical: cta-realtor.html's
+    own header comment explains the rule by quoting the banned phrases
+    ("motivated seller", "price cut", "DOM"). Left in, it tripped the realtor
+    weakness-copy refusal on every build — a card was refused for the comment
+    documenting why the card is safe. Comments are never rendered, so they are
+    never copy.
     """
-    s = re.sub(r"(?is)<(style|script)\b.*?</\1>", " ", html_src)
+    s = re.sub(r"(?s)<!--.*?-->", " ", html_src)
+    s = re.sub(r"(?is)<(style|script)\b.*?</\1>", " ", s)
     s = re.sub(r"(?s)<[^>]+>", " ", s)
     return re.sub(r"\s+", " ", _html.unescape(s)).strip()
 

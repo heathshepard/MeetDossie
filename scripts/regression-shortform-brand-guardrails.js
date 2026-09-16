@@ -106,6 +106,46 @@ refuses('heath-realtor refuses a weakness signal in the post caption, not just o
   spec('heath-realtor', { post_caption: 'Seller is motivated, priced to sell!' }),
   'forbidden copy');
 
+// An HTML COMMENT is never rendered, so it is never copy. Regression for a
+// real bug: cta-realtor.html documents the rule by quoting the banned phrases,
+// and the scan was reading the comment — refusing the card for the comment
+// explaining why the card is safe.
+cases.push({
+  name: 'comments are not copy (a card may document the rule it obeys)',
+  s: spec('heath-realtor', {
+    cards: {
+      cta: {
+        html_inline: '<!-- never say: motivated seller, price cut, days on market -->'
+          + '<body><div>Come see it in person</div></body>',
+      },
+    },
+  }),
+  expect: 'pass-copy-check',
+});
+
+// ...but a comment must not become a smuggling route either: the VISIBLE text
+// is still scanned even when a comment sits next to it.
+refuses('a comment does not launder visible forbidden copy on the same card',
+  spec('heath-realtor', {
+    cards: { cta: { html_inline: '<!-- harmless --><body><div>Motivated seller</div></body>' } },
+  }),
+  'forbidden copy');
+
+// The real shipped realtor CTA card must actually build. This is the case the
+// comment bug broke.
+cases.push({
+  name: 'the real cta-realtor.html template passes its own brand copy gate',
+  s: spec('heath-realtor', {
+    cards: {
+      cta: {
+        template: 'cta-realtor.html',
+        vars: { KICKER: 'Boerne, TX', HEADLINE: 'Come see it in person', PHONE: '(830) 446-3847' },
+      },
+    },
+  }),
+  expect: 'pass-copy-check',
+});
+
 // --- Caption typeface: a serif is an automatic §5a check-12 FAIL -----------
 refuses('refuses Cormorant Garamond as a CAPTION face',
   spec('dossie', { captions: { font: 'Cormorant Garamond' } }),
