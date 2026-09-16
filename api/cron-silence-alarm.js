@@ -63,6 +63,7 @@ require('./_lib/telegram-gate').install('cron-silence-alarm');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { runAllChecks, buildHeartbeatSnapshot } = require('./_lib/silence-alarm.js');
+const { formatGoalProgressLines } = require('./_lib/social-goals-progress.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -108,6 +109,20 @@ function formatHeartbeatMessage(snapshot, fired, suppressed) {
       ? `${p.days_silent}d since last post`
       : 'never posted';
     lines.push(`  ${label}: ${status}`);
+  }
+
+  const goalKeys = Object.keys(snapshot.goal_progress || {});
+  for (const key of goalKeys) {
+    const progress = snapshot.goal_progress[key];
+    lines.push('');
+    if (!progress || progress.error) {
+      lines.push(`GOALS (${key}): could not compute progress this run${progress && progress.error ? ` — ${progress.error}` : ''}.`);
+      continue;
+    }
+    lines.push(...formatGoalProgressLines(progress));
+    if (progress.targets.group_posts.reachable === false) {
+      lines.push('  ⚠ group_posts target is UNREACHABLE this period at the current cap.');
+    }
   }
 
   if (snapshot.cron_sanity.ok) {

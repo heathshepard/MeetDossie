@@ -27,6 +27,8 @@
 // Owner: Carter, 2026-09-12
 
 const { scanCronSanity } = require('./cron-sanity.js');
+const { listGoalSetKeys } = require('./social-goals.js');
+const { computeGoalProgress } = require('./social-goals-progress.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -575,6 +577,24 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
 
   const count = (res) => (res.ok && Array.isArray(res.data) ? res.data.length : null);
 
+  // Facebook Professional Dashboard-style goal progress (api/_lib/
+  // social-goals.js) — computed fresh every heartbeat, same as everything
+  // else here. Never dedup'd (this is the "state of the world" half of the
+  // file, not the alarm half). Any single goal set failing to compute
+  // (e.g. period_expired or a query error) never blocks the rest of the
+  // heartbeat — caught per-key so one bad goal set can't silence the
+  // entire morning message.
+  const goalSetResults = await Promise.all(
+    listGoalSetKeys().map(async (key) => {
+      try {
+        return [key, await computeGoalProgress(key)];
+      } catch (err) {
+        return [key, { goalSetKey: key, error: err && err.message }];
+      }
+    }),
+  );
+  const goalProgress = Object.fromEntries(goalSetResults);
+
   return {
     posted_last_24h: {
       by_platform_owner: toList(postedByPlatform),
@@ -599,6 +619,7 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     },
     platform_status: platformStatus,
     cron_sanity: cronSanity,
+    goal_progress: goalProgress,
   };
 }
 
