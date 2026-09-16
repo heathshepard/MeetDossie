@@ -46,6 +46,39 @@
  *      sent naming the failed rules; a row with quality_status='passed'
  *      proceeds with zero DB/Telegram calls.
  *
+ * FULL-BLEED FRAMING TESTS (added 2026-09-16)
+ * -------------------------------------------
+ * Added after two Dossie feature-demo videos shipped to Facebook/LinkedIn/
+ * Twitter on 2026-09-15 at 1920x1080. Facebook renders those surfaces as
+ * vertical Reels, so it letterboxed the 16:9 file into a 9:16 frame — Heath
+ * screenshotted a thin horizontal strip with ~80% black around it. The same
+ * file's frame 0 was solid white and its first seconds sat on the Dossie
+ * sign-in page.
+ *
+ * The negative fixture is the ACTUAL published file
+ * (feature-demo-stage-checklist-desktop-2026-09-07.mp4), fetched from the
+ * public Supabase bucket it was served from and cached under tmp — these
+ * tests measure the exact bytes that went out.
+ *
+ *   6.  REAL BAD: aspect_ratio_vertical_9x16 fails (measured 1920x1080 /
+ *       1.7778) and first_frame_not_uniform fails (measured luma spread 0),
+ *       with every vision rule mocked to PASS — proving the measurable rules
+ *       alone would have held it.
+ *   7.  REAL GOOD: the known-good `-mobile-` sibling from the same batch
+ *       passes all three framing rules, and scores content coverage 1.0
+ *       despite having transient flat UI frames mid-clip — the regression
+ *       against false positives.
+ *   8.  SYNTHETIC letterbox (black bars) and pillarbox (WHITE bars) both fail
+ *       content_fills_frame. The white case is the one ffmpeg's `cropdetect`
+ *       would score as a full frame; Dossie's palette is light, so it is a
+ *       realistic failure, not a contrived one.
+ *   9.  SYNTHETIC naive pad: a 16:9 source scaled and padded into a genuine
+ *       1080x1920 frame. It PASSES the aspect rule and FAILS coverage —
+ *       this is the "just add a scale filter" wrong fix, and the test exists
+ *       to make sure it can never ship.
+ *   10. opening_not_login_or_empty: when vision reports a login opening, the
+ *       gate fails with exactly that rule and surfaces the disqualifier.
+ *
  * Run manually:
  *   node scripts/regression-video-quality-gate.js
  */
@@ -138,6 +171,7 @@ async function makeGoodFixture(tmpDir) {
     visionResponder: (promptText) => {
       if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mocked', reason: 'mock' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
       return { frames_with_captions: 3, reason: 'mock' };
     },
     supabaseState: { patches: [] },
@@ -173,6 +207,7 @@ async function makeGoodFixture(tmpDir) {
     visionResponder: (promptText) => {
       if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'ONE GUY BUILT THIS', reason: 'clear bold hook text' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'text gone by frame 2' };
+      if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'populated dashboard', disqualifier: 'none', reason: 'opens on real content' };
       return { frames_with_captions: 3, reason: 'captions visible in all 3 samples' };
     },
     supabaseState: { patches: [] },
@@ -201,6 +236,7 @@ async function makeGoodFixture(tmpDir) {
     visionResponder: (promptText) => {
       if (promptText.includes('hook_visible')) return { hook_visible: false, text_seen: '', reason: 'no legible hook text' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
       return { frames_with_captions: 3, reason: 'mock' };
     },
     supabaseState: { patches: [] },
@@ -214,6 +250,153 @@ async function makeGoodFixture(tmpDir) {
   });
   check('failedRules contains exactly hook_visible_frame0', () => {
     assert.deepStrictEqual(noHookResult.failedRules, ['hook_visible_frame0']);
+  });
+
+  // ── Test 6-9: full-bleed framing rules (2026-09-16 stage-checklist incident) ──
+  //
+  // Negative fixture is the REAL video that shipped broken on 2026-09-15:
+  // feature-demo-stage-checklist-desktop-2026-09-07.mp4, the one whose caption
+  // Heath screenshotted off the live feed ("Every deal stage has its own
+  // checklist..."). It is fetched from the public Supabase bucket it was
+  // actually published from, so this test measures the exact bytes that went
+  // out, not a reconstruction. Cached under tmp so repeat runs are offline.
+  console.log('\nTest 6-9: full-bleed framing rules vs the real 2026-09-15 bad video');
+
+  const REAL_BAD_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/video-library/feature-demo-stage-checklist-desktop-2026-09-07.mp4';
+  const REAL_GOOD_URL = 'https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/video-library/feature-demo-contract-scan-mobile-2026-09-07.mp4';
+  const fixtureCache = path.join(os.tmpdir(), 'dossie-video-framing-fixtures');
+  fs.mkdirSync(fixtureCache, { recursive: true });
+
+  async function cachedFixture(url, name) {
+    const dest = path.join(fixtureCache, name);
+    if (fs.existsSync(dest) && fs.statSync(dest).size > 0) return dest;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`could not fetch framing fixture ${name}: HTTP ${res.status} from ${url}`);
+    fs.writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
+    return dest;
+  }
+
+  let realBad; let realGood;
+  try {
+    realBad = await cachedFixture(REAL_BAD_URL, 'stage-checklist-desktop-BAD.mp4');
+    realGood = await cachedFixture(REAL_GOOD_URL, 'contract-scan-mobile-GOOD.mp4');
+  } catch (err) {
+    console.error(`FATAL: ${err.message}\nThese are the real published files the framing rules were derived from; ` +
+      'without them this regression proves nothing. Not skipping — failing loudly instead.');
+    process.exit(1);
+  }
+
+  // Synthetic negatives for the padding failure modes that the real file does
+  // NOT exhibit — including the "just add a scale filter" wrong fix, which is
+  // correctly 9:16 and still 67% dead bars.
+  const letterboxed = path.join(tmpDir, 'synthetic-letterboxed.mp4');
+  const pillarboxWhite = path.join(tmpDir, 'synthetic-pillarbox-white.mp4');
+  const naivePad = path.join(tmpDir, 'synthetic-naive-pad-16x9-into-9x16.mp4');
+  await execFileAsync('ffmpeg', ['-y', '-v', 'error', '-i', realGood, '-t', '12',
+    '-vf', 'scale=1080:1215,pad=1080:1920:0:352:black', '-c:v', 'libx264', '-preset', 'ultrafast', '-an', letterboxed]);
+  await execFileAsync('ffmpeg', ['-y', '-v', 'error', '-i', realGood, '-t', '12',
+    '-vf', 'scale=600:1067,pad=1080:1920:240:426:white', '-c:v', 'libx264', '-preset', 'ultrafast', '-an', pillarboxWhite]);
+  await execFileAsync('ffmpeg', ['-y', '-v', 'error', '-i', realBad, '-t', '12',
+    '-vf', 'scale=1080:608,pad=1080:1920:0:656:black', '-c:v', 'libx264', '-preset', 'ultrafast', '-an', naivePad]);
+
+  const allGoodVision = {
+    visionResponder: (promptText) => {
+      if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mock', reason: 'mock' };
+      if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
+      return { frames_with_captions: 3, reason: 'mock' };
+    },
+    supabaseState: { patches: [] },
+    telegramSent: [],
+  };
+
+  const restoreFraming = installFetchMock(allGoodVision);
+  const realBadResult = await checkVideoQuality({ videoPath: realBad, coverPath: realBad });
+  const realGoodResult = await checkVideoQuality({ videoPath: realGood, coverPath: realGood });
+  const letterboxResult = await checkVideoQuality({ videoPath: letterboxed, coverPath: letterboxed });
+  const pillarboxResult = await checkVideoQuality({ videoPath: pillarboxWhite, coverPath: pillarboxWhite });
+  const naivePadResult = await checkVideoQuality({ videoPath: naivePad, coverPath: naivePad });
+  restoreFraming();
+
+  // Test 6 — the real shipped defect.
+  check('REAL BAD (stage-checklist): aspect_ratio_vertical_9x16 fails on the measured 1920x1080', () => {
+    assert.strictEqual(realBadResult.rules.aspect_ratio_vertical_9x16.pass, false);
+    assert.strictEqual(realBadResult.detail.resolution, '1920x1080');
+    assert.ok(Math.abs(realBadResult.detail.aspect_ratio - 1.7778) < 0.001,
+      `expected 16:9 (1.7778), got ${realBadResult.detail.aspect_ratio}`);
+  });
+  check('REAL BAD (stage-checklist): first_frame_not_uniform fails — frame 0 measured spread 0 (solid white)', () => {
+    assert.strictEqual(realBadResult.rules.first_frame_not_uniform.pass, false);
+    assert.strictEqual(realBadResult.detail.first_frame_luma_spread, 0,
+      `expected a perfectly uniform frame 0, got spread ${realBadResult.detail.first_frame_luma_spread}`);
+  });
+  check('REAL BAD (stage-checklist): overall pass=false even with every vision rule mocked to pass', () => {
+    assert.ok(realBadResult.rules.hook_visible_frame0.pass && realBadResult.rules.opening_not_login_or_empty.pass,
+      'expected mocked vision rules to pass for this assertion to be meaningful');
+    assert.strictEqual(realBadResult.pass, false);
+    assert.ok(realBadResult.failedRules.includes('aspect_ratio_vertical_9x16'));
+    assert.ok(realBadResult.failedRules.includes('first_frame_not_uniform'));
+  });
+
+  // Test 7 — the known-good sibling from the same batch must NOT regress.
+  check('REAL GOOD (contract-scan-mobile): all three framing rules pass — no false positive', () => {
+    assert.strictEqual(realGoodResult.detail.resolution, '1080x1920');
+    assert.strictEqual(realGoodResult.rules.aspect_ratio_vertical_9x16.pass, true);
+    assert.strictEqual(realGoodResult.rules.content_fills_frame.pass, true,
+      `coverage was ${realGoodResult.detail.content_coverage}`);
+    assert.strictEqual(realGoodResult.rules.first_frame_not_uniform.pass, true);
+  });
+  check('REAL GOOD: measured content coverage is 1.0 despite transient flat UI frames mid-clip', () => {
+    assert.strictEqual(realGoodResult.detail.content_coverage, 1,
+      `persistent-bar intersection should score a full-bleed recording 1.0, got ${realGoodResult.detail.content_coverage}`);
+  });
+
+  // Test 8 — baked-in padding, black AND white bars.
+  check('SYNTHETIC letterbox (black bars): content_fills_frame fails, coverage well under 0.85', () => {
+    assert.strictEqual(letterboxResult.rules.content_fills_frame.pass, false);
+    assert.ok(letterboxResult.detail.content_coverage < 0.7,
+      `expected heavy letterbox, measured ${letterboxResult.detail.content_coverage}`);
+  });
+  check('SYNTHETIC pillarbox (WHITE bars): content_fills_frame fails — colour-agnostic, cropdetect would miss this', () => {
+    assert.strictEqual(pillarboxResult.rules.content_fills_frame.pass, false);
+    assert.ok(pillarboxResult.detail.content_coverage < 0.5,
+      `expected heavy white pillarbox, measured ${pillarboxResult.detail.content_coverage}`);
+    assert.ok(pillarboxResult.detail.persistent_bars.left > 0 && pillarboxResult.detail.persistent_bars.right > 0,
+      'expected left/right bars to be located');
+  });
+
+  // Test 9 — the wrong fix must not pass.
+  check('SYNTHETIC naive pad (16:9 scaled into a 9:16 frame): passes aspect but FAILS coverage', () => {
+    assert.strictEqual(naivePadResult.rules.aspect_ratio_vertical_9x16.pass, true,
+      'naive pad is genuinely 1080x1920, so the aspect rule alone cannot catch it — that is the point of this case');
+    assert.strictEqual(naivePadResult.rules.content_fills_frame.pass, false);
+    assert.ok(naivePadResult.detail.content_coverage < 0.5,
+      `expected ~0.33 coverage, measured ${naivePadResult.detail.content_coverage}`);
+  });
+
+  // Test 10 — the vision rule that catches the login opening.
+  console.log('\nTest 10: opening_not_login_or_empty is wired into the verdict');
+  const restoreLoginVision = installFetchMock({
+    visionResponder: (promptText) => {
+      if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mock', reason: 'mock' };
+      if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) {
+        return { opening_meaningful: false, screen_seen: 'Frame A blank white; Frame B the Dossie sign-in page', disqualifier: 'login', reason: 'opens on the login screen' };
+      }
+      return { frames_with_captions: 3, reason: 'mock' };
+    },
+    supabaseState: { patches: [] },
+    telegramSent: [],
+  });
+  const loginOpenResult = await checkVideoQuality({ videoPath: goodVideo, coverPath: goodCover });
+  restoreLoginVision();
+
+  check('vision reporting a login opening fails the gate and is the only failed rule', () => {
+    assert.strictEqual(loginOpenResult.pass, false);
+    assert.deepStrictEqual(loginOpenResult.failedRules, ['opening_not_login_or_empty']);
+  });
+  check('the disqualifier is surfaced in detail for the Telegram alert', () => {
+    assert.strictEqual(loginOpenResult.detail.opening_disqualifier, 'login');
   });
 
   // ── Test 5: gateBeforePublish() ───────────────────────────────────────────

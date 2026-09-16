@@ -26,6 +26,16 @@
 //                                 rejected Rust videos.
 //   - resolution_readable         ffprobe can read a non-zero width/height
 //                                 (corrupt-file guard).
+//   - aspect_ratio_vertical_9x16  the frame really is 9:16 (0.5625 ±0.02).
+//                                 Added 2026-09-16 — a 1920x1080 landscape
+//                                 file passes every other rule and then gets
+//                                 letterboxed into ~80% black by the platform.
+//   - content_fills_frame         real content occupies >=85% of the frame;
+//                                 no persistent letterbox/pillarbox bars, of
+//                                 ANY colour (white bars matter here, Dossie's
+//                                 palette is light). Added 2026-09-16.
+//   - first_frame_not_uniform     frame 0 is not a blank/solid splash.
+//                                 Added 2026-09-16.
 //   - cover_asset_present         an explicit cover file/URL was supplied
 //                                 and is non-empty.
 //
@@ -36,6 +46,12 @@
 //                                 frame 0.0s.
 //   - hook_cleared_by_3s          that same hook text has cleared off the
 //                                 footage by ~3s (frame 0 vs frame ~3s).
+//   - opening_not_login_or_empty  frames 0.0s and 1.5s show neither a
+//                                 login/sign-in screen nor a blank/empty/
+//                                 loading state. Added 2026-09-16: both bad
+//                                 videos opened on Dossie's sign-in page, one
+//                                 with the demo account's credentials filled
+//                                 in and visible.
 //   - captions_present            burned-in captions legible across 3
 //                                 sample points through the runtime.
 //
@@ -90,6 +106,54 @@ const MOTION_SSIM_FAIL_THRESHOLD = 0.999;
 
 const HOOK_CLEAR_SAMPLE_T = 3.0;
 const CAPTION_SAMPLE_FRACTIONS = [0.25, 0.5, 0.75];
+
+// ── Full-bleed framing rules (added 2026-09-16 after the stage-checklist incident) ──
+//
+// WHY: feature-demo-stage-checklist-desktop-2026-09-07.mp4 and
+// feature-demo-close-day-desktop-2026-09-07.mp4 shipped to Facebook/LinkedIn/
+// Twitter on 2026-09-15 at 1920x1080 (landscape 16:9). Facebook renders those
+// surfaces as vertical Reels, so it letterboxed our 16:9 file into a 9:16
+// frame — Heath saw a thin horizontal strip with ~80% black around it. The
+// gate at the time had only `resolution_readable` (a corrupt-file guard),
+// which a perfectly-valid 1920x1080 file passes. Nothing in the pipeline ever
+// asserted the SHAPE of the frame.
+//
+// Target is 9:16 = 0.5625. Measured on the real files: the four good
+// `-mobile-` variants are exactly 1080x1920 (0.5625); the two bad `-desktop-`
+// variants are 1920x1080 (1.7778). Tolerance is deliberately tight (±0.02,
+// which still admits 1080x1912..1080x1928) because there is no legitimate
+// reason for a short-form vertical post to drift off 9:16.
+const TARGET_ASPECT_RATIO = 9 / 16; // 0.5625
+const ASPECT_RATIO_TOLERANCE = 0.02;
+
+// Persistent-bar content coverage. A letterboxed/pillarboxed file wastes frame
+// on uniform bars; we require real content to occupy >= 85% of the frame area.
+//
+// Measured against real fixtures (scripts/regression-video-quality-gate.js):
+//   all 6 real feature-demo videos ......... 1.0000  (no persistent bars)
+//   synthetic black letterbox .............. 0.6328
+//   synthetic 16:9-naively-padded-to-9:16 .. 0.3281
+//   synthetic WHITE pillarbox .............. 0.3120
+// 0.85 separates those two clusters with wide margin.
+//
+// Bars are detected on a normalised 128x128 grayscale grid, which makes the
+// measurement resolution-independent and — unlike ffmpeg's `cropdetect` —
+// colour-agnostic. That matters: Dossie's brand is a light/blush palette, so a
+// WHITE pillarbox is a realistic failure that black-only cropdetect scores as
+// a full frame. Bars are intersected across 5 sample points spread through the
+// runtime, so only padding present in EVERY frame counts. A single transient
+// flat UI screen (a loading state, a mostly-white modal) does not trip it —
+// two of the four known-good mobile videos DO hit ~0.59 on one isolated
+// sample, and the intersection correctly scores them 1.0.
+const CONTENT_COVERAGE_GRID = 128;
+const CONTENT_COVERAGE_FLAT_TOL = 6;      // luma spread within a row/col to call it "flat"
+const CONTENT_COVERAGE_SAMPLE_FRACTIONS = [0.15, 0.3, 0.45, 0.6, 0.8];
+const CONTENT_COVERAGE_MIN = 0.85;
+
+// First frame must carry information. The bad stage-checklist video's frame 0
+// was a PERFECTLY uniform white frame: luma min == max == 235, spread 0. Every
+// other real video measured a spread of 237-255. 24 sits far from both.
+const FIRST_FRAME_MIN_LUMA_SPREAD = 24;
 
 // ── Small fetch/telegram/supabase helpers (same shape as verify-image-match.js) ──
 
@@ -165,6 +229,89 @@ async function ffprobeResolution(localPath) {
   const [w, h] = String(stdout).trim().split('x').map(Number);
   if (!w || !h) throw new Error(`ffprobe returned no parseable resolution: "${stdout}"`);
   return { width: w, height: h };
+}
+
+// Decodes one frame, forced to a CONTENT_COVERAGE_GRID square of 8-bit
+// grayscale, straight to a Buffer (no temp file, no image decoder dependency).
+//
+// Squashing to a fixed square is deliberate and safe for bar detection:
+// scaling is linear, so a bar occupying 18% of the source height still
+// occupies 18% of the grid's rows. That makes every measurement below a pure
+// fraction of the frame, independent of the source resolution.
+async function grayGridAt(localVideoPath, atSeconds) {
+  const g = CONTENT_COVERAGE_GRID;
+  const { stdout } = await execFileAsync(
+    'ffmpeg',
+    [
+      '-v', 'error', '-ss', String(Math.max(0, atSeconds)), '-i', localVideoPath,
+      '-frames:v', '1', '-vf', `scale=${g}:${g},format=gray`,
+      '-f', 'rawvideo', '-pix_fmt', 'gray', '-',
+    ],
+    { encoding: 'buffer', maxBuffer: 1 << 22 },
+  );
+  if (!stdout || stdout.length < g * g) {
+    throw new Error(`ffmpeg returned ${stdout ? stdout.length : 0} bytes, expected ${g * g}`);
+  }
+  return stdout;
+}
+
+// Counts uniform ("flat") rows/columns inwards from each edge of one frame.
+function detectBars(grid) {
+  const g = CONTENT_COVERAGE_GRID;
+  const tol = CONTENT_COVERAGE_FLAT_TOL;
+  const rowFlat = (r) => {
+    let mn = 255; let mx = 0;
+    for (let c = 0; c < g; c++) { const v = grid[r * g + c]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    return mx - mn <= tol;
+  };
+  const colFlat = (c) => {
+    let mn = 255; let mx = 0;
+    for (let r = 0; r < g; r++) { const v = grid[r * g + c]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    return mx - mn <= tol;
+  };
+  let top = 0; while (top < g && rowFlat(top)) top++;
+  let bottom = 0; while (bottom < g - top && rowFlat(g - 1 - bottom)) bottom++;
+  let left = 0; while (left < g && colFlat(left)) left++;
+  let right = 0; while (right < g - left && colFlat(g - 1 - right)) right++;
+  return { top, bottom, left, right };
+}
+
+// Fraction of the frame occupied by real content, counting only bars that
+// persist across EVERY sample point (see CONTENT_COVERAGE_MIN's note on why
+// the intersection matters). Returns { coverage, bars, samples }.
+async function analyzePersistentCoverage(localVideoPath, durationSeconds) {
+  const g = CONTENT_COVERAGE_GRID;
+  const d = Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : null;
+  const times = d
+    ? CONTENT_COVERAGE_SAMPLE_FRACTIONS.map((frac) => Math.min(d - 0.05, Math.max(0.05, d * frac)))
+    : [0.5, 1.0, 1.5, 2.0, 2.5];
+
+  const samples = [];
+  for (const t of times) {
+    // eslint-disable-next-line no-await-in-loop
+    samples.push(detectBars(await grayGridAt(localVideoPath, t)));
+  }
+  if (!samples.length) throw new Error('no frames could be sampled for coverage');
+
+  const bars = {
+    top: Math.min(...samples.map((s) => s.top)),
+    bottom: Math.min(...samples.map((s) => s.bottom)),
+    left: Math.min(...samples.map((s) => s.left)),
+    right: Math.min(...samples.map((s) => s.right)),
+  };
+  const hFrac = (g - bars.top - bars.bottom) / g;
+  const wFrac = (g - bars.left - bars.right) / g;
+  return { coverage: Math.max(0, hFrac) * Math.max(0, wFrac), bars, samples };
+}
+
+// Luma min/max across a single frame, via ffmpeg's signalstats. A perfectly
+// uniform frame (blank white splash, solid black, an empty page) returns a
+// spread of 0.
+async function frameLumaSpread(localVideoPath, atSeconds) {
+  const grid = await grayGridAt(localVideoPath, atSeconds);
+  let mn = 255; let mx = 0;
+  for (let i = 0; i < grid.length; i++) { const v = grid[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+  return { min: mn, max: mx, spread: mx - mn };
 }
 
 async function extractFrame(localVideoPath, atSeconds, outPngPath) {
@@ -259,6 +406,23 @@ Frame A should show a bold hook-text overlay. By Frame B, has that same hook-tex
 Respond with JSON only, no markdown fences:
 {"hook_cleared": true or false, "reason": "one sentence describing what changed (or didn't) between the two frames"}`;
 
+// Added 2026-09-16. The two bad desktop feature-demo videos spent their first
+// ~3 seconds sitting on the Dossie sign-in page — one of them with the demo
+// account's email and password visibly filled in. A product demo must open on
+// the product doing something, never on the front door.
+const OPENING_MEANINGFUL_PROMPT = `These are two frames from the very start of a short-form product-demo video: Frame A is time 0.0s, Frame B is roughly 1.5s in.
+
+A product demo must open on a meaningful moment — actual product content, real data, a populated screen. It must NOT open on any of these:
+- a login / sign-in / sign-up / "welcome back" / password / magic-link / authentication screen
+- a blank, near-blank, or solid-colour frame
+- an empty state, a bare logo splash, or a "no data yet" placeholder
+- a loading screen, skeleton placeholder, or spinner
+
+Judge the TWO frames together: if EITHER frame shows one of the disqualifying screens above, the opening is bad.
+
+Respond with JSON only, no markdown fences:
+{"opening_meaningful": true or false, "screen_seen": "short description of what each frame shows", "disqualifier": "login|blank|empty_state|loading|none", "reason": "one sentence"}`;
+
 const CAPTIONS_PRESENT_PROMPT = `These are 3 frames sampled across a short-form video's runtime (roughly 25%, 50%, and 75% of the way through), in that order.
 
 For EACH frame, is there a legible burned-in caption/subtitle (word-level or line-level on-screen text synced to speech, NOT a title card, NOT a logo/watermark) visible on screen?
@@ -306,6 +470,11 @@ async function checkVideoQuality(opts = {}) {
         duration_seconds: detail.duration_seconds ?? null,
         resolution: detail.resolution ?? null,
         motion_ssim: detail.motion_ssim ?? null,
+        aspect_ratio: detail.aspect_ratio ?? null,
+        content_coverage: detail.content_coverage ?? null,
+        persistent_bars: detail.persistent_bars ?? null,
+        first_frame_luma_spread: detail.first_frame_luma_spread ?? null,
+        opening_disqualifier: detail.opening_disqualifier ?? null,
       },
     };
   };
@@ -365,13 +534,68 @@ async function checkVideoQuality(opts = {}) {
     addRule('real_motion_0_to_1_5s', { pass: false, note: `motion check failed (fail-closed): ${err.message}` });
   }
 
-  // 3. Resolution sanity (corrupt-file guard).
+  // 3. Resolution sanity (corrupt-file guard) + 3b. the frame is actually 9:16.
+  let resolutionOk = false;
   try {
     const { width, height } = await ffprobeResolution(localVideo);
     detail.resolution = `${width}x${height}`;
+    resolutionOk = true;
     addRule('resolution_readable', { pass: true, note: detail.resolution });
+
+    const ratio = width / height;
+    detail.aspect_ratio = Math.round(ratio * 1e4) / 1e4;
+    const delta = Math.abs(ratio - TARGET_ASPECT_RATIO);
+    const pass = delta <= ASPECT_RATIO_TOLERANCE;
+    addRule('aspect_ratio_vertical_9x16', {
+      pass,
+      note: pass
+        ? `${detail.resolution} (${detail.aspect_ratio}) is 9:16 full-bleed vertical`
+        : `${detail.resolution} has aspect ratio ${detail.aspect_ratio}, not 9:16 (${Math.round(TARGET_ASPECT_RATIO * 1e4) / 1e4} ±${ASPECT_RATIO_TOLERANCE}). ${ratio > 1 ? 'This is a LANDSCAPE file — Facebook/Instagram/TikTok will letterbox it into a vertical Reel with black bars (the 2026-09-15 stage-checklist defect).' : 'Off-target vertical frame.'}`,
+    });
   } catch (err) {
     addRule('resolution_readable', { pass: false, note: `ffprobe resolution failed (fail-closed): ${err.message}` });
+    addRule('aspect_ratio_vertical_9x16', { pass: false, note: `cannot verify aspect ratio without a readable resolution (fail-closed): ${err.message}` });
+  }
+
+  // 3c. Content actually fills the frame — no baked-in letterbox/pillarbox.
+  // Complements the aspect-ratio rule: a 16:9 source naively padded to
+  // 1080x1920 passes 9:16 but is still 66% dead bars, which is exactly the
+  // wrong "fix" for this defect.
+  try {
+    if (!resolutionOk) throw new Error('resolution unreadable — coverage would be meaningless');
+    const { coverage, bars } = await analyzePersistentCoverage(localVideo, duration);
+    detail.content_coverage = Math.round(coverage * 1e4) / 1e4;
+    detail.persistent_bars = bars;
+    const pass = coverage >= CONTENT_COVERAGE_MIN;
+    const barDesc = [
+      bars.top ? `top ${Math.round((bars.top / CONTENT_COVERAGE_GRID) * 100)}%` : null,
+      bars.bottom ? `bottom ${Math.round((bars.bottom / CONTENT_COVERAGE_GRID) * 100)}%` : null,
+      bars.left ? `left ${Math.round((bars.left / CONTENT_COVERAGE_GRID) * 100)}%` : null,
+      bars.right ? `right ${Math.round((bars.right / CONTENT_COVERAGE_GRID) * 100)}%` : null,
+    ].filter(Boolean).join(', ');
+    addRule('content_fills_frame', {
+      pass,
+      note: pass
+        ? `content occupies ${(detail.content_coverage * 100).toFixed(1)}% of the frame (min ${CONTENT_COVERAGE_MIN * 100}%)`
+        : `content occupies only ${(detail.content_coverage * 100).toFixed(1)}% of the frame (min ${CONTENT_COVERAGE_MIN * 100}%) — persistent uniform bars: ${barDesc || 'none located'}. The video is letterboxed/pillarboxed.`,
+    });
+  } catch (err) {
+    addRule('content_fills_frame', { pass: false, note: `coverage check failed (fail-closed): ${err.message}` });
+  }
+
+  // 3d. Frame 0 carries information (not a blank/solid splash).
+  try {
+    const { min, max, spread } = await frameLumaSpread(localVideo, 0);
+    detail.first_frame_luma_spread = spread;
+    const pass = spread >= FIRST_FRAME_MIN_LUMA_SPREAD;
+    addRule('first_frame_not_uniform', {
+      pass,
+      note: pass
+        ? `frame 0 luma spread ${spread} (min ${min}, max ${max}) — frame carries content`
+        : `frame 0 is near-uniform: luma spread ${spread} (min ${min}, max ${max}), below ${FIRST_FRAME_MIN_LUMA_SPREAD}. This is a blank opening frame — the exact defect in feature-demo-stage-checklist-desktop-2026-09-07 (spread 0, solid white).`,
+    });
+  } catch (err) {
+    addRule('first_frame_not_uniform', { pass: false, note: `first-frame uniformity check failed (fail-closed): ${err.message}` });
   }
 
   // 4. Cover asset present (docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md §3 — every
@@ -398,10 +622,12 @@ async function checkVideoQuality(opts = {}) {
   if (!frame0Path) {
     addRule('hook_visible_frame0', { pass: false, note: 'skipped — frame 0 could not be extracted, see real_motion_0_to_1_5s' });
     addRule('hook_cleared_by_3s', { pass: false, note: 'skipped — frame 0 could not be extracted' });
+    addRule('opening_not_login_or_empty', { pass: false, note: 'skipped — frame 0 could not be extracted' });
     addRule('captions_present', { pass: false, note: 'skipped — frame 0 could not be extracted' });
   } else if (!ANTHROPIC_API_KEY) {
     addRule('hook_visible_frame0', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
     addRule('hook_cleared_by_3s', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
+    addRule('opening_not_login_or_empty', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
     addRule('captions_present', { pass: false, note: 'ANTHROPIC_API_KEY not set — cannot run vision check (fail-closed)' });
   } else {
     let frame0B64 = null;
@@ -437,6 +663,35 @@ async function checkVideoQuality(opts = {}) {
       addRule('hook_cleared_by_3s', { pass: result.hook_cleared === true, note: result.reason || '' });
     } catch (err) {
       addRule('hook_cleared_by_3s', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+    }
+
+    // Opening is a meaningful moment — not a login page, blank, or empty state.
+    // Uses frame 0 plus a frame at MOTION_SAMPLE_T (1.5s), because the
+    // 2026-09-15 defect was a blank frame 0 followed by the sign-in page: one
+    // frame alone would have missed one half of it.
+    try {
+      if (!frame0B64) throw new Error('frame 0 unavailable');
+      const openingT = duration ? Math.min(MOTION_SAMPLE_T, Math.max(0.1, duration - 0.1)) : MOTION_SAMPLE_T;
+      const openingPath = path.join(tmpDir, `qgate-open-${process.pid}-${Date.now()}.png`);
+      cleanupFns.push(async () => fs.promises.unlink(openingPath).catch(() => {}));
+      await extractFrame(localVideo, openingT, openingPath);
+      const openingB64 = await pngBase64(openingPath);
+      const result = await callVisionModel(
+        [
+          { base64: frame0B64, mimeType: mimeFromPath(frame0Path) },
+          { base64: openingB64, mimeType: mimeFromPath(openingPath) },
+        ],
+        OPENING_MEANINGFUL_PROMPT,
+      );
+      detail.opening_disqualifier = result.disqualifier || null;
+      addRule('opening_not_login_or_empty', {
+        pass: result.opening_meaningful === true,
+        note: result.opening_meaningful === true
+          ? `opening is meaningful — ${result.reason || ''}`
+          : `opening disqualified (${result.disqualifier || 'unknown'}): ${result.screen_seen || ''} — ${result.reason || ''}`,
+      });
+    } catch (err) {
+      addRule('opening_not_login_or_empty', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
     }
 
     // Captions present across the runtime.
@@ -525,4 +780,14 @@ module.exports = {
   TIKTOK_RANGE,
   IG_LOOP_RANGE,
   HARD_MAX_RUNTIME_S,
+  // Full-bleed framing rules (2026-09-16). Exported so
+  // scripts/regression-video-quality-gate.js asserts against the same
+  // constants the gate enforces, rather than hard-coding copies.
+  TARGET_ASPECT_RATIO,
+  ASPECT_RATIO_TOLERANCE,
+  CONTENT_COVERAGE_MIN,
+  FIRST_FRAME_MIN_LUMA_SPREAD,
+  // Measurement primitives, exported for the regression fixtures.
+  analyzePersistentCoverage,
+  frameLumaSpread,
 };
