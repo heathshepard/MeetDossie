@@ -122,14 +122,49 @@ async function markFailed(postId, reason) {
   console.error(`[fb-group-poster] Marked as failed (reset to approved): ${reason}`);
 }
 
+// The submit genuinely happened -- Facebook accepted the post and queued it
+// for a group admin to review before it appears in the feed. This is NOT a
+// posting failure and must never trip the shared circuit breaker (2026-09-14
+// incident: a44e8758 to "Realtors San Antonio, Boerne, Bulverde, New
+// Braunfels" landed in the group's moderation queue, got misread as a
+// verify failure, and silently halted comment + reply posting for ~24h).
+// posted_at IS stamped (a real submit occurred -- don't let the spacing gate
+// or dedupe treat this slot as free) but post_url stays null since there is
+// no live permalink to watch/comment on yet.
+async function markPendingApproval(postId, groupRegistryId) {
+  const now = new Date().toISOString();
+
+  await supabaseFetch(`/rest/v1/group_posts?id=eq.${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ status: 'pending_admin_approval', posted_at: now, post_url: null }),
+  });
+
+  if (groupRegistryId) {
+    await supabaseFetch(`/rest/v1/group_registry?id=eq.${encodeURIComponent(groupRegistryId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ last_posted_at: now }),
+    });
+  }
+}
+
+// ─── Pending-admin-approval detection ─────────────────────────────────────────
+// See scripts/_lib/fb-pending-approval-detect.js for the pattern list and
+// rationale (extracted so it's testable without launching a browser).
+
+const { detectPendingApproval } = require('./_lib/fb-pending-approval-detect');
+
 // ─── Telegram confirmation ────────────────────────────────────────────────────
 
-async function sendTelegramConfirmation(groupName, postBody, success, errorMsg) {
+async function sendTelegramConfirmation(groupName, postBody, success, errorMsg, statusLabel) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
 
   const preview = String(postBody || '').slice(0, 100);
   const text = success
-    ? `Posted to ${groupName}\n\n${preview}...`
+    ? (statusLabel
+      ? `Submitted to ${groupName} (${statusLabel})\n\n${preview}...`
+      : `Posted to ${groupName}\n\n${preview}...`)
     : `Failed to post to ${groupName}: ${errorMsg}`;
 
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -450,8 +485,20 @@ async function postToGroup(post) {
     // Wait up to 30s for the post to appear (poll for success)
     console.log('[fb-group-poster] Waiting for post confirmation...');
     let posted = false;
+    let pendingApproval = false;
     for (let i = 0; i < 10; i++) {
       await page.waitForTimeout(3000);
+
+      // Check for the group's "sent to admins for approval" notice FIRST --
+      // this can show up either before or after the composer closes, and it
+      // is a successful submit, not a failure. Must not fall through to the
+      // generic error-alert check below, which would misread it as one.
+      if (await detectPendingApproval(page)) {
+        posted = true;
+        pendingApproval = true;
+        console.log('[fb-group-poster] Post submitted but requires group admin approval (pending_admin_approval) -- not a failure');
+        break;
+      }
 
       // Check if the composer closed (success indicator)
       const composerGone = !(await page.locator('div[contenteditable="true"]').isVisible().catch(() => false));
@@ -474,6 +521,12 @@ async function postToGroup(post) {
       // Best-effort: assume it posted if no error after 30s
       console.warn('[fb-group-poster] Could not confirm post - no error shown, assuming success');
       posted = true;
+    }
+
+    if (pendingApproval) {
+      // No permalink exists yet (post isn't in the feed until a mod
+      // approves it) and there's nothing to attach a first comment to.
+      return { status: 'pending_admin_approval', postUrl: null };
     }
 
     // Try to capture the post permalink from the feed.
@@ -501,10 +554,18 @@ async function postToGroup(post) {
       console.warn('[fb-group-poster] Could not capture post permalink:', err.message);
     }
 
-    // Fallback: use group URL so the comment monitor can at least navigate there
+    // Fallback: use group URL so the comment monitor can at least navigate
+    // there. NOT SILENT (2026-09-15, Heath) — this used to report full
+    // success with no signal that the row is now unharvestable (post_url
+    // points at the group homepage, not the post; comments on it can never
+    // be scraped by scripts/harvest-tc-discovery-responses.js, which
+    // hard-excludes any post_url without a real /posts/<id> segment). The
+    // caller surfaces permalinkCaptured=false in the Telegram confirmation.
+    let permalinkCaptured = true;
     if (!postUrl) {
       postUrl = post.group_url;
-      console.log('[fb-group-poster] Permalink not found — falling back to group URL');
+      permalinkCaptured = false;
+      console.warn('[fb-group-poster] Permalink not found — falling back to group URL; this post will NOT be auto-harvestable for comments');
     }
 
     // Post first comment if needed (keeps page open)
@@ -524,7 +585,7 @@ async function postToGroup(post) {
       }
     }
 
-    return postUrl;
+    return { status: 'posted', postUrl, permalinkCaptured };
   } finally {
     await context.close();
   }
@@ -585,20 +646,23 @@ async function main() {
   console.log(`[fb-group-poster] Posting to "${post.group_name}" (${post.group_url})`);
   console.log(`[fb-group-poster] Template: ${post.template_id} | Pillar: ${post.pillar}`);
 
-  let postUrl = null;
+  let result = null;
   let errorMsg = null;
 
   try {
-    postUrl = await postToGroup(post);
+    result = await postToGroup(post);
   } catch (err) {
     errorMsg = err.message;
     console.error('[fb-group-poster] Playwright error:', err.message);
   }
 
-  if (postUrl) {
-    await markPosted(POST_ID, post.group_registry_id, postUrl);
-    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${postUrl}`);
-    await sendTelegramConfirmation(post.group_name, post.post_body, true, null);
+  if (result && result.status === 'posted' && result.postUrl) {
+    await markPosted(POST_ID, post.group_registry_id, result.postUrl);
+    console.log(`[fb-group-poster] Success - updated status to "posted", post_url: ${result.postUrl}`);
+    const statusLabel = result.permalinkCaptured === false
+      ? 'permalink NOT captured — comments on this post cannot be auto-harvested'
+      : null;
+    await sendTelegramConfirmation(post.group_name, post.post_body, true, null, statusLabel);
 
     // Part 2 (comment_watchlist, Sage 2026-08-28): "heath_own_post" direction.
     // Fires automatically on a real confirmed post -- fb-group-poster.js is
@@ -608,8 +672,16 @@ async function main() {
     // daily5 pipeline (api/_lib/daily-group5-post-generator.js) -- same
     // markPosted path, no separate wiring needed.
     const { registerGroupPostWatch } = require('./_lib/group-post-watchlist');
-    await registerGroupPostWatch(supabaseFetch, post, POST_ID, postUrl)
+    await registerGroupPostWatch(supabaseFetch, post, POST_ID, result.postUrl)
       .catch((err) => console.warn('[fb-group-poster] comment_watchlist insert non-fatal:', err && err.message));
+  } else if (result && result.status === 'pending_admin_approval') {
+    // Genuine submit -- Facebook queued it for a group admin's review. This
+    // is a SUCCESSFUL run (exit 0), not a failure: the queue-runner reads
+    // this status back and must not treat it as a verify failure / halt the
+    // shared circuit breaker. No live post_url yet, so no watchlist entry.
+    await markPendingApproval(POST_ID, post.group_registry_id);
+    console.log('[fb-group-poster] Submitted - status "pending_admin_approval" (awaiting a group admin, not a failure)');
+    await sendTelegramConfirmation(post.group_name, post.post_body, true, null, 'pending admin approval');
   } else {
     await markFailed(POST_ID, errorMsg || 'unknown error');
     await sendTelegramConfirmation(post.group_name, post.post_body, false, errorMsg);

@@ -126,7 +126,7 @@ async function main() {
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key-not-real';
 
   const harvester = require(path.join(__dirname, 'harvest-tc-discovery-responses.js'));
-  const { isDue, inferQuestionId, upsertComments, recordHarvestPass } = harvester;
+  const { isDue, hasRealPermalink, inferQuestionId, upsertComments, recordHarvestPass, fetchCampaignPosts } = harvester;
 
   const post = {
     id: 'post-uuid-1',
@@ -137,6 +137,7 @@ async function main() {
     discovery_question_id: null,
     last_harvested_at: null,
     harvest_count: 0,
+    status: 'posted',
   };
   db.group_posts.push({ ...post });
 
@@ -223,7 +224,27 @@ async function main() {
     assert.ok(!src.includes(forbidden), `harvester source must not contain ${forbidden} (read-only guarantee)`);
   }
 
-  console.log('PASS: tc-discovery harvest idempotency + verbatim + cadence + read-only (7 groups, all assertions green)');
+  // 8. SCOPE WIDENED 2026-09-15: fetchCampaignPosts() must NOT filter by
+  // category anymore — the exact bug that left 4 of the last 10 posted
+  // group_posts (daily5/listing-groups/heath_realtor_listing) with
+  // harvest_count=0 forever, invisible and never scanned.
+  db.group_posts.push(
+    { id: 'post-daily5', group_name: 'DFW Realtors', post_url: 'https://www.facebook.com/groups/1/posts/2/', post_body: 'a daily5 post', posted_at: '2026-09-10T00:00:00Z', category: 'daily5', discovery_question_id: null, last_harvested_at: null, harvest_count: 0, status: 'posted' },
+    { id: 'post-listing', group_name: 'Stone Oak Neighborhood', post_url: 'https://www.facebook.com/groups/14695971124/', post_body: 'a listing-groups post', posted_at: '2026-09-14T00:00:00Z', category: 'listing-groups', discovery_question_id: null, last_harvested_at: null, harvest_count: 0, status: 'posted' },
+  );
+  const scanned = await fetchCampaignPosts(null);
+  assert.ok(scanned.some((p) => p.id === 'post-daily5'), 'fetchCampaignPosts includes a daily5-category row — no category filter');
+  assert.ok(scanned.some((p) => p.id === 'post-listing'), 'fetchCampaignPosts includes a listing-groups-category row — no category filter');
+  assert.ok(scanned.some((p) => p.id === 'post-uuid-1'), 'fetchCampaignPosts still includes the original tc_discovery_research row');
+
+  // 9. PERMALINK VALIDITY GUARD: a bare group URL (fb-group-poster.js's
+  // permalink-capture-failed fallback) is never treated as a real post.
+  assert.strictEqual(hasRealPermalink('https://www.facebook.com/groups/531847711158328/posts/1792845771725176/'), true, 'real permalink recognized');
+  assert.strictEqual(hasRealPermalink('https://www.facebook.com/groups/14695971124/'), false, 'bare group URL (no /posts/<id>) rejected');
+  assert.strictEqual(hasRealPermalink(null), false, 'null post_url rejected');
+  assert.strictEqual(hasRealPermalink(''), false, 'empty post_url rejected');
+
+  console.log('PASS: tc-discovery harvest idempotency + verbatim + cadence + read-only + widened-scope + permalink-guard (9 groups, all assertions green)');
 }
 
 main()

@@ -2,12 +2,35 @@
 
 // scripts/harvest-tc-discovery-responses.js
 //
-// READ-ONLY harvester for the TC discovery campaign
-// (docs/TC-DISCOVERY-CAMPAIGN.md, "2026-09-07 EXPANSION"). Revisits every
-// posted campaign row in group_posts (category='tc_discovery_research',
-// status='posted', post_url set), renders the Facebook permalink in the
+// READ-ONLY harvester for comments on Heath's OWN posted Facebook group
+// posts, across EVERY pipeline/category — not just the TC discovery
+// campaign. Revisits every posted row in group_posts (status='posted',
+// post_url set to a real permalink), renders the Facebook permalink in the
 // DossieBot-Sage Chrome profile, expands the comment thread, and upserts
 // each comment VERBATIM into tc_discovery_responses.
+//
+// SCOPE WIDENED 2026-09-15 (Heath, urgent): this originally only scanned
+// category='tc_discovery_research' rows. Every other pipeline that posts
+// under Heath's name (daily5, listing-groups, heath_realtor_listing, and
+// any future category) was NEVER harvested — harvest_count stayed 0
+// forever, so real comments on those posts sat invisible and unanswered.
+// Found live: 4 of the last 10 posted group_posts rows (40%) were outside
+// the old scope. No category filter now — every posted row with a real
+// permalink is in scope. A `category`/`pipeline` value is informational
+// only (used for question inference on the TC campaign), never a filter.
+//
+// PERMALINK VALIDITY: post_url must contain a real /posts/<id> segment.
+// scripts/fb-group-poster.js has a fallback that stores the bare group URL
+// in post_url when it can't capture the true permalink within 3s of
+// posting (now surfaced to Heath via Telegram instead of silently — see
+// its own file). A bare group URL is a hard EXCLUDE here (never navigated
+// to) — scraping a group's live feed instead of one specific post would
+// either find nothing or contaminate tc_discovery_responses with unrelated
+// posts' comments (the exact failure the post-boundary gate below exists
+// to prevent). Excluded rows are logged and left for
+// api/_lib/silence-alarm.js's checkTcHarvestScopeGap() to alert on — this
+// script stays read-only scrape-and-log, no Telegram side channel of its
+// own.
 //
 // HARD RULES
 //   - Read-only against Facebook: the ONLY clicks are comment-expansion
@@ -114,14 +137,25 @@ async function supabaseFetch(urlPath, init = {}) {
 }
 
 async function fetchCampaignPosts(postId) {
+  // No category filter (2026-09-15) — every posted row with a permalink is
+  // in scope, regardless of which pipeline created it. --post-id bypasses
+  // even the status/post_url gate (matches pre-existing behavior) so a
+  // manual force-harvest can still reach an edge-case row.
   const filters = postId
     ? `id=eq.${encodeURIComponent(postId)}`
-    : 'category=eq.tc_discovery_research&status=eq.posted&post_url=not.is.null';
+    : 'status=eq.posted&post_url=not.is.null';
   const { ok, data, status } = await supabaseFetch(
-    `/rest/v1/group_posts?${filters}&select=id,group_name,group_url,post_url,post_body,posted_at,discovery_question_id,last_harvested_at,harvest_count&order=posted_at.asc`,
+    `/rest/v1/group_posts?${filters}&select=id,group_name,group_url,post_url,post_body,posted_at,category,discovery_question_id,last_harvested_at,harvest_count&order=posted_at.asc`,
   );
   if (!ok) throw new Error(`fetchCampaignPosts failed (${status}): ${JSON.stringify(data).slice(0, 200)}`);
   return Array.isArray(data) ? data : [];
+}
+
+// A bare group URL (scripts/fb-group-poster.js's permalink-capture-failed
+// fallback) has no /posts/<id> segment — never navigate to it as if it were
+// a specific post. See the header comment above for why.
+function hasRealPermalink(postUrl) {
+  return /\/posts\/\d+/.test(String(postUrl || ''));
 }
 
 // ─── Cadence ──────────────────────────────────────────────────────────────────
@@ -474,8 +508,20 @@ async function main() {
 
   const all = await fetchCampaignPosts(POST_ID);
   const now = Date.now();
-  const due = (POST_ID || FORCE_ALL) ? all.filter((p) => p.post_url) : all.filter((p) => isDue(p, now));
-  console.log(`[tc-harvest] ${all.length} posted campaign rows, ${due.length} due for harvest`);
+  let due = (POST_ID || FORCE_ALL) ? all.filter((p) => p.post_url) : all.filter((p) => isDue(p, now));
+
+  // Hard-exclude rows whose post_url isn't a real permalink (group-URL
+  // fallback from fb-group-poster.js) — see hasRealPermalink() above. Never
+  // silently navigate to a group homepage and scrape whatever's there.
+  const noPermalink = due.filter((p) => !hasRealPermalink(p.post_url));
+  if (noPermalink.length > 0) {
+    due = due.filter((p) => hasRealPermalink(p.post_url));
+    for (const p of noPermalink) {
+      console.warn(`[tc-harvest] SKIPPING "${p.group_name}" (${p.category || 'no category'}) — post_url has no real permalink (${p.post_url}); comments on this post cannot be harvested until fb-group-poster.js captures the real post URL. See api/_lib/silence-alarm.js checkTcHarvestScopeGap.`);
+    }
+  }
+
+  console.log(`[tc-harvest] ${all.length} posted campaign rows, ${due.length} due for harvest${noPermalink.length ? `, ${noPermalink.length} skipped (no real permalink)` : ''}`);
   if (due.length === 0) return;
 
   let headless = TRY_HEADLESS;
@@ -551,6 +597,7 @@ async function main() {
 
 module.exports = {
   isDue,
+  hasRealPermalink,
   inferQuestionId,
   upsertComments,
   recordHarvestPass,

@@ -18,6 +18,14 @@
 //   4. A status accumulating rows without moving (the video_failed/
 //      pending_video pattern), including video_library rows stuck at
 //      pending_heath_review — already sent to Telegram, never tapped.
+//   5. (2026-09-15) TC-discovery/group-post HOST COMMENT HARVEST gone
+//      silent — a group_posts row still in its 48h hot window with no
+//      harvest in >24h (scripts/harvest-tc-discovery-responses.js's
+//      Task Scheduler task not actually running).
+//   6. (2026-09-15) SCOPE GAP — a posted group_posts row that's never been
+//      harvested at all, either because it fell outside the harvester's
+//      scan (the real 2026-09-15 bug) or because fb-group-poster.js never
+//      captured a real post permalink for it.
 //
 // Dedup: api/_lib/silence-alarm.js's alert_state table — each condition
 // alerts once per ~20h regardless of how often this cron runs.
