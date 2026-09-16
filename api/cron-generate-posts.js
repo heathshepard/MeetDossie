@@ -16,6 +16,13 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
 // Personas removed 2026-06-14: all content now brand-voice (dossie) only.
+//
+// ADVANCE FILL (Carter, 2026-09-16): optional ?target_date=YYYY-MM-DD (bounded
+// [today, today+13] UTC) generates a batch dated for that day instead of real
+// "now" — used by cron-weekly-content-scheduler.js to pre-fill the next 7
+// days on Monday rather than leaving every day's content to its own same-day
+// 11:00 UTC run. on_conflict=post_id (date-keyed) makes reruns for the same
+// date idempotent whether triggered by this or the daily cron.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -546,9 +553,38 @@ function parseForceDay(req) {
   return (Number.isInteger(n) && n >= 0 && n <= 6) ? n : null;
 }
 
-function pickTopic() {
-  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const today = new Date();
+// Carter, 2026-09-16: cron-weekly-content-scheduler.js's advance-fill run
+// (vercel.json — Monday early AM) calls THIS endpoint once per missing day
+// in the next 7, with ?target_date=YYYY-MM-DD, so the daily 11:00 UTC cron
+// isn't the only thing standing between "content generated" and "content
+// exists a week out". Bounded to [today, today+13] UTC so a typo can't
+// regenerate/backdate a stale historical day's post_id-keyed rows. Absent
+// (the normal daily-cron case) this returns null and `now` stays real
+// wall-clock time — zero behavior change for the existing schedule.
+const TARGET_DATE_MAX_DAYS_AHEAD = 13;
+function parseTargetDate(req) {
+  let raw = null;
+  try {
+    if (req && req.query && req.query.target_date) raw = String(req.query.target_date);
+    else if (req && typeof req.url === 'string') {
+      raw = new URL(req.url, 'https://x').searchParams.get('target_date');
+    }
+  } catch (_e) { raw = null; }
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return { error: `target_date must be YYYY-MM-DD, got "${raw}"` };
+  const parsed = new Date(`${raw}T12:00:00.000Z`); // noon UTC avoids any DST/rounding edge landing on the wrong calendar day
+  if (Number.isNaN(parsed.getTime())) return { error: `target_date "${raw}" is not a valid date` };
+  const todayUtc = new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00.000Z`);
+  const diffDays = Math.round((parsed - todayUtc) / 86400000);
+  if (diffDays < 0 || diffDays > TARGET_DATE_MAX_DAYS_AHEAD) {
+    return { error: `target_date "${raw}" is ${diffDays} day(s) from today — must be within [0, ${TARGET_DATE_MAX_DAYS_AHEAD}]` };
+  }
+  return { date: parsed, iso: raw };
+}
+
+function pickTopic(asOf) {
+  const today = asOf instanceof Date ? asOf : new Date();
+  const start = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   const dayOfYear = Math.floor((today - start) / 86400000);
   return TOPICS[dayOfYear % TOPICS.length];
 }
@@ -702,9 +738,9 @@ function pickHookFormula(dayOfYear, postIndex) {
 
 // Pre-compute today\'s dayOfYear once for the full batch so all formula picks
 // are consistent within a single run.
-function getDayOfYear() {
-  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const today = new Date();
+function getDayOfYear(asOf) {
+  const today = asOf instanceof Date ? asOf : new Date();
+  const start = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   return Math.floor((today - start) / 86400000);
 }
 
@@ -1388,8 +1424,12 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
   }
 
-  const now = new Date();
-  const topic = pickTopic();
+  const targetDateResult = parseTargetDate(req);
+  if (targetDateResult && targetDateResult.error) {
+    return res.status(400).json({ ok: false, error: targetDateResult.error });
+  }
+  const now = targetDateResult ? targetDateResult.date : new Date();
+  const topic = pickTopic(now);
   const forceDay = parseForceDay(req);
 
   // Atlas 2026-06-12 engagement-fix: respect posting_schedule.is_active so
@@ -1409,7 +1449,7 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
 
   let plan = getPostPlan(now, { forceDay, activePlatforms });
   const founding = await getFoundingMemberCount();
-  const dayOfYear = getDayOfYear();
+  const dayOfYear = getDayOfYear(now);
 
   // Log which hook formulas are assigned to today's batch for diagnostics.
   const hookAssignments = plan.map((p, i) => {
@@ -1853,6 +1893,8 @@ function classifyCTA(ctaText) {
     batch_id: batchId,
     topic: topic.key,
     force_day: forceDay,
+    target_date: targetDateResult ? targetDateResult.iso : now.toISOString().slice(0, 10),
+    advance_fill: !!targetDateResult,
     errors: insertErrors,
     card_fallback_removed: true, // 2026-08-26: no static HCTI cards anywhere
     video_required: [...VIDEO_REQUIRED_PLATFORMS].join('+'),
@@ -1866,3 +1908,7 @@ function classifyCTA(ctaText) {
     } : null,
   });
 });
+
+// Exported for scripts/regression-cron-generate-posts-target-date.js — a
+// pure validation function, no network, safe to unit-test directly.
+module.exports.parseTargetDate = parseTargetDate;

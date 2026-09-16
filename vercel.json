@@ -353,8 +353,15 @@
     "api/cron-unsubscribe-spike-monitor.js": {
       "maxDuration": 30
     },
-    "api/{cron-weekly-batch-digest,cron-silence-alarm}.js": {
+    "api/cron-weekly-batch-digest.js": {
       "maxDuration": 30
+    },
+    "api/cron-silence-alarm.js": {
+      "maxDuration": 30,
+      "includeFiles": "{vercel.json,api/**/*.js}"
+    },
+    "api/cron-weekly-content-scheduler.js": {
+      "maxDuration": 300
     },
     "api/ventures/social-today.js": {
       "maxDuration": 30
@@ -447,6 +454,10 @@
     {
       "path": "/api/cron-generate-posts",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-content-scheduler",
+      "schedule": "0 9 * * 1"
     },
     {
       "path": "/api/cron-render-videos",

@@ -87,11 +87,15 @@ const ALWAYS_ALLOW = new Set([
                                   // defeat its entire purpose (delivering an approval Heath already missed once)
                                   // and its final-failure alert is exactly the outage signal this floor exists
                                   // for — Carter, 2026-09-12.
-  'cron-silence-alarm', // daily — sends NOTHING on a healthy pipeline; only alerts when a platform has gone
-                        // dark, approvals are stuck, drafts never reached Telegram, or a status is
-                        // accumulating rows without moving. This is the exact class of alert the 2026-09-12
-                        // Instagram/TikTok silence (18 days unnoticed) proves must never be gateable —
-                        // Carter, 2026-09-12.
+  'cron-silence-alarm', // daily. Originally: sends NOTHING on a healthy pipeline, only alerts when a
+                        // platform has gone dark, approvals are stuck, drafts never reached Telegram, or
+                        // a status is accumulating rows without moving — the exact class of alert the
+                        // 2026-09-12 Instagram/TikTok silence (18 days unnoticed) proves must never be
+                        // gateable. EXTENDED 2026-09-16 into a daily morning heartbeat (posted-last-24h,
+                        // scheduled-next-7d, stuck items, comments awaiting reply, cron sanity) that now
+                        // sends EVERY run, healthy or not — Heath's explicit ask, "consistent posting" top
+                        // priority. Stays on this list either way: a digest he asked to always see is not
+                        // the noise this gate exists to quiet — Carter, 2026-09-12 / 2026-09-16.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
