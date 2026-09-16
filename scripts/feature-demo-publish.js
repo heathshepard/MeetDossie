@@ -97,10 +97,81 @@ async function upsertVideoLibrary(row) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// Measurable framing preflight, run on the real bytes immediately before they
+// leave this machine. Added 2026-09-16: until now NOTHING in this chain ever
+// probed the file — feature-demo-publish.js only read its size in MB — so a
+// 1920x1080 landscape take uploaded and published to Facebook Reels without a
+// single check. This deliberately runs only the ffmpeg-measurable subset of
+// api/_lib/verify-video-quality.js (aspect / coverage / first-frame), not the
+// vision rules, so it needs no API key and cannot be skipped for lack of one.
+async function assertFramingOk(mp4Path, cfg) {
+  const {
+    analyzePersistentCoverage, frameLumaSpread,
+    TARGET_ASPECT_RATIO, ASPECT_RATIO_TOLERANCE,
+    CONTENT_COVERAGE_MIN, FIRST_FRAME_MIN_LUMA_SPREAD,
+  } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
+  const { execFile } = require('child_process');
+  const { promisify } = require('util');
+  const execFileAsync = promisify(execFile);
+
+  const VERTICAL_SURFACES = ['tiktok', 'instagram', 'facebook', 'youtube'];
+  const platforms = cfg.platforms || ['facebook', 'twitter', 'linkedin'];
+  const targetsVertical = platforms.some((p) => VERTICAL_SURFACES.includes(String(p).toLowerCase()));
+
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', mp4Path,
+  ]);
+  const [w, h] = String(stdout).trim().split('x').map(Number);
+  if (!w || !h) throw new Error(`ffprobe could not read a resolution from ${mp4Path}`);
+
+  const problems = [];
+  const ratio = w / h;
+  if (targetsVertical && Math.abs(ratio - TARGET_ASPECT_RATIO) > ASPECT_RATIO_TOLERANCE) {
+    problems.push(
+      `aspect ratio is ${ratio.toFixed(4)} (${w}x${h}), not 9:16. Platforms ${JSON.stringify(platforms)} `
+      + 'include a vertical surface, which will letterbox this into ~80% black bars '
+      + '(the 2026-09-15 stage-checklist defect).',
+    );
+  }
+
+  const { stdout: durOut } = await execFileAsync('ffprobe', [
+    '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', mp4Path,
+  ]);
+  const duration = parseFloat(String(durOut).trim());
+
+  const { coverage, bars } = await analyzePersistentCoverage(mp4Path, duration);
+  if (coverage < CONTENT_COVERAGE_MIN) {
+    problems.push(
+      `content fills only ${(coverage * 100).toFixed(1)}% of the frame `
+      + `(min ${CONTENT_COVERAGE_MIN * 100}%) — persistent bars ${JSON.stringify(bars)}. Letterboxed/pillarboxed.`,
+    );
+  }
+
+  const { spread, min, max } = await frameLumaSpread(mp4Path, 0);
+  if (spread < FIRST_FRAME_MIN_LUMA_SPREAD) {
+    problems.push(
+      `frame 0 is near-uniform (luma spread ${spread}, min ${min}, max ${max}) — a blank opening frame.`,
+    );
+  }
+
+  if (problems.length) {
+    throw new Error(
+      `[publish] REFUSING to upload ${path.basename(mp4Path)} — framing preflight failed:\n`
+      + problems.map((p) => `  - ${p}`).join('\n')
+      + '\n  Re-record the scene rather than padding/scaling the finished file: '
+      + 'a 16:9 source scaled into a 9:16 frame still fails the coverage rule.',
+    );
+  }
+  console.log(`[publish] framing preflight OK — ${w}x${h}, coverage ${(coverage * 100).toFixed(1)}%, frame-0 spread ${spread}`);
+}
+
 async function publish(scriptPath) {
   const cfg = JSON.parse(fs.readFileSync(scriptPath, 'utf8'));
   const mp4Path = path.join(OUT_DIR, cfg.filename);
   if (!fs.existsSync(mp4Path)) throw new Error(`Final mp4 missing: ${mp4Path}. Run feature-demo-merge.js first.`);
+
+  await assertFramingOk(mp4Path, cfg);
 
   const id = cfg.filename.replace(/\.mp4$/i, '');
   const storagePath = `${STORAGE_PREFIX}/${cfg.filename}`;

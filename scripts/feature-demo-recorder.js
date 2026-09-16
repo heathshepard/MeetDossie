@@ -115,18 +115,55 @@ async function runScene(page, scene, scriptCfg) {
         break;
       }
       console.log('  [scene] login_if_visible -> signing in');
+
+      // The auth card boots in MAGIC-LINK mode: the password input is rendered
+      // conditionally and the submit control reads "Email Me a Magic Link" with
+      // no type="submit" attribute. The old selectors here
+      // (input[type=password] / button[type=submit]) therefore matched nothing,
+      // the wait threw, the per-scene catch in record() swallowed it, and the
+      // recorder happily filmed the whole timeline against the login page —
+      // that is exactly how feature-demo-stage-checklist-desktop-2026-09-07
+      // shipped as 35s of sign-in screen on 2026-09-15.
+      // Flip to password mode first, the same way every other working script in
+      // this repo does (see scripts/carter-verify-team-nav.js).
+      const pwToggle = page.getByRole('button', { name: /^password$/i });
+      if (await pwToggle.count()) {
+        await clickRobust(pwToggle.first());
+      }
+
       await moveToElement(page, emailLocator);
       await clickRobust(emailLocator);
       await emailLocator.fill(scriptCfg.demo_account || 'demo@meetdossie.com');
+
       const passLocator = page.locator(scene.password_selector || "input[type='password']").first();
-      await passLocator.waitFor({ state: 'visible' });
+      await passLocator.waitFor({ state: 'visible', timeout: 10000 });
       await moveToElement(page, passLocator);
       await clickRobust(passLocator);
+      if (!DEMO_PASSWORD) {
+        throw new Error('DEMO_PASSWORD is not set — cannot sign in. Refusing to record an unauthenticated take.');
+      }
       await passLocator.fill(DEMO_PASSWORD);
-      const submit = page.locator(scene.submit_selector || "button[type='submit']").first();
-      await submit.waitFor({ state: 'visible' });
+
+      const submit = scene.submit_selector
+        ? page.locator(scene.submit_selector).first()
+        : page.getByRole('button', { name: /^sign in$/i }).first();
+      await submit.waitFor({ state: 'visible', timeout: 10000 });
       await moveToElement(page, submit);
       await clickRobust(submit);
+
+      // Sign-in MUST actually complete. Without this assertion a failed login
+      // is invisible until a human watches the finished video (or, as on
+      // 2026-09-15, until it is already live on Facebook).
+      await emailLocator.waitFor({ state: 'detached', timeout: 20000 }).catch(async () => {
+        const stillThere = await emailLocator.isVisible().catch(() => false);
+        if (stillThere) {
+          throw new Error(
+            'sign-in did not complete — the email field is still on screen after submitting. '
+            + 'Refusing to record a take of the login page.',
+          );
+        }
+      });
+      console.log('  [scene] login_if_visible -> signed in');
       break;
     }
     case 'wait_for_text': {
@@ -338,6 +375,51 @@ async function record(scriptPath) {
     width: viewport.width * deviceScaleFactor,
     height: viewport.height * deviceScaleFactor,
   };
+
+  // ── Framing preflight (added 2026-09-16) ─────────────────────────────────
+  //
+  // On 2026-09-15 two scenes recorded at viewport 1920x1080 with no
+  // output_size shipped straight to Facebook/LinkedIn/Twitter as 1920x1080
+  // files. Facebook renders those surfaces as vertical Reels, so it
+  // letterboxed our 16:9 footage into a 9:16 frame — roughly 80% black.
+  // NOTHING between the recorder and Zernio ever reframes the video: there is
+  // no scale/pad/crop step anywhere in feature-demo-merge.js or
+  // feature-demo-publish.js. Whatever size is recorded here is what the
+  // platform receives, so this is the only place the shape can be guaranteed.
+  //
+  // A scene that genuinely wants a landscape take (an internal sales-demo
+  // walkthrough, say) opts out explicitly with "allow_non_vertical": true.
+  const VERTICAL_SURFACES = ['tiktok', 'instagram', 'facebook', 'youtube'];
+  const targetsVertical = !Array.isArray(scriptCfg.platforms)
+    || scriptCfg.platforms.some((p) => VERTICAL_SURFACES.includes(String(p).toLowerCase()));
+
+  if (targetsVertical && scriptCfg.allow_non_vertical !== true) {
+    const ratio = outputSize.width / outputSize.height;
+    if (Math.abs(ratio - 9 / 16) > 0.02) {
+      throw new Error(
+        `[recorder] REFUSING to record "${scriptCfg.name}": recorded size would be `
+        + `${outputSize.width}x${outputSize.height} (aspect ${ratio.toFixed(4)}), not 9:16.\n`
+        + `  Platforms ${JSON.stringify(scriptCfg.platforms || '(default)')} include a vertical surface, `
+        + 'which will letterbox a non-9:16 file into ~80% black bars.\n'
+        + '  Fix the scene JSON to capture vertically, e.g.\n'
+        + '    "viewport": { "width": 540, "height": 960 }, "device_scale_factor": 2,\n'
+        + '    "is_mobile": true, "has_touch": true\n'
+        + '  (and no "output_size" override), which records the real mobile UI at 1080x1920.\n'
+        + '  If a landscape take is genuinely intended, set "allow_non_vertical": true.',
+      );
+    }
+    if (outputSize.height < 1920) {
+      throw new Error(
+        `[recorder] REFUSING to record "${scriptCfg.name}": recorded size `
+        + `${outputSize.width}x${outputSize.height} is below the 1080x1920 delivery resolution.\n`
+        + '  This is usually an "output_size" override cancelling out device_scale_factor — '
+        + 'drop "output_size" and let viewport x device_scale_factor produce 1080x1920.',
+      );
+    }
+  }
+  console.log(`[recorder] recording at ${outputSize.width}x${outputSize.height} `
+    + `(viewport ${viewport.width}x${viewport.height} @ dsf ${deviceScaleFactor})`);
+
   const slowmo = scriptCfg.slowmo_ms || 400;
 
   const { chromium } = require('playwright');
@@ -379,6 +461,17 @@ async function record(scriptPath) {
         console.error(`[recorder] scene ${i + 1} failed: ${err.message}`);
         // Continue rest of timeline — we'd rather ship a slightly-flawed video
         // than abandon the whole take. The merge step trims to voiceover length.
+        //
+        // EXCEPT auth: if sign-in failed there is no app behind the login card,
+        // so every remaining scene films the sign-in page. Continuing produces a
+        // take that is 100% wrong, not "slightly flawed" — that is precisely how
+        // the 2026-09-15 stage-checklist/close-day videos shipped. Abort instead.
+        if (scene.action === 'login_if_visible') {
+          throw new Error(
+            `[recorder] ABORTING take: authentication failed (${err.message}). `
+            + 'Every subsequent scene would record the login page.',
+          );
+        }
       }
     }
   } finally {
