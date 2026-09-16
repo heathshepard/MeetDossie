@@ -115,6 +115,69 @@ check('a claim leaking into the DRAFT (not the comment) still escalates', () => 
   assert.strictEqual(r.category, 'pricing');
 });
 
+// ─── Quinn's QA pass, 2026-09-16 — PERMANENT FIXTURES ──────────────────────
+// e4201198 shipped a classifier that let these 5 through as auto-eligible,
+// all via the same root defect (positive shapes were "innocent until
+// proven guilty" instead of "positively confirmed safe"). Locked in here so
+// this exact regression can never recur, plus a harder variant per case
+// that changes the wording rather than reusing Quinn's exact strings — the
+// point is the ROOT SHAPE is fixed, not these 5 sentences.
+
+check('Quinn case 1 (pricing, indirect — "worth the money"): escalates', () => {
+  const r = classifyCommentRisk('Is it worth the money though?', 'yeah honestly it has paid for itself');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'pricing');
+});
+check('Quinn case 1, harder variant (indirect pricing via "pay for itself"): escalates', () => {
+  const r = classifyCommentRisk('Would this pay for itself for someone only doing 3 deals a month?', 'for sure, especially at that volume');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'pricing');
+});
+
+check('Quinn case 2 (demo request with no "demo" word — "walk me through... back end"): escalates', () => {
+  const r = classifyCommentRisk('Could you walk me through what it actually looks like on the back end?', 'sure, happy to show you sometime');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'demo_request');
+});
+check('Quinn case 2, harder variant (different indirect demo phrasing — "behind the scenes"): escalates', () => {
+  const r = classifyCommentRisk('What happens behind the scenes when a contract comes in?', 'happy to walk through it sometime');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'demo_request');
+});
+
+check('Quinn case 3 (backhanded thanks carrying doubt — "thanks, I guess, not sure... though"): escalates', () => {
+  const r = classifyCommentRisk('Thanks, I guess, not sure it actually works though', 'fair enough, it works for me');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'low_confidence');
+});
+check('Quinn case 3, harder variant (different backhanded phrasing — "appreciate it, but"): escalates', () => {
+  const r = classifyCommentRisk("Appreciate you sharing, but I feel like there's got to be a catch.", 'no catch, it really is that simple');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'low_confidence');
+});
+
+check('Quinn case 4 (legal/compliance question with no "TREC"/"legal" word — earnest money forfeiture): escalates', () => {
+  const r = classifyCommentRisk('If a buyer backs out after the option period ends, is the earnest money automatically forfeited?', 'depends on the contract terms honestly');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'legal_compliance');
+});
+check('Quinn case 4, harder variant (different phrasing, pronoun instead of "forfeited") escalates', () => {
+  const r = classifyCommentRisk('Can the buyer just walk away and keep their earnest money too?', 'not usually, no');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'legal_compliance');
+});
+
+check('Quinn case 5 (names a specific client\'s transaction — "for Sarah\'s closing"): escalates', () => {
+  const r = classifyCommentRisk("How did you handle it for Sarah's closing?", 'we just extended the option period a few days');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+check('Quinn case 5, harder variant (different name, different transaction noun — "file"): escalates', () => {
+  const r = classifyCommentRisk("What did you end up doing for Marcus's file?", 'ended up pushing the closing date a week');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'specific_client');
+});
+
 // ─── Fail-closed defaults ────────────────────────────────────────────────────
 
 check('an ambiguous off-topic comment with no positive shape escalates as low_confidence', () => {
@@ -156,6 +219,32 @@ check('a neutral follow-up question is auto-eligible', () => {
 check('a factual TC/transaction answer is auto-eligible', () => {
   const r = classifyCommentRisk('what tripped mine up was the option period deadline', 'yeah that one gets people every time');
   assert.strictEqual(r.eligible, true);
+});
+
+// ─── Post-Quinn tightening: prove the fix doesn't just re-wire escalate
+// keywords, it genuinely requires POSITIVE confirmation ─────────────────────
+
+check('a hedged "thanks" (no escalate keyword at all) still escalates, not just Quinn\'s exact wording', () => {
+  const r = classifyCommentRisk('Thanks, kind of makes sense I guess', 'glad it helps');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'low_confidence');
+});
+
+check('a question that ends in "?" but does NOT match the safe-question allowlist escalates (no longer eligible by default)', () => {
+  const r = classifyCommentRisk('Is that even a real thing that happens?', 'yeah it comes up more than you would think');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'low_confidence');
+});
+
+check('a long thanks padded with extra commentary is not "clean" and escalates', () => {
+  const r = classifyCommentRisk('Thanks for this, it is genuinely one of the more useful threads I have seen on this whole topic in a long time', 'glad it helped');
+  assert.strictEqual(r.eligible, false);
+  assert.strictEqual(r.category, 'low_confidence');
+});
+
+check('"thanks" immediately followed by a live question is not a clean thanks', () => {
+  const r = classifyCommentRisk('Thanks — does that happen a lot?', 'more than people expect honestly');
+  assert.strictEqual(r.eligible, false);
 });
 
 // ─── Real fixture: the exact row scripts/regression-tc-reply-approval.js

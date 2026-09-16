@@ -7,16 +7,41 @@
 // supabase/migrations/20260916_auto_reply_veto.sql for the full contract).
 //
 // FAIL-CLOSED BY DESIGN: this is intentionally NOT an LLM call. A model can
-// be argued into "this looks fine" on an edge case; a fixed keyword/pattern
-// list can't. classifyCommentRisk() defaults to ESCALATE and only returns
-// eligible=true when the comment+draft clear every escalate trigger AND
-// positively match one of the four allowed low-risk shapes. Any comment the
-// rules don't recognize falls into 'low_confidence' and escalates — per
-// spec: "Default to escalate when in doubt."
+// be argued into "this looks fine" on an edge case; a fixed rule set can't.
+// classifyCommentRisk() defaults to ESCALATE and only returns eligible=true
+// when the comment+draft clear every escalate trigger AND the comment is
+// POSITIVELY identified as one of a small number of safe shapes.
+//
+// REWRITTEN 2026-09-16 after Quinn's QA pass on the first version failed 5
+// real cases, all through the same root defect: the "positive shape" checks
+// were "innocent until proven guilty" (any question that didn't match an
+// escalate keyword was called safe; any comment containing "thanks" was
+// called safe regardless of what else it said). Quinn's fix mandate,
+// verbatim: "a question is only neutral_follow_up_question when it's
+// positively identified as safe, not when it fails to match a bad-word
+// list, and thanks only counts when the comment carries no doubt, criticism
+// or question at all... It's fine if the eligible set gets small."
+//
+// This version:
+//   1. Widens the escalate patterns themselves to catch indirect phrasing
+//      (money without "cost", demo asks without "demo", legal questions
+//      without "TREC", named third parties without "my client") — fixing
+//      the ROOT SHAPE, not the 5 reported strings.
+//   2. Adds a HEDGE/DOUBT/CRITICISM lexicon that overrides thanks/agreement/
+//      question eligibility — a "thanks" sitting next to "I guess" or
+//      "not sure" or "though" is not a clean thanks.
+//   3. Replaces the blanket "any question is eligible" rule with a small,
+//      positive SAFE_QUESTION allowlist of general peer-experience
+//      phrasings ("did you have to...", "how do you handle...") — a
+//      question has to affirmatively look like harmless small talk, not
+//      merely fail to trip a keyword.
+// The eligible surface is deliberately small. Any comment the rules don't
+// recognize falls into 'low_confidence' and escalates.
 //
 // Used by:
 //   - api/cron-tc-reply-approval.js (decides veto-path vs manual-approval-path)
-//   - scripts/regression-auto-reply-classifier.js (unit coverage)
+//   - scripts/regression-auto-reply-classifier.js (unit coverage, incl.
+//     Quinn's 5 reported cases + harder variants as permanent fixtures)
 //
 // Owner: Carter, 2026-09-16
 
@@ -44,6 +69,13 @@ const ESCALATE_PATTERNS = [
       /\$\s?\d/,
       /\d+\s?(?:\/|per)\s?(?:mo|month|yr|year)\b/i,
       /\bsubscription\b/i,
+      // Indirect money phrasing — Quinn 2026-09-16 case 1: "Is it worth the
+      // money though?" never says cost/price/how much.
+      /\bworth (?:it|the money|paying(?: for)?)\b/i,
+      /\bis it worth\b/i,
+      /\bpay for\b/i,
+      /\baffordable\b/i,
+      /\bcan('?t| not) afford\b/i,
     ],
   },
   {
@@ -56,6 +88,18 @@ const ESCALATE_PATTERNS = [
       /\btry it out\b/i,
       /\bsign\s?up\b/i,
       /\bwhere (?:can|do) i (?:sign up|get (?:it|access))\b/i,
+      // Indirect demo phrasing — Quinn case 2: "Could you walk me through
+      // what it actually looks like on the back end?" never says "demo."
+      /\bwalk (?:me|us) through\b/i,
+      /\bshow (?:me|us) how\b/i,
+      /\bwhat (?:does|do) it (?:actually )?look like\b/i,
+      /\bback[- ]?end\b/i,
+      /\bunder the hood\b/i,
+      /\bhow (?:does|do) it (?:actually )?work\b/i,
+      /\bcould you (?:show|walk)\b/i,
+      /\bcan you (?:show|walk)\b/i,
+      /\btake a look at it\b/i,
+      /\bbehind the scenes\b/i,
     ],
   },
   {
@@ -98,6 +142,19 @@ const ESCALATE_PATTERNS = [
       /\bregulat(?:ion|ory|ed)\b/i,
       /\bviolat(?:ion|ed|es)\b/i,
       /\blicens(?:e|ing) (?:board|complaint|violation)\b/i,
+      // Legal/compliance questions that never say the word "legal" or
+      // "TREC" — Quinn case 4: an earnest-money-forfeiture question.
+      /\bforfeit(?:ed|ure)?\b/i,
+      /\blose (?:the |his |her |their )?earnest money\b/i,
+      /\bkeep (?:the |their |his |her )?earnest money\b/i,
+      /\bwalk away\b/i,
+      /\bwho'?s (?:liable|responsible)\b/i,
+      /\bwho is (?:liable|responsible)\b/i,
+      /\bbreach(?: of contract)?\b/i,
+      /\bin default\b/i,
+      /\bentitled to\b/i,
+      /\blegally (?:required|obligated|entitled)\b/i,
+      /\bcan (?:they|he|she|the buyer|the seller) (?:sue|be sued)\b/i,
     ],
   },
   {
@@ -108,6 +165,12 @@ const ESCALATE_PATTERNS = [
       /\bthis (?:client|deal|transaction|file)\b/i,
       /\b\d{2,6}\s+[A-Za-z][A-Za-z.'-]*\s+(?:st|street|ave|avenue|rd|road|dr|drive|ln|lane|ct|court|blvd|way|cir|circle|pl|place|trl|trail)\b/i,
       /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // phone number
+      // A named third party's transaction — Quinn case 5: "How did you
+      // handle it for Sarah's closing?" names no address, no "my client",
+      // just a specific person's name + a transaction noun.
+      /\b[A-Z][a-zA-Z]+'s (?:closing|deal|transaction|file|listing|contract|escrow|option period|earnest money|paperwork)\b/,
+      /\bfor [A-Z][a-zA-Z]+(?:'s)?\b.{0,20}\b(?:closing|deal|transaction|file|listing|contract|escrow)\b/,
+      /\bhandled? it for [A-Z][a-zA-Z]+\b/i,
     ],
   },
   {
@@ -147,20 +210,46 @@ const ESCALATE_PATTERNS = [
   },
 ];
 
+// ── Hedge / doubt / criticism lexicon ────────────────────────────────────────
+// Quinn case 3: "Thanks, I guess, not sure it actually works though" —
+// "thanks" alone used to be sufficient. It never should have been: a thanks
+// carrying doubt, a backhanded qualifier, or a live question is not a clean
+// thanks. This lexicon BLOCKS the thanks/agreement/question/factual
+// archetypes below — it does not itself escalate to a specific category
+// (there's no clean signal WHICH category), it just forces low_confidence,
+// which escalates by the same default-deny rule as everything else.
+const HEDGE_DOUBT_CRITICISM_RE = /\b(?:i guess|not sure|though|but\b|however|i don'?t know|idk|kind of|sort of|not really|doubt(?:ful)?|skeptical|questionable|not convinced|supposedly|allegedly|eh[,.]?|meh\b|not (?:totally|entirely|fully) sure|still not sure|not (?:so|too) sure)\b/i;
+
 // ── Auto-eligible positive shapes ────────────────────────────────────────────
-// The comment must positively match one of these to be eligible at all —
-// clearing the escalate list is necessary but not sufficient.
+// Necessary but NOT sufficient: clearing ESCALATE_PATTERNS and
+// HEDGE_DOUBT_CRITICISM_RE still requires positively matching one of these.
 const THANKS_RE = /\b(?:thanks?|thank you|appreciate (?:it|that|this)|much appreciated)\b/i;
 const NEGATED_THANKS_RE = /\bno thanks\b/i;
 const AGREEMENT_RE = /\b(?:yes|yeah|yep|yup|agreed?|exactly|100%|so true|same here|totally|spot on|couldn'?t agree more)\b/i;
-const QUESTION_MAX_WORDS = 40;
+const THANKS_AGREEMENT_MAX_WORDS = 20; // a real thanks/agreement is short; a long one carrying "thanks" plus three more sentences of commentary is not a clean thanks
+
+// SAFE_QUESTION_PATTERNS — Quinn's mandate: a question must be POSITIVELY
+// identified as safe small talk about the peer's own general practice, not
+// merely fail to match an escalate keyword. Deliberately narrow.
+const SAFE_QUESTION_PATTERNS = [
+  /\bdid you (?:have to|end up|switch|use|try)\b/i,
+  /\bhow (?:do|did) you (?:handle|deal with|manage|switch|find|end up)\b/i,
+  /\bwhat (?:do|did) you (?:do|use|find)\b/i,
+  /\bhow long (?:did|does|do)\b/i,
+  /\bhow often (?:do|does|did)\b/i,
+  /\bdoes? (?:yours|it) (?:also|ever|always|usually)\b/i,
+  /\bwhat tripped you up\b/i,
+  /\bwhat worked for you\b/i,
+  /\bhave you (?:had|ever)\b/i,
+  /\bwas (?:that|it|yours) (?:always|ever)\b/i,
+];
+const QUESTION_MAX_WORDS = 25;
 
 // Domain-relevance signal for the "factual answer about how TC/transaction
-// work goes" archetype — a plain declarative statement with no positive
-// shape above still counts as eligible IF it's clearly on-topic (peer TC/
-// transaction-coordination talk), because that's exactly the "factual
-// answer" category the spec names. Off-topic or ambiguous declaratives stay
-// low_confidence and escalate.
+// work goes" archetype — a plain declarative statement (no hedge, no
+// question) with no other positive shape above still counts as eligible IF
+// it's clearly on-topic (peer TC/transaction-coordination talk). Off-topic
+// or ambiguous declaratives stay low_confidence and escalate.
 const DOMAIN_KEYWORDS_RE = /\b(?:tc|transaction coordinator|coordinator|contract|closing|close(?:s|d)?|deadline|option period|earnest money|escrow|title|file|dossier|checklist|paperwork|compliance packet|brokerage|commission split)\b/i;
 
 const MAX_COMMENT_WORDS_FOR_CONFIDENCE = 60; // long/rambling comments aren't safe to auto-classify
@@ -213,34 +302,51 @@ function classifyCommentRisk(commentText, replyDraft) {
   }
 
   // 3. Too long / rambling to safely auto-classify.
-  if (wordCount(comment) > MAX_COMMENT_WORDS_FOR_CONFIDENCE) {
+  const trimmed = comment.trim();
+  if (wordCount(trimmed) > MAX_COMMENT_WORDS_FOR_CONFIDENCE) {
     return { eligible: false, category: 'low_confidence', reason: 'comment too long to classify with confidence', matched: null };
   }
 
-  // 4. Positive-shape check, in priority order.
-  const trimmed = comment.trim();
+  // 4. Hedge / doubt / criticism blocks EVERY positive shape below — a
+  // "thanks, I guess" or "does it even work though?" never qualifies via
+  // thanks/agreement/question/factual, no matter what else it contains.
+  const hasHedge = HEDGE_DOUBT_CRITICISM_RE.test(trimmed);
 
-  if (NEGATED_THANKS_RE.test(trimmed)) {
-    return { eligible: false, category: 'low_confidence', reason: 'negated thanks reads ambiguous', matched: null };
-  }
-  if (THANKS_RE.test(trimmed)) {
-    return { eligible: true, category: 'auto_eligible', reason: 'thanks', matched: null };
-  }
-  if (AGREEMENT_RE.test(trimmed)) {
-    return { eligible: true, category: 'auto_eligible', reason: 'agreement', matched: null };
-  }
-  if (trimmed.endsWith('?') && wordCount(trimmed) <= QUESTION_MAX_WORDS) {
-    return { eligible: true, category: 'auto_eligible', reason: 'neutral_follow_up_question', matched: null };
-  }
-  if (DOMAIN_KEYWORDS_RE.test(trimmed)) {
-    return { eligible: true, category: 'auto_eligible', reason: 'factual_tc_transaction_answer', matched: null };
+  if (!hasHedge) {
+    if (NEGATED_THANKS_RE.test(trimmed)) {
+      return { eligible: false, category: 'low_confidence', reason: 'negated thanks reads ambiguous', matched: null };
+    }
+    // Thanks/agreement: positively safe only when clean (no hedge, tested
+    // above) AND short AND not itself a live question tacked onto the end.
+    const shortEnough = wordCount(trimmed) <= THANKS_AGREEMENT_MAX_WORDS;
+    const isAlsoAQuestion = trimmed.endsWith('?');
+    if (THANKS_RE.test(trimmed) && shortEnough && !isAlsoAQuestion) {
+      return { eligible: true, category: 'auto_eligible', reason: 'thanks', matched: null };
+    }
+    if (AGREEMENT_RE.test(trimmed) && shortEnough && !isAlsoAQuestion) {
+      return { eligible: true, category: 'auto_eligible', reason: 'agreement', matched: null };
+    }
+    // A question is eligible ONLY when it positively matches a known-safe
+    // peer-experience shape — not merely for ending in "?".
+    if (trimmed.endsWith('?') && wordCount(trimmed) <= QUESTION_MAX_WORDS) {
+      const safeQuestion = SAFE_QUESTION_PATTERNS.some((re) => re.test(trimmed));
+      if (safeQuestion) {
+        return { eligible: true, category: 'auto_eligible', reason: 'neutral_follow_up_question', matched: null };
+      }
+    }
+    // Plain declarative, on-topic, no hedge, no question mark.
+    if (!trimmed.endsWith('?') && DOMAIN_KEYWORDS_RE.test(trimmed)) {
+      return { eligible: true, category: 'auto_eligible', reason: 'factual_tc_transaction_answer', matched: null };
+    }
   }
 
   // 5. Nothing positively matched — default to escalate.
-  return { eligible: false, category: 'low_confidence', reason: 'no positive low-risk shape matched', matched: null };
+  return { eligible: false, category: 'low_confidence', reason: 'no positively-safe shape matched', matched: null };
 }
 
 module.exports = {
   ESCALATE_PATTERNS,
+  HEDGE_DOUBT_CRITICISM_RE,
+  SAFE_QUESTION_PATTERNS,
   classifyCommentRisk,
 };
