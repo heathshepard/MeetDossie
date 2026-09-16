@@ -533,8 +533,28 @@ function getPostPlan(date = new Date(), opts = {}) {
   // be skipped at publish time. Active set is passed in via opts.activePlatforms.)
   const active = opts && Array.isArray(opts.activePlatforms) ? new Set(opts.activePlatforms) : null;
   let plan = POST_PLAN_BASE.filter(slot => !GENERATION_DISABLED_PLATFORMS.has(slot.platform));
-  if (!active) return plan;
-  return plan.filter(slot => active.has(slot.platform));
+  if (active) plan = plan.filter(slot => active.has(slot.platform));
+
+  // Goal-pacing extra slots (see parseExtraFacebookPosts() above). Built as
+  // a NEW array, never mutates POST_PLAN_BASE — every other caller of
+  // getPostPlan() that doesn't pass extraFacebookPosts is unaffected. These
+  // stay text-only (no card fallback under the video-only policy — see
+  // card_fallback_removed in the response below) so they help
+  // public_posts, NOT public_posts_with_photos.
+  const extraCount = Math.max(0, Number(opts.extraFacebookPosts) || 0);
+  if (extraCount > 0 && (!active || active.has('facebook'))) {
+    for (let i = 0; i < extraCount; i++) {
+      plan.push({
+        format: 'CAPABILITY_ONELINER',
+        persona: null,
+        platform: 'facebook',
+        notes: 'Extra goal-pacing slot (api/cron-weekly-content-scheduler.js catching up the weekly public_posts target). One specific shipped feature, plain Dossie voice — same bar as the normal facebook slot, just an additional one for this day.',
+        goal_pacing_extra: true,
+      });
+    }
+  }
+
+  return plan;
 }
 
 function parseForceDay(req) {
@@ -587,6 +607,31 @@ function pickTopic(asOf) {
   const start = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   const dayOfYear = Math.floor((today - start) / 86400000);
   return TOPICS[dayOfYear % TOPICS.length];
+}
+
+// Carter, 2026-09-16: api/cron-weekly-content-scheduler.js's goal-pacing
+// pass (api/_lib/social-goals.js's dossie_fb_page target — 23 new public
+// posts/week) can request N extra facebook CAPABILITY_ONELINER slots for a
+// specific advance-filled day beyond the normal 2/day fixed plan, when
+// public_posts is behind pace. Hard safety ceiling of 5 here regardless of
+// caller — the scheduler's own knob (social-goals.js
+// scheduler.max_extra_public_posts_per_day) is the real, lower, editable
+// limit; this is just the outer rail against a malformed/malicious query
+// string. Absent (the normal daily-cron case and every existing call site)
+// this parses to 0 — zero behavior change.
+const EXTRA_FACEBOOK_POSTS_MAX = 5;
+function parseExtraFacebookPosts(req) {
+  let raw = null;
+  try {
+    if (req && req.query && req.query.extra_facebook_posts) raw = String(req.query.extra_facebook_posts);
+    else if (req && typeof req.url === 'string') {
+      raw = new URL(req.url, 'https://x').searchParams.get('extra_facebook_posts');
+    }
+  } catch (_e) { raw = null; }
+  if (!raw) return 0;
+  const n = parseInt(raw, 10);
+  if (!Number.isInteger(n) || n < 0) return 0;
+  return Math.min(n, EXTRA_FACEBOOK_POSTS_MAX);
 }
 
 // ─── Top-performer hook injection ──────────────────────────────────────────
@@ -1431,6 +1476,7 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
   const now = targetDateResult ? targetDateResult.date : new Date();
   const topic = pickTopic(now);
   const forceDay = parseForceDay(req);
+  const extraFacebookPosts = parseExtraFacebookPosts(req);
 
   // Atlas 2026-06-12 engagement-fix: respect posting_schedule.is_active so
   // we don't generate drafts for paused platforms (currently instagram + tiktok).
@@ -1447,7 +1493,7 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     console.warn(`[cron-generate-posts] could not load posting_schedule (${e.message}) — using full POST_PLAN`);
   }
 
-  let plan = getPostPlan(now, { forceDay, activePlatforms });
+  let plan = getPostPlan(now, { forceDay, activePlatforms, extraFacebookPosts });
   const founding = await getFoundingMemberCount();
   const dayOfYear = getDayOfYear(now);
 
@@ -1895,6 +1941,7 @@ function classifyCTA(ctaText) {
     force_day: forceDay,
     target_date: targetDateResult ? targetDateResult.iso : now.toISOString().slice(0, 10),
     advance_fill: !!targetDateResult,
+    extra_facebook_posts: extraFacebookPosts,
     errors: insertErrors,
     card_fallback_removed: true, // 2026-08-26: no static HCTI cards anywhere
     video_required: [...VIDEO_REQUIRED_PLATFORMS].join('+'),
@@ -1912,3 +1959,7 @@ function classifyCTA(ctaText) {
 // Exported for scripts/regression-cron-generate-posts-target-date.js — a
 // pure validation function, no network, safe to unit-test directly.
 module.exports.parseTargetDate = parseTargetDate;
+// Exported for scripts/regression-social-goals-pacing.js — pure functions,
+// no network, safe to unit-test directly.
+module.exports.parseExtraFacebookPosts = parseExtraFacebookPosts;
+module.exports.getPostPlan = getPostPlan;
