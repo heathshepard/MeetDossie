@@ -1,22 +1,27 @@
 """
-queue-finished-videos.py — Dossie / Realtor Finished Video Uploader
+queue-finished-videos.py — Dossie / Realtor / Rust Finished Video Uploader
 
 Watch-folder scanner for Heath's weekly recording kit (docs/WEEKLY-RECORDING-KIT.md).
-Any new .mp4 dropped in one of two folders gets ingested automatically:
+Any new .mp4 dropped in one of three folders gets ingested automatically:
 
   Media/finished-videos/            -> Dossie clips (target_owner='dossie')
   Media/finished-videos/realtor/    -> Heath's realtor-page clips (target_owner='heath-realtor')
-  (the top-level scan does NOT recurse, so realtor/ never leaks into the
-  Dossie pipeline — this is the kit doc's own stated convention)
+  Media/finished-videos/rust/       -> Rust (rustfitness.app) clips (target_owner='rust'), added 2026-09-16
+  (the top-level scan does NOT recurse, so realtor/ and rust/ never leak into
+  the Dossie pipeline — this is the kit doc's own stated convention)
 
 For each new file:
   1. Classify type/platforms/target_owner from its folder + filename
      (see classify_video()).
-  2. Caption comes ONLY from docs/WEEKLY-RECORDING-KIT.md's own
-     "Post caption:" line for that script (see parse_kit_captions()) --
-     NEVER a template string / auto-generated caption. A file with no
-     matching script ships with an EMPTY caption and a Telegram flag
-     instead of a stale CTA.
+  2. Caption: Dossie/realtor come ONLY from docs/WEEKLY-RECORDING-KIT.md's own
+     "Post caption:" line for that script (see parse_kit_captions()); Rust
+     (no kit-doc entries) comes ONLY from a `{stem}.caption.txt` sidecar
+     staged next to the video. NEVER a template string / auto-generated
+     caption either way. A file with no matching caption ships with an
+     EMPTY caption and a Telegram flag instead of a stale CTA. Rust captions
+     are additionally checked for a premature app-store/download CTA
+     (memory rust-app-store-submission-state.md) and held, not shipped, if
+     found.
   3. Video quality gate (Heath's standing rule 2026-09-15 --
      feedback_every-video-needs-scroll-stopping-hook.md /
      docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md), BLOCKING and brand-agnostic
@@ -84,6 +89,10 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip().s
 
 FINISHED_DIR = Path(os.environ["QUEUE_VIDEOS_DIR"]).expanduser() if os.environ.get("QUEUE_VIDEOS_DIR") else (REPO / "Media" / "finished-videos")
 REALTOR_DIR = FINISHED_DIR / "realtor"
+# Rust (rustfitness.app) clips, added 2026-09-16 (RUST-OWNER-WIRING) --
+# same top-level-scan-plus-one-subfolder convention as realtor/, so a Rust
+# drop never leaks into the Dossie glob either.
+RUST_DIR = FINISHED_DIR / "rust"
 KIT_DOC_PATH = Path(os.environ["WEEKLY_KIT_PATH"]).expanduser() if os.environ.get("WEEKLY_KIT_PATH") else (REPO / "docs" / "WEEKLY-RECORDING-KIT.md")
 
 STORAGE_BUCKET = "videos"
@@ -109,6 +118,12 @@ STORAGE_PREFIX = "video-library"
 # plan" (docs/PIPELINE.md) -- don't originate realtor content for it.
 DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok", "youtube"]
 REALTOR_SELFIE_PLATFORMS = ["facebook", "instagram"]
+# Rust (rustfitness.app), added 2026-09-16 (RUST-OWNER-WIRING). Matches the
+# two Zernio accounts actually connected and verified live for the 'rust'
+# owner (zernio_accounts, 20260916d_rust_owner_wiring.sql) -- no facebook/
+# tiktok/youtube row exists for rust today, so we don't default to a
+# platform that will just fail account resolution at post time.
+RUST_PLATFORMS = ["instagram", "twitter"]
 
 
 # ── Filename / topic-slug helpers ─────────────────────────────────────────────
@@ -135,15 +150,18 @@ def slugify_stem(stem: str) -> str:
     return topic
 
 
-def classify_video(file_path: Path, is_realtor: bool) -> dict:
+def classify_video(file_path: Path, owner: str) -> dict:
     """
     Detect type, platforms, and target_owner from the file's folder + name.
+    `owner` is 'dossie' (top-level FINISHED_DIR), 'heath-realtor'
+    (REALTOR_DIR), or 'rust' (RUST_DIR) -- set by the caller from which
+    folder the file was found in (see main()).
     Returns {"type": str, "platforms": list[str], "topic": str, "target_owner": str}
     """
     stem = file_path.stem.lower()
     topic = slugify_stem(stem)
 
-    if is_realtor:
+    if owner == "heath-realtor":
         # Every realtor clip today is a selfie script (see kit doc); no
         # Dossie CTA, brokerage name comes from the kit's own caption.
         return {
@@ -151,6 +169,18 @@ def classify_video(file_path: Path, is_realtor: bool) -> dict:
             "platforms": list(REALTOR_SELFIE_PLATFORMS),
             "topic": topic,
             "target_owner": "heath-realtor",
+        }
+
+    if owner == "rust":
+        # Rust's format library (coach-conversation clips, readiness-check
+        # skits, etc.) doesn't map onto Dossie's selfie/skit/mobile/desktop
+        # naming convention -- every rust/ drop is one type and platform set
+        # until Rust has its own naming lanes.
+        return {
+            "type": "coach_conversation",
+            "platforms": list(RUST_PLATFORMS),
+            "topic": topic,
+            "target_owner": "rust",
         }
 
     if "selfie" in stem:
@@ -483,24 +513,30 @@ def main():
         print(f"ERROR: Directory not found: {FINISHED_DIR}")
         sys.exit(1)
 
-    # Top-level scan only (no recursion) — Media/finished-videos/realtor/ is
-    # scanned separately below, by design (kit doc convention: keeps realtor
-    # clips from ever entering the Dossie glob).
+    # Top-level scan only (no recursion) — Media/finished-videos/realtor/ and
+    # /rust/ are scanned separately below, by design (kit doc convention:
+    # keeps realtor/rust clips from ever entering the Dossie glob).
     dossie_paths = sorted(FINISHED_DIR.glob("*.mp4"))
     realtor_paths = sorted(REALTOR_DIR.glob("*.mp4")) if REALTOR_DIR.exists() else []
+    rust_paths = sorted(RUST_DIR.glob("*.mp4")) if RUST_DIR.exists() else []
 
     print(f"\nFound {len(dossie_paths)} Dossie .mp4 file(s) in {FINISHED_DIR}")
     print(f"Found {len(realtor_paths)} Realtor .mp4 file(s) in {REALTOR_DIR}")
+    print(f"Found {len(rust_paths)} Rust .mp4 file(s) in {RUST_DIR}")
 
-    all_paths = [(p, False) for p in dossie_paths] + [(p, True) for p in realtor_paths]
+    all_paths = (
+        [(p, "dossie") for p in dossie_paths]
+        + [(p, "heath-realtor") for p in realtor_paths]
+        + [(p, "rust") for p in rust_paths]
+    )
 
     new_files = []
-    for video_path, is_realtor in all_paths:
+    for video_path, owner in all_paths:
         stem = video_path.stem
         if stem in existing_ids:
             print(f"  SKIP (already in DB): {video_path.name}")
         else:
-            new_files.append((video_path, is_realtor))
+            new_files.append((video_path, owner))
 
     if not new_files:
         print("\nNo new videos to queue. Nothing to do.")
@@ -514,27 +550,55 @@ def main():
 
     results = {"queued": [], "failed": [], "flagged_no_caption": [], "quality_held": []}
 
-    for video_path, is_realtor in new_files:
+    for video_path, owner in new_files:
         filename = video_path.name
         stem = video_path.stem
         print(f"\n{'─'*55}")
-        print(f"  Processing: {filename} ({'realtor' if is_realtor else 'dossie'})")
+        print(f"  Processing: {filename} ({owner})")
 
         # 1. Classify
-        info = classify_video(video_path, is_realtor)
+        info = classify_video(video_path, owner)
         print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']}")
 
-        # 2. Caption — kit doc only, never a template/auto-generated string.
-        caption = kit_captions.get(info["topic"], "")
-        if caption:
-            print(f"  Caption ({len(caption)} chars, from kit doc): {caption}")
+        # 2. Caption. Dossie/realtor: kit doc only, never a template/auto-
+        # generated string (docs/WEEKLY-RECORDING-KIT.md has no rust entries
+        # at all -- rust doesn't use this convention). Rust: a `{stem}.caption.txt`
+        # sidecar file next to the video, if the generator staged one --
+        # same "real copy, never a template" rule, different source file
+        # since rust has no kit doc.
+        caption = ""
+        if owner == "rust":
+            sidecar = video_path.parent / f"{stem}.caption.txt"
+            if sidecar.exists():
+                caption = sidecar.read_text(encoding="utf-8").strip()
         else:
-            warn = (f"Video pipeline: {filename} has no matching script in "
-                     f"WEEKLY-RECORDING-KIT.md (topic slug '{info['topic']}') — "
+            caption = kit_captions.get(info["topic"], "")
+
+        if caption:
+            print(f"  Caption ({len(caption)} chars): {caption}")
+        else:
+            source = "a staged .caption.txt sidecar" if owner == "rust" else "WEEKLY-RECORDING-KIT.md"
+            warn = (f"Video pipeline: {filename} has no matching caption in "
+                     f"{source} (topic slug '{info['topic']}') — "
                      f"queued with an EMPTY caption. Write one before approving.")
             print(f"  WARN: {warn}")
             send_telegram_alert(warn)
             results["flagged_no_caption"].append(stem)
+
+        # 2b. Rust content rule (Heath, 2026-09-16): no store link/"download
+        # now" language while iOS/Android aren't both live (memory
+        # rust-app-store-submission-state.md). CTA is always the waitlist at
+        # rustfitness.app. Same "hold, don't ship" pattern as the empty-
+        # caption case above.
+        if owner == "rust" and caption:
+            lowered = caption.lower()
+            if re.search(r"\b(download( it)? now|get it on|app store|google play|available now on)\b", lowered):
+                warn = (f"Video pipeline: {filename} (rust) caption references a store/download CTA "
+                        f"before iOS/Android are live: \"{caption[:80]}\" — held.")
+                print(f"  QUALITY HOLD (content rule): {warn}")
+                send_telegram_alert(warn)
+                results["failed"].append(stem)
+                continue
 
         # 3. Video quality gate (BLOCKING, brand-agnostic — Heath's standing
         # rule 2026-09-15). Cover frame extracted + gate run against the

@@ -561,10 +561,25 @@ function hhmmToMin(t) {
   return h * 60 + m;
 }
 
+// Fetches ALL rows (active and inactive, every owner) — isDueForPublish()
+// below picks the right one per (platform, day, owner) and checks is_active
+// itself. Previously this filtered is_active=eq.true at the query, which
+// meant an owner-specific override could never be seen if the SHARED row
+// for that platform happened to be inactive (exactly Twitter/X's state for
+// Dossie — see 20260916d_rust_owner_wiring.sql).
 async function loadSchedules() {
-  const { data, ok } = await supabaseFetch('/rest/v1/posting_schedule?is_active=eq.true&select=platform,day_of_week,time_slots,timezone,max_per_day,max_per_slot');
+  const { data, ok } = await supabaseFetch('/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day,max_per_slot,owner');
   if (!ok) return [];
   return Array.isArray(data) ? data : [];
+}
+
+// Resolve the schedule row for (platform, day, owner): an owner-specific
+// override (owner = the exact value) takes precedence over the shared row
+// (owner IS NULL) for that same platform+day. Mirrors cron-post-videos.js's
+// loadTodaySchedule()/gatePlatform() (Carter 2026-09-16 — RUST-OWNER-WIRING).
+function findScheduleRow(schedules, platform, dow, owner) {
+  const rows = schedules.filter((s) => s.platform === platform && s.day_of_week === dow);
+  return rows.find((s) => s.owner === owner) || rows.find((s) => !s.owner) || null;
 }
 
 // Count how many posts have been published (or are being published right now) for
@@ -632,12 +647,13 @@ async function isDueForPublish(platform, schedules, owner) {
   // Filter by platform AND current day of week
   const tz = 'America/Chicago'; // Default timezone for day calculation
   const today = nowInTz(tz);
-  const row = schedules.find((s) => s.platform === platform && s.day_of_week === today.dow);
+  const row = findScheduleRow(schedules, platform, today.dow, owner || 'dossie');
   // BUG FIX (2026-05-29): Previously returned due:true (uncapped publish) when no
   // schedule row existed for this platform+day combo. That let stale approved rows
   // fire on days they shouldn't publish (e.g. a Sunday row with no schedule entry
   // published immediately). Correct behaviour: no schedule = do not publish today.
-  if (!row) return { due: false, reason: `no schedule row for ${platform} on day ${today.dow} — skipping` };
+  if (!row) return { due: false, reason: `no schedule row for ${platform}/${owner || 'dossie'} on day ${today.dow} — skipping` };
+  if (!row.is_active) return { due: false, reason: `schedule row for ${platform}/${owner || 'dossie'} is INACTIVE` };
 
   const slots = (row.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
   const nowMin = hhmmToMin(today.hhmm);
@@ -698,7 +714,7 @@ const FALLBACK_MAX_PER_PLATFORM_PER_DAY = 2;
 
 async function assignFreshScheduleForOrphans() {
   const { data: orphans, ok } = await supabaseFetch(
-    '/rest/v1/social_posts?select=id,platform,created_at&status=eq.approved&scheduled_for=is.null&order=created_at.asc&limit=50'
+    '/rest/v1/social_posts?select=id,platform,created_at,target_owner&status=eq.approved&scheduled_for=is.null&order=created_at.asc&limit=50'
   );
   if (!ok || !Array.isArray(orphans) || orphans.length === 0) return { assigned: 0 };
 
@@ -726,7 +742,13 @@ async function assignFreshScheduleForOrphans() {
       const dow = candidateDay.weekday % 7; // luxon: Mon=1..Sun=7, we want Sun=0..Sat=6
       const dowIndex = dow === 7 ? 0 : dow;
 
-      const scheduleRow = schedules.find((s) => s.platform === platform && s.day_of_week === dowIndex);
+      // findScheduleRow (owner-aware, see loadSchedules() comment above) —
+      // `schedules` can now hold more than one row per platform+day (a
+      // shared row plus an owner override, e.g. rust's twitter row), so a
+      // plain .find() here would pick whichever happens to come first in
+      // query order. Orphan-backfill is Dossie's own legacy social_posts
+      // pipeline; scope explicitly to the orphan's own target_owner.
+      const scheduleRow = findScheduleRow(schedules, platform, dowIndex, orphan.target_owner || 'dossie');
       const slots = scheduleRow && Array.isArray(scheduleRow.time_slots) && scheduleRow.time_slots.length > 0
         ? scheduleRow.time_slots.map((t) => String(t).slice(0, 5)).sort()
         : FALLBACK_SLOTS_CT;

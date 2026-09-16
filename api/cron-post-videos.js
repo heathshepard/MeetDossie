@@ -89,8 +89,34 @@ const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linked
 // videos.py always sets one explicitly, so this is a legacy-row fallback).
 const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram'];
 
-function defaultPlatformsFor(owner) {
-  return owner === 'heath-realtor' ? REALTOR_DEFAULT_PLATFORMS : DEFAULT_PLATFORMS;
+// Default platforms for a video whose row shipped with an empty/missing
+// `platforms` array — a legacy-row fallback (queue-finished-videos.py
+// always sets one explicitly today, for every owner including rust).
+//
+// DB-DRIVEN (Carter 2026-09-16 — RUST-OWNER-WIRING). Previously this was an
+// if/else on owner literal ('heath-realtor' ? REALTOR_DEFAULT_PLATFORMS :
+// DEFAULT_PLATFORMS) — every new owner needed a source change here just to
+// get a sane fallback. Now it asks zernio_accounts directly: whatever
+// platforms are actively connected for this owner IS the default list, so
+// adding a brand is a zernio_accounts INSERT, never a code edit. The two
+// hardcoded constants above are kept ONLY as a fail-safe for 'dossie' and
+// 'heath-realtor' if the DB read itself fails (matches their pre-existing
+// behavior exactly) — a brand-new owner with no DB row and a failed lookup
+// gets an empty list (skip that video's default-platform resolution
+// entirely) rather than silently spraying it across every platform.
+async function defaultPlatformsFor(owner) {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/zernio_accounts?owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=platform`,
+    );
+    if (ok && Array.isArray(data) && data.length > 0) {
+      return [...new Set(data.map((r) => r.platform))];
+    }
+  } catch (_) { /* fall through to the legacy fail-safe below */ }
+  if (owner === 'heath-realtor') return REALTOR_DEFAULT_PLATFORMS;
+  if (owner === 'dossie' || !owner) return DEFAULT_PLATFORMS;
+  console.warn(`[cron-post-videos] defaultPlatformsFor(${owner}): no active zernio_accounts rows and no legacy fail-safe — returning []`);
+  return [];
 }
 
 // All posting_schedule rows use America/Chicago; day boundaries and slot
@@ -99,16 +125,35 @@ const DEFAULT_TZ = 'America/Chicago';
 
 // Load today's posting_schedule rows (ACTIVE AND INACTIVE — inactive rows
 // must be visible so the caller can skip those platforms, not fall through
-// to "no schedule" ambiguity). Returns Map platform -> row.
+// to "no schedule" ambiguity). Returns Map platform -> { shared: row|null,
+// owners: Map<owner, row> }.
+//
+// OWNER-SCOPED (Carter 2026-09-16 — RUST-OWNER-WIRING /
+// 20260916d_rust_owner_wiring.sql). posting_schedule was never owner-scoped
+// — every owner posting to a platform shared the exact same slots/cap/
+// is_active row. That's fine while every owner agrees a platform should be
+// on or off, and breaks the moment they don't: Twitter/X is deliberately
+// INACTIVE for Dossie (all 7 day rows) but Rust's connected @Ruststrength
+// account needs it active. `owner` is now nullable on this table — NULL
+// rows are shared (apply to any owner with no override), a non-null owner
+// value overrides the shared row for that owner ONLY, on that exact
+// platform+day. gatePlatform() below prefers the owner-specific row.
 async function loadTodaySchedule() {
   const { data, ok } = await supabaseFetch(
-    '/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day',
+    '/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day,owner',
   );
   if (!ok || !Array.isArray(data)) return null; // null = query failed (fail closed upstream)
   const byPlatform = new Map();
   for (const row of data) {
     const dow = DateTime.now().setZone(row.timezone || DEFAULT_TZ).weekday % 7; // luxon: Mon=1..Sun=7 → Sun=0..Sat=6
-    if (row.day_of_week === dow) byPlatform.set(row.platform, row);
+    if (row.day_of_week !== dow) continue;
+    let entry = byPlatform.get(row.platform);
+    if (!entry) {
+      entry = { shared: null, owners: new Map() };
+      byPlatform.set(row.platform, entry);
+    }
+    if (row.owner) entry.owners.set(row.owner, row);
+    else entry.shared = row;
   }
   return byPlatform;
 }
@@ -157,11 +202,12 @@ async function getPostCountsToday() {
 // scheduledFor = next slot later today in the schedule tz; null = every slot
 // already passed, publish immediately (slot-passed == due, matching
 // cron-publish-approved semantics).
-// owner scopes the daily-cap count (see getPostCountsToday) — the
-// posting_schedule row (slots + cap number) is still shared across owners
-// on the same platform, only the COUNT against that cap is per-owner.
+// owner scopes both the schedule row (an owner-specific posting_schedule
+// override takes precedence over the shared one — see loadTodaySchedule())
+// and the daily-cap count (see getPostCountsToday).
 function gatePlatform(platform, scheduleByPlatform, counts, owner = 'dossie') {
-  const row = scheduleByPlatform.get(platform);
+  const entry = scheduleByPlatform.get(platform);
+  const row = entry && (entry.owners.get(owner) || entry.shared);
   if (!row) {
     return { post: false, reason: 'no posting_schedule row for today' };
   }
@@ -304,7 +350,7 @@ async function sendForHeathReview(video) {
   const owner = video.target_owner || 'dossie';
   const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
     ? video.platforms
-    : defaultPlatformsFor(owner);
+    : await defaultPlatformsFor(owner);
 
   const text = [
     `Video ready for review: ${video.topic || video.id}${owner === 'heath-realtor' ? ' [REALTOR]' : ''}`,
@@ -332,6 +378,15 @@ async function sendForHeathReview(video) {
 // AND Facebook Page independently per owner (GAP 4, Carter 2026-09-10).
 // A heath-realtor call NEVER falls back to a dossie account — see
 // resolveZernioAccountId().
+// NOTE (Carter 2026-09-16 — RUST-OWNER-WIRING): the clone-voice AI
+// disclosure flags (YouTube platformSpecificData.containsSyntheticMedia,
+// TikTok platformSpecificData.tiktokSettings.video_made_with_ai) live on an
+// UNMERGED branch (fix/linkedin-authenticity-and-ai-disclosure) as of this
+// commit, gated on owner==='heath-realtor' only. Rust doesn't have a
+// zernio_accounts row for either youtube or tiktok today, so this has no
+// live effect for rust regardless — but when that branch merges, widen its
+// gate to include owner==='rust' for any Rust video that uses a synthetic
+// (non-Heath) coach voice, e.g. Marcus in the readiness-check format.
 async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner = 'dossie') {
   const accountId = await resolveZernioAccountId(platform, owner);
   if (!accountId) {
@@ -590,6 +645,26 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           continue;
         }
 
+        // Rust content rule (Heath, 2026-09-16 — RUST-OWNER-WIRING, see
+        // memory rust-app-store-submission-state.md): no store link / "download
+        // now" language while iOS/Android aren't both live yet. The CTA is
+        // always the waitlist at rustfitness.app. Caught here so a caption
+        // slipping past generation still can't ship a broken/premature CTA.
+        if ((candidate.target_owner || 'dossie') === 'rust') {
+          const rustCta = captionCheck;
+          if (/\b(download( it)? now|get it on|app store|google play|available now on)\b/.test(rustCta)) {
+            const warn = `Video ${candidate.id} (owner=rust) caption references a store/download CTA before iOS/Android are live: "${(candidate.caption || '').slice(0, 80)}"`;
+            console.warn(`[cron-post-videos] ${warn}`);
+            await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
+              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+            );
+            summary.skipped.push({ id: candidate.id, reason: 'rust store-link CTA before launch' });
+            continue;
+          }
+        }
+
         const qualityOk = await gateVideoQuality(candidate);
         if (!qualityOk) {
           summary.skipped.push({ id: candidate.id, reason: 'quality gate blocked at publish (see quality_hold alert)' });
@@ -599,7 +674,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         const owner = candidate.target_owner || 'dossie';
         const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
-          : defaultPlatformsFor(owner);
+          : await defaultPlatformsFor(owner);
         const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
 
         if (resolved.targets.length === 0) {
