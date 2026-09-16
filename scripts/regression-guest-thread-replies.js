@@ -131,6 +131,13 @@ const gate = require(path.join(__dirname, '..', 'api', '_lib', 'telegram-gate.js
 const commenter = require(path.join(__dirname, 'fb-group-commenter.js'));
 const caps = require(path.join(__dirname, '_lib', 'comment-caps.js'));
 
+// Risk classifier is now a real Claude Haiku 4.5 call in production
+// (scripts/_lib/auto-reply-risk-classifier.js) — stub it so this suite
+// stays zero-network regardless of sandbox network behavior. The verdict
+// doesn't matter to anything asserted in this file; see
+// scripts/regression-auto-reply-classifier.js for classifier coverage.
+const stubClassifyEscalate = async () => ({ eligible: false, category: 'low_confidence', confidence: 'low', reason: 'stub', source: 'model' });
+
 const SUPPRESSED_PAYLOAD = {
   ok: true, delivered: false, suppressed: true, suppressed_by: 'telegram-gate',
   result: { message_id: 0, date: 0 },
@@ -270,6 +277,7 @@ async function main() {
       guestCtxSeen.push({ name: row.commenter_name, guest });
       return { hostile: false, hostileReason: '', reply: `Draft for ${row.commenter_name}` };
     },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: SUPPRESSED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },
@@ -290,6 +298,7 @@ async function main() {
   const res2 = await cron.processPendingReplies({
     sbFetch: mockSbFetch,
     draft: async () => { throw new Error('must not re-draft — stored draft must be reused'); },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: DELIVERED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },
