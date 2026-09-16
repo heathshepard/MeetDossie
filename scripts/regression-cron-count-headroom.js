@@ -29,6 +29,18 @@
  *   5. Every dispatcher module still `module.exports`s a callable function
  *      (require() doesn't throw) — catches a syntax/require error in the
  *      merged jobs before Vercel's build does.
+ *   6. Top-level auth gate (added 2026-09-16 after Quinn's QA caught a live
+ *      staging FAIL: unauthenticated dispatcher calls returned 207, not
+ *      401 — each sub-job self-rejected so no side effects ran, but the
+ *      dispatcher was still a free, publicly-callable fan-out surface).
+ *      Calls each dispatcher for real (in-process, no network) with a
+ *      synthetic request/response pair and asserts:
+ *        - unauthenticated -> 401, and zero sub-jobs were invoked (the
+ *          shimmed response body has no `results` key at all, proving
+ *          runGroup() was never reached, not just that every member
+ *          happened to reject)
+ *        - authenticated (x-vercel-cron OR valid Bearer CRON_SECRET) ->
+ *          still fans out to every member (dispatched === member count)
  *
  * Pure filesystem/require test — no network, no DB, no Vercel.
  *
@@ -164,6 +176,46 @@ async function run() {
       const mod = require(path.join(API_DIR, file));
       assert.strictEqual(typeof mod, 'function', `expected a function export, got ${typeof mod}`);
     });
+  }
+
+  console.log('\nTest 6: top-level auth gate — unauthenticated is 401 with zero fan-out, authenticated still fans out to every member');
+  function makeCapturingRes() {
+    const res = { _status: null, _body: undefined };
+    res.status = (c) => { res._status = c; return res; };
+    res.json = (b) => { res._body = b; return res; };
+    return res;
+  }
+  // Use a CRON_SECRET value that only exists for this process's lifetime —
+  // never read from or written to any tracked file, per CLAUDE.md section 15.
+  const testSecret = `regtest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const originalCronSecret = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = testSecret;
+  try {
+    for (const file of dispatcherFiles) {
+      delete require.cache[require.resolve(path.join(API_DIR, file))];
+      const dispatcher = require(path.join(API_DIR, file));
+      const members = parseDispatcherMembers(path.join(API_DIR, file));
+
+      const unauthRes = makeCapturingRes();
+      await dispatcher({ headers: {}, method: 'GET' }, unauthRes);
+      check(`${file}: unauthenticated call returns 401`, () => {
+        assert.strictEqual(unauthRes._status, 401, `expected 401, got ${unauthRes._status}`);
+      });
+      check(`${file}: unauthenticated call invokes zero sub-jobs (no "results" key -> runGroup never reached)`, () => {
+        assert.ok(unauthRes._body && !('results' in unauthRes._body), `expected no results key, got: ${JSON.stringify(unauthRes._body)}`);
+      });
+
+      const authRes = makeCapturingRes();
+      await dispatcher({ headers: { 'x-vercel-cron': '1', authorization: `Bearer ${testSecret}` }, method: 'GET' }, authRes);
+      check(`${file}: authenticated call still fans out to all ${members.length} member(s)`, () => {
+        assert.ok(authRes._body && Array.isArray(authRes._body.results), 'expected a results array');
+        assert.strictEqual(authRes._body.dispatched, members.length, `expected dispatched=${members.length}, got ${authRes._body.dispatched}`);
+        assert.strictEqual(authRes._body.results.length, members.length, `expected ${members.length} results, got ${authRes._body.results.length}`);
+      });
+    }
+  } finally {
+    if (originalCronSecret === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = originalCronSecret;
   }
 
   console.log(`\n${pass} passed, ${fail} failed`);

@@ -23,16 +23,25 @@
 //   vercel.json entries.
 //
 // WHY THIS PRESERVES AUTH (CLAUDE.md section 15)
-//   Vercel's cron invoker sets `x-vercel-cron: 1` on the dispatcher's
-//   incoming request; a manual trigger sets `Authorization: Bearer
-//   CRON_SECRET`. Both headers are forwarded unchanged to every sub-handler
-//   via the SAME `req` object used to call the dispatcher — each
-//   sub-handler's own auth gate (already required going in; see
-//   scripts that verified this before grouping) evaluates exactly as it
-//   would have standalone. An unauthenticated hit on the dispatcher route
-//   produces N unauthenticated hits on sub-handlers, each independently
-//   rejected with 401 by the sub-handler itself. The dispatcher adds no new
-//   trigger surface.
+//   TWO layers, both required:
+//     1. TOP-LEVEL GATE (isAuthorizedDispatch, below) — every dispatcher
+//        calls this FIRST and returns 401 with zero sub-jobs invoked if it
+//        fails. Added 2026-09-16 after Quinn's QA on staging found an
+//        unauthenticated probe of a dispatcher route returned 207 (each
+//        sub-job self-rejected, so no side effects ran, but the dispatcher
+//        was still a free, publicly-callable way to fan out to and hammer
+//        every handler on demand — a real surface even with zero jobs
+//        actually executing).
+//     2. PER-SUB-JOB GATE (unchanged, defense in depth) — Vercel's cron
+//        invoker sets `x-vercel-cron: 1` on the dispatcher's incoming
+//        request; a manual trigger sets `Authorization: Bearer
+//        CRON_SECRET`. Both headers are forwarded unchanged to every
+//        sub-handler via the SAME `req` object used to call the
+//        dispatcher, so each sub-handler's own pre-existing auth check
+//        still runs exactly as it would standalone. Deliberately NOT
+//        removed even though the top-level gate now makes it redundant for
+//        traffic that goes through the dispatcher — it's still the only
+//        gate for anyone hitting a member's own standalone route directly.
 //
 // EXECUTION MODEL
 //   Parallel (Promise.all), not sequential — summing several jobs'
@@ -48,6 +57,20 @@
 //   response built from all the shimmed results.
 //
 // Owner: Atlas, 2026-09-16.
+
+// Top-level dispatcher gate. Mirrors the exact check every individual
+// sub-handler already does (x-vercel-cron header set by Vercel's own cron
+// invoker, OR a valid `Authorization: Bearer $CRON_SECRET`) — see CLAUDE.md
+// section 15. No secret value ever lives here or anywhere else in tracked
+// source; CRON_SECRET is read from the environment only.
+function isAuthorizedDispatch(req) {
+  const headers = (req && req.headers) || {};
+  const isVercelCron = headers['x-vercel-cron'] === '1';
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = headers.authorization || headers.Authorization || '';
+  const isManualAuth = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+  return !!(isVercelCron || isManualAuth);
+}
 
 function makeShimRes(name) {
   const shim = {
@@ -82,4 +105,4 @@ async function runGroup(req, handlers) {
   return Promise.all(jobs);
 }
 
-module.exports = { runGroup, makeShimRes };
+module.exports = { runGroup, makeShimRes, isAuthorizedDispatch };

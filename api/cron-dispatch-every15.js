@@ -22,7 +22,7 @@
 // there is no dynamic file-glob here on purpose (explicit > magic for a
 // dispatcher that gates money/data-writing jobs).
 
-const { runGroup } = require('./_lib/cron-multiplex.js');
+const { runGroup, isAuthorizedDispatch } = require('./_lib/cron-multiplex.js');
 
 const HANDLERS = [
   { name: 'cron-followup-check', mod: require('./cron-followup-check.js') },
@@ -35,6 +35,13 @@ const HANDLERS = [
 ];
 
 module.exports = async function handler(req, res) {
+  // Top-level gate (Atlas, 2026-09-16, post-Quinn-QA fix) — reject BEFORE
+  // invoking any sub-job. Each sub-job keeps its own identical check too
+  // (defense in depth for anyone hitting it directly); this just stops an
+  // unauthenticated caller from fanning out to the whole group at all.
+  if (!isAuthorizedDispatch(req)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
   const results = await runGroup(req, HANDLERS);
   const anyFail = results.some((r) => r.status >= 400);
   return res.status(anyFail ? 207 : 200).json({
