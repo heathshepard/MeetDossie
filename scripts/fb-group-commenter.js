@@ -95,6 +95,12 @@ const TC_KEYWORDS = [
 
 // ─── Local groups loader ──────────────────────────────────────────────────────
 
+// Startup resolvability gate (Carter, 2026-09-16) — refuses any group whose
+// existence has never been confirmed live, rather than silently scanning it
+// because the name/URL merely look plausible. See
+// scripts/_lib/group-resolvability-check.js for why.
+const { filterResolvableGroups } = require('./_lib/group-resolvability-check');
+
 function loadGroups() {
   if (!fs.existsSync(GROUPS_FILE)) {
     console.error(`[fb-group-commenter] Groups file not found: ${GROUPS_FILE}`);
@@ -103,7 +109,17 @@ function loadGroups() {
   }
   try {
     const raw = JSON.parse(fs.readFileSync(GROUPS_FILE, 'utf8'));
-    return raw.filter(g => g.group_url && !g.group_url.includes('PLACEHOLDER'));
+    // fb-commenter-groups.json moved from a bare array to {_readme, groups}
+    // 2026-09-16 — support both shapes so an old-format file (or a caller's
+    // own test fixture) doesn't silently return zero groups.
+    const list = Array.isArray(raw) ? raw : (Array.isArray(raw.groups) ? raw.groups : []);
+    const withUrl = list.filter(g => g.group_url && !g.group_url.includes('PLACEHOLDER'));
+    const { resolvable, unresolved } = filterResolvableGroups(withUrl, { urlField: 'group_url', nameField: 'group_name' });
+    if (unresolved.length > 0) {
+      console.error(`[fb-group-commenter] ${unresolved.length}/${withUrl.length} group(s) refused as unresolved — will not be scanned:`);
+      for (const { reason } of unresolved) console.error(`  - ${reason}`);
+    }
+    return resolvable;
   } catch (e) {
     console.error('[fb-group-commenter] Failed to parse groups file:', e.message);
     return [];

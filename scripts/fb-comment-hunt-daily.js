@@ -62,6 +62,7 @@ try {
 const { canScan, recordScan, randDelay, SCAN_DWELL_MS } = require('./_lib/scan-caps');
 const halt = require('./_lib/comment-hunt-halt');
 const { isJunkText } = require('./_lib/junk-text-guard');
+const { filterResolvableGroups } = require('./_lib/group-resolvability-check');
 
 const PROFILE_DIR = process.env.SAGE_PROFILE_DIR
   || 'C:\\Users\\Heath\\AppData\\Local\\DossieBot-Sage';
@@ -455,7 +456,16 @@ async function main() {
   }
 
   const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-  const groups = (config.groups || []).filter((g) => g.url && !g.url.includes('PLACEHOLDER'));
+  const configuredGroups = (config.groups || []).filter((g) => g.url && !g.url.includes('PLACEHOLDER'));
+  // Startup resolvability gate (Carter, 2026-09-16) — refuses to scan any
+  // group whose existence hasn't actually been confirmed live, reporting
+  // it rather than burning scan budget on a name that only looks
+  // plausible. See scripts/_lib/group-resolvability-check.js.
+  const { resolvable: groups, unresolved } = filterResolvableGroups(configuredGroups);
+  if (unresolved.length > 0) {
+    console.error(`[comment-hunt] ${unresolved.length}/${configuredGroups.length} configured group(s) refused as unresolved — not scanned this run:`);
+    for (const { reason } of unresolved) console.error(`  - ${reason}`);
+  }
   const scanCfg = config.scan || {};
   const maxVisits = scanCfg.max_group_visits_per_day || 8;
   const reverifyN = scanCfg.reverify_recent_posted ?? 3;

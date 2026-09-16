@@ -64,12 +64,25 @@ const { checkGroupContentGate } = require('../../scripts/_lib/group-post-content
 const { checkDuplicate, withinDedupeWindow } = require('../../scripts/_lib/group-post-dedup');
 const { wasSuppressed } = require('./telegram-gate');
 const heathVoiceGuard = require('./heath-voice-guard');
+// Startup resolvability gate (Carter, 2026-09-16) — this is the real POSTING
+// target list (generate -> approve -> fb-group5-post-queue.js ->
+// fb-group-poster.js --post-id), so refusing an unverified group here is the
+// literal "refuses to post to a group whose URL/name can't be resolved"
+// requirement, not just a scanning nicety. See
+// scripts/_lib/group-resolvability-check.js.
+const { filterResolvableGroups } = require('../../scripts/_lib/group-resolvability-check');
 
 const GROUPS_CONFIG_PATH = path.join(__dirname, '..', '..', 'scripts', 'comment-hunt-groups.json');
 
 function loadTargetGroups() {
   const raw = JSON.parse(fs.readFileSync(GROUPS_CONFIG_PATH, 'utf8'));
-  return Array.isArray(raw.groups) ? raw.groups : [];
+  const configured = Array.isArray(raw.groups) ? raw.groups : [];
+  const { resolvable, unresolved } = filterResolvableGroups(configured);
+  if (unresolved.length > 0) {
+    console.error(`[daily-group5-post-generator] ${unresolved.length}/${configured.length} configured group(s) refused as unresolved — no post will be generated for them:`);
+    for (const { reason } of unresolved) console.error(`  - ${reason}`);
+  }
+  return resolvable;
 }
 
 function makeSupabaseFetch(url, key) {
