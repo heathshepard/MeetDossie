@@ -1,0 +1,2851 @@
+"slug","faqJson"
+"are-boerne-isd-schools-good","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are Boerne ISD schools good?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""By the state's own measure, yes. Boerne ISD has earned an A rating from the Texas Education Agency for six consecutive years, scoring 92 points in the 2024-2025 ratings with 20 distinction designations. Not every campus rated A — the Boerne Star reported lower grades at four elementaries.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does a TEA A rating actually measure?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The overall grade is the better of Student Achievement or School Progress weighted 70 percent, plus Closing the Gaps at 30 percent. Student Achievement is what students know and can do, from STAAR, CCMR and graduation. School Progress is how far students have come or how campuses compare to similar comparison groups, and is itself the better of Academic Growth or Relative Performance. Closing the Gaps is how different student groups are performing. A is the 90 to 100 band.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How can Boerne ISD be an A district if some campuses rate lower?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Because the rating is a weighted composite that takes the better of achievement or progress for 70 percent of the score. A strong achievement score can carry a weaker growth score. The district composite is not an average of campus grades, which is why Boerne ISD can hold six straight A ratings while four of its elementaries rate lower.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Did every Boerne ISD campus earn an A rating?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The Boerne Star reported that Viola Wilson, Currington, Herff and Kendall elementaries received lower grades than the district's overall A. A child attends one campus, so look up the individual campus rating and its domain breakdown for the attendance zone of the specific address.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Boerne ISD tax rate?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The 2025 adopted rate was 1.0109 per $100 of taxable value, made up of 0.6969 for maintenance and operations plus 0.3140 for debt service. Recent years were 0.9909 in 2024, 0.9932 in 2023, 1.1786 in 2022 and 1.2046 in 2021.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can attendance zones change in Boerne ISD?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Kendall County grew 20.3 percent between 2020 and 2025, and districts absorbing that growth open campuses and redraw boundaries. No listing or agent can guarantee a future attendance zone. Confirm the current zone with the district in writing before relying on it.""
+      }
+    }
+  ]
+}"
+"are-property-taxes-prorated-at-closing-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are property taxes prorated at closing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Under Paragraph 13 of the TREC 20-19 contract, taxes for the current year are prorated through the Closing Date. The title company allocates the year between seller and buyer on the settlement statement, the proration may take a change in exemptions into account, and the parties must adjust it once the actual tax statements are available.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does TREC Paragraph 13 say about prorations?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It provides that taxes for the current year, interest, rents, and regular periodic maintenance fees, assessments and dues are prorated through the Closing Date; that the tax proration may take into consideration any change in exemptions affecting the current year's taxes; that the parties shall adjust the prorations when current-year tax statements are available; and that if taxes are not paid at or prior to closing, Buyer shall pay taxes for the current year.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I get the seller's homestead or over-65 exemption for the rest of the year?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Exemptions, the over-65 school tax ceiling and the 10 percent homestead cap do not transfer to a buyer. A buyer's own homestead exemption requires owning and occupying the home as a principal residence on January 1, so a mid-year buyer generally starts the following year. Paragraph 13 allows the proration to take that change into consideration.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who adjusts the proration if the actual tax bill is different?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 13 requires the parties to adjust the prorations when current-year tax statements are available. The obligation runs between buyer and seller, not through the title company, and nothing automatically triggers it after the file closes. Enforcement questions belong with a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why does my settlement statement show taxes twice?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The proration credit and the escrow reserve deposit are different lines. Paragraph 12A(2) makes reserve deposits for ad valorem taxes a Buyer's Expense, while Paragraph 12A(1) makes tax statements or certificates a Seller's Expense. Ask the title company to walk through each line.""
+      }
+    }
+  ]
+}"
+"boerne-vs-fair-oaks-ranch-vs-bulverde","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Boerne vs. Fair Oaks Ranch vs. Bulverde: which should I buy in?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne is the Kendall County seat on I-10, with city utilities and Boerne ISD. Fair Oaks Ranch incorporated in 1988 and spans Bexar, Comal and Kendall counties, so your appraisal district depends on the lot. Bulverde is Comal County, incorporated 1999, Comal ISD, on US 281.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What county is Fair Oaks Ranch, Texas in?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""All three of Bexar, Comal and Kendall. Fair Oaks Ranch city limits span the three counties, so the county that appraises a given home, takes its homestead exemption and bills county taxes depends on which side of the county line the lot sits on.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What school district serves Bulverde, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Comal ISD. Bulverde is in Comal County and is not served by Boerne ISD. Most of Fair Oaks Ranch, by contrast, is served by Boerne ISD even though parts of that city sit in Bexar and Comal counties.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When were Fair Oaks Ranch and Bulverde incorporated?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Fair Oaks Ranch incorporated in 1988 and had a 2020 census population of 9,833. Bulverde incorporated in 1999 and had a 2020 census population of 5,692. Boerne is the long-established county seat of Kendall County, with an 18,084 population in the 2020 census.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the Comal ISD tax rate higher than Boerne ISD?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. For 2025, per $100 of taxable value, Comal ISD adopted 1.0748, made up of 0.7248 maintenance and operations plus 0.3500 debt, down from 1.0869 in 2024 and 1.0892 in 2023. Boerne ISD adopted 1.0109 and Comfort ISD 0.9328. The school district is the largest single component of a Hill Country tax bill, larger than the City of Boerne at 0.4716 and Kendall County at 0.377 combined.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which highway serves each town?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne sits on Interstate 10 roughly 31 miles northwest of San Antonio. US 281 runs through the east side of Bulverde. Fair Oaks Ranch sits between the two corridors on the northwest edge of Bexar County.""
+      }
+    }
+  ]
+}"
+"can-an-hoa-ban-short-term-rentals-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can an HOA ban short-term rentals in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Often yes. Texas has no statewide short-term rental preemption statute, and an HOA declaration is a private contract that can be amended to restrict or prohibit short-term rentals. Tarr v. Timberwood Park (Tex. 2018) held only that a bare residential-purposes-only covenant does not by itself bar short stays.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What did Tarr v. Timberwood Park actually hold?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""In Tarr v. Timberwood Park Owners Association, No. 17-0088 (Tex. 2018), the Texas Supreme Court held unanimously that where renters use a single-family home for a residential purpose, the rental does not violate a bare 'residential purposes only' covenant regardless of the length of stay. The holding interprets that covenant. It is not a rule that HOAs can never restrict short-term rentals, and it does not address city zoning or permits.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a Texas HOA amend its declaration to prohibit short-term rentals later?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Deed restrictions are private contracts and most Texas declarations include an amendment mechanism. Texas appellate courts have upheld amended declarations that restrict short-term rentals. Whether a specific amendment binds a specific owner depends on the amendment language and the declaration's own amendment provision, which is a question for a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a city short-term rental permit override HOA deed restrictions in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. A city permit is permission from the city and says nothing about the recorded declaration. HOA permission likewise says nothing about whether the city will issue a permit. A buyer needs both cleared independently before the option period expires.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I check HOA short-term rental restrictions before buying in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Get the full recorded declaration and every recorded amendment, not a summary. Order the subdivision information including the resale certificate, which Texas Property Code Chapter 207 requires the association to provide within 10 business days of a proper written request. Check for pending amendment votes and enforcement history, and have a Texas real estate attorney read the document.""
+      }
+    }
+  ]
+}"
+"can-i-defer-my-property-taxes-in-texas-over-65","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I defer my property taxes in Texas if I'm over 65?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. A Texas homeowner 65 or older can defer property taxes on their residence homestead by filing Comptroller Form 50-126 with the appraisal district. Deferral stops foreclosure and delinquency penalties while it is in effect, but the taxes keep accruing at 5 percent annual interest under Tax Code 33.06 and eventually come due.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the interest rate on a Texas property tax deferral?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Five percent annually. Texas Tax Code 33.06(d) provides that the annual interest rate during the deferral or abatement period is five percent instead of the rate provided by Section 33.01. The balance continues to grow for as long as the deferral is in place.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a Texas tax deferral forgive the taxes?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. A deferral is a pause on collection against the residence homestead, not a reduction. The taxes remain assessed and accrue interest. They become payable when the qualifying owner no longer owns and occupies the property as a homestead, including on a sale or at death.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I defer property taxes if I have a mortgage?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It depends on the loan. Most loan agreements require property taxes to be kept current, and escrowed loans pay them directly. A servicer may advance the taxes and bill the borrower. Confirm compatibility with the lender or servicer in writing before filing.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I do before deferring Texas property taxes?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Confirm every exemption is posted: the $140,000 school district homestead exemption for 2026, the additional $60,000 for owners 65 or older or disabled, the school tax ceiling, any local entity freeze, and any disabled veteran exemption. Also check whether the appraised value is correct, since a protest is free.""
+      }
+    }
+  ]
+}"
+"conventional-vs-fha-vs-va-loan-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Conventional vs. FHA vs. VA loan in Texas: which one should I use?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Conventional loans follow the 2026 conforming limit of $832,750 for one unit. FHA uses a nationwide floor of $541,287 and a ceiling of $1,249,125, set by county. VA loans have no loan limit for a veteran with full entitlement, and the funding fee is waived for service-connected disability compensation. Ask a lender to price all three.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the 2026 conforming loan limit?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For 2026 the Federal Housing Finance Agency set the one-unit conforming loan limit at $832,750, up $26,250 from 2025's $806,500, with a high-cost ceiling of $1,249,125. The increase followed third-quarter 2025 house price index data showing prices up 3.26 percent year over year.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the 2026 FHA loan limits?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Per Mortgagee Letter 2025-23, the 2026 nationwide FHA one-unit floor is $541,287 and the ceiling is $1,249,125, effective for case numbers assigned January 1 through December 31, 2026. Each county's actual limit falls between those and is published on HUD's mortgage limits lookup tool.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do VA loans have a limit in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Veterans with full entitlement have no VA loan limit, and the VA guaranty does not exceed 25 percent. That means the VA is not capping the loan amount, not that a lender will approve any amount. Entitlement may be partial for a veteran with an existing VA loan or a prior VA foreclosure; the Certificate of Eligibility settles it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the loan program I choose affect a later cash-out refinance in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Not directly, because the Texas rule applies regardless of program. A cash-out or home equity loan on a Texas homestead is governed by the Texas Constitution, Section 50(a)(6), capping total borrowing against the homestead at 80 percent of fair market value, with a 12-day waiting period, a 2 percent cap on most fees, non-recourse treatment, and one such loan at a time.""
+      }
+    }
+  ]
+}"
+"do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I need a real estate attorney to buy a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Texas does not require a real estate attorney to buy a house. The title company handles escrow, title search and closing documents, and license holders use TREC promulgated forms. An attorney is the right call for title defects, probate or estate sales, deed drafting, deed restriction questions, and any custom contract language.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Texas an attorney closing state?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Texas is a title company state. The title company acts as escrow agent, performs the title search, issues the commitment and policy, prepares closing documents and disburses funds. That is the role an attorney fills in attorney-closing states.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a Texas REALTOR write contract language for me?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Paragraph 23 of TREC form 20-19, titled CONSULT AN ATTORNEY BEFORE SIGNING, states that TREC rules prohibit real estate brokers and sales agents from giving legal advice. License holders are required to use TREC promulgated forms and TREC does not write custom contracts. Custom terms require a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the Texas contract itself recommend hiring an attorney?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes, in two places. Paragraph 23 is titled CONSULT AN ATTORNEY BEFORE SIGNING and provides printed fields for each party's attorney. Paragraph 6E(1) states that Broker advises Buyer to have an abstract of title examined by an attorney of Buyer's selection, and that if a Title Policy is furnished the Commitment should be promptly reviewed by an attorney of Buyer's choice due to the time limitations on Buyer's right to object.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When should I hire a real estate attorney in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For title defects flagged in the commitment, probate or estate sales, deed drafting including transfers into a trust or entity, deed restriction interpretation, partition among co-owners, marital and community property questions, custom contract language, and any dispute over default or an earnest money release.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does hiring an attorney lower my title insurance cost in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Texas title insurance premium rates are promulgated by the Texas Department of Insurance, so the premium for a given policy amount is the same at every title company in the state regardless of who represents you.""
+      }
+    }
+  ]
+}"
+"do-i-need-flood-insurance-in-boerne","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I need flood insurance in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""If the property is in a FEMA Special Flood Hazard Area and you are using a federally backed loan, the lender will require flood insurance. Outside that zone it is optional but not unnecessary — a map line is not a risk assessment. Boerne is in Kendall County; get a flood quote during the option period.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a Special Flood Hazard Area?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The 100-year floodplain, covering FEMA Zones A, V, A99, AE, AO, AH, VE and AR, with a 1 percent annual chance of flooding. The 500-year floodplain, shaded Zone X, is a moderate flood hazard area with a 0.2 percent annual chance. Texas Property Code section 5.008 uses both categories in the seller's disclosure notice.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does the Texas seller's disclosure say about flooding?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It asks whether the property is in a 100-year or 500-year floodplain, whether it has flooded at least once in the past five years, whether it is in a reservoir flood pool, whether it has been repaired for flood damage, and whether the seller received assistance or flood insurance proceeds. These questions were added by SB 339, 86th Legislature, mandatory for contracts executed on or after September 1, 2019.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a house outside a flood zone still flood?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. FEMA maps are engineering products drawn on data of varying vintage and updated on a lagging schedule. Upstream development, new impervious cover and undersized drainage can change real-world risk without changing the map. Being outside the Special Flood Hazard Area means your lender will not require a policy, not that water cannot reach the structure.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When should I get a flood insurance quote when buying in Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""During the option period, on the same schedule as the inspection. The option period runs on calendar days and the termination right expires at 5:00 p.m. local time on the last day. A premium figure that arrives after the option period closes is information you can no longer act on.""
+      }
+    }
+  ]
+}"
+"does-boerne-flood","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Boerne, Texas flood?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Flood risk in Boerne is address-specific, not city-wide. Whether a particular property floods is determined by its FEMA flood zone, the seller's disclosure under Texas Property Code 5.008, and an insurance quote. A property outside the mapped Special Flood Hazard Area can still flood; the map is not a risk assessment.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What do FEMA flood zone designations mean in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The 100-year floodplain, or Special Flood Hazard Area, covers Zones A, V, A99, AE, AO, AH, VE and AR and carries a 1% annual chance of flooding. The 500-year floodplain is a moderate flood hazard area, shaded Zone X, with a 0.2% annual chance. A 100-year flood is the 1%-per-year event, not an event that happens once a century.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a Texas seller have to disclose flooding?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Since SB 339 of the 86th Legislature, mandatory for contracts executed on or after September 1, 2019, the statutory seller's disclosure notice asks whether the property is in a 100-year or 500-year floodplain, whether it has flooded at least once in the past 5 years, whether it is in a reservoir flood pool, and whether it has been repaired for flood damage or the seller received flood insurance proceeds.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a property outside a flood zone still flood in the Hill Country?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. FEMA maps are engineering products built on the drainage and development conditions in place when the study was done, and they do not model every creek, culvert or low-water crossing. A map designation is not a risk assessment. Physical position relative to a creek or draw, and how the neighborhood drains, matter as much as the zone.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When should a buyer investigate flood risk in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""During the option period, which is the window in which a Texas buyer has an unrestricted right to terminate. Pull the FEMA zone for the exact address, get a real insurance quote, ask a surveyor about an elevation certificate, and read the seller's disclosure flood answers. The option fee must reach the title company within three days of the effective date or the termination right is lost.""
+      }
+    }
+  ]
+}"
+"does-boerne-have-enough-water","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Boerne have enough water?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne draws from three sources — Canyon Lake surface water purchased through the Guadalupe-Blanco River Authority, Boerne City Lake, and local wells in the Trinity Group aquifers. Supply is actively managed, not unlimited: the Cow Creek Groundwater Conservation District sets drought stages and pumping rules countywide. Check ccgcd.org for the current stage.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Where does Boerne, Texas get its drinking water?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""From three sources: Canyon Lake surface water purchased through the Guadalupe-Blanco River Authority, Boerne City Lake, and local wells in the Trinity Group aquifers. Drawing from more than one source lets the city lean on surface water when groundwater is stressed and the reverse.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who regulates groundwater in Kendall County?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Cow Creek Groundwater Conservation District. It sets drought stages using roughly 42 monitor wells, stream gauges on Cibolo Creek and the Guadalupe River, and more than 100 rain gauge sites. Stages have ranged between Stage 2 and Stage 4, with Stage 4 emergency rules reported to carry mandatory pumping reductions.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is buying a Boerne-area home on a well different from buying on city water?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Substantially. On city water, supply and drought management are the utility's responsibility. On a private well, the buyer owns the risk and should evaluate tested yield, depth, casing and pump condition, water quality, any shared-well agreement, and the district's permitting and pumping limits. A general home inspection does not evaluate a well.""
+      }
+    }
+  ]
+}"
+"does-texas-have-no-state-income-tax","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Texas really have no state income tax, and what do I pay instead?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Texas has no state individual income tax. It funds local government mostly through property tax, and sales tax runs 6.25% state plus local add-ons to a maximum 8.25%, which is what Boerne charges. Texas property is reappraised at market value annually, subject to a 10% homestead cap.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the combined property tax rate in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For 2025, a home inside the Boerne city limits in Boerne ISD sat under Boerne ISD 1.0109, City of Boerne 0.4716 and Kendall County 0.377, a combined 1.8595 per $100 of taxable value, before any special district on the parcel and before exemptions. Some parcels also carry a MUD, WCID or Cow Creek GCD line.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How often is Texas property reappraised?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Annually, at market value. Once a residence homestead exemption is in place, the increase in net appraised value is capped at 10% per year. A property without a homestead exemption has no cap, which is why the first reappraisal after a purchase can move a long way.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the sales tax rate in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""8.25% total, the Texas maximum: 6.25% state, 1.50% City of Boerne and 0.50% Kendall County. Hotel occupancy tax on short-term stays is 13% total, 6% state plus 7% city.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When is the deadline to protest a Texas property appraisal?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""May 15, or 30 days after the appraisal district mails the notice of appraised value, whichever is later. The clock runs from the mailing date, not delivery, and a weekend or holiday deadline rolls to the next business day. The notice of protest form is Comptroller Form 50-132.""
+      }
+    }
+  ]
+}"
+"how-are-rental-properties-taxed-differently-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How are rental properties taxed differently from a homestead in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A Texas rental gets no residence homestead exemption and no 10 percent homestead appraisal cap. It is instead covered by the separate 20 percent circuit breaker on non-homestead property under Tax Code Section 23.231, which applies to tax years 2024 through 2026 and expires December 31, 2026 unless the Legislature renews it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I get a homestead exemption on a rental property in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Residence homestead exemptions require that the owner owned and occupied the property as a principal residence on January 1 of the tax year. That means a rental gets none of the $140,000 school district exemption, the additional $60,000 age-65-or-disabled exemption, the local option exemption of up to 20 percent, or the over-65 school tax ceiling.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the 20 percent circuit breaker on Texas non-homestead property?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Tax Code Section 23.231 limits annual increases in appraised value to 20 percent for non-homestead real property valued at or below an annually indexed threshold. It was created by SB 2 in 2023 as a pilot for tax years 2024, 2025 and 2026 and expires December 31, 2026 unless the Legislature renews it. It excludes agricultural special-appraisal land and homesteads under the 10 percent cap.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When is the deadline to protest a rental property's appraisal in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""May 15, or 30 days after the appraisal district mails the notice of appraised value, whichever is later. The clock runs from the mailing date rather than delivery. The notice of protest is Comptroller Form 50-132, and the appraisal review board must give at least 15 days notice of the hearing. Boerne-area property protests go to Kendall Appraisal District, not Bexar CAD.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who handles depreciation and deductions on a Texas rental?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A CPA or tax advisor. Depreciation, depreciation recapture on sale, passive activity loss rules, the line between a repair and a capital improvement, and the interaction with a 1031 exchange are all decided filer by filer on the federal return. Texas has no state individual income tax, which changes the arithmetic but not the questions.""
+      }
+    }
+  ]
+}"
+"how-do-i-file-for-a-homestead-exemption-in-kendall-county","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I file for a homestead exemption in Kendall County, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""File with the Kendall Appraisal District at kendallad.org, not Bexar CAD. Boerne is in Kendall County. You must have owned and occupied the home as your principal residence on January 1, and the application is due before May 1. There is no fee to file directly with the district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I file a Boerne homestead exemption with Bexar CAD?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Boerne is the county seat of Kendall County, not part of Bexar County or the City of San Antonio. Boerne homeowners file with the Kendall Appraisal District. The appraisal district is determined by which county the parcel is in, not by the metro area or mailing address.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does it cost anything to file a homestead exemption in Kendall County?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Filing directly with the Kendall Appraisal District is free. New owners often receive official-looking mail offering to file the exemption for a fee. Those are paid third-party services, not county correspondence.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Where is the Kendall Appraisal District office and how do I contact it?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District is at 118 Market Avenue, Boerne, TX 78006, phone (830) 249-8012, email requestinfo@kendallad.org. Appraisal and Operations is open Monday to Friday 8:00 a.m. to 5:00 p.m., and Tax Collection Monday to Friday 8:00 a.m. to 4:00 p.m. Property search is at esearch.kendallad.org and the Taxpayer Portal for exemptions and protests is at eprotest.kendallad.org.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which Kendall County entities offer an over-65 or disability freeze?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District lists the City of Boerne, Boerne ISD, Comfort ISD and Kendall County as jurisdictions offering over-65 and disability tax freezes. Confirm the current status for a specific parcel with the appraisal district, since local options can change.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What taxing units appear on a Kendall County tax bill?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Per Kendall Appraisal District, the entities include Boerne ISD, Comfort ISD, City of Boerne, Kendall County, Kendall County MUD, Miralomas MUD, Cow Creek Groundwater Conservation District and Kendall County WCID #1. Which ones apply depends on the parcel.""
+      }
+    }
+  ]
+}"
+"how-do-i-protest-my-property-taxes-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I protest my property taxes in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""File a written notice of protest with your appraisal district by May 15, or 30 days after the district mails your notice of appraised value, whichever is later. Comptroller Form 50-132 works. The appraisal review board must give at least 15 days notice of the hearing, which you may attend in person, by phone, by video or by affidavit.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Texas property tax protest deadline?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""May 15, or 30 days after the appraisal district mails the notice of appraised value, whichever is later. The clock runs from the mailing date, not the date you receive it. If the deadline falls on a weekend or legal holiday it moves to the next business day.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When does the appraisal district have to send my notice of appraised value?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""By May 1, or by April 1 for a residence homestead, or as soon as practical thereafter under Tax Code 25.19. Because homesteads get the earlier notice, homeowners generally have more time to prepare a protest than owners of other property types.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I have to appear in person at an ARB hearing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. An owner may appear in person, by telephone or videoconference, or by submitting a written affidavit. The appraisal review board must give at least 15 days notice of the hearing date, time and place.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does a Texas notice of protest have to say?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It must be in writing and identify the property, the owner, and a subject showing the owner is dissatisfied with a determination of the appraisal district. Comptroller Form 50-132 is the standard form, and most districts accept online filing, but no specific format is required.""
+      }
+    }
+  ]
+}"
+"how-do-i-terminate-a-contract-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I terminate a real estate contract in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""You terminate a Texas contract by exercising a right the contract gives you and delivering written notice — most commonly during the option period using TREC form 38-8. Terminating the contract and getting the earnest money back are two separate events: escrowed funds cannot be released without mutual agreement or a court order.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What form do I use to terminate a contract during the option period in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""TREC's Notice of Buyer's Termination of Contract, form 38-8, effective 04/01/2025. Paragraph 5B of form 20-19 requires notice of termination to the seller by 5:00 p.m. local time where the Property is located, by the date specified. The option fee will not be refunded and any earnest money will be refunded to the buyer.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I terminate a Texas contract after the option period ends?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Only if another right applies. The Third Party Financing Addendum, form 40-11, creates a financing exit with its own deadline, and the appraisal addendum, form 49-1, covers a low appraisal. Inside form 20-19, paragraph 7B(2) covers a missing seller's disclosure notice, paragraph 6B covers a title commitment that never arrives, paragraph 6D covers uncured title objections, and paragraph 14 covers casualty loss. Each requires written notice before its deadline.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What if the seller never gave me the disclosure notice in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 7B(2) of TREC form 20-19 says that if the buyer does not receive the Seller's Disclosure Notice, the buyer may terminate at any time prior to the closing with the earnest money refunded. If the seller then delivers it, the buyer may terminate for any reason within 7 days after receiving it or prior to closing, whichever first occurs.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does terminating the contract automatically return my earnest money in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Termination and escrow release are separate. Earnest money in escrow cannot be released to either party without mutual agreement or a court order, so a seller who declines to sign the release leaves the funds sitting even after the contract has ended.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a seller terminate a contract in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Only where the contract gives the seller a right, typically after a buyer default and any required cure period. TREC's Notice of Seller's Termination of Contract, form 50-0, papers that right but does not create one. A seller wanting out because a better offer arrived should talk with a Texas real estate attorney first.""
+      }
+    }
+  ]
+}"
+"how-does-the-option-fee-work-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How does the option fee work in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The option fee is a negotiated amount the buyer delivers to the escrow agent — the title company, not the seller — within three days after the effective date. It pays for the unrestricted right to terminate. If the sale closes, the fee is credited to the sales price. If the buyer terminates, the seller keeps it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who does the option fee get paid to in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The escrow agent, which is the title company handling the transaction. It is not paid to the seller directly and not to the listing agent. The escrow agent may then release the fee to the seller before closing, without the buyer's consent, once good funds are received.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the deadline to deliver the option fee in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 5A of TREC form 20-19 requires delivery within 3 days after the Effective Date, to the Escrow Agent named in the contract rather than to the seller. Paragraph 5A(2) extends the deadline if the last day is a Saturday, Sunday or Legal Holiday as defined in Texas Government Code Sections 662.003(a) and 662.003(b)(4) and (6). Paragraph 5E states time is of the essence.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can the option fee and earnest money be paid together in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Paragraph 5A says they may be paid separately or combined in a single payment. Paragraph 5A(3) applies amounts received first to the option fee, then to the earnest money, then to any additional earnest money. An underfunded combined payment therefore leaves the earnest money short, which is a buyer default.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the option fee amount is left blank in a Texas contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 5D of TREC form 20-19 states that if no dollar amount is stated as the option fee, or if the buyer fails to deliver it within the time required, the buyer shall not have the unrestricted right to terminate under paragraph 5. A blank option fee kills the termination right just as completely as a late payment, even though an option period is written into the contract.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much is the option fee in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""There is no statutory or TREC-set amount. Paragraph 5A of form 20-19 is a fill-in-the-blank dollar figure the buyer and seller negotiate, and it generally tracks the length of the option period and how competitive the offer needs to be.""
+      }
+    }
+  ]
+}"
+"how-far-is-boerne-from-san-antonio","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How far is Boerne from San Antonio?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne is roughly 31 miles northwest of San Antonio on Interstate 10, a 30-to-45-minute drive to downtown depending on traffic. Boerne is the county seat of Kendall County, not part of the City of San Antonio and not in Bexar County, so different ordinances and a different appraisal district apply.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne a suburb of San Antonio?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Not in any legal sense. Boerne is a separate incorporated city and the county seat of Kendall County, with its own ordinances, its own school district and its own appraisal district. It functions as a commuter option for San Antonio, but San Antonio's rules do not apply there.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How long is the drive from Boerne to downtown San Antonio?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Generally 30 to 45 minutes depending on traffic, with most of the variability coming from the I-10 and Loop 1604 area on the northwest side of Bexar County. Drive the actual route at your actual departure time before committing to it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which appraisal district covers Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District, at kendallad.org. Homestead exemption filings and appraisal protests for Boerne addresses go there, not to Bexar CAD. The Texas exemption filing deadline is before May 1, and the owner must have owned and occupied the home on January 1 of the tax year.""
+      }
+    }
+  ]
+}"
+"how-much-down-payment-do-i-need-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much down payment do I need to buy a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""How much you put down depends on the loan program, whether the home will be your homestead or an investment property, and what your lender's overlay requires. Conventional, FHA and VA each set different minimums, and a veteran with full entitlement has no VA loan limit. Only a lender preapproval gives you a real number.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a Texas investment property require a larger down payment than a primary residence?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Occupancy is the single largest factor in the required down payment, larger than credit score. Primary residence, second home and investment property are underwritten as three different risks. Occupancy is a written representation to the lender, and misrepresenting it is mortgage fraud.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do VA loans in Texas have a loan limit?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A veteran with full entitlement has no VA loan limit, and the VA guaranty does not exceed 25 percent of the loan. That is a VA rule, not a lender promise — the lender still underwrites income, assets, credit and the appraisal. A veteran with partial entitlement is in a different position, which the Certificate of Eligibility settles.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What cash do I need besides the down payment in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The option fee and earnest money, both delivered to the title company early in the contract; inspection and due diligence costs paid during the option period; closing costs, which are negotiated in the contract rather than fixed by law; and documented reserves left in the account after closing, which many lender overlays require.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How does Texas homestead law affect how much I should put down?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Borrowing against a Texas homestead is capped by the Texas Constitution, Section 50(a)(6), at 80 percent of fair market value, with a 12-day waiting period, a 2 percent cap on most fees, non-recourse treatment, and only one such loan at a time. If the plan is to pull cash out later, that cap sets the ceiling. Investment property is not governed by 50(a)(6).""
+      }
+    }
+  ]
+}"
+"is-boerne-a-good-real-estate-investment","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne, Texas a good real estate investment?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne's fundamentals support long-term value: 20.3 percent Kendall County population growth from 2020 to 2025 driven by domestic migration, six straight A ratings for Boerne ISD, and land and groundwater constraints that limit new supply. Cash flow is the hard part, because Texas property tax rates and Hill Country prices compress yields.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do Texas appraisal caps protect an investment property in Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The 10 percent homestead cap applies only to property that already has a homestead exemption, so it does not protect a rental. The separate circuit breaker under Tax Code 23.231 caps non-homestead increases at 20 percent per year, but it is a pilot for tax years 2024 through 2026 and expires December 31, 2026 unless renewed.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the property tax rates on a Boerne investment property?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For a home inside Boerne city limits in Boerne ISD, the 2025 adopted rates per $100 of taxable value were Boerne ISD 1.0109, City of Boerne 0.4716 and Kendall County 0.377, plus any special district on the parcel such as a MUD, the WCID or the groundwater conservation district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I run a short-term rental in Boerne as an investment?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes, under City of Boerne Ordinance No. 2023-09, which requires a $200 two-year permit, a safety inspection inside city limits, $500,000 per-occurrence liability insurance and hotel occupancy tax of 13 percent combined. In residential zones an STR cannot operate within 200 feet of another STR on the same block face, which can disqualify a specific address.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens to ag-valued land in Kendall County if I develop it?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Changing the use of land under 1-d-1 open-space appraisal triggers a three-year rollback tax equal to the difference between taxes paid on agricultural value and taxes that would have been paid on market value. A CPA should model that liability before you buy ag-valued land for development.""
+      }
+    }
+  ]
+}"
+"is-boerne-good-for-short-term-rentals","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne, Texas good for short-term rentals?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne allows short-term rentals under Ordinance No. 2023-09, so the real question is what caps the return. The binding constraints are a 200-foot block-face separation in residential zones, occupancy of two per bedroom plus two, a ban on events, 13 percent hotel occupancy tax, and a $500,000 liability insurance minimum.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What limits short-term rental revenue in Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Occupancy is capped at two people per bedroom plus two additional people, so a three-bedroom sleeps eight. Events are prohibited, which removes event or venue income entirely. Hotel occupancy tax of 13 percent and a $500,000 per-occurrence liability insurance requirement are both real operating costs.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I buy a Boerne home and be sure it will qualify as a short-term rental?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Not without checking. In residentially zoned areas an STR cannot operate within 200 feet of another STR on the same block face, and that allowance may already be used by an existing permit holder. Confirm eligibility for the specific address with the City of Boerne Planning Department at (830) 248-1501 during the option period.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a Boerne short-term rental permit transfer when the property sells?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The permit term is two years, but transferability on sale is a question for the City of Boerne Planning Department. Get the answer in writing for the specific address before closing, because a buyer paying a short-term rental price may otherwise be relying on an approval they do not yet hold.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What demand data is actually verifiable for Boerne short-term rentals?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall County grew 20.3 percent between 2020 and 2025, from an estimated 44,568 to 53,289, mostly through domestic migration, and Boerne sits about 31 miles from San Antonio on Interstate 10. That supports demand, but it is not an occupancy rate or a nightly rate. Pull actual comparable listing performance and have a CPA model it.""
+      }
+    }
+  ]
+}"
+"is-boerne-texas-a-good-place-to-live","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne, Texas a good place to live?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne works well if you want Hill Country land, an A-rated school district, and a 30-to-45-minute I-10 commute to San Antonio. It is the county seat of Kendall County, not a San Antonio suburb. The trade-offs are 20.3 percent county growth since 2020, groundwater limits, and annual market-value reappraisal.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne part of San Antonio?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Boerne is the county seat of Kendall County, roughly 31 miles northwest of San Antonio on Interstate 10. It is a separate incorporated city in a different county, so San Antonio ordinances do not apply and the appraisal district is Kendall Appraisal District rather than Bexar CAD.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How fast is the Boerne area growing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall County grew 20.3 percent between 2020 and 2025, from an estimated 44,568 to 53,289 residents, driven mostly by domestic migration. The City of Boerne's 2020 census population was 18,084; current city figures are estimates that vary by source.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How good are the schools in Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne ISD has earned an A rating from the Texas Education Agency for six consecutive years and scored 92 points in the 2024-2025 ratings with 20 distinction designations. Not every campus rated A; the Boerne Star reported lower grades for Viola Wilson, Currington, Herff and Kendall elementaries.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the downsides of living in Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Traffic and school capacity pressure from rapid county growth, a car-dependent layout outside downtown, annual market-value property tax reappraisal with no state income tax offset for many buyers, and real groundwater constraints regulated by the Cow Creek Groundwater Conservation District.""
+      }
+    }
+  ]
+}"
+"is-boerne-texas-growing","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Boerne, Texas growing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Kendall County grew 20.3 percent between 2020 and 2025, from an estimated 44,568 residents to 53,289, and most of that came from domestic migration rather than births. The City of Boerne's 2020 census population was 18,084; current city-level numbers are estimates that vary by source.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the population of Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The 2020 decennial census counted 18,084 people in the City of Boerne. Later figures are estimates that differ by vendor; World Population Review estimates roughly 25,209. Kendall County as a whole was estimated at 53,289 in 2025.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why is Kendall County growing so fast?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Most of the growth is domestic migration, meaning households relocating from elsewhere in the United States rather than natural increase. In-migration adds a household immediately, often with equity from a prior sale, which is the fastest-acting form of housing demand.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is limiting growth around Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Water and terrain. Boerne draws from Canyon Lake through the Guadalupe-Blanco River Authority, Boerne City Lake, and Trinity Group aquifer wells, and groundwater across Kendall County is regulated by the Cow Creek Groundwater Conservation District. Hill Country slope and rock also limit lot yield per acre.""
+      }
+    }
+  ]
+}"
+"is-hill-country-land-a-good-investment","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is Texas Hill Country land a good investment?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Hill Country land is not a passive investment. The numbers that decide it are specific to the tract: whether it carries 1-d-1 open-space ag valuation, what a change of use would trigger in rollback taxes for the prior three years, legal access and easements, groundwater availability under Cow Creek GCD rules, and septic feasibility.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How does a Texas ag exemption work on Hill Country land?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under 1-d-1 open-space appraisal, land is valued on productivity value rather than market value. It requires current principal agricultural use, use to the degree of intensity generally accepted in the area, and agricultural or timber production in 5 of the preceding 7 years. Wildlife management use is available on previously qualified land and requires at least 3 of 7 specified activities.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the rollback tax when land comes out of ag use in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas Tax Code 23.55 imposes an additional tax equal to the difference between the taxes imposed on the land for each of the three years preceding the year in which the change of use occurs. The rollback is triggered by the change of use, not the sale, so the buyer who changes the use inherits the bill.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is there an interest rate on Texas rollback taxes?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas Tax Code 23.55 does not impose a separate rollback interest rate. It provides only that the additional taxes incur penalties and interest as provided by law for ad valorem taxes imposed by the taxing unit if they are not paid by the delinquency deadline. Articles quoting a specific rollback interest percentage are not citing the statute.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I check before buying land in Kendall County, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Current ag valuation status and rollback exposure with the appraisal district, groundwater and well permitting with the Cow Creek Groundwater Conservation District, recorded legal access and easements with a Texas real estate attorney, a survey, the cost to extend electric service, septic feasibility, severed mineral rights, and any deed restrictions or POA. Raw land financing is also its own product and should be arranged before writing an offer.""
+      }
+    }
+  ]
+}"
+"is-the-option-fee-refundable-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the option fee refundable in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The option fee is not refundable. If the buyer terminates during the option period, the seller keeps it — that is what the fee bought. If the sale closes, the fee is credited to the sales price, so the buyer effectively gets it back at the closing table. Earnest money is the refundable deposit.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do you get the option fee back at closing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Effectively, yes. Paragraph 5A(4) of TREC form 20-19 states the option fee will be credited to the Sales Price at closing, so it appears as a credit on the buyer's side of the settlement statement and reduces the cash needed at the table. It is a credit, not a refund.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between the option fee and earnest money in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The option fee buys the unrestricted right to terminate and becomes the seller's money. Earnest money is a good-faith deposit that stays the buyer's money in escrow. Paragraph 5B of TREC form 20-19 says that on a timely termination the option fee will not be refunded and any earnest money will be refunded to the buyer.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can the seller receive the option fee before closing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. In paragraph 5A(4) the buyer authorizes the escrow agent to release and deliver the option fee to the seller at any time without further notice to or consent from the buyer. Earnest money cannot be released that way — it requires mutual agreement or a court order.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the option fee is delivered late or left blank in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Either one forfeits the termination right. Paragraph 5D of TREC form 20-19 states that if no dollar amount is stated as the option fee, or if the buyer fails to deliver it within the time required, the buyer shall not have the unrestricted right to terminate under paragraph 5. Paragraph 5E adds that time is of the essence.""
+      }
+    }
+  ]
+}"
+"moving-from-austin-to-boerne","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I know about moving from Austin to Boerne?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne is in Kendall County, not Travis County: a different appraisal district (Kendall Appraisal District), a different school district (Boerne ISD), and a different water picture. It sits about 31 miles northwest of San Antonio on Interstate 10, a 30 to 45 minute drive downtown depending on traffic.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What county is Boerne, Texas in?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne is the county seat of Kendall County. It is not in Bexar County and not in the City of San Antonio, so San Antonio ordinances do not apply. Property is appraised by Kendall Appraisal District, which is where homestead exemptions are filed and protests are heard.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are Boerne ISD schools rated well?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne ISD earned an A rating from the Texas Education Agency for six consecutive years, including the 2024 and 2025 rating years, scoring 92 points in the 2024-2025 ratings with 20 distinction designations. Not every campus rated A, so check the specific campus that serves a specific address.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Where does Boerne get its water?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""From three sources: Canyon Lake surface water purchased through the Guadalupe-Blanco River Authority, Boerne City Lake, and local wells in the Trinity Group aquifers. Groundwater in Kendall County is regulated by the Cow Creek Groundwater Conservation District, which sets drought stages. Check ccgcd.org for the current stage.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How far is Boerne from San Antonio?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""About 31 miles northwest of San Antonio via Interstate 10, roughly a 30 to 45 minute drive to downtown San Antonio depending on traffic. Boerne's practical orientation is toward San Antonio for medical care, the airport and major shopping.""
+      }
+    }
+  ]
+}"
+"moving-from-california-to-the-texas-hill-country","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I know about moving from California to the Texas Hill Country?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas has no state individual income tax, and it funds local government largely through property tax instead. Texas property is reappraised at market value every year, unlike California under Proposition 13. In Boerne, Boerne ISD's 2025 rate was 1.0109 and the City of Boerne's was 0.4716 per $100 of taxable value.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How is Texas property tax different from California property tax?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas appraisal districts value property at market value and reappraise it annually. California's Proposition 13 limits reassessment. Once a Texas homestead exemption is in place there is a 10% per-year cap on the increase in net appraised value, but the cap limits how fast the value climbs, not where it ends up.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the property tax rates in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For 2025, per $100 of taxable value, a home inside the Boerne city limits in Boerne ISD sat under Boerne ISD 1.0109, City of Boerne 0.4716 and Kendall County 0.377 — a combined 1.8595 before any special district and before exemptions. Comfort ISD's 2025 rate was 0.9328. Some parcels also carry Kendall County MUD, Miralomas MUD, Cow Creek Groundwater Conservation District or Kendall County WCID #1, so pull the entity list for the specific parcel from Kendall Appraisal District.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When can I claim a homestead exemption after moving to Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""You must have owned and occupied the home as your principal residence on January 1 of the tax year. A buyer who closes in February does not get the exemption that year and receives it the following year. The application deadline is before May 1, and the form is filed with the appraisal district, not by the title company.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much is the Texas school homestead exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""School districts must grant a $140,000 residence homestead exemption, raised from $100,000 by Proposition 13, approved by Texas voters in November 2025 and implemented by SB 4 of the 89th Legislature, effective for tax year 2026. Owners age 65 or older, or disabled, receive an additional $60,000 from the school district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the sales tax rate in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""8.25% total, which is the Texas maximum: 6.25% state, 1.50% City of Boerne and 0.50% Kendall County. Hotel occupancy tax on short-term stays runs 13% total, 6% state plus 7% city.""
+      }
+    }
+  ]
+}"
+"should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Should I buy inside Boerne city limits or in unincorporated Kendall County?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Inside the city limits you get City of Boerne utilities and ordinances and pay the city's 0.4716 rate. Unincorporated means well and septic, no city rate, and fewer local rules — except in Boerne's ETJ, where the city still regulates platting and some ordinances, such as short-term rentals, still reach you.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does Boerne's ETJ control?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The extraterritorial jurisdiction is unincorporated area outside the city limits where the city keeps regulatory authority, notably subdivision platting under Texas Local Government Code Chapter 42. Boerne's short-term rental ordinance also reaches the ETJ, although the STR safety inspection requirement does not apply there.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I still pay school and county taxes outside Boerne city limits?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Only the City of Boerne rate of 0.4716 drops off. Kendall County at 0.377 and the school district still apply, plus any special district such as Kendall County MUD, Miralomas MUD, Kendall County WCID #1 or the Cow Creek Groundwater Conservation District. Confirm the entity list per parcel with Kendall Appraisal District.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What extra diligence does an unincorporated Kendall County property need?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A tested well yield, well depth, casing and pump condition, septic type, capacity and permit history, any shared well or shared road agreement, groundwater district permitting and pumping limits, and the recorded deed restrictions. A standard home inspection does not cover the well or certify the septic system.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens to an agricultural valuation if I build on unincorporated acreage?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Changing the use of land under 1-d-1 open-space appraisal triggers a three-year rollback tax equal to the difference between taxes paid on agricultural value and taxes that would have been paid on market value. Ask Kendall Appraisal District whether the valuation survives your intended use and a CPA what the rollback would cost.""
+      }
+    }
+  ]
+}"
+"texas-disabled-veteran-property-tax-exemption","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Texas disabled veteran property tax exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas gives disabled veterans a fixed dollar exemption off one property's appraised value, scaled to the VA disability rating and starting at $5,000 for a 10-29% rating. A veteran rated 100% disabled, or determined individually unemployable, gets a total exemption on their residence homestead under Tax Code 11.131.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does individual unemployability qualify for the Texas 100 percent veteran exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Under Tax Code 11.131, a veteran qualifies on either a 100 percent disability rating or a VA determination of individual unemployability. It is one or the other, not both. Veterans compensated at the 100 percent rate through unemployability often assume incorrectly that they do not qualify.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How late can a Texas disabled veteran file for the exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The application is Form 50-114 with an ordinary April 30 deadline, but the 100 percent disabled veteran exemption may be filed up to five years after the delinquency date for the taxes in question. The appraisal district can say which years remain open on an account.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a surviving spouse keep the disabled veteran exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes, if the spouse has not remarried, the property was the veteran's residence homestead at death, and it remains the spouse's homestead. If the surviving spouse moves, the exemption is capped at the dollar value of the last year's exemption on the prior home rather than being a full exemption on the new one.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the Texas disabled veteran exemption amounts by rating?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under Texas Tax Code 11.22(a): a rating of at least 10 percent but less than 30 percent gets $5,000; at least 30 but less than 50 percent gets $7,500; at least 50 but less than 70 percent gets $10,000; and 70 percent or more gets $12,000. The exemption applies to one property the veteran designates.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the partial disabled veteran exemption apply to more than one property?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The partial exemption under Tax Code 11.22 is a fixed dollar amount off the appraised value of one property the veteran owned on January 1, and it applies to that same property across all taxing units. The applicant must be a Texas resident to qualify for a homestead exemption.""
+      }
+    }
+  ]
+}"
+"texas-over-65-property-tax-exemption-and-school-tax-ceiling","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Texas over-65 property tax exemption and school tax ceiling?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas homeowners 65 or older get an additional $60,000 school district homestead exemption on top of the general $140,000, plus a school tax ceiling that freezes school taxes at the amount for the year they qualified. Moving transfers the ceiling as a percentage, not a dollar amount, and only if you file for it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much is the Texas over-65 exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""School districts must grant an additional $60,000 residence homestead exemption to owners 65 or older or disabled, on top of the general $140,000 school district exemption for 2026. Other taxing units may adopt a local option exemption of at least $3,000 for the same group.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the Texas school tax ceiling transfer if I move?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes, but as a percentage rather than a dollar amount, and only if you file for it. Request a tax ceiling certificate, Form 50-311, from the old appraisal district, file it with the new district, and file a new homestead application including the age-65 exemption.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the over-65 ceiling freeze my whole tax bill?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The mandatory ceiling covers the school district portion. City, county and special district freezes are local options that not every entity adopts. A total bill can still rise when a non-frozen entity raises its rate.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can the over-65 tax ceiling ever go up?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The ceiling can be raised to account for new improvements to the property, such as added square footage or a new structure. Ordinary repairs and maintenance are treated differently. The appraisal district decides how a specific project is classified.""
+      }
+    }
+  ]
+}"
+"what-are-property-taxes-like-in-boerne","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are property taxes like in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For a home inside Boerne city limits in Boerne ISD, the 2025 adopted rates per $100 of taxable value were Boerne ISD 1.0109, City of Boerne 0.4716 and Kendall County 0.377, plus any special district on the parcel. Boerne files with Kendall Appraisal District, not Bexar CAD.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Kendall County property tax rate?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall County adopted 0.377 per $100 of taxable value for 2025, made up of 0.317976 maintenance and operations plus 0.059024 debt. That was a decrease from 0.3827 in 2024 and was adopted at the August 26, 2025 Commissioners Court meeting against a no-new-revenue rate of 0.373981.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which taxing entities can appear on a Kendall County tax bill?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District lists Boerne ISD, Comfort ISD, the City of Boerne, Kendall County, Kendall County MUD, Miralomas MUD, the Cow Creek Groundwater Conservation District and Kendall County WCID #1. The exact set varies by parcel, so pull the entity list for the specific address.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Where do I file a homestead exemption for a Boerne home?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District at kendallad.org, not Bexar CAD. The filing deadline is before May 1, and you must have owned and occupied the home as your principal residence on January 1 of the tax year. School districts must grant a $140,000 residence homestead exemption effective for tax year 2026.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When is the deadline to protest a Boerne property appraisal?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""May 15, or 30 days after the appraisal district mails the notice of appraised value, whichever is later. The clock runs from the mailing date. Comptroller Form 50-132 is the notice of protest form, and the appraisal review board must give at least 15 days notice of the hearing.""
+      }
+    }
+  ]
+}"
+"what-are-the-2026-loan-limits-in-kendall-county","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the 2026 conforming and FHA loan limits in Kendall County, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""For 2026 the conforming one-unit baseline is $832,750, with a high-cost ceiling of $1,249,125. FHA's nationwide one-unit floor is $541,287 and ceiling $1,249,125. Kendall County sits in the San Antonio-New Braunfels MSA, whose 2026 FHA one-unit limit is reported at $557,750 — confirm it on HUD's lookup. VA has no limit on full entitlement.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the 2026 conforming loan limit for a one-unit property?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""$832,750, up $26,250 from 2025's $806,500, with a high-cost area ceiling of $1,249,125. FHFA announced the values after third-quarter 2025 house price index data showed prices up 3.26 percent year over year. The baseline is the figure a Kendall County buyer plans against; the ceiling applies only in areas FHFA designates as high-cost.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When do 2026 FHA loan limits take effect?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Per Mortgagee Letter 2025-23, the 2026 FHA limits apply to case numbers assigned January 1 through December 31, 2026. The trigger is the case number assignment date, not the contract date or the closing date, so a case number assigned in December 2025 falls under the 2025 limit.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if my loan is above the conforming limit?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It becomes a jumbo loan. Fannie Mae and Freddie Mac will not buy it, so the individual lender or its private investor sets the down payment, reserve, credit and rate terms. Jumbo terms vary far more between lenders than conforming terms, because there is no common agency rulebook.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a loan limit cap what house I can buy?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. A loan limit is a threshold in the loan amount, not the purchase price, and it governs whether the loan is agency-eligible rather than what a buyer can afford. A purchase above the limit can still be a conforming loan if the down payment brings the loan amount under it.""
+      }
+    }
+  ]
+}"
+"what-credit-score-do-i-need-to-buy-a-house-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What credit score do I need to buy a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""There is no single number. Each loan program sets an agency minimum, and then the individual lender adds its own stricter overlay — the overlay is what you actually have to meet. Score also prices the loan and the mortgage insurance, not just approval. Get a real preapproval from a lender who pulls credit and reads your income documents.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a lender overlay?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An overlay is a requirement a lender adds on top of the agency program minimum, based on its own risk tolerance and investor relationships. Overlays are not published and vary between lenders. The overlay at the lender you apply with is the standard your file actually has to meet.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which credit score do mortgage lenders use?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Lenders pull a tri-merge report from all three bureaus, each with its own score, and standard practice is to use the middle of the three. On a joint application the lower borrower's middle score typically governs. The free score in a banking app is usually not the score that decides the loan.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a higher credit score do anything besides get me approved?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Score is primarily a pricing input. It affects the interest rate or closing costs through loan-level pricing adjustments on conventional loans, and it affects what private mortgage insurance costs. Two approvals on the same purchase can carry meaningfully different monthly payments.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What makes a preapproval strong in a Texas offer?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A preapproval where the lender has pulled credit, read income and asset documents, and run automated underwriting. An underwritten preapproval reviewed by a human underwriter is stronger still. The listing side weighs that letter together with the Third Party Financing Addendum, TREC form 40-11, effective 01/03/2025.""
+      }
+    }
+  ]
+}"
+"what-does-the-effective-date-mean-in-a-texas-contract","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does the effective date mean in a Texas real estate contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The effective date is the date the last party signs the contract and that signature is delivered. It is day zero. Every other deadline in a Texas contract counts from it: the option fee delivery, the option period, the financing deadline, title objections and the closing date. A wrong effective date makes every one of them wrong.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the effective date the date the buyer signed the offer?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The effective date requires the last party to sign and that final signature to be delivered. The date the offer was written, the date it was emailed, a verbal acceptance, and the date earnest money was wired are all commonly mistaken for it and none of them are it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which Texas contract deadlines run from the effective date?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 5A requires the earnest money and option fee within 3 days after the Effective Date. Paragraph 5B counts the option period in days after the Effective Date, ending at 5:00 p.m. local time. Paragraph 6C sets the survey election days, Paragraph 7B the seller's disclosure delivery days, Paragraph 6D the title objection window, plus the financing deadline and closing.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the effective date is left blank on a Texas contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No deadline can be computed. In practice the option fee gets delivered late, and Paragraph 5D states that if no dollar amount is stated as the option fee, or the buyer fails to deliver it within the time required, the buyer does not have the unrestricted right to terminate. Paragraph 5E adds that time is of the essence and strict compliance is required.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can you change the effective date on a Texas contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Changing a date on an executed contract changes a contract term, which requires an Amendment to Contract, TREC form 39-11, signed by every party and delivered. Backdating an effective date is a misstatement on an executed contract, not a scheduling convenience. If deadlines have already run, consult a Texas real estate attorney.""
+      }
+    }
+  ]
+}"
+"what-happens-at-a-texas-closing","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens at a Texas real estate closing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""At a Texas closing the title company acts as escrow agent. The parties sign the deed, note and closing disclosure, the buyer wires funds, the lender funds the loan, and the title company records the deed. Signing is not closing — the deal closes when it funds and records. No attorney is required.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is signing the same as closing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Signing is the execution of documents. Closing is funding and recording. Funds are not disbursed and documents are not recorded until the title company has received all required items, so a file can sit fully signed and still not be closed.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do you need a lawyer to close on a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The title company acts as escrow agent, runs the title search, issues the commitment and policy, prepares closing documents and disburses funds. Hiring an attorney is optional, and worth it for title defects, probate or estate sales, entity purchases, boundary disputes or custom contract language.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When do you get the keys in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""At closing and funding, per the contract, not at the signing appointment. If the parties want possession on a different schedule, that is a written agreement, such as a promulgated temporary residential lease.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if a Texas home is damaged before closing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under paragraph 14 of TREC form 20-19 the seller must restore the property by the Closing Date. If the seller cannot due to factors beyond the seller's control, the buyer may terminate and have the earnest money refunded, extend the time for performance up to 15 days, or accept the property damaged with an assignment of insurance proceeds plus a credit from the seller at closing in the amount of the deductible.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How are property taxes handled at a Texas closing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 13 of TREC form 20-19 prorates taxes for the current year, interest, rents and regular periodic maintenance fees, assessments and dues through the Closing Date. The proration may account for a change in exemptions, and if the actual taxes differ from the amount prorated, the parties adjust once the current year's tax statements are available.""
+      }
+    }
+  ]
+}"
+"what-is-a-1031-exchange","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a 1031 exchange?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A 1031 exchange lets an owner defer capital gain on real property held for productive use in a trade or business or for investment by exchanging it for like-kind real property. You have 45 days to identify replacement property in writing and 180 days to receive it. A personal residence does not qualify.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the 45-day and 180-day 1031 deadlines?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Both run from the transfer of the relinquished property. Replacement property must be identified within 45 days in writing, signed and delivered to a person involved in the exchange such as the qualified intermediary. The replacement property must be received within 180 days, or by the due date of the tax return including extensions, whichever is earlier.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why does a late-in-the-year closing threaten a 1031 exchange?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Because the receipt deadline is 180 days or the tax return due date including extensions, whichever is earlier. If the relinquished property closes in November, the return due date can arrive before the 180th day and cut the exchange period short. A CPA handles this before the deadline, usually with an extension.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I do a 1031 exchange on my home?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Section 1031 applies to real property held for productive use in a trade or business or for investment. A personal residence does not qualify. Since the Tax Cuts and Jobs Act, Section 1031 also applies only to real property, not to personal or intangible property.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is there a TREC form for a 1031 exchange?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. TREC publishes an Addendum for Section 1031 Exchange, form 60-0, effective 01/03/2025. It puts the other party on notice that the transaction is part of an exchange, but it does not replace the exchange documents prepared by the qualified intermediary. The exchange itself is reported to the IRS on Form 8824.""
+      }
+    }
+  ]
+}"
+"what-is-a-mud-or-pid-in-a-texas-subdivision","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a MUD or a PID in a Texas subdivision?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A MUD is a municipal utility district and a PID is a public improvement district. Both fund water, sewer, roads and amenities in a Texas subdivision, and both add a line to the property tax bill that can change the monthly payment. Each has a TREC notice form that goes to the buyer in the transaction.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between a MUD and a PID in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A MUD is a political subdivision with its own board that levies a property tax and typically owns water, wastewater and drainage infrastructure. A PID is created by a city or county to fund specified improvements and imposes an assessment rather than a tax. A PID assessment often has a payoff balance; a MUD tax generally does not.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When must a seller give the MUD notice in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas Water Code Section 49.452 requires the seller to give written notice prior to execution of a binding contract of sale and purchase, and the purchaser signs to evidence receipt. If it was not given before the contract, the seller may give it at closing, but a purchaser who proceeds waives termination rights. The content of the notice is set by Section 49.4521.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does the Texas PID notice say?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under Texas Property Code Section 5.014 the seller must give written notice before the effective date of a binding contract. It states that the buyer is obligated to pay assessments for public improvement costs, that AN ASSESSMENT HAS BEEN LEVIED AGAINST YOUR PROPERTY, the payment terms, and that failure to pay may result in penalties and interest being added to what you owe or in a lien on and the foreclosure of your property.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which TREC forms disclose a MUD or PID?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Addendum Containing Notice of Obligation to Pay Improvement District Assessment, form 53-0 effective 09/01/2021, carries the Property Code 5.014 notice on the PID side. The Notice to Purchaser of Special Taxing or Assessment District, form 59-0 effective 02/12/2024, is the notice given to a purchaser of property inside a special taxing or assessment district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are there MUDs in Kendall County, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Kendall Appraisal District's entity list includes a Kendall County MUD and a Miralomas MUD, along with Kendall County WCID #1 and the Cow Creek Groundwater Conservation District. Check the specific parcel's account at kendallad.org, because district boundaries do not follow subdivision names.""
+      }
+    }
+  ]
+}"
+"what-is-a-t-47-affidavit","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a T-47 affidavit in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A T-47 is a notarized affidavit in which a Texas seller states that nothing has changed on the property since the existing survey. With it, the lender and title company can often accept that survey instead of requiring a new one. A T-47.1 declaration does the same job without notarization; both took effect November 1, 2024.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between a T-47 and a T-47.1 in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""They make the same substantive statements about the property being unchanged since the existing survey. The T-47 is a notarized affidavit. The T-47.1 is a declaration in lieu of affidavit, signed by the seller but not notarized. Both are effective November 1, 2024, and the title company and lender decide which they will accept.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who signs the T-47 affidavit?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The seller. The seller identifies the existing survey and swears that no changes have been made to the property since it was made. The title insurance company issuing the policy relies on those statements, which is why an inaccurate affidavit is a serious problem rather than a paperwork error. Paragraph 6C(1) of TREC form 20-19 names both the T-47 Affidavit and the T-47.1 Declaration as the seller's obligation.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does a T-47 do for the title policy?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 6A(8) of TREC form 20-19 lets the standard printed exception as to discrepancies, conflicts, shortages in area or boundary lines, encroachments or protrusions, or overlapping improvements be amended to read only 'shortages in area,' at Buyer's or Seller's expense. With an acceptable existing survey plus a T-47 or T-47.1, those matters are covered rather than excluded, and the buyer may not have to pay for a new survey.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if a Texas seller does not deliver the T-47 on time?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 6C(1) of TREC form 20-19 requires the seller to furnish both the existing survey and the T-47 Affidavit or T-47.1 Declaration within the time stated. If the seller fails to furnish both, the buyer obtains a new survey at Seller's expense no later than 3 days prior to the Closing Date. There is no election on that branch.""
+      }
+    }
+  ]
+}"
+"what-is-a-texas-cash-out-refinance-50a6","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a Texas cash-out refinance under Section 50(a)(6)?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A Texas cash-out refinance is a home equity loan under Article XVI, Section 50(a)(6) of the Texas Constitution. All loans against the homestead combined cannot exceed 80 percent of fair market value, the loan cannot close until 12 days after the later of application or notice, and fees are capped at 2 percent.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much cash can I take out of a Texas home?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The ceiling is on the combined balance. All loans secured by the homestead together cannot exceed 80 percent of fair market value at closing, so the available proceeds are 80 percent of the appraised value minus everything already owed, minus closing costs. At least 20 percent equity must remain in the property.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is a Texas HELOC also a 50(a)(6) loan?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. A home equity line of credit secured by a Texas homestead is a Section 50(a)(6) loan and carries the same limits, including the 80 percent combined ceiling and the rule that only one such loan may be secured by the homestead at a time. An open HELOC therefore has to be addressed before a 50(a)(6) cash-out refinance.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How long does a Texas cash-out refinance take to close?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The loan cannot close until at least 12 days after the later of the application date or the borrower's receipt of the required notice. That waiting period is constitutional and cannot be waived or shortened by the lender, which is why Texas cash-out refinances often take longer than borrowers expect.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Section 50(a)(6) apply to rental property in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Section 50(a)(6) governs the homestead. Investment property in Texas is not governed by these rules, so investor cash-out loans follow the lender's own loan-to-value, seasoning and reserve requirements instead. Whether a specific property is the homestead is a legal question for a Texas real estate attorney.""
+      }
+    }
+  ]
+}"
+"what-is-a-title-commitment-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is a title commitment in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A title commitment is the title company's written promise to issue a title policy on stated terms. It comes in four schedules: A is the deal facts, B is what the policy will not cover, C is what must be fixed before closing, and D discloses who gets paid. Reading it is a task with a deadline.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is Schedule C on a Texas title commitment?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Schedule C lists the requirements that must be satisfied before the title company will issue the policy: lien releases, mortgage payoffs, probate or heirship documents, missing spousal signatures, unpaid taxes, corrected legal descriptions. Unworked Schedule C items are the most common reason a Texas closing date slips.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the survey exception in a Texas title policy?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It is a Schedule B exception excluding anything a survey would have shown: boundary discrepancies, shortages in area, encroachments and protrusions. It can be amended with a new survey, or with the existing survey plus a signed T-47 affidavit, if the lender and title company accept it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When does the title commitment have to be delivered in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 6B of TREC form 20-19 requires it within 20 days after the Title Company receives a copy of the contract, automatically extended up to 15 days or 3 days before the Closing Date, whichever is earlier. If it is still not delivered in time, the buyer may terminate and the earnest money is refunded.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if a buyer misses the title objection deadline in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under Paragraph 6D, failing to object in time waives the right to object, except that the requirements in Schedule C of the Commitment are not waived. Timely objections get a 15-day Cure Period, provided the seller is not obligated to incur any expense, and the buyer then has 5 days after the Cure Period to terminate or waive. Silence is a waiver.""
+      }
+    }
+  ]
+}"
+"what-is-an-ag-exemption-in-texas-and-what-are-rollback-taxes","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is an ag exemption in Texas, and what are rollback taxes?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An ag exemption is not an exemption. It is a special appraisal that values qualifying land on its agricultural productivity instead of market value. Changing the use triggers a rollback: three years of additional tax equal to the difference between what was paid on ag value and what would have been paid on market value.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How many years is the Texas rollback tax?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Three. Tax Code 23.55 imposes an additional tax equal to the difference between the taxes imposed on the land for each of the three years preceding the year in which the change of use occurs and what would have been imposed at market value.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the interest rate on Texas rollback taxes?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Tax Code 23.55 does not impose a rollback interest rate for 1-d-1 open-space land. The statute provides only that the additional taxes incur the penalties and interest provided by law for ad valorem taxes if they are not paid by the delinquency deadline. Published 5 percent and 7 percent figures should not be relied on.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does land have to do to qualify for Texas ag valuation?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Its current principal use must be agricultural, carried on to the degree of intensity generally accepted in the area, and the land must have been in agricultural or timber production in five of the preceding seven years. The appraisal district sets and applies the local intensity standard.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can I put raw land into wildlife management valuation in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Only if it already qualified. Wildlife management use requires land that was previously qualified open-space or timber land, used in at least three of seven specified ways to propagate a sustaining breeding, migrating or wintering population of indigenous wild animals. It is a conversion from ag valuation, not an independent starting point.""
+      }
+    }
+  ]
+}"
+"what-is-an-etj-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is an ETJ in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An ETJ is a city's extraterritorial jurisdiction: unincorporated land just outside the city limits where the city keeps some regulatory authority under Texas Local Government Code chapter 42. Property there is not inside the city and not on the city's property tax roll, but some city rules still reach it. Boerne's short-term rental ordinance does.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do Boerne's short-term rental rules apply in the ETJ?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Ordinance No. 2023-09 applies to the city limits and the ETJ. One piece of it does not travel: the safety inspection requirement applies to properties inside the city limits and does not apply to ETJ properties.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do you pay city property tax in a Texas ETJ?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An ETJ parcel is not inside the city limits, so the city's property tax rate is not on its bill. The county, the school district and any special district covering the parcel still are. The entity list for a Kendall County parcel comes from Kendall Appraisal District.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between the ETJ and unincorporated county?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""ETJ land is unincorporated but adjacent to a city that retains some authority over it, notably subdivision platting. Land outside any city's ETJ is governed by the county alone, and Texas counties have narrower ordinance-making power than cities. Boerne's STR ordinance does not reach unincorporated Kendall County outside the city limits and ETJ.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I find out if a property is in Boerne's ETJ?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Confirm the jurisdiction for the specific address with the City of Boerne Planning Department at (830) 248-1501. ETJ boundaries change as a city grows and as state law changes, so a map screenshot or a listing remark is not a reliable answer.""
+      }
+    }
+  ]
+}"
+"what-is-an-hoa-resale-certificate-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is an HOA resale certificate in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An HOA resale certificate is a Texas Property Code chapter 207 document the property owners' association prepares for a pending sale. It states assessments, unpaid amounts, known violations, insurance, pending lawsuits, reserves and transfer restrictions. The association must deliver it within 10 business days of a proper written request, prepared no earlier than 60 days before delivery.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How long does a Texas HOA have to deliver a resale certificate?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Within 10 business days of receiving a proper written request. That is up to two calendar weeks, which can be longer than the option period, so the request should go out immediately after the contract becomes effective.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How old can a Texas HOA resale certificate be?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The certificate must be prepared no earlier than 60 days before it is delivered. A certificate pulled for an earlier deal that fell through may be stale and unusable.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which TREC forms are used for a Texas HOA sale?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Addendum for Property Subject to Mandatory Membership in a Property Owners Association, form 36-11 effective 07/01/2026, is attached to the contract. The certificate itself is Subdivision Information, Including Resale Certificate, form 37-5 effective 02/10/2014. Condominiums use the Condominium Resale Certificate, form 32-5.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much can a Texas HOA charge for a resale certificate?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas Property Code section 207.003(c) allows a property owners' association to charge a reasonable and necessary fee, not to exceed $375, to assemble, copy and deliver the required subdivision information. The $375 figure is a ceiling on a reasonable and necessary charge, not a flat entitlement. Transfer fees billed at closing are a separate item.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should a buyer read first in an HOA resale certificate?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Known violations on that lot, any special assessment already levied but not yet due, the reserve figures, and the transfer restrictions. An open violation becomes the buyer's problem at closing, and a voted-but-unbilled special assessment does not appear on the listing.""
+      }
+    }
+  ]
+}"
+"what-is-earnest-money-in-texas-and-is-it-refundable","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is earnest money in Texas, and is it refundable?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Earnest money is a good-faith deposit the buyer delivers to the title company to be held in escrow. It is refundable if the buyer terminates during the option period or under a contract right such as the financing addendum. It is credited to the buyer at closing and cannot be released without mutual agreement or a court order.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much earnest money do I need in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""There is no statutory amount and TREC does not set one. Earnest money is a dollar blank in paragraph 5A of form 20-19 that the buyer and seller negotiate. Paragraph 5A(1) also allows additional earnest money delivered within a stated number of days after the effective date, so a buyer can stage the deposit.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who holds earnest money in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The title company, acting as escrow agent, holds it in an escrow account. Paragraph 5A of form 20-19 directs the buyer to deliver it to the named Escrow Agent within 3 days after the Effective Date. The title company does not decide disputes and cannot release the funds to either party without mutual agreement or a court order.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if a Texas buyer delivers earnest money late?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under paragraph 5C of TREC form 20-19 the seller may terminate the contract, exercise the paragraph 15 remedies, or both — but only by giving notice to the buyer before the buyer delivers the earnest money. A buyer who wires late but before that notice goes out has effectively cured it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a seller refuse to release earnest money in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A seller can decline to sign the release, and the funds then stay in escrow. Terminating the contract and receiving escrowed funds are separate events. A timely, written termination delivered exactly as the contract requires is what makes a refusal hard to defend; a disputed release goes to a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens to earnest money at closing in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It is credited to the buyer on the settlement statement and applied toward the down payment and closing costs, reducing the amount the buyer wires at closing. If the buyer defaults instead, paragraph 15 lets the seller terminate and receive the earnest money as liquidated damages.""
+      }
+    }
+  ]
+}"
+"what-is-the-10-percent-homestead-cap-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the 10 percent homestead cap in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Once a Texas home has a homestead exemption, the appraisal district cannot raise its net appraised value more than 10 percent per year, no matter how much the market moves. The cap does not transfer to a buyer. It resets to market value after a sale, which is why a new owner's tax bill often jumps.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the Texas homestead cap transfer to the buyer?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The cap ends with the sale. The new owner faces the district's market value, often informed by the price just paid, and must file their own homestead exemption to start a new cap. The seller's tax bill is not a forecast of the buyer's.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why does my notice show two different values?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A homesteaded property's notice shows the district's market value and a capped appraised value. Taxable value is the capped figure minus exemptions, and that is what the bill is built from. After several years of appreciation the two numbers can be far apart.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do rental properties get the 10 percent cap in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The 10 percent cap requires a homestead exemption. Non-homestead property has had a temporary 20 percent circuit breaker under Tax Code 23.231 for tax years 2024, 2025 and 2026, which expires after the 2026 tax year unless the Legislature renews it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the homestead cap apply to new improvements?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Added value from new improvements such as square footage, a casita, a shop or a pool is generally taxed rather than absorbed under the cap. Ordinary repairs and maintenance are treated differently. The appraisal district decides how a specific project is classified.""
+      }
+    }
+  ]
+}"
+"what-is-the-amendment-to-contract-form-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Amendment to Contract in a Texas real estate deal?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Amendment to Contract is the TREC form used to change the terms of a contract that is already in effect: price, closing date, repairs, option period. It takes effect only when every party signs and it is delivered. The current version is TREC form 39-11, effective 07/01/2026. It changes a contract. It does not end one.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do you extend an option period in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""With item 7 of TREC form 39-11. It states an additional option fee as a dollar amount, a new expiration written as a date with 5:00 p.m. printed on the form, and a separate election on whether that additional option fee will or will not be credited to the Sales Price. It has to be signed by all parties and executed before the existing option period expires.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the additional option fee credited to the sales price?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Only if the parties check that it is. Item 7 of TREC form 39-11 carries a separate will or will not election for whether the additional option fee is credited to the Sales Price. That election is independent of the original option fee, which the contract credits at closing.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can you check more than one box on the TREC amendment form?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. The header instruction reads check each applicable box, not check one only. A single amendment can change the sales price, the closing date and the option period at once. An item whose box is left unchecked is not a change, even if the blank underneath it was filled in.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do you move the financing approval deadline in a Texas contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Item 9 of TREC form 39-11 changes the date for the buyer to give written notice that the buyer cannot obtain Buyer Approval under the Third Party Financing Addendum. That is the Paragraph 2A deadline. It does not change Property Approval under Paragraph 2B, which runs to the 3rd day before the Closing Date.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a real estate agent write custom language into a Texas amendment?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Item 10, Other Modifications, carries the printed warning that real estate brokers and sales agents are prohibited from practicing law, and the form's footer repeats it. License holders may fill in blanks but may not draft contract language. A leaseback, a holdback or a contingency the form does not contain is work for a Texas real estate attorney.""
+      }
+    }
+  ]
+}"
+"what-is-the-brrrr-method-and-does-it-work-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the BRRRR method, and does it work in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""BRRRR is buy, rehab, rent, refinance, repeat. It works in Texas, with one constitutional catch: if the property is the borrower's homestead, the refinance is a Section 50(a)(6) loan capped at 80 percent loan-to-value with a 12-day waiting period. A rental held as an investment is not the homestead and is not governed by 50(a)(6).""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Section 50(a)(6) apply to an investment property in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The Texas Constitution's home equity restrictions apply to the homestead. A rental held in the investor's name as an investment property is not the homestead and is not governed by Section 50(a)(6). The lender's own loan-to-value, seasoning and reserve requirements still apply, and those vary by lender and product.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why does the 12-month rule matter for BRRRR in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Only one Section 50(a)(6) loan may be secured by the homestead at a time, and 12 months must pass between home equity closings. An investor refinancing their own residence therefore cannot repeat the refinance step quickly, which is one reason BRRRR is usually structured on the investment side instead.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do property taxes change when a Texas property becomes a rental?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The property loses the residence homestead exemptions, including the $140,000 school district exemption, and it loses the 10 percent homestead appraisal cap. Non-homestead real property is instead covered by a 20 percent circuit breaker under Tax Code Section 23.231, which applies for tax years 2024 through 2026 and expires December 31, 2026 unless the Legislature renews it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I confirm before starting a BRRRR deal in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Get the lender's actual cash-out terms and seasoning requirement in writing for the product you will use, confirm whether the property will be your homestead at the time of the refinance, and build a property tax line that assumes no homestead exemption, no 10 percent cap, and the circuit breaker's December 31, 2026 expiration.""
+      }
+    }
+  ]
+}"
+"what-is-the-option-period-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the option period in a Texas real estate contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The option period is a negotiated window in the TREC contract during which a Texas buyer can terminate for any reason and get their earnest money back. The buyer pays a separate option fee to the title company within three days of the effective date. The fee is credited at closing and is not refunded on termination.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How long is the option period in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""There is no statutory length. The option period is a blank in the TREC contract that the buyer and seller negotiate. Seven to ten calendar days is common in practice, but the number is whatever the parties agree to.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When is the option fee due in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Within three days after the effective date of the contract, delivered to the escrow agent, which is the title company, rather than to the seller. If the third day is a Saturday, Sunday or legal holiday, the deadline moves to the next qualifying day. Paragraph 5D of TREC form 20-19 provides that if the fee is not delivered in time, the buyer does not have the unrestricted right to terminate.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the option fee amount is left blank in the Texas contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The buyer has no termination right. Paragraph 5D of TREC form 20-19 states that if no dollar amount is stated as the option fee, or if the buyer fails to deliver it within the time required, the buyer does not have the unrestricted right to terminate under paragraph 5. A blank is as fatal as a late payment.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How are option period days counted in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Calendar days. The effective date is day zero and each following day is numbered in sequence. The period ends at 5:00 p.m. local time on the final day. A ten-day option period starting November 1 ends at 5:00 p.m. on November 11.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the option fee credited at closing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. If the sale closes, the option fee is credited to the sales price. If the buyer terminates during the option period, the seller keeps the option fee and the buyer's earnest money is returned.""
+      }
+    }
+  ]
+}"
+"what-is-the-sellers-disclosure-notice-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Seller's Disclosure Notice in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Seller's Disclosure Notice is a written notice Texas Property Code section 5.008 requires from a seller of residential property with not more than one dwelling unit. It discloses known condition, defects and flood history. If the seller delivers it after the contract is signed, the buyer may terminate for any reason within seven days after receiving it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the seller gives the disclosure after the contract is signed?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas Property Code section 5.008 gives the buyer the right to terminate the contract for any reason within seven days after receiving the notice. That right is independent of the option period, so a late disclosure can extend a buyer's exit window past the date the contract was signed.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does Paragraph 7B of the TREC contract say about the disclosure?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 7B of TREC form 20-19 is a check-one-box-only election. Box 2 states that if the buyer does not receive the notice, the buyer may terminate at any time prior to closing with earnest money refunded, and that once the seller delivers it the buyer may terminate for any reason within 7 days after receiving it or prior to the closing, whichever first occurs. Closing can cut the seven days short.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who is exempt from the Texas seller's disclosure?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Exemptions include transfers by court order, foreclosure, a trustee in bankruptcy, transfers between co-owners, transfers to a spouse or descendant, transfers by a fiduciary administering an estate, and new residences not previously occupied. The exemption is from delivering the form. It does not authorize misrepresentation or fraud.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a Texas seller have to disclose a death in the house?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Section 5.008 states a seller or agent is not required to disclose a death on the property by natural causes, suicide, or an accident unrelated to the property's condition. A death that is related to the condition of the property is not covered by that carve-out.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the Texas seller's disclosure cover flooding?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. SB 339 from the 86th Legislature added flood questions, mandatory for contracts executed on or after September 1, 2019. They cover FEMA 100-year and 500-year floodplain status, reservoir flood pool, whether the property flooded at least once in the past five years, flood repairs, and flood insurance proceeds.""
+      }
+    }
+  ]
+}"
+"what-is-the-texas-homestead-exemption","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Texas homestead exemption in 2026?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Texas homestead exemption removes part of your home's value from property taxation. For 2026, school districts must exempt $140,000 of a residence homestead's value, up from $100,000 after voters approved Proposition 13 in November 2025. You must own and occupy the home as your principal residence on January 1.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much is the Texas school district homestead exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""School districts must grant a $140,000 residence homestead exemption for tax year 2026. The figure was raised from $100,000 by Proposition 13, approved by Texas voters in November 2025 and implemented through SB 4 of the 89th Legislature.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who qualifies for a Texas homestead exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An owner who both owned and occupied the property as a principal residence on January 1 of the tax year. It applies to one home, not to rentals, second homes or vacant land. The application is filed with the county appraisal district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When is the Texas homestead exemption deadline?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Applications are due before May 1, commonly stated as April 30. They are filed with the appraisal district for the county where the property is located. There is no fee to file with the appraisal district.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are there other homestead exemptions besides the school district one?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Any taxing unit may adopt a local option exemption of up to 20 percent of appraised value with a $5,000 minimum. Counties that collect a farm-to-market road or flood control tax must give a $3,000 residence homestead exemption. Owners 65 or older or disabled get an additional $60,000 from the school district.""
+      }
+    }
+  ]
+}"
+"what-is-the-third-party-financing-addendum","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the Third Party Financing Addendum in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Third Party Financing Addendum is the TREC form that makes a Texas contract conditional on the buyer's loan. It identifies the loan type and terms, and it gives the buyer a deadline to terminate if the lender will not approve the buyer. The current version is TREC form 40-11, effective 01/03/2025.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between Buyer Approval and Property Approval in TREC 40-11?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 2 says financing approval is obtained only when both Buyer Approval and Property Approval are obtained. Buyer Approval, in Paragraph 2A, is about the borrower's assets, income and credit history, and it expires a negotiated number of days after the effective date. Property Approval, in Paragraph 2B, is about the house, including appraisal, insurability and lender required repairs, and it runs to the 3rd day before the Closing Date.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the buyer does not terminate under Paragraph 2A in time?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The form states that if the buyer does not terminate under Paragraph 2A, the contract shall no longer be subject to the buyer obtaining Buyer Approval. The borrower-side contingency ends on that day count. A denial after that date gives the buyer no exit under 2A, and Paragraph 2 adds that time is of the essence and strict compliance with the time for performance is required.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the buyer need a letter from the lender to terminate under the financing addendum?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. Both Paragraph 2A and Paragraph 2B require the buyer to give the seller two things: notice of termination, and a copy of a written statement from the lender setting forth the reasons for the lender's determination. A phone call from a loan officer does not satisfy that requirement.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the Third Party Financing Addendum cover a low appraisal?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Appraisal falls under Paragraph 2B, Property Approval, which lists appraisal, insurability and lender required repairs. TREC also publishes a separate Addendum Concerning Right to Terminate Due to Lender's Appraisal, form 49-1 effective 03/01/2019, which addresses the appraisal outcome specifically and is often waived or partially waived in competitive offers.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What financing types can be checked on TREC form 40-11?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 1 runs lettered A through G: conventional financing with a first and an optional second mortgage loan, a Texas Veterans Land Board loan, FHA insured financing, VA guaranteed financing, USDA guaranteed financing, reverse mortgage financing also known as a Home Equity Conversion Mortgage, and other financing. Each caps the interest rate and the Origination Charges shown on the buyer's Loan Estimate as a percentage of the loan, and each states the amount excluding any financed PMI, MIP or Funding Fee.""
+      }
+    }
+  ]
+}"
+"what-is-the-trec-1-4-family-residential-contract","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the TREC One to Four Family Residential Contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The One to Four Family Residential Contract (Resale) is the TREC promulgated form Texas license holders use to sell existing single-family homes, duplexes, triplexes and four-plexes. The current version is form 20-19, effective July 1, 2026. Condominiums, builder new construction and farm and ranch each use a different form.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the current version of the TREC 1-4 family contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Form 20-19, effective 07/01/2026. The PDF runs 12 pages and carries a 05-04-2026 footer date. TREC publishes the current form numbers and effective dates on its contracts page, and several other residential forms were updated on the same date.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a Texas REALTOR write their own contract language?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Paragraph 23 of form 20-19 is titled CONSULT AN ATTORNEY BEFORE SIGNING and states that TREC rules prohibit real estate brokers and sales agents from giving legal advice. License holders are required to use TREC promulgated forms and TREC does not write custom contracts. Custom terms are the job of a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Which TREC contract is used for a condo or new construction in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A condominium resale uses the Residential Condominium Contract (Resale), form 30-18. Builder new construction uses New Home Contract 24-20 for completed construction or 23-20 for incomplete construction. Vacant land uses the Unimproved Property Contract, 9-18, and acreage uses the Farm and Ranch Contract, 25-17.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How is a Texas real estate contract changed after signing?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""On the Amendment to Contract, TREC form 39-11, effective 07/01/2026, signed by both parties. Price changes, repair agreements, closing-date changes and option-period extensions belong there. Paragraph 7D of the contract warns against inserting general phrases such as 'subject to inspections' that do not identify specific repairs and treatments. Emails, texts and verbal agreements do not amend the contract.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the main paragraphs of the TREC 20-19 contract?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 5 is earnest money and the termination option, 6 is title policy and survey, 7 is property condition and the seller's disclosure election, 12 is settlement expenses and brokerage compensation, 13 is prorations, 14 is casualty loss, 15 is default, 18 is escrow, and 23 is consult an attorney before signing. The form runs 12 pages. Three paragraphs carry a printed check-one-box-only instruction — 6C for the survey, 7B for the seller's disclosure, and 7D for as-is versus listed repairs — and a blank or double-checked election is a real defect.""
+      }
+    }
+  ]
+}"
+"what-is-the-va-funding-fee-and-who-is-exempt","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the VA funding fee, and who is exempt?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The VA funding fee is a one-time fee paid to the VA on most VA-guaranteed home loans, charged as a percentage of the loan amount. Veterans receiving VA compensation for a service-connected disability are exempt, as are several other groups. Exemption is documented with VA Form 26-8937, a current award letter, or a Veteran Service Center Manager letter.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What does the VA funding fee pay for?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It funds the VA guaranty, which is the portion of a private lender's loan that the VA backs. The guaranty does not exceed 25 percent of the loan. That backing is what allows VA loans to run without monthly mortgage insurance and, for a veteran with full entitlement, without a VA loan limit.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Am I exempt from the VA funding fee if I take retirement pay instead of disability compensation?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Potentially yes. The VA's published exemptions include veterans who are eligible to receive compensation for a service-connected disability but are receiving retirement pay or active-duty pay instead. Borrowers in that position often assume they do not qualify. Raise it with the loan officer at application and let the VA's records settle it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What documents prove a VA funding fee exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""VA Form 26-8937, Verification of VA Benefits; a current VA award letter dated within the last 12 months; or a letter from a Veteran Service Center Manager. An old award letter does not satisfy the date requirement, so obtain a current one at the start of the file rather than the week of closing.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is the VA funding fee exemption the same as the Texas disabled veteran property tax exemption?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. They are separate and one does not grant the other. The funding fee exemption is federal and applies to the loan. Texas Tax Code sections 11.22 and 11.131 govern disabled veteran property tax exemptions, filed with the county appraisal district — the Kendall Appraisal District for a property in Boerne or Kendall County.""
+      }
+    }
+  ]
+}"
+"what-is-title-insurance-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is title insurance in Texas, and why is the price the same everywhere?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Texas title insurance premium rates are promulgated by the Texas Department of Insurance, so the premium for a given policy amount is identical at every title company in Texas. Shopping title companies is about service, escrow fees and closing experience, not premium price. The current rate schedule took effect March 1, 2026.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can you shop for a cheaper title company in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Not on premium. The premium is set by the Texas Department of Insurance and is the same at every title company for a given policy amount. Escrow and closing fees, ancillary charges, and how competently a company clears a difficult title issue do differ, and those are worth comparing.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the difference between an owner's policy and a lender's policy in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The owner's policy protects the buyer's ownership interest against covered defects that existed before the policy date. The lender's policy protects the lender's lien in the amount of the loan and does not protect the buyer's equity. A buyer with only a lender's policy has no coverage of their own.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who pays for title insurance in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It is negotiated in the contract, not fixed by law. Paragraph 6A of TREC form 20-19 makes it a checkbox: the owner policy is furnished at Seller's or Buyer's expense. Custom in much of Texas is that the seller pays for the owner's policy and the buyer pays for the lender's policy, but custom varies by market and moves in competitive situations.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the survey exception on a Texas title policy?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""An exception excluding anything a survey would have shown: discrepancies, conflicts, shortages in area or boundary lines, encroachments, protrusions and overlapping improvements. Paragraph 6A(8) of TREC form 20-19 makes it a checkbox: the exception will not be amended, or it will be amended to read 'shortages in area' at the buyer's or seller's expense. Amending it requires a survey the title company and lender accept.""
+      }
+    }
+  ]
+}"
+"what-should-i-know-about-septic-and-wells-in-the-hill-country","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What should I know about septic systems and water wells in the Texas Hill Country?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""A Hill Country property on a septic system and a private well carries due diligence a city-connected house does not. The buyer is responsible for inspecting the on-site sewage facility, testing and evaluating the well, and gathering permits and maintenance records, all inside the option period. TREC form 61-0 covers groundwater and surface water rights.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does a home inspection cover the septic system and the well?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. A general inspection under the TREC Property Inspection Report, form REI 7-6, is not a septic inspection and does not test water. A septic or OSSF inspector and a water test are separate items that have to be booked separately, and both have to fit inside the option period.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What documents should a buyer request on a well and septic property?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The OSSF permit and as-built site plan, the aerobic system maintenance contract and service records, pumping records, the well report or driller's log, pump service records, water test results, and any shared well agreement. A shared well agreement is a legal document and should be reviewed by a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who regulates groundwater in Kendall County, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Cow Creek Groundwater Conservation District. It monitors conditions using roughly 42 monitor wells, stream gauges on Cibolo Creek and the Guadalupe River, and more than 100 rain gauge sites, and it sets drought stages that carry pumping restrictions. Current stage and rules should be checked at ccgcd.org.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is TREC form 61-0?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The Seller's Disclosure about Groundwater and Surface Water Rights, effective 07/01/2026. Water rights on a rural Texas property are not automatically what a buyer assumes, and the form puts the seller's statements about them in writing. It is a disclosure, not a substitute for inspection.""
+      }
+    }
+  ]
+}"
+"what-surprises-out-of-state-buyers-about-texas-real-estate","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What surprises out-of-state buyers about buying a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The biggest surprises are the option period, which lets a Texas buyer terminate for any reason; that no attorney is required and the title company runs closing; that title insurance premiums are set by the state, so they are identical everywhere; and that annual reappraisal replaces a state income tax.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do you need a lawyer to buy a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. No attorney is required to close a residential transaction in Texas. The title company acts as escrow agent, runs the title search, issues the title commitment and policy, prepares closing documents and disburses funds. Hiring an attorney is optional. Because license holders cannot draft contract language, custom terms still require a Texas real estate attorney.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does title insurance cost more at some Texas title companies?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Texas title insurance premium rates are promulgated by the Texas Department of Insurance, so the premium for a given policy amount is identical at every title company in the state. The current schedule is effective March 1, 2026. Compare title companies on service rather than premium.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the seller gives the disclosure notice late in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Under Texas Property Code 5.008, if the contract is signed without the seller having given the required seller's disclosure notice, the buyer may terminate the contract for any reason within 7 days after receiving it. That right runs on its own clock, separate from the option period.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do I have to buy a new survey when I buy a house in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Not necessarily. If the lender and title company accept the seller's existing survey together with a T-47 notarized affidavit, or the T-47.1 declaration in lieu of affidavit introduced November 1, 2024, the buyer does not need a new survey and the policy's survey exception can be amended. A seller who has added a deck, pool, shed or fence since the survey cannot sign it.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""When does a Texas homestead exemption start for a new buyer?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""You must have owned and occupied the home as your principal residence on January 1 of the tax year, with an application deadline before May 1. A buyer closing in February does not get the exemption that year. The exemption is filed with the appraisal district, is not automatic, and does not transfer from the seller.""
+      }
+    }
+  ]
+}"
+"who-pays-closing-costs-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who pays closing costs in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Who pays closing costs in Texas is negotiated in the contract, not fixed by law. Custom in much of Texas is that the seller pays the owner's title policy and the buyer pays lender and loan-related costs, but every line is negotiable. Your lender's Loan Estimate and the title company's fee sheet give the actual numbers.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Texas law require the seller to pay the owner's title policy?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Paragraph 6A of TREC form 20-19 reads that Seller shall furnish the owner policy of title insurance at Seller's or Buyer's expense, with a checkbox for each. It is custom in much of Texas for the seller to pay it, not law, and in some markets the buyer does. It can be changed afterward on the Amendment to Contract, form 39-11.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What expenses does the TREC contract assign to each party in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 12A(1) assigns the seller lien releases including prepayment penalties and recording fees, release of seller's loan liability, tax statements or certificates, preparation of deed, and one-half of the escrow fee. Paragraph 12A(2) assigns the buyer appraisal, loan application, origination, credit report and loan document fees, the loan title policy with lender endorsements, one-half of the escrow fee, prepaid flood and hazard insurance premiums and reserves, and PMI, the VA Loan Funding Fee or FHA MIP as required by the lender.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Is real estate commission set by law in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. Paragraph 12B of TREC form 20-19 states that brokerage compensation is not set by law and is fully negotiable, and that each party pays their own broker under separate written agreements. Optional checkboxes let one party contribute toward the other's broker compensation, but those contributions do not change either party's obligation under its own agreement.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can the seller pay the buyer's closing costs in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. A seller contribution is written into the contract and appears as a seller credit on the settlement statement. The limit is set by the buyer's loan program, not by the contract, and it varies by loan type, occupancy and down payment. The lender is the only source for that cap.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How do I find out my actual closing costs in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Two documents. The Loan Estimate from your lender itemizes loan costs and other costs and gives the estimated cash to close. The title company handling the transaction will produce an estimated settlement statement using the actual sales price, the actual tax rates for the property and the actual policy amount.""
+      }
+    }
+  ]
+}"
+"who-pays-for-the-survey-in-texas","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Who pays for the survey in a Texas real estate transaction?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Who pays for the survey is negotiated in the contract, not set by Texas law. The TREC contract has a paragraph where the parties choose. Custom in much of Texas is that the seller furnishes an existing survey with a T-47 affidavit, and the buyer pays for a new one if the existing survey is not acceptable.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does Texas law say the seller pays for the survey?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. No Texas statute assigns the survey cost. Paragraph 6C of TREC form 20-19 presents three mutually exclusive options under the instruction Check one box only, and paragraph 6A(8) separately allocates the cost of amending the survey exception. It is negotiable in the offer and can be changed later on the Amendment to Contract, form 39-11.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Can a buyer in Texas use the seller's old survey?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Often, yes. Paragraph 6C(1) of TREC form 20-19 has the seller furnish the existing survey together with a T-47 Affidavit or T-47.1 Declaration, both named in the contract. If the title company and lender accept the package, no new survey is required. Some lenders require a current survey regardless.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if the title company will not accept the existing survey?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 6C(1) says the buyer obtains a new survey at Seller's or Buyer's expense — a separate checkbox inside that option — no later than 3 days prior to the Closing Date. That is different from the seller simply failing to furnish the survey and affidavit, in which case the new survey is at Seller's expense with no election.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What happens if a Texas buyer elects to get the survey and then does not?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Paragraph 6C(2) states that if the buyer fails to obtain the survey, the buyer may not terminate under Paragraph 2B of the Third Party Financing Addendum because the survey was not obtained. The buyer forfeits the financing exit and remains in the contract with earnest money exposed.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How much does a survey cost in Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""It is set by the individual surveyor and varies with acreage, terrain, how well existing corners are marked, and how much record research the tract needs. A platted subdivision lot and a large rural tract are not comparable jobs. Get a quote from a licensed Texas surveyor for the specific property.""
+      }
+    }
+  ]
+}"
+"why-are-homes-in-boerne-so-expensive","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why are homes in Boerne, Texas so expensive?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne prices are driven by structural scarcity, not hype. Kendall County grew 20.3 percent from 2020 to 2025 on domestic migration, Boerne ISD has six straight A ratings, Hill Country terrain and groundwater regulation limit how densely land can be developed, and I-10 puts San Antonio jobs 31 miles away.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What is the median home price in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Published figures vary by source, ZIP code and month. Zillow reported an average Boerne home value of roughly $554,983 as of September 2026, which is a model estimate rather than closed-sale data. Ask a local agent for current MLS sold figures for your specific ZIP and price band.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does water availability affect Boerne home prices?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes, indirectly. Boerne draws water from Canyon Lake through the Guadalupe-Blanco River Authority, from Boerne City Lake, and from Trinity Group aquifer wells. Groundwater is regulated countywide by the Cow Creek Groundwater Conservation District, which limits how densely land can be developed and constrains new supply.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Do Boerne ISD school ratings push home prices up?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Boerne ISD has earned an A rating from the Texas Education Agency for six consecutive years and scored 92 points in the 2024-2025 ratings. A rating record that long concentrates relocating-family demand inside district boundaries, which shows up in price.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Are Boerne property taxes included in the sale price comparison?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""No. The City of Boerne 2025 rate is 0.4716 per $100 and the Boerne ISD 2025 rate is 1.0109 per $100. Texas reappraises at market value annually, so a seller's current tax bill can understate a buyer's future bill. Have a lender underwrite the payment on an unexempted valuation.""
+      }
+    }
+  ]
+}"
+"why-did-my-texas-property-taxes-go-up","{
+  ""@context"": ""https://schema.org"",
+  ""@type"": ""FAQPage"",
+  ""mainEntity"": [
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why did my Texas property taxes go up?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Your tax bill is appraised value times the combined rate of every taxing unit that covers your property, minus exemptions. It rises when the appraisal rises, when any single entity raises its rate, when an exemption is lost or was never filed, or when the 10 percent homestead cap resets to market value after a sale.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Why did my taxes go up the year after I bought the house?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""The prior owner's 10 percent homestead cap and exemptions do not transfer to a buyer. The property is reappraised at market value and the new owner must file their own homestead exemption, which requires owning and occupying the home as a principal residence on January 1. The seller's old tax bill is not a forecast of yours.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""What are the 2025 tax rates in Boerne, Texas?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Per $100 of taxable value for 2025: Boerne ISD 1.0109, City of Boerne 0.4716, and Kendall County 0.377. That totals 1.8595 before any MUD, water district or groundwater district that may also appear on a given parcel's bill. Kendall County adopted 0.373 for 2026.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""How is a Texas property tax bill calculated?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Appraised value minus exemptions, divided by 100, times the tax rate — calculated separately for each taxing unit covering the parcel, then added together. The appraisal district sets value and exemptions; each taxing unit's elected board sets its own rate.""
+      }
+    },
+    {
+      ""@type"": ""Question"",
+      ""name"": ""Does the 20 percent circuit breaker on non-homestead property expire?"",
+      ""acceptedAnswer"": {
+        ""@type"": ""Answer"",
+        ""text"": ""Yes. The Tax Code 23.231 circuit breaker applies to tax years 2024, 2025 and 2026 and expires after the 2026 tax year unless the Legislature renews it. No application is required and the district applies it automatically, but the owner must have held the property at least one full calendar year.""
+      }
+    }
+  ]
+}"
