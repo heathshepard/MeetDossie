@@ -4,11 +4,13 @@
 // =============================================================================
 // SV-ENG-RIDGE-AUTONOMOUS-LOOP-001 (Ridge, 2026-07-01)
 // Dedup + daily cadence patch (Atlas, 2026-07-06)
+// Closed-item filter + 3 new signal sources (2026-09-17) — see CHANGE 2026-09-17 below
 //
 // The self-improvement loop. Once daily at 11:00 UTC (~6 AM CDT, alongside
 // the digest):
-//   1. Read all signal sources (customer bugs, prod errors, KPI drift, tech
-//      debt, Dossie Sign last-mile blockers, agent backlogs)
+//   1. Read all signal sources (customer bugs, prod errors, unanswered
+//      alert_state alarms, KPI drift, the two backlog docs, tech debt, Dossie
+//      Sign last-mile blockers, agent backlogs)
 //   2. Score every candidate and pick THE ONE highest-priority item
 //   3. Enforce guardrails (spend, legal, strategy → escalate, don't ship)
 //   4. Dedup: skip insert if an equivalent pending/blocked agent_queue row
@@ -36,6 +38,28 @@
 // cadence (0 */4 * * *) generated ~6 duplicate TECH-DEBT inserts per day
 // with no dispatcher popping them off; daily aligns with the digest.
 // AUTH: Bearer ${CRON_SECRET} OR x-vercel-cron header
+//
+// CHANGE 2026-09-17 — two defects, three additions. Cadence and spend controls
+// are UNCHANGED: still one dispatch per tick, still "0 11 * * *", same
+// guardrails, same dedup, same stuck-loop threshold, same 18-minute bail.
+//
+//   FIXED — the tech-debt parser had no closed-item filter. It read the first
+//   10 `- ` lines out of TECH-DEBT.md's "NOT DONE / ACTIVE BLOCKERS" section
+//   and the first of those is struck through and annotated RESOLVED. It went
+//   to carter on 2026-09-13 and 2026-09-15 with RESOLVED in the title. Filter
+//   now lives in _lib/backlog-parser.js and the 10-item cap is applied AFTER
+//   filtering, so closed lines no longer displace real work.
+//
+//   ADDED — docs/BACKLOG-ENGINEERING.md and docs/BACKLOG-BUSINESS.md, filtered
+//   to items whose `Blocked by` field says an agent can finish them unattended.
+//   Every other value (`Heath`, `mixed`, `gated on …`, or `agent` with any
+//   further Heath dependency) is dropped at parse time, not downstream.
+//
+//   ADDED — alert_state. Fourteen keys fired 2026-09-16/17 and nothing
+//   responded to any of them. Dispatched as diagnose-and-report to ridge.
+//
+// The loop still has NO power to send, publish or merge. Every path it has
+// ends at an agent_queue row.
 // =============================================================================
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
@@ -46,6 +70,7 @@ const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const fs = require('fs');
 const path = require('path');
 const pausedCrons = require('./_lib/paused-crons.js');
+const { parseTechDebt, parseBacklogDoc } = require('./_lib/backlog-parser.js');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -70,7 +95,27 @@ const SCORE = {
   HADLEY_BACKLOG:           20,
   PIERCE_BACKLOG:           15,
   RIDGE_RELIABILITY:        25,
+  ALERT_STATE:              70,   // a production alarm that fired and nobody answered
+  BACKLOG_ITEM:             35,   // docs/BACKLOG-*.md, base; document order adds up to +12
 };
+
+// Document order is meaningful in both BACKLOG-*.md files — items are ranked
+// within each section by impact per effort. Give the first eligible items a
+// decaying bump so the loop works top-down instead of arbitrarily. Caps at +12,
+// which keeps every backlog item below PROD_ERROR (80) and above
+// TECH_DEBT_ACTIVE (30).
+const BACKLOG_ORDER_BONUS_MAX = 12;
+
+// alert_state rows older than this are treated as history, not a live alarm.
+const ALERT_FRESH_HOURS = 48;
+// Hard cap on alert candidates per run, after family collapsing, so 17
+// `linkedin_publish_dead_letter:*` keys can't crowd out everything else.
+// Set above the current live family count (14 on 2026-09-17) on purpose: all
+// alerts score the same, so a tight cap plus recency ordering would have
+// permanently hidden `linkedin_login_required` behind the daily 15:20 batch.
+// Only one item is dispatched per tick regardless; the 24h per-key cooldown
+// rotates through them.
+const ALERT_MAX_CANDIDATES = 20;
 
 // Cooldown windows per signal source. Prevents the same item being re-picked
 // on the next 4h run while agents are still working on it.
@@ -84,6 +129,9 @@ const COOLDOWN_HOURS = {
   hadley_backlog:          12,
   pierce_backlog:          24,
   ridge_reliability:       12,
+  alert_state:             24,
+  backlog_engineering:     72,   // 88-item doc — don't re-offer the same item for 3 days
+  backlog_business:        72,
 };
 
 // Guardrail regex — if title/description trips these, we escalate instead of ship.
@@ -288,31 +336,234 @@ async function gatherTechDebt() {
   const activeMatch = text.match(/## NOT DONE \/ ACTIVE BLOCKERS\s+([\s\S]*?)(?=\n## |\n---)/);
   if (!activeMatch) return out;
 
-  const activeBlock = activeMatch[1];
-  const lines = activeBlock.split('\n').filter(l => l.trim().startsWith('- '));
+  // Closed-item filter lives in _lib/backlog-parser.js. Before 2026-09-17 there
+  // was none: this function took the first 10 `- ` lines verbatim, and the very
+  // first of them is a struck-through, RESOLVED entry. It was dispatched to
+  // carter on 2026-09-13 and 2026-09-15 with "RESOLVED" in the task title.
+  // parseTechDebt also caps AFTER filtering, so closed lines no longer eat
+  // slots that real work should occupy.
+  const { items, skipped } = parseTechDebt(text, { limit: 10 });
+  if (skipped.length) {
+    console.log(`[autonomous-loop] tech_debt: skipped ${skipped.length} closed/Heath-owned line(s):`,
+      skipped.map(s => s.reason).join(', '));
+  }
 
-  // Only take the first ~10 items to stay focused
-  for (const line of lines.slice(0, 10)) {
-    // Skip lines that look like they need Heath action (URGENT + personal items)
-    const isUrgent = /🚨|\bURGENT\b/i.test(line);
-    const isPersonal = /\b(Form TX LLC|EIN|personal action|Heath.*must|attorney review before live)\b/i.test(line);
-    if (isPersonal) continue; // these are Heath-owned, not agent-owned
-
-    // Extract short title (first bold section or first 100 chars)
-    const boldMatch = line.match(/\*\*(.+?)\*\*/);
-    const shortTitle = boldMatch ? boldMatch[1] : line.replace(/^- /, '').slice(0, 100);
-    const key = `tech_debt:${shortTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`;
+  for (const item of items) {
+    const key = `tech_debt:${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`;
 
     out.push({
       signal_source: 'tech_debt',
       signal_key: key,
-      signal_score: isUrgent ? SCORE.TECH_DEBT_URGENT : SCORE.TECH_DEBT_ACTIVE,
-      title: `Tech debt: ${shortTitle}`,
-      description: `From docs/TECH-DEBT.md:\n\n${line}\n\nRead the full context in TECH-DEBT.md, produce a concrete plan (files touched, test approach), and ship via drafter/shipper split. If the scope is unclear or spend is required, escalate to Heath instead of guessing.`,
+      signal_score: item.urgent ? SCORE.TECH_DEBT_URGENT : SCORE.TECH_DEBT_ACTIVE,
+      title: `Tech debt: ${item.title}`,
+      description: `From docs/TECH-DEBT.md:\n\n${item.line}\n\nRead the full context in TECH-DEBT.md, produce a concrete plan (files touched, test approach), and ship via drafter/shipper split. If the scope is unclear or spend is required, escalate to Heath instead of guessing.\n\nFIRST: re-verify this item is still open against current code and live data. TECH-DEBT.md has gone stale before. If it is already done, do not build anything — correct the entry and report.`,
       agent: 'carter',
-      meta: { source_line: line.slice(0, 500), urgent: isUrgent },
+      meta: { source_line: item.line.slice(0, 500), urgent: item.urgent },
     });
   }
+  return out;
+}
+
+// 4b) Backlog docs — docs/BACKLOG-ENGINEERING.md and docs/BACKLOG-BUSINESS.md
+//
+// Added 2026-09-17. Every one of the loop's previous signal sources was
+// engineering-shaped, which is how 90 business items accumulated unseen while
+// it ran. These two documents are the structured replacement for TECH-DEBT.md:
+// each item carries a `Blocked by` field, and ONLY items that field marks as
+// agent-completable are ever emitted here.
+//
+// The eligibility decision is made at parse time in _lib/backlog-parser.js and
+// is deliberately conservative: anything mentioning Heath outside the normal
+// staging→main merge gate is dropped, as is every `mixed`, `Heath` and
+// `gated on …` value. An item needing a credential, a payment, a legal call, a
+// physical action, or a send to a real person can never reach the queue. No
+// downstream agent is relied on to notice.
+
+// Engineering doc: section letter → owning agent.
+const ENG_SECTION_AGENT = {
+  A: 'atlas',   // platform, security, data integrity
+  B: 'carter',  // Dossie product (app + API)
+  C: 'carter',  // DossieSign / e-sign
+  D: 'atlas',   // crons and pipeline reliability
+  E: 'atlas',   // agent queue and the loop itself
+  F: 'carter',  // Rust fitness app
+  G: 'sawyer',  // Sawyer
+};
+
+// Business doc: section number → owning agent.
+const BIZ_SECTION_AGENT = {
+  '1': 'sage',    // marketing / content engine
+  '2': 'pierce',  // Dossie go-to-market
+  '3': 'carter',  // Heath's real estate business — the agent-eligible items here
+                  // are all product/pipeline defects (esign_events, the SMS
+                  // poller, the listing generator), not client-facing work.
+  '4': 'sage',    // Rust store submission and launch
+  '5': 'hadley',  // business admin
+};
+
+// Items whose evidence points at social/content plumbing belong to Sage even
+// when their section says otherwise.
+const SAGE_TOPIC = /\b(zernio|instagram|tiktok|facebook|linkedin|youtube|posting_schedule|social_posts|group_posts|hook librar|caption|reel)\b/i;
+
+function routeBacklogItem(doc, item) {
+  if (doc === 'engineering') {
+    const letter = (item.id || '').charAt(0).toUpperCase();
+    return ENG_SECTION_AGENT[letter] || 'carter';
+  }
+  const num = (item.section.match(/^(\d+)/) || [])[1];
+  const base = BIZ_SECTION_AGENT[num] || 'pierce';
+  if (base === 'carter' && SAGE_TOPIC.test(`${item.title} ${item.body}`)) return 'sage';
+  return base;
+}
+
+async function gatherBacklogDoc(doc) {
+  const out = [];
+  const fileName = doc === 'engineering' ? 'BACKLOG-ENGINEERING.md' : 'BACKLOG-BUSINESS.md';
+  let text = '';
+  try {
+    text = fs.readFileSync(path.join(process.cwd(), 'docs', fileName), 'utf8');
+  } catch (e) {
+    return out; // no file → no signal
+  }
+
+  const { items, skipped } = parseBacklogDoc(text);
+  console.log(
+    `[autonomous-loop] backlog_${doc}: ${items.length} agent-eligible, ` +
+    `${skipped.length} withheld (${summarizeReasons(skipped)})`
+  );
+
+  items.forEach((item, idx) => {
+    const idPart = (item.id || item.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+    out.push({
+      signal_source: `backlog_${doc}`,
+      signal_key: `backlog_${doc}:${idPart}`,
+      signal_score: SCORE.BACKLOG_ITEM + Math.max(0, BACKLOG_ORDER_BONUS_MAX - idx),
+      title: `Backlog ${item.id || ''}: ${item.title}`.replace(/\s+/g, ' ').trim(),
+      description:
+        `From docs/${fileName}, item ${item.id || '(unnumbered)'} — section "${item.section}".\n\n` +
+        `TITLE: ${item.title}\n\n${item.body}\n\n` +
+        `---\n` +
+        `Blocked by (from the doc): ${item.blocked_by}\n\n` +
+        `This item was selected BECAUSE its "Blocked by" field says an agent can complete it ` +
+        `without Heath. If that turns out to be wrong — it needs a credential, a payment, a ` +
+        `legal call, a physical action, or a message sent to a real person — STOP, correct the ` +
+        `"Blocked by" line in docs/${fileName}, and report. Do not work around it.\n\n` +
+        `Re-verify the evidence before building: this document was compiled 2026-09-17 and ` +
+        `some of it may already be fixed. Ship via the normal staging-first flow; Heath merges.`,
+      agent: routeBacklogItem(doc, item),
+      meta: {
+        backlog_doc: fileName,
+        item_id: item.id,
+        section: item.section,
+        blocked_by: item.blocked_by,
+        doc_rank: idx,
+      },
+    });
+  });
+
+  return out;
+}
+
+function summarizeReasons(skipped) {
+  const counts = {};
+  for (const s of skipped) {
+    const k = String(s.reason || 'unknown').split(':')[0] + ':' + String(s.reason || '').split(':')[1];
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  return Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(' ');
+}
+
+// 4c) alert_state — production alarms that fired and nobody answered
+//
+// Added 2026-09-17. Detection has been working for months; the loop simply
+// never looked. On 2026-09-16/17 fourteen keys fired — three dead platforms,
+// a LinkedIn publisher that has failed 20 consecutive times and never once
+// succeeded, stale approval queues — and nothing responded to any of them.
+//
+// This dispatches a DIAGNOSE-AND-REPORT task. It does not grant the loop, or
+// the agent it dispatches to, any power to post, publish, send or merge.
+// An alert key's last segment is a per-instance id when it carries a date or is
+// a long slug — those keys multiply without bound (17 LinkedIn dead letters in
+// four days) and belong to one underlying problem. Everything else keeps its
+// full key so genuinely distinct conditions stay distinct.
+function alertFamily(key) {
+  const idx = key.lastIndexOf(':');
+  if (idx === -1) return key;
+  const last = key.slice(idx + 1);
+  const isInstanceId = /\d{4}-\d{2}-\d{2}/.test(last) || last.length > 20 ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(last);
+  return isInstanceId ? key.slice(0, idx) : key;
+}
+
+async function gatherAlertState() {
+  const out = [];
+  const since = new Date(Date.now() - ALERT_FRESH_HOURS * 3600 * 1000).toISOString();
+  const r = await sb(
+    `alert_state?select=key,last_fired_at,last_reason,metadata` +
+    `&last_fired_at=gte.${encodeURIComponent(since)}` +
+    `&order=last_fired_at.desc&limit=100`
+  );
+  if (!r.ok || !Array.isArray(r.data) || r.data.length === 0) return out;
+
+  // Collapse per-instance families. `linkedin_publish_dead_letter:heath-linkedin-2026-09-14`
+  // and its 16 siblings are one problem, not seventeen candidates.
+  //
+  // Only the high-cardinality suffixes collapse. `silence:instagram:dossie` and
+  // `silence:instagram:heath-realtor` are two different accounts and stay two
+  // candidates; `approvals_stale:group_posts` keeps its full key.
+  const families = new Map();
+  for (const row of r.data) {
+    const key = String(row.key || '');
+    if (!key) continue;
+    const family = alertFamily(key);
+    const fam = families.get(family);
+    if (!fam) {
+      families.set(family, { family, newest: row, count: 1, keys: [key] });
+    } else {
+      fam.count += 1;
+      if (fam.keys.length < 10) fam.keys.push(key);
+    }
+  }
+
+  const ranked = [...families.values()]
+    .sort((a, b) => new Date(b.newest.last_fired_at) - new Date(a.newest.last_fired_at))
+    .slice(0, ALERT_MAX_CANDIDATES);
+
+  for (const fam of ranked) {
+    const reason = String(fam.newest.last_reason || '').slice(0, 900);
+    const siblings = fam.count > 1
+      ? `\n\nThis alarm family has ${fam.count} distinct keys firing: ${fam.keys.join(', ')}` +
+        (fam.count > fam.keys.length ? ', …' : '') + '. Treat them as one problem.'
+      : '';
+
+    out.push({
+      signal_source: 'alert_state',
+      signal_key: `alert_state:${fam.family}`,
+      signal_score: SCORE.ALERT_STATE,
+      title: `Alarm unanswered: ${fam.family}`.slice(0, 180),
+      description:
+        `The Supabase \`alert_state\` table fired \`${fam.newest.key}\` at ` +
+        `${fam.newest.last_fired_at} and nothing responded to it.\n\n` +
+        `Reason recorded by the detector:\n${reason}${siblings}\n\n` +
+        `Detection already works — the gap is that nobody acts on it. Your job:\n` +
+        `1. Confirm the condition is still true against live data right now.\n` +
+        `2. Find the root cause and name it concretely (file, cron, table, credential).\n` +
+        `3. Fix it if it is a code or config defect, via the normal staging-first flow.\n` +
+        `4. If the fix needs a credential, a login, a payment, or a human decision, ` +
+        `STOP and escalate to Heath with the exact thing you need. Do not improvise.\n\n` +
+        `HARD LIMITS: do not post, publish, send, or merge anything as part of this task. ` +
+        `Clearing a stuck publishing queue by publishing it is NOT the fix. If the alarm is ` +
+        `a false positive, fix the detector's threshold instead and say so.`,
+      agent: 'ridge',
+      meta: {
+        alert_key: fam.newest.key,
+        alert_family: fam.family,
+        family_size: fam.count,
+        last_fired_at: fam.newest.last_fired_at,
+      },
+    });
+  }
+
   return out;
 }
 
@@ -481,6 +732,43 @@ async function checkCooldown(signalKey) {
   const row = data[0];
   const onCooldown = new Date(row.cooldown_until).getTime() > Date.now();
   return { onCooldown, dispatchCount: row.dispatch_count || 0 };
+}
+
+// Batched form of checkCooldown. The candidate pool grew from ~10 to ~90 when
+// the backlog docs and alert_state came online (2026-09-17), and the old
+// one-REST-call-per-candidate filter would have meant ~90 sequential
+// round-trips every tick. Same semantics, chunked to keep the URL short.
+// Falls back to the per-key path if a chunk fails, so a bad batch can never
+// silently mark everything "not on cooldown".
+async function checkCooldownBatch(signalKeys) {
+  const result = new Map();
+  const keys = [...new Set(signalKeys.filter(Boolean))];
+  const CHUNK = 40;
+
+  for (let i = 0; i < keys.length; i += CHUNK) {
+    const chunk = keys.slice(i, i + CHUNK);
+    // PostgREST in.() list — quote each value, escape embedded quotes.
+    const list = chunk.map(k => `"${String(k).replace(/"/g, '\\"')}"`).join(',');
+    const q = `autonomous_loop_signals_seen?select=signal_key,cooldown_until,dispatch_count` +
+              `&signal_key=in.(${encodeURIComponent(list)})&limit=${CHUNK}`;
+    const { ok, data } = await sb(q);
+    if (!ok || !Array.isArray(data)) {
+      for (const k of chunk) result.set(k, await checkCooldown(k));
+      continue;
+    }
+    for (const row of data) {
+      result.set(row.signal_key, {
+        onCooldown: new Date(row.cooldown_until).getTime() > Date.now(),
+        dispatchCount: row.dispatch_count || 0,
+      });
+    }
+  }
+
+  // Keys with no row have never been seen → not on cooldown.
+  for (const k of keys) {
+    if (!result.has(k)) result.set(k, { onCooldown: false, dispatchCount: 0 });
+  }
+  return result;
 }
 
 async function stampCooldown(signalKey, signalSource) {
@@ -683,6 +971,9 @@ module.exports = withTelemetry('cron-autonomous-loop', async function handler(re
       techDebt,
       dossieSign,
       backlogs,
+      alerts,
+      backlogEng,
+      backlogBiz,
     ] = await Promise.all([
       gatherCustomerBugs().catch(e => { console.warn('[loop] bugs err', e.message); return []; }),
       gatherProdErrors().catch(e => { console.warn('[loop] prodErr err', e.message); return []; }),
@@ -690,21 +981,29 @@ module.exports = withTelemetry('cron-autonomous-loop', async function handler(re
       gatherTechDebt().catch(e => { console.warn('[loop] techDebt err', e.message); return []; }),
       gatherDossieSignLastMile().catch(e => { console.warn('[loop] dossieSign err', e.message); return []; }),
       gatherAgentBacklogs().catch(e => { console.warn('[loop] backlogs err', e.message); return []; }),
+      gatherAlertState().catch(e => { console.warn('[loop] alertState err', e.message); return []; }),
+      gatherBacklogDoc('engineering').catch(e => { console.warn('[loop] backlogEng err', e.message); return []; }),
+      gatherBacklogDoc('business').catch(e => { console.warn('[loop] backlogBiz err', e.message); return []; }),
     ]);
 
     const allCandidates = [
       ...bugs,
       ...dossieSign,     // top tier alongside bugs
       ...prodErrors,
+      ...alerts,         // a fired alarm nobody answered outranks planned work
       ...kpiDrifts,
+      ...backlogEng,
+      ...backlogBiz,
       ...techDebt,
       ...backlogs,
     ];
 
     // 2) Filter out any candidate whose signal_key is still on cooldown
     const eligible = [];
+    const cooldowns = await checkCooldownBatch(allCandidates.map(c => c.signal_key));
     for (const c of allCandidates) {
-      const { onCooldown, dispatchCount } = await checkCooldown(c.signal_key);
+      const { onCooldown, dispatchCount } =
+        cooldowns.get(c.signal_key) || { onCooldown: false, dispatchCount: 0 };
       if (onCooldown) continue;
       // Stuck-loop check — if we've re-dispatched this signal >3 times without
       // successful cooldown expiry, mark stuck instead of picking again.
@@ -910,3 +1209,19 @@ module.exports = withTelemetry('cron-autonomous-loop', async function handler(re
     return res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// ─── Test-only surface ────────────────────────────────────────────────────────
+// Exposed so scripts/carter-autonomous-loop-backlog-parser-test.js can exercise
+// the gatherers read-only, without going anywhere near dispatch(). Nothing in
+// production reads this.
+module.exports.__testOnly = {
+  gatherTechDebt,
+  gatherBacklogDoc,
+  gatherAlertState,
+  routeBacklogItem,
+  alertFamily,
+  checkCooldown,
+  checkCooldownBatch,
+  SCORE,
+  COOLDOWN_HOURS,
+};
