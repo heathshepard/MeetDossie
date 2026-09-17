@@ -37,6 +37,11 @@ const { DateTime } = require('luxon');
 // that isn't quality_status='passed' is held here, never queued for review
 // or posted.
 const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-quality.js');
+// Pipeline B delivery-verification tracking (Carter 2026-09-17 — closes the
+// gap where a video_library post's per-platform Zernio result was logged
+// and thrown away, leaving nothing for cron-verify-zernio-deliveries.js to
+// later confirm. See api/_lib/video-delivery-verify.js file header.
+const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -403,13 +408,26 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
       (Array.isArray(data?.data?.posts) && data.data.posts[0]?.id) ||
       (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?._id) ||
       null;
+    // Record a platform URL immediately IF the accept-time response happens
+    // to carry one (Carter 2026-09-17 — most Zernio responses don't; the
+    // real URL usually only shows up later via GET /posts/:id, which
+    // cron-verify-zernio-deliveries.js polls). Never invented — only used
+    // if actually present in this exact response.
+    const platformUrl =
+      data?.url ||
+      data?.platform_url ||
+      data?.post?.url ||
+      data?.data?.url ||
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?.url) ||
+      (Array.isArray(data?.posts) && data.posts[0]?.url) ||
+      null;
     if (!zernioPostId) {
       // A 2xx with no post id usually means Zernio silently rejected the
       // post (validation failure on their side). Don't report clean success.
       console.warn(`[cron-post-videos] Zernio ${platform}: 2xx but NO post id in response — treating as unverified. Body: ${text.slice(0, 500)}`);
-      return { ok: true, data, zernio_post_id: null, unverified: true };
+      return { ok: true, data, zernio_post_id: null, unverified: true, platform_url: platformUrl };
     }
-    return { ok: true, data, zernio_post_id: zernioPostId };
+    return { ok: true, data, zernio_post_id: zernioPostId, platform_url: platformUrl };
   } catch (err) {
     return { ok: false, error: `Zernio exception: ${err && err.message}` };
   }
@@ -582,12 +600,20 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           platformsAttempted = targets.map((t) => t.platform);
           const caption = video.caption || '';
 
+          const nowIso = new Date().toISOString();
+          const deliveryEntries = [];
           for (const t of targets) {
             const result = await postToZernio(
               t.platform, video.supabase_url, caption, video.topic,
               { scheduledFor: t.scheduledFor }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
+            deliveryEntries.push(buildDeliveryEntry({
+              platform: t.platform,
+              scheduledFor: t.scheduledFor,
+              postResult: result,
+              nowIso,
+            }));
             if (!result.ok) {
               libraryOk = false;
               console.error(`[cron-post-videos] Failed on ${t.platform}:`, result.error);
@@ -595,6 +621,10 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
             }
           }
+          // Persist per-platform delivery state so cron-verify-zernio-deliveries.js
+          // can confirm actual delivery later — previously this was logged
+          // and discarded, the exact gap this fix closes.
+          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, deliveryEntries);
 
           if (libraryOk) {
             await supabaseFetch(
@@ -602,7 +632,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString() }),
+                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
               },
             );
             const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
@@ -623,7 +653,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'failed', posted_date: null }),
+                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries }),
               },
             );
             await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);

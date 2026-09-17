@@ -82,6 +82,12 @@ const ALWAYS_ALLOW = new Set([
                                // Same class as cron-comment-opp-approval: interactive approval plumbing, exactly
                                // 5 sends/day (one per target group). A swallowed send here means a whole day's
                                // group post for that group never gets approved — Carter, 2026-09-09.
+  'cron-verify-zernio-deliveries', // */30 — sends nothing on a healthy pipeline; only alerts on a confirmed
+                               // Zernio delivery failure, a 30%+ 24h failure-rate crisis, or a video_library
+                               // post that's gone unconfirmed past the stale window (Pipeline B, added
+                               // 2026-09-17). Gating this is the exact silent-failure class the alert exists
+                               // to close — a video marked 'posted' that never actually delivered must not
+                               // depend on TELEGRAM_CRON_NOTIFICATIONS being set — Carter, 2026-09-17.
   'cron-retry-unsent-approvals', // */30 — bounded retry for group_posts drafts whose approval card never
                                   // reached Heath (daily5 + listing-groups pipelines). Gating THIS job would
                                   // defeat its entire purpose (delivering an approval Heath already missed once)
