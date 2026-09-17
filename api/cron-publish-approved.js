@@ -423,13 +423,19 @@ async function pushToZernio(post) {
     };
   }
 
-  // AI-disclosure label (Carter, 2026-09-16) — see the identical block in
-  // api/cron-post-videos.js postToZernio() for the full rationale and field
-  // sourcing. This is the other live path a video media_url can reach
-  // Zernio through (social_posts.media_url), so it needs the same gate:
-  // owner === 'heath-realtor' is the proxy for "used Heath's cloned voice"
-  // in this pipeline (Dossie always = Luna; Rust posts elsewhere).
-  const usesHeathClonedVoice = (post.target_owner || 'dossie') === 'heath-realtor';
+  // AI-disclosure label (Carter, 2026-09-16; fixed to read off content
+  // 2026-09-17) — see the identical block in api/cron-post-videos.js
+  // postToZernio() for the full rationale and field sourcing. This is the
+  // other live path a video media_url can reach Zernio through
+  // (social_posts.media_url). Was gated on owner==='heath-realtor' — a
+  // proxy, not a fact, and one that could never flag Rust content even
+  // though Heath's cloned voice is approved for Rust too
+  // (heath-voice-clone-usage-scope.md). Reads social_posts.uses_cloned_voice
+  // directly instead (20260917b_ai_disclosure_content_property.sql) — Rust
+  // doesn't route through cron-generate-posts.js/social_posts today, but
+  // the column exists so that isn't a reason it can't disclose correctly
+  // once it does.
+  const usesHeathClonedVoice = post.uses_cloned_voice === true;
   if (usesHeathClonedVoice && post.platform === 'youtube' && post.media_url) {
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),

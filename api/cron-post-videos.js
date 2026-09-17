@@ -378,15 +378,19 @@ async function sendForHeathReview(video) {
 // AND Facebook Page independently per owner (GAP 4, Carter 2026-09-10).
 // A heath-realtor call NEVER falls back to a dossie account — see
 // resolveZernioAccountId().
-// NOTE (Carter 2026-09-16 — RUST-OWNER-WIRING): the clone-voice AI
-// disclosure flags (YouTube platformSpecificData.containsSyntheticMedia,
-// TikTok platformSpecificData.tiktokSettings.video_made_with_ai) live on an
-// UNMERGED branch (fix/linkedin-authenticity-and-ai-disclosure) as of this
-// commit, gated on owner==='heath-realtor' only. Rust doesn't have a
-// zernio_accounts row for either youtube or tiktok today, so this has no
-// live effect for rust regardless — but when that branch merges, widen its
-// gate to include owner==='rust' for any Rust video that uses a synthetic
-// (non-Heath) coach voice, e.g. Marcus in the readiness-check format.
+// NOTE (Carter 2026-09-17 — Quinn QA follow-up on RUST-OWNER-WIRING): the
+// clone-voice AI disclosure flags below used to be gated on
+// owner==='heath-realtor' — a proxy, not a fact. Rust now posts through this
+// exact pipeline (target_owner='rust', see 20260916d_rust_owner_wiring.sql),
+// and Heath's cloned voice is approved for realtor AND Rust content
+// (heath-voice-clone-usage-scope.md), so an owner-literal check would ship a
+// clone-voiced Rust video to YouTube/TikTok with no disclosure the moment
+// Rust connects one of those accounts. The flag is now read straight off
+// the video row (opts.usesClonedVoice, sourced from
+// video_library.uses_cloned_voice — 20260917b_ai_disclosure_content_
+// property.sql) — a property of the content, set by whichever pipeline
+// actually knows which voice rendered the audio, not derived from who
+// posted it.
 async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner = 'dossie') {
   const accountId = await resolveZernioAccountId(platform, owner);
   if (!accountId) {
@@ -417,21 +421,23 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     };
   }
 
-  // AI-disclosure label (Carter, 2026-09-16) — YouTube and TikTok both
-  // require disclosure of realistic AI-generated/synthetic voice or face.
-  // heath-voice-clone-usage-scope.md: Heath's ElevenLabs clone
-  // (i41TA0Q36AUrp4axERi3) is approved for realtor listing + Rust content,
-  // NEVER for Dossie (Dossie always speaks as Luna). Rust posts through its
-  // own separate Vercel project/pipeline, not this one — so within THIS
-  // pipeline, owner === 'heath-realtor' is the correct proxy for "this
-  // video used Heath's cloned voice" today. Revisit this proxy if a
-  // realtor video ever ships without the clone, or if Rust content is ever
-  // routed through this cron.
+  // AI-disclosure label (Carter, 2026-09-16; fixed to read off content
+  // 2026-09-17) — YouTube and TikTok both require disclosure of realistic
+  // AI-generated/synthetic voice or face. heath-voice-clone-usage-scope.md:
+  // Heath's ElevenLabs clone (i41TA0Q36AUrp4axERi3) is approved for realtor
+  // listing AND Rust content, NEVER for Dossie (Dossie always speaks as
+  // Luna). Rust posts through THIS pipeline now (target_owner='rust', see
+  // 20260916d_rust_owner_wiring.sql) — so the old owner==='heath-realtor'
+  // proxy would silently ship a clone-voiced Rust video with no disclosure.
+  // opts.usesClonedVoice is sourced by the caller from
+  // video_library.uses_cloned_voice, a fact the content pipeline records at
+  // ingestion time (scripts/queue-finished-videos.py) — never inferred from
+  // who posted it.
   // Field names verified against Zernio's own API docs (docs.zernio.com,
   // 2026-09-16) and Google's YouTube Data API v3 reference:
   //   YouTube: status.containsSyntheticMedia (realistic Altered/Synthetic content)
   //   TikTok:  tiktokSettings.video_made_with_ai (Business-app video posts only)
-  const usesHeathClonedVoice = owner === 'heath-realtor';
+  const usesHeathClonedVoice = opts.usesClonedVoice === true;
   if (usesHeathClonedVoice && platform === 'youtube') {
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),
@@ -718,7 +724,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           for (const t of targets) {
             const result = await postToZernio(
               t.platform, video.supabase_url, caption, video.topic,
-              { scheduledFor: t.scheduledFor }, owner,
+              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
             deliveryEntries.push(buildDeliveryEntry({

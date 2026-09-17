@@ -67,6 +67,18 @@ ALTER TABLE public.posting_schedule
 COMMENT ON COLUMN public.posting_schedule.owner IS
   'NULL = shared row, applies to every owner with no override for this platform+day (zero behavior change for pre-existing rows). A non-null value (e.g. rust) overrides the shared row for that owner ONLY, e.g. turning Twitter/X on for Rust without touching Dossie''s own (deliberately inactive) Twitter schedule. See loadTodaySchedule()/gatePlatform() in cron-post-videos.js and loadSchedules()/isDueForPublish() in cron-publish-approved.js.';
 
+-- The table's original schema (pre-dates this migrations directory) carries
+-- a plain UNIQUE(platform, day_of_week) constraint, auto-named
+-- posting_schedule_platform_day_of_week_key. That constraint has no `owner`
+-- in it, so the very INSERTs below (step 6, a second row per platform+day
+-- for 'rust') would violate it before the new per-owner index below ever
+-- gets a chance to matter — confirmed by hand against prod 2026-09-16. Drop
+-- it; the new unique index two lines down replaces it and is strictly
+-- stronger (still unique for the shared/NULL-owner case, and now also
+-- unique per owner override).
+ALTER TABLE public.posting_schedule
+  DROP CONSTRAINT IF EXISTS posting_schedule_platform_day_of_week_key;
+
 -- One row per (platform, day_of_week, owner) — COALESCE to a sentinel so the
 -- uniqueness check also dedupes the NULL/"shared" group (Postgres unique
 -- indexes normally treat every NULL as distinct).
