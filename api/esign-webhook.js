@@ -164,6 +164,25 @@ async function fetchDocumentRow(documentId) {
 // document row id, or null on error. Shared by the signed-PDF and
 // audit-certificate legs below.
 async function storePdfAsDocument({ sr, fileName, pdfBuffer, documentType, pathPrefix }) {
+  // 2026-09-17 — documents.transaction_id is NOT NULL. This function passed
+  // `sr.transaction_id || null` into it, so for any signature request that is
+  // not linked to a dossier the insert died on a not-null violation, the error
+  // went to console, and completion carried on reporting success with zero
+  // artifacts stored. That is not a rare path: api/esign-create.js
+  // insertSignatureRequest() DELIBERATELY creates unlinked rows when the FK
+  // check fails ("far better than no record of an envelope that is already
+  // out"), and CLI sends via scripts/send-trec-amendment.js have no dossier at
+  // all. Every one of those silently lost its signed PDF and its completion
+  // certificate. Fail fast and name the reason instead of uploading an orphan
+  // object to Storage that no documents row will ever point at.
+  if (!sr.transaction_id) {
+    console.error(`[esign-webhook] cannot store ${documentType} for sr ${sr.id}: `
+      + 'signature request has no transaction_id and documents.transaction_id is NOT NULL. '
+      + 'Link the signature request to a dossier, then re-run '
+      + `scripts/backfill-docuseal-completions.js --id ${sr.docuseal_submission_id} --apply`);
+    return null;
+  }
+
   const ts = Date.now();
   const safeName = String(fileName || 'document.pdf').replace(/[^A-Za-z0-9._\-\s()]/g, '_');
   const storagePath = `${sr.user_id}/${sr.transaction_id || 'no-transaction'}/${pathPrefix}-${ts}-${safeName}`;
@@ -188,7 +207,7 @@ async function storePdfAsDocument({ sr, fileName, pdfBuffer, documentType, pathP
   const docRes = await supa('documents', {
     method: 'POST',
     body: JSON.stringify({
-      transaction_id: sr.transaction_id || null,
+      transaction_id: sr.transaction_id,
       user_id: sr.user_id,
       file_name: `${pathPrefix}-${safeName}`,
       file_type: 'application/pdf',
@@ -712,13 +731,29 @@ module.exports = async function handler(req, res) {
       // Fetch the Dossie user's profile (transaction owner) for notifications + reply_to.
       const dossieUser = await fetchAgentEmailForUser(sr.user_id);
 
+      // 2026-09-17 — tracking-only rows (C1 write-back). Rows created outside
+      // the product UI — scripts/send-trec-amendment.js sending a real TREC
+      // amendment, or scripts/backfill-docuseal-completions.js reconciling an
+      // already-finished submission — set suppress_notifications. Everything
+      // ABOVE this line still runs: signed PDFs stored, completion certificate
+      // stored, hashes written, submission_events snapshotted, row marked
+      // completed. Only the outbound email legs below are skipped, because
+      // DocuSeal already emailed those signers directly and they are real
+      // clients on a live transaction. Undefined/false (every existing row and
+      // everything api/esign-create.js writes) = unchanged behavior.
+      const notify = !sr.suppress_notifications;
+      if (!notify) {
+        console.log(`[esign-webhook] sr ${sr.id} is tracking-only `
+          + `(suppress_notifications) — artifacts stored, skipping owner/signer/seller emails.`);
+      }
+
       // 2026-07-06 ATLAS v3 — Send the transaction OWNER (agent) a Dossie-branded
       // "Contract executed" email with the signed PDF attached. Idempotent via
       // signature_requests.owner_notified_at so webhook retries don't double-send.
       // Previously sendCompletionEmail() was plain, had no attachment, AND was
       // skipped if the agent was also a signer — which is the common real-estate
       // case. Now fires unconditionally against the owner profile.
-      if (!sr.owner_notified_at && dossieUser?.email) {
+      if (notify && !sr.owner_notified_at && dossieUser?.email) {
         const resendId = await sendAgentExecutedEmail({
           agentEmail: dossieUser.email,
           agentName: dossieUser.full_name,
@@ -760,7 +795,7 @@ module.exports = async function handler(req, res) {
       // Skip the transaction owner's own email if it's in the signer list — the
       // owner just received the "Contract executed" email above, so a duplicate
       // "Your signed contract" here would be redundant.
-      const signersForEmail = Array.isArray(sr.signers) ? sr.signers : [];
+      const signersForEmail = notify && Array.isArray(sr.signers) ? sr.signers : [];
       if (signersForEmail.length > 0) {
         await Promise.all(
           signersForEmail
@@ -783,7 +818,7 @@ module.exports = async function handler(req, res) {
 
       // If a seller's agent email is on the signature request, send them the executed PDF.
       // reply_to is set to the Dossie user's own email so the seller's agent can reply directly to them.
-      if (sr.seller_agent_email && signedPdfBuffer) {
+      if (notify && sr.seller_agent_email && signedPdfBuffer) {
         await sendSellerAgentEmail(
           sr.seller_agent_email,
           sr.seller_agent_name || null,
@@ -793,7 +828,7 @@ module.exports = async function handler(req, res) {
           dossieUser?.email || null,
           signedAttachments
         );
-      } else if (sr.seller_agent_email && !signedPdfBuffer) {
+      } else if (notify && sr.seller_agent_email && !signedPdfBuffer) {
         console.warn(`[esign-webhook] seller_agent_email set (${sr.seller_agent_email}) but could not fetch signed PDF buffer — skipping seller email.`);
       }
 
