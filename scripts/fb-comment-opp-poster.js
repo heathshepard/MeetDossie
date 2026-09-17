@@ -30,14 +30,21 @@
 //     so spacing never looks metronomic. The profile was shadowbanned in
 //     June at 12/day from automated bursts; losing it ends the entire
 //     distribution strategy.
-//   - CIRCUIT BREAKER (scripts/_lib/comment-hunt-halt.js): a verify failure
-//     or a login/checkpoint redirect halts scanner AND poster GLOBALLY. A
-//     single comment removed by a group's moderator (detected by the daily
-//     scanner) only PAUSES that one group — rows targeting other groups
-//     keep posting here. A removal pattern across 2+ distinct groups
-//     auto-escalates to a global halt.
+//   - CIRCUIT BREAKER (scripts/_lib/comment-hunt-halt.js): a login/checkpoint
+//     redirect halts scanner AND poster GLOBALLY — that's an account-level
+//     signal. A single comment removed by a group's moderator (detected by
+//     the daily scanner), OR a submitted comment that fails to verify on TWO
+//     separate re-reads here, only PAUSES that one group — rows targeting
+//     other groups keep posting. A removal/verify-fail pattern across 2+
+//     distinct groups auto-escalates to a global halt. (Rescoped 2026-09-17,
+//     Carter — the 2026-09-15 incident was a single thread's verify failure
+//     halting every group for 2 days; see the retry+group-scope note at the
+//     verify call site below.)
 //   - Every post is VERIFIED by re-rendering the thread before the row is
-//     marked posted. DossieBot-Sage profile, headed, cooperative unlock.
+//     marked posted — with one retry-after-wait before a failed read is
+//     treated as a real signal, since Facebook's virtualized feed DOM can
+//     genuinely render slow. DossieBot-Sage profile, headed, cooperative
+//     unlock.
 //
 // Scheduling: Windows Task Scheduler task "Dossie TC Discovery Harvest"
 // (scripts/run-tc-discovery-harvest.cmd, 30-min tick). No-op runs exit in
@@ -72,6 +79,9 @@ const SAGE_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
 );
 const HEATH_FB_NAMES = ['Heath Shepard'];
 const BUDGET = 'facebook_auto';
+// One extra real-world wait before a verify failure is treated as real —
+// see the retry note at the verify call site.
+const VERIFY_RETRY_DELAY_MS = 8000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const normText = (s) => String(s || '').replace(/\s+/g, ' ').trim();
@@ -264,6 +274,8 @@ async function verifyCommentPosted(page, row, commentText) {
  *   sbFetch, caps, poster, verifier, notify, log,
  *   gapMinutes  — required spacing for THIS run (prod: variedGapMinutes()),
  *   haltState   — { isHalted, setHalt } (prod: scripts/_lib/comment-hunt-halt)
+ *   sleep       — injectable wait fn for the verify-retry (prod: real sleep;
+ *                 tests pass a fast no-op so the retry path stays instant)
  * }
  * @returns {Promise<{posted:number, queuedForCap:number, failed:number, skipped:number, halted:boolean}>}
  */
@@ -274,6 +286,7 @@ async function runOppQueue(deps = {}) {
   const verifier = deps.verifier; // async (row, text) => boolean
   const notify = deps.notify || notifyHeath;
   const log = deps.log || console;
+  const sleepFn = deps.sleep || sleep;
   const haltState = deps.haltState || halt;
   const gapMinutes = deps.gapMinutes != null ? deps.gapMinutes : variedGapMinutes(caps);
   const out = { posted: 0, queuedForCap: 0, failed: 0, skipped: 0, halted: false };
@@ -383,7 +396,18 @@ async function runOppQueue(deps = {}) {
     // verification fails below, the comment may be live on Facebook.
     await caps.recordComment(BUDGET, sbFetch);
 
-    const verified = await verifier(row, commentText);
+    // Re-READS only (no second keystroke, no double-post risk) — a single
+    // verify pass can false-negative on Facebook's virtualized/slow-loading
+    // DOM (the same rendering behavior documented at length in
+    // fb-comment-hunt-daily.js's extraction rewrite), which is exactly what
+    // turned the 2026-09-15 incident into a full pipeline halt. One retry
+    // after a real wait costs nothing and closes most of that false-negative
+    // gap before we conclude the render genuinely failed.
+    let verified = await verifier(row, commentText);
+    if (!verified) {
+      await sleepFn(VERIFY_RETRY_DELAY_MS);
+      verified = await verifier(row, commentText);
+    }
     if (verified) {
       const watchlistId = await registerWatch(sbFetch, row, commentText);
       await finalizeOpp(sbFetch, row.id, {
@@ -395,15 +419,23 @@ async function runOppQueue(deps = {}) {
       out.posted++;
       log.log(`[opp-poster] posted + verified comment in ${row.group_name}`);
     } else {
-      // Submitted but could not read it back. TERMINAL — never auto-retry
-      // (retrying a comment that actually landed = double-post) — and a
-      // failed render-back is a warning sign: HALT everything.
+      // Submitted but could not read it back on two separate re-reads.
+      // TERMINAL — never auto-retry THE SUBMIT (retrying a comment that
+      // actually landed = double-post). A failed render-back is a warning
+      // sign, but a single thread's verify failure is NOT an account-level
+      // signal (2026-09-17, Carter, after the 2026-09-15 incident held the
+      // pipeline dark for 2 days off exactly this): scope the halt to THIS
+      // group only, same as a moderator-detected removal — every other
+      // group keeps posting. Two distinct groups hitting this still
+      // auto-escalates to a global halt via comment-hunt-halt.js.
       await finalizeOpp(sbFetch, row.id, {
         status: 'post_failed',
-        error: 'submitted but verification could not find the comment in the re-rendered thread',
+        error: 'submitted but verification could not find the comment in the re-rendered thread (checked twice)',
       });
-      haltState.setHalt('comment submitted but failed to render back on verify', { opportunity_id: row.id, post_url: row.post_url });
-      await notify(`COMMENT PIPELINE HALTED — a comment in ${row.group_name} was submitted but could NOT be read back from the thread. It may or may not be live — check manually:\n${row.post_url}\n\nNothing else will post until you clear the halt:\nnode scripts/fb-comment-opp-poster.js --clear-halt`);
+      haltState.setHalt('comment submitted but failed to render back on verify', {
+        opportunity_id: row.id, post_url: row.post_url, group: row.group_name, scope: 'group',
+      });
+      await notify(`${row.group_name} PAUSED — a comment there was submitted but could NOT be read back from the thread (checked twice). It may or may not be live — check manually:\n${row.post_url}\n\nOther groups keep posting. Clear just this group:\nnode scripts/fb-comment-opp-poster.js --clear-halt --group "${row.group_name}"`);
       out.failed++;
       out.halted = true;
     }

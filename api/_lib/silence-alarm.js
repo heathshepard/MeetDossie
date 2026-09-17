@@ -69,6 +69,16 @@ const COMMENT_REPLY_STALE_HOURS = 24;
 // Telegram notice sent at the moment it happened.
 const REPLY_UNVERIFIED_STALE_HOURS = 24;
 
+// Comment-opportunity pipeline (scripts/fb-comment-hunt-daily.js ->
+// api/cron-comment-opp-approval.js -> scripts/fb-comment-opp-poster.js) gone
+// silent (Carter, 2026-09-17): a GLOBAL halt sat from 2026-09-15 to
+// 2026-09-17 with the scanner finding ZERO new candidates and 2 Heath-
+// approved comments never posting, and nobody noticed until Heath asked —
+// the exact "silent failure" shape this file exists to catch, just not yet
+// wired up for this pipeline.
+const COMMENT_OPP_SCANNER_STALE_HOURS = 24;
+const COMMENT_OPP_APPROVED_STALE_HOURS = 24;
+
 // (platform, target_owner) pairs worth tracking. Kept explicit (not derived
 // from zernio_accounts) so a brand-new/experimental owner doesn't silently
 // start alerting before anyone's decided it should be monitored — see
@@ -474,6 +484,59 @@ async function checkUnverifiedRepliesStuck(staleHours = REPLY_UNVERIFIED_STALE_H
 // per distinct issue (keyed by path+type) so a genuinely-intentional rare
 // cron doesn't need to be re-acknowledged daily forever — but Heath should
 // see it at least once.
+// 9a. The daily comment-opportunity SCANNER has gone silent — zero new
+// candidates found in COMMENT_OPP_SCANNER_STALE_HOURS. Only alerts if the
+// pipeline has real history (has ever inserted a row) so a pipeline that's
+// never been turned on doesn't alarm forever. This is precisely the
+// 2026-09-15 -> 2026-09-17 gap: fb-comment-hunt-daily.js checks the GLOBAL
+// halt before it does anything else and exits silently on every 30-min tick
+// while halted — "nothing new found" produced no signal anywhere on its own.
+async function checkCommentOppScannerSilence(staleHours = COMMENT_OPP_SCANNER_STALE_HOURS) {
+  const everActive = await supabaseFetch('/rest/v1/comment_opportunities?select=id&limit=1');
+  if (!everActive.ok || !Array.isArray(everActive.data) || everActive.data.length === 0) return [];
+
+  const cutoff = hoursAgoIso(staleHours);
+  const recent = await supabaseFetch(
+    `/rest/v1/comment_opportunities?found_at=gte.${encodeURIComponent(cutoff)}&select=id&limit=1`,
+  );
+  if (recent.ok && Array.isArray(recent.data) && recent.data.length > 0) return []; // healthy
+
+  const lastFound = await supabaseFetch(
+    '/rest/v1/comment_opportunities?select=found_at,group_name&order=found_at.desc&limit=1',
+  );
+  const last = lastFound.ok && Array.isArray(lastFound.data) ? lastFound.data[0] : null;
+
+  return [{
+    key: 'comment_opp_scanner_silent',
+    lastFoundAt: last ? last.found_at : null,
+    message: `The daily comment-opportunity scanner (scripts/fb-comment-hunt-daily.js) has found ZERO new candidates in >${staleHours}h`
+      + `${last ? ` (last found ${last.found_at} in "${last.group_name}")` : ''}. Check the "Dossie TC Discovery Harvest" `
+      + 'Windows Task Scheduler task is actually ticking and whether scripts/.comment-hunt-halt.json has a GLOBAL halt set '
+      + '(node scripts/fb-comment-opp-poster.js --dry-run shows it too).',
+  }];
+}
+
+// 9b. Heath APPROVED a comment in Telegram and it never posted —
+// COMMENT_OPP_APPROVED_STALE_HOURS past approval. Almost always means the
+// halt is set (global or for that row's own group) or the DossieBot-Sage
+// profile is stuck; either way it's an "approved but nothing happens" gap
+// Heath should never have to notice himself.
+async function checkCommentOppApprovedStale(staleHours = COMMENT_OPP_APPROVED_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const res = await supabaseFetch(
+    `/rest/v1/comment_opportunities?status=eq.approved&approved_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,group_name,approved_at&order=approved_at.asc',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+  return [{
+    key: 'comment_opp_approved_stale',
+    count: res.data.length,
+    oldest: res.data[0],
+    message: `${res.data.length} Heath-approved comment(s) sitting >${staleHours}h without posting (oldest: "${res.data[0].group_name}", approved ${res.data[0].approved_at}). `
+      + 'Check node scripts/fb-comment-opp-poster.js --dry-run and scripts/.comment-hunt-halt.json for a halt (global or scoped to that group).',
+  }];
+}
+
 async function checkCronSanity(scanOpts) {
   const scan = scanCronSanity(scanOpts);
   if (!scan.ok) {
@@ -519,7 +582,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, unverifiedReplies, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -529,10 +592,12 @@ async function runAllChecks(opts = {}) {
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
     checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
+    checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
+    checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...unverifiedReplies, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -726,6 +791,8 @@ module.exports = {
   TC_HARVEST_SCOPE_GAP_HOURS,
   COMMENT_REPLY_STALE_HOURS,
   REPLY_UNVERIFIED_STALE_HOURS,
+  COMMENT_OPP_SCANNER_STALE_HOURS,
+  COMMENT_OPP_APPROVED_STALE_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -735,6 +802,8 @@ module.exports = {
   checkTcHarvestScopeGap,
   checkCommentsAwaitingReplyStale,
   checkUnverifiedRepliesStuck,
+  checkCommentOppScannerSilence,
+  checkCommentOppApprovedStale,
   checkCronSanity,
   shouldFire,
   markFired,

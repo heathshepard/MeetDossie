@@ -59,6 +59,7 @@ function startMockSupabase(seed) {
     video_library: (seed.video_library || []).map((r) => ({ ...r })),
     fb_comment_replies: (seed.fb_comment_replies || []).map((r) => ({ ...r })),
     tc_discovery_responses: (seed.tc_discovery_responses || []).map((r) => ({ ...r })),
+    comment_opportunities: (seed.comment_opportunities || []).map((r) => ({ ...r })),
     alert_state: (seed.alert_state || []).map((r) => ({ ...r })),
   };
 
@@ -191,6 +192,14 @@ async function run() {
       // A clean pre-submit failure (nothing typed) -- must NOT be counted as "unverified", different reason prefix.
       { id: 'tc-not-submitted', commenter_name: 'Clean Fail', reply_status: 'post_failed', reply_error: 'not_submitted: could not locate Reply button', updated_at: hoursAgo(30) },
     ],
+    // The 2026-09-15 -> 2026-09-17 comment-opportunity pipeline gap: real
+    // history (every found_at older than the 24h window) so the scanner
+    // fires as silent, plus one approved row that never posted.
+    comment_opportunities: [
+      { id: 'co-old-1', group_name: 'DFW Realtors', found_at: hoursAgo(50), status: 'rejected' },
+      { id: 'co-old-2', group_name: 'Keller Williams Real Estate Group', found_at: hoursAgo(40), status: 'posted' },
+      { id: 'co-approved-stale', group_name: 'DFW Realtors', found_at: hoursAgo(60), status: 'approved', approved_at: hoursAgo(30) },
+    ],
     alert_state: [],
   };
 
@@ -296,6 +305,53 @@ async function run() {
   check('a clean not_submitted failure is never counted as unverified', () => {
     for (const c of unverifiedReplies) assert.ok(!/Clean Fail/.test(c.message));
   });
+
+  console.log('\nTest 2e: comment-opportunity pipeline silence (2026-09-17: the 2-day dark halt)');
+  const scannerSilent = await lib.checkCommentOppScannerSilence(24);
+  check('scanner fires when every found_at is older than the window, despite real history', () => {
+    assert.strictEqual(scannerSilent.length, 1, `expected exactly one condition, got: ${JSON.stringify(scannerSilent)}`);
+    assert.strictEqual(scannerSilent[0].key, 'comment_opp_scanner_silent');
+    assert.ok(/24h/.test(scannerSilent[0].message));
+  });
+
+  const approvedStale = await lib.checkCommentOppApprovedStale(24);
+  check('approved-stale fires with the right count and names the group', () => {
+    const c = approvedStale.find((x) => x.key === 'comment_opp_approved_stale');
+    assert.ok(c, `expected comment_opp_approved_stale to fire, got: ${JSON.stringify(approvedStale.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1);
+    assert.ok(/DFW Realtors/.test(c.message));
+  });
+
+  // Healthy pipeline: something found inside the window -> scanner must NOT fire.
+  const healthyMock = await startMockSupabase({
+    ...seed,
+    comment_opportunities: [
+      ...seed.comment_opportunities,
+      { id: 'co-fresh', group_name: 'Texas Real Estate Agents', found_at: hoursAgo(2), status: 'found' },
+    ],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${healthyMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const healthyLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const healthyScanner = await healthyLib.checkCommentOppScannerSilence(24);
+  check('a fresh found_at inside the window means the scanner is healthy — no false alarm', () => {
+    assert.strictEqual(healthyScanner.length, 0, `expected no scanner-silent alert, got: ${JSON.stringify(healthyScanner)}`);
+  });
+  healthyMock.server.close();
+
+  // Never-used pipeline (no rows at all): must NOT fire — dormant, not broken.
+  const neverUsedMock = await startMockSupabase({ comment_opportunities: [], alert_state: [] });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${neverUsedMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const neverUsedLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const neverUsedScanner = await neverUsedLib.checkCommentOppScannerSilence(24);
+  check('a pipeline with zero rows ever (never turned on) does NOT fire — avoids alarming forever on something never started', () => {
+    assert.strictEqual(neverUsedScanner.length, 0, `expected no alert for a never-used pipeline, got: ${JSON.stringify(neverUsedScanner)}`);
+  });
+  neverUsedMock.server.close();
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
 
   console.log('\nTest 3: dedupe — fires once, second run within cooldown is suppressed');
   const run1 = await lib.runAllChecks({ silenceDays: 3, approvalStaleHours: 48, draftStaleHours: 24, videoReviewStaleHours: 48 });

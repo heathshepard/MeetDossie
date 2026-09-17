@@ -50,6 +50,12 @@
 //      captured a real post permalink for it.
 //   7. (2026-09-16) Comments notified/drafted >24h with no decision.
 //   8. (2026-09-16) vercel.json cron sanity issues.
+//   9. (2026-09-17) The comment-opportunity pipeline (fb-comment-hunt-daily
+//      -> cron-comment-opp-approval -> fb-comment-opp-poster) gone silent:
+//      the scanner found zero new candidates in >24h (despite having real
+//      history), OR a Heath-approved comment sat unposted >24h. This is the
+//      exact 2026-09-15 -> 2026-09-17 gap: a GLOBAL halt held for 2 days
+//      with nobody told.
 //
 // Dedup: api/_lib/silence-alarm.js's alert_state table — each ALARM
 // condition alerts once per ~20h regardless of how often this cron runs.
