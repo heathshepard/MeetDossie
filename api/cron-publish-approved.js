@@ -41,6 +41,7 @@ const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 const { tagOutboundLinks } = require('./_lib/content-tag.js');
+const { logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -965,6 +966,19 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
+  // Standing-authority gate (api/_lib/ops-policy.js, capability
+  // 'publish_content'). Fail-closed: if the flag can't be read, this run
+  // does NOT publish — same "never fail open" contract as every other
+  // switch in this codebase. Individual gate results (schedule/dedup/
+  // media/sanitizer) are unchanged below and logged per-post at publish.
+  const { checkCapability } = require('./_lib/ops-policy.js');
+  const publishAuthority = await checkCapability('publish_content');
+  if (!publishAuthority.allowed) {
+    console.warn(`[cron-publish-approved] publish_content capability not autonomous this run (${publishAuthority.decision}: ${publishAuthority.reason}) — skipping.`);
+    await recordCronRun('cron-publish-approved', 'skipped', { reason: `ops-policy: ${publishAuthority.reason}` });
+    return res.status(200).json({ ok: true, skipped: true, reason: `ops-policy: ${publishAuthority.reason}` });
+  }
+
   try {
     // Recover any rows stuck in 'publishing' from a crashed prior run.
     await recoverStuckPublishing();
@@ -1193,6 +1207,18 @@ module.exports = async function handler(req, res) {
         } else {
           console.log(`[cron-publish-approved] ✅ Published ${post.id} successfully`);
         }
+        // Standing-authority audit trail (api/_lib/ops-policy.js). Fire-and-
+        // forget — never blocks or reverses a publish already committed.
+        await logAutonomousAction({
+          capability: 'publish_content',
+          decision: 'autonomous',
+          action: `published ${post.platform} post`,
+          firedBy: 'cron-publish-approved',
+          gatesPassed: ['schedule', 'dedup', 'media_required', 'caption_sanitizer'],
+          refTable: 'social_posts',
+          refId: post.id,
+          metadata: { platform: post.platform, target_owner: post.target_owner || 'dossie', unverified },
+        }).catch(() => {});
       } else {
         console.error(`[cron-publish-approved] Patch after publish failed for ${post.id}:`, patch.status, patch.text);
         errors.push({ id: post.id, error: 'patch after publish failed', status: patch.status });

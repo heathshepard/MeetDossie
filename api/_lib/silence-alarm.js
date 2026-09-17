@@ -636,12 +636,17 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
   const now = new Date();
   const in7d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const nowIso = now.toISOString();
+  // End of TODAY (UTC calendar day) — narrower window than scheduled_next_7d,
+  // for the "what's scheduled TODAY" line the morning brief spec asks for
+  // (Heath, 2026-09-17).
+  const endOfTodayIso = `${nowIso.slice(0, 10)}T23:59:59.999Z`;
 
   const [
     postedSocial,
     postedVideo,
     postedGroups,
     scheduledSocial,
+    scheduledSocialToday,
     unscheduledDrafts,
     videoReady,
     approvedUnposted,
@@ -657,6 +662,7 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     supabaseFetch(`/rest/v1/video_library?status=eq.posted&posted_date=gte.${encodeURIComponent(since24h)}&select=platforms,target_owner`),
     supabaseFetch(`/rest/v1/group_posts?status=in.(posted,pending_admin_approval)&posted_at=gte.${encodeURIComponent(since24h)}&select=id`),
     supabaseFetch(`/rest/v1/social_posts?status=eq.approved&scheduled_for=gte.${encodeURIComponent(nowIso)}&scheduled_for=lt.${encodeURIComponent(in7d)}&select=platform,target_owner`),
+    supabaseFetch(`/rest/v1/social_posts?status=eq.approved&scheduled_for=gte.${encodeURIComponent(nowIso)}&scheduled_for=lt.${encodeURIComponent(endOfTodayIso)}&select=platform,target_owner`),
     supabaseFetch(`/rest/v1/social_posts?status=eq.draft&select=id`),
     // Video quality gate (api/_lib/verify-video-quality.js) — only rows that
     // actually PASSED count as "ready", matching gateBeforePublish()'s own
@@ -692,6 +698,11 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
   const scheduledByPlatform = new Map();
   if (scheduledSocial.ok && Array.isArray(scheduledSocial.data)) {
     for (const row of scheduledSocial.data) bump(scheduledByPlatform, row.platform, row.target_owner);
+  }
+
+  const scheduledTodayByPlatform = new Map();
+  if (scheduledSocialToday.ok && Array.isArray(scheduledSocialToday.data)) {
+    for (const row of scheduledSocialToday.data) bump(scheduledTodayByPlatform, row.platform, row.target_owner);
   }
 
   const toList = (map) => [...map.entries()].map(([key, count]) => {
@@ -738,13 +749,18 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
   // (api/_lib/attribution.js). Never blocks the rest of the heartbeat: a
   // PostHog outage or a bad query surfaces as an explicit error field, same
   // pattern as goal_progress above, not a missing section.
+  // "today" is a 24h-days=1 window on getAttributionSummary — same join
+  // logic as 7d/30d, just narrower, so "honest zeros" (Heath's phrase) show
+  // up for what it is: a single day is usually too small a sample to see a
+  // signup, not evidence the channel doesn't work.
   let attribution;
   try {
-    const [days7, days30] = await Promise.all([
+    const [today, days7, days30] = await Promise.all([
+      getAttributionSummary({ days: 1 }),
       getAttributionSummary({ days: 7 }),
       getAttributionSummary({ days: 30 }),
     ]);
-    attribution = { last_7d: days7, last_30d: days30 };
+    attribution = { today, last_7d: days7, last_30d: days30 };
   } catch (err) {
     attribution = { error: err && err.message };
   }
@@ -753,6 +769,9 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     posted_last_24h: {
       by_platform_owner: toList(postedByPlatform),
       group_posts: count(postedGroups),
+    },
+    scheduled_today: {
+      by_platform_owner: toList(scheduledTodayByPlatform),
     },
     scheduled_next_7d: {
       by_platform_owner: toList(scheduledByPlatform),
@@ -776,6 +795,95 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     goal_progress: goalProgress,
     attribution,
   };
+}
+
+// ─── decisions — the "2-3 tappable choices" half of the morning brief ─────
+//
+// Heath, 2026-09-17: the brief must carry "the 2-3 decisions only Heath can
+// make, each as a single tappable choice rather than a paragraph" — and the
+// ROUTINE approvals api/cron-comment-opp-approval.js /
+// api/cron-tc-reply-approval.js already batch into (see
+// api/_lib/ops-policy.js capability 'batch_routine_approvals': those crons
+// mark a row 'notified' WITHOUT an individual Telegram send when batching
+// is on) need to actually reach Heath from SOMEWHERE. This is that
+// somewhere: pick the oldest pending rows across both pipelines, reuse
+// their EXISTING approve/edit/skip callback_data verbatim (tcreply_*,
+// oppc_* — api/telegram-webhook.js already handles both), so tapping a
+// button embedded in the brief message does exactly what tapping it in an
+// individual card always did. Zero new approval logic.
+//
+// Deliberately scoped to these two pipelines only (both have a clean,
+// single 'notified' status gate and a tested callback contract). group_posts
+// pending_admin_approval and video_library pending_heath_review stay
+// COUNT-only in the STUCK section above — not wired into tappable buttons
+// yet (their approval paths aren't the simple notified->approved shape).
+const DECISION_SOURCES = [
+  {
+    table: 'comment_opportunities',
+    statusCol: 'status',
+    statusVal: 'notified',
+    orderCol: 'notified_at',
+    label: (row) => `Comment on "${row.group_name}" (${row.author_name || 'someone'}'s post) — score ${row.score ?? '?'}`,
+    keyboard: (id) => ({
+      inline_keyboard: [[
+        { text: 'Approve', callback_data: `oppc_approve:${id}` },
+        { text: 'Edit', callback_data: `oppc_edit:${id}` },
+        { text: 'Skip', callback_data: `oppc_skip:${id}` },
+      ]],
+    }),
+    select: 'id,group_name,author_name,score,notified_at',
+  },
+  {
+    table: 'tc_discovery_responses',
+    statusCol: 'reply_status',
+    statusVal: 'notified',
+    // NOT 'notified_at' — this table's real column (added in
+    // 20260908_tc_reply_approval.sql) is reply_notified_at. Verified against
+    // the migration before writing this, per acroform-field-names-lie.md.
+    orderCol: 'reply_notified_at',
+    label: (row) => `Reply to ${row.commenter_name || 'a commenter'} in ${row.source_group || 'a group'}`,
+    keyboard: (id) => ({
+      inline_keyboard: [[
+        { text: 'Approve', callback_data: `tcreply_approve:${id}` },
+        { text: 'Edit', callback_data: `tcreply_edit:${id}` },
+        { text: 'Skip', callback_data: `tcreply_skip:${id}` },
+      ]],
+    }),
+    select: 'id,commenter_name,source_group,reply_notified_at',
+  },
+];
+
+/**
+ * Pick the oldest `limit` pending routine-approval decisions across both
+ * batched pipelines, each with real, working Approve/Edit/Skip buttons.
+ *
+ * @param {number} limit
+ * @returns {Promise<Array<{ table, id, label, age_hours, keyboard }>>}
+ */
+async function pickTopDecisions(limit = 3) {
+  const perSource = await Promise.all(DECISION_SOURCES.map(async (src) => {
+    const res = await supabaseFetch(
+      `/rest/v1/${src.table}?${src.statusCol}=eq.${src.statusVal}&${src.orderCol}=not.is.null`
+      + `&select=${src.select}&order=${src.orderCol}.asc&limit=${limit}`,
+    );
+    if (!res.ok || !Array.isArray(res.data)) return [];
+    return res.data.map((row) => ({
+      table: src.table,
+      id: row.id,
+      label: src.label(row),
+      notified_at: row[src.orderCol],
+      keyboard: src.keyboard(row.id),
+    }));
+  }));
+
+  return perSource
+    .flat()
+    .sort((a, b) => String(a.notified_at).localeCompare(String(b.notified_at)))
+    .slice(0, limit)
+    .map((d) => ({
+      ...d,
+      age_hours: d.notified_at ? Math.round((Date.now() - new Date(d.notified_at).getTime()) / 3600000) : null,
+    }));
 }
 
 module.exports = {
@@ -809,4 +917,6 @@ module.exports = {
   markFired,
   runAllChecks,
   buildHeartbeatSnapshot,
+  DECISION_SOURCES,
+  pickTopDecisions,
 };

@@ -100,6 +100,13 @@ const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
   os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
 
+// Standing-authority audit trail (api/_lib/ops-policy.js, capability
+// 'harvest_and_draft'). Best-effort — never blocks a harvest run on a
+// logging failure, and never gates it either: harvesting is read-only
+// against Facebook (never posts/replies), so there is no unsafe action to
+// hold back even if ops_flags is unreadable from this local machine.
+const { logAutonomousAction } = require('../api/_lib/ops-policy.js');
+
 // Own-identity name list + matcher: scripts/_lib/fb-own-identity.js. Config
 // (HEATH_FB_OWN_NAMES env var), not a literal here -- and matched with a
 // normalized prefix match, not exact equality, because Facebook's acting
@@ -611,6 +618,18 @@ async function main() {
   }
 
   console.log('[tc-harvest] summary: ' + JSON.stringify(summary));
+
+  if (!DRY_RUN) {
+    const inserted = summary.reduce((n, r) => n + (r.inserted || 0), 0);
+    await logAutonomousAction({
+      capability: 'harvest_and_draft',
+      decision: 'autonomous',
+      action: `harvested ${due.length} thread(s), ${inserted} new comment(s) inserted`,
+      firedBy: 'scripts/harvest-tc-discovery-responses.js',
+      gatesPassed: ['read_only_scrape'],
+      metadata: { posts_checked: due.length, comments_inserted: inserted },
+    }).catch(() => {});
+  }
 }
 
 module.exports = {

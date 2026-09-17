@@ -299,11 +299,18 @@ function buildFlagMessage(post, row, guest = null) {
 
 function approvalKeyboard(rowId) {
   return {
-    inline_keyboard: [[
-      { text: 'Approve', callback_data: `tcreply_approve:${rowId}` },
-      { text: 'Edit', callback_data: `tcreply_edit:${rowId}` },
-      { text: 'Skip', callback_data: `tcreply_skip:${rowId}` },
-    ]],
+    inline_keyboard: [
+      [
+        { text: 'Approve', callback_data: `tcreply_approve:${rowId}` },
+        { text: 'Edit', callback_data: `tcreply_edit:${rowId}` },
+        { text: 'Skip', callback_data: `tcreply_skip:${rowId}` },
+      ],
+      // Tapped when this conversation moves to a 1:1 DM — hands back a
+      // tagged link so the one channel group-comments intentionally never
+      // link to is still measurable once it goes 1:1. Handler:
+      // api/telegram-webhook.js dmlink_tc:<id> -> api/_lib/dm-link.js.
+      [{ text: '🔗 DM link', callback_data: `dmlink_tc:${rowId}` }],
+    ],
   };
 }
 

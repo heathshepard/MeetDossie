@@ -73,19 +73,21 @@
 require('./_lib/telegram-gate').install('cron-silence-alarm');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
-const { runAllChecks, buildHeartbeatSnapshot } = require('./_lib/silence-alarm.js');
+const { runAllChecks, buildHeartbeatSnapshot, pickTopDecisions } = require('./_lib/silence-alarm.js');
 const { formatGoalProgressLines } = require('./_lib/social-goals-progress.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-async function sendTelegram(text) {
+async function sendTelegram(text, replyMarkup) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false, reason: 'telegram not configured' };
+  const body = { chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true };
+  if (replyMarkup) body.reply_markup = replyMarkup;
   const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
+    body: JSON.stringify(body),
   });
   return { ok: res.ok, status: res.status };
 }
@@ -125,7 +127,8 @@ function formatAttributionLines(attribution) {
     lines.push(`  could not compute this run${attribution && attribution.error ? ` — ${attribution.error}` : ''}.`);
     return lines;
   }
-  const { last_7d, last_30d } = attribution;
+  const { today, last_7d, last_30d } = attribution;
+  if (today) lines.push(...fmtWindow('Today', today));
   lines.push(...fmtWindow('Last 7d', last_7d));
   lines.push(...fmtWindow('Last 30d', last_30d));
 
@@ -142,12 +145,41 @@ function formatAttributionLines(attribution) {
   return lines;
 }
 
-function formatHeartbeatMessage(snapshot, fired, suppressed) {
+// DECISIONS — the "2-3 tappable choices" batch (Heath, 2026-09-17: "that's
+// the specific thing he's tired of" re: a ping per routine item). Reuses
+// api/_lib/silence-alarm.js's pickTopDecisions() picks, which carry the
+// EXACT SAME callback_data the individual approval cards always used.
+function formatDecisionsLines(decisions) {
+  const lines = ['', 'DECISIONS NEEDING YOU:'];
+  if (!decisions || decisions.length === 0) {
+    lines.push('  none right now — routine approvals will show up here as they come in.');
+    return lines;
+  }
+  for (const d of decisions) {
+    lines.push(`  - ${d.label}${d.age_hours != null ? ` (waiting ${d.age_hours}h)` : ''} — tap a button below.`);
+  }
+  lines.push(
+    '',
+    'STILL INTERRUPTS IMMEDIATELY (never waits for this brief): a pricing/demo/complaint question in a live thread, ' +
+    'an auto-reply SLA breach (>60 min unanswered), and the 10-min auto-reply veto window itself.',
+  );
+  return lines;
+}
+
+function buildDecisionsKeyboard(decisions) {
+  if (!decisions || decisions.length === 0) return undefined;
+  return { inline_keyboard: decisions.flatMap((d) => d.keyboard.inline_keyboard) };
+}
+
+function formatHeartbeatMessage(snapshot, fired, suppressed, decisions = []) {
   const lines = [`DOSSIE MORNING HEARTBEAT — ${new Date().toISOString().slice(0, 10)}`, ''];
 
   lines.push('POSTED last 24h:');
   lines.push(`  ${fmtPlatformOwnerList(snapshot.posted_last_24h.by_platform_owner)}`);
   lines.push(`  FB groups: ${snapshot.posted_last_24h.group_posts ?? 'unknown'}`);
+
+  lines.push('', 'SCHEDULED today:');
+  lines.push(`  ${fmtPlatformOwnerList(snapshot.scheduled_today.by_platform_owner)}`);
 
   lines.push('', 'SCHEDULED next 7 days:');
   lines.push(`  ${fmtPlatformOwnerList(snapshot.scheduled_next_7d.by_platform_owner)}`);
@@ -185,6 +217,8 @@ function formatHeartbeatMessage(snapshot, fired, suppressed) {
 
   lines.push(...formatAttributionLines(snapshot.attribution));
 
+  lines.push(...formatDecisionsLines(decisions));
+
   if (snapshot.cron_sanity.ok) {
     lines.push('', `CRON SANITY: ${snapshot.cron_sanity.totalCrons} crons scanned, ${snapshot.cron_sanity.issues.length} issue(s)`);
     for (const issue of snapshot.cron_sanity.issues) {
@@ -221,16 +255,18 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
   }
 
   const dryRun = req.query && req.query.dry_run === '1';
-  const [{ fired, suppressed, totalConditions }, snapshot] = await Promise.all([
+  const [{ fired, suppressed, totalConditions }, snapshot, decisions] = await Promise.all([
     runAllChecks({ dryRun }),
     buildHeartbeatSnapshot(),
+    pickTopDecisions(3),
   ]);
 
-  const text = formatHeartbeatMessage(snapshot, fired, suppressed);
+  const text = formatHeartbeatMessage(snapshot, fired, suppressed, decisions);
+  const keyboard = buildDecisionsKeyboard(decisions);
 
   let telegram = { ok: false, reason: 'dry_run' };
   if (!dryRun) {
-    telegram = await sendTelegram(text);
+    telegram = await sendTelegram(text, keyboard);
   }
 
   return res.status(200).json({
@@ -240,8 +276,15 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
     total_conditions: totalConditions,
     conditions: fired.map((c) => c.key),
     heartbeat: snapshot,
+    decisions,
     telegram_sent: !!telegram.ok,
     dry_run: !!dryRun,
     preview: dryRun ? text : undefined,
   });
 });
+
+// Exposed for regression tests (scripts/regression-morning-brief.js) — pure
+// formatting functions, no network.
+module.exports.formatHeartbeatMessage = formatHeartbeatMessage;
+module.exports.formatDecisionsLines = formatDecisionsLines;
+module.exports.buildDecisionsKeyboard = buildDecisionsKeyboard;

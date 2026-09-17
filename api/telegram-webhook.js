@@ -1476,6 +1476,36 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // 1:1 DM LINK — closes the "group comments never mention Dossie, so a
+  // conversation that moves to 1:1 is invisible to attribution" gap
+  // (Heath, 2026-09-17). Read-only against the conversation row (only
+  // writes dm_link_tag, via api/_lib/dm-link.js's idempotent
+  // get-or-create) — never touches reply_status/status, so it can be
+  // tapped any time without racing or corrupting the Approve/Edit/Skip
+  // state machine above/below it.
+  // callback_data: dmlink_tc:<uuid> (tc_discovery_responses) or
+  //                dmlink_opp:<uuid> (comment_opportunities)
+  const dmLinkMatch = data.match(/^dmlink_(tc|opp):([\w-]+)$/);
+  if (dmLinkMatch) {
+    const sourceTable = dmLinkMatch[1] === 'tc' ? 'tc_discovery_responses' : 'comment_opportunities';
+    const rowId = dmLinkMatch[2];
+    const { getOrCreateDmLink } = require('./_lib/dm-link.js');
+    const result = await getOrCreateDmLink({ sourceTable, sourceId: rowId, sbFetch: supabaseFetch });
+    if (!result.ok) {
+      if (callbackId) await answerCallback(callbackId, 'Could not build link');
+      if (chatId) await sendMessage(chatId, `DM link failed: ${result.error || 'unknown error'}`);
+      return;
+    }
+    if (callbackId) await answerCallback(callbackId, result.created ? 'Link ready' : 'Link (already generated for this conversation)');
+    if (chatId) {
+      await sendMessage(
+        chatId,
+        `1:1 DM link for this conversation (tag: ${result.tag}):\n${result.url}\n\nPaste this — clicks/signups from it will show up under this content_tag in the attribution report.`,
+      );
+    }
+    return;
+  }
+
   // TC discovery comment-reply approval flow (cron-tc-reply-approval).
   // callback_data: tcreply_approve:<uuid> / tcreply_edit:<uuid> / tcreply_skip:<uuid>
   // Rows live in tc_discovery_responses. NOTHING posts without an explicit

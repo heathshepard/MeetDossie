@@ -61,6 +61,7 @@ require('./_lib/telegram-gate').install('cron-weekly-content-scheduler');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { listGoalSetKeys, getGoalSet } = require('./_lib/social-goals.js');
 const { computeGoalProgress, formatGoalProgressLines } = require('./_lib/social-goals-progress.js');
+const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -336,12 +337,34 @@ module.exports = withTelemetry('cron-weekly-content-scheduler', async function h
   }
 
   const dryRun = req.query && req.query.dry_run === '1';
+
+  // Standing-authority gate (api/_lib/ops-policy.js, capability
+  // 'schedule_week_ahead'). dry_run always runs (read-only, no
+  // generation calls) so the report stays diagnosable even with the
+  // capability off; a REAL run (which can call the generator) is gated.
+  let policy = { allowed: true, decision: 'autonomous', reason: 'dry_run — not gated' };
+  if (!dryRun) {
+    policy = await checkCapability('schedule_week_ahead');
+    if (!policy.allowed) {
+      console.warn(`[cron-weekly-content-scheduler] schedule_week_ahead not autonomous this run (${policy.decision}: ${policy.reason}) — skipping.`);
+      return res.status(200).json({ ok: true, skipped: true, reason: `ops-policy: ${policy.reason}` });
+    }
+  }
+
   const result = await runWeeklyScheduler({ dryRun });
   const text = formatReport(result);
 
   let telegram = { ok: false, reason: 'dry_run' };
   if (!dryRun) {
     telegram = await sendTelegram(text);
+    await logAutonomousAction({
+      capability: 'schedule_week_ahead',
+      decision: 'autonomous',
+      action: 'advance-filled next 7 days of draft content',
+      firedBy: 'cron-weekly-content-scheduler',
+      gatesPassed: ['idempotent_per_date', 'verifier_gate'],
+      metadata: { dates: result.dates, per_owner: Object.keys(result.perOwner || {}) },
+    }).catch(() => {});
   }
 
   return res.status(200).json({

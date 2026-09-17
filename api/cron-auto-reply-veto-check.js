@@ -41,6 +41,7 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const autoReplyKillSwitch = require('../scripts/_lib/auto-reply-kill-switch.js');
+const { logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -129,6 +130,18 @@ async function processVetoDeadlines(deps) {
         const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
         if (won) {
           out.autoApproved++;
+          // Standing-authority audit trail (api/_lib/ops-policy.js,
+          // capability 'reply_low_risk_comments' -> ops_flags.auto_reply).
+          // Fire-and-forget; the approval already happened.
+          await logAutonomousAction({
+            capability: 'reply_low_risk_comments',
+            decision: 'autonomous',
+            action: `auto-approved reply to ${row.commenter_name} after 10-min veto window (no STOP)`,
+            firedBy: 'cron-auto-reply-veto-check',
+            gatesPassed: ['risk_classifier_low_risk_high_confidence', 'content_gates', 'veto_window_10min_no_stop'],
+            refTable: 'tc_discovery_responses',
+            refId: row.id,
+          }).catch(() => {});
           const sendRes = await send(
             `Auto-approved (no STOP in 10 min) — reply to ${row.commenter_name} posts on the next local poster run.`,
           );
