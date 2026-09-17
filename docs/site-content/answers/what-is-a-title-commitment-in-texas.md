@@ -132,6 +132,10 @@ The contract also tells the buyer, in the form's own words, to get help: **Parag
 - [What happens at a Texas closing?](/answers/what-happens-at-a-texas-closing)
 - [Do I need a real estate attorney to buy a house in Texas?](/answers/do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how a Texas title commitment is organized. It is not legal advice. For a title defect, a curative requirement, or the effect of a recorded restriction on your plans, talk with a Texas real estate attorney.*

@@ -103,6 +103,10 @@ Coverage, premiums, elevation certificates and whether a policy makes sense outs
 - [How much down payment do I need to buy a house in Texas?](/answers/how-much-down-payment-do-i-need-in-texas)
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how flood insurance requirements and Texas flood disclosure work. It is not insurance or legal advice. A licensed insurance agent quotes and places coverage; a Texas real estate attorney handles disclosure disputes.*

@@ -116,6 +116,10 @@ Use those, and the ordinary purchase does not need a lawyer. Ignore them and no 
 - [What is title insurance in Texas?](/answers/what-is-title-insurance-in-texas)
 - [How do I terminate a real estate contract in Texas?](/answers/how-do-i-terminate-a-contract-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains when a Texas home purchase needs an attorney and when it does not. It is not legal advice. For any of the situations listed above, talk with a Texas real estate attorney.*

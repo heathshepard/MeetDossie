@@ -165,4 +165,6 @@ Buy Boerne if you want the school district, the land, the lower effective tax ra
 
 **Genuinely torn?** Send me the two addresses you're weighing — one in each — and I'll run the real numbers on both: verified tax rate for each parcel, school zone confirmed with the district, MUD status, utility situation, and the total monthly cost of ownership side by side. I'll tell you if San Antonio is the better buy for your situation. I sell in both.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

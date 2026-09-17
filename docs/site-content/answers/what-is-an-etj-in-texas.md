@@ -12,7 +12,6 @@ target_keywords:
   - "buying property in a Texas ETJ"
 related_questions:
   - "should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county"
-  - "what-are-the-short-term-rental-rules-in-boerne"
   - "what-is-a-mud-or-pid-in-a-texas-subdivision"
   - "what-should-i-know-about-septic-and-wells-in-the-hill-country"
   - "what-are-property-taxes-like-in-boerne"
@@ -90,10 +89,14 @@ Ordinances change. Confirm current terms with the City of Boerne before you buy 
 ## Related questions
 
 - [Should I buy in Boerne city limits or unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
-- [What are the short-term rental rules in Boerne?](/answers/what-are-the-short-term-rental-rules-in-boerne)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
 - [What is a MUD or a PID in a Texas subdivision?](/answers/what-is-a-mud-or-pid-in-a-texas-subdivision)
 - [What should I know about septic systems and water wells in the Texas Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
+
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
 
 ---
 

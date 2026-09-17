@@ -90,3 +90,5 @@ It does not suit a buyer who wants land, privacy, or the Hill Country setting. I
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Sablechase listings, or the verified HOA fee schedule and a written school confirmation, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

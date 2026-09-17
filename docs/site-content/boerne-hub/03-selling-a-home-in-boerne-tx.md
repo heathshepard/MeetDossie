@@ -119,4 +119,6 @@ Price it right in week one. In a 3%-appreciation market with four and a half mon
 
 **Want a real number on your house?** I'll build you a comp analysis that uses actual comparable properties — with the land-quality, water, septic, tax-rate and school-district adjustments spelled out so you can see the reasoning, not just the conclusion. I'll also run the net sheet at three price points so you know what you actually walk away with. No obligation and no pressure to list.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

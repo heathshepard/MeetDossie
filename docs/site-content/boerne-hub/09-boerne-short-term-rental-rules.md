@@ -137,4 +137,6 @@ And regardless of what the city or county says: **check the deed restrictions.**
 
 **Buying a Boerne property to short-term rent?** Send me the address and I'll check whether it's in city limits, in the ETJ, or unincorporated; look at the block face for the 200-foot separation issue; pull the deed restrictions; and tell you whether an existing permit carries grandfathered nonconforming status. Those four things decide whether your pro forma is real, and all four are answerable before you spend a dollar on inspections.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development. This page summarizes a city ordinance and is not legal advice — verify current requirements and fees directly with the City of Boerne.*

@@ -122,6 +122,10 @@ Hill Country land can be a good investment. It is never an easy one. The tracts 
 - [Is Boerne, Texas growing?](/answers/is-boerne-texas-growing)
 - [Is Boerne a good real estate investment?](/answers/is-boerne-a-good-real-estate-investment)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas ag valuation, rollback tax and land diligence work. It is not legal or tax advice. Confirm valuation and rollback exposure with Kendall Appraisal District, tax consequences with a CPA, and access, easements and mineral rights with a Texas real estate attorney.*

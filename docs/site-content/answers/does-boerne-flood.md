@@ -114,6 +114,10 @@ The mechanical trap is the one that catches every Texas buyer: the option fee mu
 - [Should I buy in Boerne city limits or unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how flood risk is determined on a Texas property and makes no representation about flooding at any specific address. It is not legal, insurance or engineering advice. Get a quote from a licensed insurance agent, an elevation question answered by a surveyor, and floodplain and drainage information from the City of Boerne or Kendall County.*

@@ -140,6 +140,10 @@ An inspection finds condition. The disclosure finds history. They are different 
 - [Does Boerne flood?](/answers/does-boerne-flood)
 - [Do I need flood insurance in Boerne?](/answers/do-i-need-flood-insurance-in-boerne)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas Seller's Disclosure Notice works. It is not legal advice. Paragraph 23 of the promulgated contract says it plainly: "TREC rules prohibit real estate brokers and sales agents from giving legal advice. READ THIS CONTRACT CAREFULLY." For how section 5.008 applies to a specific sale, an exemption, or a disclosure dispute, talk with a Texas real estate attorney.*

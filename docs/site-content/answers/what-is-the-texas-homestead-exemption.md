@@ -101,6 +101,10 @@ Whether a specific property and a specific owner qualify, and what a given exemp
 - [Why did my Texas property taxes go up?](/answers/why-did-my-texas-property-taxes-go-up)
 - [How do I protest my property taxes in Texas?](/answers/how-do-i-protest-my-property-taxes-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas residence homestead exemption works. It is not tax or legal advice. Exemption eligibility for a specific property is determined by the appraisal district, and tax consequences should go to a CPA.*

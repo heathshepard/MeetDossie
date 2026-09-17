@@ -115,6 +115,10 @@ A real estate agent can sequence the work, pull the records and tell you what is
 - [What is the option period in a Texas real estate contract?](/answers/what-is-the-option-period-in-texas)
 - [What is the Seller's Disclosure Notice in Texas?](/answers/what-is-the-sellers-disclosure-notice-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains the due diligence a septic-and-well property requires. It is not legal advice, and it is not an inspection. Condition questions go to a licensed inspector, shared well agreements and water rights go to a Texas real estate attorney, and current groundwater rules come from the Cow Creek Groundwater Conservation District.*

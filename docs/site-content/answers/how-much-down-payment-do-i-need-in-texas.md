@@ -90,6 +90,10 @@ Program minimums, overlays, entitlement, reserve requirements and what your spec
 - [Who pays closing costs in Texas?](/answers/who-pays-closing-costs-in-texas)
 - [What is a Texas cash-out refinance (50(a)(6))?](/answers/what-is-a-texas-cash-out-refinance-50a6)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how down payment requirements are structured in Texas. It is not lending, legal or tax advice. A licensed lender determines what your file qualifies for; the Kendall Appraisal District handles homestead exemptions; a Texas real estate attorney handles title and homestead law.*

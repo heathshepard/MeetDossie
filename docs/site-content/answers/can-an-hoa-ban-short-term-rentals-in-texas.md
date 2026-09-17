@@ -11,7 +11,6 @@ target_keywords:
   - "deed restrictions short term rental Texas"
   - "HOA short term rental rules Texas"
 related_questions:
-  - "what-are-the-short-term-rental-rules-in-boerne"
   - "is-boerne-good-for-short-term-rentals"
   - "what-is-an-hoa-resale-certificate-in-texas"
   - "do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas"
@@ -93,11 +92,15 @@ Condominium regimes operate under their own declaration and rules, and a condo a
 
 ## Related questions
 
-- [What are the short-term rental rules in Boerne, Texas?](/answers/what-are-the-short-term-rental-rules-in-boerne)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
 - [Is Boerne good for short-term rentals?](/answers/is-boerne-good-for-short-term-rentals)
 - [What is an HOA resale certificate in Texas?](/answers/what-is-an-hoa-resale-certificate-in-texas)
 - [Do I need a real estate attorney to buy a house in Texas?](/answers/do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas)
 - [Is Boerne a good real estate investment?](/answers/is-boerne-a-good-real-estate-investment)
+
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
 
 ---
 

@@ -158,6 +158,10 @@ TREC forms cover the ordinary case very well. They do not cover everything. A Te
 - [What is the Amendment to Contract form in Texas?](/answers/what-is-the-amendment-to-contract-form-in-texas)
 - [Do I need a real estate attorney to buy a house in Texas?](/answers/do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes the TREC promulgated residential contract. It is not legal advice. For contract language or a transaction the promulgated forms do not fit, talk with a Texas real estate attorney.*

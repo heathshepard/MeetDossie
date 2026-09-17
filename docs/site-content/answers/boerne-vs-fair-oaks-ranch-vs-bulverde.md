@@ -136,6 +136,10 @@ Groundwater. Kendall County groundwater is regulated by the **Cow Creek Groundwa
 - [How far is Boerne from San Antonio?](/answers/how-far-is-boerne-from-san-antonio)
 - [Should I buy inside Boerne city limits or in unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Jurisdiction and district boundaries control real money and are verified per parcel, not per city. Confirm county and taxing units with the appraisal district for the specific address, attendance zones with the school district, and platting or ETJ questions with the relevant city planning department.*

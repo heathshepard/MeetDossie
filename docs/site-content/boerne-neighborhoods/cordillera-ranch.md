@@ -75,3 +75,5 @@ It does not suit a buyer who wants to walk to the Hill Country Mile, who needs a
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Cordillera Ranch listings, an honest read on which units fit what you are after, or help getting straight answers on POA versus club costs, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

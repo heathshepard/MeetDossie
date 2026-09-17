@@ -81,3 +81,5 @@ It does not suit anyone who wants acreage, privacy, or a view. It does not suit 
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Woods of Frederick Creek listings, or help judging what a 2010-era house here will need, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

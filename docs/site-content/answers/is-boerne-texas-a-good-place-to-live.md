@@ -101,6 +101,10 @@ Someone who wants a five-minute commute to the Medical Center. Someone who needs
 - [Does Boerne have enough water?](/answers/does-boerne-have-enough-water)
 - [What should I know about moving from Austin to Boerne?](/answers/moving-from-austin-to-boerne)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page summarizes public data as of September 2026 and is not legal or tax advice. Talk with a CPA about your tax picture, Kendall Appraisal District about exemptions and valuations, and a Texas real estate attorney about deed restrictions.*

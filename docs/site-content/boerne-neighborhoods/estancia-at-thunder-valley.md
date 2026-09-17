@@ -80,3 +80,5 @@ It does not suit a commuter, a buyer who wants neighbors and a finished communit
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you are considering Estancia and want help getting the POA budget, reserve position, and real amenity status in hand before you write an offer, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

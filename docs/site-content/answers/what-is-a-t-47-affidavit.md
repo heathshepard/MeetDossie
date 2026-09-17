@@ -115,6 +115,10 @@ A licensed Texas surveyor is who determines where the lines actually are. The T-
 - [What is the TREC 1-4 Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 - [What happens at a Texas real estate closing?](/answers/what-happens-at-a-texas-closing)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains what the T-47 and T-47.1 forms do. It is not legal advice. A seller unsure whether something counts as a change since the last survey should talk with a Texas real estate attorney, and a licensed Texas surveyor determines the actual boundaries.*

@@ -85,3 +85,5 @@ It does not suit a buyer who wants land, privacy, or a view. It does not suit so
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Champion Heights listings, or a written confirmation of which schools a specific address actually feeds, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

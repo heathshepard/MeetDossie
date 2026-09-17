@@ -126,6 +126,10 @@ Every deadline in that list is enforceable against a party who misses it, and no
 - [What is the TREC 1-4 Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 - [What is the Amendment to Contract in a Texas real estate deal?](/answers/what-is-the-amendment-to-contract-form-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the effective date works in a Texas real estate contract. It is not legal advice. If deadlines have run against an incorrect effective date, talk with a Texas real estate attorney.*

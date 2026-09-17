@@ -172,6 +172,10 @@ One last thing worth saying plainly: ¶23 of the contract is titled **CONSULT AN
 - [What is the Third Party Financing Addendum?](/answers/what-is-the-third-party-financing-addendum)
 - [What is the seller's disclosure notice in Texas?](/answers/what-is-the-sellers-disclosure-notice-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains the termination rights built into the TREC contract and Texas Property Code §5.008. It is not legal advice. For a disputed termination, an alleged default or a frozen earnest money release, talk with a Texas real estate attorney.*

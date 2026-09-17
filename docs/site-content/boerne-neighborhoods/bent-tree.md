@@ -85,3 +85,5 @@ It does not suit a buyer at the lower end of the market — the 10th percentile 
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Bent Tree listings, or help confirming the water, septic, and road maintenance situation on a specific property, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

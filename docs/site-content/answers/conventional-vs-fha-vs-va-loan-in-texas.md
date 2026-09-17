@@ -96,6 +96,12 @@ Program eligibility, pricing, mortgage insurance, overlays and which loan is che
 - [How much down payment do I need to buy a house in Texas?](/answers/how-much-down-payment-do-i-need-in-texas)
 - [What is a Texas cash-out refinance (50(a)(6))?](/answers/what-is-a-texas-cash-out-refinance-50a6)
 
+## Questions about a specific property?
+
+**Heath Shepard is a 100% disabled veteran** and a licensed Texas REALTOR. If VA benefits or the disabled-veteran exemption are part of your purchase, say so up front and he’ll factor them into the numbers.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page compares loan programs on published federal limits and Texas constitutional rules. It is not lending or legal advice. A licensed lender prices and qualifies your specific file; a Texas real estate attorney handles homestead and title questions.*

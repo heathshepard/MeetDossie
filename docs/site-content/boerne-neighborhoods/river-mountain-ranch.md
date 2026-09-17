@@ -92,3 +92,5 @@ It does not suit a daily San Antonio commuter, a family that wants sidewalks and
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current River Mountain Ranch listings, or help understanding exactly what POA membership costs and what it gets you on the river, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

@@ -138,6 +138,10 @@ Check every box that applies, fill the blanks with dates and dollar amounts inst
 - [What is the TREC 1-4 Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 - [What is the Third Party Financing Addendum in Texas?](/answers/what-is-the-third-party-financing-addendum)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the TREC Amendment to Contract works. It is not legal advice. A license holder can fill in blanks but cannot draft contract language — the form says so on item 10 — so for custom terms, talk with a Texas real estate attorney.*

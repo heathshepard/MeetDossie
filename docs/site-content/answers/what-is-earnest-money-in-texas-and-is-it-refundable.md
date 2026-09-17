@@ -118,6 +118,10 @@ Paragraph 5A(2) governs the calendar: if the last day to deliver the earnest mon
 - [How do I terminate a real estate contract in Texas?](/answers/how-do-i-terminate-a-contract-in-texas)
 - [What is the Third Party Financing Addendum?](/answers/what-is-the-third-party-financing-addendum)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how earnest money is handled under the TREC contract in Texas. It is not legal advice. For a disputed escrow release or a specific contract, talk with a Texas real estate attorney.*

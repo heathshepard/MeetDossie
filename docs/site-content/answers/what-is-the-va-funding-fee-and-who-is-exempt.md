@@ -89,6 +89,12 @@ Funding fee percentages, exemption status on your file, entitlement and refund r
 - [How much down payment do I need to buy a house in Texas?](/answers/how-much-down-payment-do-i-need-in-texas)
 - [What credit score do I need to buy a house in Texas?](/answers/what-credit-score-do-i-need-to-buy-a-house-in-texas)
 
+## Questions about a specific property?
+
+**Heath Shepard is a 100% disabled veteran** and a licensed Texas REALTOR. If VA benefits or the disabled-veteran exemption are part of your purchase, say so up front and he’ll factor them into the numbers.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains the VA funding fee and its exemptions. It is not lending or tax advice. Your lender and the VA determine exemption status on your loan; the Kendall Appraisal District handles Texas property tax exemptions.*

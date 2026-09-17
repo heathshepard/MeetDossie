@@ -96,6 +96,10 @@ Towns that are only near — bedroom subdivisions with no independent center —
 - [Is Boerne, Texas growing?](/answers/is-boerne-texas-growing)
 - [Should I buy inside Boerne city limits or in unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Drive times vary and are not a guarantee. For exemptions, valuations and protests, Kendall Appraisal District is the authority for Boerne addresses; for zoning, permits and ETJ status, contact the City of Boerne Planning Department.*

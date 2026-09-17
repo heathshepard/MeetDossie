@@ -126,6 +126,10 @@ Change any one of those and the bottom line moves.
 - [Are property taxes prorated at closing in Texas?](/answers/are-property-taxes-prorated-at-closing-in-texas)
 - [What is the Third Party Financing Addendum?](/answers/what-is-the-third-party-financing-addendum)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes how closing costs are allocated in Texas transactions. It is not legal, tax or lending advice. Your lender's Loan Estimate governs loan costs, your title company produces the settlement statement, and a CPA handles the tax treatment of what you paid.*

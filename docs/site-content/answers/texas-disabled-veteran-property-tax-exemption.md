@@ -124,6 +124,12 @@ Whether a specific veteran, rating or property qualifies is determined by the ap
 - [What is the VA funding fee, and who is exempt?](/answers/what-is-the-va-funding-fee-and-who-is-exempt)
 - [Why did my Texas property taxes go up?](/answers/why-did-my-texas-property-taxes-go-up)
 
+## Questions about a specific property?
+
+**Heath Shepard is a 100% disabled veteran** and a licensed Texas REALTOR. If VA benefits or the disabled-veteran exemption are part of your purchase, say so up front and he’ll factor them into the numbers.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas disabled veteran property tax exemptions work. It is not tax or legal advice. Eligibility and exemption amounts are determined by your appraisal district; confirm the current figures with them and with the Texas Comptroller.*

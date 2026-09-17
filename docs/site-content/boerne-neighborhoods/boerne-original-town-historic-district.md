@@ -85,3 +85,5 @@ It does not suit someone who wants a garage, a big yard, a quiet street on a fes
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you are considering a historic property and want help understanding what the Certificate of Appropriateness process will mean for your plans, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

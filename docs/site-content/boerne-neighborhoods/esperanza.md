@@ -78,3 +78,5 @@ It does not suit someone who wants acreage, privacy, or a mature tree canopy —
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Esperanza listings, help comparing a resale against a builder's spec, or a straight answer on what the total monthly carrying cost actually looks like here, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

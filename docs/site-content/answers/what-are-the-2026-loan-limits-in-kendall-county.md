@@ -88,6 +88,10 @@ County-level FHA limits come from **HUD's lookup tool** and from your lender at 
 - [What is the VA funding fee, and who is exempt?](/answers/what-is-the-va-funding-fee-and-who-is-exempt)
 - [Why are homes in Boerne so expensive?](/answers/why-are-homes-in-boerne-so-expensive)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Figures on this page are current as of September 2026 and reset annually. This is not lending advice — a licensed lender confirms the limit that applies to your file and when the FHA case number is assigned.*

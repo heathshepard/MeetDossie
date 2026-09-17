@@ -104,3 +104,5 @@ It does not suit a family relocating for Boerne ISD — this is Northside ISD. I
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Lost Creek listings, the confirmed Northside ISD campus assignment, or an honest repair estimate on a 2008-vintage home here, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

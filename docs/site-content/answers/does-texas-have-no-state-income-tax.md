@@ -110,6 +110,10 @@ The notice of protest form is **Comptroller Form 50-132**, and a protest is suff
 - [What is the 10% homestead cap in Texas?](/answers/what-is-the-10-percent-homestead-cap-in-texas)
 - [Why did my Texas property taxes go up?](/answers/why-did-my-texas-property-taxes-go-up)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes how Texas taxes are structured. It is not tax advice. For how the trade works on your own numbers, talk with a CPA; for exemptions, appraised value and protests, contact Kendall Appraisal District.*

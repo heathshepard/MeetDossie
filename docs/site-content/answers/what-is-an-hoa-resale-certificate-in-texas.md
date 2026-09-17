@@ -114,6 +114,10 @@ A real estate agent can order the documents, flag what is on them, and make sure
 - [Who pays closing costs in Texas?](/answers/who-pays-closing-costs-in-texas)
 - [What happens at a Texas closing?](/answers/what-happens-at-a-texas-closing)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas HOA resale certificate process works. It is not legal advice. For whether a specific deed restriction or covenant applies to your intended use, talk with a Texas real estate attorney.*

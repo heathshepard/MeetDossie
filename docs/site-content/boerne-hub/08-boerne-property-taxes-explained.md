@@ -251,4 +251,8 @@ Sometimes. They typically take a percentage of your savings. On a straightforwar
 
 **Buying in Boerne and want the real tax number before you write an offer?** Send me the address. I'll pull the exact combined rate for that parcel, confirm whether it's in a MUD or a WCID, check whether an ag valuation is in place and what a rollback would look like, and calculate your actual first-year bill after the cap resets — not the number on the listing.
 
+I’m a 100% disabled veteran myself — if the DV exemption is part of your picture, tell me up front and I’ll run your numbers with it applied.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development. Not a tax advisor or attorney — for tax planning, consult your CPA.*

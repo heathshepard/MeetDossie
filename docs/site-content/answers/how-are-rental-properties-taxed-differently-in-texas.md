@@ -114,6 +114,10 @@ Two timing traps are worth naming.
 - [What is the BRRRR method, and does it work in Texas?](/answers/what-is-the-brrrr-method-and-does-it-work-in-texas)
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas property tax treatment differs for rentals as of September 2026 and is not tax advice. Kendall Appraisal District decides exemptions and valuations for Boerne-area property, and a CPA or tax advisor handles depreciation, deductions and anything on your federal return.*

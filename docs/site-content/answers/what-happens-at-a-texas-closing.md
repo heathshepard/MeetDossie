@@ -149,6 +149,10 @@ The title company is neutral and does not advise either side. If the transaction
 - [What is a title commitment in Texas?](/answers/what-is-a-title-commitment-in-texas)
 - [Are property taxes prorated at closing in Texas?](/answers/are-property-taxes-prorated-at-closing-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes the mechanics of a Texas residential closing. It is not legal advice. For title defects, estates, entity purchases or contract language, talk with a Texas real estate attorney.*

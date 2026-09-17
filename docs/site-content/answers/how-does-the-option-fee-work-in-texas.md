@@ -119,6 +119,10 @@ License holders are required to use the promulgated forms and may not draft cont
 - [What does the effective date mean in a Texas contract?](/answers/what-does-the-effective-date-mean-in-a-texas-contract)
 - [How do I terminate a real estate contract in Texas?](/answers/how-do-i-terminate-a-contract-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas option fee works mechanically. It is not legal advice. For how these terms apply to a specific contract, talk with a Texas real estate attorney.*

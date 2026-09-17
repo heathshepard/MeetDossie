@@ -90,6 +90,10 @@ Three practical consequences:
 - [Are Boerne ISD schools good?](/answers/are-boerne-isd-schools-good)
 - [Boerne vs. Fair Oaks Ranch vs. Bulverde: which should I buy in?](/answers/boerne-vs-fair-oaks-ranch-vs-bulverde)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Population figures after the 2020 census are estimates, not counts, and are current as of September 2026. For platting, zoning and ETJ questions about a specific address, contact the City of Boerne Planning Department.*

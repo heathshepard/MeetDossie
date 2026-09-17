@@ -91,6 +91,10 @@ Those are different questions. Overpriced means the number is unsupported by fun
 - [Are Boerne ISD schools good?](/answers/are-boerne-isd-schools-good)
 - [Boerne vs. Fair Oaks Ranch vs. Bulverde: which should I buy in?](/answers/boerne-vs-fair-oaks-ranch-vs-bulverde)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Price estimates cited here are third-party figures that change monthly and are not an appraisal. This page is not legal, tax or investment advice — talk with a lender about payment math, a CPA about tax treatment, and Kendall Appraisal District about valuations and exemptions.*

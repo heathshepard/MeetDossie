@@ -99,6 +99,10 @@ Buy accordingly: check the current stage at [ccgcd.org](https://ccgcd.org/), con
 - [Is Boerne, Texas a good place to live?](/answers/is-boerne-texas-a-good-place-to-live)
 - [Is Hill Country land a good investment?](/answers/is-hill-country-land-a-good-investment)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Drought stages and district rules change; ccgcd.org is the authority for current conditions in Kendall County. This page is not legal advice — a Texas real estate attorney is the right person for shared-well agreements, water-rights reservations and title questions.*

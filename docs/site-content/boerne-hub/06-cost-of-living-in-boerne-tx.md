@@ -156,4 +156,6 @@ Boerne has a genuine grocery, healthcare, restaurant and services base for a tow
 
 **Want your actual number, not an average?** Send me an address and I'll pull the verified combined tax rate for that exact parcel, tell you whether it's in a MUD, confirm the utility provider and water source, and flag anything in the HOA documents worth knowing before you spend money on an inspection. That's a free ten minutes from me and it's usually the difference between a budget that holds and one that doesn't.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

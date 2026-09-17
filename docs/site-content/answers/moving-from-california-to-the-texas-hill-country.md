@@ -119,6 +119,10 @@ Rising values in a growing county plus annual reappraisal is exactly the mechani
 - [What is the 10% homestead cap in Texas?](/answers/what-is-the-10-percent-homestead-cap-in-texas)
 - [What surprises out-of-state buyers about buying a house in Texas?](/answers/what-surprises-out-of-state-buyers-about-texas-real-estate)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas property and sales taxes are structured. It is not tax or legal advice. For a California-to-Texas comparison on your own numbers, talk with a CPA; for exemptions and appraised value on a specific parcel, contact Kendall Appraisal District.*

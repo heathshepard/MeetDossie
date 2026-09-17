@@ -16,7 +16,6 @@ related_questions:
   - "what-should-i-know-about-septic-and-wells-in-the-hill-country"
   - "what-are-property-taxes-like-in-boerne"
   - "does-boerne-have-enough-water"
-  - "what-are-the-short-term-rental-rules-in-boerne"
 sources:
   - "https://kendallad.org/adopted-tax-rates-and-exemptions/"
   - "https://www.kendallcountytx.gov/297/Boerne-City-of"
@@ -112,7 +111,11 @@ Either way, before the option period ends: confirm the zone with the **City of B
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 - [What are property taxes like in Boerne, Texas?](/answers/what-are-property-taxes-like-in-boerne)
 - [Does Boerne have enough water?](/answers/does-boerne-have-enough-water)
-- [What are the short-term rental rules in Boerne, Texas?](/answers/what-are-the-short-term-rental-rules-in-boerne)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
 
 ---
 

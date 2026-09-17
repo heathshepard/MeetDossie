@@ -12,7 +12,6 @@ target_keywords:
   - "Texas Hill Country real estate investment"
 related_questions:
   - "why-are-homes-in-boerne-so-expensive"
-  - "what-are-the-short-term-rental-rules-in-boerne"
   - "what-are-property-taxes-like-in-boerne"
   - "is-boerne-texas-growing"
   - "is-hill-country-land-a-good-investment"
@@ -96,10 +95,14 @@ Buy Boerne for a long hold, for land you cannot replace, or for a resale-price t
 ## Related questions
 
 - [Why are homes in Boerne, Texas so expensive?](/answers/why-are-homes-in-boerne-so-expensive)
-- [What are the short-term rental rules in Boerne, Texas?](/answers/what-are-the-short-term-rental-rules-in-boerne)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
 - [What are property taxes like in Boerne, Texas?](/answers/what-are-property-taxes-like-in-boerne)
 - [Is Boerne, Texas growing?](/answers/is-boerne-texas-growing)
 - [Is Hill Country land a good investment?](/answers/is-hill-country-land-a-good-investment)
+
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
 
 ---
 

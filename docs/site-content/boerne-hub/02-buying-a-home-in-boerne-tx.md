@@ -117,4 +117,6 @@ For property in unincorporated Kendall County outside any city's ETJ, **verify t
 
 **Before you drive out to a showing**, send me the address. I'll come back with the school zone verified with the district, the exact combined tax rate for that parcel, MUD status, whether it's city water or a well, and the FEMA zone. That's the difference between a productive Saturday and a wasted one.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

@@ -97,6 +97,10 @@ Qualification, rates, programs, overlays and what your specific score prices out
 - [What is the Third Party Financing Addendum?](/answers/what-is-the-third-party-financing-addendum)
 - [What is a Texas cash-out refinance (50(a)(6))?](/answers/what-is-a-texas-cash-out-refinance-50a6)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how mortgage credit requirements are structured. It is not lending advice or legal advice. Qualification, pricing and program eligibility are determined by a licensed lender reviewing your actual file.*

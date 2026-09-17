@@ -97,6 +97,10 @@ Likewise, nothing here addresses whether a 1031 is the right move at all. Deferr
 - [Is Boerne a good real estate investment?](/answers/is-boerne-a-good-real-estate-investment)
 - [What is the TREC One to Four Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains the mechanism of a Section 1031 exchange as of September 2026 and is not tax or legal advice. A CPA or tax advisor and a qualified intermediary decide how Section 1031 applies to your situation.*

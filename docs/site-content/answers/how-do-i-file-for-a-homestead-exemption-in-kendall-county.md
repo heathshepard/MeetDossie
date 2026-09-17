@@ -116,6 +116,10 @@ Eligibility, the current application form and the status of your exemption are a
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
 - [What is the 10 percent homestead cap in Texas?](/answers/what-is-the-10-percent-homestead-cap-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how homestead exemption filing works in Kendall County. It is not tax or legal advice. Exemption eligibility is determined by the Kendall Appraisal District, and tax consequences should go to a CPA.*

@@ -102,6 +102,10 @@ Eligibility, the ceiling amount and the transfer percentage are all determined b
 - [Why did my Texas property taxes go up?](/answers/why-did-my-texas-property-taxes-go-up)
 - [What is the Texas disabled veteran property tax exemption?](/answers/texas-disabled-veteran-property-tax-exemption)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas over-65 exemption and school tax ceiling work. It is not tax or legal advice. Eligibility and ceiling amounts are determined by the appraisal district; take tax consequences to a CPA.*

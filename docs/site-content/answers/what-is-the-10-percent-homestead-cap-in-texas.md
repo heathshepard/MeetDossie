@@ -108,6 +108,10 @@ Value determinations, exemption status and cap calculations are all made by the 
 - [How do I file for a homestead exemption in Kendall County, Texas?](/answers/how-do-i-file-for-a-homestead-exemption-in-kendall-county)
 - [How are rental properties taxed differently in Texas?](/answers/how-are-rental-properties-taxed-differently-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas homestead appraisal cap works. It is not tax or legal advice. Appraised value, exemption status and cap calculations are determined by your appraisal district; tax consequences should go to a CPA.*

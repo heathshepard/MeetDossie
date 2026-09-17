@@ -1,6 +1,6 @@
 # Answer library index
 
-**60 answer pages.** One question per page. Each page opens with a 40-60 word direct answer, then the detail and the exceptions, then related questions, then FAQPage JSON-LD.
+**59 answer pages.** One question per page. Each page opens with a 40-60 word direct answer, then the detail and the exceptions, then related questions, then FAQPage JSON-LD.
 
 Every factual claim on every page traces to a source that was opened during research on **2026-09-17** and is listed in that page's `sources` frontmatter. Claims that could not be traced to a source live in [NEEDS-VERIFICATION.md](./NEEDS-VERIFICATION.md) and appear on no page.
 
@@ -9,7 +9,7 @@ Every factual claim on every page traces to a source that was opened during rese
 - [Boerne and the Hill Country](#boerne-and-the-hill-country) — 14 pages
 - [Texas transaction mechanics](#texas-transaction-mechanics) — 19 pages
 - [Taxes and exemptions](#taxes-and-exemptions) — 10 pages
-- [Investing](#investing) — 7 pages
+- [Investing](#investing) — 6 pages
 - [Financing](#financing) — 6 pages
 - [Relocation](#relocation) — 4 pages
 
@@ -313,12 +313,6 @@ Short-term rentals, 1031 exchanges, BRRRR and the Texas-specific constraints tha
 
 > Boerne allows short-term rentals under Ordinance No. 2023-09, so the real question is what caps the return. The binding constraints are a 200-foot block-face separation in residential zones, occupancy of two per bedroom plus two, a ban on events, 13 percent hotel occupancy tax, and a $500,000 liability insurance minimum.
 
-### [What are the short-term rental rules in Boerne, Texas?](./what-are-the-short-term-rental-rules-in-boerne.md)
-
-`/answers/what-are-the-short-term-rental-rules-in-boerne`
-
-> Boerne regulates short-term rentals under its own Ordinance No. 2023-09, which covers the city limits and the ETJ. It requires a $200 two-year permit, a safety inspection inside city limits, $500,000 per-occurrence liability insurance, hotel occupancy tax, and a 200-foot separation from another STR on the same block face in residential zones.
-
 ### [What is a 1031 exchange?](./what-is-a-1031-exchange.md)
 
 `/answers/what-is-a-1031-exchange`
@@ -436,3 +430,7 @@ The `short_answer` is the extract block. It is 40-60 words, it answers the quest
 | Any City of Boerne ordinance amendment | The short-term rental pages |
 
 *Last full review: 2026-09-17.*
+
+---
+
+*Removed 2026-09-17: `what-are-the-short-term-rental-rules-in-boerne` was a near-duplicate of the BoerneGuides cornerstone [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules), which cites the ordinance section by section. Inbound links repointed to the guide.*

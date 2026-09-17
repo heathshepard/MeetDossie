@@ -100,3 +100,5 @@ It does not suit a family relocating specifically for Boerne ISD schools — thi
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you are considering Anaqua Springs Ranch and want the Northside ISD campus assignment confirmed in writing along with the real all-in annual cost, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

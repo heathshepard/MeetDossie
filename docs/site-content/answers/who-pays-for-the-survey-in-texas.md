@@ -125,6 +125,10 @@ Three elections decide the whole question and all three are easy to skip: which 
 - [What is title insurance in Texas?](/answers/what-is-title-insurance-in-texas)
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the survey cost is allocated under the TREC contract. It is not legal advice. Boundaries are determined by a licensed Texas surveyor, and title or easement questions belong with a Texas real estate attorney.*

@@ -104,6 +104,10 @@ Eligibility, the current form and the deferred balance on an account are all det
 - [How do I file for a homestead exemption in Kendall County, Texas?](/answers/how-do-i-file-for-a-homestead-exemption-in-kendall-county)
 - [How do I protest my property taxes in Texas?](/answers/how-do-i-protest-my-property-taxes-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas over-65 property tax deferral works. It is not legal or tax advice. Eligibility is determined by the appraisal district; estate and title consequences belong with a Texas real estate attorney and financial consequences with a CPA.*

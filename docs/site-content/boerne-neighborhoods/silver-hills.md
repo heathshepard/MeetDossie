@@ -91,3 +91,5 @@ It does not suit anyone who needs a short commute, a predictable comp set, new c
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you are looking at a Silver Hills property and need the county line, tax rate, and school assignment nailed down for that specific parcel, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

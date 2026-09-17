@@ -115,6 +115,10 @@ Qualification, degree of intensity, wildlife management plans and rollback amoun
 - [How do I protest my property taxes in Texas?](/answers/how-do-i-protest-my-property-taxes-in-texas)
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas agricultural special appraisal and rollback taxes work. It is not tax or legal advice. Qualification and rollback amounts are determined by the appraisal district; contract language belongs with a Texas real estate attorney and tax consequences with a CPA.*

@@ -89,6 +89,10 @@ A **lender** is the right professional for qualification, rates, products and wh
 - [Conventional vs FHA vs VA loan in Texas](/answers/conventional-vs-fha-vs-va-loan-in-texas)
 - [How much down payment do I need in Texas?](/answers/how-much-down-payment-do-i-need-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes Texas Constitution Article XVI, Section 50(a)(6) requirements as of September 2026 and is not lending or legal advice. A lender determines qualification, terms and whether a specific loan is a 50(a)(6) transaction.*

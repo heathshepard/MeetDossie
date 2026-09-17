@@ -81,3 +81,5 @@ It does not suit someone looking for new construction, a gated entry, or an amen
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Kendall Woods Estates listings, or a realistic read on what a 25-year-old acreage home here will need in the first three years, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

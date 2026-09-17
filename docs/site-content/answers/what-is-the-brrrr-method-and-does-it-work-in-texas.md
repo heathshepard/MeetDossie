@@ -98,6 +98,10 @@ A model that survives all three is a model. One that assumes national-average re
 - [What is the 10 percent homestead cap in Texas?](/answers/what-is-the-10-percent-homestead-cap-in-texas)
 - [Is Boerne a good real estate investment?](/answers/is-boerne-a-good-real-estate-investment)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas rules affect an investment strategy as of September 2026 and is not legal, tax or lending advice. A lender sets loan terms, a CPA handles tax treatment, and a Texas real estate attorney answers homestead and title questions.*

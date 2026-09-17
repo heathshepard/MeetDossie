@@ -136,6 +136,10 @@ The proration calculation and the funds are the title company's. What ¶13 requi
 - [What is the Texas homestead exemption in 2026?](/answers/what-is-the-texas-homestead-exemption)
 - [What is the Texas over-65 property tax exemption and school tax ceiling?](/answers/texas-over-65-property-tax-exemption-and-school-tax-ceiling)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how property tax proration works under the TREC contract. It is not legal or tax advice. Paragraph 23 of the contract states that TREC rules prohibit brokers and sales agents from giving legal advice — take contract interpretation to a Texas real estate attorney, the calculation to the title company, and tax consequences to a CPA.*

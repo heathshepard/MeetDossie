@@ -130,6 +130,10 @@ Values and exemptions are determined by the appraisal district. Rates are set by
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
 - [How do I file for a homestead exemption in Kendall County, Texas?](/answers/how-do-i-file-for-a-homestead-exemption-in-kendall-county)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how a Texas property tax bill is calculated. It is not tax or legal advice. Values and exemptions are determined by your appraisal district, rates are set by each taxing unit, and tax consequences should go to a CPA.*

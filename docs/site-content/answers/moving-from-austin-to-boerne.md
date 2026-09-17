@@ -122,6 +122,10 @@ It does not compare median home prices between Austin and Boerne. Those figures 
 - [How far is Boerne from San Antonio?](/answers/how-far-is-boerne-from-san-antonio)
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page describes how Boerne and Kendall County are organized. It is not legal or tax advice. Confirm exemptions and valuations with Kendall Appraisal District, zoning and permits with the City of Boerne Planning Department, and groundwater rules with the Cow Creek Groundwater Conservation District.*

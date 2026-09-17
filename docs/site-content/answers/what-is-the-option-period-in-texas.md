@@ -86,6 +86,10 @@ An option period is time. What a buyer does with it is the whole point: inspecti
 - [What is the TREC 1-4 Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 - [How do I terminate a real estate contract in Texas?](/answers/how-do-i-terminate-a-contract-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas option period works. It is not legal advice. For how these terms apply to a specific contract, talk with a Texas real estate attorney.*

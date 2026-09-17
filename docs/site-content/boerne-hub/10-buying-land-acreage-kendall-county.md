@@ -184,4 +184,6 @@ Note that **neither the City of Boerne nor Kendall County offers a general resid
 
 **Looking at a tract in Kendall County?** Send me the parcel and I'll pull the appraisal district record, tell you whether it carries an ag valuation and what a rollback would look like, confirm the school district and combined tax rate, check the FEMA panel, and flag the access and easement questions from the title work. My background before real estate was land development, and land is the part of this market where a bad assumption costs the most.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

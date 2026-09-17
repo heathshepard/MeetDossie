@@ -136,4 +136,6 @@ The Hill Country is beautiful and it is hard country. It floods fast, it drought
 
 **Relocating from out of state?** Send me your target price, your commute destination, and whether you're picturing a neighborhood or land. I'll come back with real tax numbers for the specific areas that fit, an honest read on the commute, and the two or three sub-markets worth your scouting trip. I do this for out-of-state buyers regularly and I'd rather you spend your trip efficiently than drive around figuring out the county lines.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

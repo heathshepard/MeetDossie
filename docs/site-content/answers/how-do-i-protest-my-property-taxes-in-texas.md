@@ -114,6 +114,10 @@ Value, exemptions and hearing procedure are all determined by the appraisal dist
 - [How do I file for a homestead exemption in Kendall County, Texas?](/answers/how-do-i-file-for-a-homestead-exemption-in-kendall-county)
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains the Texas property tax protest process. It is not legal or tax advice. Value and exemption determinations are made by your appraisal district and its review board; appeal strategy is a question for a Texas real estate attorney or licensed property tax consultant.*

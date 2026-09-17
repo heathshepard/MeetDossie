@@ -104,6 +104,10 @@ Do that, and the seller keeps the option fee and the earnest money goes back to 
 - [What is earnest money in Texas, and is it refundable?](/answers/what-is-earnest-money-in-texas-and-is-it-refundable)
 - [How do I terminate a real estate contract in Texas?](/answers/how-do-i-terminate-a-contract-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the Texas option fee is treated under the TREC contract. It is not legal advice. For how these terms apply to a specific contract, talk with a Texas real estate attorney.*

@@ -153,6 +153,10 @@ None of these are exotic. They are the ordinary failure modes, and most of them 
 - [What does the effective date mean in a Texas real estate contract?](/answers/what-does-the-effective-date-mean-in-a-texas-contract)
 - [What is the option period in a Texas real estate contract?](/answers/what-is-the-option-period-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how the TREC Third Party Financing Addendum works. It is not legal or lending advice. Loan terms and approval come from a licensed lender; contract language questions go to a Texas real estate attorney.*

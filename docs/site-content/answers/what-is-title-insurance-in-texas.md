@@ -123,6 +123,10 @@ And the distinction that trips up out-of-state buyers: **signing is not closing.
 - [What is a T-47 affidavit?](/answers/what-is-a-t-47-affidavit)
 - [Do I need a real estate attorney to buy a house in Texas?](/answers/do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas title insurance is priced and what it covers. It is not legal advice. For a title defect, a coverage question, or whether an exception affects your intended use, talk with a Texas real estate attorney.*

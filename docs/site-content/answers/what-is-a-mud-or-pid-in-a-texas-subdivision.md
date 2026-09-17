@@ -139,6 +139,10 @@ An agent can find the entity list, pull the rates and flag the notice forms. Que
 - [How do I protest my property taxes in Texas?](/answers/how-do-i-protest-my-property-taxes-in-texas)
 - [What is the TREC 1-4 Family Residential Contract?](/answers/what-is-the-trec-1-4-family-residential-contract)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains how Texas special districts appear in a transaction. It is not legal or tax advice. For the tax consequences of a district assessment, talk with a CPA; for the statutory notice, the lien or a waiver of termination rights, talk with a Texas real estate attorney; for what applies to a specific parcel, contact Kendall Appraisal District.*

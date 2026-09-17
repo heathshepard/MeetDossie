@@ -163,6 +163,10 @@ Three deadlines decide most Texas deals: the **three-day option fee delivery**, 
 - [Does Texas really have no state income tax, and what do I pay instead?](/answers/does-texas-have-no-state-income-tax)
 - [What is a MUD or PID in a Texas subdivision?](/answers/what-is-a-mud-or-pid-in-a-texas-subdivision)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *This page explains Texas transaction mechanics. It is not legal or tax advice. For contract language, title defects, deed restrictions and marital property, talk with a Texas real estate attorney; for exemptions and valuations, contact the appraisal district.*

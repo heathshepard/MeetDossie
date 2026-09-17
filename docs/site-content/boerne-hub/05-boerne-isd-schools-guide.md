@@ -153,4 +153,6 @@ Before you make an offer on a house you're buying for Boerne ISD:
 
 **Send me the address.** I'll verify the school zone with the district directly, pull the current campus rating, confirm which county and appraisal district the parcel is in, and give you the exact combined tax rate. It takes me ten minutes and it's the single highest-value thing I can do for a family buying here for the schools.
 
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 *Heath Shepard, REALTOR — Keller Williams, Boerne and San Antonio. Eleven years in Texas real estate, with a background in land development.*

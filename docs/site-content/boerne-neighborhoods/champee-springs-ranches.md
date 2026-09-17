@@ -84,3 +84,5 @@ It does not suit anyone who wants neighbors, services, a short drive, or a clean
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you are looking at a Champee Springs tract and want help pulling the ag valuation status, the easement history, and which school district it actually sits in before you commit, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**

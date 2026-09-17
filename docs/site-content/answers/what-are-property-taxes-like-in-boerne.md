@@ -128,6 +128,10 @@ For the county's own published rate documents, see [Kendall County Tax Rate Info
 - [What is the 10 percent homestead cap in Texas?](/answers/what-is-the-10-percent-homestead-cap-in-texas)
 - [Should I buy inside Boerne city limits or in unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *Rates are adopted annually and change. This page reflects publicly posted figures as of September 2026 and is not tax or legal advice. Kendall Appraisal District decides exemptions and valuations for Boerne-area property; a CPA or tax advisor is the right person for your own tax planning.*

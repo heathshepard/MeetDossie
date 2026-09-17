@@ -119,6 +119,10 @@ Texas school districts are required to grant a **residence homestead exemption**
 - [What are property taxes like in Boerne, Texas?](/answers/what-are-property-taxes-like-in-boerne)
 - [Is Boerne, Texas growing?](/answers/is-boerne-texas-growing)
 
+## Questions about a specific property?
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
+
 ---
 
 *School ratings and attendance zones are published and changed by the Texas Education Agency and the school district, not by real estate professionals. Verify the campus and zone for a specific address with Boerne ISD, and exemption questions with Kendall Appraisal District.*

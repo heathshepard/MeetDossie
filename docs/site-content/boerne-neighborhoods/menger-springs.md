@@ -84,3 +84,5 @@ It does not suit a buyer chasing the lowest tax rate — you are paying city tax
 ## Talk to someone who works this market
 
 Heath Shepard is a licensed Texas REALTOR with Keller Williams, working Boerne, Fair Oaks Ranch, and Kendall County. If you want current Menger Springs listings, or help telling the estate sections from the garden-home sections before you tour, reach out through theheathshepardrealestateteam.com.
+
+Call or text **[830-446-3847](tel:+1-830-446-3847)** · Email **[heath.shepard@kw.com](mailto:heath.shepard@kw.com)**
