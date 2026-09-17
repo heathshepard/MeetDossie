@@ -2,16 +2,30 @@
 'use strict';
 
 /**
- * Regression test for the 2026-09-16 AI-disclosure fix in
- * api/cron-post-videos.js and api/cron-publish-approved.js: any video using
- * Heath's cloned voice (heath-voice-clone-usage-scope.md — approved for
- * realtor + Rust content, NEVER Dossie) must carry the platform's native
- * AI-disclosure flag when it publishes to YouTube or TikTok:
+ * Regression test for the AI-disclosure gate in api/cron-post-videos.js
+ * (2026-09-16, fixed to read off content 2026-09-17 — Quinn QA follow-up on
+ * 20260916d_rust_owner_wiring.sql / commit b26068e7).
+ *
+ * THE BUG THIS GUARDS AGAINST: the gate used to be
+ * `owner === 'heath-realtor'` — a proxy on WHO posted the video, not a fact
+ * about WHAT the video contains. Heath's cloned voice
+ * (heath-voice-clone-usage-scope.md) is approved for realtor AND Rust
+ * content, and Rust now posts through this exact pipeline
+ * (target_owner='rust', see 20260916d_rust_owner_wiring.sql) — so an
+ * owner-literal check could never flag a clone-voiced Rust video, even
+ * though the same disclosure requirement applies to it. The fix reads
+ * video_library.uses_cloned_voice directly — a property of the content,
+ * set by the pipeline that actually knows which voice rendered the audio
+ * (scripts/queue-finished-videos.py), not inferred from target_owner.
+ *
+ * This test proves the gate is now keyed on uses_cloned_voice, NOT owner:
+ * a clone-voiced video from ANY owner (realtor, rust, or a hypothetical
+ * future brand) gets the disclosure flags; a non-clone video from ANY
+ * owner (including heath-realtor, e.g. a live on-camera selfie clip that
+ * never touched ElevenLabs) does not.
  *   - YouTube: platformSpecificData.containsSyntheticMedia = true
  *     (YouTube Data API v3 status.containsSyntheticMedia)
  *   - TikTok:  platformSpecificData.tiktokSettings.video_made_with_ai = true
- * Dossie-brand videos (owner='dossie', Luna's voice) must NEVER carry either
- * flag — a false disclosure is its own problem.
  *
  * Field names verified 2026-09-16 against docs.zernio.com (llms-full.txt)
  * and developers.google.com/youtube/v3/docs/videos.
@@ -40,16 +54,20 @@ function scheduleRows() {
   return rows;
 }
 
-// zernio_accounts fixture: both owners connected on youtube + tiktok here
-// (tiktok isn't really connected for heath-realtor yet per docs/PIPELINE.md
-// — connecting it in THIS fixture only is deliberate, so the test proves the
-// disclosure-flag logic itself, independent of which platforms happen to be
-// wired up today).
+// zernio_accounts fixture: all three owners connected on youtube + tiktok
+// here (tiktok isn't really connected for heath-realtor, and neither
+// youtube nor tiktok is really connected for rust, yet — per
+// docs/PIPELINE.md / 20260916d_rust_owner_wiring.sql — connecting them in
+// THIS fixture only is deliberate, so the test proves the disclosure-flag
+// logic itself, independent of which platforms happen to be wired up
+// today, and independent of owner).
 const ZERNIO_ACCOUNTS_TABLE = [
   { platform: 'youtube', owner: 'dossie', zernio_account_id: 'dossie-yt-acct', page_id: null },
   { platform: 'tiktok', owner: 'dossie', zernio_account_id: 'dossie-tt-acct', page_id: null },
   { platform: 'youtube', owner: 'heath-realtor', zernio_account_id: 'realtor-yt-acct', page_id: null },
   { platform: 'tiktok', owner: 'heath-realtor', zernio_account_id: 'realtor-tt-acct', page_id: null },
+  { platform: 'youtube', owner: 'rust', zernio_account_id: 'rust-yt-acct', page_id: null },
+  { platform: 'tiktok', owner: 'rust', zernio_account_id: 'rust-tt-acct', page_id: null },
 ];
 
 function startMockSupabase(videoRow) {
@@ -139,59 +157,77 @@ async function runOnce(videoRow) {
     catch (err) { failures.push(name); console.error(`  FAIL  ${name}\n        ${err.message}`); }
   };
 
-  console.log('Test 1: heath-realtor (cloned-voice) video to youtube+tiktok carries the AI-disclosure flags');
-  {
+  const casesThatMustDisclose = [
+    ['heath-realtor', 'regr-clone-voice-heath-realtor-0001', 'option period waive',
+      'Waiving your option period isnt always a bad idea. Heath Shepard, REALTOR.', 'regr-realtor.mp4'],
+    ['rust', 'regr-clone-voice-rust-0001', 'readiness check heath',
+      'Heath walks you through your first readiness check.', 'regr-rust-heath.mp4'],
+  ];
+  for (const [owner, id, topic, caption, file] of casesThatMustDisclose) {
+    console.log(`Test: uses_cloned_voice=true, owner=${owner} — youtube+tiktok carry the AI-disclosure flags`);
     const { zernioCalls } = await runOnce({
-      id: 'regr-clone-voice-0001',
+      id,
       status: 'heath_approved',
-      topic: 'option period waive',
-      target_owner: 'heath-realtor',
+      topic,
+      target_owner: owner,
+      uses_cloned_voice: true,
       platforms: ['youtube', 'tiktok'],
-      caption: 'Waiving your option period isnt always a bad idea. Heath Shepard, REALTOR.',
-      supabase_url: 'https://example.com/storage/v1/object/public/videos/regr-realtor.mp4',
+      caption,
+      supabase_url: `https://example.com/storage/v1/object/public/videos/${file}`,
       quality_status: 'passed',
     });
 
     const ytCall = zernioCalls.find((c) => c.payload?.platforms?.[0]?.platform === 'youtube');
     const ttCall = zernioCalls.find((c) => c.payload?.platforms?.[0]?.platform === 'tiktok');
 
-    check('youtube call sets platformSpecificData.containsSyntheticMedia = true', () => {
+    check(`${owner}: youtube call sets platformSpecificData.containsSyntheticMedia = true`, () => {
       assert.ok(ytCall, 'no youtube Zernio call made');
       assert.strictEqual(ytCall.payload.platforms[0].platformSpecificData?.containsSyntheticMedia, true,
         `got: ${JSON.stringify(ytCall.payload.platforms[0].platformSpecificData)}`);
     });
-    check('youtube title is still set alongside the disclosure (no regression on the existing field)', () => {
+    check(`${owner}: youtube title is still set alongside the disclosure (no regression on the existing field)`, () => {
       assert.ok(ytCall.payload.platforms[0].platformSpecificData?.title, 'title missing');
     });
-    check('tiktok call sets platformSpecificData.tiktokSettings.video_made_with_ai = true', () => {
+    check(`${owner}: tiktok call sets platformSpecificData.tiktokSettings.video_made_with_ai = true`, () => {
       assert.ok(ttCall, 'no tiktok Zernio call made');
       assert.strictEqual(ttCall.payload.platforms[0].platformSpecificData?.tiktokSettings?.video_made_with_ai, true,
         `got: ${JSON.stringify(ttCall.payload.platforms[0].platformSpecificData)}`);
     });
   }
 
-  console.log('\nTest 2: dossie (Luna-voiced) video to youtube+tiktok NEVER carries either disclosure flag');
-  {
+  const casesThatMustNotDisclose = [
+    ['dossie', 'regr-luna-voice-dossie-0001', 'tc went dark', 'A TC went dark on me mid-deal.', 'regr-dossie.mp4'],
+    ['rust', 'regr-marcus-voice-rust-0001', 'readiness check marcus',
+      'Marcus walks you through your first readiness check.', 'regr-rust-marcus.mp4'],
+    // The exact bug this class of fix targets: heath-realtor no longer
+    // means "always disclose" by itself — a real on-camera selfie clip
+    // that never touched ElevenLabs must not falsely disclose either.
+    ['heath-realtor', 'regr-live-selfie-realtor-0001', 'earnest money basics',
+      'Heath Shepard, REALTOR, on earnest money.', 'regr-realtor-live.mp4'],
+  ];
+  for (const [owner, id, topic, caption, file] of casesThatMustNotDisclose) {
+    console.log(`\nTest: uses_cloned_voice=false, owner=${owner} — youtube+tiktok NEVER carry either disclosure flag`);
     const { zernioCalls } = await runOnce({
-      id: 'regr-luna-voice-0001',
+      id,
       status: 'heath_approved',
-      topic: 'tc went dark',
-      target_owner: 'dossie',
+      topic,
+      target_owner: owner,
+      uses_cloned_voice: false,
       platforms: ['youtube', 'tiktok'],
-      caption: 'A TC went dark on me mid-deal.',
-      supabase_url: 'https://example.com/storage/v1/object/public/videos/regr-dossie.mp4',
+      caption,
+      supabase_url: `https://example.com/storage/v1/object/public/videos/${file}`,
       quality_status: 'passed',
     });
 
     const ytCall = zernioCalls.find((c) => c.payload?.platforms?.[0]?.platform === 'youtube');
     const ttCall = zernioCalls.find((c) => c.payload?.platforms?.[0]?.platform === 'tiktok');
 
-    check('dossie youtube call has NO containsSyntheticMedia field', () => {
+    check(`${owner}: youtube call has NO containsSyntheticMedia field`, () => {
       assert.ok(ytCall, 'no youtube Zernio call made');
       assert.strictEqual(ytCall.payload.platforms[0].platformSpecificData?.containsSyntheticMedia, undefined,
         `got: ${JSON.stringify(ytCall.payload.platforms[0].platformSpecificData)}`);
     });
-    check('dossie tiktok call has NO tiktokSettings.video_made_with_ai field', () => {
+    check(`${owner}: tiktok call has NO tiktokSettings.video_made_with_ai field`, () => {
       assert.ok(ttCall, 'no tiktok Zernio call made');
       assert.strictEqual(ttCall.payload.platforms[0].platformSpecificData?.tiktokSettings, undefined,
         `got: ${JSON.stringify(ttCall.payload.platforms[0].platformSpecificData)}`);

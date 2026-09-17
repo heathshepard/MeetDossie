@@ -150,13 +150,35 @@ def slugify_stem(stem: str) -> str:
     return topic
 
 
+def reads_as_heath_clone_voice(file_path: Path) -> bool:
+    """
+    AI-disclosure fact for THIS specific video (Quinn QA follow-up,
+    2026-09-17, on 20260916d_rust_owner_wiring.sql): does its narration use
+    Heath's ElevenLabs voice clone (i41TA0Q36AUrp4axERi3)? That is the only
+    voice this pipeline treats as requiring YouTube/TikTok synthetic-media
+    disclosure (heath-voice-clone-usage-scope.md; Dossie's Luna and any
+    non-clone Rust coach voice never trigger it). This is a fact about the
+    content, so it is declared by whoever produced the video -- an optional
+    `{stem}.voice.txt` sidecar (same convention as `{stem}.caption.txt`,
+    added 2026-09-16) naming the speaker. Case-insensitive; only the literal
+    name "heath" resolves true. No sidecar -> False (the file's producer
+    didn't declare a clone voice, so none is assumed).
+    """
+    sidecar = file_path.with_suffix(".voice.txt")
+    if not sidecar.exists():
+        return False
+    return sidecar.read_text(encoding="utf-8").strip().lower() == "heath"
+
+
 def classify_video(file_path: Path, owner: str) -> dict:
     """
-    Detect type, platforms, and target_owner from the file's folder + name.
-    `owner` is 'dossie' (top-level FINISHED_DIR), 'heath-realtor'
-    (REALTOR_DIR), or 'rust' (RUST_DIR) -- set by the caller from which
-    folder the file was found in (see main()).
-    Returns {"type": str, "platforms": list[str], "topic": str, "target_owner": str}
+    Detect type, platforms, target_owner, and the AI-disclosure fact
+    (uses_cloned_voice) from the file's folder + name. `owner` is 'dossie'
+    (top-level FINISHED_DIR), 'heath-realtor' (REALTOR_DIR), or 'rust'
+    (RUST_DIR) -- set by the caller from which folder the file was found in
+    (see main()).
+    Returns {"type": str, "platforms": list[str], "topic": str,
+             "target_owner": str, "uses_cloned_voice": bool}
     """
     stem = file_path.stem.lower()
     topic = slugify_stem(stem)
@@ -164,23 +186,35 @@ def classify_video(file_path: Path, owner: str) -> dict:
     if owner == "heath-realtor":
         # Every realtor clip today is a selfie script (see kit doc); no
         # Dossie CTA, brokerage name comes from the kit's own caption.
+        # uses_cloned_voice=True unconditionally: this lane is Heath's own
+        # cloned-voice narration by design (heath-voice-clone-usage-scope.md)
+        # -- matches the disclosure this pipeline has always sent for this
+        # owner (20260917b_ai_disclosure_content_property.sql backfills the
+        # same value for every pre-existing row).
         return {
             "type": "selfie",
             "platforms": list(REALTOR_SELFIE_PLATFORMS),
             "topic": topic,
             "target_owner": "heath-realtor",
+            "uses_cloned_voice": True,
         }
 
     if owner == "rust":
         # Rust's format library (coach-conversation clips, readiness-check
         # skits, etc.) doesn't map onto Dossie's selfie/skit/mobile/desktop
         # naming convention -- every rust/ drop is one type and platform set
-        # until Rust has its own naming lanes.
+        # until Rust has its own naming lanes. Unlike heath-realtor, Rust
+        # coaches speak in a MIX of voices (Heath's clone for some, Marcus's
+        # own non-clone voice for others, per scripts/_lib/
+        # shortform-brands.json's rust.voices.allowed_speaker_voices) -- so
+        # there is no safe owner-level default here. See
+        # reads_as_heath_clone_voice() above.
         return {
             "type": "coach_conversation",
             "platforms": list(RUST_PLATFORMS),
             "topic": topic,
             "target_owner": "rust",
+            "uses_cloned_voice": reads_as_heath_clone_voice(file_path),
         }
 
     if "selfie" in stem:
@@ -195,7 +229,16 @@ def classify_video(file_path: Path, owner: str) -> dict:
         # Default: treat as selfie-style short-form
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
 
-    return {"type": vtype, "platforms": platforms, "topic": topic, "target_owner": "dossie"}
+    # Dossie always speaks as Luna, never Heath's clone (forbidden_speaker_
+    # voices in shortform-brands.json) -- unconditionally False, no sidecar
+    # needed.
+    return {
+        "type": vtype,
+        "platforms": platforms,
+        "topic": topic,
+        "target_owner": "dossie",
+        "uses_cloned_voice": False,
+    }
 
 
 # ── Caption sourcing — from the kit doc itself, never a template ─────────────
@@ -558,7 +601,7 @@ def main():
 
         # 1. Classify
         info = classify_video(video_path, owner)
-        print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']}")
+        print(f"  Type: {info['type']} | Platforms: {info['platforms']} | Topic: {info['topic']} | Owner: {info['target_owner']} | ClonedVoice: {info['uses_cloned_voice']}")
 
         # 2. Caption — a human-written kit-doc script, or a sidecar written by
         # the generator that produced the video. Still never a template or an
@@ -688,6 +731,7 @@ def main():
             "quality_detail": gate_result,
             "quality_checked_at": datetime.datetime.utcnow().isoformat() + "Z",
             "target_owner": info["target_owner"],
+            "uses_cloned_voice": info["uses_cloned_voice"],
             "produced_date": datetime.date.today().isoformat(),
             "created_at": datetime.datetime.utcnow().isoformat() + "Z",
         }
