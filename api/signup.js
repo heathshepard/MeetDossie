@@ -60,6 +60,25 @@ function clean(v, max) {
   return String(v == null ? '' : v).trim().slice(0, max || 200);
 }
 
+// First/last-touch attribution, captured client-side (assets/dossie-
+// acquisition.js) and forwarded verbatim in the POST body. Client-supplied
+// and unauthenticated — never trusted for anything beyond attribution, and
+// picked field-by-field so an unexpected shape can't smuggle extra columns
+// into a Supabase insert.
+function cleanTouch(touch) {
+  if (!touch || typeof touch !== 'object') return null;
+  const picked = {
+    utm_source: touch.utm_source ? clean(touch.utm_source, 100) : null,
+    utm_medium: touch.utm_medium ? clean(touch.utm_medium, 100) : null,
+    utm_campaign: touch.utm_campaign ? clean(touch.utm_campaign, 100) : null,
+    content_tag: touch.content_tag ? clean(touch.content_tag, 100) : null,
+    referrer: touch.referrer ? clean(touch.referrer, 300) : null,
+    landing_page: touch.landing_page ? clean(touch.landing_page, 300) : null,
+  };
+  const hasSignal = Object.values(picked).some(Boolean);
+  return hasSignal ? picked : null;
+}
+
 function toTitleCase(value) {
   const t = clean(value, 120);
   if (!t) return '';
@@ -271,6 +290,8 @@ async function provisionCompedAccount(d) {
         status: 'active',
         current_period_start: new Date().toISOString(),
         current_period_end: compEnd.toISOString(),
+        first_touch: d.first_touch || null,
+        last_touch: d.last_touch || null,
       }),
     });
   } catch (err) {
@@ -299,6 +320,8 @@ async function recordAccessRequest(d) {
       transactions_12mo: Number.isFinite(Number(d.deals)) ? Number(d.deals) : 0,
       heard_from: d.heard_from || null,
       status: 'pending',
+      first_touch: d.first_touch || null,
+      last_touch: d.last_touch || null,
     }),
   });
 }
@@ -333,6 +356,8 @@ module.exports = async function handler(req, res) {
       trec_license: clean(body.trec_license, 40),
       deals: clean(body.deals || body.transactions_12mo, 10),
       heard_from: clean(body.heard_from, 60),
+      first_touch: cleanTouch(body.first_touch),
+      last_touch: cleanTouch(body.last_touch),
     };
     const accessCode = clean(body.access_code, 100);
 

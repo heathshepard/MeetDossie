@@ -26,6 +26,11 @@
 //   - a static vercel.json cron sanity scan (api/_lib/cron-sanity.js) — the
 //     exact "0 0 1 1 *"-style trick that hid the 2026-07 content-engine
 //     shutdown for weeks, plus any cron pointing at a deleted handler file.
+//   - (2026-09-17) CONVERSION ATTRIBUTION — per brand, last 7d/30d: clicks,
+//     signups, paid, top/bottom performing content, joined via
+//     api/_lib/attribution.js on the content_tag stamped at publish time
+//     (api/_lib/content-tag.js). Rust is explicitly reported as
+//     not-available (separate Supabase project) rather than a fake zero.
 //
 // This cron checks, once a day (ALARM half, dedup'd):
 //   1. Platform silence — no successful post on a (platform, owner) pair in
@@ -84,6 +89,53 @@ function fmtPlatformOwnerList(list) {
   return list.map((r) => `${r.platform}${r.target_owner !== 'dossie' ? ` (${r.target_owner})` : ''}: ${r.count}`).join(', ');
 }
 
+// CONVERSION ATTRIBUTION section (Carter, 2026-09-17): closes "which post
+// produced a signup" — clicks -> signup -> paid, per brand, 7d and 30d. See
+// api/_lib/attribution.js for the join logic and BRAND COVERAGE notes (Rust
+// runs on a separate Supabase project and is reported as not-available,
+// never as a fabricated zero).
+function fmtWindow(label, summary) {
+  const lines = [`  ${label}: ${summary.totals.paid_total} paid (${summary.totals.paid_attributed} attributed, ` +
+    `${summary.totals.paid_unattributed} unattributed) | ${summary.totals.signups_total} signup(s) ` +
+    `(${summary.totals.signups_unattributed} unattributed) | clicks: ${summary.clicks_tracking}`];
+  for (const brand of Object.keys(summary.per_brand)) {
+    const b = summary.per_brand[brand];
+    const clicks = b.clicks === null ? `error (${b.clicks_tracking_error})` : b.clicks;
+    lines.push(`    ${brand}: ${b.published_count} tagged post(s), ${clicks} clicks, ${b.signups} signup(s), ${b.paid} paid`);
+  }
+  return lines;
+}
+
+function fmtContentRow(c) {
+  const clicks = c.clicks == null ? '?' : c.clicks;
+  const linkNote = c.no_clickable_link ? ' [no clickable link on this platform]' : '';
+  const hook = c.hook_type ? ` hook=${c.hook_type}` : '';
+  return `    ${c.content_tag}: ${clicks} clicks, ${c.signups} signup(s), ${c.paid} paid${hook}${linkNote}`;
+}
+
+function formatAttributionLines(attribution) {
+  const lines = ['', 'CONVERSION ATTRIBUTION (which post produced a signup/paid customer):'];
+  if (!attribution || attribution.error) {
+    lines.push(`  could not compute this run${attribution && attribution.error ? ` — ${attribution.error}` : ''}.`);
+    return lines;
+  }
+  const { last_7d, last_30d } = attribution;
+  lines.push(...fmtWindow('Last 7d', last_7d));
+  lines.push(...fmtWindow('Last 30d', last_30d));
+
+  if (last_30d.top_content.length) {
+    lines.push('  Top content (30d):');
+    for (const c of last_30d.top_content.slice(0, 3)) lines.push(fmtContentRow(c));
+  }
+  if (last_30d.bottom_content.length) {
+    lines.push('  Bottom content (30d):');
+    for (const c of last_30d.bottom_content.slice(0, 3)) lines.push(fmtContentRow(c));
+  }
+  lines.push(`  ${last_30d.platform_caveat}`);
+  lines.push(`  rust: ${last_30d.rust.reason}`);
+  return lines;
+}
+
 function formatHeartbeatMessage(snapshot, fired, suppressed) {
   const lines = [`DOSSIE MORNING HEARTBEAT — ${new Date().toISOString().slice(0, 10)}`, ''];
 
@@ -124,6 +176,8 @@ function formatHeartbeatMessage(snapshot, fired, suppressed) {
       lines.push('  ⚠ group_posts target is UNREACHABLE this period at the current cap.');
     }
   }
+
+  lines.push(...formatAttributionLines(snapshot.attribution));
 
   if (snapshot.cron_sanity.ok) {
     lines.push('', `CRON SANITY: ${snapshot.cron_sanity.totalCrons} crons scanned, ${snapshot.cron_sanity.issues.length} issue(s)`);

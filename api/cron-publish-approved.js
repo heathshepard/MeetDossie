@@ -40,6 +40,7 @@ const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
+const { tagOutboundLinks } = require('./_lib/content-tag.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -285,30 +286,39 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Append UTM parameters to all meetdossie.com links in the content so we can
-// attribute traffic per platform. Idempotent — won't double-stamp if a link
-// already has utm_source set. Hooks into buildPostBody so every Zernio
-// publish call gets the same treatment regardless of platform.
-function applyUtm(content, platform) {
-  if (!content || !platform) return content;
-  const campaign = 'organic';
-  const re = /(https?:\/\/(?:www\.)?meetdossie\.com[^\s)<>\]"']*)/gi;
-  return content.replace(re, (match) => {
-    if (/[?&]utm_source=/i.test(match)) return match;
-    const sep = match.includes('?') ? '&' : '?';
-    return `${match}${sep}utm_source=${encodeURIComponent(platform)}&utm_medium=social&utm_campaign=${campaign}`;
-  });
-}
-
+// Append content-attribution params to every meetdossie.com link in the post
+// so a click can be traced back to this exact row (see api/_lib/content-tag.js
+// for the tag scheme + which platforms strip caption links entirely).
+// Idempotent — won't double-stamp a link that already has utm_source.
+//
+// FIX (2026-09-17): the prior version required an "https?://" scheme prefix,
+// but cron-generate-posts.js's cta_rule fields write the bare domain
+// ("meetdossie.com/signup", no scheme) — the old regex silently matched
+// nothing on the vast majority of real captions. content-tag.js's regex
+// matches with or without a scheme.
+//
+// Brand comes from target_owner (defaults 'dossie'; the same pipeline also
+// carries Heath's own listing marketing under target_owner='heath-realtor').
+// Format is 'video' for every row today (the video-only hard gate above
+// blocks anything without a real video attachment), derived rather than
+// hardcoded so a future non-video format still tags correctly.
 function buildPostBody(post) {
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
   const tagLine = hashtags.length
     ? '\n\n' + hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '';
   const rawContent = String(post.content || '');
-  const content = applyUtm(rawContent, post.platform);
-  const text = /\B#\w/.test(content) ? content : `${content}${tagLine}`;
-  return text.trim();
+  const isVideo = !!post.media_url && inferMediaItem(post.media_url).type === 'video';
+  const { text: tagged, tag, linked } = tagOutboundLinks(rawContent, {
+    domain: 'meetdossie.com',
+    brand: post.target_owner || 'dossie',
+    platform: post.platform,
+    format: isVideo ? 'video' : 'image',
+    contentId: post.id,
+    postedAt: new Date(),
+  });
+  const text = /\B#\w/.test(tagged) ? tagged : `${tagged}${tagLine}`;
+  return { text: text.trim(), contentTag: tag, linked };
 }
 
 // Fallback account lookup — Phase 5/6 seeders sometimes ship rows without
@@ -360,7 +370,8 @@ async function pushToZernio(post) {
       return { ok: false, error: 'no zernio_account_id on row (and no fallback in zernio_accounts)' };
     }
   }
-  const text = buildPostBody(post);
+  const { text, contentTag, linked } = buildPostBody(post);
+  console.log(`[content-tag] post ${post.id} (${post.platform}, ${post.target_owner || 'dossie'}): tag=${contentTag} linked=${linked}`);
 
   // Real Zernio schema (per docs.zernio.com/platforms/{twitter,instagram}):
   //   { content, mediaItems[], platforms[{platform, accountId, platformSpecificData}], publishNow|scheduledFor }
@@ -528,10 +539,10 @@ async function pushToZernio(post) {
       // watchdog AND the morning digest treat it as unverified, not
       // counted-as-posted.
       console.warn(`[zernio-post-id] post ${post.id} (${post.platform}): NO post_id in 2xx response — treating as unverified. Full response: ${respText.slice(0, 600)}`);
-      return { ok: true, status: res.status, data, zernio_post_id: null, unverified: true };
+      return { ok: true, status: res.status, data, zernio_post_id: null, unverified: true, content_tag: contentTag };
     }
     console.log(`[zernio-post-id] post ${post.id} (${post.platform}): captured zernio_post_id=${zernioPostId}`);
-    return { ok: true, status: res.status, data, zernio_post_id: zernioPostId };
+    return { ok: true, status: res.status, data, zernio_post_id: zernioPostId, content_tag: contentTag };
   } catch (err) {
     const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
     console.error(`[zernio-exception] post ${post.id} (${post.platform}):`, errorMsg);
@@ -1171,6 +1182,7 @@ module.exports = async function handler(req, res) {
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
           zernio_post_id: result.zernio_post_id,
+          content_tag: result.content_tag || null,
           error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
       });

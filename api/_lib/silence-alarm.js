@@ -28,6 +28,7 @@
 
 const { scanCronSanity } = require('./cron-sanity.js');
 const { listGoalSetKeys } = require('./social-goals.js');
+const { getAttributionSummary } = require('./attribution.js');
 const { computeGoalProgress } = require('./social-goals-progress.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -668,6 +669,21 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
   );
   const goalProgress = Object.fromEntries(goalSetResults);
 
+  // Conversion attribution — clicks -> signup -> paid, per brand, 7d and 30d
+  // (api/_lib/attribution.js). Never blocks the rest of the heartbeat: a
+  // PostHog outage or a bad query surfaces as an explicit error field, same
+  // pattern as goal_progress above, not a missing section.
+  let attribution;
+  try {
+    const [days7, days30] = await Promise.all([
+      getAttributionSummary({ days: 7 }),
+      getAttributionSummary({ days: 30 }),
+    ]);
+    attribution = { last_7d: days7, last_30d: days30 };
+  } catch (err) {
+    attribution = { error: err && err.message };
+  }
+
   return {
     posted_last_24h: {
       by_platform_owner: toList(postedByPlatform),
@@ -693,6 +709,7 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     platform_status: platformStatus,
     cron_sanity: cronSanity,
     goal_progress: goalProgress,
+    attribution,
   };
 }
 
