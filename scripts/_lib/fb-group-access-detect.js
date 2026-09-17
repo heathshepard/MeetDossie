@@ -25,6 +25,15 @@
 // automatically fix Stone Oak Neighborhood -- membership there is per-
 // account, and whether Heath's personal profile is already a member of
 // Stone Oak was not checked/confirmed in this pass.
+//
+// UPDATE 2026-09-17: that switch happened -- DossieBot-Sage is now confirmed
+// logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not
+// the Page. See scripts/comment-hunt-groups.json's _readme for the group-list
+// side of this correction (acting_identity flipped 'page' -> 'personal' for
+// all 4 active groups). The detectors below are identity-agnostic (they match
+// Facebook's rejection/join-prompt TEXT, not which identity triggered it) so
+// no logic change was needed here -- only this comment was stale. Stone Oak
+// membership under the personal profile is still unconfirmed.
 
 const IDENTITY_REJECTED_PATTERNS = [
   /switch to (your )?(main |personal )?profile/i,

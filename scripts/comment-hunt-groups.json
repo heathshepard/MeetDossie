@@ -30,6 +30,15 @@
     "    fb-comment-hunt-daily.js, which is a plausible-looking name match, not a",
     "    verified identity. That HEATH_FB_NAMES assumption has NOT been re-audited as",
     "    part of this pass -- flagging it here rather than silently leaving stale intel.",
+    "  - CORRECTED 2026-09-17: the DossieBot-Sage Chrome profile was re-audited and",
+    "    is now confirmed logged in as Heath's PERSONAL profile",
+    "    (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 finding above",
+    "    no longer reflects the live session. This is the identity we want for groups",
+    "    (several groups outright block Pages -- see scripts/_lib/fb-group-access-",
+    "    detect.js's identity_rejected pattern, e.g. Founding Files). All 4 active",
+    "    groups below are updated to acting_identity='personal' accordingly. Per-group",
+    "    identity_membership_verified has NOT been re-checked under the personal",
+    "    profile as part of this correction -- that remains a separate open item.",
     "  - identity_membership_verified: has the acting_identity's actual membership/",
     "    posting access to THIS SPECIFIC group been confirmed live? Existence being",
     "    verified (readable feed) is NOT the same claim -- reading a group's posts does",
@@ -48,10 +57,10 @@
       "note": "27 posts/day, real conversation — best group of the 2026-09-08 hunt",
       "existence_verified": true,
       "existence_verified_date": "2026-09-08",
-      "acting_identity": "page",
+      "acting_identity": "personal",
       "identity_membership_verified": false,
       "requires_admin_approval": "unknown",
-      "verification_note": "URL loaded live and real conversation confirmed by the 2026-09-08 read-only hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit (fb-group-poster.js posts here for the daily5 pipeline via that same profile). Whether the Page identity specifically is an accepted member here, and whether a post needs pre-approval, has NOT been tested — no daily5 post has actually gone out to this group yet as of 2026-09-16."
+      "verification_note": "URL loaded live and real conversation confirmed by the 2026-09-08 read-only hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit (fb-group-poster.js posts here for the daily5 pipeline via that same profile). Whether the Page identity specifically is an accepted member here, and whether a post needs pre-approval, has NOT been tested — no daily5 post has actually gone out to this group yet as of 2026-09-16. CORRECTED 2026-09-17: DossieBot-Sage Chrome profile re-audited and confirmed logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 Page finding no longer reflects the live session. identity_membership_verified for this specific group under the personal profile has NOT been re-checked as part of this correction."
     },
     {
       "key": "tc_vas",
@@ -60,10 +69,10 @@
       "note": "real TC/paperwork threads",
       "existence_verified": true,
       "existence_verified_date": "2026-09-08",
-      "acting_identity": "page",
+      "acting_identity": "personal",
       "identity_membership_verified": false,
       "requires_admin_approval": "unknown",
-      "verification_note": "URL loaded live, real TC/paperwork conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested."
+      "verification_note": "URL loaded live, real TC/paperwork conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested. CORRECTED 2026-09-17: DossieBot-Sage Chrome profile re-audited and confirmed logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 Page finding no longer reflects the live session. identity_membership_verified for this specific group under the personal profile has NOT been re-checked as part of this correction."
     },
     {
       "key": "kw_re_group",
@@ -72,10 +81,10 @@
       "note": "real conversation; Heath is a KW agent — home turf",
       "existence_verified": true,
       "existence_verified_date": "2026-09-08",
-      "acting_identity": "page",
+      "acting_identity": "personal",
       "identity_membership_verified": false,
       "requires_admin_approval": "unknown",
-      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit — note this is a KW-branded group, which is exactly the kind of group worth re-checking Page-vs-personal access on directly given Heath's own KW affiliation. Not yet tested."
+      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit — note this is a KW-branded group, which is exactly the kind of group worth re-checking Page-vs-personal access on directly given Heath's own KW affiliation. Not yet tested. CORRECTED 2026-09-17: DossieBot-Sage Chrome profile re-audited and confirmed logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 Page finding no longer reflects the live session. identity_membership_verified for this specific group under the personal profile has NOT been re-checked as part of this correction."
     },
     {
       "key": "tx_re_agents",
@@ -84,10 +93,10 @@
       "note": "real conversation, Texas-specific",
       "existence_verified": true,
       "existence_verified_date": "2026-09-08",
-      "acting_identity": "page",
+      "acting_identity": "personal",
       "identity_membership_verified": false,
       "requires_admin_approval": "unknown",
-      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested."
+      "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested. CORRECTED 2026-09-17: DossieBot-Sage Chrome profile re-audited and confirmed logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 Page finding no longer reflects the live session. identity_membership_verified for this specific group under the personal profile has NOT been re-checked as part of this correction."
     }
   ],
   "skip_groups": [

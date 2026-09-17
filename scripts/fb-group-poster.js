@@ -375,13 +375,19 @@ async function postToGroup(post) {
     } catch {}
 
     // Identity/membership gate — checked BEFORE hunting for the post box.
-    // Per-group truth audit (2026-09-16): the acting identity is the Page
+    // Per-group truth audit (2026-09-16): the acting identity was the Page
     // "Heath Shepard, Realtor with Keller Williams City View", not Heath's
     // personal profile. Some groups block Pages outright (Founding Files:
     // "Switch to your main profile") or were never actually joined by it
     // (Stone Oak Neighborhood: "Join group" live). Both are real, distinct,
     // non-retryable outcomes -- return early rather than let the composer
     // hunt below fall through to a generic "layout may have changed" error.
+    // UPDATE 2026-09-17: DossieBot-Sage is now confirmed on Heath's PERSONAL
+    // profile (facebook.com/heath.shepard.75) instead -- see
+    // scripts/_lib/fb-group-access-detect.js and scripts/comment-hunt-
+    // groups.json for the full correction. These two detectors match
+    // Facebook's rejection/join-prompt text, not the identity itself, so they
+    // still apply unchanged under either identity.
     if (await detectIdentityRejected(page)) {
       return resolvePostStatus({ identityRejected: true });
     }
