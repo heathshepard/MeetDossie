@@ -125,6 +125,31 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// Retry wrapper for the one supabaseFetch call this cron cannot route around
+// (the initial posts query — if it fails there's no queue to work on at all).
+// 2026-09-16 11:10:45 UTC: a single transient PostgREST 5xx/network blip on
+// this query made the whole run return http_502 and sat in cron_runs as
+// "error" for a full 24h until the next scheduled fire (this cron only runs
+// once daily). Root cause was a one-off upstream hiccup, not a code bug —
+// confirmed by replaying the exact same query seconds later (200 OK) and by
+// a clean manual re-trigger the next morning. A cheap retry on 5xx/network
+// failure absorbs that class of blip instead of reporting a false
+// "persistently failing" signal for a day. Per-post errors already have
+// their own retry-via-next-run + dead-letter handling below; this only
+// covers the query gate itself.
+async function supabaseFetchWithRetry(path, init = {}, attempts = 3) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    last = await supabaseFetch(path, init).catch((err) => ({ ok: false, status: 0, data: null, error: err }));
+    if (last.ok) return last;
+    // Only retry transient conditions: network failure (status 0) or 5xx.
+    // A 4xx (bad query, auth) won't fix itself on retry — fail fast instead.
+    if (last.status && last.status < 500) break;
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+  }
+  return last;
+}
+
 function pickRecording(topic, persona, platform) {
   const group = MOBILE_PLATFORMS.has(platform) ? 'mobile' : 'desktop';
   const candidates = RECORDING_MAP[group] || [];
@@ -324,11 +349,12 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   // status=in.(...) never includes 'video_failed' — that's the dead-letter
   // terminal state (Bug 1 fix, 2026-09-09) and is permanently excluded from
   // every render attempt, same technique as image_mismatch_hold.
-  const { data: posts, ok: loadOk } = await supabaseFetch(
+  const { data: posts, ok: loadOk, status: loadStatus } = await supabaseFetchWithRetry(
     `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&platform=not.in.(instagram,tiktok,youtube)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render' });
+    console.error(`[cron-render-videos] posts query failed after retries: status=${loadStatus}`);
+    return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render', status: loadStatus });
   }
 
   // Defensive second gate (see SKIP_RENDER_PLATFORMS comment above) — belt
