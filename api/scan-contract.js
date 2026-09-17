@@ -876,6 +876,7 @@ function emptyResult(warning) {
       fundsDeliveryRolled: false,
       deadlineChain: [],
       earnestMoneyReceiptDate: null,
+      optionFeeReceiptDate: null,
       debugEarnestMoneyReceiptBlock: null,
       debugOptionFeeReceiptDate: null,
       debugContractReceiptDate: null,
@@ -1340,6 +1341,16 @@ async function scanContract(pdfBase64) {
     earnestMoneyReceiptDateOverridden = true;
   }
 
+  // 2026-09-17: promote the OPTION FEE RECEIPT box's date to a real field.
+  // It was already being read here (as debugOptionFeeReceiptDate) purely to
+  // cross-check earnestMoneyReceiptDate, then discarded. It is the escrow
+  // agent's own acknowledgment that the option fee arrived — the only honest
+  // basis for suppressing the ¶5.A option-fee delivery reminder, and the
+  // automatic source for transactions.option_fee_confirmed_at, exactly as
+  // earnestMoneyReceiptDate is for earnest_money_confirmed_at. Without it,
+  // "confirmed receipt" for the option fee could only ever be set by hand.
+  extracted.optionFeeReceiptDate = optionFeeReceiptDate || null;
+
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
 
   // buyer2Name/seller2Name are derived deterministically from buyerName/
@@ -1362,6 +1373,15 @@ async function scanContract(pdfBase64) {
   // possessionDate above.
   if (earnestMoneyReceiptDateOverridden) {
     confidence.earnestMoneyReceiptDate = Math.max(0.8, typeof confidence.earnestMoneyReceiptDate === 'number' ? confidence.earnestMoneyReceiptDate : 0);
+  }
+  // optionFeeReceiptDate is a deterministic parse of the model's verbatim read
+  // of the OPTION FEE RECEIPT box, so it inherits that read's confidence and
+  // otherwise gets the same 0.8 floor as the two-box consensus above.
+  if (extracted.optionFeeReceiptDate) {
+    confidence.optionFeeReceiptDate = Math.max(
+      0.8,
+      typeof confidence.debugOptionFeeReceiptDate === 'number' ? confidence.debugOptionFeeReceiptDate : 0,
+    );
   }
 
   // CRITICAL FIX 2026-09-10 — every deterministic backstop above

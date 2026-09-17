@@ -25,10 +25,26 @@
  *      expiration / closing / survey etc. never roll; unknown deadline
  *      types throw instead of silently guessing.
  *   3. Cron wiring: both fields in DEADLINE_FIELDS with a T-3/T-1/T-0
- *      schedule (a 3-day window can never hit T-7), receipt suppression
- *      (option_fee_receipt_date / earnest_money_deposited_at|confirmed_at),
- *      and in-memory derivation from contract_effective_date when the
- *      due-date columns are NULL. Standard fields keep T-7/T-1/T-0.
+ *      schedule (a 3-day window can never hit T-7), CONFIRMED-RECEIPT
+ *      suppression (option_fee_confirmed_at / earnest_money_confirmed_at
+ *      only — never the self-reported option_fee_paid_at /
+ *      earnest_money_deposited_at), and in-memory derivation from
+ *      contract_effective_date when the due-date columns are NULL.
+ *      Standard fields keep T-7/T-1/T-0.
+ *
+ * 2026-09-17 correction. The suppression cases in this file were red on main
+ * for a week and both sides were wrong:
+ *   - The TEST asserted suppression on `option_fee_receipt_date`, which is a
+ *     TREC 20-19 AcroForm field key (page-11 receipt block), not a column on
+ *     public.transactions. Selecting it 400s PostgREST — that is exactly what
+ *     500'd this cron for every customer for a week (fe4311b2, 2026-09-10).
+ *   - The CODE, after that hotfix, suppressed on `option_fee_paid_at`, which
+ *     the workspace stamps with the UPLOAD TIME the moment an executed
+ *     contract showing any option fee amount is scanned. The reminder went
+ *     quiet on day zero, before delivery — the Low Oak $5,200 failure mode.
+ * The fix introduced `option_fee_confirmed_at` (20260917e migration) as the
+ * option-fee peer of the existing `earnest_money_confirmed_at`, and both
+ * deadlines now suppress on confirmed receipt only.
  *
  * Run manually:
  *   node scripts/regression-funds-delivery-due-dates.js
@@ -50,7 +66,14 @@ async function main() {
   const cron = require(CRON_PATH);
   assert.ok(cron.__test && Array.isArray(cron.__test.DEADLINE_FIELDS),
     'cron-deadline-reminders.js does not expose __test.DEADLINE_FIELDS (pre-fix code)');
-  const { DEADLINE_FIELDS, REMINDER_MILESTONES, ALL_MILESTONES } = cron.__test;
+  const {
+    DEADLINE_FIELDS, REMINDER_MILESTONES, ALL_MILESTONES,
+    SUPPRESSION_FIELDS, SELECT_OPTIONAL,
+  } = cron.__test;
+  assert.ok(Array.isArray(SUPPRESSION_FIELDS),
+    'cron-deadline-reminders.js does not expose __test.SUPPRESSION_FIELDS');
+  assert.ok(SELECT_OPTIONAL instanceof Set,
+    'cron-deadline-reminders.js does not expose __test.SELECT_OPTIONAL');
 
   const due = (effective) => bc.computeFundsDeliveryDueDates(effective);
 
@@ -143,20 +166,75 @@ async function main() {
           assert.strictEqual(f.milestones, undefined, `${col} must use the default schedule`);
         }
       }],
-    ['Receipt suppression: reminder stops once funds are confirmed received (never nags after receipt)',
+    ['Receipt suppression: reminder stops once funds are CONFIRMED received (never nags after receipt)',
       () => {
         const of = DEADLINE_FIELDS.find((x) => x.col === 'option_fee_due_date');
         const em = DEADLINE_FIELDS.find((x) => x.col === 'earnest_money_due_date');
-        assert.strictEqual(of.suppressWhen({ option_fee_receipt_date: '2026-08-24' }), true);
-        assert.strictEqual(of.suppressWhen({ option_fee_receipt_date: null }), false);
-        assert.strictEqual(em.suppressWhen({ earnest_money_deposited_at: '2026-08-24T10:00:00Z' }), true);
+        assert.strictEqual(of.suppressWhen({ option_fee_confirmed_at: '2026-08-24T10:00:00Z' }), true);
+        assert.strictEqual(of.suppressWhen({ option_fee_confirmed_at: null }), false);
         assert.strictEqual(em.suppressWhen({ earnest_money_confirmed_at: '2026-08-24T10:00:00Z' }), true);
-        assert.strictEqual(em.suppressWhen({ earnest_money_deposited_at: null, earnest_money_confirmed_at: null }), false);
+        assert.strictEqual(em.suppressWhen({ earnest_money_confirmed_at: null }), false);
+        // Nothing set at all -> remind. Suppression is opt-in on evidence.
+        assert.strictEqual(of.suppressWhen({}), false);
+        assert.strictEqual(em.suppressWhen({}), false);
       }],
-    ['Suppression is NOT triggered by wire-instructions-sent-style fields (sent != received, spec Gate 6)',
+    ['Suppression is NOT triggered by self-reported sent/paid fields (sent != received, spec Gate 6)',
       () => {
         const of = DEADLINE_FIELDS.find((x) => x.col === 'option_fee_due_date');
-        assert.strictEqual(of.suppressWhen({ option_fee_paid_at: '2026-08-24', option_fee_receipt_date: null }), false);
+        const em = DEADLINE_FIELDS.find((x) => x.col === 'earnest_money_due_date');
+        // option_fee_paid_at / earnest_money_deposited_at are stamped with the
+        // UPLOAD TIME when an executed contract is scanned and para 5.A shows
+        // an amount. Suppressing on them silenced the reminder on day zero,
+        // before anyone delivered anything — the Low Oak $5,200 failure mode.
+        assert.strictEqual(
+          of.suppressWhen({ option_fee_paid_at: '2026-08-24T10:00:00Z', option_fee_confirmed_at: null }), false,
+          'option fee: "marked paid" must not silence the delivery reminder');
+        assert.strictEqual(
+          of.suppressWhen({ option_fee_paid_to: 'Alamo Title', option_fee_confirmed_at: null }), false,
+          'option fee: naming a payee must not silence the delivery reminder');
+        assert.strictEqual(
+          em.suppressWhen({ earnest_money_deposited_at: '2026-08-24T10:00:00Z', earnest_money_confirmed_at: null }), false,
+          'earnest money: "deposit sent" must not silence the delivery reminder');
+      }],
+    ['Suppressors read ONLY columns the cron actually selects (no phantom-column suppression)',
+      () => {
+        // The root cause of the 2026-09-10 outage AND of this bug: a suppressor
+        // naming a column that is not in the select is permanently undefined
+        // (silently never suppresses), and a select naming a column that does
+        // not exist 400s PostgREST and kills every reminder for every customer.
+        // option_fee_receipt_date was the culprit both times — it is a TREC
+        // 20-19 AcroForm field key, never a transactions column.
+        const selected = new Set(SUPPRESSION_FIELDS);
+        for (const col of ['option_fee_due_date', 'earnest_money_due_date']) {
+          const f = DEADLINE_FIELDS.find((x) => x.col === col);
+          const touched = [];
+          f.suppressWhen(new Proxy({}, {
+            get(_t, prop) { if (typeof prop === 'string') touched.push(prop); return undefined; },
+            has() { return true; },
+          }));
+          assert.ok(touched.length > 0, `${col} suppressWhen read no fields at all`);
+          for (const prop of touched) {
+            assert.ok(selected.has(prop),
+              `${col} suppressWhen reads "${prop}", which is not in SUPPRESSION_FIELDS — the cron never fetches it, so it can never suppress`);
+          }
+        }
+        assert.ok(!SUPPRESSION_FIELDS.includes('option_fee_receipt_date'),
+          'option_fee_receipt_date is a TREC PDF field key, not a transactions column — selecting it 400s PostgREST');
+      }],
+    ['Self-reported fields are not even fetched, so they cannot be wired back in by accident',
+      () => {
+        for (const col of ['option_fee_paid_at', 'earnest_money_deposited_at']) {
+          assert.ok(!SUPPRESSION_FIELDS.includes(col),
+            `${col} is self-reported and must not be in the suppression field set`);
+        }
+      }],
+    ['Columns pending a migration are marked optional so a missing one cannot zero out the cron',
+      () => {
+        assert.ok(SELECT_OPTIONAL instanceof Set, 'SELECT_OPTIONAL must be a Set');
+        for (const col of SELECT_OPTIONAL) {
+          assert.ok(SUPPRESSION_FIELDS.includes(col),
+            `${col} is marked optional but is not a suppression field — optional columns exist only to be droppable`);
+        }
       }],
     ['NULL due-date column falls back to in-memory derivation from contract_effective_date',
       () => {
