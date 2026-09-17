@@ -12,7 +12,6 @@
 
 ## NOT DONE / ACTIVE BLOCKERS
 
-- ~~`cron-comment-opp-approval` never left staging~~ — RESOLVED 2026-09-09 (same day as flagged), merged in `b9264c58` ("Merge branch 'staging'", 2026-09-09 20:15). Verified 2026-09-11 (Carter): file + `*/30 * * * *` schedule both present on `origin/main`; live query of `comment_opportunities` shows 0 rows at `status='found'` (39 total: 1 approved, 1 posted, 1 post_failed, 36 rejected) — cron has been ticking in Production for two days. Stale entry, no action needed.
 - Brokerage compliance document sending (specced, not built — high value)
 - Stripe Payment Links (permanent, non-expiring) — current checkout sessions expire 24h
 - MCP server registry submissions: MCPT / OpenTools (Smithery ✅ live)
@@ -22,8 +21,6 @@
 - ~~Lifestyle video Zernio video-post creation~~ — see KNOWN TECH DEBT item 4, RESOLVED 2026-08-10. `--auto-post` opt-in is intentional, not a gap.
 - **Amendment drafting** — LIVE incl. NL entry. `api/draft-amendment.js` handles TREC 39-10 (closing_date/option_extension/price_change). NL: Talk to Dossie → `extract-form-fields.js` → `fill-form.js`. Wired 2026-05-28.
 - ~~Fill-and-sign Phase 2~~ — RESOLVED (already built, stale entry corrected 2026-08-24). Verified live on `main` in both repos: `Dossie/src/components/EsignModal.jsx` "Place fields" tab (`mode: "canvas"`) + `Dossie/src/components/dossieSign/FieldOverlay.jsx` (vanilla-pointer-events drag/resize for signature/initials/date/text/checkbox) send a custom `fields[]` (with `x_pct/y_pct/w_pct/h_pct` areas) to `MeetDossie/api/esign-create.js`, which already accepts and forwards `fields`/`fieldMap` to DocuSeal (comment at top of that file: "If fields are provided, field placement coordinates are sent to DocuSeal (Phase 2)"). Git history shows iterative QA rounds through 2026-08-22 — this has been in active production use, not a gap. Not re-verified end-to-end in a live browser session this pass (no code change made); flag to Quinn if a fresh regression pass is wanted.
-- **Fill-and-sign remaining generators** — HOA Addendum (TREC 36-11), Lead-Based Paint (OP-L), Seller's Disclosure (OP-H). PDFs in `Dossie Forms/TREC Base/`, no JS generators.
-- **TREC 49-1** (Right to Terminate, Lender's Appraisal — new Jan 2025, split from 40-11). Not in library/generators.
 - **Dossier transaction type expansion** — add `transaction_type` field to transactions + auto-load correct package (types: buyer_purchase, seller_listing, new_home_purchase, land_purchase, residential_lease_landlord, residential_lease_tenant). Currently all use same package.
 - **More Form Packages** — land, new home, rental landlord, rental tenant. Only Buyer + Seller exist as defaults.
 - **Social Media Autopilot** — extend in-house pipeline (cron-generate-posts → DossieMarketingBot → cron-publish-approved → Zernio) to customer-facing add-on. Agents connect FB/IG/LI/TT via Zernio, Dossie drafts daily from listings/market/sphere, Telegram one-tap approval. Cost: ~180 posts/mo @ Haiku = ~$0.30/mo Claude; Zernio flat $18/mo paid. Price: $20/mo ($10 founding). Strategy doc: `SOCIAL-MEDIA-AUTOPILOT-STRATEGY.md`. Flagged 2026-05-21.
@@ -50,3 +47,31 @@
 5. TikTok automation gate flip (~May 20, 2026)
 
 (Done 2026-05-07: Stripe Payment Links, brokerage compliance send, LinkedIn Zernio, first-time onboarding checklist, MCP server npm+HTTP.)
+
+---
+
+## Removed 2026-09-17 — entries that were false and were generating bad work
+
+This file is a signal source for `api/cron-autonomous-loop.js`. Three lines were
+deleted from "NOT DONE / ACTIVE BLOCKERS" because they described work that is
+already on `origin/main`, and the loop was re-dispatching them. Recorded here so
+nobody re-adds them; see `docs/BACKLOG-ENGINEERING.md` E1 and E2 for the audit.
+
+- **`cron-comment-opp-approval` never left staging** — false. Merged `b9264c58`
+  on 2026-09-09 and ticking `*/30` in Production. The line was already struck
+  through and annotated RESOLVED, but the loop had no closed-item filter and
+  dispatched it to carter on 2026-09-13 and again on 2026-09-15, with the word
+  RESOLVED in the task title. The filter now lives in
+  `api/_lib/backlog-parser.js`; this line is gone so it cannot recur.
+- **Fill-and-sign remaining generators — HOA 36-11 / OP-L / OP-H** — false. All
+  three generators exist on `origin/main`: `fillHoaAddendum` (`api/fill-form.js:2299`),
+  `fillLeadPaintAddendum` (`:2384`), `fillSellersDisclosure` (`:2469`), with
+  coord maps `api/_assets/trec-36-11-coords.json` and `op-l-coords.json`.
+  Re-verified against `origin/main` on 2026-09-17.
+- **TREC 49-1 not in library/generators** — false. `fillAppraisalTermination`
+  (`api/fill-form.js:2817`) plus `api/_assets/trec-49-1-coords.json` and
+  `trec-49-1-base64.js`. Re-verified against `origin/main` on 2026-09-17.
+
+Several closed entries remain above with their `~~strikethrough~~` and RESOLVED
+annotations intact — they are useful history, and the parser now skips them
+rather than dispatching them.
