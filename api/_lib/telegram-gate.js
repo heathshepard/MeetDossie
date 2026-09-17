@@ -102,6 +102,19 @@ const ALWAYS_ALLOW = new Set([
                         // sends EVERY run, healthy or not — Heath's explicit ask, "consistent posting" top
                         // priority. Stays on this list either way: a digest he asked to always see is not
                         // the noise this gate exists to quiet — Carter, 2026-09-12 / 2026-09-16.
+  'cron-regression-suite', // daily 09:00 UTC. Qualifies for this floor ONLY because its alert policy was
+                           // rewritten at the same time (api/_lib/regression-alert-policy.js, 2026-09-17,
+                           // backlog B3): it no longer pushes on RED unconditionally, it pushes when the
+                           // FAILURE SET CHANGES — a PASS→FAIL regression, a FAIL→PASS recovery, a new
+                           // failing test, or a return to green — plus one still-broken reminder per week.
+                           // That makes it exception-only, which is the bar this list documents.
+                           // Un-gating it WITHOUT that policy change would have been worse than leaving it
+                           // gated: the suite has been RED with an identical 6-test failure set every day
+                           // since 2026-07-12, so it would have sent the same message every morning until
+                           // Heath tuned it out. What it was doing instead: a genuine regression on
+                           // cron.cron-deadline-reminders (2026-09-10) was swallowed here and nobody knew.
+                           // A regression detector nobody hears is the silent-failure class this whole
+                           // system exists to close — feedback_silent-failure-is-the-enemy.md.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.

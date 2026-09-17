@@ -19,7 +19,22 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-regression-suite');
+//
+// 'cron-regression-suite' sits in the gate's ALWAYS_ALLOW floor as of
+// 2026-09-17 (backlog B3) — it was NOT there before, so every alert this job
+// produced was silently eaten, including a real PASS→FAIL regression on
+// 2026-09-10. It earns that floor only because the alert policy below is now
+// delta-based rather than "RED every day"; see regression-alert-policy.js.
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-regression-suite');
+const { wasSuppressed } = telegramGate;
+
+const {
+  summarize,
+  computeDeltas,
+  decideAlert,
+  reminderHours,
+} = require('./_lib/regression-alert-policy.js');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -357,32 +372,26 @@ async function runDbTests() {
   return rows;
 }
 
-function summarize(results) {
-  const passed = results.filter(r => r.verdict === 'PASS').length;
-  const failed = results.filter(r => r.verdict === 'FAIL').length;
-  const skipped = results.filter(r => r.verdict === 'SKIP').length;
-  return { total: results.length, passed, failed, skipped };
-}
-
-function computeDeltas(current, previous) {
-  if (!Array.isArray(previous) || previous.length === 0) return { regressions: [], recoveries: [], newTests: [], firstRun: true };
-  const prev = new Map(previous.map(r => [r.id, r.verdict]));
-  const regressions = [], recoveries = [], newTests = [];
-  for (const c of current) {
-    const p = prev.get(c.id);
-    if (p === undefined) { if (c.verdict === 'FAIL') newTests.push(c); continue; }
-    if (p === 'PASS' && c.verdict === 'FAIL') regressions.push({ ...c, previous_verdict: p });
-    if (p === 'FAIL' && c.verdict === 'PASS') recoveries.push({ ...c, previous_verdict: p });
-  }
-  return { regressions, recoveries, newTests, firstRun: false };
-}
+// summarize() / computeDeltas() / decideAlert() live in
+// api/_lib/regression-alert-policy.js so the alert decision is a pure,
+// unit-testable function instead of inline branches nobody can exercise.
 
 function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Returns { sent, suppressed, reason }.
+//
+// `sent` means a human can actually read this message. It is NOT `res.ok`:
+// telegram-gate returns a well-formed fake 200 for a suppressed send, so the
+// old `return { sent: res.ok }` reported success for a message that was never
+// delivered. Anything that records "Heath was alerted" MUST distinguish those
+// — that confusion is what made the 2026-08-17 video_library incident invisible
+// for three weeks. See the CONTRACT block in api/_lib/telegram-gate.js.
 async function sendTelegram(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { sent: false, reason: 'no telegram config' };
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return { sent: false, suppressed: false, reason: 'no telegram config' };
+  }
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -394,8 +403,41 @@ async function sendTelegram(text) {
         disable_web_page_preview: true,
       }),
     });
-    return { sent: res.ok };
-  } catch (e) { return { sent: false, reason: e.message }; }
+    let body = null;
+    try { body = await res.json(); } catch { /* non-JSON error page */ }
+    if (wasSuppressed(body)) {
+      console.warn('[cron-regression-suite] alert SUPPRESSED by telegram-gate — NOT delivered');
+      return { sent: false, suppressed: true, reason: 'suppressed_by_telegram_gate' };
+    }
+    if (!res.ok) {
+      return { sent: false, suppressed: false, reason: `telegram ${res.status}` };
+    }
+    return { sent: true, suppressed: false, reason: 'delivered' };
+  } catch (e) {
+    return { sent: false, suppressed: false, reason: e.message };
+  }
+}
+
+// Age in hours of the most recent run that ACTUALLY delivered an alert.
+// null = never (or unreadable), which the policy treats as "due for a
+// reminder" so a fresh deploy announces the standing failure set once.
+//
+// This is the reason the alert_sent write-back below has to be honest: it is
+// now load-bearing input, not decoration. Before 2026-09-17 the column was
+// written `false` before the send was even attempted and never patched, so it
+// described nothing.
+async function hoursSinceLastDeliveredAlert() {
+  try {
+    const { ok, data } = await sb(
+      '/rest/v1/regression_runs?source=eq.vercel-cron&alert_sent=is.true&order=run_at.desc&limit=1&select=run_at'
+    );
+    const runAt = ok && Array.isArray(data) && data[0] ? data[0].run_at : null;
+    if (!runAt) return null;
+    const hours = (Date.now() - new Date(runAt).getTime()) / 3600000;
+    return Number.isFinite(hours) ? hours : null;
+  } catch {
+    return null;
+  }
 }
 
 async function handler(req, res) {
@@ -426,7 +468,8 @@ async function handler(req, res) {
   } catch {}
   const deltas = computeDeltas(results, previous);
 
-  // Insert new row
+  // Insert new row. return=representation (not minimal) so we get the row id
+  // back and can patch the REAL alert outcome onto it once the send resolves.
   const row = {
     run_at: new Date().toISOString(),
     source: 'vercel-cron',
@@ -441,25 +484,54 @@ async function handler(req, res) {
       ...deltas.regressions.map(r => ({ id: r.id, previous_verdict: 'PASS', current_verdict: 'FAIL' })),
       ...deltas.recoveries.map(r => ({ id: r.id, previous_verdict: 'FAIL', current_verdict: 'PASS' })),
     ],
+    // Provisional. Patched below with what actually happened — never left as
+    // the pre-send guess. See hoursSinceLastDeliveredAlert().
     alert_sent: false,
+    notes: 'alert: pending',
   };
-  await sb('/rest/v1/regression_runs', {
+  const inserted = await sb('/rest/v1/regression_runs', {
     method: 'POST',
-    headers: { Prefer: 'return=minimal' },
+    headers: { Prefer: 'return=representation' },
     body: JSON.stringify(row),
   });
+  const rowId =
+    inserted.ok && Array.isArray(inserted.data) && inserted.data[0] ? inserted.data[0].id : null;
+  if (!rowId) {
+    console.warn('[cron-regression-suite] could not read back inserted row id — alert_sent will not be patched');
+  }
 
-  // Alert policy
-  const failedPct = sum.total > 0 ? (sum.failed / sum.total) * 100 : 0;
-  const severity = sum.failed === 0 ? 'GREEN' : failedPct <= 10 ? 'YELLOW' : 'RED';
-  const hasDeltas = deltas.regressions.length + deltas.recoveries.length + deltas.newTests.length > 0;
+  // ---------------------------------------------------------------------
+  // Alert policy — delta-based, not "RED every day". See
+  // api/_lib/regression-alert-policy.js for the full rationale.
+  // ---------------------------------------------------------------------
   const prevSum = summarize(previous);
   const prevWasGreen = previous.length > 0 && prevSum.failed === 0;
+  const sinceLastAlert = await hoursSinceLastDeliveredAlert();
 
-  let alertSent = false;
+  const decision = decideAlert({
+    sum,
+    deltas,
+    prevWasGreen,
+    hadPrevious: previous.length > 0,
+    hoursSinceLastAlert: sinceLastAlert,
+  });
+  const severity = decision.severity;
+
   const header = `${severity === 'GREEN' ? '✅' : severity === 'YELLOW' ? '⚠️' : '🚨'} <b>Regression Suite — ${severity}</b>\n${sum.passed}/${sum.total} passed · ${sum.failed} failed · ${sum.skipped} skipped\n<i>${BASE_URL}</i> · vercel-cron`;
   const buildBody = () => {
     const parts = [header];
+    if (decision.isReminder) {
+      // A reminder must be actionable, not a nag: name the standing failures,
+      // since by definition nothing changed and there are no deltas to show.
+      const failing = results.filter(r => r.verdict === 'FAIL');
+      parts.push(
+        `<b>Still failing — unchanged since the last alert.</b>\n` +
+        failing.slice(0, 15).map(r => `• <code>${esc(r.id)}</code> — ${esc((r.error || '').slice(0, 120))}`).join('\n') +
+        (failing.length > 15 ? `\n…and ${failing.length - 15} more` : '') +
+        `\n\n<i>Next reminder in ${reminderHours()}h unless the failure set changes.</i>`
+      );
+      return parts.join('\n\n');
+    }
     if (deltas.regressions.length > 0) {
       parts.push('<b>Regressions (PASS → FAIL):</b>\n' + deltas.regressions.slice(0, 15).map(r => `• <code>${esc(r.id)}</code> — ${esc((r.error || '').slice(0, 120))}`).join('\n'));
     }
@@ -472,16 +544,26 @@ async function handler(req, res) {
     return parts.join('\n\n');
   };
 
-  if (severity === 'RED') {
+  let alertSent = false;
+  let alertOutcome = `not attempted (${decision.kind}: ${decision.reason})`;
+  if (decision.alert) {
     const r = await sendTelegram(buildBody());
     alertSent = !!r.sent;
-  } else if (severity === 'YELLOW' && hasDeltas) {
-    const r = await sendTelegram(buildBody());
-    alertSent = !!r.sent;
-  } else if (severity === 'GREEN' && (!prevWasGreen || deltas.recoveries.length > 0)) {
-    const body = header + (deltas.recoveries.length > 0 ? `\n\n<b>Recovered:</b>\n` + deltas.recoveries.map(r => `• <code>${esc(r.id)}</code>`).join('\n') : '');
-    const r = await sendTelegram(body);
-    alertSent = !!r.sent;
+    alertOutcome = `${decision.kind}: ${r.reason}`;
+  }
+
+  // Write back the TRUTH. A suppressed or failed send leaves alert_sent=false
+  // AND says why in notes, so "did Heath actually see this?" is answerable
+  // from the table rather than only from a long-gone HTTP response.
+  if (rowId) {
+    const patch = await sb(`/rest/v1/regression_runs?id=eq.${rowId}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ alert_sent: alertSent, notes: `alert: ${alertOutcome}`.slice(0, 500) }),
+    });
+    if (!patch.ok) {
+      console.warn(`[cron-regression-suite] alert_sent write-back FAILED (status ${patch.status}) for run ${rowId} — row still reads alert_sent=false, notes="alert: pending"`);
+    }
   }
 
   return res.status(200).json({
@@ -494,7 +576,16 @@ async function handler(req, res) {
       new_failing: deltas.newTests.length,
     },
     duration_ms,
+    alert_decision: {
+      alert: decision.alert,
+      kind: decision.kind,
+      reason: decision.reason,
+      is_reminder: decision.isReminder,
+      hours_since_last_alert: sinceLastAlert,
+    },
     alert_sent: alertSent,
+    alert_outcome: alertOutcome,
+    run_id: rowId,
   });
 }
 

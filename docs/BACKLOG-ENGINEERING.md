@@ -243,6 +243,24 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
   var — **Heath** should read it to learn how much else is suppressed (see D7).
 - **Confidence** — Gate wiring and failure history verified now; actual suppression depends on
   that unreadable env value — **unverified**.
+- **FIXED 2026-09-17 on branch `fix/b3-regression-alerting` (not merged, not deployed).**
+  Three changes, which only work as one:
+  1. `cron-regression-suite` added to `ALWAYS_ALLOW` in `api/_lib/telegram-gate.js`.
+  2. Alert policy extracted to `api/_lib/regression-alert-policy.js` and made **delta-based**:
+     it fires on a change to the failure set (PASS→FAIL, FAIL→PASS, new-and-failing) or a
+     return to green, plus one "still failing" reminder every `REGRESSION_REMINDER_HOURS`
+     (default 168h). Replayed against the real 9/06→9/17 rows that is **2 alerts, not 12** —
+     the 9/10 regression and the 9/11 recovery. Un-gating without this would have shipped a
+     daily 🚨 with an identical body, i.e. the same blindness with extra steps.
+  3. `alert_sent` is now truthful: the insert uses `Prefer: return=representation` to get the
+     row id, and the real outcome is PATCHed back afterwards — including on failure and on
+     gate suppression. `sendTelegram()` no longer treats `res.ok` as delivery; it checks
+     `wasSuppressed()`, since the gate returns a fake 200. `notes` carries the reason
+     (`alert: failure_set_changed: delivered`, `alert: ... suppressed_by_telegram_gate`, …).
+  Tests: `npm run test:regression-alerting` (30 assertions, `node --test`). The gate test
+  asserts the outcome across **every** value `parseMode()` recognises, so the answer no longer
+  depends on the unreadable env var — the only value that still silences this alert is
+  `strict`. That remains the one open unknown, and D7 still stands for everything else.
 
 ### B4. Two of the six standing regression failures look miscalibrated, not real
 - **Evidence** — `cron.cron-platform-health-checker` fails as "stale: 11.0h ago (max 4h)", but
