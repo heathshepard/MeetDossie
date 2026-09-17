@@ -14,6 +14,16 @@ const { messagesCreateCached } = require('./_lib/spawn-with-cache');
 const { getTeamChatContext } = require('./_lib/team-chat-context');
 const { inviteTeamMember, EMAIL_RE: TEAM_INVITE_EMAIL_RE } = require('./_lib/team-invite-core');
 const { getServiceClient: getTeamAuthServiceClient } = require('./_lib/team-auth');
+// Contract-deadline date math, over api/_lib/business-calendar.js — the same
+// module (and the same usage pattern) as scan-contract.js,
+// cron-deadline-reminders.js, interactive-editor-update-field.js and
+// dossie-update-and-refill.js. This path had been the one client-facing
+// surface producing dates WITHOUT it; see the header of
+// _lib/chat-deal-deadlines.js and the DEADLINE AUTHORITY prompt block below.
+const {
+  todayInTexasYMD,
+  compactDealsForAction,
+} = require('./_lib/chat-deal-deadlines');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -131,6 +141,8 @@ Reference facts to weave into one or two natural sentences (never bullets, never
 - Talking to Dossie — this conversation, anytime, from the Talk to Dossie button.
 - Sharing a closing card — pops up automatically when a deal hits a milestone (Under Contract, Closed, etc.); savable and re-shareable from the Milestones section of the dossier.
 - Updating a deadline — open the dossier and tap the deadline field directly to edit it.
+
+DEADLINE RULE: you do not have this agent's computed deadline dates in this mode. Never work out a specific calendar date for a specific deal — not an option expiration, not an earnest money or option fee due date, not a closing date — and never state one as fact. Explain the rule if they ask how it works (TREC counts calendar days from the Effective Date, and only the option fee / earnest money DELIVERY deadlines roll forward off a Saturday, Sunday, or Texas Legal Holiday — option expiration, financing, appraisal, survey, HOA documents, and closing stay put), then tell them to open the dossier, where Dossie has the exact dates computed. A wrong deadline can cost a client their earnest money.
 
 TUTORIAL VIDEO OFFER (how-to questions):
 When the agent asks any "how do I X" question — sending compliance, opening a dossier, filling a contract, using DossieSign, drafting an amendment, scanning a document, voice commands, the Morning Brief — first give the short one-sentence answer, then offer the tutorial. Format your reply like this when a tutorial likely exists:
@@ -308,7 +320,7 @@ const TOOLS = [
         to_email: { type: 'string', description: 'Recipient email address' },
         to_name: { type: 'string', description: 'Recipient name' },
         subject: { type: 'string', description: 'Email subject line' },
-        body: { type: 'string', description: 'Email body in plain text. Write as Dossie speaking on behalf of the agent. Warm, professional, concise.' },
+        body: { type: 'string', description: 'Email body in plain text. Write as Dossie speaking on behalf of the agent. Warm, professional, concise. This text is sent to a real person — if it mentions any contract deadline, copy the already-computed date from the deal (optionFeeDueDate, earnestMoneyDueDate, optionExpirationDate, loanApprovalDeadline, appraisalDeadline, surveyDeadline, hoaDocumentDeadline, closingDate) verbatim. Never calculate a deadline to put in an email; if it is not computed on the deal, leave it out and say it is not set yet.' },
         deal_identifier: { type: 'string', description: 'The deal this email is about — used to log it' },
       },
       required: ['to_email', 'subject', 'body'],
@@ -488,6 +500,14 @@ const buildActionSystemPrompt = (deals, today, teamContext) => {
 NAME RULES: Your name is Dossie (rhymes with "bossy"). Speech-to-text frequently mishears it as Darcy, Dorothy, Daisy, Dossy, Docie, Dottie, or similar sound-alikes. If the agent greets you or addresses you using any wrong name, warmly correct it in one breath without making a thing of it — for example: "It's Dossie, by the way — but good morning." Never adopt the wrong name. Never repeat the wrong name back to them. After the gentle correction, continue normally.
 
 You know Texas real estate inside and out — TREC contracts, option periods, earnest money, title companies, lenders, HOA requirements, TREC compliance. You speak like a seasoned TC who genuinely cares about the agent's success.
+
+DEADLINE AUTHORITY — READ BEFORE STATING ANY DATE:
+Every deal below carries its TREC deadline dates ALREADY COMPUTED, in YYYY-MM-DD, by the server's contract-calendar module: contractEffectiveDate, optionFeeDueDate, earnestMoneyDueDate, optionExpirationDate, loanApprovalDeadline, appraisalDeadline, surveyDeadline, hoaDocumentDeadline, possessionDate, closingDate.
+- NEVER compute a contract deadline yourself. Do not add optionDays to contractEffectiveDate, do not count three days for earnest money, do not adjust anything for a weekend or a holiday. Read the computed field and quote it. optionDays / financingDays are shown so you can explain a deadline, never so you can derive one.
+- These numbers already encode TREC ¶5A(2), which is NOT a blanket rule: the option fee and earnest money delivery deadlines roll forward off a Saturday, Sunday, or Texas Legal Holiday to the next business day, while the option expiration, financing, appraisal, survey, HOA-document, possession, and closing dates are FIXED calendar dates that do NOT roll even when they land on a weekend or holiday. Never "helpfully" move one of those fixed dates, and never leave a funds-delivery date unrolled.
+- fundsDeliveryRolled: true means the option-fee/earnest-money date you see was rolled forward from fundsDeliveryDueDateRaw. If the agent asks why the date isn't exactly three days out, that is the reason — say so.
+- If a deadline field you need is null, say plainly that it isn't set on this dossier yet and what's missing (usually the effective date or the option days). Never fill the gap with a date you worked out yourself, and never round or "about a week from" a legal deadline.
+A wrong deadline in a message to a client can cost that client their earnest money. Quoting the computed field is the only acceptable behavior.
 
 TODAY: ${today}
 AGENT'S ACTIVE DEALS: ${dealsJson}
@@ -736,11 +756,12 @@ CANONICAL TRANSACTION TYPE VALUES for create_dossier.transaction_type — ALWAYS
 
 The transaction_type param is critical — it drives which section layout, which TREC forms auto-fill, and which stages appear. Never omit it when the agent's phrasing signals the type.
 
-DATE FORMAT: When the agent says relative dates, resolve them to YYYY-MM-DD format.
+DATE FORMAT: When the agent says relative dates, resolve them to YYYY-MM-DD format. TODAY (${today}) is the calendar date in Texas — resolve every relative date against it, not against UTC.
 - "June 26th" → "2026-06-26"
 - "next Friday" → calculate from today (${today})
 - "in 3 days" → calculate from today
 - "extend by 2 days" → calculate from the existing field value + 2 days
+This applies ONLY to a date the AGENT is dictating to you (a new closing date they negotiated, a date they want written into an amendment). It NEVER applies to a TREC deadline — those are already computed on each deal and must be quoted, not calculated. See DEADLINE AUTHORITY above.
 
 APP-SPECIFIC HOW-TO ANSWERS (use the answer_question tool):
 When the agent asks how to do something in this app — including vague phrasing like "how do I send compliance" or "how do I track a deadline" — ALWAYS answer in terms of Dossie's own features. NEVER describe Skyslope, Dotloop, DocuSign, Folio, Brokermint, kvCORE, Brokerkit, Command, or any other third-party tool unless the agent explicitly names that tool first. NEVER give generic real-estate workflow advice when there is a Dossie feature that does the thing. If the agent asks "how do I send compliance documents", they mean inside Dossie — answer with the Send to Compliance button, not Skyslope.
@@ -762,68 +783,6 @@ PERSONALITY:
 You are confident without being cold. Thorough without being verbose. You sound like the best TC the agent has ever worked with — the one who always has the answer, always has the file moving, and never needs to be chased down. You are the TC that never sleeps.`;
 };
 
-function compactDealsForAction(deals) {
-  if (!Array.isArray(deals)) return [];
-  return deals
-    .filter((d) => d && d.id)
-    .slice(0, 50)
-    .map((d) => ({
-      id: d.id,
-      propertyAddress: d.propertyAddress || null,
-      cityStateZip: d.cityStateZip || null,
-      buyerName: d.buyerName || null,
-      sellerName: d.sellerName || null,
-      stage: d.stage || null,
-      status: d.status || null,
-      role: d.role || null,
-      salePrice: typeof d.salePrice === 'number' ? d.salePrice : null,
-      earnestMoney: typeof d.earnestMoney === 'number' ? d.earnestMoney : null,
-      optionFee: typeof d.optionFee === 'number' ? d.optionFee : null,
-      optionDays: typeof d.optionDays === 'number' ? d.optionDays : null,
-      financingDays: typeof d.financingDays === 'number' ? d.financingDays : null,
-      contractEffectiveDate: d.contractEffectiveDate || null,
-      closingDate: d.closingDate || null,
-      titleCompany: d.titleCompany || null,
-      titleOfficerName: d.titleOfficerName || null,
-      titleOfficerEmail: d.titleOfficerEmail || null,
-      titleOfficerPhone: d.titleOfficerPhone || null,
-      lenderName: d.lenderName || null,
-      loanOfficerName: d.loanOfficerName || null,
-      loanOfficerEmail: d.loanOfficerEmail || null,
-      loanOfficerPhone: d.loanOfficerPhone || null,
-      hoaName: d.hoaName || null,
-      hoaPhone: d.hoaPhone || null,
-      hoaManagementCompany: d.hoaManagementCompany || null,
-      inspectorName: d.inspectorName || null,
-      inspectorPhone: d.inspectorPhone || null,
-      inspectorEmail: d.inspectorEmail || null,
-      mlsNumber: d.mlsNumber || null,
-      bedrooms: d.bedrooms ?? null,
-      bathrooms: d.bathrooms ?? null,
-      sqft: d.sqft ?? null,
-      yearBuilt: d.yearBuilt ?? null,
-      possessionDate: d.possessionDate || null,
-      appraisalDeadline: d.appraisalDeadline || null,
-      surveyDeadline: d.surveyDeadline || null,
-      hoaDocumentDeadline: d.hoaDocumentDeadline || null,
-      loanApprovalDeadline: d.loanApprovalDeadline || null,
-      // Negotiated-detail fields from the scanned executed contract — see
-      // ANSWERING QUESTIONS ABOUT NEGOTIATED CONTRACT DETAILS above.
-      // contractScanned tells the assistant whether an absent field means
-      // "the contract doesn't say" vs "no contract has been scanned yet."
-      contractScanned: Boolean(d.contractExtractedAt),
-      surveyPayer: d.surveyPayer || null,
-      homeWarrantyTerms: d.homeWarrantyTerms || null,
-      repairsSummary: d.repairsSummary || null,
-      fixturesIncluded: Array.isArray(d.fixturesIncluded) && d.fixturesIncluded.length ? d.fixturesIncluded : null,
-      fixturesExcluded: Array.isArray(d.fixturesExcluded) && d.fixturesExcluded.length ? d.fixturesExcluded : null,
-      specialProvisions: d.specialProvisions || null,
-      expenseAllocation: (d.expenseAllocation && typeof d.expenseAllocation === 'object' && Object.keys(d.expenseAllocation).length) ? d.expenseAllocation : null,
-      prorations: d.prorations || null,
-      addendaAttached: Array.isArray(d.addendaAttached) && d.addendaAttached.length ? d.addendaAttached : null,
-      financingTerms: (d.financingTerms && typeof d.financingTerms === 'object' && Object.keys(d.financingTerms).length) ? d.financingTerms : null,
-    }));
-}
 
 // Executes the add_team_member tool server-side (the actual invite call),
 // then returns a plain answer_question-shaped result so the client needs no
@@ -875,7 +834,7 @@ async function executeAddTeamMember({ teamContext, userId, params }) {
 }
 
 async function handleActionMode({ message, deals, messages, userId }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInTexasYMD();
   const compactDeals = compactDealsForAction(deals);
   // Team-lead awareness: null for every solo agent (the overwhelming
   // majority of callers) — only a real admin membership on a non-archived
