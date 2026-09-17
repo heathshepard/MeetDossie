@@ -2,6 +2,7 @@
 title: "River Mountain Ranch, Boerne TX — Guide, HOA, Schools, Well & Septic"
 slug: "river-mountain-ranch"
 meta_description: "River Mountain Ranch, Boerne: 563 acreage tracts on 3,100 acres, voluntary POA, private Guadalupe river parks. Wells, septic, schools, real commute."
+summary: "River Mountain Ranch is a 563-parcel acreage subdivision on about 3,104 acres east of Boerne off Kreutzberg Road, median lot 5.0 acres, median Kendall CAD value near $780,000. Its POA is voluntary, not mandatory — and the three private Guadalupe river parks are a members' amenity. Individual wells and on-site septic throughout."
 h1: "River Mountain Ranch, Boerne, Texas"
 neighborhood_name: River Mountain Ranch
 county: Kendall

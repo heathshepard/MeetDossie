@@ -2,6 +2,7 @@
 title: "Moving to Boerne, TX: A Relocation Guide for Out-of-State Buyers"
 slug: "relocation"
 meta_description: "Relocating to Boerne TX from California, Austin or out of state? The tax reset that catches everyone, wells, septic, no zoning, and a real timeline."
+summary: "Kendall County's population reached an estimated 53,289 in 2025, up 20.3% since 2020. The mistake relocating buyers make is underwriting off the seller's tax bill: the 10% homestead appraisal cap and any over-65 ceiling freeze reset at sale. Calculate purchase price times the parcel's combined rate, minus the $140,000 school exemption."
 h1: "Moving to Boerne, TX: A Relocation Guide"
 target_keywords:
   - "moving to boerne tx"

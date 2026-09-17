@@ -2,6 +2,7 @@
 title: "Highlands Ranch, Boerne TX 78006 — Guide, HOA, Schools, County"
 slug: "highlands-ranch"
 meta_description: "Highlands Ranch, Boerne 78006: acreage estates off Boerne Stage Road that are legally in BEXAR County. Boerne ISD, Viola Wilson. HOA and diligence."
+summary: "Highlands Ranch is a gated acreage community off Boerne Stage Road that carries a Boerne 78006 address but sits in Bexar County — the association is legally named Bexar County Highlands Ranch Homeowners Association. It is Boerne ISD: Viola Wilson Elementary, Boerne Middle South, Champion High. 111 parcels, median lot 3.56 acres, median appraised value near $1,062,000."
 h1: "Highlands Ranch, Boerne, Texas"
 neighborhood_name: Highlands Ranch
 county: Bexar

@@ -2,6 +2,7 @@
 title: "Boerne, TX Short-Term Rental Rules: What the Ordinance Actually Says"
 slug: "short-term-rentals"
 meta_description: "Boerne's STR ordinance in full: $200 permit, 200-foot block-face rule, occupancy caps, insurance, HOT registration. San Antonio's rules do not apply."
+summary: "San Antonio's short-term rental rules do not apply here. Boerne's Ordinance 2023-09 requires a permit for any STR inside city limits or the ETJ: $200 application, $100 inspection (ETJ exempt), two-year term. It bars operation within 200 feet of another STR on the same residential block face and caps occupancy at two per bedroom plus two."
 h1: "Short-Term Rental Rules in Boerne, TX"
 target_keywords:
   - "boerne tx short term rental rules"

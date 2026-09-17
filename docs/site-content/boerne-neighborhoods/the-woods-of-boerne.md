@@ -2,6 +2,7 @@
 title: "The Woods of Boerne, TX — Neighborhood Guide, HOA, Schools"
 slug: "the-woods-of-boerne"
 meta_description: "The Woods of Boerne: 202 homes on wooded lots inside city limits, across Hwy 46 from Champion High. HOA fees, schools, and an honest fit assessment."
+summary: "The Woods of Boerne sits directly across Highway 46 from Champion High School but is zoned to Boerne High School, with Dr. Ferdinand L. Herff Elementary and Boerne Middle School North. Inside Boerne city limits: 202 parcels on about 68 acres, 93% built out, median lot 0.193 acres, median value near $536,000."
 h1: "The Woods of Boerne, Texas"
 neighborhood_name: The Woods of Boerne
 county: Kendall

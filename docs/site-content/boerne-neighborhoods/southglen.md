@@ -2,6 +2,7 @@
 title: "Southglen, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "southglen"
 meta_description: "Southglen, Boerne: 432 homes inside City of Boerne limits, Kendall County — not Bexar, despite the 78015 zip. HOA, pool, schools, commute."
+summary: "Southglen is the 78015 exception: unlike Balcones Creek, Front Gate, Napa Oaks, Fallbrook and Sablechase, it is in Kendall County and inside Boerne city limits. Kendall CAD shows 432 parcels on about 117 acres, median lot 0.153 acres, median value near $432,000. City utilities, a community pool, and Boerne ISD."
 h1: "Southglen, Boerne, Texas"
 neighborhood_name: Southglen
 county: Kendall

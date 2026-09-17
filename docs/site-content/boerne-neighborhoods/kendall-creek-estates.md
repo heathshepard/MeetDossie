@@ -2,6 +2,7 @@
 title: "Kendall Creek Estates, Boerne TX — Guide, HOA, Schools"
 slug: "kendall-creek-estates"
 meta_description: "Kendall Creek Estates, Boerne: 102 homes inside City of Boerne limits near Scenic Loop. Now zoned to Viola Wilson Elementary. HOA, schools, commute."
+summary: "Kendall Creek Estates is now zoned to Viola Wilson Elementary, the campus Boerne ISD opened in August 2024, along with Boerne Middle School South and Champion High School. It sits inside Boerne city limits in Kendall County: 102 parcels on about 27 acres, 99% built out, median lot 0.22 acres, median value near $427,000."
 h1: "Kendall Creek Estates, Boerne, Texas"
 neighborhood_name: Kendall Creek Estates
 county: Kendall

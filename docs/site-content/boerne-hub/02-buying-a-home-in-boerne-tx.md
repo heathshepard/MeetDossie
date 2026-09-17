@@ -2,6 +2,7 @@
 title: "Buying a Home in Boerne, TX: Process, Timeline and Local Traps"
 slug: "buying-a-home"
 meta_description: "How buying in Boerne differs from San Antonio: wells, septic, no county zoning, MUD rates, and the diligence that actually matters. From a local agent."
+summary: "The contract mechanics match any Texas purchase; the diligence does not. Before touring, verify four things: city limits or unincorporated (1.8645 versus 1.3929 combined 2025 rate), MUD status, Boerne ISD versus Comfort ISD, and the deed restrictions. Kendall County has no zoning and no residential building code, so well, septic and inspection carry the whole load."
 h1: "Buying a Home in Boerne, TX"
 target_keywords:
   - "buying a home in boerne tx"

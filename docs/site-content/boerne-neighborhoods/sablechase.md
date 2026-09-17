@@ -2,6 +2,7 @@
 title: "Sablechase, Boerne TX 78015 — Neighborhood Guide, HOA, Schools"
 slug: "sablechase"
 meta_description: "Sablechase, Boerne 78015: 508 gated homes in Bexar County off Old Fredericksburg Road. Boerne ISD, Van Raub Elementary. HOA dues, values, commute."
+summary: "Sablechase is a gated, finished subdivision off Old Fredericksburg Road with a Boerne 78015 address that is legally in Bexar County, not Kendall. Bexar records show 508 parcels, median lot 0.212 acres, median appraised value near $514,000, built roughly 2010 to 2018. Boerne ISD, with a pool, sports courts and clubhouse."
 h1: "Sablechase, Boerne, Texas"
 neighborhood_name: Sablechase
 county: Bexar

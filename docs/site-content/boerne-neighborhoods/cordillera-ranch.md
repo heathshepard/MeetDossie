@@ -2,6 +2,7 @@
 title: "Cordillera Ranch, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "cordillera-ranch"
 meta_description: "Cordillera Ranch in Boerne: 1,519 platted lots, 5,443 acres, unincorporated Kendall County. HOA, the seven clubs, schools, and who it actually suits."
+summary: "Cordillera Ranch is Kendall County's largest residential development: 1,519 platted parcels across about 5,444 acres, median lot 2.95 acres, median improved value near $1.52 million. The mandatory POA charges a $2,000 working capital contribution at closing. The Clubs of Cordillera Ranch are a separate organization with separate dues, and utilities vary by section."
 h1: "Cordillera Ranch, Boerne, Texas"
 neighborhood_name: Cordillera Ranch
 county: Kendall

@@ -2,6 +2,7 @@
 title: "Boerne ISD Schools Guide: Ratings, Campuses, Boundaries and Home Value"
 slug: "schools"
 meta_description: "Boerne ISD earned an A (score 92) from TEA in 2026 — its seventh straight. Campus list, attendance zone traps, and how schools move home values here."
+summary: "Boerne ISD earned an A with an overall score of 92 in the TEA ratings released August 2026 — its seventh consecutive A, with a 99.2% graduation rate. A Boerne mailing address does not guarantee Boerne ISD; western and northern Kendall County is Comfort ISD. Verify the campus with Administrative Services at (830) 357-2011."
 h1: "Boerne ISD Schools Guide"
 target_keywords:
   - "boerne isd schools"

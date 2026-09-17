@@ -2,6 +2,7 @@
 title: "Napa Oaks, Boerne TX 78015 — Neighborhood Guide, HOA, Schools"
 slug: "napa-oaks"
 meta_description: "Napa Oaks, Boerne 78015: 368 homes in Bexar County near Fair Oaks Parkway. Gated, Boerne ISD, Van Raub Elementary. HOA, values, and the name mix-up."
+summary: "Napa Oaks is a gated subdivision on the ridge above I-10 near Fair Oaks Parkway — a Boerne 78015 address that is legally in Bexar County, not Kendall. Bexar records show 368 parcels, median lot 0.198 acres, median appraised value near $530,000, built roughly 2010 to 2024. Boerne ISD, with a community pool."
 h1: "Napa Oaks, Boerne, Texas"
 neighborhood_name: Napa Oaks
 county: Bexar

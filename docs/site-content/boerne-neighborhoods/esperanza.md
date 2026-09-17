@@ -2,6 +2,7 @@
 title: "Esperanza, Boerne TX — Neighborhood Guide, HOA, MUD Tax, Schools"
 slug: "esperanza"
 meta_description: "Esperanza in Boerne: 1,608 platted lots, unincorporated Kendall County, WCID #3 utilities. HOA, the MUD question, schools, and who it suits."
+summary: "Esperanza is Boerne's largest new-construction community: 1,608 platted parcels on about 571 acres, median lot 0.206 acres, median Kendall CAD value near $599,000. It is in unincorporated Kendall County, not the City of Boerne, and is served by Water Control and Improvement District No. 3 — a taxing entity whose rate you must confirm."
 h1: "Esperanza, Boerne, Texas"
 neighborhood_name: Esperanza
 county: Kendall

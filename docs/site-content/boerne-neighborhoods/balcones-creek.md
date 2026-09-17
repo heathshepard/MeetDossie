@@ -2,6 +2,7 @@
 title: "Balcones Creek, Boerne TX 78006 — Guide, HOA, Schools, County"
 slug: "balcones-creek"
 meta_description: "Balcones Creek: a Boerne 78006 address that is legally in BEXAR County, not Kendall. 606 homes, Boerne ISD, Viola Wilson Elementary. HOA and taxes."
+summary: "Balcones Creek carries a Boerne 78006 address but is legally in Bexar County, not Kendall — so Bexar County tax rates apply. It is still Boerne ISD, currently Viola Wilson Elementary, Boerne Middle School South and Champion High School. Bexar records show 606 parcels, median lot 0.195 acres, median appraised value near $633,000."
 h1: "Balcones Creek, Boerne, Texas"
 neighborhood_name: Balcones Creek
 county: Bexar

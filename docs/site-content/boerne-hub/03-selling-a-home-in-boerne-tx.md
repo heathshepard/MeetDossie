@@ -2,6 +2,7 @@
 title: "Selling a Home in Boerne, TX: Pricing, Prep, Timeline and Net Proceeds"
 slug: "selling-a-home"
 meta_description: "Selling in Boerne at 4.4 months of inventory: how to price acreage with thin comps, what prep pays, and how to read your net sheet. Local agent guide."
+summary: "At roughly 4.4 months of inventory and 3.0% annual appreciation (SABOR MLS, September 2026), appreciation no longer rescues a pricing mistake — price correctly in week one. Comps are thin because in-town, subdivision and acreage Boerne do not cross-comp. Documentation of well, septic and ag records removes the buyer's uncertainty discount cheaply."
 h1: "Selling a Home in Boerne, TX"
 target_keywords:
   - "selling a home in boerne tx"

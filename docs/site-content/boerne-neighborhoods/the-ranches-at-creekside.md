@@ -2,6 +2,7 @@
 title: "The Ranches at Creekside, Boerne TX — Guide, HOA, Schools"
 slug: "the-ranches-at-creekside"
 meta_description: "The Ranches at Creekside, Boerne: 532 homes on 306 platted acres inside City of Boerne limits. HOA fees, builders, schools, and honest fit."
+summary: "The Ranches at Creekside is a suburban new-construction subdivision off Ammann Road inside Boerne city limits, not a ranch community: 532 parcels on about 169 platted acres, 80% built out, median lot 0.209 acres, median Kendall CAD value near $599,000. City water and sewer with no utility district levy. Boerne ISD, Champion High."
 h1: "The Ranches at Creekside, Boerne, Texas"
 neighborhood_name: The Ranches at Creekside
 county: Kendall

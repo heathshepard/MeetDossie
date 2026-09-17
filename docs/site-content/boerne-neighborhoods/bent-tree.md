@@ -2,6 +2,7 @@
 title: "Bent Tree, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "bent-tree"
 meta_description: "Bent Tree, Boerne: 103 homes on roughly 1-acre lots north of town, unincorporated Kendall County. HOA, wells and septic, schools, commute."
+summary: "Bent Tree is a 103-parcel acreage neighborhood north of Boerne in unincorporated Kendall County, 91% built out. Lots are uniform at a 1.12-acre median; Kendall CAD market values run near $948,000. Boerne ISD — Curington Elementary, Boerne Middle North, Boerne High. No city taxes or services; expect a well and septic."
 h1: "Bent Tree, Boerne, Texas"
 neighborhood_name: Bent Tree
 county: Kendall

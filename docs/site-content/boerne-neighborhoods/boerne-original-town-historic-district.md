@@ -2,6 +2,7 @@
 title: "Historic Downtown Boerne, TX — Original Town Guide, Rules, Schools"
 slug: "boerne-original-town-historic-district"
 meta_description: "Boerne Original Town and the Historic District: no HOA, but Certificate of Appropriateness review applies. Lot sizes, values, schools, and real rules."
+summary: "Boerne's Original Town has no HOA, but the City's Historic District — established 1985, running Main Street from Frederick to Oak Park and covering over 150 properties — requires a Certificate of Appropriateness from the Historic Landmark Commission before exterior work. Kendall CAD shows 114 parcels, median lot 0.362 acres, median value near $677,000."
 h1: "Boerne Original Town and the Historic District"
 neighborhood_name: Boerne Original Town / Boerne Historic District
 county: Kendall

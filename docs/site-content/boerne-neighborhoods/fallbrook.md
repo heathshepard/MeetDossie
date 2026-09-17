@@ -2,6 +2,7 @@
 title: "Fallbrook, Boerne TX 78015 — Neighborhood Guide, HOA, Schools"
 slug: "fallbrook"
 meta_description: "Fallbrook, Boerne 78015: 415 gated homes in Bexar County off Ralph Fair Road. Boerne ISD, Van Raub Elementary. HOA dues, values, and commute."
+summary: "Fallbrook is a gated subdivision off Ralph Fair Road with a Boerne 78015 address that is legally in Bexar County, not Kendall. Bexar records show 415 parcels, median lot 0.186 acres, median appraised value near $583,000, built roughly 2014 to 2024. Boerne ISD: Van Raub Elementary, Boerne Middle South, Champion High."
 h1: "Fallbrook, Boerne, Texas"
 neighborhood_name: Fallbrook
 county: Bexar

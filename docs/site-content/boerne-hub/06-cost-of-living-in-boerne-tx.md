@@ -2,6 +2,7 @@
 title: "Cost of Living in Boerne, TX: Taxes, Utilities, Insurance and HOA"
 slug: "cost-of-living"
 meta_description: "What it actually costs to own in Boerne TX: verified 2025 tax rates, city utility bills, well and septic costs, insurance reality and HOA questions."
+summary: "The largest variable is jurisdiction: on the roughly $602,600 median, 2025 annual property tax runs about $6,978 unincorporated, $9,820 inside city limits, $13,004 in Miralomas MUD. Neither the City of Boerne nor Kendall County offers a general homestead exemption — only the $140,000 school exemption, worth roughly $1,415 a year. Sales tax is 8.25%."
 h1: "Cost of Living in Boerne, TX"
 target_keywords:
   - "cost of living in boerne tx"

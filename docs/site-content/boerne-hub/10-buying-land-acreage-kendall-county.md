@@ -2,6 +2,7 @@
 title: "Buying Land and Acreage in Kendall County, TX"
 slug: "land-and-acreage"
 meta_description: "Kendall County land: no zoning, no residential building code, wells, septic feasibility, ag valuation rollback and dark-sky permits. What to verify first."
+summary: "Kendall County has no zoning and no building code for single-family residential in unincorporated areas, so recorded deed restrictions are the only land-use control. Two items decide a land deal: septic feasibility, which needs a licensed site evaluator and a contract contingency, and well yield. Losing a 1-d-1 ag valuation triggers a rollback of back taxes."
 h1: "Buying Land and Acreage in Kendall County, TX"
 target_keywords:
   - "buying land in kendall county tx"

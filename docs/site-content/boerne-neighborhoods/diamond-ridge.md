@@ -2,6 +2,7 @@
 title: "Diamond Ridge, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "diamond-ridge"
 meta_description: "Diamond Ridge, Boerne: 120 acreage lots on 847 acres west of town, gated, unincorporated Kendall County. HOA, lake park, schools, commute."
+summary: "Diamond Ridge is a gated acreage community southwest of Boerne in unincorporated Kendall County: 120 parcels over roughly 847 acres, 72% built out, median lot 4.09 acres, median Kendall CAD value near $978,000. Marketing sources describe a private owners' park with a lake, clubhouse and tennis courts — verify what is actually built."
 h1: "Diamond Ridge, Boerne, Texas"
 neighborhood_name: Diamond Ridge
 county: Kendall

@@ -136,7 +136,8 @@ for f in files('boerne-hub'):
     GUIDE_BY_NUM[f[:2]] = (slug, d['h1'], d['title'])
     if len(d['title']) > 60:
         gap('BoerneGuides', 'metaTitle', slug, f"{len(d['title'])} chars, spec is <=60")
-    gap('BoerneGuides', 'summary', slug, 'no 40-60 word summary in source')
+    if not d.get('summary'):
+        gap('BoerneGuides', 'summary', slug, 'no 40-60 word summary in source')
     gap('BoerneGuides', 'heroImage/heroImageAlt', slug, 'no image in source')
     gap('BoerneGuides', 'datePublished', slug, 'not in source; set at publish')
     gap('BoerneGuides', 'dateModified', slug, 'not in source')
@@ -148,7 +149,7 @@ for f in files('boerne-hub'):
     guide_rows.append({
         'title': d['h1'], 'slug': slug,
         'metaTitle': d['title'], 'metaDescription': d['meta_description'],
-        'summary': '', 'body': md_to_html(gmd),
+        'summary': d.get('summary', ''), 'body': md_to_html(gmd),
         'heroImage': '', 'heroImageAlt': '',
         'datePublished': '', 'dateModified': '',
         'pageType': 'guide', 'faqJson': '',
@@ -188,7 +189,10 @@ for f in files('boerne-neighborhoods'):
         gap('Neighborhoods', 'schoolDistrict', slug,
             'ambiguous - source names ' + (', '.join(isd) + ' ISD' if isd else 'no district'))
 
-    for fld, why in [('summary', 'no 40-60 word summary in source'),
+    if not d.get('summary'):
+        gap('Neighborhoods', 'summary', slug, 'no 40-60 word summary in source')
+
+    for fld, why in [
                      ('latitude/longitude', 'no coordinates in source'),
                      ('priceRangeLow/priceRangeHigh', 'no price band in source'),
                      ('priceAsOf', 'no price band, so no as-of date'),
@@ -202,7 +206,7 @@ for f in files('boerne-neighborhoods'):
     neigh_rows.append({
         'name': d['neighborhood_name'], 'slug': slug,
         'metaTitle': d['title'], 'metaDescription': d['meta_description'],
-        'summary': '', 'body': md_to_html(nmd),
+        'summary': d.get('summary', ''), 'body': md_to_html(nmd),
         'city': city, 'county': d['county'],
         'latitude': '', 'longitude': '',
         'zipCodes': d['zip'], 'schoolDistrict': district,

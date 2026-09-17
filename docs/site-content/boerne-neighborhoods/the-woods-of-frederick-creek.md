@@ -2,6 +2,7 @@
 title: "The Woods of Frederick Creek, Boerne TX — Guide, HOA, Schools"
 slug: "the-woods-of-frederick-creek"
 meta_description: "The Woods of Frederick Creek, Boerne: 214 homes near downtown inside city limits. HOA fees, German street names, schools, and who it fits."
+summary: "The Woods of Frederick Creek is a compact, finished neighborhood on Boerne's west side near Johns Road, inside city limits with City of Boerne water, sewer and electric. Kendall CAD shows 214 parcels on about 67 acres, 97% built out, median lot 0.17 acres, median value near $458,000. The HOA is legally WFC Community Association."
 h1: "The Woods of Frederick Creek, Boerne, Texas"
 neighborhood_name: The Woods of Frederick Creek
 county: Kendall

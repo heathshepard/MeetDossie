@@ -2,6 +2,7 @@
 title: "Boerne TX Real Estate Market: Prices, Inventory and What Actually Drives Value"
 slug: "real-estate-market"
 meta_description: "Boerne TX real estate: median sale price, inventory, tax rates and the city-limits line that moves a tax bill by $2,800 a year. Local agent analysis."
+summary: "Boerne's median sale price is about $602,600, up 3.0% year over year, with 308 active listings against 832 trailing-twelve-month closings — roughly 4.4 months of inventory (SABOR MLS, September 2026). The biggest value driver is jurisdiction: inside city limits the combined 2025 tax rate is 1.8645 versus 1.3929 unincorporated, about $2,840 a year."
 h1: "The Boerne, Texas Real Estate Market"
 target_keywords:
   - "boerne tx real estate market"

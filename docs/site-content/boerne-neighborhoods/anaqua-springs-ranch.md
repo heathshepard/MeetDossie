@@ -2,6 +2,7 @@
 title: "Anaqua Springs Ranch, Boerne TX — Guide, HOA, and the ISD Surprise"
 slug: "anaqua-springs-ranch"
 meta_description: "Anaqua Springs Ranch: Boerne 78006 mailing address, BEXAR County land, and NORTHSIDE ISD — not Boerne ISD. Guard gate, dues, septic, and who it suits."
+summary: "Anaqua Springs Ranch has a Boerne 78006 mailing address but sits in Bexar County and Northside ISD — not Boerne ISD. Bexar records show 220 parcels, a median lot near 1.69 acres and a median appraised value around $1,507,000. A 24-hour staffed gate, SAWS water, and private septic on every lot."
 h1: "Anaqua Springs Ranch, Boerne, Texas"
 neighborhood_name: Anaqua Springs Ranch
 county: Bexar

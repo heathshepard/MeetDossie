@@ -2,6 +2,7 @@
 title: "Saddlehorn, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "saddlehorn"
 meta_description: "Saddlehorn, Boerne: 140 homes on small lots inside City of Boerne limits, Kendall County. HOA, schools, prices, and who it actually fits."
+summary: "Saddlehorn is one of the lowest-priced neighborhoods inside Boerne city limits: 140 parcels on roughly 32 acres, 94% built out, a 0.129-acre median lot and a median Kendall CAD value near $401,000 — the narrowest value band in this guide. City water, sewer and trash; Boerne ISD via Curington Elementary and Boerne High."
 h1: "Saddlehorn, Boerne, Texas"
 neighborhood_name: Saddlehorn
 county: Kendall

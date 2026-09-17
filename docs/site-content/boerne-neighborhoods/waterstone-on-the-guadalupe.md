@@ -2,6 +2,7 @@
 title: "Waterstone on the Guadalupe, Boerne TX — Guide, HOA, Schools"
 slug: "waterstone-on-the-guadalupe"
 meta_description: "Waterstone on the Guadalupe, Boerne: 222 acreage parcels, private river parks, unincorporated Kendall County. HOA, schools, and the real commute."
+summary: "Waterstone on the Guadalupe is an acreage community northeast of Boerne off FM 3351 — 222 parcels over about 1,266 acres, 82% built out, median lot 4.84 acres, median Kendall CAD value near $961,000. Its amenity is two private riverfront parks; individual lots generally do not front the Guadalupe. Check the survey."
 h1: "Waterstone on the Guadalupe, Boerne, Texas"
 neighborhood_name: Waterstone on the Guadalupe
 county: Kendall

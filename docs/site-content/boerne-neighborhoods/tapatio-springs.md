@@ -2,6 +2,7 @@
 title: "Tapatio Springs, Boerne TX — Neighborhood Guide, HOA, Golf, Schools"
 slug: "tapatio-springs"
 meta_description: "Tapatio Springs in Boerne: 415 parcels, unincorporated Kendall County. Resort vs. HOA, golf membership costs, condos vs. single-family, schools."
+summary: "Tapatio Springs is a golf resort with housing attached, west of Boerne off Johns Road in unincorporated Kendall County: 415 parcels on about 435 acres, median lot 0.43 acres, median Kendall CAD value near $722,000. At least six separate associations govern different sections, and the resort and golf club are not the HOA."
 h1: "Tapatio Springs, Boerne, Texas"
 neighborhood_name: Tapatio Springs
 county: Kendall

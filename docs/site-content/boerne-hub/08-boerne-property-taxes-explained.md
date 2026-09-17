@@ -2,6 +2,7 @@
 title: "Boerne Property Taxes Explained: Rates, Exemptions and How to Protest"
 slug: "property-taxes"
 meta_description: "Every Kendall County tax rate, every exemption, the 10% cap, ag valuation and the protest process — with the real 2025 numbers from the appraisal district."
+summary: "Boerne is in Kendall County, not Bexar. Tax year 2025 adopted rates: Boerne ISD 1.0109, City of Boerne 0.4716, Kendall County 0.3770, Cow Creek GCD 0.0050 — 1.8645 combined inside city limits, 1.3929 unincorporated. Neither the city nor the county offers a general homestead exemption; only the $140,000 school exemption applies. Protest by May 15."
 h1: "Boerne Property Taxes Explained"
 target_keywords:
   - "boerne property taxes"

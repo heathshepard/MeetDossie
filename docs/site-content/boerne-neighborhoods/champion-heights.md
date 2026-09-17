@@ -2,6 +2,7 @@
 title: "Champion Heights, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "champion-heights"
 meta_description: "Champion Heights, Boerne: 216 homes inside City of Boerne limits off Hwy 46. HOA, schools (it is zoned to Boerne High, not Champion), commute."
+summary: "Champion Heights sits near Champion High School but is zoned to Boerne High School — with Dr. Ferdinand L. Herff Elementary and Boerne Middle School North. It is inside Boerne city limits in Kendall County: 216 parcels, 93% built out, median lot 0.174 acres, median Kendall CAD value near $469,000."
 h1: "Champion Heights, Boerne, Texas"
 neighborhood_name: Champion Heights
 county: Kendall

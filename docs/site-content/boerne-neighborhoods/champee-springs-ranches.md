@@ -2,6 +2,7 @@
 title: "Champee Springs Ranches, Boerne TX — Guide, POA, Schools"
 slug: "champee-springs-ranches"
 meta_description: "Champee Springs Ranches, Boerne: 160 ranch tracts, median 38 acres, spanning Boerne ISD and Comfort ISD. POA status, easement litigation history, schools."
+summary: "Champee Springs Ranches is ranch-scale land west of Boerne: 160 parcels over roughly 11,567 acres, median tract 37.9 acres, median improved value near $2,064,000. It straddles two school districts — Kendall CAD shows 113 parcels in Boerne ISD and 47 in Comfort ISD. A POA exists but files no management certificate."
 h1: "Champee Springs Ranches, Boerne, Texas"
 neighborhood_name: Champee Springs Ranches
 county: Kendall

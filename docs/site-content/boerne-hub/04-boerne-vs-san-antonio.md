@@ -2,6 +2,7 @@
 title: "Boerne vs. San Antonio: Which Should You Buy In?"
 slug: "vs-san-antonio"
 meta_description: "Boerne or San Antonio? Verified 2025 tax rates side by side, schools, commute and the cases where San Antonio is the better buy. Honest local comparison."
+summary: "On an identical $602,600 house with a homestead exemption and 2025 adopted rates, annual property tax runs $6,978 in unincorporated Kendall County, $9,820 inside Boerne city limits, and $11,032 inside San Antonio in Northside ISD. Boerne's sticker prices are higher, but its effective rate is lower. Under about $450,000, San Antonio has the inventory."
 h1: "Boerne vs. San Antonio: Which Should You Buy In?"
 target_keywords:
   - "boerne vs san antonio"

@@ -2,6 +2,7 @@
 title: "Coveney Ranch, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "coveney-ranch"
 meta_description: "Coveney Ranch, Boerne: 91 lots on 379 acres off Hwy 46, gated, unincorporated Kendall County. HOA fees, wells and septic, schools, commute."
+summary: "Coveney Ranch is a gated acreage community off Highway 46 east of Boerne in unincorporated Kendall County — 91 parcels on about 379 acres, 89% built out, median lot 3.47 acres, median Kendall CAD value near $1,254,000. Homes date roughly 2000 to 2011, so roofs, HVAC and septic components are at first replacement."
 h1: "Coveney Ranch, Boerne, Texas"
 neighborhood_name: Coveney Ranch
 county: Kendall

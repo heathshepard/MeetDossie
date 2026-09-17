@@ -2,6 +2,7 @@
 title: "Sundance Ranch, Boerne TX 78006 — Guide, HOA, School District"
 slug: "sundance-ranch"
 meta_description: "Sundance Ranch, Boerne 78006: 162 homes off Toutant Beauregard in BEXAR County and NORTHSIDE ISD, not Boerne ISD. HOA fees, values, and honest fit."
+summary: "Sundance Ranch is in Northside ISD, not Boerne ISD, despite a Boerne 78006 address — verified through Bexar County's school GIS and nine Boerne ISD address probes. It is Bexar County. Bexar records show 162 parcels, a half-acre median lot and a median appraised value near $770,000. The HOA bills trash at $73.20 quarterly."
 h1: "Sundance Ranch, Boerne, Texas"
 neighborhood_name: Sundance Ranch
 county: Bexar

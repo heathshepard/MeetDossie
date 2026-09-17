@@ -2,6 +2,7 @@
 title: "Indian Springs (Kendall County), Boerne TX — Guide, POA, Schools"
 slug: "indian-springs-kendall-county"
 meta_description: "Indian Springs in Kendall County, Boerne: 22 acreage tracts off Hwy 46, volunteer-run POA with zero transfer fees. Not the Bexar County Indian Springs."
+summary: "Indian Springs in Kendall County is the smallest community in this guide — 22 parcels on about 104 acres, median lot 3.96 acres, median Kendall CAD value near $661,000. Its volunteer-run POA files a $0 resale certificate, $0 transfer and $0 working capital fee. Do not confuse it with four Bexar County associations sharing the name."
 h1: "Indian Springs (Kendall County), Boerne, Texas"
 neighborhood_name: Indian Springs (Kendall County)
 county: Kendall

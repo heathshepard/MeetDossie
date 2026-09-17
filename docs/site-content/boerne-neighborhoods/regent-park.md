@@ -2,6 +2,7 @@
 title: "Regent Park, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "regent-park"
 meta_description: "Regent Park, Boerne: 484 homes inside City of Boerne limits off I-10. HOA fees, amenities, schools, and the San Antonio name confusion to avoid."
+summary: "Regent Park is a new-construction neighborhood just off I-10 inside Boerne city limits in Kendall County: 484 parcels on about 171 acres, 94% built out, median lot 0.197 acres, median Kendall CAD value near $559,000. Amenities include a pool, recreation building with exercise room, pavilion, playground and trails. City water and sewer, no utility district."
 h1: "Regent Park, Boerne, Texas"
 neighborhood_name: Regent Park
 county: Kendall

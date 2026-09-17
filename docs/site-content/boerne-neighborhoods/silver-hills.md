@@ -2,6 +2,7 @@
 title: "Silver Hills, Boerne TX — Guide, Two-County Split, POA, Schools"
 slug: "silver-hills"
 meta_description: "Silver Hills near Bergheim: a subdivision genuinely split between Kendall and Comal counties, platted 1966-67. POA, wells and septic, school zones."
+summary: "Silver Hills genuinely straddles the Kendall/Comal county line — two separate management certificates for the same association, one filed in each county. On the Kendall side, Kendall CAD shows 19 parcels, a 1.13-acre median lot and a median value near $250,000, the lowest in this guide. Comal-side school assignment is unresolved; verify by parcel."
 h1: "Silver Hills, Boerne / Bergheim, Texas"
 neighborhood_name: Silver Hills
 county: "Kendall and Comal (the subdivision straddles the county line)"

@@ -2,6 +2,7 @@
 title: "Fair Oaks Ranch, TX — Guide to the Three-County City, HOA, Schools"
 slug: "fair-oaks-ranch"
 meta_description: "Fair Oaks Ranch: an incorporated city spanning Bexar, Comal and Kendall counties. What county you buy in changes your tax bill and possibly your schools."
+summary: "Fair Oaks Ranch is an incorporated city, not a subdivision, and it spans three counties — Bexar, Comal and Kendall — so your lot's county sets your tax rate and possibly your school district. Boerne ISD is verified for the Bexar and Kendall portions; the Comal portion is unresolved. Expect a master HOA plus a sub-association."
 h1: "Fair Oaks Ranch, Texas"
 neighborhood_name: Fair Oaks Ranch
 county: "Bexar, Comal and Kendall (the city spans all three)"

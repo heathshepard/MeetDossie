@@ -2,6 +2,7 @@
 title: "Trails of Herff Ranch, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "trails-of-herff-ranch"
 meta_description: "Trails of Herff Ranch, Boerne: 583 homes inside City of Boerne limits, Kendall County. HOA fees, the working capital charge, schools, commute."
+summary: "Trails of Herff Ranch is a finished, affordable neighborhood inside Boerne city limits: 583 parcels on about 270 acres, 98% built out, median lot 0.138 acres, median Kendall CAD value near $388,000. Boerne ISD, Champion High. The filed management certificate states a working capital charge of the greater of $100 or 15% of sale price — confirm it."
 h1: "Trails of Herff Ranch, Boerne, Texas"
 neighborhood_name: Trails of Herff Ranch
 county: Kendall

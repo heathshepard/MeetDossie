@@ -2,6 +2,7 @@
 title: "Spencer Ranch / The Birch at Spencer Ranch, Boerne TX — Guide"
 slug: "spencer-ranch"
 meta_description: "Spencer Ranch and The Birch, Boerne: new D.R. Horton construction annexed into the City of Boerne. Road maintenance assessment, schools, what is coming."
+summary: "Spencer Ranch — D.R. Horton's Birch at Spencer Ranch — is the newest community here: 65 parcels on about 29 acres, 22% improved, median Kendall CAD value near $325,000, annexed into Boerne city limits. Reporting describes an adjacent 112-acre mixed-use component with 560-plus multifamily units, entitlement unverified. The HOA charges a $525 Road Maintenance Assessment."
 h1: "Spencer Ranch and The Birch at Spencer Ranch, Boerne, Texas"
 neighborhood_name: Spencer Ranch / The Birch at Spencer Ranch
 county: Kendall

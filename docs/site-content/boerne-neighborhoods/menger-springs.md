@@ -2,6 +2,7 @@
 title: "Menger Springs, Boerne TX — Neighborhood Guide, HOA, Schools"
 slug: "menger-springs"
 meta_description: "Menger Springs, Boerne: 246 estate parcels inside city limits, Kendall County. HOA fees, lot sizes, schools, and the name confusion to avoid."
+summary: "Menger Springs is Boerne's estate neighborhood inside the city limits — acre-plus oak-covered lots with city water and sewer rather than a well and septic. Kendall CAD shows 246 parcels on about 366 acres, a 1.18-acre median lot and a median value near $1,098,000, but lots range from 0.19 to over 3 acres."
 h1: "Menger Springs, Boerne, Texas"
 neighborhood_name: Menger Springs
 county: Kendall
