@@ -43,6 +43,12 @@ function matchFilter(row, key, expr) {
     const vals = expr.slice(4, -1).split(',').map(decodeURIComponent);
     return vals.includes(String(row[key]));
   }
+  if (expr.startsWith('like.')) {
+    // Only the `*substring*` shape used by this codebase is supported --
+    // strip the wildcards and do a plain (case-sensitive) substring test.
+    const pattern = decodeURIComponent(expr.slice(5)).replace(/^\*|\*$/g, '');
+    return row[key] != null && String(row[key]).includes(pattern);
+  }
   return true;
 }
 
@@ -51,6 +57,8 @@ function startMockSupabase(seed) {
     social_posts: (seed.social_posts || []).map((r) => ({ ...r })),
     group_posts: (seed.group_posts || []).map((r) => ({ ...r })),
     video_library: (seed.video_library || []).map((r) => ({ ...r })),
+    fb_comment_replies: (seed.fb_comment_replies || []).map((r) => ({ ...r })),
+    tc_discovery_responses: (seed.tc_discovery_responses || []).map((r) => ({ ...r })),
     alert_state: (seed.alert_state || []).map((r) => ({ ...r })),
   };
 
@@ -167,6 +175,22 @@ async function run() {
     video_library: [
       { id: 'vid-1', status: 'pending_heath_review', topic: 'feature-demo-x', platforms: ['tiktok', 'instagram'], created_at: hoursAgo(96) },
     ],
+    fb_comment_replies: [
+      // Stale unverified submit (2026-09-17 fix) -- must fire.
+      { id: 'reply-unverified-stale', reply_author: 'Jane Doe', status: 'failed', reply_error: 'unconfirmed_submit: composer closed / no error shown, but no permalink captured and no feed match found', posted_at: hoursAgo(30) },
+      // Same shape but recent -- inside the threshold, must NOT fire yet.
+      { id: 'reply-unverified-fresh', reply_author: 'Fresh Fresh', status: 'failed', reply_error: 'unconfirmed_submit: composer closed / no error shown, but no permalink captured and no feed match found', posted_at: hoursAgo(2) },
+      // Genuinely posted -- must never be counted.
+      { id: 'reply-posted', reply_author: 'Posted Person', status: 'posted', reply_error: null, posted_at: hoursAgo(30), verified_at: hoursAgo(30) },
+      // Pre-submit failure reset to approved for retry -- different status entirely, must never be counted.
+      { id: 'reply-retryable', reply_author: 'Retry Me', status: 'approved', reply_error: 'could not locate Reply button for the comment', posted_at: null },
+    ],
+    tc_discovery_responses: [
+      // Stale unverified submit on the LIVE tc-reply-queue pipeline -- must fire.
+      { id: 'tc-unverified-stale', commenter_name: 'John Q', reply_status: 'post_failed', reply_error: 'submitted but verification could not find the reply in the re-rendered thread', updated_at: hoursAgo(30) },
+      // A clean pre-submit failure (nothing typed) -- must NOT be counted as "unverified", different reason prefix.
+      { id: 'tc-not-submitted', commenter_name: 'Clean Fail', reply_status: 'post_failed', reply_error: 'not_submitted: could not locate Reply button', updated_at: hoursAgo(30) },
+    ],
     alert_state: [],
   };
 
@@ -248,6 +272,30 @@ async function run() {
   process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
   delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
   lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+
+  console.log('\nTest 2d: unverified reply submits (2026-09-17 fix) — stuck, never auto-retried, must surface');
+  const unverifiedReplies = await lib.checkUnverifiedRepliesStuck(24);
+  check('fb_comment_replies: stale unconfirmed submit fires', () => {
+    const c = unverifiedReplies.find((x) => x.key === 'unverified_reply_stuck:fb_comment_replies');
+    assert.ok(c, `expected unverified_reply_stuck:fb_comment_replies to fire, got: ${JSON.stringify(unverifiedReplies.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1, 'the fresh (2h old) unconfirmed row must not be counted yet');
+    assert.ok(/Jane Doe/.test(c.message));
+  });
+  check('tc_discovery_responses: stale unconfirmed submit fires, separately from fb_comment_replies', () => {
+    const c = unverifiedReplies.find((x) => x.key === 'unverified_reply_stuck:tc_discovery_responses');
+    assert.ok(c, `expected unverified_reply_stuck:tc_discovery_responses to fire, got: ${JSON.stringify(unverifiedReplies.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1, 'the not_submitted row must not be counted as unverified');
+    assert.ok(/John Q/.test(c.message));
+  });
+  check('a genuinely posted reply is never counted', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Posted Person/.test(c.message));
+  });
+  check('a pre-submit failure reset to approved (safe retry) is never counted as unverified', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Retry Me/.test(c.message));
+  });
+  check('a clean not_submitted failure is never counted as unverified', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Clean Fail/.test(c.message));
+  });
 
   console.log('\nTest 3: dedupe — fires once, second run within cooldown is suppressed');
   const run1 = await lib.runAllChecks({ silenceDays: 3, approvalStaleHours: 48, draftStaleHours: 24, videoReviewStaleHours: 48 });

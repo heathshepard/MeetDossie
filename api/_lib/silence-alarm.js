@@ -57,6 +57,17 @@ const TC_HARVEST_SCOPE_GAP_HOURS = 3; // a posted row should get its first harve
 //     comment replies drafted by the Claude Code worker, awaiting posting.
 const COMMENT_REPLY_STALE_HOURS = 24;
 
+// A reply SUBMIT happened but verification could not confirm it landed --
+// the "submitted-but-not-found" terminal outcome from the 2026-09-17
+// false-'posted' fix (scripts/_lib/fb-post-verify-outcome.js,
+// scripts/fb-reply-poster.js, scripts/fb-group-commenter.js --tc-reply-queue).
+// These rows are deliberately NEVER auto-retried (Heath's "never retry an
+// unverified send" rule — a retry could double-post if the original submit
+// actually landed), which means without this alarm a genuinely-unanswered
+// commenter sits forever with nothing surfacing it again after the one-time
+// Telegram notice sent at the moment it happened.
+const REPLY_UNVERIFIED_STALE_HOURS = 24;
+
 // (platform, target_owner) pairs worth tracking. Kept explicit (not derived
 // from zernio_accounts) so a brand-new/experimental owner doesn't silently
 // start alerting before anyone's decided it should be monitored — see
@@ -406,6 +417,55 @@ async function checkCommentsAwaitingReplyStale(staleHours = COMMENT_REPLY_STALE_
   return results;
 }
 
+// 8b. Reply SUBMITS that could not be verified, sitting stale. Terminal by
+// design (never auto-retried — see REPLY_UNVERIFIED_STALE_HOURS above), so
+// this is the only thing that will ever surface them again after the
+// one-time Telegram notice sent at the moment it happened. Covers both
+// reply pipelines:
+//   - fb_comment_replies.status='failed' with reply_error carrying the
+//     'unconfirmed_submit' marker (scripts/fb-reply-poster.js markUnconfirmed,
+//     2026-09-17 fix).
+//   - tc_discovery_responses.reply_status='post_failed' with reply_error
+//     starting 'submitted but' (scripts/fb-group-commenter.js
+//     --tc-reply-queue's pre-existing verifier, 2026-09-08) — the SAME
+//     terminal shape, just an older pipeline that had no stale-alarm either.
+// Does NOT include a genuinely clean failure (reply_error 'not_submitted:'
+// on tc_discovery_responses, or a pre-submit retry left at status='approved'
+// on fb_comment_replies) — those are safe-to-retry-or-already-actioned, not
+// "may have actually posted and nobody would ever know."
+async function checkUnverifiedRepliesStuck(staleHours = REPLY_UNVERIFIED_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const results = [];
+
+  const legacy = await supabaseFetch(
+    `/rest/v1/fb_comment_replies?status=eq.failed&reply_error=like.*unconfirmed_submit*`
+    + `&posted_at=lt.${encodeURIComponent(cutoff)}&select=id,reply_author,posted_at&order=posted_at.asc`,
+  );
+  if (legacy.ok && Array.isArray(legacy.data) && legacy.data.length > 0) {
+    results.push({
+      key: 'unverified_reply_stuck:fb_comment_replies',
+      count: legacy.data.length,
+      oldest: legacy.data[0],
+      message: `${legacy.data.length} fb_comment_replies row(s) submitted >${staleHours}h ago but never verified in the thread (oldest: reply to ${legacy.data[0].reply_author || 'unknown'}, submitted ${legacy.data[0].posted_at}). Terminal by design — will NOT auto-retry (may have actually posted). Check Facebook manually.`,
+    });
+  }
+
+  const tc = await supabaseFetch(
+    `/rest/v1/tc_discovery_responses?reply_status=eq.post_failed&reply_error=like.*submitted but*`
+    + `&updated_at=lt.${encodeURIComponent(cutoff)}&select=id,commenter_name,updated_at&order=updated_at.asc`,
+  );
+  if (tc.ok && Array.isArray(tc.data) && tc.data.length > 0) {
+    results.push({
+      key: 'unverified_reply_stuck:tc_discovery_responses',
+      count: tc.data.length,
+      oldest: tc.data[0],
+      message: `${tc.data.length} tc_discovery_responses reply(s) submitted >${staleHours}h ago but never verified in the thread (oldest: reply to ${tc.data[0].commenter_name || 'unknown'}, last touched ${tc.data[0].updated_at}). Terminal by design — will NOT auto-retry (may have actually posted). Check Facebook manually.`,
+    });
+  }
+
+  return results;
+}
+
 // 8. Static vercel.json scan — schedules effectively disabled by syntax
 // (fixed dom+month = fires ~once/year, the exact 2026-07 shutdown trick) or
 // pointing at a handler file that no longer exists. See api/_lib/cron-
@@ -458,7 +518,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, unverifiedReplies, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -467,10 +527,11 @@ async function runAllChecks(opts = {}) {
     checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
+    checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...unverifiedReplies, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -647,6 +708,7 @@ module.exports = {
   TC_HARVEST_HOT_STALE_HOURS,
   TC_HARVEST_SCOPE_GAP_HOURS,
   COMMENT_REPLY_STALE_HOURS,
+  REPLY_UNVERIFIED_STALE_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -655,6 +717,7 @@ module.exports = {
   checkTcHarvestHotWindowStale,
   checkTcHarvestScopeGap,
   checkCommentsAwaitingReplyStale,
+  checkUnverifiedRepliesStuck,
   checkCronSanity,
   shouldFire,
   markFired,
