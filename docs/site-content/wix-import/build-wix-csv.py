@@ -1,4 +1,5 @@
-import os, re, csv, json, sys, io
+import os, re, csv, json, sys, io, html as _html, unicodedata
+from markdown_it import MarkdownIt
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 BASE = os.path.join(ROOT, 'docs/site-content')
@@ -7,7 +8,94 @@ SITE = 'https://www.theheathshepardrealestateteam.com'
 SKIP = {'INDEX.md', 'NEEDS-VERIFICATION.md'}
 os.makedirs(OUT, exist_ok=True)
 
+# ---------------------------------------------------------------- markdown
+# Wix Rich Text fields take HTML. The bodies carry GFM tables, nested lists,
+# blockquotes and ~850 inline citation links, so this uses a real CommonMark
+# parser (markdown-it-py, the reference-compliant port of markdown-it) with the
+# GFM table rule on, never regex.
+#   html=False      raw HTML in source is escaped, not passed through. The
+#                   sources contain none; this keeps it that way.
+#   linkify=False   bare URLs are NOT auto-linked. Autolinking would invent
+#                   anchors that do not exist in the source and break the
+#                   link-count parity check below.
+#   typographer=False  no smart quotes / dash substitution. The prose is final;
+#                   nothing may silently rewrite a character in it.
+MD = MarkdownIt('gfm-like', {'html': False, 'linkify': False,
+                             'typographer': False, 'xhtmlOut': False})
+
+_LINK_DEST = re.compile(r'\]\([^)]*\)')
+def _escape_underscores(s):
+    """Escape every `_` that is not inside a link destination.
+
+    The TREC-form quotations contain literal blank-fill runs, e.g.
+    `EXECUTED the ___ day of ___, 20___.`  CommonMark's flanking rules make the
+    second and third runs a valid emphasis pair, so a conforming renderer eats
+    them and publishes `the ___ day of , 20.` on a legal-content page. That is
+    silent corruption of a quoted form, and it is the exact failure this export
+    exists to avoid.
+
+    No `_` in this corpus is ever intended as emphasis (all emphasis is written
+    with `*`), so escaping them all is lossless and unambiguous. Link
+    destinations are skipped because `_` is significant inside a URL."""
+    out, last = [], 0
+    for m in _LINK_DEST.finditer(s):
+        out.append(s[last:m.start()].replace('_', r'\_'))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(s[last:].replace('_', r'\_'))
+    return ''.join(out)
+
+def md_to_html(md_src):
+    """Markdown body -> HTML for a Wix Rich Text field."""
+    return MD.render(_escape_underscores(md_src)).strip()
+
+def _ws(s):
+    return re.sub(r'\s+', ' ', unicodedata.normalize('NFC', s)).strip()
+
+# Block tags end a run of text; inline tags do not. Replacing an inline tag with
+# a space would invent one mid-word ("<strong>x</strong>." -> "x ."), so the two
+# groups are handled separately.
+_BLOCK = (r'p|div|h[1-6]|li|ul|ol|table|thead|tbody|tfoot|tr|td|th|blockquote|'
+          r'pre|br|hr|section|figure|figcaption|dl|dt|dd')
+def html_text(h):
+    """Visible text of an HTML fragment, for fidelity comparison."""
+    h = re.sub(rf'</?({_BLOCK})(\s[^>]*)?/?>', ' ', h)   # block boundary -> space
+    h = re.sub(r'<[^>]*>', '', h)                        # inline tags -> nothing
+    return _ws(_html.unescape(h))
+
+def md_text(s):
+    """Visible text of a Markdown body: syntax stripped, prose kept.
+
+    Deliberately independent of markdown-it, so it can catch the converter
+    dropping or inventing content. Link TARGETS are removed (they are verified
+    separately, by href) and list markers are removed (HTML renders those from
+    <ol>/<ul>, so they are text on neither side).
+
+    Underscores are left alone on purpose: the TREC-form quotes contain literal
+    blank-fill runs ("EXECUTED the ___ day of ___"), which CommonMark does not
+    treat as emphasis, so they must survive on both sides identically."""
+    s = unicodedata.normalize('NFC', s)
+    s = re.sub(r'!?\[([^\]]*)\]\([^)]*\)', r'\1', s)      # [label](target) -> label
+    s = re.sub(r'^\s*\|?[\s:|-]*-[\s:|-]*\|[\s:|-]*$', ' ', s, flags=re.M)  # table rule row
+    s = re.sub(r'^\s*(-{3,}|\*{3,}|_{3,})\s*$', ' ', s, flags=re.M)         # hr
+    s = re.sub(r'^\s*>\s?', ' ', s, flags=re.M)                             # blockquote marker
+    # A heading may legitimately BEGIN with "1." ("### 1. Boerne ISD"), so the
+    # list-marker strip must not also fire on a heading line.
+    s = '\n'.join(re.sub(r'^\s*#{1,6}\s+', ' ', ln) if re.match(r'^\s*#{1,6}\s', ln)
+                  else re.sub(r'^\s*([-*+]|\d+[.)])\s+', ' ', ln)
+                  for ln in s.split('\n'))
+    s = s.replace('|', ' ')                                                 # table cell pipes
+    s = re.sub(r'\*\*(.+?)\*\*', r'\1', s, flags=re.S)                      # bold
+    s = re.sub(r'(?<!\w)\*(?!\s)(.+?)(?<!\s)\*(?!\w)', r'\1', s, flags=re.S)  # italic
+    s = s.replace('`', '')
+    return _ws(s)
+
+def html_links(h):
+    """Every href in an HTML fragment, unescaped."""
+    return [_html.unescape(m) for m in re.findall(r'href="([^"]*)"', h)]
+
 gaps = []          # (collection, field, item, reason)
+BODY_MD = {}       # (collection, slug) -> markdown body, kept for verification
 def gap(c, f, i, r): gaps.append((c, f, i, r))
 
 def parse(path):
@@ -56,10 +144,11 @@ for f in files('boerne-hub'):
     gap('BoerneGuides', 'relatedAnswers', slug, 'required 3-5; not in source')
     if '```json' not in body:
         gap('BoerneGuides', 'faqJson', slug, 'optional; no FAQ JSON-LD in source')
+    gmd = strip_h1(body); BODY_MD[('BoerneGuides', slug)] = gmd
     guide_rows.append({
         'title': d['h1'], 'slug': slug,
         'metaTitle': d['title'], 'metaDescription': d['meta_description'],
-        'summary': '', 'body': strip_h1(body),
+        'summary': '', 'body': md_to_html(gmd),
         'heroImage': '', 'heroImageAlt': '',
         'datePublished': '', 'dateModified': '',
         'pageType': 'guide', 'faqJson': '',
@@ -109,10 +198,11 @@ for f in files('boerne-neighborhoods'):
                      ('parentGuide', 'not in source; no per-neighborhood guide assignment')]:
         gap('Neighborhoods', fld, slug, why)
 
+    nmd = strip_h1(body); BODY_MD[('Neighborhoods', slug)] = nmd
     neigh_rows.append({
         'name': d['neighborhood_name'], 'slug': slug,
         'metaTitle': d['title'], 'metaDescription': d['meta_description'],
-        'summary': '', 'body': strip_h1(body),
+        'summary': '', 'body': md_to_html(nmd),
         'city': city, 'county': d['county'],
         'latitude': '', 'longitude': '',
         'zipCodes': d['zip'], 'schoolDistrict': district,
@@ -169,12 +259,13 @@ for f in files('answers'):
     else:
         gap('Answers', 'body', slug, 'short_answer not repeated at head of body - not de-duplicated')
 
+    BODY_MD[('Answers', slug)] = b
     gnum = SLUG_TO_GUIDE.get(slug) or CATEGORY_TO_GUIDE[d['category']]
     gslug, gh1, _ = GUIDE_BY_NUM[gnum]
     ans_rows.append({
         'question': d['question'], 'slug': slug,
         'metaTitle': d['question'], 'metaDescription': d['meta_description'],
-        'shortAnswer': d['short_answer'], 'body': b,
+        'shortAnswer': d['short_answer'], 'body': md_to_html(b),
         'datePublished': '', 'dateModified': d['last_reviewed'],
         'parentGuide': gslug, 'parentGuideUrl': f'{SITE}/boerne/{gslug}',
         'siblingAnswers': ','.join(d.get('related_questions', [])),
@@ -219,17 +310,62 @@ for fname, cols, rows in SPECS:
     print(f'{fname:36s} {len(rows):3d} rows x {len(cols):2d} cols  round-trip OK  '
           f'({os.path.getsize(p):,} bytes)')
 
-# ---- second round-trip: CSV body must equal the source file body exactly
-def check_bodies():
-    import csv as _c
-    bad = 0
-    with open(os.path.join(OUT,'Answers.csv'), encoding='utf-8', newline='') as fh:
-        for r in _c.DictReader(fh):
-            src = open(os.path.join(BASE,'answers', r['slug']+'.md'), encoding='utf-8').read()
-            for tok in re.findall(r'\]\((https?://[^)]+)\)', r['body']):
-                if tok not in src: print('CITATION LOST', r['slug'], tok); bad += 1
-    return bad
-print('citation check (Answers): ', 'OK' if check_bodies()==0 else 'FAILED')
+# ---- second pass: the Markdown -> HTML conversion must lose nothing
+# Re-read every body OUT OF THE WRITTEN CSV (not from memory) and check it
+# against the Markdown it came from. Three independent checks.
+CSV_FOR = {'BoerneGuides': 'BoerneGuides.csv', 'Neighborhoods': 'Neighborhoods.csv',
+           'Answers': 'Answers.csv'}
+SLUGS   = {c: {r['slug'] for r in rows}
+           for c, rows in (('BoerneGuides', guide_rows), ('Neighborhoods', neigh_rows),
+                           ('Answers', ans_rows))}
+PREFIX  = {'/boerne/': 'BoerneGuides', '/neighborhoods/': 'Neighborhoods',
+           '/answers/': 'Answers'}
+
+fail, n_links, n_internal, n_block = 0, 0, 0, 0
+for coll, fname in CSV_FOR.items():
+    with open(os.path.join(OUT, fname), encoding='utf-8', newline='') as fh:
+        for r in csv.DictReader(fh):
+            slug, h = r['slug'], r['body']
+            src = BODY_MD[(coll, slug)]
+
+            # (a) every link survives, in the same order, with the same target
+            src_links = [m for m in re.findall(r'\]\(([^)\s]+)\)', src)]
+            got_links = html_links(h)
+            if src_links != got_links:
+                lost = [l for l in src_links if l not in got_links]
+                extra = [l for l in got_links if l not in src_links]
+                print(f'LINK MISMATCH {coll}/{slug}: -{lost[:3]} +{extra[:3]}'); fail += 1
+            n_links += len(got_links)
+
+            # (b) every internal link resolves to a slug that exists in this export
+            for l in got_links:
+                if not l.startswith('/'):
+                    continue
+                n_internal += 1
+                pre = next((p for p in PREFIX if l.startswith(p)), None)
+                tgt = l[len(pre):].split('#')[0].rstrip('/') if pre else None
+                if not pre or tgt not in SLUGS[PREFIX[pre]]:
+                    print(f'DEAD INTERNAL LINK {coll}/{slug} -> {l}'); fail += 1
+
+            # (c) the visible text is the source text: no prose dropped, none added
+            if html_text(h) != md_text(src):
+                a, b = html_text(h), md_text(src)
+                i = next((j for j in range(min(len(a), len(b))) if a[j] != b[j]), min(len(a), len(b)))
+                print(f'TEXT DRIFT {coll}/{slug} @{i}\n  html: {a[max(0,i-60):i+60]!r}'
+                      f'\n  md  : {b[max(0,i-60):i+60]!r}'); fail += 1
+
+            # (d) block-level structure actually converted (no literal markdown left)
+            for pat, why in ((r'^\s*#{1,6}\s', 'literal heading'),
+                             (r'^\s*\|', 'literal table row'),
+                             (r'\*\*', 'literal bold')):
+                if re.search(pat, h, re.M):
+                    print(f'UNCONVERTED {coll}/{slug}: {why}'); fail += 1
+            n_block += len(re.findall(r'<(h[2-6]|table|ul|ol|blockquote)\b', h))
+
+print(f'\nhtml check: {n_links} links preserved ({n_internal} internal, all resolving), '
+      f'{n_block} block elements, {"OK" if fail == 0 else str(fail) + " FAILURES"}')
+if fail:
+    raise SystemExit('HTML conversion verification FAILED')
 
 # ------------------------------------------------------------------ gaps
 with open(os.path.join(OUT, '.gaps.json'), 'w') as fh: json.dump(gaps, fh)

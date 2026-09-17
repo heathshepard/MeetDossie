@@ -32,7 +32,7 @@ Boerne allows short-term rentals under Ordinance No. 2023-09, so the real questi
 
 ## The regulatory picture in one screen
 
-Boerne is not a prohibition city and it is not an open city. It licenses. The full mechanics live on a separate page — [what are the short-term rental rules in Boerne](/boerne/boerne-tx-short-term-rental-rules) — but the parts that shape an underwriting model are these, all from the [City of Boerne's short-term rental page](https://www.ci.boerne.tx.us/2444/Short-Term-Rentals):
+Boerne is not a prohibition city and it is not an open city. It licenses. The full mechanics live on a separate page — [what are the short-term rental rules in Boerne](/boerne/short-term-rentals) — but the parts that shape an underwriting model are these, all from the [City of Boerne's short-term rental page](https://www.ci.boerne.tx.us/2444/Short-Term-Rentals):
 
 - **$200 registration, two-year permit term**, $200 renewal filed within 30 days of expiration.
 - **Safety inspection** required inside the city limits, $100 through a city inspector or done by an outside licensed inspector. Not required in the ETJ.
@@ -101,7 +101,7 @@ Boerne can work as a short-term rental market. Whether a particular house works 
 
 ## Related questions
 
-- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals)
 - [Can an HOA ban short-term rentals in Texas?](/answers/can-an-hoa-ban-short-term-rentals-in-texas)
 - [Is Boerne a good real estate investment?](/answers/is-boerne-a-good-real-estate-investment)
 - [How are rental properties taxed differently in Texas?](/answers/how-are-rental-properties-taxed-differently-in-texas)

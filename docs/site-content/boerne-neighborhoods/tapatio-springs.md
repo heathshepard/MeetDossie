@@ -1,6 +1,6 @@
 ---
 title: "Tapatio Springs, Boerne TX — Neighborhood Guide, HOA, Golf, Schools"
-slug: tapatio-springs-boerne-tx
+slug: "tapatio-springs"
 meta_description: "Tapatio Springs in Boerne: 415 parcels, unincorporated Kendall County. Resort vs. HOA, golf membership costs, condos vs. single-family, schools."
 h1: "Tapatio Springs, Boerne, Texas"
 neighborhood_name: Tapatio Springs

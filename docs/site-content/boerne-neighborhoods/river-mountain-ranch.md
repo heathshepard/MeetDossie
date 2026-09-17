@@ -1,6 +1,6 @@
 ---
 title: "River Mountain Ranch, Boerne TX — Guide, HOA, Schools, Well & Septic"
-slug: river-mountain-ranch-boerne-tx
+slug: "river-mountain-ranch"
 meta_description: "River Mountain Ranch, Boerne: 563 acreage tracts on 3,100 acres, voluntary POA, private Guadalupe river parks. Wells, septic, schools, real commute."
 h1: "River Mountain Ranch, Boerne, Texas"
 neighborhood_name: River Mountain Ranch

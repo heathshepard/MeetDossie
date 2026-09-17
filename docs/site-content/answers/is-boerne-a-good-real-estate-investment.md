@@ -95,7 +95,7 @@ Buy Boerne for a long hold, for land you cannot replace, or for a resale-price t
 ## Related questions
 
 - [Why are homes in Boerne, Texas so expensive?](/answers/why-are-homes-in-boerne-so-expensive)
-- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals)
 - [What are property taxes like in Boerne, Texas?](/answers/what-are-property-taxes-like-in-boerne)
 - [Is Boerne, Texas growing?](/answers/is-boerne-texas-growing)
 - [Is Hill Country land a good investment?](/answers/is-hill-country-land-a-good-investment)

@@ -1,6 +1,6 @@
 ---
 title: "Champee Springs Ranches, Boerne TX — Guide, POA, Schools"
-slug: champee-springs-ranches-boerne-tx
+slug: "champee-springs-ranches"
 meta_description: "Champee Springs Ranches, Boerne: 160 ranch tracts, median 38 acres, spanning Boerne ISD and Comfort ISD. POA status, easement litigation history, schools."
 h1: "Champee Springs Ranches, Boerne, Texas"
 neighborhood_name: Champee Springs Ranches

@@ -1,6 +1,6 @@
 ---
 title: "Lost Creek, Boerne TX 78015 — Guide, HOA, and the School District Trap"
-slug: lost-creek-boerne-tx
+slug: "lost-creek"
 meta_description: "Lost Creek, Boerne 78015: 414 homes off Ralph Fair Road in Bexar County — and in NORTHSIDE ISD, not Boerne ISD. HOA, values, and the name collisions."
 h1: "Lost Creek, Boerne, Texas"
 neighborhood_name: Lost Creek

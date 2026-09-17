@@ -1,6 +1,6 @@
 ---
 title: "Boerne ISD Schools Guide: Ratings, Campuses, Boundaries and Home Value"
-slug: "boerne-isd-schools-guide"
+slug: "schools"
 meta_description: "Boerne ISD earned an A (score 92) from TEA in 2026 — its seventh straight. Campus list, attendance zone traps, and how schools move home values here."
 h1: "Boerne ISD Schools Guide"
 target_keywords:

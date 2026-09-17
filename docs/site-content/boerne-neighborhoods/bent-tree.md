@@ -1,6 +1,6 @@
 ---
 title: "Bent Tree, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: bent-tree-boerne-tx
+slug: "bent-tree"
 meta_description: "Bent Tree, Boerne: 103 homes on roughly 1-acre lots north of town, unincorporated Kendall County. HOA, wells and septic, schools, commute."
 h1: "Bent Tree, Boerne, Texas"
 neighborhood_name: Bent Tree

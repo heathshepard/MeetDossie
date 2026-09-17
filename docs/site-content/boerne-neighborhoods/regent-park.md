@@ -1,6 +1,6 @@
 ---
 title: "Regent Park, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: regent-park-boerne-tx
+slug: "regent-park"
 meta_description: "Regent Park, Boerne: 484 homes inside City of Boerne limits off I-10. HOA fees, amenities, schools, and the San Antonio name confusion to avoid."
 h1: "Regent Park, Boerne, Texas"
 neighborhood_name: Regent Park

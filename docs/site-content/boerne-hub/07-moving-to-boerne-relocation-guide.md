@@ -1,6 +1,6 @@
 ---
 title: "Moving to Boerne, TX: A Relocation Guide for Out-of-State Buyers"
-slug: "moving-to-boerne-tx-relocation-guide"
+slug: "relocation"
 meta_description: "Relocating to Boerne TX from California, Austin or out of state? The tax reset that catches everyone, wells, septic, no zoning, and a real timeline."
 h1: "Moving to Boerne, TX: A Relocation Guide"
 target_keywords:
@@ -123,7 +123,7 @@ If you'll be commuting into San Antonio, drive it on a Tuesday at 7:15 a.m. befo
 
 **After closing**
 - **File your homestead exemption.** The general deadline for filing an exemption application is before May 1 (Texas Comptroller). A buyer who acquires property after January 1 may receive the residence homestead exemption for the applicable portion of that tax year immediately upon qualifying, if the prior owner didn't already have it for that year (Kendall Appraisal District, March 2026). Filing is free — do it yourself and ignore anyone who mails you an offer to file it for a fee.
-- Put **May 15** on your calendar for protest season. See the [property tax guide](/boerne-property-taxes-explained) for how that works.
+- Put **May 15** on your calendar for protest season. See the [property tax guide](/boerne/property-taxes) for how that works.
 - Register your well with Cow Creek GCD if it isn't already.
 
 ## What I'd want you to know that isn't on a spreadsheet

@@ -1,6 +1,6 @@
 ---
 title: "Boerne TX Real Estate Market: Prices, Inventory and What Actually Drives Value"
-slug: "boerne-tx-real-estate-market"
+slug: "real-estate-market"
 meta_description: "Boerne TX real estate: median sale price, inventory, tax rates and the city-limits line that moves a tax bill by $2,800 a year. Local agent analysis."
 h1: "The Boerne, Texas Real Estate Market"
 target_keywords:
@@ -110,9 +110,9 @@ And the tax picture is not static. Boerne ISD passed a voter-approval tax rate e
 
 ## Read next
 
-- **[Buying a Home in Boerne, TX](/buying-a-home-in-boerne-tx)** — the process, timeline, and what's different from a San Antonio purchase
-- **[Boerne Property Taxes Explained](/boerne-property-taxes-explained)** — every rate, every exemption, the actual math
-- **[Boerne vs. San Antonio](/boerne-vs-san-antonio-which-should-you-buy-in)** — the honest comparison, including the cases where San Antonio wins
+- **[Buying a Home in Boerne, TX](/boerne/buying-a-home)** — the process, timeline, and what's different from a San Antonio purchase
+- **[Boerne Property Taxes Explained](/boerne/property-taxes)** — every rate, every exemption, the actual math
+- **[Boerne vs. San Antonio](/boerne/vs-san-antonio)** — the honest comparison, including the cases where San Antonio wins
 
 ---
 

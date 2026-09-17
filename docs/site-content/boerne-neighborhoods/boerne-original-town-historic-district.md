@@ -1,6 +1,6 @@
 ---
 title: "Historic Downtown Boerne, TX — Original Town Guide, Rules, Schools"
-slug: boerne-original-town-historic-district
+slug: "boerne-original-town-historic-district"
 meta_description: "Boerne Original Town and the Historic District: no HOA, but Certificate of Appropriateness review applies. Lot sizes, values, schools, and real rules."
 h1: "Boerne Original Town and the Historic District"
 neighborhood_name: Boerne Original Town / Boerne Historic District

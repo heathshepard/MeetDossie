@@ -92,7 +92,7 @@ Condominium regimes operate under their own declaration and rules, and a condo a
 
 ## Related questions
 
-- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals)
 - [Is Boerne good for short-term rentals?](/answers/is-boerne-good-for-short-term-rentals)
 - [What is an HOA resale certificate in Texas?](/answers/what-is-an-hoa-resale-certificate-in-texas)
 - [Do I need a real estate attorney to buy a house in Texas?](/answers/do-i-need-a-real-estate-attorney-to-buy-a-house-in-texas)

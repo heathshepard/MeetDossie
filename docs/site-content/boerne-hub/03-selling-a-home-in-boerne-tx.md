@@ -1,6 +1,6 @@
 ---
 title: "Selling a Home in Boerne, TX: Pricing, Prep, Timeline and Net Proceeds"
-slug: "selling-a-home-in-boerne-tx"
+slug: "selling-a-home"
 meta_description: "Selling in Boerne at 4.4 months of inventory: how to price acreage with thin comps, what prep pays, and how to read your net sheet. Local agent guide."
 h1: "Selling a Home in Boerne, TX"
 target_keywords:

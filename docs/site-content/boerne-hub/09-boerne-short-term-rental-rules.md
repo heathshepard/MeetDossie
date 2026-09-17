@@ -1,6 +1,6 @@
 ---
 title: "Boerne, TX Short-Term Rental Rules: What the Ordinance Actually Says"
-slug: "boerne-tx-short-term-rental-rules"
+slug: "short-term-rentals"
 meta_description: "Boerne's STR ordinance in full: $200 permit, 200-foot block-face rule, occupancy caps, insurance, HOT registration. San Antonio's rules do not apply."
 h1: "Short-Term Rental Rules in Boerne, TX"
 target_keywords:

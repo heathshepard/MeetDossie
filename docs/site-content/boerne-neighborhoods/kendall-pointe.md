@@ -1,6 +1,6 @@
 ---
 title: "Kendall Pointe, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: kendall-pointe-boerne-tx
+slug: "kendall-pointe"
 meta_description: "Kendall Pointe, Boerne: 112 homes on 1-acre lots, unincorporated Kendall County near I-10. HOA, wells and septic, schools, and the commute reality."
 h1: "Kendall Pointe, Boerne, Texas"
 neighborhood_name: Kendall Pointe

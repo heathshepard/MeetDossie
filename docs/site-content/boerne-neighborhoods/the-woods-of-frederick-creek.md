@@ -1,6 +1,6 @@
 ---
 title: "The Woods of Frederick Creek, Boerne TX — Guide, HOA, Schools"
-slug: the-woods-of-frederick-creek-boerne-tx
+slug: "the-woods-of-frederick-creek"
 meta_description: "The Woods of Frederick Creek, Boerne: 214 homes near downtown inside city limits. HOA fees, German street names, schools, and who it fits."
 h1: "The Woods of Frederick Creek, Boerne, Texas"
 neighborhood_name: The Woods of Frederick Creek

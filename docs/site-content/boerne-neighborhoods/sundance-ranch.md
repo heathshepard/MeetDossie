@@ -1,6 +1,6 @@
 ---
 title: "Sundance Ranch, Boerne TX 78006 — Guide, HOA, School District"
-slug: sundance-ranch-boerne-tx
+slug: "sundance-ranch"
 meta_description: "Sundance Ranch, Boerne 78006: 162 homes off Toutant Beauregard in BEXAR County and NORTHSIDE ISD, not Boerne ISD. HOA fees, values, and honest fit."
 h1: "Sundance Ranch, Boerne, Texas"
 neighborhood_name: Sundance Ranch

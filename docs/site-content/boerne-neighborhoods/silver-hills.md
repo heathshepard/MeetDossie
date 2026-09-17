@@ -1,6 +1,6 @@
 ---
 title: "Silver Hills, Boerne TX — Guide, Two-County Split, POA, Schools"
-slug: silver-hills-boerne-tx
+slug: "silver-hills"
 meta_description: "Silver Hills near Bergheim: a subdivision genuinely split between Kendall and Comal counties, platted 1966-67. POA, wells and septic, school zones."
 h1: "Silver Hills, Boerne / Bergheim, Texas"
 neighborhood_name: Silver Hills

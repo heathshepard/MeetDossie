@@ -1,6 +1,6 @@
 ---
 title: "Miralomas, Boerne TX — Neighborhood Guide, HOA, MUD, Schools"
-slug: miralomas-boerne-tx
+slug: "miralomas"
 meta_description: "Miralomas, Boerne: 268 parcels west of town, unincorporated Kendall County, served by its own MUD with reclaimed-water irrigation. HOA, schools."
 h1: "Miralomas, Boerne, Texas"
 neighborhood_name: Miralomas

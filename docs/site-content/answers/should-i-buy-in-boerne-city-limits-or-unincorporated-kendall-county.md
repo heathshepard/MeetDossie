@@ -111,7 +111,7 @@ Either way, before the option period ends: confirm the zone with the **City of B
 - [What should I know about septic and wells in the Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 - [What are property taxes like in Boerne, Texas?](/answers/what-are-property-taxes-like-in-boerne)
 - [Does Boerne have enough water?](/answers/does-boerne-have-enough-water)
-- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals)
 
 ## Questions about a specific property?
 

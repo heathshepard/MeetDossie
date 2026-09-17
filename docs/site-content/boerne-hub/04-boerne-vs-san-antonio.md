@@ -1,6 +1,6 @@
 ---
 title: "Boerne vs. San Antonio: Which Should You Buy In?"
-slug: "boerne-vs-san-antonio-which-should-you-buy-in"
+slug: "vs-san-antonio"
 meta_description: "Boerne or San Antonio? Verified 2025 tax rates side by side, schools, commute and the cases where San Antonio is the better buy. Honest local comparison."
 h1: "Boerne vs. San Antonio: Which Should You Buy In?"
 target_keywords:
@@ -123,7 +123,7 @@ In San Antonio you get CPS Energy and SAWS, both large municipally-owned utiliti
 
 **Sales tax** is 8.25% in Boerne — 6.25% state, 1.50% city, 0.50% county (City of Boerne). That's the Texas cap and it matches San Antonio.
 
-**Insurance.** Both markets sit in a Texas homeowners insurance environment that runs well above the national average, and hail is the driving peril in this part of the state. Get an actual quote on the actual address before you commit — see the [cost of living guide](/cost-of-living-in-boerne-tx) for more on that.
+**Insurance.** Both markets sit in a Texas homeowners insurance environment that runs well above the national average, and hail is the driving peril in this part of the state. Get an actual quote on the actual address before you commit — see the [cost of living guide](/boerne/cost-of-living) for more on that.
 
 **Everything else.** Boerne has a real grocery, restaurant and services base for a town its size, but it does not have San Antonio's depth. Specialty medical care, major-airport access, professional sports, and the long tail of retail all live in San Antonio. If you're in Boerne, you drive down for those. That's fine — it's an hour of your Saturday — but it's a genuine cost that doesn't show up on a spreadsheet.
 

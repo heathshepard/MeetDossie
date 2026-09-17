@@ -1,6 +1,6 @@
 ---
 title: "Saddlehorn, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: saddlehorn-boerne-tx
+slug: "saddlehorn"
 meta_description: "Saddlehorn, Boerne: 140 homes on small lots inside City of Boerne limits, Kendall County. HOA, schools, prices, and who it actually fits."
 h1: "Saddlehorn, Boerne, Texas"
 neighborhood_name: Saddlehorn

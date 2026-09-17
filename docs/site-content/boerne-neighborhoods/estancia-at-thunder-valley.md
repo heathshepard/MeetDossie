@@ -1,6 +1,6 @@
 ---
 title: "Estancia at Thunder Valley, Boerne TX — Guide, HOA, Schools"
-slug: estancia-at-thunder-valley-boerne-tx
+slug: "estancia-at-thunder-valley"
 meta_description: "Estancia at Thunder Valley, Boerne: 87 tracts on 869 acres, gated, unincorporated Kendall County. HOA, amenities, wells and septic, schools."
 h1: "Estancia at Thunder Valley, Boerne, Texas"
 neighborhood_name: Estancia at Thunder Valley

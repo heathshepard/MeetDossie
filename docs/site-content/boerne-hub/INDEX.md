@@ -11,21 +11,21 @@ there are open items that require Heath's sign-off or a phone call to confirm.
 ## Hub structure
 
 Page 01 is the hub. Every other page links back to it; the hub links out to 02, 04 and 08.
-Internal links are written as absolute site paths (`/slug`) and will need to match whatever URL
-structure the Wix site uses.
+Internal links are written as absolute site paths under the published prefix (`/boerne/{slug}`)
+per `seo-plan/ARCHITECTURE.md` section 2.
 
 | # | Page | Slug | Primary target query | Words | Schema | One line |
 |---|---|---|---|---|---|---|
-| 01 | Boerne TX Real Estate Market | `boerne-tx-real-estate-market` | "boerne tx real estate market" | 1,759 | Article | The hub. Inventory math, why the median is $602,600, and the five things that actually drive value here — starting with the city-limits line. |
-| 02 | Buying a Home in Boerne, TX | `buying-a-home-in-boerne-tx` | "buying a home in boerne tx" | 1,986 | Article | Process and timeline, but the real content is country-property diligence: wells, septic, no county building code, ag rollback, and why STR rules here aren't San Antonio's. |
-| 03 | Selling a Home in Boerne, TX | `selling-a-home-in-boerne-tx` | "selling a home in boerne tx" | 1,785 | Article | Pricing against thin acreage comps, what prep actually pays, Kendall County disclosure exposure, and a full net-sheet line list. |
-| 04 | Boerne vs. San Antonio | `boerne-vs-san-antonio-which-should-you-buy-in` | "boerne vs san antonio" | 2,113 | Article | Verified 2025 rates from both appraisal districts, run with exemptions. Boerne wins on effective rate — and the page names five cases where San Antonio is the better buy. |
-| 05 | Boerne ISD Schools Guide | `boerne-isd-schools-guide` | "boerne isd schools" | 1,609 | Article | The A/92 rating with real domain sub-scores, the full campus list, the Comfort ISD and Fair Oaks Ranch boundary traps, and how the district's tax rate funds it. |
-| 06 | Cost of Living in Boerne, TX | `cost-of-living-in-boerne-tx` | "cost of living in boerne tx" | 1,794 | Article | Taxes, city utility bills with documented figures, the rural infrastructure capital costs, insurance reality, and the seven HOA questions to ask. |
-| 07 | Moving to Boerne: Relocation Guide | `moving-to-boerne-tx-relocation-guide` | "moving to boerne tx" | 1,985 | Article | Built around the five mistakes out-of-state buyers make, led by the appraisal-cap reset that makes the seller's tax bill irrelevant to yours. |
-| 08 | Boerne Property Taxes Explained | `boerne-property-taxes-explained` | "boerne property taxes" | 2,582 | FAQPage | The deep reference. Every entity rate, ten years of rate history, every exemption, both appraisal caps, ag valuation rules, and the protest process with what actually works. |
-| 09 | Boerne Short-Term Rental Rules | `boerne-tx-short-term-rental-rules` | "boerne tx short term rental rules" | 2,011 | FAQPage | Ordinance 2023-09 section by section. Fees, the 200-foot block-face rule, occupancy, the events ban, permit non-transferability, penalties. Explicitly corrects the San Antonio confusion. |
-| 10 | Buying Land and Acreage in Kendall County | `buying-land-and-acreage-in-kendall-county-tx` | "buying land in kendall county tx" | 2,171 | Article | No zoning, no residential building code, septic feasibility, well diligence, the ag/wildlife qualification table with Kendall County's own minimums, and rollback exposure. |
+| 01 | Boerne TX Real Estate Market | `real-estate-market` | "boerne tx real estate market" | 1,759 | Article | The hub. Inventory math, why the median is $602,600, and the five things that actually drive value here — starting with the city-limits line. |
+| 02 | Buying a Home in Boerne, TX | `buying-a-home` | "buying a home in boerne tx" | 1,986 | Article | Process and timeline, but the real content is country-property diligence: wells, septic, no county building code, ag rollback, and why STR rules here aren't San Antonio's. |
+| 03 | Selling a Home in Boerne, TX | `selling-a-home` | "selling a home in boerne tx" | 1,785 | Article | Pricing against thin acreage comps, what prep actually pays, Kendall County disclosure exposure, and a full net-sheet line list. |
+| 04 | Boerne vs. San Antonio | `vs-san-antonio` | "boerne vs san antonio" | 2,113 | Article | Verified 2025 rates from both appraisal districts, run with exemptions. Boerne wins on effective rate — and the page names five cases where San Antonio is the better buy. |
+| 05 | Boerne ISD Schools Guide | `schools` | "boerne isd schools" | 1,609 | Article | The A/92 rating with real domain sub-scores, the full campus list, the Comfort ISD and Fair Oaks Ranch boundary traps, and how the district's tax rate funds it. |
+| 06 | Cost of Living in Boerne, TX | `cost-of-living` | "cost of living in boerne tx" | 1,794 | Article | Taxes, city utility bills with documented figures, the rural infrastructure capital costs, insurance reality, and the seven HOA questions to ask. |
+| 07 | Moving to Boerne: Relocation Guide | `relocation` | "moving to boerne tx" | 1,985 | Article | Built around the five mistakes out-of-state buyers make, led by the appraisal-cap reset that makes the seller's tax bill irrelevant to yours. |
+| 08 | Boerne Property Taxes Explained | `property-taxes` | "boerne property taxes" | 2,582 | FAQPage | The deep reference. Every entity rate, ten years of rate history, every exemption, both appraisal caps, ag valuation rules, and the protest process with what actually works. |
+| 09 | Boerne Short-Term Rental Rules | `short-term-rentals` | "boerne tx short term rental rules" | 2,011 | FAQPage | Ordinance 2023-09 section by section. Fees, the 200-foot block-face rule, occupancy, the events ban, permit non-transferability, penalties. Explicitly corrects the San Antonio confusion. |
+| 10 | Buying Land and Acreage in Kendall County | `land-and-acreage` | "buying land in kendall county tx" | 2,171 | Article | No zoning, no residential building code, septic feasibility, well diligence, the ag/wildlife qualification table with Kendall County's own minimums, and rollback exposure. |
 
 ## Why this set, versus the eight originally scoped
 

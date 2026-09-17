@@ -1,6 +1,6 @@
 ---
 title: "Cordillera Ranch, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: cordillera-ranch-boerne-tx
+slug: "cordillera-ranch"
 meta_description: "Cordillera Ranch in Boerne: 1,519 platted lots, 5,443 acres, unincorporated Kendall County. HOA, the seven clubs, schools, and who it actually suits."
 h1: "Cordillera Ranch, Boerne, Texas"
 neighborhood_name: Cordillera Ranch

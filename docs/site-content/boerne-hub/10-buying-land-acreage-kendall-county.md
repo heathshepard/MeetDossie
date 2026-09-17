@@ -1,6 +1,6 @@
 ---
 title: "Buying Land and Acreage in Kendall County, TX"
-slug: "buying-land-and-acreage-in-kendall-county-tx"
+slug: "land-and-acreage"
 meta_description: "Kendall County land: no zoning, no residential building code, wells, septic feasibility, ag valuation rollback and dark-sky permits. What to verify first."
 h1: "Buying Land and Acreage in Kendall County, TX"
 target_keywords:

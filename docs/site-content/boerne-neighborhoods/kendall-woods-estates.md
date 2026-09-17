@@ -1,6 +1,6 @@
 ---
 title: "Kendall Woods Estates, Boerne TX — Guide, HOA, Schools"
-slug: kendall-woods-estates-boerne-tx
+slug: "kendall-woods-estates"
 meta_description: "Kendall Woods Estates, Boerne: 135 homes on ~3-acre wooded lots, unincorporated Kendall County, platted 1995. HOA, wells and septic, schools."
 h1: "Kendall Woods Estates, Boerne, Texas"
 neighborhood_name: Kendall Woods Estates

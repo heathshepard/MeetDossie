@@ -433,4 +433,4 @@ The `short_answer` is the extract block. It is 40-60 words, it answers the quest
 
 ---
 
-*Removed 2026-09-17: `what-are-the-short-term-rental-rules-in-boerne` was a near-duplicate of the BoerneGuides cornerstone [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules), which cites the ordinance section by section. Inbound links repointed to the guide.*
+*Removed 2026-09-17: `what-are-the-short-term-rental-rules-in-boerne` was a near-duplicate of the BoerneGuides cornerstone [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals), which cites the ordinance section by section. Inbound links repointed to the guide.*

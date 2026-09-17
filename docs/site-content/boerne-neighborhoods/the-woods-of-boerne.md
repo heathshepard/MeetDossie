@@ -1,6 +1,6 @@
 ---
 title: "The Woods of Boerne, TX — Neighborhood Guide, HOA, Schools"
-slug: the-woods-of-boerne-tx
+slug: "the-woods-of-boerne"
 meta_description: "The Woods of Boerne: 202 homes on wooded lots inside city limits, across Hwy 46 from Champion High. HOA fees, schools, and an honest fit assessment."
 h1: "The Woods of Boerne, Texas"
 neighborhood_name: The Woods of Boerne

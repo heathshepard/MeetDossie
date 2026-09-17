@@ -1,6 +1,6 @@
 ---
 title: "Sabinas Creek Ranch, Boerne TX — Guide, HOA, Well & Septic, Schools"
-slug: sabinas-creek-ranch-boerne-tx
+slug: "sabinas-creek-ranch"
 meta_description: "Sabinas Creek Ranch, Boerne: 130 acreage lots on 774 acres, gated, unincorporated Kendall County, wells and septic. HOA fees, schools, commute."
 h1: "Sabinas Creek Ranch, Boerne, Texas"
 neighborhood_name: Sabinas Creek Ranch

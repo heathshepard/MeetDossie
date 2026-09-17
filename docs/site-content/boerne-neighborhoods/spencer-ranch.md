@@ -1,6 +1,6 @@
 ---
 title: "Spencer Ranch / The Birch at Spencer Ranch, Boerne TX — Guide"
-slug: spencer-ranch-boerne-tx
+slug: "spencer-ranch"
 meta_description: "Spencer Ranch and The Birch, Boerne: new D.R. Horton construction annexed into the City of Boerne. Road maintenance assessment, schools, what is coming."
 h1: "Spencer Ranch and The Birch at Spencer Ranch, Boerne, Texas"
 neighborhood_name: Spencer Ranch / The Birch at Spencer Ranch

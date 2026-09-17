@@ -1,6 +1,6 @@
 ---
 title: "Esperanza, Boerne TX — Neighborhood Guide, HOA, MUD Tax, Schools"
-slug: esperanza-boerne-tx
+slug: "esperanza"
 meta_description: "Esperanza in Boerne: 1,608 platted lots, unincorporated Kendall County, WCID #3 utilities. HOA, the MUD question, schools, and who it suits."
 h1: "Esperanza, Boerne, Texas"
 neighborhood_name: Esperanza

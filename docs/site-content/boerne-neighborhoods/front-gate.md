@@ -1,6 +1,6 @@
 ---
 title: "Front Gate at Fair Oaks Ranch, Boerne TX 78015 — Guide, HOA, Schools"
-slug: front-gate-fair-oaks-ranch-boerne-tx
+slug: "front-gate"
 meta_description: "Front Gate at Fair Oaks Ranch: 478 homes in Bexar County with a Boerne 78015 address. Boerne ISD, Van Raub Elementary. HOA, builders, commute."
 h1: "Front Gate at Fair Oaks Ranch, Boerne, Texas"
 neighborhood_name: Front Gate

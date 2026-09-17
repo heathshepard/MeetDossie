@@ -1,6 +1,6 @@
 ---
 title: "Boerne Property Taxes Explained: Rates, Exemptions and How to Protest"
-slug: "boerne-property-taxes-explained"
+slug: "property-taxes"
 meta_description: "Every Kendall County tax rate, every exemption, the 10% cap, ag valuation and the protest process — with the real 2025 numbers from the appraisal district."
 h1: "Boerne Property Taxes Explained"
 target_keywords:

@@ -1,6 +1,6 @@
 ---
 title: "Trails of Herff Ranch, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: trails-of-herff-ranch-boerne-tx
+slug: "trails-of-herff-ranch"
 meta_description: "Trails of Herff Ranch, Boerne: 583 homes inside City of Boerne limits, Kendall County. HOA fees, the working capital charge, schools, commute."
 h1: "Trails of Herff Ranch, Boerne, Texas"
 neighborhood_name: Trails of Herff Ranch

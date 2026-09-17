@@ -1,6 +1,6 @@
 ---
 title: "Fair Oaks Ranch, TX — Guide to the Three-County City, HOA, Schools"
-slug: fair-oaks-ranch-tx
+slug: "fair-oaks-ranch"
 meta_description: "Fair Oaks Ranch: an incorporated city spanning Bexar, Comal and Kendall counties. What county you buy in changes your tax bill and possibly your schools."
 h1: "Fair Oaks Ranch, Texas"
 neighborhood_name: Fair Oaks Ranch

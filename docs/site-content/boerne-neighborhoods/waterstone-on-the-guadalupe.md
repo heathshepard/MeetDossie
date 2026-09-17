@@ -1,6 +1,6 @@
 ---
 title: "Waterstone on the Guadalupe, Boerne TX — Guide, HOA, Schools"
-slug: waterstone-on-the-guadalupe-boerne-tx
+slug: "waterstone-on-the-guadalupe"
 meta_description: "Waterstone on the Guadalupe, Boerne: 222 acreage parcels, private river parks, unincorporated Kendall County. HOA, schools, and the real commute."
 h1: "Waterstone on the Guadalupe, Boerne, Texas"
 neighborhood_name: Waterstone on the Guadalupe

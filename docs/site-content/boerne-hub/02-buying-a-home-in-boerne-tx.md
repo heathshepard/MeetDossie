@@ -1,6 +1,6 @@
 ---
 title: "Buying a Home in Boerne, TX: Process, Timeline and Local Traps"
-slug: "buying-a-home-in-boerne-tx"
+slug: "buying-a-home"
 meta_description: "How buying in Boerne differs from San Antonio: wells, septic, no county zoning, MUD rates, and the diligence that actually matters. From a local agent."
 h1: "Buying a Home in Boerne, TX"
 target_keywords:

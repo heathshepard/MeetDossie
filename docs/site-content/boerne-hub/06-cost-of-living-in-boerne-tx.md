@@ -1,6 +1,6 @@
 ---
 title: "Cost of Living in Boerne, TX: Taxes, Utilities, Insurance and HOA"
-slug: "cost-of-living-in-boerne-tx"
+slug: "cost-of-living"
 meta_description: "What it actually costs to own in Boerne TX: verified 2025 tax rates, city utility bills, well and septic costs, insurance reality and HOA questions."
 h1: "Cost of Living in Boerne, TX"
 target_keywords:

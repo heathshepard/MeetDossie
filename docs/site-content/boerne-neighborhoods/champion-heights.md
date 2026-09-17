@@ -1,6 +1,6 @@
 ---
 title: "Champion Heights, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: champion-heights-boerne-tx
+slug: "champion-heights"
 meta_description: "Champion Heights, Boerne: 216 homes inside City of Boerne limits off Hwy 46. HOA, schools (it is zoned to Boerne High, not Champion), commute."
 h1: "Champion Heights, Boerne, Texas"
 neighborhood_name: Champion Heights

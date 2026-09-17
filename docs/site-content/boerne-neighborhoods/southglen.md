@@ -1,6 +1,6 @@
 ---
 title: "Southglen, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: southglen-boerne-tx
+slug: "southglen"
 meta_description: "Southglen, Boerne: 432 homes inside City of Boerne limits, Kendall County — not Bexar, despite the 78015 zip. HOA, pool, schools, commute."
 h1: "Southglen, Boerne, Texas"
 neighborhood_name: Southglen

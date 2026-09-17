@@ -1,6 +1,6 @@
 ---
 title: "The Ranches at Creekside, Boerne TX — Guide, HOA, Schools"
-slug: the-ranches-at-creekside-boerne-tx
+slug: "the-ranches-at-creekside"
 meta_description: "The Ranches at Creekside, Boerne: 532 homes on 306 platted acres inside City of Boerne limits. HOA fees, builders, schools, and honest fit."
 h1: "The Ranches at Creekside, Boerne, Texas"
 neighborhood_name: The Ranches at Creekside

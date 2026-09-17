@@ -1,6 +1,6 @@
 ---
 title: "Kendall Creek Estates, Boerne TX — Guide, HOA, Schools"
-slug: kendall-creek-estates-boerne-tx
+slug: "kendall-creek-estates"
 meta_description: "Kendall Creek Estates, Boerne: 102 homes inside City of Boerne limits near Scenic Loop. Now zoned to Viola Wilson Elementary. HOA, schools, commute."
 h1: "Kendall Creek Estates, Boerne, Texas"
 neighborhood_name: Kendall Creek Estates

@@ -1,6 +1,6 @@
 ---
 title: "Highlands Ranch, Boerne TX 78006 — Guide, HOA, Schools, County"
-slug: highlands-ranch-boerne-tx
+slug: "highlands-ranch"
 meta_description: "Highlands Ranch, Boerne 78006: acreage estates off Boerne Stage Road that are legally in BEXAR County. Boerne ISD, Viola Wilson. HOA and diligence."
 h1: "Highlands Ranch, Boerne, Texas"
 neighborhood_name: Highlands Ranch

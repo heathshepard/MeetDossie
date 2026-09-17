@@ -1,6 +1,6 @@
 ---
 title: "Ranger Creek, Boerne TX — Neighborhood Guide, HOA, Schools"
-slug: ranger-creek-boerne-tx
+slug: "ranger-creek"
 meta_description: "Ranger Creek, Boerne: 395 parcels west of town off I-10, unincorporated Kendall County, no mandatory HOA on file. Lot sizes, schools, commute."
 h1: "Ranger Creek, Boerne, Texas"
 neighborhood_name: Ranger Creek

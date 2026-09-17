@@ -89,7 +89,7 @@ Ordinances change. Confirm current terms with the City of Boerne before you buy 
 ## Related questions
 
 - [Should I buy in Boerne city limits or unincorporated Kendall County?](/answers/should-i-buy-in-boerne-city-limits-or-unincorporated-kendall-county)
-- [Short-Term Rental Rules in Boerne, TX](/boerne/boerne-tx-short-term-rental-rules)
+- [Short-Term Rental Rules in Boerne, TX](/boerne/short-term-rentals)
 - [What is a MUD or a PID in a Texas subdivision?](/answers/what-is-a-mud-or-pid-in-a-texas-subdivision)
 - [What should I know about septic systems and water wells in the Texas Hill Country?](/answers/what-should-i-know-about-septic-and-wells-in-the-hill-country)
 - [What are property taxes like in Boerne?](/answers/what-are-property-taxes-like-in-boerne)
