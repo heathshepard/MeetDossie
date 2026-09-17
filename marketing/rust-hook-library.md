@@ -6,6 +6,8 @@ Reusable opening lines for video covers, Reel/TikTok text overlays, and caption 
 
 **Corrections (2026-09-16):** this file previously stated two fabricated capabilities in the block above — "deload every 5th week" and a "1-to-10" readiness slider — flagged as unfixed in `docs/CONTENT-FORMAT-LIBRARY.md` §10.1 item 2 and `docs/RUST-INFLUENCER-PROGRAM.md` item 6 (a creator stating either on camera, with a disclosed material connection, would have been an FTC deceptive-claims problem landing on Heath, not the creator). Both are now corrected here. Hooks #11, #15, #20 and #35 below carried the same fabrications and are corrected in place, marked inline. Everything else in this file was checked against the same code and left as-is where the code supports it (noted per-hook where relevant).
 
+**Re-verification (2026-09-17):** all four 2026-09-16 corrections were independently re-checked against the Rust source and confirmed accurate — the 1-5 sliders (`ReadinessCheck.tsx` renders `[1,2,3,4,5]`), the +5 lb / hold / −10%-under-70% progression rule (`Workout.tsx` lines 373-384 and 1021-1035), the proactive `adjust_workout`/`swap_exercise` calls on soreness 4-5 or energy 1-2 (`api/chat.ts` line 231, persisted via `saveWorkoutPlanExercises`), `add_exercise` creating an exercise that isn't in the library (`resolveOrCreateExercise`), and the 121-item / 10-category catalog (re-counted from `equipmentCatalog.ts`, category-by-category, matches the breakdown below exactly). **One further fabrication was found and fixed: hook #12** — see the note on that hook. Note that `docs/BACKLOG-BUSINESS.md` RM3 describes hooks #11/#15 as also claiming "auto-rewriting of the session (the coach only recommends)"; that half of RM3 is wrong. The coach's tool calls do write to the database, so the corrected #8 and #15 stand. Nothing in this file may cite RM3 as a reason to weaken them.
+
 **Never invent:** user counts, testimonials, results, "X thousand downloads," or specifics not confirmed real (e.g. no made-up "15 minutes a day," no made-up dollar comparisons beyond the one real market anchor — $150/mo human trainers — that's a defensible category price, not a fabricated stat).
 
 **Where the equipment number comes from:** `Rust/src/constants/equipmentCatalog.ts` is the source of truth — count it, don't quote it from memory. As of 2026-09-08 it is **121 items across 10 categories** (Free Weights 15, Selectorized Machines 30, Plate-Loaded 9, Cables 3, Cardio 14, Benches & Racks 12, Bodyweight & Accessories 16, Functional & CrossFit 6, Smart & Connected 10, Studio 6). This file previously said 122, which was wrong and shipped into drafts before it was caught; re-count after any catalog change. Re-verified 121 on 2026-09-16 — unchanged.
@@ -62,9 +64,9 @@ What's left below is 36, not 60, because that's what actually cleared the bar.
 ## Curiosity / pattern-interrupt
 
 11. ★ "Watch what happens when I tell my coach my sleep was a 1 out of 5." — *Direct setup for the real, verified screenshot — genuine payoff, not a tease. Corrected 2026-09-16: readiness is a 1-5 scale in the app (`ReadinessCheck.tsx`), not 1-10 — the original line stated a scale that doesn't exist. Fits: IG Reel cover, TikTok.*
-12. ★ "I typed 'I'm gonna do a core and pull day' into my workout app. Here's what it did." — *Real, verified behavior — the strongest curiosity hook in the library because it's demonstrably true. Fits: TikTok/IG Reel.*
-13. "My phone just talked me out of a heavy squat day. Here's why I let it." — *Frames trust in the coach honestly, sets up a real demo. Fits: IG Reel, FB caption.*
-14. "One sentence. One rebuilt workout. Watch." — *Ultra-short overlay pairing for the #12 demo video. Fits: TikTok text overlay.*
+12. ★ "I typed 'throw in some calf raises' mid-workout. They were in the session before I finished reading the reply." — *Real, code-verified behavior: `add_exercise` writes the new exercise into today's plan in the database, picks the sets/reps/weight itself rather than asking, and creates the exercise as a custom one if it isn't in the library at all (`api/chat.ts`, `resolveOrCreateExercise`). REPLACED 2026-09-17: this slot previously read "I typed 'I'm gonna do a core and pull day' into my workout app," annotated as verified — it is not. Today's split is chosen from the fixed `SPLITS` picker in `Today.tsx`; there is no free-text entry that generates a session, and the coach has no workout-generation or split-change tool, only per-exercise add/remove/swap/adjust. Fits: TikTok/IG Reel.*
+13. "My phone just talked me out of a heavy squat day. Here's why I let it." — *Capability is real (low readiness → the coach lightens or swaps). Only use it if this actually happened to Heath — it's a first-person anecdote, not a feature claim. Fits: IG Reel, FB caption.*
+14. "One sentence. Today's workout changes. Watch." — *Ultra-short overlay pairing for the #12 demo video. Corrected 2026-09-17: previously "One rebuilt workout" — the coach edits the session, it does not rebuild it. Fits: TikTok text overlay.*
 
 ---
 
@@ -115,7 +117,7 @@ What's left below is 36, not 60, because that's what actually cleared the bar.
 - #1 "I built an AI strength coach by myself and now I need you to break it."
 - #5 "Every fitness app you've used gives you the same plan whether you slept 8 hours or 2."
 - #11 "Watch what happens when I tell my coach my sleep was a 1 out of 5."
-- #12 "I typed 'I'm gonna do a core and pull day' into my workout app. Here's what it did."
+- #12 "I typed 'throw in some calf raises' mid-workout. They were in the session before I finished reading the reply."
 - #15 "Tell it you're wiped and sore and watch it adjust your workout before you even ask."
 - #21 "Mid-set, tap the exercise, get a real coaching cue and a video without leaving your workout."
 - #23 "I need 12 Android people to break my app before Google will let me launch it."
