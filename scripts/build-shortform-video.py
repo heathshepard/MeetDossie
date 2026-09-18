@@ -71,6 +71,17 @@ def repo_asset(rel):
     p = REPO / rel
     if p.exists():
         return p
+    # DOSSIE_MEDIA_ROOT points at the ONE real Media/ library (the dev tree's).
+    # Added 2026-09-17 for the scheduled supply loop: Windows Task Scheduler
+    # runs out of C:\Users\Heath\Projects\MeetDossie-scheduler, a clean clone
+    # of origin/main (docs/SCHEDULER-CHECKOUT.md). Media/ is gitignored, so
+    # that checkout has the code and none of the music beds — a scheduled
+    # render would otherwise die five minutes in on a missing bed.
+    env_root = os.environ.get("DOSSIE_MEDIA_ROOT")
+    if env_root and str(rel).replace("\\", "/").startswith("Media/"):
+        alt = Path(env_root) / str(rel).replace("\\", "/")[len("Media/"):]
+        if alt.exists():
+            return alt
     marker = f"{os.sep}.claude{os.sep}worktrees{os.sep}"
     s = str(REPO)
     if marker in s:

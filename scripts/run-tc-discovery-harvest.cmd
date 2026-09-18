@@ -91,3 +91,22 @@ rem unresolved file set) and its latest result is also surfaced in the
 rem daily heartbeat (api/cron-dossie-full-diagnostic.js) so a quiet drift
 rem still shows up even if this Telegram alert is missed.
 node scripts\detect-scheduled-script-drift.js >> scripts\stale-script-detector.log 2>&1
+rem Step 11 (added 2026-09-17): the DAILY VIDEO SUPPLY LOOP
+rem (scripts\daily-video-supply.js, via scripts\run-daily-video-supply.cmd).
+rem On 2026-09-17 zero videos had posted in 24h with three working generators
+rem on disk and a working publish path -- nothing was broken, nothing was
+rem scheduled. This is the thing that fires them. It picks ONE format for the
+rem day by starvation score against each format's remaining runway
+rem (docs/CONTENT-FORMAT-LIBRARY.md §8.2), so no single format is drawn until
+rem it starts repeating itself, renders it, runs the quality gate INCLUDING
+rem the CTA-URL resolve check, and queues the result into video_library at
+rem status='approved' for the normal Telegram approval flow. It publishes
+rem NOTHING. Self-gates to once per calendar day via
+rem scripts\.daily-video-supply-state.json, so 47 of every 48 ticks exit in
+rem about a second without launching Chrome, ffmpeg or ElevenLabs. A day that
+rem produces nothing alerts Heath on Telegram (deduped ~20h through the same
+rem alert_state table as api\_lib\silence-alarm.js) rather than failing quietly
+rem -- a silent zero is exactly what went unnoticed for 24 hours.
+rem Runs through WSL: the composite half is python3 + ffmpeg/libass, which is
+rem the proven toolchain there, not on Windows. See that .cmd's header.
+call "%~dp0run-daily-video-supply.cmd" >> "%~dp0daily-video-supply.log" 2>&1

@@ -132,21 +132,30 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // writes the real ledger.
 const STATE_FILE = process.env.LISTING_REEL_STATE_FILE || path.join(__dirname, '.listing-reel-trigger-state.json');
 
+// The ONE real Media/ library. Media/ is gitignored, so a clean checkout of
+// origin/main -- which is exactly what Windows Task Scheduler runs out of
+// (C:\Users\Heath\Projects\MeetDossie-scheduler, docs/SCHEDULER-CHECKOUT.md)
+// -- has the code, the music beds, and the watch folders in DIFFERENT places
+// than the dev tree. DOSSIE_MEDIA_ROOT points every path below at the same
+// library regardless of which checkout is executing, so a scheduled reel lands
+// in the folder queue-finished-videos.py actually scans.
+const MEDIA_ROOT = process.env.DOSSIE_MEDIA_ROOT || path.join(REPO_ROOT, 'Media');
+
 // Pipeline B's realtor watch folder. queue-finished-videos.py scans this and
 // uses the FILENAME STEM as video_library.id -- the filename IS the ledger
 // (its own words). We name reels deterministically so that property holds.
-const REALTOR_FINISHED_DIR = path.join(REPO_ROOT, 'Media', 'finished-videos', 'realtor');
+const REALTOR_FINISHED_DIR = path.join(MEDIA_ROOT, 'finished-videos', 'realtor');
 
 // Staging area: reels render here FIRST and are only moved into the watch
 // folder after the quality gate passes. A failing reel must never land in a
 // folder something else scans.
-const STAGING_DIR = process.env.LISTING_REEL_STAGING_DIR || path.join(REPO_ROOT, 'Media', 'listing-reels-staging');
+const STAGING_DIR = process.env.LISTING_REEL_STAGING_DIR || path.join(MEDIA_ROOT, 'listing-reels-staging');
 
 const QUALITY_GATE_CLI = path.join(__dirname, 'check-video-quality-cli.js');
 const RENDERER = path.join(__dirname, 'generate-listing-video.js');
 const VOICEOVER_SCRIPT = path.join(__dirname, 'gen-listing-voiceover.py');
 const QUEUE_SCRIPT = path.join(__dirname, 'queue-finished-videos.py');
-const MUSIC_DIR = path.join(REPO_ROOT, 'Media', 'Music');
+const MUSIC_DIR = path.join(MEDIA_ROOT, 'Music');
 
 // MLS photo dumps are gitignored (.tmp/), so the location is configurable and
 // resolution is explicit -- a missing photo set is a hard skip with a named
@@ -154,7 +163,7 @@ const MUSIC_DIR = path.join(REPO_ROOT, 'Media', 'Music');
 const PHOTO_ROOTS = [
   process.env.LISTING_REEL_PHOTOS_ROOT,
   path.join(REPO_ROOT, '.tmp', 'fawndale-wildcherry-photos'),
-  path.join(REPO_ROOT, 'Media', 'listing-photos'),
+  path.join(MEDIA_ROOT, 'listing-photos'),
   // Heath's main dev tree, where the MLS photo dumps actually live today.
   // Read-only; nothing is ever written there.
   '/mnt/c/Users/Heath/Projects/MeetDossie/.tmp/fawndale-wildcherry-photos',

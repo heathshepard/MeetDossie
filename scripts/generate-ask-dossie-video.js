@@ -505,17 +505,19 @@ async function assertNoRealPartyNames(answerText) {
 function cropAdvice(answer) {
   const g = answer.answer_bubble_geometry;
   if (!g) return '- crop_y: answer bubble geometry was not recorded for this take.';
-  const S = 3;                     // deviceScaleFactor
-  const WIN = 2080;                // 9:16 window height inside a 1170x2532 capture
-  const MAXY = 2532 - WIN;         // 452
-  const SCALE = 1920 / WIN;        // 0.9231
-  const CAP_TOP_OUT = 1480;        // top of the burned caption band, output px
-  const top = Math.round(g.top_css * S);
-  const bottom = Math.round(g.bottom_css * S);
-  const needAbove = Math.round(bottom - CAP_TOP_OUT / SCALE); // crop_y must be >= this
-  const lo = Math.max(0, needAbove);
-  const hi = Math.min(MAXY, top);  // keep the bubble's top inside the window
-  const ok = lo <= hi;
+  // The arithmetic itself lives in scripts/_lib/ask-dossie-crop.js so the
+  // unattended render half (scripts/render-ask-dossie-video.js) reads the same
+  // NUMBER this prose describes, instead of re-deriving it or having someone
+  // transcribe it out of markdown.
+  const { computeCropY, CAPTURE_H, WINDOW_H, MAX_CROP_Y, CAPTION_TOP_OUT } =
+    require('./_lib/ask-dossie-crop.js');
+  const c = computeCropY(answer);
+  const { lo, hi, ok, topPx: top, bottomPx: bottom } = c;
+  const S = 3;
+  const WIN = WINDOW_H;
+  const MAXY = MAX_CROP_Y;
+  const CAP_TOP_OUT = CAPTION_TOP_OUT;
+  void CAPTURE_H;
   return [
     '### crop_y for the answer segment',
     '',

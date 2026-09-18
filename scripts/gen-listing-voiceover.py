@@ -64,7 +64,42 @@ MODEL_CLONE = "eleven_v3"
 MODEL = MODEL_NARRATION  # back-compat for callers importing MODEL
 CLONE_LOCKED_STABILITY = 0.3
 CLONE_LOCKED_STYLE = 0.4
-CLONE_CONFIG_PATH = Path(__file__).parent / "config" / "heath-voice-clone.json"
+def _clone_config_path():
+    """Where Heath's clone config actually is, from wherever this is running.
+
+    It is gitignored (docs/ENV.md treats the voice id itself as a secret), so
+    it exists ONLY in the main dev tree -- not in .claude/worktrees/<name>/ and
+    not in the MeetDossie-scheduler checkout that Windows Task Scheduler runs
+    out of (docs/SCHEDULER-CHECKOUT.md).
+
+    That mattered silently until 2026-09-17: when the file is missing,
+    clone_voice_id() returns None, is_clone evaluates False, and a render that
+    explicitly asked for Heath's clone gets stability 0.5 / style 0.15 on
+    eleven_multilingual_v2 instead of the locked, Heath-approved 0.3 / 0.4 on
+    eleven_v3 (heath-voice-clone-settings-locked.md). Same voice id, wrong
+    voice -- and nothing said so. Every scheduled render would have shipped
+    that way.
+    """
+    here = Path(__file__).resolve().parent
+    override = os.environ.get("HEATH_VOICE_CLONE_CONFIG")
+    candidates = [Path(override)] if override else []
+    candidates.append(here / "config" / "heath-voice-clone.json")
+    marker = f"{os.sep}.claude{os.sep}worktrees{os.sep}"
+    s = str(here)
+    if marker in s:
+        candidates.append(Path(s[:s.index(marker)]) / "scripts" / "config" / "heath-voice-clone.json")
+    # The one real dev tree, for any checkout that is not it (the scheduler's).
+    candidates.append(Path("/mnt/c/Users/Heath/Projects/MeetDossie/scripts/config/heath-voice-clone.json"))
+    for c in candidates:
+        try:
+            if c.exists():
+                return c
+        except OSError:
+            continue
+    return candidates[-1]
+
+
+CLONE_CONFIG_PATH = _clone_config_path()
 
 
 def clone_voice_id():
@@ -182,6 +217,14 @@ def main():
         print(f"[voice] Heath's clone -> locked config: model={model} "
               f"stability={stability} style={style}")
     else:
+        if clone_voice_id() is None:
+            # Say it out loud. Silently narrating in stock settings when the
+            # caller asked for the clone is the exact failure this guard names.
+            sys.stderr.write(
+                f"[voice] WARNING: clone config not readable at {CLONE_CONFIG_PATH} -- "
+                "cannot tell whether --voice-id is Heath's clone, so the LOCKED clone "
+                "settings (eleven_v3 / 0.3 / 0.4) are NOT being applied. Set "
+                "HEATH_VOICE_CLONE_CONFIG or run from a checkout that has the file.\n")
         model = args.model or MODEL_NARRATION
         stability = 0.5 if args.stability is None else args.stability
         style = 0.15 if args.style is None else args.style
