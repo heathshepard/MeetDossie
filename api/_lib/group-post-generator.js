@@ -380,10 +380,28 @@ async function runGroupPostGeneration(opts) {
   let skipped = 0;
   const generated = [];
 
+  // Groups where the 2026-09-06 access audit (or a later re-verify) confirmed
+  // DossieBot/the acting identity cannot actually see or post to the group.
+  // skip=false alone doesn't catch these -- access_state is the honest signal.
+  // Backfilled 2026-09-18 after finding 13 registry rows with skip=false but
+  // a confirmed-bad access_state (dead cycles: generation + Telegram approval
+  // for a group that can never actually receive the post).
+  const BAD_ACCESS_STATES = new Set([
+    'not-a-member',
+    'inaccessible-or-removed',
+    'group-deleted',
+  ]);
+
   for (const group of groups) {
     if (maxPerRun != null && processed >= maxPerRun) {
       log(`[group-post-generator] Reached per-run cap (${maxPerRun}). Stopping.`);
       break;
+    }
+
+    if (group.access_state && BAD_ACCESS_STATES.has(group.access_state)) {
+      log(`[group-post-generator] Skipping "${group.group_name}" - access_state="${group.access_state}" (audited, not reachable)`);
+      skipped++;
+      continue;
     }
 
     if (group.last_posted_at) {

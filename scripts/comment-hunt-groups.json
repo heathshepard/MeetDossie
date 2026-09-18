@@ -97,6 +97,42 @@
       "identity_membership_verified": false,
       "requires_admin_approval": "unknown",
       "verification_note": "URL loaded live, real conversation confirmed by the 2026-09-08 hunt. acting_identity=page per the 2026-09-16 DossieBot-Sage truth audit. Posting access/approval requirement for this specific group not yet tested. CORRECTED 2026-09-17: DossieBot-Sage Chrome profile re-audited and confirmed logged in as Heath's PERSONAL profile (facebook.com/heath.shepard.75), not the Page -- the 2026-09-16 Page finding no longer reflects the live session. identity_membership_verified for this specific group under the personal profile has NOT been re-checked as part of this correction."
+    },
+    {
+      "key": "dfw_area_realtors",
+      "name": "Dallas Fort Worth Area Realtors (36.3K)",
+      "url": "https://www.facebook.com/groups/dfwrealestategroup/",
+      "note": "history backfill 2026-09-18 -- had a real successful post 2026-09-07 but was never added to this file, so nothing has targeted it since",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-07",
+      "acting_identity": "personal",
+      "identity_membership_verified": true,
+      "requires_admin_approval": false,
+      "verification_note": "Proven by group_posts row 8e90e504-b9d7-4841-a6bf-9240e1813ec9 -- real post_url https://www.facebook.com/groups/dfwrealestategroup/posts/28386009574328965/, posted 2026-09-07T22:32:00Z, went straight to 'posted' with no moderation detour. Live re-verified 2026-09-17 (Sage) under the DossieBot-Sage personal-profile identity: status 'Joined', public group, active feed, no admin-approval gate in the group's own UI/About panel, standard no-spam/be-kind rules only. 36.3K members, 103 new posts/day. Corresponding group_registry row: eadaf7d3-0aca-426c-9d24-064ed11a9410. NOTE: a different, now-dead URL (dallasfortworthrealtors) previously used the same display name -- that one is access_state=group-deleted in group_registry and must not be confused with this one."
+    },
+    {
+      "key": "tx_transaction_coordinator",
+      "name": "Texas Transaction Coordinator (72 members)",
+      "url": "https://www.facebook.com/groups/495797981693614/",
+      "note": "history backfill 2026-09-18 -- had a real successful post 2026-09-07 but was never added to this file, so nothing has targeted it since",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-07",
+      "acting_identity": "personal",
+      "identity_membership_verified": true,
+      "requires_admin_approval": false,
+      "verification_note": "Proven by group_posts row dd21d6c1-a255-4d1a-9ae5-639bc0c74b8c -- real post_url https://www.facebook.com/groups/495797981693614/posts/1631177401488994/, posted 2026-09-07T21:04:14Z, went straight to 'posted' with no moderation detour. Live re-verified 2026-09-17 (Sage) under the DossieBot-Sage personal-profile identity: status 'Joined', public group, no posted group-rules section at all. Small/slow group (72 members, ~2 posts/month) but access confirmed clean. Corresponding group_registry row: 5dda7cdc-3267-421a-8af7-932dc7e7140a."
+    },
+    {
+      "key": "texas_realtors_group",
+      "name": "Texas Realtors (508 members)",
+      "url": "https://www.facebook.com/groups/16168503259/",
+      "note": "history backfill 2026-09-18 -- had a real successful post 2026-09-06 but was never added to this file, so nothing has targeted it since",
+      "existence_verified": true,
+      "existence_verified_date": "2026-09-06",
+      "acting_identity": "personal",
+      "identity_membership_verified": true,
+      "requires_admin_approval": "unknown",
+      "verification_note": "Proven by group_posts row 10d106a4-616c-4257-9a61-6d7dfc0e7519 -- real post_url https://www.facebook.com/groups/16168503259/posts/10164556289438260/, posted 2026-09-06T18:53:56Z. Live re-verified 2026-09-17 (Sage) under the DossieBot-Sage personal-profile identity: status 'Joined', public group, 508 members, 2 new posts/day, no posted group-rules section shown. Corresponding group_registry row: f3a61001-ae25-47c5-a69b-d7df7a4a5faf (canonical -- a duplicate row 973c94db exists in group_registry with skip=true, left in place only because group_posts.group_registry_id FK references it; do not use it as the target)."
     }
   ],
   "skip_groups": [
