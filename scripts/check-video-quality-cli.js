@@ -38,6 +38,15 @@
 //                      (cover_asset_present is blocking, never optional).
 //   --video-url <url>  remote video instead of a local path.
 //   --cover-url <url>  remote cover instead of a local path.
+//   --platforms <csv>  the video_library row's real platforms, comma-
+//                      separated (e.g. "facebook,twitter,linkedin"). Selects
+//                      vertical vs horizontal rules — see
+//                      api/_lib/verify-video-quality.js's classifyOrientation().
+//                      Omit only for pre-2026-09-17 callers that want the
+//                      old vertical-only default; a real ingestion caller
+//                      should always pass this.
+//   --orientation <o>  explicit 'vertical'|'horizontal' override, only when
+//                      --platforms isn't available.
 //   --pretty           ALSO write a human-readable rule table to stderr.
 //   --json-only        suppress the stderr table (default when not a TTY).
 
@@ -104,6 +113,11 @@ async function main() {
   const videoUrl = arg('--video-url');
   const coverPath = arg('--cover');
   const coverUrl = arg('--cover-url');
+  const platformsArg = arg('--platforms');
+  const platforms = platformsArg
+    ? platformsArg.split(',').map((p) => p.trim()).filter(Boolean)
+    : undefined;
+  const orientation = arg('--orientation') || undefined;
   const wantTable = flag('--pretty') || (process.stderr.isTTY && !flag('--json-only'));
 
   if (!videoPath && !videoUrl) {
@@ -131,6 +145,7 @@ async function main() {
   process.stderr.write(`[quality-gate] env: ${loadedEnv || 'none found (vision rules will fail closed)'}\n`);
   process.stderr.write(`[quality-gate] video: ${videoPath || videoUrl}\n`);
   process.stderr.write(`[quality-gate] cover: ${coverPath || coverUrl || '(none — cover_asset_present will FAIL)'}\n`);
+  process.stderr.write(`[quality-gate] platforms/orientation: ${platforms ? platforms.join(',') : (orientation || '(none — defaults to vertical)')}\n`);
 
   const { checkVideoQuality } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
 
@@ -139,6 +154,8 @@ async function main() {
     videoUrl: videoUrl || undefined,
     coverPath: coverPath || undefined,
     coverUrl: coverUrl || undefined,
+    platforms,
+    orientation,
   });
 
   if (wantTable) {

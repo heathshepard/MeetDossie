@@ -3,15 +3,35 @@
 // scripts/feature-demo-publish.js
 //
 // Upload a finished feature-demo mp4 to Supabase Storage and insert a row in
-// the video_library table with type='feature_demo' and status='pending_approval'
-// so it flows through the standard Telegram approval pipeline (cron-post-videos
-// already picks up rows when Heath approves).
+// the video_library table with type='feature_demo' and status='ready' so it
+// flows through the standard Telegram approval pipeline.
+//
+// STATUS FIX (2026-09-17): this used to insert directly as
+// status='pending_approval', on the belief that "cron-post-videos already
+// picks up rows when Heath approves." That's true of the APPROVE step, but
+// nothing ever sends the video to Heath in the first place from that state:
+// api/cron-video-approval.js (the only code that PATCHes a row TO
+// pending_approval and fires the Telegram Approve/Reject message) only
+// SELECTs rows already at status='ready' — it never re-reads a row a caller
+// dropped directly into pending_approval. api/cron-post-videos.js only reads
+// 'approved' and 'heath_approved'. The result: a row inserted straight into
+// pending_approval has no code path that ever sends it to Telegram, so it
+// sits invisible forever with `telegram_message_id` staying null. This is
+// exactly how 8 of the 9 rows that piled up 2026-06-09 through 2026-08-23
+// went dead — confirmed by querying video_library directly: all 8 have
+// telegram_message_id=null, versus the one non-feature_demo row in that same
+// pending_approval backlog (amendment-demo-desktop-2026-05-27, inserted
+// through the OLD/correct 'ready' path) which DOES carry a real
+// telegram_message_id, because cron-video-approval.js actually ran on it.
+// Inserting as 'ready' here routes every future publish through the front
+// door instead of skipping the one step that sends the approval message.
 //
 // Usage:
 //   node scripts/feature-demo-publish.js <scene-script.json>
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 // ─── Env loader ───────────────────────────────────────────────────────────────
 
@@ -97,73 +117,60 @@ async function upsertVideoLibrary(row) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-// Measurable framing preflight, run on the real bytes immediately before they
-// leave this machine. Added 2026-09-16: until now NOTHING in this chain ever
-// probed the file — feature-demo-publish.js only read its size in MB — so a
-// 1920x1080 landscape take uploaded and published to Facebook Reels without a
-// single check. This deliberately runs only the ffmpeg-measurable subset of
-// api/_lib/verify-video-quality.js (aspect / coverage / first-frame), not the
-// vision rules, so it needs no API key and cannot be skipped for lack of one.
-async function assertFramingOk(mp4Path, cfg) {
-  const {
-    analyzePersistentCoverage, frameLumaSpread,
-    TARGET_ASPECT_RATIO, ASPECT_RATIO_TOLERANCE,
-    CONTENT_COVERAGE_MIN, FIRST_FRAME_MIN_LUMA_SPREAD,
-  } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
+// Full quality gate, run on the real bytes immediately before they leave
+// this machine. Added 2026-09-16 as a measurable-only preflight; upgraded
+// 2026-09-17 to the FULL gate (measurable + vision) after the frame-by-frame
+// review that unblocked the 9-video pending_approval backlog found that a
+// measurable-only check would have missed the actual disqualifying defect on
+// every 2026-08-17 recording: each one opens on the Dossie sign-in screen —
+// real, legible content at frame 0 (so first_frame_not_uniform passes), just
+// the WRONG content. Only the vision rule (opening_not_login_or_empty)
+// catches that. A narrower check here would keep shipping the same defect
+// forever.
+//
+// Orientation source of truth: delegates to classifyOrientation() —the same
+// function api/cron-video-approval.js's ingestion gate and
+// scripts/queue-finished-videos.py's CLI path use — so there is exactly one
+// place that decides which platform wants which shape. (This used to carry
+// its own local `VERTICAL_SURFACES` guess that listed 'facebook' as
+// vertical, contradicting docs/FEATURE-VIDEO-DAILY-PLAN.md §1's dual-cut
+// design and would have refused every correctly-shaped desktop demo.)
+//
+// Never throws — mirrors scripts/queue-finished-videos.py's run_quality_gate
+// pattern: returns a verdict, and the caller decides status ('ready' on
+// pass, 'quality_hold' on fail), uploading either way so a held video is
+// still visible to Heath with its real failure reasons attached, instead of
+// silently vanishing before it ever reaches the database.
+async function runFullQualityGate(mp4Path, coverPath, platforms) {
+  const { checkVideoQuality } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
+  try {
+    const result = await checkVideoQuality({ videoPath: mp4Path, coverPath, platforms });
+    return result;
+  } catch (err) {
+    // A thrown gate is still fail-closed, never a silent pass.
+    return {
+      pass: false,
+      rules: { gate_executed: { pass: false, blocking: true, note: `gate threw: ${err.message}` } },
+      failedRules: ['gate_executed'],
+      detail: {},
+    };
+  }
+}
+
+// Auto-cover: frame 0, same convention scripts/queue-finished-videos.py's
+// extract_cover_frame() already uses for the other ingestion lane. A bad
+// frame-0 (login screen, blank splash) is exactly what the gate's own vision
+// rules are built to catch — using it as the cover rather than hand-picking
+// a flattering frame means the cover asset and the gate see the same truth.
+async function extractCoverFrame(mp4Path) {
   const { execFile } = require('child_process');
   const { promisify } = require('util');
   const execFileAsync = promisify(execFile);
-
-  const VERTICAL_SURFACES = ['tiktok', 'instagram', 'facebook', 'youtube'];
-  const platforms = cfg.platforms || ['facebook', 'twitter', 'linkedin'];
-  const targetsVertical = platforms.some((p) => VERTICAL_SURFACES.includes(String(p).toLowerCase()));
-
-  const { stdout } = await execFileAsync('ffprobe', [
-    '-v', 'error', '-select_streams', 'v:0',
-    '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', mp4Path,
-  ]);
-  const [w, h] = String(stdout).trim().split('x').map(Number);
-  if (!w || !h) throw new Error(`ffprobe could not read a resolution from ${mp4Path}`);
-
-  const problems = [];
-  const ratio = w / h;
-  if (targetsVertical && Math.abs(ratio - TARGET_ASPECT_RATIO) > ASPECT_RATIO_TOLERANCE) {
-    problems.push(
-      `aspect ratio is ${ratio.toFixed(4)} (${w}x${h}), not 9:16. Platforms ${JSON.stringify(platforms)} `
-      + 'include a vertical surface, which will letterbox this into ~80% black bars '
-      + '(the 2026-09-15 stage-checklist defect).',
-    );
-  }
-
-  const { stdout: durOut } = await execFileAsync('ffprobe', [
-    '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=nw=1:nk=1', mp4Path,
-  ]);
-  const duration = parseFloat(String(durOut).trim());
-
-  const { coverage, bars } = await analyzePersistentCoverage(mp4Path, duration);
-  if (coverage < CONTENT_COVERAGE_MIN) {
-    problems.push(
-      `content fills only ${(coverage * 100).toFixed(1)}% of the frame `
-      + `(min ${CONTENT_COVERAGE_MIN * 100}%) — persistent bars ${JSON.stringify(bars)}. Letterboxed/pillarboxed.`,
-    );
-  }
-
-  const { spread, min, max } = await frameLumaSpread(mp4Path, 0);
-  if (spread < FIRST_FRAME_MIN_LUMA_SPREAD) {
-    problems.push(
-      `frame 0 is near-uniform (luma spread ${spread}, min ${min}, max ${max}) — a blank opening frame.`,
-    );
-  }
-
-  if (problems.length) {
-    throw new Error(
-      `[publish] REFUSING to upload ${path.basename(mp4Path)} — framing preflight failed:\n`
-      + problems.map((p) => `  - ${p}`).join('\n')
-      + '\n  Re-record the scene rather than padding/scaling the finished file: '
-      + 'a 16:9 source scaled into a 9:16 frame still fails the coverage rule.',
-    );
-  }
-  console.log(`[publish] framing preflight OK — ${w}x${h}, coverage ${(coverage * 100).toFixed(1)}%, frame-0 spread ${spread}`);
+  const outPath = path.join(os.tmpdir(), `feature-demo-cover-${process.pid}-${Date.now()}.png`);
+  await execFileAsync('ffmpeg', ['-y', '-ss', '0', '-i', mp4Path, '-frames:v', '1', outPath]);
+  const stat = await fs.promises.stat(outPath);
+  if (!stat.size) throw new Error(`ffmpeg produced an empty cover frame for ${mp4Path}`);
+  return outPath;
 }
 
 async function publish(scriptPath) {
@@ -171,11 +178,36 @@ async function publish(scriptPath) {
   const mp4Path = path.join(OUT_DIR, cfg.filename);
   if (!fs.existsSync(mp4Path)) throw new Error(`Final mp4 missing: ${mp4Path}. Run feature-demo-merge.js first.`);
 
-  await assertFramingOk(mp4Path, cfg);
+  const platforms = cfg.platforms || ['facebook', 'twitter', 'linkedin'];
+
+  let coverLocal = null;
+  try {
+    coverLocal = await extractCoverFrame(mp4Path);
+  } catch (err) {
+    console.warn(`[publish] WARN: cover frame extraction failed (${err.message}) — cover_asset_present will fail`);
+  }
+
+  const gateResult = await runFullQualityGate(mp4Path, coverLocal || undefined, platforms);
+  if (coverLocal) await fs.promises.unlink(coverLocal).catch(() => {});
+
+  const qualityPassed = !!gateResult.pass;
+  const failedRules = gateResult.failedRules || [];
+  if (!qualityPassed) {
+    console.warn(`[publish] QUALITY HOLD: ${path.basename(mp4Path)} failed: ${failedRules.join(', ')}`);
+    for (const ruleName of failedRules) {
+      const rule = gateResult.rules && gateResult.rules[ruleName];
+      if (rule) console.warn(`  - ${ruleName}: ${rule.note}`);
+    }
+  } else {
+    console.log(`[publish] quality gate PASSED — orientation=${gateResult.detail && gateResult.detail.orientation}`);
+  }
 
   const id = cfg.filename.replace(/\.mp4$/i, '');
   const storagePath = `${STORAGE_PREFIX}/${cfg.filename}`;
 
+  // Upload regardless of pass/fail — a held video still needs to be visible
+  // (with its real failure reasons attached) rather than vanishing before it
+  // ever reaches the database. Matches scripts/queue-finished-videos.py.
   const publicUrl = await uploadToStorage(mp4Path, storagePath);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -185,16 +217,25 @@ async function publish(scriptPath) {
     type: 'feature_demo',
     topic: cfg.topic || cfg.name,
     produced_date: today,
-    status: 'pending_approval',
-    platforms: cfg.platforms || ['facebook', 'twitter', 'linkedin'],
+    // status='ready' ONLY on a quality-gate pass — cron-video-approval.js
+    // sends 'ready' rows straight to Heath's Telegram, so a failing video
+    // must never reach that state. 'quality_hold' keeps it out of every
+    // approval/posting cron (see api/_lib/silence-alarm.js's
+    // quality_hold check) until someone fixes and re-runs this script.
+    status: qualityPassed ? 'ready' : 'quality_hold',
+    platforms,
     caption: cfg.caption || '',
     supabase_url: publicUrl,
+    quality_status: qualityPassed ? 'passed' : 'held',
+    quality_failed_rules: failedRules,
+    quality_detail: gateResult,
+    quality_checked_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
   };
 
   const inserted = await upsertVideoLibrary(row);
   console.log(`[publish] video_library row: id=${row.id} status=${row.status}`);
-  return { id: row.id, supabase_url: publicUrl, row: inserted };
+  return { id: row.id, supabase_url: publicUrl, row: inserted, qualityPassed, failedRules };
 }
 
 if (require.main === module) {

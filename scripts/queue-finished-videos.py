@@ -488,13 +488,21 @@ def upload_cover_to_storage(cover_path: Path, filename_stem: str) -> str | None:
         return None
 
 
-def run_quality_gate(video_path: Path, cover_path: Path | None) -> dict | None:
+def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[str] | None = None) -> dict | None:
     """
     Shells out to scripts/check-video-quality-cli.js (same subprocess pattern
     as compress_video()'s ffmpeg call) -- see that file for why this is a
     Node CLI rather than reimplemented in Python: the vision-model check
     reuses api/_lib/verify-video-quality.js's Anthropic call, the same path
     verify-image-match.js already uses.
+
+    platforms (2026-09-17): the row's real platforms array, passed straight
+    through to --platforms so the gate grades vertical (tiktok/instagram)
+    rows against 9:16/Reels rules and horizontal (facebook/twitter/linkedin/
+    youtube) rows against 16:9/feed rules -- see classifyOrientation() in
+    verify-video-quality.js. Omitting it defaults to the original vertical-
+    only behavior, so always pass info["platforms"] here at the real call
+    site.
 
     Returns the parsed {pass, rules, failedRules, detail} dict, or None if
     the CLI itself couldn't be run at all (missing node, crashed, etc.) --
@@ -504,6 +512,8 @@ def run_quality_gate(video_path: Path, cover_path: Path | None) -> dict | None:
     cmd = ["node", str(QUALITY_GATE_CLI), "--video", str(video_path)]
     if cover_path:
         cmd += ["--cover", str(cover_path)]
+    if platforms:
+        cmd += ["--platforms", ",".join(platforms)]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     except Exception as ex:
@@ -658,7 +668,7 @@ def main():
         # ORIGINAL file, before any lossy compression. A missing/failed cover
         # or gate CLI failure is fail-closed, never a silent pass.
         cover_local = extract_cover_frame(video_path)
-        gate_result = run_quality_gate(video_path, cover_local)
+        gate_result = run_quality_gate(video_path, cover_local, platforms=info["platforms"])
 
         if gate_result is None:
             print(f"  ERROR: quality gate could not run for {filename} — failing closed, not approving")
