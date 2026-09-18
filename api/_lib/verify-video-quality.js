@@ -13,7 +13,8 @@
 // changed. A caller that DOES pass the row's real `platforms` array gets
 // graded against the matching rule family instead: vertical (tiktok/
 // instagram) keeps every existing 9:16/hook-then-clear/Reels-runtime rule
-// unchanged; horizontal (facebook/twitter/linkedin/youtube) gets its own
+// unchanged (youtube = Shorts, vertical); horizontal (facebook/twitter/
+// linkedin) gets its own
 // 16:9/legible-UI/feed-runtime rule family. Pass `opts.platforms` (preferred
 // — the real DB array) or `opts.orientation` explicitly; never both absent
 // and never guessed from anything else.
@@ -48,6 +49,11 @@
 //                                 palette is light). Added 2026-09-16.
 //   - first_frame_not_uniform     frame 0 is not a blank/solid splash.
 //                                 Added 2026-09-16.
+//   - audio_present_and_audible   the file has an audio stream AND that
+//                                 stream is not digital silence (ffmpeg
+//                                 volumedetect mean_volume above
+//                                 AUDIO_SILENCE_FLOOR_DB). Added 2026-09-18 —
+//                                 a mute upload passed every other rule.
 //   - cover_asset_present         an explicit cover file/URL was supplied
 //                                 and is non-empty.
 //
@@ -206,6 +212,13 @@ const CONTENT_COVERAGE_MIN = 0.85;
 // other real video measured a spread of 237-255. 24 sits far from both.
 const FIRST_FRAME_MIN_LUMA_SPREAD = 24;
 
+// Silence floor for audio_present_and_audible (see that rule for the full
+// reasoning). ffmpeg reports true digital silence as -91.0 dB; real finished
+// output from this pipeline (voice at I=-15 LUFS, bed 18-22 LU under) measures
+// far above -50. This separates "mute file" from "quiet mix", not "quiet mix"
+// from "loud mix" — it is a silence detector, not a loudness rule.
+const AUDIO_SILENCE_FLOOR_DB = -50;
+
 // ── Orientation-aware gating (added 2026-09-17) ──────────────────────────────
 //
 // WHY: this gate shipped 2026-09-15/16 written entirely against 9:16 vertical
@@ -223,13 +236,31 @@ const FIRST_FRAME_MIN_LUMA_SPREAD = 24;
 //
 // classifyOrientation() takes the row's real `platforms` array (never
 // guessed) and returns 'vertical' | 'horizontal'. tiktok/instagram are
-// Reels-native vertical surfaces; facebook/twitter/linkedin/youtube are fed
-// the desktop 16:9 cut in this pipeline (docs/FEATURE-VIDEO-DAILY-PLAN.md §1
+// Reels-native vertical surfaces (youtube = Shorts, corrected 2026-09-18);
+// facebook/twitter/linkedin are fed the desktop 16:9 cut in this pipeline (docs/FEATURE-VIDEO-DAILY-PLAN.md §1
 // — "Desktop cut ... Facebook, Twitter, LinkedIn"). A platforms array mixing
 // both families, or one with no recognized platform, is refused rather than
 // guessed — an ingestion caller must always pass real platforms.
-const VERTICAL_PLATFORMS = ['tiktok', 'instagram'];
-const HORIZONTAL_PLATFORMS = ['facebook', 'twitter', 'linkedin', 'youtube'];
+//
+// YOUTUBE MOVED TO THE VERTICAL FAMILY (2026-09-18). It was listed as
+// horizontal here on 2026-09-17, which directly contradicted the only file
+// that ever tags a row with 'youtube' — scripts/queue-finished-videos.py, whose
+// own comment reads: "YouTube Shorts wants the same 1080x1920 vertical asset
+// tiktok/instagram already get from build-shortform-video.py, so it rides the
+// same selfie/skit/mobile lanes. Desktop (landscape) screen recordings stay off
+// youtube — Shorts is vertical-only." Shorts is the destination we publish to,
+// so vertical is the correct family and this list was the side that was wrong.
+//
+// The contradiction was not cosmetic: it made [facebook, instagram, tiktok,
+// youtube] — the Dossie default lane — a MIXED array, so classifyOrientation()
+// threw, orientation_determined failed, and the gate failed CLOSED on every
+// video that went through that scanner. See scripts/_lib/video-lanes.js, which
+// is now the single place those lanes are derived.
+//
+// A genuine 16:9 YouTube upload (not a Short) must pass opts.orientation:
+// 'horizontal' explicitly. Nothing in this pipeline produces one today.
+const VERTICAL_PLATFORMS = ['tiktok', 'instagram', 'youtube'];
+const HORIZONTAL_PLATFORMS = ['facebook', 'twitter', 'linkedin'];
 
 // Runtime range for the HORIZONTAL (16:9, facebook/twitter/linkedin) lane.
 // Calibrated against the real feature-demo output this gate exists to
@@ -687,6 +718,12 @@ async function checkVideoQuality(opts = {}) {
         content_coverage: detail.content_coverage ?? null,
         persistent_bars: detail.persistent_bars ?? null,
         first_frame_luma_spread: detail.first_frame_luma_spread ?? null,
+        // The measured level, not just the verdict. `detail` is an explicit
+        // whitelist here rather than a spread, so a rule that records a
+        // measurement and does not add it to this list reports `undefined` to
+        // every caller — which is what a video_library row's quality_detail
+        // then stores, and what anyone debugging a hold would have to guess at.
+        audio_mean_volume_db: detail.audio_mean_volume_db ?? null,
         opening_disqualifier: detail.opening_disqualifier ?? null,
         orientation: detail.orientation ?? null,
       },
@@ -860,6 +897,70 @@ async function checkVideoQuality(opts = {}) {
     });
   } catch (err) {
     addRule('first_frame_not_uniform', { pass: false, note: `first-frame uniformity check failed (fail-closed): ${err.message}` });
+  }
+
+  // 3e. Audio track present AND audible (added 2026-09-18).
+  //
+  // Heath, 2026-09-18: "video, music, voice over, captions, cta, cover ...
+  // posted daily ... we need consistency. we have never had that." Every other
+  // element of that list already had a machine check somewhere; the SOUND did
+  // not. A video with no audio stream, or with a stream of digital silence,
+  // passed every rule in this file and shipped mute — and a muted upload on a
+  // sound-on surface is dead on arrival.
+  //
+  // scripts/build-shortform-video.py now refuses to BUILD one (see
+  // assert_full_production there), but that only covers renders that go
+  // through the compositor. R1 listing reels use a different renderer and
+  // hand-dropped clips use none, so the check also has to live at the gate,
+  // where every video passes regardless of who made it.
+  //
+  // Threshold: ffmpeg volumedetect's mean_volume. Real mixed output from this
+  // pipeline normalises the voice to I=-15 LUFS with the bed 18-22 LU under,
+  // so a finished file measures well above -50 dB. True digital silence
+  // reports -91.0 dB (or no mean_volume line at all). -50 sits far from both
+  // and does not depend on how loud a particular mix is.
+  try {
+    const { stdout: streamOut } = await execFileAsync('ffprobe', [
+      '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type',
+      '-of', 'csv=p=0', localVideo,
+    ]);
+    const hasAudioStream = streamOut.trim().length > 0;
+    if (!hasAudioStream) {
+      detail.audio_mean_volume_db = null;
+      addRule('audio_present_and_audible', {
+        pass: false,
+        note: 'the file has NO audio stream at all — it is a silent video. Voiceover and a music bed are not optional (docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md §5).',
+      });
+    } else {
+      // volumedetect prints its summary to STDERR and ffmpeg still exits 0, so
+      // the reading has to come off the RESOLVED value's stderr, not from a
+      // thrown error. `.catch(e => e)` collapses both outcomes to one object
+      // because a decode failure still leaves a partial stderr worth parsing.
+      const vd = await execFileAsync(
+        'ffmpeg', ['-v', 'info', '-i', localVideo, '-af', 'volumedetect', '-f', 'null', '-'],
+        { maxBuffer: 1 << 22 },
+      ).catch((e) => e);
+      const vdErr = (vd && (vd.stderr || vd.message)) || '';
+      const m = /mean_volume:\s*(-?[\d.]+) dB/.exec(vdErr);
+      const meanDb = m ? parseFloat(m[1]) : null;
+      detail.audio_mean_volume_db = meanDb;
+      if (meanDb === null) {
+        addRule('audio_present_and_audible', {
+          pass: false,
+          note: 'ffmpeg volumedetect produced no mean_volume reading (fail-closed) — cannot prove the audio track carries sound',
+        });
+      } else {
+        const pass = meanDb > AUDIO_SILENCE_FLOOR_DB;
+        addRule('audio_present_and_audible', {
+          pass,
+          note: pass
+            ? `audio track mean volume ${meanDb} dB (floor ${AUDIO_SILENCE_FLOOR_DB} dB) — the video has real sound`
+            : `audio track mean volume ${meanDb} dB is at or below the silence floor (${AUDIO_SILENCE_FLOOR_DB} dB). The file has an audio stream but it is effectively silent — no voiceover, no music bed.`,
+        });
+      }
+    }
+  } catch (err) {
+    addRule('audio_present_and_audible', { pass: false, note: `audio check failed (fail-closed): ${err.message}` });
   }
 
   // 4. Cover asset present (docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md §3 — every

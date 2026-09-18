@@ -75,6 +75,9 @@ const REPO = path.join(__dirname, '..');
 
 require('./_lib/load-env-local.js').loadEnvLocal(REPO);
 
+const { loadOwnerLanes, loadScheduleToday, splitLanes } = require('./_lib/video-lanes.js');
+const { STATUS_AWAITING_NOTIFY, STATUS_AWAITING_HEATH } = require('./_lib/video-queue-status.js');
+
 const MEDIA_ROOT = process.env.DOSSIE_MEDIA_ROOT || path.join(REPO, 'Media');
 // The state file lives beside the MEDIA library, not in scripts/, on purpose:
 // scripts/ differs per checkout (dev tree vs MeetDossie-scheduler vs a
@@ -160,12 +163,51 @@ const FORMATS = [
     share: 2,
     // 6 coaches x ~4 readiness scenarios (§U1). Real material, no destination.
     runway: () => ({ remaining: 24, note: '6 coaches x 4 readiness scenarios (CONTENT-FORMAT-LIBRARY §U1)' }),
-    blocked: () => 'Rust has no connected social account — every master would be '
-      + 'banked, not posted (§9 item 1: Heath must create the accounts). Building '
-      + 'into a void burns ElevenLabs credits for zero reach.',
+    // 2026-09-18: the old blocker here read "Rust has no connected social
+    // account — every master would be banked, not posted." That stopped being
+    // true on 2026-09-17, when migration 20260916d_rust_owner_wiring.sql seeded
+    // two live, verified zernio_accounts rows for owner='rust' (@ruststrength
+    // on instagram and twitter) and posting_schedule got an active
+    // owner='rust' twitter override. A stale blocker is indistinguishable from
+    // a real one and starves a whole brand indefinitely, so this now asks the
+    // DB instead of asserting.
+    blocked: rustBlocked,
     run: () => { throw new Error('U1 is blocked — see blocked()'); },
   },
 ];
+
+// ---- U1 (Rust) -------------------------------------------------------------
+//
+// LANES is populated once in main() before rank() runs, because blocked() is
+// called synchronously from rank() and the honest answer to "is Rust blocked"
+// depends on live zernio_accounts rows. Caching it also means one DB read per
+// run instead of one per format.
+let LANES = null;
+
+/** Path to a committed U1 generator, if one ever lands. */
+const U1_GENERATOR = path.join(__dirname, 'generate-rust-readiness-video.js');
+
+function rustBlocked() {
+  const lane = LANES && LANES.owners && LANES.owners.rust;
+  if (!lane || lane.accounts.length === 0) {
+    return 'no active zernio_accounts row for owner=rust — a master would be banked, not posted';
+  }
+  if (!fs.existsSync(U1_GENERATOR)) {
+    // This is now the ONLY thing blocking Rust, and it is a different problem
+    // from the one the old blocker described. Rust's destination is live:
+    // @ruststrength on instagram + twitter, seeded 2026-09-17 and verified in
+    // zernio_accounts, with an active owner='rust' twitter row in
+    // posting_schedule. What is missing is a producer.
+    return `Rust's destination is LIVE (${lane.accounts.join(' + ')}) but there is no committed U1 `
+      + `generator — ${path.relative(REPO, U1_GENERATOR)} does not exist, so nothing renders the `
+      + 'readiness->coach-adjustment format. This is the single thing between Rust and a daily slot; '
+      + 'the old "Rust has no connected social account" blocker is STALE and was removed 2026-09-18.';
+  }
+  if (!process.env.ELEVENLABS_API_KEY && !process.env.ELEVENLABS_API_KEY_PERSONAL) {
+    return 'ELEVENLABS_API_KEY missing — no coach voiceover';
+  }
+  return null;
+}
 
 // ---- D1 --------------------------------------------------------------------
 function loadMapped() {
@@ -306,6 +348,177 @@ function runR1() {
   return { video_id: path.basename(newest.f, '.mp4'), path: path.join(dir, newest.f) };
 }
 
+// ── fan-out: one master -> every platform that owner actually has ───────────
+//
+// Heath, 2026-09-18: "auto posting to all platforms ... posted daily to all
+// platforms that will support it. we need consistency. we have never had that."
+//
+// Before this, a successful render produced ONE file and ONE video_library row
+// carrying that owner's whole platform list. Two things were wrong with it:
+//
+//   1. The row was a mixed-orientation array (e.g. facebook + instagram +
+//      tiktok + youtube), which api/_lib/verify-video-quality.js refuses
+//      outright — this pipeline ships one shape per row. The gate failed
+//      CLOSED on it. See scripts/_lib/video-lanes.js for the full write-up.
+//   2. Even when it passed, it was one 9:16 asset aimed at two surfaces that
+//      want 9:16 and two that want 16:9.
+//
+// So a day's material now produces TWO rows from the same master: the vertical
+// original for Instagram/TikTok/YouTube Shorts, and a 16:9 desktop cut for
+// Facebook/LinkedIn/X. They target disjoint platform sets, so the per-platform
+// caps and per-platform time slots in `posting_schedule` still space them
+// out — nothing dumps the same asset everywhere in one minute, because they
+// are not the same asset and they are not the same platforms.
+
+const PROD_BASE = process.env.DOSSIE_PROD_BASE || 'https://meetdossie.com';
+
+function findSidecar(videoPath, ext) {
+  const p = videoPath.replace(/\.mp4$/i, ext);
+  return fs.existsSync(p) ? p : null;
+}
+
+/**
+ * Derive the 16:9 desktop cut next to the master.
+ * Returns { ok, path, reason } — a failure here must NOT lose the day: the
+ * vertical row is already real and postable, so this degrades to "fewer
+ * platforms today", loudly, rather than throwing the whole run away.
+ */
+function makeDesktopCut(masterPath, owner) {
+  const lane = LANES && LANES.owners && LANES.owners[owner];
+  if (!lane || lane.horizontal.length === 0) {
+    return {
+      ok: false,
+      reason: `owner ${owner} has no active facebook/twitter/linkedin Zernio account, so there is `
+        + 'nowhere for a 16:9 cut to go. Not rendering one.',
+    };
+  }
+  const r = sh('node', ['scripts/make-desktop-cut.js', '--in', masterPath, '--owner', owner]);
+  if (r.status !== 0) {
+    return { ok: false, reason: `make-desktop-cut.js failed (exit ${r.status}) — see output above` };
+  }
+  const dir = path.dirname(masterPath);
+  const stem = path.basename(masterPath, '.mp4').replace(/-\d{4}-\d{2}-\d{1,2}$/, '');
+  const cut = fs.readdirSync(dir)
+    .filter((f) => f.startsWith(stem) && f.includes('-desktop-') && f.endsWith('.mp4'))
+    .map((f) => ({ f, t: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t)[0];
+  if (!cut) return { ok: false, reason: 'make-desktop-cut.js exited 0 but no -desktop- mp4 appeared' };
+  return { ok: true, path: path.join(dir, cut.f) };
+}
+
+/** Ingest everything new in the watch folders (idempotent — the filename is the ledger). */
+function ingest() {
+  const r = sh('python3', ['scripts/queue-finished-videos.py']);
+  return r.status === 0;
+}
+
+async function sbGet(p) {
+  const r = await sbFetch(p);
+  return r.ok && Array.isArray(r.data) ? r.data : null;
+}
+
+/**
+ * THE STEP THAT WAS MISSING. Ask production to run its queue-for-review pass
+ * NOW, instead of leaving the row to wait for the next daily cron.
+ *
+ * This is the whole of gap 4. The old comment here read "Success is quiet on
+ * purpose. The video shows up in the morning approval batch" — and on
+ * 2026-09-18 that produced three gate-passed videos sitting 21 hours with
+ * telegram_message_id NULL and not a single row in telegram_send_log. A video
+ * Heath was never told about is indistinguishable from a video that was never
+ * made.
+ *
+ * It calls the real endpoint rather than sending a Telegram message directly,
+ * so the row goes through the SAME path a scheduled run would: the quality
+ * gate is re-checked, the batch_routine_approvals policy is honoured, the
+ * message id is recorded, and there is exactly one notification code path to
+ * keep working instead of two.
+ */
+async function notifyNow() {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return { ok: false, reason: 'CRON_SECRET not in the environment — cannot trigger the review pass. '
+      + 'The row is queued and the next scheduled cron-post-videos run will still pick it up, but it '
+      + 'is unnotified until then.' };
+  }
+  try {
+    const res = await fetch(`${PROD_BASE}/api/cron-post-videos`, {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch { /* keep the raw text for the reason */ }
+    if (!res.ok) return { ok: false, reason: `cron-post-videos returned HTTP ${res.status}: ${text.slice(0, 200)}` };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, reason: `could not reach ${PROD_BASE}/api/cron-post-videos: ${e.message}` };
+  }
+}
+
+/**
+ * Everything between "a master rendered" and "Heath has been told".
+ * Returns a report object; never throws, because the master already exists and
+ * losing it to a fan-out error would be the worse outcome.
+ */
+async function fanOutAndNotify(masterPath, owner) {
+  const report = { master: masterPath, owner, rows: [], desktop: null, notify: null, warnings: [] };
+
+  const cut = makeDesktopCut(masterPath, owner);
+  report.desktop = cut;
+  if (!cut.ok) report.warnings.push('no desktop cut: ' + cut.reason);
+
+  if (!ingest()) report.warnings.push('queue-finished-videos.py exited non-zero — see output above');
+
+  // Read back what actually landed. Reporting what we INTENDED to queue rather
+  // than what the database actually holds is how a pipeline reports success on
+  // a day it produced nothing.
+  const stems = [path.basename(masterPath, '.mp4')];
+  if (cut.ok) stems.push(path.basename(cut.path, '.mp4'));
+  for (const stem of stems) {
+    const rows = await sbGet(`/rest/v1/video_library?id=eq.${encodeURIComponent(stem)}`
+      + '&select=id,status,platforms,target_owner,quality_status,quality_failed_rules,cover_url,telegram_message_id');
+    report.rows.push(rows && rows[0] ? rows[0] : { id: stem, status: 'MISSING — no video_library row was written' });
+  }
+
+  const queued = report.rows.filter((r) => r.status === STATUS_AWAITING_NOTIFY);
+  if (queued.length > 0) {
+    report.notify = await notifyNow();
+    if (!report.notify.ok) report.warnings.push('NOT NOTIFIED: ' + report.notify.reason);
+  } else {
+    report.notify = { ok: false, reason: `nothing at status='${STATUS_AWAITING_NOTIFY}' to notify about` };
+  }
+
+  // Final read-back AFTER the notify pass, so the printed state is the state
+  // Heath would see, not the state before we asked.
+  for (let i = 0; i < report.rows.length; i++) {
+    const rows = await sbGet(`/rest/v1/video_library?id=eq.${encodeURIComponent(report.rows[i].id)}`
+      + '&select=id,status,platforms,target_owner,quality_status,quality_failed_rules,telegram_message_id');
+    if (rows && rows[0]) report.rows[i] = rows[0];
+  }
+  return report;
+}
+
+function printQueueState(report, schedule) {
+  console.log('\n─── QUEUE STATE ' + '─'.repeat(60));
+  for (const r of report.rows) {
+    const plats = (r.platforms || []).join(', ') || '(none)';
+    console.log(`  ${r.id}`);
+    console.log(`     status=${r.status}  quality=${r.quality_status || '?'}`
+      + `${(r.quality_failed_rules || []).length ? ' failed=' + r.quality_failed_rules.join(',') : ''}`);
+    console.log(`     -> ${plats}`);
+    if (schedule && r.target_owner) {
+      for (const p of r.platforms || []) {
+        const s = (schedule[r.target_owner] || {})[p];
+        if (s && !s.scheduled) console.log(`        ! ${p}: ${s.reason}`);
+      }
+    }
+    console.log(`     notified: ${r.telegram_message_id ? 'message ' + r.telegram_message_id
+      : (r.status === STATUS_AWAITING_HEATH ? 'advanced without an individual card (batched into the brief)' : 'not yet')}`);
+  }
+  for (const w of report.warnings) console.log('  WARNING: ' + w);
+  console.log('─'.repeat(76) + '\n');
+}
+
 // ── child process ───────────────────────────────────────────────────────────
 function sh(cmd, args) {
   log(`$ ${cmd} ${args.join(' ')}`);
@@ -428,6 +641,29 @@ function runwayReport(ranked) {
 
 // ── main ────────────────────────────────────────────────────────────────────
 (async function main() {
+  // Must happen before rank(): blocked() is synchronous and rustBlocked()
+  // answers from live zernio_accounts rows rather than a hardcoded belief.
+  LANES = await loadOwnerLanes();
+
+  if (flag('lanes')) {
+    const schedule = await loadScheduleToday();
+    console.log(`\nPLATFORM LANES  (zernio_accounts, ${LANES.source})\n`);
+    for (const [owner, lane] of Object.entries(LANES.owners)) {
+      console.log(`  ${owner}`);
+      for (const [shape, list] of [['vertical  (IG/TikTok/Shorts)', lane.vertical], ['horizontal (FB/LI/X)', lane.horizontal]]) {
+        if (list.length === 0) { console.log(`    ${shape}: NONE — no active account, this shape has nowhere to go`); continue; }
+        const marks = list.map((p) => {
+          const s = schedule && (schedule[owner] || {})[p];
+          if (!s) return `${p}(schedule unknown)`;
+          return s.scheduled ? p : `${p} [OFF: ${s.reason}]`;
+        });
+        console.log(`    ${shape}: ${marks.join(', ')}`);
+      }
+    }
+    console.log('');
+    process.exit(0);
+  }
+
   const state = loadState();
   const ranked = rank(state);
   const report = runwayReport(ranked);
@@ -485,11 +721,38 @@ function runwayReport(ranked) {
       }].slice(-200);
       saveState(state);
       const after = runwayReport(rank(state));
-      log(`QUEUED: ${result.video_id}`);
+      log(`RENDERED: ${result.video_id}`);
       log(`path: ${result.path}`);
+
+      // ── fan-out + notify ───────────────────────────────────────────────
+      // This used to end here with "Success is quiet on purpose. The video
+      // shows up in the morning approval batch; a second ping for the same
+      // event is noise." That was wrong in the way that matters: on
+      // 2026-09-18 three gate-passed videos sat 21 hours at
+      // pending_heath_review with telegram_message_id NULL and zero rows in
+      // telegram_send_log. Quiet success and total silence look identical.
+      // The run is not finished when a file exists; it is finished when both
+      // shapes are queued and Heath has actually been told.
+      const fan = await fanOutAndNotify(result.path, f.brand);
+      const schedule = await loadScheduleToday();
+      printQueueState(fan, schedule);
       log(`runway now ~${after.days} days`);
-      // Success is quiet on purpose. The video shows up in the morning
-      // approval batch; a second ping for the same event is noise.
+
+      const queuedRows = fan.rows.filter((r) => r.status === STATUS_AWAITING_NOTIFY || r.status === STATUS_AWAITING_HEATH);
+      if (queuedRows.length === 0) {
+        await alert(`VIDEO SUPPLY: ${result.video_id} rendered but NOTHING reached the review queue.\n\n`
+          + fan.rows.map((r) => `- ${r.id}: ${r.status}`
+            + ((r.quality_failed_rules || []).length ? ` (failed: ${r.quality_failed_rules.join(', ')})` : '')).join('\n')
+          + '\n\nThe file is on disk; it is not queued.', { force: true });
+        process.exit(1);
+      }
+      if (fan.notify && !fan.notify.ok) {
+        await alert(`VIDEO SUPPLY: ${queuedRows.length} video(s) queued but the review notification `
+          + `did not go out.\n\n${fan.notify.reason}\n\n`
+          + queuedRows.map((r) => `- ${r.id} -> ${(r.platforms || []).join('/')}`).join('\n')
+          + '\n\nThey are gate-passed and cannot post until you approve them.', { force: true });
+        process.exit(1);
+      }
       process.exit(0);
     } catch (e) {
       const msg = `${f.id}: ${(e && e.message) || e}`;

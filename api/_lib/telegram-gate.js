@@ -150,6 +150,27 @@ const ALWAYS_ALLOW = new Set([
                                // Same class as cron-tc-reply-approval: interactive approval plumbing, capped at
                                // 12 sends/day, silent when the hunt finds nothing. A swallowed send here stalls
                                // the entire daily engagement pipeline — Carter, 2026-09-08.
+  'cron-post-videos',        // THE video approval card for Pipeline B (video_library). Added 2026-09-18.
+                             // The 2026-09-18 audit two comment-blocks up swept every interactive
+                             // human-approval job onto this floor and added cron-video-approval by name —
+                             // but MISSED this one, which is the job that actually carries the Approve/Reject
+                             // buttons for every rendered video. cron-video-approval serves the legacy
+                             // 'ready' -> 'pending_approval' lane that api/_lib/silence-alarm.js itself
+                             // documents as a dead end; cron-post-videos serves the live
+                             // 'approved' -> 'pending_heath_review' -> 'heath_approved' lane that all 23
+                             // posted rows actually travelled.
+                             //
+                             // Measured consequence of the omission, 2026-09-18: three gate-passed videos sat
+                             // 21 hours at pending_heath_review with telegram_message_id NULL and
+                             // telegram_send_log empty for 30 hours. This file's own fakeTelegramOk() is why
+                             // it looked healthy — the suppressed send returns a well-formed success, and
+                             // unlike cron-video-approval.js, cron-post-videos.js has no wasSuppressed()
+                             // check, so it advances the row past the only step that would ever notify
+                             // anyone. Finished work then waits forever for an approval nobody was asked for.
+                             //
+                             // Not digest noise by any reading: it sends at most one card per video, only
+                             // when a video has passed the quality gate and is genuinely waiting on Heath,
+                             // and it is silent on a day with no new video.
   'cron-daily-group5-posts',  // daily 5-group-post Approve/Edit/Skip loop (group_posts pipeline='daily5').
                                // Same class as cron-comment-opp-approval: interactive approval plumbing, exactly
                                // 5 sends/day (one per target group). A swallowed send here means a whole day's

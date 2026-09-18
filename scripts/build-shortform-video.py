@@ -256,6 +256,94 @@ def assert_caption_font_allowed(cfg, style):
             f"({', '.join(allow)}) — confirm it resolves to weight >=700.\n")
 
 
+def assert_full_production(spec, brand, brand_name):
+    """THE FULL-PRODUCTION REFUSAL — every video gets voice, music, captions,
+    a CTA card and an explicit cover, or it is not built at all.
+
+    Heath, 2026-09-18: "auto posting to all platforms with video, music, voice
+    over, captions, cta, cover picture ... we need consistency. we have never
+    had that." The pieces all existed before this function; what did not exist
+    was anything that made a generator UNABLE to omit one. The builder happily
+    emitted a silent, coverless, CTA-less mp4 if a spec simply left the key
+    out, and the quality gate downstream only catches two of the five (cover,
+    captions). Consistency that depends on the next generator's author
+    remembering is not consistency — so it is enforced here, in the one file
+    every short-form render goes through, as a hard abort before any ffmpeg
+    process starts.
+
+    Deliberately NOT escapable, with one exception: music already has an
+    audited `music_null_reason` escape (playbook §5a check 9 allows shipping
+    dry ONLY when no licence-clean source exists) and that is checked in
+    main(), not here. There is no equivalent honest reason to ship a marketing
+    video with no voice, no captions, no CTA or no cover.
+    """
+    problems = []
+
+    # 1. VOICE. An empty voice list previously produced `amix=inputs=0`, which
+    # fails deep inside ffmpeg with an unreadable filtergraph error after the
+    # frames have already been built — or, worse, a spec with voice clips whose
+    # mp3 was never synthesised silently rendered a track of nothing.
+    voice = spec.get("voice") or []
+    if not voice:
+        problems.append(
+            "no 'voice' clips — a marketing short with no voiceover is the "
+            "'some outputs are silent' defect. Synthesise the VO first "
+            "(scripts/gen-listing-voiceover.py) and list it in the spec.")
+    for i, vo in enumerate(voice):
+        for key in ("mp3", "timing", "text"):
+            if not vo.get(key):
+                problems.append(f"voice[{i}] is missing {key!r}")
+        if vo.get("mp3") and not Path(vo["mp3"]).exists():
+            problems.append(f"voice[{i}] mp3 not on disk: {vo['mp3']}")
+        if vo.get("timing") and not Path(vo["timing"]).exists():
+            problems.append(f"voice[{i}] character-timing JSON not on disk: {vo['timing']} "
+                            "— captions are generated from this file, so without it there are no captions")
+
+    cards = spec.get("cards") or {}
+    segments = spec.get("segments") or []
+    card_segment_refs = set()
+    for seg in segments:
+        if seg.get("kind") == "card":
+            for entry in seg.get("pngs") or []:
+                if isinstance(entry, (list, tuple)) and entry:
+                    card_segment_refs.add(entry[0])
+
+    # 2. CTA CARD, actually on screen. Declaring the card in `cards` but never
+    # referencing it from a segment renders a PNG nobody ever sees.
+    cta_template = ((brand or {}).get("cta") or {}).get("card")
+    if cta_template:
+        cta_names = [n for n, c in cards.items() if c.get("template") == cta_template]
+        if not cta_names:
+            problems.append(
+                f"no CTA card — brand {brand_name!r} declares cta.card={cta_template!r} in "
+                f"{BRANDS_JSON.name}, and no entry in spec.cards uses that template. "
+                "Every video ends on its brand's CTA card.")
+        elif not (set(cta_names) & card_segment_refs):
+            problems.append(
+                f"CTA card {cta_names!r} is declared in spec.cards but never referenced by a "
+                "'card' segment, so it would render to a PNG and never appear in the video.")
+
+    # 3. COVER. Was optional (only written when --cover-out happened to be
+    # passed), which is exactly how coverless rows reached video_library — the
+    # gate's cover_asset_present rule then failed them AFTER a full render.
+    cover = spec.get("cover_card")
+    if not cover:
+        problems.append(
+            "no 'cover_card' — playbook §5 item 7 / §5a check 4 require an explicit cover "
+            "carrying the hook claim. Name the hook card here; the builder always writes it.")
+    elif cover not in cards and not Path(str(cover)).exists():
+        problems.append(
+            f"cover_card={cover!r} names neither an entry in spec.cards nor a file on disk.")
+
+    if problems:
+        raise SystemExit(
+            "REFUSING to build: incomplete production.\n"
+            + "\n".join("  - " + p for p in problems)
+            + "\n\nEvery video this pipeline emits carries voice, music, burned captions, a "
+              "CTA card and an explicit cover. That is not a checklist someone remembers; it "
+              "is this refusal. Fix the spec.")
+
+
 def assert_voices_allowed(brand, brand_name, voice_clips):
     """A named persona must speak in that persona's real voice.
 
@@ -628,7 +716,13 @@ def main():
     ap.add_argument("--spec", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--work", required=True)
-    ap.add_argument("--cover-out", help="also write the hook card as the explicit cover asset")
+    ap.add_argument("--cover-out",
+                    help="where to write the explicit cover PNG. OPTIONAL ONLY IN THE SENSE "
+                         "THAT IT DEFAULTS: when omitted the cover is still written, next to "
+                         "--out as <out-stem>.cover.png. A cover is never skipped.")
+    ap.add_argument("--meta-out",
+                    help="where to write the production manifest JSON (default <out>.meta.json). "
+                         "scripts/queue-finished-videos.py reads this sidecar at ingestion.")
     args = ap.parse_args()
 
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
@@ -696,6 +790,14 @@ def main():
         raise SystemExit(
             f"REFUSING to build: music bed not found: {music['file']}\n"
             "Only licence-clean tracks from Media/Music/ (Pixabay Content License) may be used.")
+
+    # FULL-PRODUCTION REFUSAL LAST among the pre-render checks, deliberately.
+    # Every refusal above answers "is this copy/voice/link allowed to ship at
+    # all" — a legal, fiduciary or brand-safety question. This one answers "is
+    # this spec complete". When a spec is both unsafe AND incomplete, the unsafe
+    # finding is the one that must be surfaced first, and the guardrail
+    # regression asserts on exactly those messages.
+    assert_full_production(spec, brand, brand_name)
 
     # ---- all refusals cleared; now touch real inputs and render ----
     frames = json.loads(Path(spec["frames_json"]).read_text(encoding="utf-8"))["frames"]
@@ -773,6 +875,18 @@ def main():
         c = phrase_cues(vo["timing"], vo["at"], vo["text"],
                         max_words=caption_style.get("max_words", 5))
         cues += [[a, b, t, vo.get("speaker", "vo")] for a, b, t in c]
+    # Part of the full-production refusal, checked here because it can only be
+    # known after the timing JSONs are grouped: a spec can declare voice clips
+    # and still produce zero caption cues (an empty text, a timing file with no
+    # characters). write_ass() would then emit a valid .ass with no Dialogue
+    # lines and ffmpeg would burn nothing — a captionless video that looks like
+    # a successful build. The gate's captions_present rule is vision-based and
+    # advisory on the horizontal lane, so this is the only hard stop.
+    if not cues:
+        raise SystemExit(
+            "REFUSING to build: zero caption cues were produced from the voice clips.\n"
+            "  Burned captions are not optional (playbook §5 / §5a check 11) — most of the "
+            "feed watches muted. Check that each voice clip's timing JSON has characters.")
     ass = work / "captions.ass"
     write_ass(cues, ass, caption_style)
 
@@ -786,12 +900,61 @@ def main():
 
     # The cover is the hook card itself — §5 item 7 / §5a check 4 require an
     # explicit cover carrying the hook claim at >=1080x1920, same aspect.
-    if args.cover_out:
-        cover_src = spec.get("cover_card")
-        if not cover_src:
-            raise SystemExit("--cover-out given but spec has no 'cover_card'")
-        shutil.copy(card_pngs.get(cover_src, cover_src), args.cover_out)
-        print(f"[cover] {args.cover_out}")
+    #
+    # ALWAYS WRITTEN (2026-09-18). This used to be conditional on --cover-out,
+    # so a generator that forgot the flag produced a coverless video that then
+    # failed the gate's cover_asset_present rule after a full render — or, for
+    # the rows written before that rule existed, shipped with the platform
+    # picking its own thumbnail off a random frame. cover_card is now asserted
+    # by assert_full_production(), so the source always exists.
+    cover_out = args.cover_out or str(Path(args.out).with_suffix("")) + ".cover.png"
+    cover_src = spec["cover_card"]
+    shutil.copy(card_pngs.get(cover_src, cover_src), cover_out)
+    print(f"[cover] {cover_out}")
+
+    # Production manifest. scripts/queue-finished-videos.py already reads
+    # `{stem}.meta.json` (read_meta_sidecar) and lets it override the filename
+    # guesses for type/platforms/uses_cloned_voice, and feeds cta_url to the
+    # gate's cta_url_resolves rule — but until now each generator wrote its own
+    # sidecar by hand, which is the same "remembered, not enforced" failure as
+    # the cover. The compositor knows all of this for certain, so it writes it.
+    # A generator that wants to add fields merges into this file afterwards
+    # rather than replacing it.
+    meta_out = Path(args.meta_out) if args.meta_out else Path(str(Path(args.out).with_suffix("")) + ".meta.json")
+    existing = {}
+    try:
+        if meta_out.exists():
+            existing = json.loads(meta_out.read_text(encoding="utf-8")) or {}
+    except Exception:
+        existing = {}
+    speakers = sorted({v.get("speaker") for v in spec["voice"] if v.get("speaker")})
+    voice_ids = sorted({v.get("voice_id") for v in spec["voice"] if v.get("voice_id")})
+    manifest = {
+        **existing,
+        "brand": brand_name,
+        "target_owner": (brand or {}).get("target_owner"),
+        "cta_url": ((brand or {}).get("cta") or {}).get("url"),
+        # The shape this builder emits is 1080x1920, always. A horizontal cut
+        # is a separate derivative file with its own manifest — see
+        # scripts/make-desktop-cut.js.
+        "orientation": "vertical",
+        "resolution": f"{W}x{H}",
+        "duration_seconds": round(probe_duration(args.out), 2),
+        "cover_png": str(Path(cover_out).resolve()),
+        "production": {
+            "voice_clips": len(spec["voice"]),
+            "voice_speakers": speakers,
+            "voice_ids": voice_ids,
+            "music_file": (music or {}).get("file"),
+            "music_null_reason": spec.get("music_null_reason") if not music else None,
+            "caption_cues": len(cues),
+            "cta_card": ((brand or {}).get("cta") or {}).get("card"),
+            "cover_card": cover_src,
+        },
+    }
+    meta_out.parent.mkdir(parents=True, exist_ok=True)
+    meta_out.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    print(f"[meta] {meta_out}")
 
     print(f"[done] {args.out}  {probe_duration(args.out):.2f}s")
 

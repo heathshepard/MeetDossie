@@ -164,9 +164,20 @@ function installFetchMock({ visionResponder, supabaseState, telegramSent }) {
 async function makeGoodFixture(tmpDir) {
   const videoPath = path.join(tmpDir, 'good-fixture.mp4');
   const coverPath = path.join(tmpDir, 'good-fixture-cover.png');
+  // The GOOD fixture carries a real AUDIO track as well as motion. It did not
+  // until 2026-09-18, when `audio_present_and_audible` was added to the gate
+  // (a mute upload previously passed every rule) — a silent positive fixture
+  // then failed the one rule it was meant to prove nothing about. The sine is
+  // at -18 dB, comfortably above the -50 dB silence floor and in the same range
+  // as real loudnorm'd output, so this exercises the rule rather than dodging
+  // it. See makeSilentFixture()'s use in the negative case below.
   await execFileAsync('ffmpeg', [
-    '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1080x1920:rate=30:duration=24',
-    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', videoPath,
+    '-y',
+    '-f', 'lavfi', '-i', 'testsrc2=size=1080x1920:rate=30:duration=24',
+    '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=24',
+    '-filter:a', 'volume=-18dB',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23',
+    '-c:a', 'aac', '-b:a', '128k', '-shortest', videoPath,
   ]);
   await execFileAsync('ffmpeg', ['-y', '-ss', '0', '-i', videoPath, '-frames:v', '1', coverPath]);
   return { videoPath, coverPath };
@@ -262,6 +273,63 @@ async function makeGoodFixture(tmpDir) {
   check('GOOD fixture: runtime measured inside the TikTok 21-34s window', () => {
     assert.ok(goodResult.detail.duration_seconds >= 21 && goodResult.detail.duration_seconds <= 34,
       `got ${goodResult.detail.duration_seconds}s`);
+  });
+
+  check('GOOD fixture: the audio track is measured as audible', () => {
+    assert.ok(typeof goodResult.detail.audio_mean_volume_db === 'number'
+      && goodResult.detail.audio_mean_volume_db > -50,
+    `expected an audible mean volume, got ${goodResult.detail.audio_mean_volume_db}`);
+  });
+
+  // ── Test 3b: a MUTE video is held (audio_present_and_audible) ────────────
+  //
+  // Added 2026-09-18 with the rule itself. Heath's standing requirement is that
+  // every video ships with voiceover AND a music bed; before this rule a file
+  // with a silent audio track passed all twelve other checks and would have
+  // been posted mute to a sound-on feed. Two negative cases, because they fail
+  // for different reasons and only one of them is obvious:
+  //   * an audio stream of digital silence (ffmpeg reports -91 dB)
+  //   * no audio stream at all
+  console.log('\nTest 3b: a mute video is held, not posted');
+  const silentVideo = path.join(tmpDir, 'silent-fixture.mp4');
+  await execFileAsync('ffmpeg', [
+    '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1080x1920:rate=30:duration=24',
+    '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23',
+    '-c:a', 'aac', '-shortest', silentVideo,
+  ]);
+  const noAudioVideo = path.join(tmpDir, 'no-audio-fixture.mp4');
+  await execFileAsync('ffmpeg', [
+    '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1080x1920:rate=30:duration=24',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-an', noAudioVideo,
+  ]);
+  const restoreSilentVision = installFetchMock({
+    visionResponder: (promptText) => {
+      if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mock hook', reason: 'mock' };
+      if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
+      if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
+      return { frames_with_captions: 3, reason: 'mock' };
+    },
+    supabaseState: { patches: [] },
+    telegramSent: [],
+  });
+  const silentResult = await checkVideoQuality({ videoPath: silentVideo, coverPath: goodCover });
+  const noAudioResult = await checkVideoQuality({ videoPath: noAudioVideo, coverPath: goodCover });
+  restoreSilentVision();
+
+  check('SILENT audio track: audio_present_and_audible is the ONLY failed rule', () => {
+    assert.deepStrictEqual(silentResult.failedRules, ['audio_present_and_audible'],
+      `got: ${JSON.stringify(silentResult.failedRules)}`);
+    assert.strictEqual(silentResult.pass, false);
+  });
+  check('SILENT audio track: the measured level is reported, not just a verdict', () => {
+    assert.ok(silentResult.detail.audio_mean_volume_db <= -50,
+      `expected a silent reading, got ${silentResult.detail.audio_mean_volume_db}`);
+  });
+  check('NO audio stream at all: also held, and named as having no stream', () => {
+    assert.ok(noAudioResult.failedRules.includes('audio_present_and_audible'));
+    assert.ok(/NO audio stream/.test(noAudioResult.rules.audio_present_and_audible.note),
+      `got: ${noAudioResult.rules.audio_present_and_audible.note}`);
   });
 
   // ── Test 4: GOOD fixture, vision mocked to fail hook_visible ─────────────

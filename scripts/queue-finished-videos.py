@@ -116,14 +116,47 @@ STORAGE_PREFIX = "video-library"
 # vertical-only. Not added to REALTOR_SELFIE_PLATFORMS: Heath's realtor
 # Zernio profile has a youtube destination wired but explicitly "no content
 # plan" (docs/PIPELINE.md) -- don't originate realtor content for it.
-DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok", "youtube"]
-REALTOR_SELFIE_PLATFORMS = ["facebook", "instagram"]
+#
+# DE-MIXED 2026-09-18 — every one of these three lists used to mix the two
+# orientation families, and that mix failed the gate CLOSED.
+#
+# api/_lib/verify-video-quality.js's classifyOrientation() refuses a platforms
+# array containing both vertical (instagram/tiktok/youtube-Shorts) and
+# horizontal (facebook/twitter/linkedin) surfaces, because this pipeline ships
+# ONE SHAPE per video_library row. run_quality_gate() below passes the row's
+# real platforms (line ~735), so with a mixed array the gate threw on
+# orientation_determined, every rule failed closed, and the file landed at
+# status='quality_hold'. Every hand-dropped clip, for every owner. It went
+# unnoticed only because the two live generators (D1, R1) render and queue on
+# their own path.
+#
+# Dropping the horizontal platforms is NOT a loss of reach. The vertical master
+# now has a 16:9 sibling: scripts/make-desktop-cut.js derives a real full-bleed
+# desktop cut from the same material and writes it into the same watch folder
+# with a `-desktop-` stem, which this scanner classifies into the horizontal
+# lane below. Facebook, LinkedIn and X are fed by that file, in the shape those
+# feeds actually want, instead of by a 9:16 asset they letterbox.
+#
+# See scripts/_lib/video-lanes.js for the single source of truth on which
+# platform belongs to which family and which owner genuinely has an account.
+DOSSIE_SELFIE_PLATFORMS = ["instagram", "tiktok", "youtube"]
+REALTOR_SELFIE_PLATFORMS = ["instagram"]
+# The horizontal counterparts, used by the `-desktop-` naming lane. Kept next to
+# their vertical siblings so the two can never drift apart unnoticed. Only
+# platforms with an active zernio_accounts row for that owner appear: Heath's
+# realtor profile has facebook but no twitter/linkedin, and Rust has twitter
+# but no facebook/linkedin, so listing them would make a dead platform look fed.
+DOSSIE_DESKTOP_PLATFORMS = ["facebook", "twitter", "linkedin"]
+REALTOR_DESKTOP_PLATFORMS = ["facebook"]
+RUST_DESKTOP_PLATFORMS = ["twitter"]
 # Rust (rustfitness.app), added 2026-09-16 (RUST-OWNER-WIRING). Matches the
 # two Zernio accounts actually connected and verified live for the 'rust'
 # owner (zernio_accounts, 20260916d_rust_owner_wiring.sql) -- no facebook/
 # tiktok/youtube row exists for rust today, so we don't default to a
 # platform that will just fail account resolution at post time.
-RUST_PLATFORMS = ["instagram", "twitter"]
+# Rust: instagram is vertical, twitter is horizontal — the same mixed-array
+# defect. Split into the vertical lane here and RUST_DESKTOP_PLATFORMS above.
+RUST_PLATFORMS = ["instagram"]
 
 
 # ── Filename / topic-slug helpers ─────────────────────────────────────────────
@@ -214,6 +247,25 @@ def classify_video(file_path: Path, owner: str) -> dict:
     # file was found in, and letting a sidecar move a clip between owners would
     # let it reach the wrong Zernio account.
 
+    # The `-desktop-` suffix is the landscape lane for EVERY owner, not just
+    # Dossie. Before this, a realtor or rust desktop cut fell into that owner's
+    # single hardcoded return below and was tagged with the vertical platform
+    # list — a 1920x1080 file aimed at Instagram, which is the 2026-09-15
+    # Facebook-letterbox incident with the shapes swapped.
+    if stem.endswith("-desktop") or "-desktop-" in stem:
+        desktop_lane = {
+            "heath-realtor": REALTOR_DESKTOP_PLATFORMS,
+            "rust": RUST_DESKTOP_PLATFORMS,
+        }.get(owner, DOSSIE_DESKTOP_PLATFORMS)
+        return {
+            "type": "screen_recording",
+            "platforms": list(desktop_lane),
+            "topic": topic,
+            "target_owner": owner if owner in ("heath-realtor", "rust") else "dossie",
+            "uses_cloned_voice": True if owner == "heath-realtor" else reads_as_heath_clone_voice(file_path),
+            **overrides,
+        }
+
     if owner == "heath-realtor":
         # Every realtor clip today is a selfie script (see kit doc); no
         # Dossie CTA, brokerage name comes from the kit's own caption.
@@ -257,7 +309,7 @@ def classify_video(file_path: Path, owner: str) -> dict:
     elif "-mobile-" in stem:
         vtype, platforms = "screen_recording", ["tiktok", "instagram", "youtube"]
     elif "-desktop-" in stem:
-        vtype, platforms = "screen_recording", ["facebook", "twitter", "linkedin"]
+        vtype, platforms = "screen_recording", list(DOSSIE_DESKTOP_PLATFORMS)
     else:
         # Default: treat as selfie-style short-form
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)

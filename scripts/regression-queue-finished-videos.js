@@ -232,11 +232,26 @@ function startMockSupabase() {
   });
 
   console.log('\nTest 5: selfie platform default includes facebook');
-  check('Dossie selfie row platforms include facebook (not just tiktok/instagram)', () => {
+  // REWRITTEN 2026-09-18. This used to assert that a Dossie selfie row includes
+  // facebook, from the 2026-09-10 fix for silently dropping Facebook every
+  // week. Facebook is still fed -- but by the 16:9 DESKTOP CUT
+  // (scripts/make-desktop-cut.js), not by the 9:16 master.
+  //
+  // The old shape was a mixed-orientation array, and
+  // api/_lib/verify-video-quality.js's classifyOrientation() THROWS on one:
+  // this pipeline ships one shape per video_library row. run_quality_gate()
+  // passes the row's real platforms, so a mixed array made every rule fail
+  // closed and the file landed at quality_hold. The reach is unchanged; the
+  // shape aimed at each surface is now correct.
+  check('Dossie selfie row is VERTICAL-ONLY (a mixed array fails the gate closed)', () => {
     const row = state.upserts.find((u) => u.id === 'regr-story-selfie-2026-09-10');
     assert.ok(row, 'row not found');
-    assert.ok(Array.isArray(row.platforms) && row.platforms.includes('facebook'),
-      `platforms did not include facebook: ${JSON.stringify(row.platforms)}`);
+    assert.deepStrictEqual([...row.platforms].sort(), ['instagram', 'tiktok', 'youtube'],
+      `got: ${JSON.stringify(row.platforms)}`);
+    for (const p of ['facebook', 'twitter', 'linkedin']) {
+      assert.ok(!row.platforms.includes(p),
+        `${p} is a 16:9 surface and must come from the -desktop- cut, not the vertical master`);
+    }
   });
 
   console.log('\nTest 6: realtor routing');
@@ -245,10 +260,15 @@ function startMockSupabase() {
     assert.ok(row, 'row not found');
     assert.strictEqual(row.target_owner, 'heath-realtor', `got: ${row.target_owner}`);
   });
-  check('realtor clip platform default is facebook+instagram, no tiktok', () => {
+  // Heath's realtor Zernio profile has facebook + instagram (+ a youtube
+  // destination with no content plan). Instagram is the vertical lane here;
+  // facebook is served by the realtor desktop cut (REALTOR_DESKTOP_PLATFORMS).
+  // Still no tiktok -- there is no realtor tiktok account to post to.
+  check('realtor clip vertical lane is instagram only (facebook comes from the desktop cut)', () => {
     const row = state.upserts.find((u) => u.id === 'regr-trec-explainer-realtor-selfie-2026-09-10');
     assert.ok(row, 'row not found');
-    assert.deepStrictEqual([...row.platforms].sort(), ['facebook', 'instagram'], `got: ${JSON.stringify(row.platforms)}`);
+    assert.deepStrictEqual([...row.platforms].sort(), ['instagram'], `got: ${JSON.stringify(row.platforms)}`);
+    assert.ok(!row.platforms.includes('tiktok'), 'no realtor tiktok account exists');
   });
   check('realtor clip caption carries the brokerage name (kit caption, untouched)', () => {
     const row = state.upserts.find((u) => u.id === 'regr-trec-explainer-realtor-selfie-2026-09-10');

@@ -25,6 +25,14 @@ function candidates(startDir) {
   const marker = `${path.sep}.claude${path.sep}worktrees${path.sep}`;
   const idx = startDir.indexOf(marker);
   if (idx > 0) out.unshift(path.join(startDir.slice(0, idx), '.env.local'));
+  // Explicit escape hatch, highest priority. The .claude/worktrees/ rewrite
+  // above only rescues a worktree created in that one location; a worktree
+  // made anywhere else (an agent scratchpad under /tmp, a second clone) still
+  // resolves to a directory with no .env.local and then fails much later with
+  // a message about Supabase rather than about the missing file. Pointing
+  // DOSSIE_ENV_FILE at the real one makes any checkout work:
+  //   DOSSIE_ENV_FILE=/mnt/c/Users/Heath/Projects/MeetDossie/.env.local node scripts/...
+  if (process.env.DOSSIE_ENV_FILE) out.unshift(process.env.DOSSIE_ENV_FILE);
   return out;
 }
 
