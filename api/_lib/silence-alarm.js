@@ -39,6 +39,15 @@ const APPROVAL_STALE_HOURS = 48;
 const DRAFT_STALE_HOURS = 24;
 const BACKLOG_THRESHOLD = 5;
 const VIDEO_REVIEW_STALE_HOURS = 48;
+// Carter, 2026-09-17: pending_approval is a dead end for any row that didn't
+// arrive there via api/cron-video-approval.js's own PATCH — see
+// checkVideoLibraryPendingApprovalStale()'s header comment. 7 days is
+// deliberately much longer than VIDEO_REVIEW_STALE_HOURS's 48h: a
+// pending_review row is a known-good state waiting on a human tap (should
+// resolve fast), whereas pending_approval can legitimately sit for the
+// ~24h between cron-video-approval.js's daily run and Heath's reply — 7 days
+// is "something is actually wrong," not "he hasn't checked Telegram yet today."
+const PENDING_APPROVAL_STALE_DAYS = 7;
 const ALERT_COOLDOWN_HOURS = 20; // < 24 so a once-daily cron always re-fires next day, never skips one
 
 // scripts/harvest-tc-discovery-responses.js's own HOT_WINDOW_MS/HOT_INTERVAL_MS
@@ -57,6 +66,19 @@ const TC_HARVEST_SCOPE_GAP_HOURS = 3; // a posted row should get its first harve
 //   - social_comment_replies.reply_status='draft' — organic FB/IG/TikTok
 //     comment replies drafted by the Claude Code worker, awaiting posting.
 const COMMENT_REPLY_STALE_HOURS = 24;
+
+// The gap checkCommentsAwaitingReplyStale() cannot see: it only looks at
+// reply_status='notified' (Heath WAS pinged, hasn't tapped a button yet).
+// A row can also get stuck at reply_status='new' FOREVER without ever
+// reaching 'notified' — draft + classify can succeed while the Telegram
+// notify step silently fails (send throws, or telegram-gate suppresses it)
+// and the row is simply never retried into anyone's view. Found 2026-09-17:
+// 14 real comments sat at 'new' for up to 22h, harvester kept adding more on
+// top, cron_runs said 'ok' every 30 minutes, and nothing surfaced this until
+// Heath asked why nobody got answered. A stale 'new' row with the harvester
+// still actively inserting siblings is the "worse than notified-and-ignored"
+// case — it means the notify step itself is broken, not that Heath is slow.
+const NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS = 3;
 
 // A reply SUBMIT happened but verification could not confirm it landed --
 // the "submitted-but-not-found" terminal outcome from the 2026-09-17
@@ -223,6 +245,76 @@ async function checkStaleApprovals(staleHours = APPROVAL_STALE_HOURS) {
   return results;
 }
 
+// 2b. Group posting has gone quiet — no group_posts row has actually
+// reached status='posted' in GROUP_POSTING_SILENCE_HOURS, while there IS
+// real approved (or draft-with-nothing-approved) content sitting waiting.
+// checkStaleApprovals/checkStaleDrafts above catch individual stale rows,
+// but neither one answers "is the pipeline moving AT ALL" — a day where
+// every group's draft gets rejected/skipped (never approved) would sail
+// through both of those checks with zero alerts while zero posts go out.
+// Distinguishes two real causes so the alert names the right thing to look
+// at: content sitting APPROVED and simply not draining (queue/scheduler/
+// circuit-breaker problem — scripts/fb-group5-post-queue.js,
+// scripts/fb-listing-group-post-queue.js) vs nothing ever getting approved
+// at all (Heath backlog or a broken notify step — same failure class fixed
+// in api/_lib/telegram-gate.js's 2026-09-17 job-context bug, see that
+// file's header). Deliberately does NOT fire on a day with truly nothing
+// generated and nothing approved (e.g. every group hard-blocked by content
+// gates) — that is a content-supply problem, not a "posting has gone
+// quiet while work waits" problem, and alarming on it would just be noise
+// the model architecture change (fix the generator) is the real answer to.
+const GROUP_POSTING_SILENCE_HOURS = 24;
+
+async function checkGroupPostingSilence(staleHours = GROUP_POSTING_SILENCE_HOURS) {
+  const results = [];
+  const cutoff = hoursAgoIso(staleHours);
+
+  const recentlyPosted = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.posted&posted_at=gte.${encodeURIComponent(cutoff)}&select=id&limit=1`,
+  );
+  const hasPostedRecently = recentlyPosted.ok && Array.isArray(recentlyPosted.data) && recentlyPosted.data.length > 0;
+  if (hasPostedRecently) return results; // pipeline is moving — nothing to say
+
+  const approvedWaiting = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.approved&select=id,group_name,approved_at&order=approved_at.asc`,
+  );
+  const approvedRows = approvedWaiting.ok && Array.isArray(approvedWaiting.data) ? approvedWaiting.data : [];
+
+  const undispositionedDrafts = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.draft&created_at=gte.${encodeURIComponent(daysAgoIso(7))}&select=id&limit=1`,
+  );
+  const hasRecentDrafts = undispositionedDrafts.ok && Array.isArray(undispositionedDrafts.data) && undispositionedDrafts.data.length > 0;
+
+  // Nothing approved AND nothing even drafted this week — genuinely quiet
+  // pipeline (content-supply problem, not a stuck-queue problem). Still
+  // worth naming, just distinctly.
+  if (approvedRows.length === 0 && !hasRecentDrafts) {
+    results.push({
+      key: 'group_posting_silent:no_supply',
+      count: 0,
+      message: `No group_posts row has posted in >${staleHours}h AND nothing is approved or has even been drafted in the last 7 days — the generator itself has gone quiet (check api/cron-daily-group5-posts.js / scripts/listing-marketing-generate-live.js cron_runs).`,
+    });
+    return results;
+  }
+
+  if (approvedRows.length > 0) {
+    results.push({
+      key: 'group_posting_silent:approved_not_draining',
+      count: approvedRows.length,
+      oldest: approvedRows[0],
+      message: `No group_posts row has posted in >${staleHours}h, but ${approvedRows.length} row(s) sit approved and waiting (oldest: "${approvedRows[0].group_name}", approved ${approvedRows[0].approved_at || 'unknown'}). Check scripts/fb-group5-post-queue.js / scripts/fb-listing-group-post-queue.js are actually running on their Task Scheduler tick, and the shared circuit breaker (scripts/_lib/comment-hunt-halt.js) isn't halted.`,
+    });
+  } else {
+    results.push({
+      key: 'group_posting_silent:nothing_approved',
+      count: 0,
+      message: `No group_posts row has posted in >${staleHours}h and nothing is currently approved, even though drafts exist from the last 7 days — content is being generated but never approved. Check the Telegram approval cards are actually reaching Heath (telegram-gate job-name gating, cron_runs for cron-daily-group5-posts) and clear the draft backlog.`,
+    });
+  }
+
+  return results;
+}
+
 // 3. Drafts older than 24h never sent for approval.
 async function checkStaleDrafts(staleHours = DRAFT_STALE_HOURS) {
   const cutoff = hoursAgoIso(staleHours);
@@ -301,6 +393,34 @@ async function checkVideoLibraryPendingReview(staleHours = VIDEO_REVIEW_STALE_HO
     count: res.data.length,
     oldest: res.data[0],
     message: `${res.data.length} video(s) in video_library sitting >${staleHours}h at pending_heath_review, targeting [${[...platforms].join(', ') || 'unknown'}] — already sent to Telegram, waiting on your Approve tap (oldest: ${res.data[0].topic}, created ${res.data[0].created_at}).`,
+  }];
+}
+
+// 4c. video_library rows stuck at pending_approval past
+// PENDING_APPROVAL_STALE_DAYS (default 7) — the dead-end status Carter found
+// 2026-09-17: 9 rows sat here for up to 4 months because pending_approval is
+// only ever a CRON-WRITTEN transient state (api/cron-video-approval.js
+// PATCHes a 'ready' row to pending_approval right before sending the
+// Telegram Approve/Reject message) — nothing ever re-reads a row that a
+// caller drops directly into pending_approval, so a miswired ingestion path
+// (scripts/feature-demo-publish.js used to do exactly this) produces a row
+// with no Telegram message ever sent (telegram_message_id stays null) and no
+// cron that will ever look at it again. Distinct from
+// checkVideoLibraryPendingReview() above: that one catches a row that WAS
+// sent to Telegram and is waiting on a tap; this one catches a row that may
+// never have been sent at all. Both are worth knowing, so both alarms run.
+async function checkVideoLibraryPendingApprovalStale(staleDays = PENDING_APPROVAL_STALE_DAYS) {
+  const cutoff = hoursAgoIso(staleDays * 24);
+  const res = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.pending_approval&created_at=lt.${encodeURIComponent(cutoff)}&select=id,topic,platforms,telegram_message_id,created_at&order=created_at.asc`,
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+  const neverSent = res.data.filter((r) => !r.telegram_message_id).length;
+  return [{
+    key: 'video_library_pending_approval_stale',
+    count: res.data.length,
+    oldest: res.data[0],
+    message: `${res.data.length} video(s) in video_library stuck at pending_approval for >${staleDays}d (${neverSent} never got a Telegram message at all — telegram_message_id is null, meaning nothing ever sent them to you) — oldest: ${res.data[0].topic}, created ${res.data[0].created_at}. This status is a dead end unless a cron actively moves it; check whether the ingestion path that created these skipped api/cron-video-approval.js's 'ready' entry point.`,
   }];
 }
 
@@ -425,6 +545,43 @@ async function checkCommentsAwaitingReplyStale(staleHours = COMMENT_REPLY_STALE_
     });
   }
 
+  return results;
+}
+
+// 8a. Comments stuck at 'new'/'flagged' that never even reached 'notified' —
+// see NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS above for why this is a
+// separate, worse condition than checkCommentsAwaitingReplyStale's
+// already-notified case. Also reports whether the harvester is STILL adding
+// rows on top of the stuck backlog (the exact "actively getting worse, not
+// just old" signal from the 2026-09-17 incident) by checking for any row
+// harvested more recently than the oldest stuck one.
+async function checkNewCommentsNeverNotifiedStale(staleHours = NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const results = [];
+
+  const stuck = await supabaseFetch(
+    '/rest/v1/tc_discovery_responses?reply_status=in.(new,flagged)&reply_notified_at=is.null'
+    + `&is_own_comment=eq.false&harvested_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,commenter_name,harvested_at,reply_status&order=harvested_at.asc',
+  );
+  if (!stuck.ok || !Array.isArray(stuck.data) || stuck.data.length === 0) return results;
+
+  const oldest = stuck.data[0];
+  const growing = await supabaseFetch(
+    '/rest/v1/tc_discovery_responses?is_own_comment=eq.false'
+    + `&harvested_at=gt.${encodeURIComponent(oldest.harvested_at)}&select=id&limit=1`,
+  );
+  const stillGrowing = growing.ok && Array.isArray(growing.data) && growing.data.length > 0;
+
+  results.push({
+    key: 'new_comments_never_notified:tc_discovery',
+    count: stuck.data.length,
+    oldest,
+    message: `${stuck.data.length} tc_discovery_responses comment(s) stuck at '${oldest.reply_status}' >${staleHours}h with NO Telegram notification ever sent (oldest: reply to ${oldest.commenter_name || 'unknown'}, harvested ${oldest.harvested_at}).`
+      + (stillGrowing
+        ? ' The harvester has added MORE comments on top of this backlog since — the notify step is broken, not just slow. Check cron-tc-reply-approval / telegram-gate.'
+        : ''),
+  });
   return results;
 }
 
@@ -582,22 +739,25 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
     checkAccumulatingBacklog(opts.backlogThreshold),
     checkVideoLibraryPendingReview(opts.videoReviewStaleHours),
+    checkVideoLibraryPendingApprovalStale(opts.pendingApprovalStaleDays),
     checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
+    checkNewCommentsNeverNotifiedStale(opts.newCommentNeverNotifiedStaleHours),
     checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
+    checkGroupPostingSilence(opts.groupPostingSilenceHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -812,11 +972,17 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
 // button embedded in the brief message does exactly what tapping it in an
 // individual card always did. Zero new approval logic.
 //
-// Deliberately scoped to these two pipelines only (both have a clean,
-// single 'notified' status gate and a tested callback contract). group_posts
-// pending_admin_approval and video_library pending_heath_review stay
-// COUNT-only in the STUCK section above — not wired into tappable buttons
-// yet (their approval paths aren't the simple notified->approved shape).
+// group_posts pending_admin_approval stays COUNT-only in the STUCK section
+// above — its approval path isn't the simple notified->approved shape.
+//
+// video_library WAS count-only for the same stated reason; that was wrong on
+// inspection (Carter, 2026-09-17). Its approval path is exactly the same
+// shape: api/telegram-webhook.js already handles `video_approve_{id}` /
+// `video_reject_{id}` and PATCHes status to heath_approved / rejected. So it
+// is wired in here, verbatim callback_data, zero new approval logic — which is
+// what lets api/cron-post-videos.js stop sending one Telegram card per video
+// and let the daily brief carry them instead (Heath, 2026-09-17: batch the
+// routine approvals, don't ping per item).
 const DECISION_SOURCES = [
   {
     table: 'comment_opportunities',
@@ -850,6 +1016,27 @@ const DECISION_SOURCES = [
       ]],
     }),
     select: 'id,commenter_name,source_group,reply_notified_at',
+  },
+  {
+    table: 'video_library',
+    statusCol: 'status',
+    statusVal: 'pending_heath_review',
+    // video_library has no notified_at column; created_at is when the row was
+    // queued, which for a pending_heath_review row is the age that matters.
+    orderCol: 'created_at',
+    label: (row) => `Video ready to post: ${row.topic || row.id}`
+      + `${row.target_owner && row.target_owner !== 'dossie' ? ` [${row.target_owner}]` : ''}`
+      + `${row.supabase_url ? `\n${row.supabase_url}` : ''}`,
+    // EXACTLY the callback_data api/telegram-webhook.js already handles for
+    // the individual video cards — an underscore separator here, not the colon
+    // the two comment pipelines use. Do not "normalise" it.
+    keyboard: (id) => ({
+      inline_keyboard: [[
+        { text: 'Approve', callback_data: `video_approve_${id}` },
+        { text: 'Reject', callback_data: `video_reject_${id}` },
+      ]],
+    }),
+    select: 'id,topic,target_owner,supabase_url,created_at',
   },
 ];
 
@@ -893,25 +1080,31 @@ module.exports = {
   DRAFT_STALE_HOURS,
   BACKLOG_THRESHOLD,
   VIDEO_REVIEW_STALE_HOURS,
+  PENDING_APPROVAL_STALE_DAYS,
   ALERT_COOLDOWN_HOURS,
   TC_HARVEST_HOT_WINDOW_HOURS,
   TC_HARVEST_HOT_STALE_HOURS,
   TC_HARVEST_SCOPE_GAP_HOURS,
   COMMENT_REPLY_STALE_HOURS,
+  NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS,
   REPLY_UNVERIFIED_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
+  GROUP_POSTING_SILENCE_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
   checkAccumulatingBacklog,
   checkVideoLibraryPendingReview,
+  checkVideoLibraryPendingApprovalStale,
   checkTcHarvestHotWindowStale,
   checkTcHarvestScopeGap,
   checkCommentsAwaitingReplyStale,
+  checkNewCommentsNeverNotifiedStale,
   checkUnverifiedRepliesStuck,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
+  checkGroupPostingSilence,
   checkCronSanity,
   shouldFire,
   markFired,

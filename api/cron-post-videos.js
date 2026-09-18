@@ -42,6 +42,16 @@ const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-qua
 // and thrown away, leaving nothing for cron-verify-zernio-deliveries.js to
 // later confirm. See api/_lib/video-delivery-verify.js file header.
 const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
+// Routine-approval batching (Heath, 2026-09-17: "batched into the morning
+// brief rather than pinging per item"). Same capability and same mechanism
+// api/cron-comment-opp-approval.js already uses: when 'batch_routine_approvals'
+// is on, the row is advanced to pending_heath_review WITHOUT an individual
+// Telegram card, and api/_lib/silence-alarm.js's pickTopDecisions() carries its
+// Approve/Reject buttons inside the one daily brief instead (video_library is a
+// DECISION_SOURCES entry there, reusing this file's exact callback_data).
+// Fails CLOSED to the old per-item send if the flag can't be read — a
+// notification Heath never sees is worse than one too many.
+const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -336,7 +346,14 @@ async function sendTelegramMessage(text, extra = {}) {
 
 // Send a video for Heath's review with inline Approve/Reject buttons.
 // Sets status='pending_heath_review' first to prevent double-sends.
-async function sendForHeathReview(video) {
+//
+// `batched` = the 'batch_routine_approvals' capability is on. In that mode the
+// status advance still happens (so the row is queued and nothing re-queues it),
+// but NO individual Telegram card is sent — the morning brief picks the row up
+// from pending_heath_review and renders these exact buttons. This is the whole
+// difference between "one video a day" being a useful habit and being a daily
+// interruption per item.
+async function sendForHeathReview(video, { batched = false } = {}) {
   // Mark as pending_heath_review so next cron run doesn't re-queue it
   await supabaseFetch(
     `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
@@ -346,6 +363,20 @@ async function sendForHeathReview(video) {
       body: JSON.stringify({ status: 'pending_heath_review' }),
     },
   );
+
+  if (batched) {
+    console.log(`[cron-post-videos] ${video.id} queued for the morning brief (batched, no individual ping)`);
+    await logAutonomousAction({
+      capability: 'batch_routine_approvals',
+      decision: 'autonomous',
+      action: 'folded a video approval into the morning brief instead of an individual ping',
+      firedBy: 'cron-post-videos',
+      gatesPassed: ['quality_status_passed', 'supabase_url_present'],
+      refTable: 'video_library',
+      refId: video.id,
+    }).catch(() => {});
+    return;
+  }
 
   const owner = video.target_owner || 'dossie';
   const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
@@ -562,6 +593,18 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
 
   const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
 
+  // Read the batching capability ONCE for the whole pass. Fail closed to the
+  // old per-item send: if the flag can't be read we do not risk a video
+  // sitting in a brief that never renders it.
+  let batched = false;
+  try {
+    const cap = await checkCapability('batch_routine_approvals');
+    batched = cap && cap.allowed === true;
+  } catch (err) {
+    console.warn('[cron-post-videos] batch_routine_approvals unreadable, sending individually:', err && err.message);
+  }
+  summary.batched_into_brief = batched;
+
   for (const video of approvedVideos) {
     if (!video.supabase_url) {
       const warn = `Video ${video.id} is approved but supabase_url is null — run scripts/upload-video.py first`;
@@ -575,7 +618,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
       summary.skipped.push({ id: video.id, reason: 'quality gate blocked (see quality_hold alert)' });
       continue;
     }
-    await sendForHeathReview(video);
+    await sendForHeathReview(video, { batched });
     summary.queued_for_review.push(video.id);
   }
 

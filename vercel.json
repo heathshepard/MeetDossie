@@ -388,8 +388,11 @@
     "api/{cron-dispatch-daily-0800,cron-dispatch-daily-1500,cron-dispatch-every30,cron-dispatch-every5,cron-dispatch-hourly}.js": {
       "maxDuration": 70
     },
-    "api/{cron-dispatch-daily-1200,cron-dispatch-daily-1330,cron-dispatch-daily-1400,cron-dispatch-every10}.js": {
+    "api/{cron-dispatch-daily-1200,cron-dispatch-daily-1330,cron-dispatch-daily-1400}.js": {
       "maxDuration": 20
+    },
+    "api/cron-dispatch-every10.js": {
+      "maxDuration": 60
     },
     "api/{cron-dispatch-daily-1300,cron-dispatch-every15}.js": {
       "maxDuration": 40

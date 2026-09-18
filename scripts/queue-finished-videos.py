@@ -183,6 +183,37 @@ def classify_video(file_path: Path, owner: str) -> dict:
     stem = file_path.stem.lower()
     topic = slugify_stem(stem)
 
+    # ── The generator's own `{stem}.meta.json` wins over any inference ──────
+    #
+    # Everything below this block guesses from a FILENAME. That is fine for a
+    # clip a person dropped in the folder, and wrong for one a generator
+    # produced -- the generator knows. Two real defects this closes, both found
+    # on the first scheduled D1 render (2026-09-17):
+    #
+    #   * type: "dossie-d1-cap7-2026-09-17.mp4" matched no naming lane and fell
+    #     through to the selfie default, so a screen recording was filed as a
+    #     selfie.
+    #   * uses_cloned_voice: the Dossie lane hardcoded False on the belief that
+    #     "Dossie always speaks as Luna." scripts/_lib/shortform-brands.json is
+    #     narrower than that -- Heath's clone may speak AS HEATH in Dossie
+    #     instructional content, and D1 is exactly that. False would have sent
+    #     a clone-voiced video to YouTube/TikTok with NO AI disclosure
+    #     (20260917b_ai_disclosure_content_property.sql). This is a property of
+    #     the content, and only the thing that rendered the audio knows it.
+    #
+    # Each field is validated; a junk value is ignored rather than trusted.
+    meta = read_meta_sidecar(file_path)
+    overrides = {}
+    if isinstance(meta.get("type"), str) and meta["type"].strip():
+        overrides["type"] = meta["type"].strip()
+    if isinstance(meta.get("platforms"), list) and all(isinstance(p, str) for p in meta["platforms"]) and meta["platforms"]:
+        overrides["platforms"] = list(meta["platforms"])
+    if isinstance(meta.get("uses_cloned_voice"), bool):
+        overrides["uses_cloned_voice"] = meta["uses_cloned_voice"]
+    # target_owner is NOT overridable: it is decided by which watch folder the
+    # file was found in, and letting a sidecar move a clip between owners would
+    # let it reach the wrong Zernio account.
+
     if owner == "heath-realtor":
         # Every realtor clip today is a selfie script (see kit doc); no
         # Dossie CTA, brokerage name comes from the kit's own caption.
@@ -197,6 +228,7 @@ def classify_video(file_path: Path, owner: str) -> dict:
             "topic": topic,
             "target_owner": "heath-realtor",
             "uses_cloned_voice": True,
+            **overrides,
         }
 
     if owner == "rust":
@@ -215,6 +247,7 @@ def classify_video(file_path: Path, owner: str) -> dict:
             "topic": topic,
             "target_owner": "rust",
             "uses_cloned_voice": reads_as_heath_clone_voice(file_path),
+            **overrides,
         }
 
     if "selfie" in stem:
@@ -230,14 +263,16 @@ def classify_video(file_path: Path, owner: str) -> dict:
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
 
     # Dossie always speaks as Luna, never Heath's clone (forbidden_speaker_
-    # voices in shortform-brands.json) -- unconditionally False, no sidecar
-    # needed.
+    # voices in shortform-brands.json) as a DEFAULT only -- a generator that
+    # narrated in Heath's clone says so in its meta sidecar, and that wins
+    # (see the overrides block at the top of this function).
     return {
         "type": vtype,
         "platforms": platforms,
         "topic": topic,
         "target_owner": "dossie",
         "uses_cloned_voice": False,
+        **overrides,
     }
 
 
@@ -488,13 +523,40 @@ def upload_cover_to_storage(cover_path: Path, filename_stem: str) -> str | None:
         return None
 
 
-def run_quality_gate(video_path: Path, cover_path: Path | None) -> dict | None:
+def read_meta_sidecar(video_path: Path) -> dict:
+    """`{stem}.meta.json` — what the generator knows about a render that cannot
+    be recovered from the mp4 itself (its CTA URL, its format, its provenance).
+
+    Optional by design: hand-dropped clips and every pre-2026-09-17 render have
+    no sidecar and keep working exactly as before. Written by
+    scripts/render-ask-dossie-video.js and scripts/listing-reel-trigger.js.
+    A malformed sidecar is treated as absent rather than crashing ingestion.
+    """
+    p = video_path.with_suffix(".meta.json")
+    try:
+        if p.exists():
+            data = json.loads(p.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+    except Exception as ex:
+        print(f"  WARN: unreadable meta sidecar {p.name}: {ex}")
+    return {}
+
+
+def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[str] | None = None) -> dict | None:
     """
     Shells out to scripts/check-video-quality-cli.js (same subprocess pattern
     as compress_video()'s ffmpeg call) -- see that file for why this is a
     Node CLI rather than reimplemented in Python: the vision-model check
     reuses api/_lib/verify-video-quality.js's Anthropic call, the same path
     verify-image-match.js already uses.
+
+    platforms (2026-09-17): the row's real platforms array, passed straight
+    through to --platforms so the gate grades vertical (tiktok/instagram)
+    rows against 9:16/Reels rules and horizontal (facebook/twitter/linkedin/
+    youtube) rows against 16:9/feed rules -- see classifyOrientation() in
+    verify-video-quality.js. Omitting it defaults to the original vertical-
+    only behavior, so always pass info["platforms"] here at the real call
+    site.
 
     Returns the parsed {pass, rules, failedRules, detail} dict, or None if
     the CLI itself couldn't be run at all (missing node, crashed, etc.) --
@@ -504,6 +566,18 @@ def run_quality_gate(video_path: Path, cover_path: Path | None) -> dict | None:
     cmd = ["node", str(QUALITY_GATE_CLI), "--video", str(video_path)]
     if cover_path:
         cmd += ["--cover", str(cover_path)]
+    # CTA-URL resolve (added 2026-09-17). The gate CLI only runs the
+    # `cta_url_resolves` rule when it is TOLD which URL the end card carries --
+    # it cannot read a URL out of an mp4. Generators that know their CTA drop a
+    # `{stem}.meta.json` sidecar next to the mp4; when one is present the link
+    # is checked for real (DNS + HTTP < 400) before the row is ever written.
+    # A CTA that is a sentence rather than a link ("Text me for a private
+    # showing") is reported as skipped by the rule, not as a pass.
+    cta_url = read_meta_sidecar(video_path).get("cta_url")
+    if cta_url:
+        cmd += ["--cta-url", str(cta_url)]
+    if platforms:
+        cmd += ["--platforms", ",".join(platforms)]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     except Exception as ex:
@@ -658,7 +732,7 @@ def main():
         # ORIGINAL file, before any lossy compression. A missing/failed cover
         # or gate CLI failure is fail-closed, never a silent pass.
         cover_local = extract_cover_frame(video_path)
-        gate_result = run_quality_gate(video_path, cover_local)
+        gate_result = run_quality_gate(video_path, cover_local, platforms=info["platforms"])
 
         if gate_result is None:
             print(f"  ERROR: quality gate could not run for {filename} — failing closed, not approving")

@@ -38,6 +38,22 @@
 //                      (cover_asset_present is blocking, never optional).
 //   --video-url <url>  remote video instead of a local path.
 //   --cover-url <url>  remote cover instead of a local path.
+//   --cta-url <url>    the CTA as it appears on the end card. ADDS a blocking
+//                      `cta_url_resolves` rule (DNS + HTTP < 400). Optional so
+//                      every existing caller keeps working unchanged; when it
+//                      IS supplied a dead link is a hard FAIL. A CTA that is a
+//                      sentence rather than a link ("Text me for a private
+//                      showing") is reported as skipped, never as a silent
+//                      pass. See scripts/_lib/cta-url-resolve.js.
+//   --platforms <csv>  the video_library row's real platforms, comma-
+//                      separated (e.g. "facebook,twitter,linkedin"). Selects
+//                      vertical vs horizontal rules — see
+//                      api/_lib/verify-video-quality.js's classifyOrientation().
+//                      Omit only for pre-2026-09-17 callers that want the
+//                      old vertical-only default; a real ingestion caller
+//                      should always pass this.
+//   --orientation <o>  explicit 'vertical'|'horizontal' override, only when
+//                      --platforms isn't available.
 //   --pretty           ALSO write a human-readable rule table to stderr.
 //   --json-only        suppress the stderr table (default when not a TTY).
 
@@ -104,6 +120,12 @@ async function main() {
   const videoUrl = arg('--video-url');
   const coverPath = arg('--cover');
   const coverUrl = arg('--cover-url');
+  const ctaUrl = arg('--cta-url');
+  const platformsArg = arg('--platforms');
+  const platforms = platformsArg
+    ? platformsArg.split(',').map((p) => p.trim()).filter(Boolean)
+    : undefined;
+  const orientation = arg('--orientation') || undefined;
   const wantTable = flag('--pretty') || (process.stderr.isTTY && !flag('--json-only'));
 
   if (!videoPath && !videoUrl) {
@@ -131,6 +153,7 @@ async function main() {
   process.stderr.write(`[quality-gate] env: ${loadedEnv || 'none found (vision rules will fail closed)'}\n`);
   process.stderr.write(`[quality-gate] video: ${videoPath || videoUrl}\n`);
   process.stderr.write(`[quality-gate] cover: ${coverPath || coverUrl || '(none — cover_asset_present will FAIL)'}\n`);
+  process.stderr.write(`[quality-gate] platforms/orientation: ${platforms ? platforms.join(',') : (orientation || '(none — defaults to vertical)')}\n`);
 
   const { checkVideoQuality } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
 
@@ -139,7 +162,30 @@ async function main() {
     videoUrl: videoUrl || undefined,
     coverPath: coverPath || undefined,
     coverUrl: coverUrl || undefined,
+    platforms,
+    orientation,
   });
+
+  // ---- additive rule: does the CTA actually go anywhere? -------------------
+  // Deliberately merged in HERE rather than inside checkVideoQuality(): that
+  // function is also called at publish time by gateBeforePublish() against a
+  // video_library row, which has no CTA field to check. Keeping the rule on
+  // the CLI means the supply path (scripts/daily-video-supply.js, which always
+  // passes --cta-url) is covered without changing publish-time behaviour.
+  if (ctaUrl) {
+    const { checkCtaUrl } = require(path.join(__dirname, '_lib', 'cta-url-resolve.js'));
+    const cta = await checkCtaUrl(ctaUrl);
+    result.rules.cta_url_resolves = {
+      pass: cta.pass,
+      blocking: true,
+      note: cta.skipped ? `skipped: ${cta.note}` : cta.note,
+    };
+    if (!cta.pass) {
+      result.failedRules = [...(result.failedRules || []), 'cta_url_resolves'];
+      result.pass = false;
+    }
+    result.detail = { ...(result.detail || {}), cta_url: cta.url, cta_status: cta.status };
+  }
 
   if (wantTable) {
     process.stderr.write('\n  rule                            verdict  note\n');

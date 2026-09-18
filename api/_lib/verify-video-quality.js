@@ -6,6 +6,18 @@
 // queued for Heath's review or posted, hold on failure, alert once, never
 // silently skip.
 //
+// ORIENTATION-AWARE (added 2026-09-17): every rule below was originally
+// written for ONE shape — 9:16 vertical Reels/TikTok. That's still the
+// default when a caller supplies neither `platforms` nor `orientation` (see
+// classifyOrientation() below), so nothing that already used this gate
+// changed. A caller that DOES pass the row's real `platforms` array gets
+// graded against the matching rule family instead: vertical (tiktok/
+// instagram) keeps every existing 9:16/hook-then-clear/Reels-runtime rule
+// unchanged; horizontal (facebook/twitter/linkedin/youtube) gets its own
+// 16:9/legible-UI/feed-runtime rule family. Pass `opts.platforms` (preferred
+// — the real DB array) or `opts.orientation` explicitly; never both absent
+// and never guessed from anything else.
+//
 // Built 2026-09-15 per Heath's standing rule
 // (feedback_every-video-needs-scroll-stopping-hook.md) and the
 // machine-checkable rules in docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md.
@@ -193,6 +205,67 @@ const CONTENT_COVERAGE_MIN = 0.85;
 // was a PERFECTLY uniform white frame: luma min == max == 235, spread 0. Every
 // other real video measured a spread of 237-255. 24 sits far from both.
 const FIRST_FRAME_MIN_LUMA_SPREAD = 24;
+
+// ── Orientation-aware gating (added 2026-09-17) ──────────────────────────────
+//
+// WHY: this gate shipped 2026-09-15/16 written entirely against 9:16 vertical
+// Reels/TikTok fixtures (see the constants above) and its aspect/coverage/
+// runtime/hook rules are hard-coded to that shape. That's correct for
+// Instagram/TikTok, but 9 real feature-demo `video_library` rows sat stuck at
+// `pending_approval` for up to 4 months (2026-05-27 to 2026-08-23) — desktop
+// 16:9 videos legitimately bound for facebook/twitter/linkedin, where
+// horizontal is the right shape, not a defect. Recording this gate's rules
+// against them the way they stood would have failed every one of them for
+// being 16:9 instead of 9:16 — i.e. for being exactly the shape they were
+// built to be. This section makes the gate ask "which shape is this row
+// SUPPOSED to be" before grading it, without touching a single vertical rule,
+// threshold, or prompt above.
+//
+// classifyOrientation() takes the row's real `platforms` array (never
+// guessed) and returns 'vertical' | 'horizontal'. tiktok/instagram are
+// Reels-native vertical surfaces; facebook/twitter/linkedin/youtube are fed
+// the desktop 16:9 cut in this pipeline (docs/FEATURE-VIDEO-DAILY-PLAN.md §1
+// — "Desktop cut ... Facebook, Twitter, LinkedIn"). A platforms array mixing
+// both families, or one with no recognized platform, is refused rather than
+// guessed — an ingestion caller must always pass real platforms.
+const VERTICAL_PLATFORMS = ['tiktok', 'instagram'];
+const HORIZONTAL_PLATFORMS = ['facebook', 'twitter', 'linkedin', 'youtube'];
+
+// Runtime range for the HORIZONTAL (16:9, facebook/twitter/linkedin) lane.
+// Calibrated against the real feature-demo output this gate exists to
+// unblock: the 7 real desktop feature-demo files on disk run 26.5s-38.1s
+// (measured directly via ffprobe against the actual files, 2026-09-17). This
+// is a native-feed desktop demo, not a Reels loop — it has no TikTok/IG-style
+// completion-rate window, so the range is generous, not tuned to a retention
+// curve the way TIKTOK_RANGE/IG_LOOP_RANGE are.
+const HORIZONTAL_RUNTIME_RANGE = [10, 90];
+const HORIZONTAL_HARD_MAX_RUNTIME_S = 120;
+
+// Target is 16:9 = 1.7778. Same tolerance discipline as the vertical rule.
+const TARGET_ASPECT_RATIO_HORIZONTAL = 16 / 9;
+const ASPECT_RATIO_TOLERANCE_HORIZONTAL = 0.02;
+
+/**
+ * @param {string|undefined} explicitOrientation - 'vertical' | 'horizontal', if the caller already knows.
+ * @param {string[]|undefined} platforms - the video_library row's real platforms array.
+ * @returns {'vertical'|'horizontal'}
+ * @throws if orientation can't be determined (no signal, or a platforms array
+ *   mixing vertical and horizontal platforms) — fail-closed, never guessed.
+ */
+function classifyOrientation(explicitOrientation, platforms) {
+  if (explicitOrientation === 'vertical' || explicitOrientation === 'horizontal') {
+    return explicitOrientation;
+  }
+  const list = Array.isArray(platforms) ? platforms.map((p) => String(p).toLowerCase()) : [];
+  const hasVertical = list.some((p) => VERTICAL_PLATFORMS.includes(p));
+  const hasHorizontal = list.some((p) => HORIZONTAL_PLATFORMS.includes(p));
+  if (hasVertical && !hasHorizontal) return 'vertical';
+  if (hasHorizontal && !hasVertical) return 'horizontal';
+  if (hasVertical && hasHorizontal) {
+    throw new Error(`platforms [${list.join(', ')}] mix vertical (${VERTICAL_PLATFORMS.join('/')}) and horizontal (${HORIZONTAL_PLATFORMS.join('/')}) surfaces — this pipeline ships one shape per video_library row (see docs/FEATURE-VIDEO-DAILY-PLAN.md §1), so a mixed array means the row is misconfigured, not that orientation is ambiguous`);
+  }
+  throw new Error(`no opts.orientation and platforms [${list.join(', ') || 'empty'}] contain no recognized platform — cannot determine 9:16 vs 16:9 without guessing`);
+}
 
 // ── Small fetch/telegram/supabase helpers (same shape as verify-image-match.js) ──
 
@@ -542,6 +615,21 @@ Judge the TWO frames together: if EITHER frame shows one of the two disqualifyin
 Respond with JSON only, no markdown fences:
 {"opening_meaningful": true or false, "screen_seen": "short description of what each frame shows", "disqualifier": "login|blank_or_empty|none", "reason": "one sentence"}`;
 
+// HORIZONTAL-lane only. Vertical's "hook_visible_frame0"/"hook_cleared_by_3s"
+// pair enforces the Reels-specific hook-then-clear formula (docs/SCROLL-
+// STOPPING-VIDEO-PLAYBOOK.md §5a checks 1-2) — that formula assumes a title-
+// card overlay that then clears, which is not how a desktop feature demo is
+// built or how FB/LinkedIn native video is judged. What DOES matter for a
+// 16:9 product demo, per the task this gate exists to satisfy, is that real,
+// readable application UI is actually on screen partway through — not
+// blurry, not cut off, not a dead/loading frame.
+const LEGIBLE_UI_PROMPT = `This is a single frame sampled from partway through a desktop product-demo video (16:9, intended for Facebook/LinkedIn/Twitter).
+
+Is real, readable application UI clearly visible in this frame — legible text, distinguishable buttons/fields/cards/data, not blurry, not cut off, not obscured by a loading state? A frame that is mostly empty white space, a spinner, or illegible/tiny text does NOT count.
+
+Respond with JSON only, no markdown fences:
+{"legible": true or false, "reason": "one sentence"}`;
+
 const CAPTIONS_PRESENT_PROMPT = `These are 3 frames sampled across a short-form video's runtime (roughly 25%, 50%, and 75% of the way through), in that order.
 
 For EACH frame, is there a legible burned-in caption/subtitle (word-level or line-level on-screen text synced to speech, NOT a title card, NOT a logo/watermark) visible on screen?
@@ -562,6 +650,11 @@ Respond with JSON only, no markdown fences:
  * @param {string} [opts.videoPath] - local path to the video
  * @param {string} [opts.coverUrl] - remote URL to the explicit cover asset
  * @param {string} [opts.coverPath] - local path to the explicit cover asset
+ * @param {string[]} [opts.platforms] - the video_library row's real platforms
+ *   array (preferred way to select vertical vs horizontal rules — see
+ *   classifyOrientation()).
+ * @param {'vertical'|'horizontal'} [opts.orientation] - explicit override,
+ *   only when platforms isn't available.
  * @returns {Promise<{pass: boolean, rules: object, failedRules: string[], detail: object}>}
  */
 async function checkVideoQuality(opts = {}) {
@@ -595,6 +688,7 @@ async function checkVideoQuality(opts = {}) {
         persistent_bars: detail.persistent_bars ?? null,
         first_frame_luma_spread: detail.first_frame_luma_spread ?? null,
         opening_disqualifier: detail.opening_disqualifier ?? null,
+        orientation: detail.orientation ?? null,
       },
     };
   };
@@ -613,20 +707,58 @@ async function checkVideoQuality(opts = {}) {
   }
   addRule('video_file_accessible', { pass: true });
 
+  // 0. Orientation — which rule family this row is graded against. Fail
+  // closed (one blocking rule, everything else skipped) rather than guess:
+  // an ingestion caller must supply a real platforms array or an explicit
+  // orientation. See classifyOrientation()'s header comment.
+  let orientation;
+  try {
+    orientation = classifyOrientation(opts.orientation, opts.platforms);
+    detail.orientation = orientation;
+    addRule('orientation_determined', { pass: true, note: `${orientation} (${opts.orientation ? 'explicit' : `from platforms [${(opts.platforms || []).join(', ')}]`})` });
+  } catch (err) {
+    // Backward-compat: existing callers (regression fixtures, anything built
+    // before 2026-09-17) that pass neither platforms nor orientation default
+    // to 'vertical' — the gate's original and only behavior — so nothing
+    // that already relied on this gate silently changes shape. A caller that
+    // DOES pass a platforms array but gets a real classification error
+    // (mixed or unrecognized platforms) fails closed for real: that's a
+    // misconfigured row, not an absent one.
+    if (opts.platforms === undefined && opts.orientation === undefined) {
+      orientation = 'vertical';
+      detail.orientation = orientation;
+      addRule('orientation_determined', { pass: true, note: 'vertical (default — no platforms/orientation supplied, preserving pre-2026-09-17 behavior)' });
+    } else {
+      addRule('orientation_determined', { pass: false, note: err.message });
+      return finalize();
+    }
+  }
+  const isVertical = orientation === 'vertical';
+
   // 1. Runtime.
   let duration = null;
   try {
     duration = await ffprobeDuration(localVideo);
     detail.duration_seconds = Math.round(duration * 10) / 10;
-    const inTikTok = duration >= TIKTOK_RANGE[0] && duration <= TIKTOK_RANGE[1];
-    const inIgLoop = duration >= IG_LOOP_RANGE[0] && duration <= IG_LOOP_RANGE[1];
-    const pass = duration <= HARD_MAX_RUNTIME_S && (inTikTok || inIgLoop);
-    addRule('runtime_in_platform_range', {
-      pass,
-      note: pass
-        ? `${detail.duration_seconds}s fits ${inTikTok ? `TikTok narrative (${TIKTOK_RANGE.join('-')}s)` : `IG loop (${IG_LOOP_RANGE.join('-')}s)`}`
-        : `${detail.duration_seconds}s fits neither TikTok's ${TIKTOK_RANGE.join('-')}s window nor IG's ${IG_LOOP_RANGE.join('-')}s loop window (hard ceiling ${HARD_MAX_RUNTIME_S}s)`,
-    });
+    if (isVertical) {
+      const inTikTok = duration >= TIKTOK_RANGE[0] && duration <= TIKTOK_RANGE[1];
+      const inIgLoop = duration >= IG_LOOP_RANGE[0] && duration <= IG_LOOP_RANGE[1];
+      const pass = duration <= HARD_MAX_RUNTIME_S && (inTikTok || inIgLoop);
+      addRule('runtime_in_platform_range', {
+        pass,
+        note: pass
+          ? `${detail.duration_seconds}s fits ${inTikTok ? `TikTok narrative (${TIKTOK_RANGE.join('-')}s)` : `IG loop (${IG_LOOP_RANGE.join('-')}s)`}`
+          : `${detail.duration_seconds}s fits neither TikTok's ${TIKTOK_RANGE.join('-')}s window nor IG's ${IG_LOOP_RANGE.join('-')}s loop window (hard ceiling ${HARD_MAX_RUNTIME_S}s)`,
+      });
+    } else {
+      const pass = duration >= HORIZONTAL_RUNTIME_RANGE[0] && duration <= HORIZONTAL_HARD_MAX_RUNTIME_S;
+      addRule('runtime_in_platform_range', {
+        pass,
+        note: pass
+          ? `${detail.duration_seconds}s fits the horizontal feed-video window (${HORIZONTAL_RUNTIME_RANGE.join('-')}s typical, ${HORIZONTAL_HARD_MAX_RUNTIME_S}s hard ceiling)`
+          : `${detail.duration_seconds}s is outside the horizontal feed-video window (${HORIZONTAL_RUNTIME_RANGE.join('-')}s typical, ${HORIZONTAL_HARD_MAX_RUNTIME_S}s hard ceiling)`,
+      });
+    }
   } catch (err) {
     addRule('runtime_in_platform_range', { pass: false, note: `ffprobe duration failed (fail-closed): ${err.message}` });
   }
@@ -664,17 +796,29 @@ async function checkVideoQuality(opts = {}) {
 
     const ratio = width / height;
     detail.aspect_ratio = Math.round(ratio * 1e4) / 1e4;
-    const delta = Math.abs(ratio - TARGET_ASPECT_RATIO);
-    const pass = delta <= ASPECT_RATIO_TOLERANCE;
-    addRule('aspect_ratio_vertical_9x16', {
-      pass,
-      note: pass
-        ? `${detail.resolution} (${detail.aspect_ratio}) is 9:16 full-bleed vertical`
-        : `${detail.resolution} has aspect ratio ${detail.aspect_ratio}, not 9:16 (${Math.round(TARGET_ASPECT_RATIO * 1e4) / 1e4} ±${ASPECT_RATIO_TOLERANCE}). ${ratio > 1 ? 'This is a LANDSCAPE file — Facebook/Instagram/TikTok will letterbox it into a vertical Reel with black bars (the 2026-09-15 stage-checklist defect).' : 'Off-target vertical frame.'}`,
-    });
+    if (isVertical) {
+      const delta = Math.abs(ratio - TARGET_ASPECT_RATIO);
+      const pass = delta <= ASPECT_RATIO_TOLERANCE;
+      addRule('aspect_ratio_vertical_9x16', {
+        pass,
+        note: pass
+          ? `${detail.resolution} (${detail.aspect_ratio}) is 9:16 full-bleed vertical`
+          : `${detail.resolution} has aspect ratio ${detail.aspect_ratio}, not 9:16 (${Math.round(TARGET_ASPECT_RATIO * 1e4) / 1e4} ±${ASPECT_RATIO_TOLERANCE}). ${ratio > 1 ? 'This is a LANDSCAPE file — Facebook/Instagram/TikTok will letterbox it into a vertical Reel with black bars (the 2026-09-15 stage-checklist defect).' : 'Off-target vertical frame.'}`,
+      });
+    } else {
+      const delta = Math.abs(ratio - TARGET_ASPECT_RATIO_HORIZONTAL);
+      const pass = delta <= ASPECT_RATIO_TOLERANCE_HORIZONTAL;
+      addRule('aspect_ratio_horizontal_16x9', {
+        pass,
+        note: pass
+          ? `${detail.resolution} (${detail.aspect_ratio}) is 16:9 full-bleed horizontal`
+          : `${detail.resolution} has aspect ratio ${detail.aspect_ratio}, not 16:9 (${Math.round(TARGET_ASPECT_RATIO_HORIZONTAL * 1e4) / 1e4} ±${ASPECT_RATIO_TOLERANCE_HORIZONTAL}). ${ratio < 1 ? 'This is a PORTRAIT file targeting facebook/twitter/linkedin, which expect the desktop 16:9 cut.' : 'Off-target horizontal frame.'}`,
+      });
+    }
   } catch (err) {
     addRule('resolution_readable', { pass: false, note: `ffprobe resolution failed (fail-closed): ${err.message}` });
-    addRule('aspect_ratio_vertical_9x16', { pass: false, note: `cannot verify aspect ratio without a readable resolution (fail-closed): ${err.message}` });
+    const aspectRuleName = isVertical ? 'aspect_ratio_vertical_9x16' : 'aspect_ratio_horizontal_16x9';
+    addRule(aspectRuleName, { pass: false, note: `cannot verify aspect ratio without a readable resolution (fail-closed): ${err.message}` });
   }
 
   // 3c. Content actually fills the frame — no baked-in letterbox/pillarbox.
@@ -739,42 +883,89 @@ async function checkVideoQuality(opts = {}) {
   }
 
   // 5-7. Vision checks — only meaningful if we got a usable frame 0.
+  // hook_visible_frame0/hook_cleared_by_3s enforce the Reels-specific hook-
+  // then-clear formula (playbook §5a checks 1-2) and apply to the VERTICAL
+  // lane only — a desktop 16:9 feature demo isn't built around a clearing
+  // title-card overlay, and grading it against that formula is exactly the
+  // "wrong ruleset for the shape" problem this section exists to fix.
+  // Horizontal gets legible_ui_frame instead (defined below). Both lanes
+  // still get opening_not_login_or_empty and captions_present — a bad
+  // opening or a missing caption's a real defect in either shape — but
+  // captions_present is advisory-only (non-blocking) on horizontal, since
+  // this pipeline doesn't burn captions into the desktop cut today (unlike
+  // the vertical cut, which is built caption-first).
   if (!frame0Path) {
-    addRule('hook_visible_frame0', { pass: false, note: 'skipped — frame 0 could not be extracted, see real_motion_0_to_1_5s' });
-    addRule('hook_cleared_by_3s', { pass: false, note: 'skipped — frame 0 could not be extracted' });
+    if (isVertical) {
+      addRule('hook_visible_frame0', { pass: false, note: 'skipped — frame 0 could not be extracted, see real_motion_0_to_1_5s' });
+      addRule('hook_cleared_by_3s', { pass: false, note: 'skipped — frame 0 could not be extracted' });
+    } else {
+      addRule('legible_ui_frame', { pass: false, note: 'skipped — frame 0 could not be extracted' });
+    }
     addRule('opening_not_login_or_empty', { pass: false, note: 'skipped — frame 0 could not be extracted' });
-    addRule('captions_present', { pass: false, note: 'skipped — frame 0 could not be extracted' });
+    addRule('captions_present', { pass: false, blocking: isVertical, note: 'skipped — frame 0 could not be extracted' });
   } else if (!ANTHROPIC_KEY_USABLE && !CRON_SECRET) {
     const note = 'no usable ANTHROPIC_API_KEY and no CRON_SECRET — cannot run vision check via either transport (fail-closed)';
-    addRule('hook_visible_frame0', { pass: false, note });
-    addRule('hook_cleared_by_3s', { pass: false, note });
+    if (isVertical) {
+      addRule('hook_visible_frame0', { pass: false, note });
+      addRule('hook_cleared_by_3s', { pass: false, note });
+    } else {
+      addRule('legible_ui_frame', { pass: false, note });
+    }
     addRule('opening_not_login_or_empty', { pass: false, note });
-    addRule('captions_present', { pass: false, note });
+    addRule('captions_present', { pass: false, blocking: isVertical, note });
   } else {
     let frame0Vision = null;
     try {
       frame0Vision = await compressFrameForVision(frame0Path);
-      const result = await callVisionModel([frame0Vision], HOOK_VISIBLE_PROMPT);
-      addRule('hook_visible_frame0', {
-        pass: result.hook_visible === true,
-        note: `"${String(result.text_seen || '').slice(0, 120)}" — ${result.reason || ''}`,
-      });
     } catch (err) {
-      addRule('hook_visible_frame0', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+      const note = `vision check failed (fail-closed): ${err.message}`;
+      if (isVertical) {
+        addRule('hook_visible_frame0', { pass: false, note });
+        addRule('hook_cleared_by_3s', { pass: false, note: 'skipped — frame 0 could not be prepared' });
+      } else {
+        addRule('legible_ui_frame', { pass: false, note: 'skipped — frame 0 could not be prepared' });
+      }
     }
 
-    // Hook cleared by ~3s.
-    try {
-      if (!frame0Vision) throw new Error('frame 0 unavailable');
-      const clampedT = duration ? Math.min(HOOK_CLEAR_SAMPLE_T, Math.max(0.1, duration - 0.1)) : HOOK_CLEAR_SAMPLE_T;
-      const frame3Path = path.join(tmpDir, `qgate-f3-${process.pid}-${Date.now()}.png`);
-      cleanupFns.push(async () => fs.promises.unlink(frame3Path).catch(() => {}));
-      await extractFrame(localVideo, clampedT, frame3Path);
-      const frame3Vision = await compressFrameForVision(frame3Path);
-      const result = await callVisionModel([frame0Vision, frame3Vision], HOOK_CLEARED_PROMPT);
-      addRule('hook_cleared_by_3s', { pass: result.hook_cleared === true, note: result.reason || '' });
-    } catch (err) {
-      addRule('hook_cleared_by_3s', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+    if (isVertical) {
+      try {
+        if (!frame0Vision) throw new Error('frame 0 unavailable');
+        const result = await callVisionModel([frame0Vision], HOOK_VISIBLE_PROMPT);
+        addRule('hook_visible_frame0', {
+          pass: result.hook_visible === true,
+          note: `"${String(result.text_seen || '').slice(0, 120)}" — ${result.reason || ''}`,
+        });
+      } catch (err) {
+        addRule('hook_visible_frame0', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+      }
+
+      // Hook cleared by ~3s.
+      try {
+        if (!frame0Vision) throw new Error('frame 0 unavailable');
+        const clampedT = duration ? Math.min(HOOK_CLEAR_SAMPLE_T, Math.max(0.1, duration - 0.1)) : HOOK_CLEAR_SAMPLE_T;
+        const frame3Path = path.join(tmpDir, `qgate-f3-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(frame3Path).catch(() => {}));
+        await extractFrame(localVideo, clampedT, frame3Path);
+        const frame3Vision = await compressFrameForVision(frame3Path);
+        const result = await callVisionModel([frame0Vision, frame3Vision], HOOK_CLEARED_PROMPT);
+        addRule('hook_cleared_by_3s', { pass: result.hook_cleared === true, note: result.reason || '' });
+      } catch (err) {
+        addRule('hook_cleared_by_3s', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+      }
+    } else {
+      // Horizontal: legible UI partway through the video, in place of the
+      // Reels hook-then-clear pair.
+      try {
+        const midT = duration ? Math.max(0.5, duration * 0.5) : 5;
+        const midPath = path.join(tmpDir, `qgate-mid-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(midPath).catch(() => {}));
+        await extractFrame(localVideo, midT, midPath);
+        const midVision = await compressFrameForVision(midPath);
+        const result = await callVisionModel([midVision], LEGIBLE_UI_PROMPT);
+        addRule('legible_ui_frame', { pass: result.legible === true, note: result.reason || '' });
+      } catch (err) {
+        addRule('legible_ui_frame', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+      }
     }
 
     // Opening is a meaningful moment — not a login page, blank, or empty state.
@@ -821,10 +1012,11 @@ async function checkVideoQuality(opts = {}) {
       const count = Number(result.frames_with_captions) || 0;
       addRule('captions_present', {
         pass: count >= 2, // majority of the 3 sample points
-        note: `${count}/3 sampled frames showed captions — ${result.reason || ''}`,
+        blocking: isVertical,
+        note: `${count}/3 sampled frames showed captions — ${result.reason || ''}${isVertical ? '' : ' (advisory only on the horizontal lane — this pipeline does not burn captions into the desktop cut)'}`,
       });
     } catch (err) {
-      addRule('captions_present', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
+      addRule('captions_present', { pass: false, blocking: isVertical, note: `vision check failed (fail-closed): ${err.message}` });
     }
   }
 
@@ -893,6 +1085,16 @@ module.exports = {
   ASPECT_RATIO_TOLERANCE,
   CONTENT_COVERAGE_MIN,
   FIRST_FRAME_MIN_LUMA_SPREAD,
+  // Orientation-aware gating (2026-09-17), exported for
+  // scripts/regression-video-quality-gate.js and any ingestion caller that
+  // needs to classify a row before calling checkVideoQuality().
+  classifyOrientation,
+  VERTICAL_PLATFORMS,
+  HORIZONTAL_PLATFORMS,
+  TARGET_ASPECT_RATIO_HORIZONTAL,
+  ASPECT_RATIO_TOLERANCE_HORIZONTAL,
+  HORIZONTAL_RUNTIME_RANGE,
+  HORIZONTAL_HARD_MAX_RUNTIME_S,
   // Measurement primitives, exported for the regression fixtures.
   analyzePersistentCoverage,
   frameLumaSpread,

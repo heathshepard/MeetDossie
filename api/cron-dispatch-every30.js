@@ -16,9 +16,14 @@
 //   - /api/cron-sage-draft-engagements
 //   - /api/cron-showingtime-feedback
 //   - /api/cron-support-ticket-alert
-//   - /api/cron-tc-reply-approval
 //   - /api/cron-comment-opp-approval
 //   - /api/cron-retry-unsent-approvals
+//
+// cron-tc-reply-approval MOVED to cron-dispatch-every10.js 2026-09-17
+// (Carter) — Heath's 1-hour reply SLA needs the draft/notify step on a
+// tighter cadence than 30 minutes; see that file's header for the full
+// end-to-end timing budget. Riding an EXISTING dispatcher, not a new
+// vercel.json cron entry (54/100 crons used, hard cap 100).
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -33,7 +38,6 @@ const HANDLERS = [
   { name: 'cron-sage-draft-engagements', mod: require('./cron-sage-draft-engagements.js') },
   { name: 'cron-showingtime-feedback', mod: require('./cron-showingtime-feedback.js') },
   { name: 'cron-support-ticket-alert', mod: require('./cron-support-ticket-alert.js') },
-  { name: 'cron-tc-reply-approval', mod: require('./cron-tc-reply-approval.js') },
   { name: 'cron-comment-opp-approval', mod: require('./cron-comment-opp-approval.js') },
   { name: 'cron-retry-unsent-approvals', mod: require('./cron-retry-unsent-approvals.js') },
 ];

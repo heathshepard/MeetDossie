@@ -43,7 +43,11 @@
 // failed/suppressed send never re-bills the Claude call.
 //
 // Auth: x-vercel-cron header or Bearer ${CRON_SECRET}.
-// Schedule: vercel.json — */30 * * * *.
+// Schedule: fires from api/cron-dispatch-every10.js (*/10 * * * *) — moved
+// from the every30 dispatcher 2026-09-17 (Carter) to fit inside Heath's
+// 1-hour reply SLA. Not its own vercel.json cron entry (54/100 used, hard
+// cap 100) — see cron-dispatch-every10.js header for the full timing
+// budget across harvest -> draft/notify -> veto -> poster.
 //
 // Owner: Carter, 2026-09-08
 
@@ -56,6 +60,7 @@ const voiceGuard = require('./_lib/heath-voice-guard');
 const { classifyCommentRisk } = require('../scripts/_lib/auto-reply-risk-classifier.js');
 const { checkContentGates } = require('../scripts/_lib/auto-reply-content-gates.js');
 const autoReplyKillSwitch = require('../scripts/_lib/auto-reply-kill-switch.js');
+const opsPolicy = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -361,6 +366,7 @@ async function processPendingReplies(deps) {
     send = telegramSend,
     isSuppressed = wasSuppressed,
     isAutoReplyEnabled = autoReplyKillSwitch.isAutoReplyEnabled,
+    logCapabilityDecision = opsPolicy.logAutonomousAction,
     log = console,
   } = deps || {};
 
@@ -372,7 +378,15 @@ async function processPendingReplies(deps) {
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=in.(new,flagged)&reply_notified_at=is.null&is_own_comment=eq.false'
     + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id,auto_reply_eligible,auto_reply_category,auto_reply_confidence,auto_reply_reason,auto_reply_source`
-    + `&order=harvested_at.asc&limit=${MAX_PER_RUN}`,
+    // Secondary sort on id: harvest batches insert many rows with the exact
+    // same harvested_at timestamp (one per API page/thread pass), so
+    // order=harvested_at.asc alone is unstable under LIMIT — Postgres can
+    // return a DIFFERENT arbitrary subset of a tied group on each run,
+    // meaning some rows in a large tied batch might never be picked while a
+    // permanently-stuck older row keeps re-claiming a slot every run. Found
+    // 2026-09-17: 8 of 14 backlogged rows never even reached the draft step
+    // for exactly this reason. id is a stable, always-unique tiebreaker.
+    + `&order=harvested_at.asc,id.asc&limit=${MAX_PER_RUN}`,
   );
   if (!ok) {
     out.errors.push({ step: 'load', status });
@@ -492,6 +506,31 @@ async function processPendingReplies(deps) {
       const isAutoVeto = !isFlag
         && row.auto_reply_eligible === true
         && autoReplySwitchOn;
+
+      // Standing-authority logging (api/_lib/ops-policy.js, 2026-09-17):
+      // 'reply_low_risk_comments' is the ops-policy name for this exact
+      // decision. Logged here (not via ops-policy's own checkAndLog) because
+      // this cron already read the flag above via autoReplyKillSwitch — a
+      // second independent read would risk disagreeing with isAutoVeto if
+      // the flag flipped mid-run. ops_action_log had ZERO rows for this
+      // capability before this fix even though ops_flags.auto_reply was on
+      // — the decision was being made but never recorded, so there was no
+      // durable evidence the capability had ever fired. Best-effort: never
+      // blocks the actual notify/veto path below.
+      if (!isFlag && row.auto_reply_eligible === true) {
+        await logCapabilityDecision({
+          capability: 'reply_low_risk_comments',
+          decision: isAutoVeto ? 'autonomous' : 'blocked_flag_off',
+          action: isAutoVeto
+            ? `entered 10-min veto window for reply to ${row.commenter_name || 'commenter'}`
+            : 'auto_reply_eligible but ops_flags.auto_reply is off — routed to manual Approve/Edit/Skip',
+          firedBy: 'cron-tc-reply-approval',
+          gatesPassed: isAutoVeto ? ['risk_classifier_low_risk_high_confidence', 'content_gates'] : [],
+          refTable: 'tc_discovery_responses',
+          refId: row.id,
+          metadata: { auto_reply_confidence: row.auto_reply_confidence, auto_reply_category: row.auto_reply_category },
+        }, sbFetch).catch((e) => log.warn(`[cron-tc-reply-approval] ops_action_log write failed: ${e.message}`));
+      }
 
       let text;
       let markup;

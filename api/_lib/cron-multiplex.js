@@ -57,6 +57,14 @@
 //   response built from all the shimmed results.
 //
 // Owner: Atlas, 2026-09-16.
+//
+// BUGFIX 2026-09-17 (Carter) — see api/_lib/telegram-gate.js header for the
+// full incident. Each sub-handler is invoked inside
+// telegramGate.runWithJobContext(h.name, ...) so its Telegram sends are
+// gated under ITS OWN name, not whichever sibling module happened to
+// require() telegram-gate.js first in this dispatcher's HANDLERS list.
+
+const telegramGate = require('./telegram-gate.js');
 
 // Top-level dispatcher gate. Mirrors the exact check every individual
 // sub-handler already does (x-vercel-cron header set by Vercel's own cron
@@ -78,6 +86,15 @@ function makeShimRes(name) {
     _status: 200,
     _body: undefined,
     _headers: {},
+    // BUGFIX 2026-09-17 (Carter): api/_lib/cron-telemetry.js's withTelemetry
+    // reads `res.statusCode` (the real Vercel res property) to decide
+    // ok-vs-error, not `_status`. Every multiplexed sub-handler that also
+    // uses withTelemetry was reporting http_status:0 / always 'ok' to
+    // cron_runs regardless of its real result, because this shim never
+    // exposed statusCode — a silent-failure mask on top of the telegram-gate
+    // bug (see telegram-gate.js header), found while diagnosing the same
+    // incident. Mirror _status onto statusCode on every status() call.
+    get statusCode() { return this._status; },
     status(code) { this._status = code; return this; },
     json(body) { this._body = body; return this; },
     send(body) { if (this._body === undefined) this._body = body; return this; },
@@ -96,7 +113,7 @@ async function runGroup(req, handlers) {
   const jobs = handlers.map(async (h) => {
     const shim = makeShimRes(h.name);
     try {
-      await h.mod(req, shim);
+      await telegramGate.runWithJobContext(h.name, () => h.mod(req, shim));
       return { name: h.name, status: shim._status, body: shim._body };
     } catch (err) {
       return { name: h.name, status: 500, error: (err && err.message) || String(err) };
