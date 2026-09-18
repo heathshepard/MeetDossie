@@ -419,8 +419,13 @@ async function main() {
 
   const summary = `fb-lead-scraper complete: ${totalLeads} warm lead(s) found across ${groups.length} group(s)`;
   console.log(`[fb-lead-scraper] ${summary}`);
+  // FIXED 2026-09-18: a zero-result pass logs locally only. It used to ping
+  // Telegram with "no new warm leads found this pass" every run — the same
+  // silent-noise pattern found in linkedin-engager.js. A real dry spell
+  // belongs in the morning brief / silence-alarm territory, not a per-run
+  // message.
   if (totalLeads === 0) {
-    await sendTelegram('FB lead scraper ran - no new warm leads found this pass.');
+    console.log('[fb-lead-scraper] No new warm leads this pass — staying quiet on Telegram.');
   }
 }
 

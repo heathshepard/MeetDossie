@@ -330,6 +330,15 @@ async function markLeadNotFound(leadId) {
   });
 }
 
+// Session-dead signal, kept distinct from "genuinely couldn't find this
+// person" (fixed 2026-09-18: runWarmTouchMode was calling markLeadNotFound()
+// on a login-redirect exactly like a real not-found, which would have
+// permanently burned through the 650-row pending warm_touch_queue as
+// terminal 'not_found' rows the first time this mode actually ran — none of
+// them ever eligible for retry again. See LinkedInLoginRequiredError usage
+// in runWarmTouchMode below.
+class LinkedInLoginRequiredError extends Error {}
+
 async function searchAndEngageLead(page, lead, seenIds) {
   const name = lead.lead_name;
   const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(name + ' real estate')}&sortBy=date_posted`;
@@ -339,8 +348,7 @@ async function searchAndEngageLead(page, lead, seenIds) {
 
   const currentUrl = page.url();
   if (currentUrl.includes('/login') || currentUrl.includes('/authwall')) {
-    console.warn('[linkedin-engager] Redirected to login');
-    return false;
+    throw new LinkedInLoginRequiredError('Redirected to login');
   }
 
   try {
@@ -399,7 +407,7 @@ async function runWarmTouchMode(page, seenIds) {
   const leads = await fetchWarmTouchLeads();
   if (!leads.length) {
     console.log('[linkedin-engager] No pending warm-touch leads');
-    return { engaged: 0, not_found: 0 };
+    return { engaged: 0, not_found: 0, login_required: false };
   }
 
   console.log(`[linkedin-engager] Warm-touch: ${leads.length} leads to engage`);
@@ -407,7 +415,26 @@ async function runWarmTouchMode(page, seenIds) {
   let notFound = 0;
 
   for (const lead of leads) {
-    const found = await searchAndEngageLead(page, lead, seenIds);
+    let found;
+    try {
+      found = await searchAndEngageLead(page, lead, seenIds);
+    } catch (err) {
+      if (err instanceof LinkedInLoginRequiredError) {
+        // Session is dead — every remaining lead would fail the same way.
+        // Abort now (leave them at status='pending' for the next tick)
+        // instead of marking real leads not_found just because the browser
+        // wasn't authenticated. Same alert key + cooldown as
+        // postApprovedLinkedIn's login check, so this doesn't double-fire.
+        console.warn('[linkedin-engager] Warm-touch aborted — LinkedIn session not logged in (DossieBot profile). Leaving remaining leads pending.');
+        await alertPublishFailure(
+          'linkedin_login_required',
+          `LinkedIn warm-touch cannot run — DossieBot Chrome profile is not logged into LinkedIn (redirected to login/authwall). ${leads.length - engaged - notFound} lead(s) left pending. Log in manually in that Chrome profile.`,
+        );
+        return { engaged, not_found: notFound, login_required: true };
+      }
+      console.warn(`[linkedin-engager] Warm-touch error for "${lead.lead_name}":`, err.message);
+      found = false;
+    }
     if (found) {
       await markLeadEngaged(lead.id);
       engaged++;
@@ -418,7 +445,7 @@ async function runWarmTouchMode(page, seenIds) {
     await new Promise(r => setTimeout(r, 3000));
   }
 
-  return { engaged, not_found: notFound };
+  return { engaged, not_found: notFound, login_required: false };
 }
 
 // ─── Failure alerting (silence-alarm) ────────────────────────────────────────
@@ -700,7 +727,18 @@ async function main() {
     }
   }
 
-  const warmTouchMode = process.argv.includes('--warm-touch');
+  // FIXED 2026-09-18: `--warm-touch-only` (what the 15-min Task Scheduler
+  // tick actually passes, scripts/run-tc-discovery-harvest.cmd Step 7) did
+  // NOT set warmTouchMode — argv.includes('--warm-touch') checks for that
+  // exact array element, and '--warm-touch-only' is a different string. The
+  // "-only" flag correctly skipped the cold search-queries loop below, but
+  // since warmTouchMode stayed false, runWarmTouchMode() never ran either.
+  // Net effect: every single tick engaged with LinkedIn ZERO times by
+  // construction, regardless of login state or the 650-row warm_touch_queue
+  // backlog waiting to be worked. "-only" now means "run warm-touch, skip
+  // the generic cold-search loop" as originally intended.
+  const warmTouchOnly = process.argv.includes('--warm-touch-only');
+  const warmTouchMode = process.argv.includes('--warm-touch') || warmTouchOnly;
   let totalLiked = 0;
   let totalCommented = 0;
   let warmResult = null;
@@ -712,7 +750,7 @@ async function main() {
       saveSeen(seenIds);
     }
 
-    if (!process.argv.includes('--warm-touch-only')) {
+    if (!warmTouchOnly) {
       for (const query of SEARCH_QUERIES) {
         const { liked, commented } = await runSearch(page, query, seenIds, POSTS_PER_SEARCH).catch(err => {
           console.warn(`[linkedin-engager] Error on query "${query}":`, err.message);
@@ -740,7 +778,26 @@ async function main() {
   if (postApprovedCount > 0) parts.push(`posted: ${postApprovedCount} approved`);
   const summary = parts.join(' | ');
   console.log(`[linkedin-engager] ${summary}`);
-  await sendTelegram(summary);
+
+  // FIXED 2026-09-18 (Heath: "liked 0, commented 0" spammed every 15 min):
+  // a run that did nothing real still logs locally (the line above) for
+  // debugging, but no longer pings Telegram. login_required already alerts
+  // separately via alertPublishFailure's own deduped path (runWarmTouchMode /
+  // postApprovedLinkedIn above) — this is only the routine "nothing to
+  // report" case. Genuinely-dead-queue detection (no engagement for DAYS)
+  // stays owned by api/_lib/silence-alarm.js's checkPlatformSilence(), which
+  // reads social_posts directly and is untouched by this change.
+  // Deliberately NOT triggered by warmResult.not_found alone — burning
+  // through the warm-touch queue with zero real engagement is a daily-count
+  // fact (morning brief / checkPlatformSilence territory), not a per-tick
+  // ping worth waking Heath's phone for.
+  const didSomething = totalLiked > 0 || totalCommented > 0 || postApprovedCount > 0
+    || (warmResult && warmResult.engaged > 0);
+  if (didSomething) {
+    await sendTelegram(summary);
+  } else {
+    console.log('[linkedin-engager] Nothing happened this run — staying quiet on Telegram.');
+  }
 }
 
 main().catch(err => {

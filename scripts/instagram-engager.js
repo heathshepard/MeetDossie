@@ -304,7 +304,22 @@ async function main() {
 
   const summary = `Instagram engagement complete:\n${summaryLines.join('\n')}`;
   console.log(`[instagram-engager] ${summary}`);
-  await sendTelegram(summary);
+
+  // FIXED 2026-09-18 (same pattern found in linkedin-engager.js): a run that
+  // liked/commented/skipped nothing across every target handle still logs
+  // locally but no longer pings Telegram. Not currently on any Task
+  // Scheduler tick (checked scripts/*.cmd + the live schtasks list), so
+  // this wasn't producing noise today — fixed anyway so it doesn't start
+  // the moment it's wired into a schedule.
+  const totalActivity = summaryLines.reduce((sum, line) => {
+    const m = line.match(/liked (\d+), commented (\d+)/);
+    return sum + (m ? Number(m[1]) + Number(m[2]) : 0);
+  }, 0);
+  if (totalActivity > 0) {
+    await sendTelegram(summary);
+  } else {
+    console.log('[instagram-engager] Nothing happened this run — staying quiet on Telegram.');
+  }
 }
 
 main().catch(err => {
