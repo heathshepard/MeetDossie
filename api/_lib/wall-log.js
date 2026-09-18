@@ -83,7 +83,19 @@ async function logWall(entry) {
 
 // Mark a cron's last_run/last_status in the cron_runs table (idempotent upsert).
 // Used by every reliability cron so /api/ventures/cron-health stays accurate.
+//
+// 2026-09-17: this writes into the exact same cron_runs table as
+// ./cron-telemetry.js's recordCronRun(), which had the identical bug — a
+// credentials-only check let local runs (agent worktrees, .env.local test
+// runs) write fake rows into production. Gated the same way: only a real
+// Vercel invocation (process.env.VERCEL, set on every Vercel execution,
+// unset everywhere else) may write. See cron-telemetry.js's
+// isRealVercelExecution() header comment for the full rationale.
 async function recordCronRun(cronName, status, error = null) {
+  if (!process.env.VERCEL) {
+    console.warn(`[wall-log] not running on Vercel (VERCEL env unset) — skipping prod cron_runs write for '${cronName}' (${status})`);
+    return { ok: false, reason: 'not-vercel' };
+  }
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !cronName) return { ok: false };
   try {
     // Try upsert via on_conflict (requires unique constraint on cron_name).
