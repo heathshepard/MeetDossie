@@ -16,7 +16,30 @@
  *    or non-2xx responses. Wrapper failures never break the cron.
  */
 
+// Vercel sets VERCEL=1 in the runtime env of every function it invokes
+// (build, prod, and preview alike) — see api/cron-customer-view-digest.js,
+// api/cron-dossie-full-diagnostic.js, api/cron-ridge-watchdog.js, which
+// already use the identical `!!process.env.VERCEL` check to detect a real
+// Lambda execution vs. a developer machine. It is NOT present in local
+// `node api/cron-x.js`, `.env.local`-backed test runs, or any of the ~95
+// agent worktrees — even though those all have SUPABASE_URL/SERVICE_ROLE_KEY
+// populated and would otherwise write straight into production telemetry.
+// This is the one signal every genuine Vercel invocation carries and no
+// local run can fake by accident, so it's the right gate for "did this
+// actually run as a cron" rather than "do the right env vars exist."
+function isRealVercelExecution() {
+  return !!process.env.VERCEL;
+}
+
 async function recordCronRun(cronName, status, meta = {}) {
+  if (!isRealVercelExecution()) {
+    console.warn(
+      `[telemetry] not running on Vercel (VERCEL env unset) — skipping prod write for '${cronName}' (${status})`,
+      meta
+    );
+    return;
+  }
+
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.warn('[telemetry] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing, skipping telemetry');
     return;
@@ -26,7 +49,11 @@ async function recordCronRun(cronName, status, meta = {}) {
     cron_name: cronName,
     last_run: new Date().toISOString(),
     last_status: status,
-    last_meta: meta,
+    // VERCEL_ENV is 'production' | 'preview' | 'development' on every real
+    // Vercel invocation. Stamping it here means a future stray write is
+    // immediately identifiable by an unexpected/missing value instead of
+    // looking like an organic production failure.
+    last_meta: { ...meta, source: process.env.VERCEL_ENV || 'vercel' },
   };
 
   try {
@@ -153,7 +180,7 @@ function withTelemetry(cronName, handler) {
   };
 }
 
-module.exports = { recordCronRun, withTelemetry };
+module.exports = { recordCronRun, withTelemetry, isRealVercelExecution };
 
 /*
   SQL migration to create cron_runs table (run once in Supabase console):
