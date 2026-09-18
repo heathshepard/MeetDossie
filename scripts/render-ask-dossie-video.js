@@ -404,7 +404,23 @@ function ttsDuration(timingPath) {
   fs.writeFileSync(path.join(dir, `${stem}.caption.txt`), spec.post_caption, 'utf8');
   // .meta.json lets scripts/queue-finished-videos.py re-run the CTA check with
   // the right URL on its own scan, instead of guessing one.
-  fs.writeFileSync(path.join(dir, `${stem}.meta.json`), JSON.stringify({
+  //
+  // MERGE, DON'T REPLACE (2026-09-18). scripts/build-shortform-video.py now
+  // writes this same sidecar itself with the PRODUCTION MANIFEST — the voice
+  // ids that actually spoke, the music bed that was actually mixed in, the
+  // caption cue count, the CTA card, the cover, the real resolution and
+  // duration. That is the record that this video got the full treatment, and
+  // it is written by the only thing that knows for certain. A plain overwrite
+  // here silently deleted all of it (measured: the first cycle's master
+  // sidecar came out with three keys). Everything below still WINS on the keys
+  // it sets, because those are D1 facts the compositor cannot know.
+  const metaPath = path.join(dir, `${stem}.meta.json`);
+  let builderMeta = {};
+  try {
+    if (fs.existsSync(metaPath)) builderMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8')) || {};
+  } catch { builderMeta = {}; }
+  fs.writeFileSync(metaPath, JSON.stringify({
+    ...builderMeta,
     format: 'D1',
     brand: 'dossie',
     target_owner: 'dossie',
@@ -424,6 +440,7 @@ function ttsDuration(timingPath) {
     gate: { pass: true, failedRules: [] },
     rendered_at: new Date().toISOString(),
   }, null, 2), 'utf8');
+  console.log(`[d1] meta     : ${metaPath}${builderMeta.production ? ' (merged with the compositor production manifest)' : ''}`);
 
   if (flag('no-queue')) {
     console.log(`\n[d1] DONE (not queued, --no-queue): ${outMp4}`);

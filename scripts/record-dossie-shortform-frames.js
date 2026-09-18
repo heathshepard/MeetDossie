@@ -416,9 +416,23 @@ async function visibleText(page) {
     await page.keyboard.type(QUESTION, { delay: 55 });
     // The Send button is disabled until React sees the input event; waiting on
     // it is what proves the text actually landed in component state.
+    //
+    // MUST MATCH AN *ENABLED* ONE (2026-09-18). The Talk-to-Dossie panel
+    // renders TWO buttons whose text is exactly "Send": a `class="inline-button"`
+    // one that is permanently `disabled`, and the real composer button. The
+    // disabled one comes FIRST in DOM order, so `.find()` returned it every
+    // time and `!b.disabled` was never true — this timed out after 15s on every
+    // single run, deterministically, not intermittently. Measured directly
+    // against production with the demo account: the question was fully typed
+    // (textarea.value 48 chars) and the real button was enabled the whole time.
+    //
+    // `.some()` over every exact-"Send" button is also the condition we
+    // actually want — "a Send button exists and is clickable" — rather than
+    // "the first thing called Send happens to be clickable".
     await page.waitForFunction(() => {
-      const b = [...document.querySelectorAll('button')].find((x) => /^send$/i.test((x.innerText || '').trim()));
-      return b && !b.disabled;
+      return [...document.querySelectorAll('button')]
+        .filter((x) => /^send$/i.test((x.innerText || '').trim()))
+        .some((x) => !x.disabled);
     }, null, { timeout: 15000 });
     await mark('Question typed in full: "' + QUESTION + '"');
     await sleep(1300);
@@ -426,7 +440,12 @@ async function visibleText(page) {
     const bodyLines = () => page.evaluate(() =>
       (document.body.innerText || '').split('\n').map((s) => s.trim()).filter(Boolean));
     const askedAt = Date.now() - t0;
-    await page.getByRole('button', { name: /^send$/i }).first().click();
+    // Same two-buttons-named-Send trap as the wait above: `.first()` resolves to
+    // the permanently-disabled `inline-button`, and Playwright then blocks
+    // waiting for it to become actionable. Scope to enabled buttons so this
+    // clicks the real composer control.
+    await page.locator('button:not([disabled])')
+      .filter({ hasText: /^\s*Send\s*$/ }).first().click();
     await mark('Send tapped - the question is now in the thread.');
 
     // Wait for the REAL answer. The thread grows the page rather than an inner
