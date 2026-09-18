@@ -62,6 +62,7 @@ function startMockSupabase(seed) {
     tc_discovery_responses: (seed.tc_discovery_responses || []).map((r) => ({ ...r })),
     comment_opportunities: (seed.comment_opportunities || []).map((r) => ({ ...r })),
     alert_state: (seed.alert_state || []).map((r) => ({ ...r })),
+    telegram_gate_suppressions: (seed.telegram_gate_suppressions || []).map((r) => ({ ...r })),
   };
 
   const server = http.createServer((req, res) => {
@@ -409,6 +410,64 @@ async function run() {
     assert.strictEqual(neverUsedScanner.length, 0, `expected no alert for a never-used pipeline, got: ${JSON.stringify(neverUsedScanner)}`);
   });
   neverUsedMock.server.close();
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+
+  console.log('\nTest telegram-gate-suppression: a job repeatedly eaten by telegram-gate must alarm');
+
+  // A job NOT on ALWAYS_ALLOW tried to send 4 times over 6 days -- exactly
+  // the cron-social-digest shape (a month of nothing, discovered only
+  // because Heath noticed the SYMPTOM). Must fire, naming the job.
+  const suppressedMock = await startMockSupabase({
+    telegram_gate_suppressions: [
+      { job_name: 'cron-some-quiet-digest', method: 'sendmessage', created_at: daysAgo(6), mode: 'unset' },
+      { job_name: 'cron-some-quiet-digest', method: 'sendmessage', created_at: daysAgo(4), mode: 'unset' },
+      { job_name: 'cron-some-quiet-digest', method: 'sendmessage', created_at: daysAgo(2), mode: 'unset' },
+      { job_name: 'cron-some-quiet-digest', method: 'sendmessage', created_at: daysAgo(0.1), mode: 'unset' },
+      // A single one-off suppressed retry -- must NOT fire (below MIN_COUNT).
+      { job_name: 'cron-rare-blip', method: 'sendmessage', created_at: daysAgo(1), mode: 'unset' },
+      // On the ALWAYS_ALLOW floor but STILL suppressed 3x over 6 days --
+      // only 'strict' should ever do that. Must fire with the onFloor branch.
+      { job_name: 'cron-tc-reply-approval', method: 'sendmessage', created_at: daysAgo(6), mode: 'strict' },
+      { job_name: 'cron-tc-reply-approval', method: 'sendmessage', created_at: daysAgo(3), mode: 'strict' },
+      { job_name: 'cron-tc-reply-approval', method: 'sendmessage', created_at: daysAgo(0.1), mode: 'strict' },
+    ],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${suppressedMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const suppressedLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const suppressedResults = await suppressedLib.checkTelegramGateSuppressionSilence();
+
+  check('a non-allowlisted job suppressed 4x over 6 days fires, naming the job', () => {
+    const c = suppressedResults.find((x) => x.key === 'telegram_gate_suppressed:cron-some-quiet-digest');
+    assert.ok(c, `expected cron-some-quiet-digest to fire, got: ${JSON.stringify(suppressedResults.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 4);
+    assert.strictEqual(c.onFloor, false);
+    assert.ok(/add 'cron-some-quiet-digest' to ALWAYS_ALLOW/.test(c.message));
+  });
+  check('a single one-off suppressed send does NOT fire (below MIN_COUNT)', () => {
+    assert.ok(!suppressedResults.some((x) => x.key === 'telegram_gate_suppressed:cron-rare-blip'));
+  });
+  check('an ALWAYS_ALLOW job suppressed anyway (mode=strict) still fires, flagged distinctly', () => {
+    const c = suppressedResults.find((x) => x.key === 'telegram_gate_suppressed:cron-tc-reply-approval');
+    assert.ok(c, 'expected cron-tc-reply-approval (on the floor) to fire too');
+    assert.strictEqual(c.onFloor, true);
+    assert.ok(/ALWAYS_ALLOW floor but has still been suppressed/.test(c.message));
+  });
+  suppressedMock.server.close();
+
+  // Nothing suppressed at all -> must NOT fire.
+  const cleanMock = await startMockSupabase({ telegram_gate_suppressions: [] });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${cleanMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const cleanLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const cleanResults = await cleanLib.checkTelegramGateSuppressionSilence();
+  check('a healthy gate (nothing ever suppressed) does not fire', () => {
+    assert.strictEqual(cleanResults.length, 0, `expected no alerts, got: ${JSON.stringify(cleanResults)}`);
+  });
+  cleanMock.server.close();
+
   process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
   delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
   lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
