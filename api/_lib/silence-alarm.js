@@ -30,6 +30,7 @@ const { scanCronSanity } = require('./cron-sanity.js');
 const { listGoalSetKeys } = require('./social-goals.js');
 const { getAttributionSummary } = require('./attribution.js');
 const { computeGoalProgress } = require('./social-goals-progress.js');
+const { ALWAYS_ALLOW: TELEGRAM_GATE_ALWAYS_ALLOW } = require('./telegram-gate.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -264,6 +265,63 @@ async function checkStaleApprovals(staleHours = APPROVAL_STALE_HOURS) {
 // quiet while work waits" problem, and alarming on it would just be noise
 // the model architecture change (fix the generator) is the real answer to.
 const GROUP_POSTING_SILENCE_HOURS = 24;
+
+// api/_lib/telegram-gate.js logs every send it eats to telegram_gate_
+// suppressions (added 2026-09-18) instead of only console.warn-ing it. This
+// is the alarm side of that: a job that keeps TRYING to reach Heath and
+// keeps getting eaten is exactly the cron-social-digest (a month, missing
+// ALWAYS_ALLOW entry) / cron-tc-reply-approval (job-name collision) failure
+// class, just caught in days instead of weeks. Doesn't require a "used to
+// succeed" baseline — a job attempting sends repeatedly over several days
+// already means it has real content to deliver and never gets through, full
+// stop. MIN_COUNT+MIN_SPAN_DAYS together rule out a one-off blip (a single
+// suppressed retry) from firing.
+const TELEGRAM_SUPPRESSION_LOOKBACK_DAYS = 30;
+const TELEGRAM_SUPPRESSION_MIN_COUNT = 3;
+const TELEGRAM_SUPPRESSION_MIN_SPAN_DAYS = 5;
+
+async function checkTelegramGateSuppressionSilence(
+  lookbackDays = TELEGRAM_SUPPRESSION_LOOKBACK_DAYS,
+  minCount = TELEGRAM_SUPPRESSION_MIN_COUNT,
+  minSpanDays = TELEGRAM_SUPPRESSION_MIN_SPAN_DAYS,
+) {
+  const since = daysAgoIso(lookbackDays);
+  const res = await supabaseFetch(
+    `/rest/v1/telegram_gate_suppressions?created_at=gte.${encodeURIComponent(since)}` +
+    `&select=job_name,created_at,mode&order=created_at.asc`,
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  const byJob = new Map();
+  for (const row of res.data) {
+    if (!row.job_name) continue;
+    if (!byJob.has(row.job_name)) byJob.set(row.job_name, []);
+    byJob.get(row.job_name).push(row);
+  }
+
+  const results = [];
+  for (const [jobName, rows] of byJob) {
+    if (rows.length < minCount) continue;
+    const first = new Date(rows[0].created_at).getTime();
+    const last = new Date(rows[rows.length - 1].created_at).getTime();
+    const spanDays = (last - first) / (24 * 60 * 60 * 1000);
+    if (spanDays < minSpanDays) continue;
+
+    const onFloor = TELEGRAM_GATE_ALWAYS_ALLOW.has(jobName);
+    const lastMode = rows[rows.length - 1].mode || 'unset';
+    results.push({
+      key: `telegram_gate_suppressed:${jobName}`,
+      job_name: jobName,
+      count: rows.length,
+      spanDays: Math.round(spanDays * 10) / 10,
+      onFloor,
+      message: onFloor
+        ? `"${jobName}" is on telegram-gate's ALWAYS_ALLOW floor but has still been suppressed ${rows.length}x over ${Math.round(spanDays)} day(s) (mode=${lastMode}) — only 'strict' mode should do that. If TELEGRAM_CRON_NOTIFICATIONS isn't intentionally set to 'strict', this job is being silently eaten anyway.`
+        : `"${jobName}" has tried to send to Telegram ${rows.length}x over ${Math.round(spanDays)} day(s) and every attempt was suppressed by telegram-gate (mode=${lastMode}). If this is an intentional quiet digest, nothing to do. If not, add '${jobName}' to ALWAYS_ALLOW in api/_lib/telegram-gate.js — this is the exact failure class that hid cron-social-digest for a month and cron-tc-reply-approval for ~2 weeks.`,
+    });
+  }
+  return results;
+}
 
 async function checkGroupPostingSilence(staleHours = GROUP_POSTING_SILENCE_HOURS) {
   const results = [];
@@ -739,7 +797,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity, telegramGateSuppressed] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -755,9 +813,10 @@ async function runAllChecks(opts = {}) {
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkGroupPostingSilence(opts.groupPostingSilenceHours),
     checkCronSanity(opts.cronSanityScanOpts),
+    checkTelegramGateSuppressionSilence(opts.telegramSuppressionLookbackDays, opts.telegramSuppressionMinCount, opts.telegramSuppressionMinSpanDays),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity, ...telegramGateSuppressed];
   const fired = [];
   const suppressed = [];
 
@@ -1091,6 +1150,10 @@ module.exports = {
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
+  TELEGRAM_SUPPRESSION_LOOKBACK_DAYS,
+  TELEGRAM_SUPPRESSION_MIN_COUNT,
+  TELEGRAM_SUPPRESSION_MIN_SPAN_DAYS,
+  checkTelegramGateSuppressionSilence,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,

@@ -50,6 +50,51 @@
 //
 // Owner: Atlas, 2026-08-16.
 //
+// DEFAULT DIRECTION (Carter, 2026-09-18 — reconsidered per Heath's ask after
+// TWO multi-week silent-mute incidents: cron-social-digest missing from
+// ALWAYS_ALLOW for a month from 2026-08-16, then the job-name collision
+// below hiding cron-tc-reply-approval from ~2026-09-12).
+//
+// Kept default-CLOSED rather than flipping to deliver-unless-muted. The real
+// alternative -- deliver by default, mute a short explicit list -- was
+// rejected for a concrete reason, not inertia: ~68 of the ~82 job names
+// wired into this gate are recurring digests/reports (morning brief, weekly
+// scorecard, engagement summaries, etc.) that Heath explicitly asked to go
+// quiet on 2026-08-16 ("I want to just turn them off... all the cron job
+// things"), repeated 3 more times since (07-28/08-06/08-07/08-25 notification-
+// fatigue complaints in CLAUDE.md Section 0). Flipping the default would
+// resurrect all ~68 at once on the next deploy with an unset env var --
+// trading a rare, catchable failure (a forgotten allowlist entry) for a
+// guaranteed regression of the exact noise Heath has now asked to stop 4+
+// times. That is a real cost, not a hypothetical one -- the same class of
+// justification the "cost, spam risk" escape hatch below is meant for.
+//
+// So the compensating control is the other half of the ask: make a forgotten
+// entry LOUD instead of silent. Every suppressed send is now logged to
+// telegram_gate_suppressions (best-effort, never blocks the caller -- see
+// recordSuppression()), and api/_lib/silence-alarm.js's
+// checkTelegramGateSuppressionSilence() alarms Heath by job name once a job
+// has kept trying and getting eaten for an unusual stretch. A forgotten
+// ALWAYS_ALLOW entry now surfaces within days through the alarm that already
+// reaches him every morning, instead of silently for a month.
+//
+// AUDIT (2026-09-18): cross-referencing every install() call site against
+// ALWAYS_ALLOW found FIVE more jobs in the identical class already on the
+// floor (interactive human-approval plumbing, not digest noise) that were
+// still muted by default -- the exact incident class this file's own
+// fakeTelegramOk() comment describes, just not yet caught:
+//   cron-video-approval           -- literally the job named in that incident
+//   cron-send-for-approval        -- daily social-post approval cards
+//   cron-send-engagement-approvals -- engagement-candidate approval cards
+//   cron-cold-email-review        -- cold-email batch approval gate
+//   cron-auto-approve             -- veto-window STOP/PREVIEW notice
+// All five added below. Each was silently eaten by default until this fix;
+// api/_lib/telegram-send-retry.js's alertFinalFailure() also claimed to
+// "bypass" this gate for cron-send-for-approval's final-failure alert, but
+// that alert is a plain fetch() through the SAME wrapped globalThis.fetch --
+// it was never actually exempt until cron-send-for-approval landed on
+// ALWAYS_ALLOW just now.
+//
 // BUGFIX 2026-09-17 (Carter) — MULTIPLEXED DISPATCHER JOB-NAME COLLISION.
 // api/_lib/cron-multiplex.js (Atlas, 2026-09-16) fans out N sub-jobs from ONE
 // dispatcher route IN-PROCESS (e.g. api/cron-dispatch-every30.js requires 9
@@ -142,6 +187,32 @@ const ALWAYS_ALLOW = new Set([
                            // cron.cron-deadline-reminders (2026-09-10) was swallowed here and nobody knew.
                            // A regression detector nobody hears is the silent-failure class this whole
                            // system exists to close — feedback_silent-failure-is-the-enemy.md.
+  'cron-video-approval', // sends the Approve/Reject card for a rendered video/skit (video_library /
+                          // skits). THE job this file's own fakeTelegramOk() comment names: on
+                          // 2026-08-17 it got the fake success, marked five videos pending_approval, and
+                          // they sat invisible for three weeks. wasSuppressed() now reverts state on a
+                          // suppressed send instead of lying about it (fixed 2026-09-07) -- but it was
+                          // still muted by default until this audit, meaning the approval card itself
+                          // simply never reached Heath. Same class as cron-tc-reply-approval /
+                          // cron-comment-opp-approval already above — Carter, 2026-09-18.
+  'cron-send-for-approval', // daily social_posts Approve/Reject/Edit cards. Also carries
+                             // api/_lib/telegram-send-retry.js's alertFinalFailure() bounded-retry
+                             // escape hatch, whose own comment claims it sends "even if
+                             // TELEGRAM_CRON_NOTIFICATIONS would otherwise gate it" — false until this
+                             // entry existed, since that alert is a plain fetch() through this SAME
+                             // wrapped globalThis.fetch, not an actual bypass — Carter, 2026-09-18.
+  'cron-send-engagement-approvals', // engagement_candidates Approve/Reject cards to DossieMarketingBot,
+                                     // 15-min cadence. Same interactive-approval class as the others on
+                                     // this floor — Carter, 2026-09-18.
+  'cron-cold-email-review', // the ONLY path that flips a cold-email batch to approval_status='approved'
+                             // (built 2026-08-16 after the 2026-08-13 unapproved-send incident). A
+                             // muted approval card here means the batch just sits at pending_approval
+                             // forever — silently defeating the exact gate it exists to be — Carter,
+                             // 2026-09-18.
+  'cron-auto-approve', // sends the STOP/PREVIEW notice for veto-mode content and the fb_comment_replies
+                        // veto card — Heath's only visible chance to stop an auto-post before it goes
+                        // out under his name/license. Muting this is a silent auto-post, not digest
+                        // noise — Carter, 2026-09-18.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
@@ -242,6 +313,71 @@ function fakeTelegramOk(method) {
   };
 }
 
+// ─── suppression logging (Carter, 2026-09-18) ─────────────────────────────
+//
+// A suppressed send used to leave a trace ONLY in Vercel's function logs
+// (console.warn below) -- fine for debugging a failure you already know
+// about, useless for discovering one you don't. cron-social-digest's month
+// of silence and cron-tc-reply-approval's job-collision outage were both
+// found by Heath noticing a SYMPTOM (no digest, stuck replies), not by
+// anything querying "what has this gate eaten lately." This writes every
+// suppression to telegram_gate_suppressions (see
+// supabase/migrations/20260918_telegram_gate_suppressions.sql) so
+// api/_lib/silence-alarm.js can alarm on it directly.
+//
+// Best-effort by design: a logging failure (missing env, network blip,
+// migration not yet applied) must NEVER throw or block the caller -- the
+// caller is waiting on what it thinks is a Telegram send, and this is
+// diagnostic plumbing bolted onto the side of it, not a dependency of it.
+// Bounded with a short timeout for the same reason.
+const SUPPRESSION_LOG_TIMEOUT_MS = 3000;
+
+async function recordSuppression(originalFetch, { jobName, method, url, init, mode }) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey || typeof originalFetch !== 'function') return;
+
+  let chatId = null;
+  let textPreview = null;
+  try {
+    const parsed = init && init.body ? JSON.parse(init.body) : null;
+    if (parsed) {
+      if (parsed.chat_id !== undefined) chatId = String(parsed.chat_id);
+      const text = parsed.text || parsed.caption;
+      if (text) textPreview = String(text).replace(/\s+/g, ' ').slice(0, 200);
+    }
+  } catch (_) { /* body not JSON — no preview, still log the job/method */ }
+
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), SUPPRESSION_LOG_TIMEOUT_MS) : null;
+  try {
+    await originalFetch(`${supabaseUrl}/rest/v1/telegram_gate_suppressions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        job_name: jobName,
+        method: method || null,
+        chat_id: chatId,
+        text_preview: textPreview,
+        mode: mode || null,
+      }),
+      signal: controller ? controller.signal : undefined,
+    });
+  } catch (err) {
+    // Non-fatal. Table may not exist yet (migration not applied), Supabase
+    // may be briefly unreachable, etc. -- the suppressed-send response to
+    // the ORIGINAL caller must go out regardless.
+    console.error('[telegram-gate] suppression log insert failed (non-fatal):', err && err.message);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // Name captured by the FIRST install() call in this process — the correct
 // (and only) name for a standalone route invocation. Only used as a
 // fallback when no per-call jobContext is active (see runWithJobContext).
@@ -292,12 +428,18 @@ function install(jobName) {
               if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
               if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
             } catch (_) { /* body not JSON — no preview */ }
+            const modeValue = process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset';
             console.warn(
               `[telegram-gate] SUPPRESSED ${method} from ${activeName} — NOT delivered ` +
-              `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
+              `(TELEGRAM_CRON_NOTIFICATIONS=${modeValue}).` +
               preview
             );
-            return Promise.resolve(fakeTelegramOk(method));
+            // Durable, queryable record (best-effort, never blocks/throws —
+            // see recordSuppression()'s own comment). `original` is the
+            // pre-wrap fetch, so this call itself is never re-intercepted.
+            return recordSuppression(original, { jobName: activeName, method, url, init, mode: modeValue })
+              .catch(() => {})
+              .then(() => fakeTelegramOk(method));
           }
         }
 
@@ -336,4 +478,4 @@ function wasSuppressed(x) {
   return false;
 }
 
-module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode, runWithJobContext };
+module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode, runWithJobContext, recordSuppression };
