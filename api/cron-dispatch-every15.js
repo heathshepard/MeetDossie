@@ -17,6 +17,7 @@
 //   - /api/cron-esign-events
 //   - /api/cron-merge-queue-backfill
 //   - /api/cron-comment-monitor
+//   - /api/cron-support-ticket-triage   (added 2026-09-18)
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -32,6 +33,7 @@ const HANDLERS = [
   { name: 'cron-esign-events', mod: require('./cron-esign-events.js') },
   { name: 'cron-merge-queue-backfill', mod: require('./cron-merge-queue-backfill.js') },
   { name: 'cron-comment-monitor', mod: require('./cron-comment-monitor.js') },
+  { name: 'cron-support-ticket-triage', mod: require('./cron-support-ticket-triage.js') },
 ];
 
 module.exports = async function handler(req, res) {
