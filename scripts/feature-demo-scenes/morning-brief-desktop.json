@@ -5,7 +5,7 @@
   "demo_account": "demo@meetdossie.com",
   "voice": "luna",
   "elevenlabs_voice_id": "lxYfHSkYm1EzQzGhdbfc",
-  "filename": "feature-demo-morning-brief-desktop-2026-08-17.mp4",
+  "filename": "feature-demo-morning-brief-desktop-2026-09-17.mp4",
   "topic": "morning_brief",
   "type": "feature_demo",
   "platforms": ["facebook", "twitter", "linkedin"],
@@ -15,12 +15,15 @@
   "scenes": [
     { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
     { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2500 },
+    { "action": "assert_signed_in", "email": "demo@meetdossie.com", "timeout": 40000, "settle_ms": 1500, "pause": 1500 },
     { "action": "wait_for_text", "text": "Morning Brief", "timeout": 20000, "pause": 2500 },
-    { "action": "wait_for_text", "text": "Good morning", "timeout": 10000, "pause": 2000 },
-    { "action": "scroll_by", "y": 350, "pause": 2500 },
-    { "action": "scroll_by", "y": 350, "pause": 2500 },
-    { "action": "scroll_by", "y": 350, "pause": 2500 },
-    { "action": "scroll_to_top", "pause": 1800 },
-    { "action": "final_pause", "pause": 2000 }
+    { "action": "click_text", "text": "Morning Brief", "exact": true, "pause": 3500 },
+    { "action": "scroll_by", "y": 350, "pause": 3200 },
+    { "action": "scroll_by", "y": 350, "pause": 3200 },
+    { "action": "scroll_by", "y": 350, "pause": 3200 },
+    { "action": "scroll_by", "y": 350, "pause": 3200 },
+    { "action": "scroll_by", "y": 350, "pause": 3200 },
+    { "action": "scroll_to_top", "pause": 2500 },
+    { "action": "final_pause", "pause": 2500 }
   ]
 }
