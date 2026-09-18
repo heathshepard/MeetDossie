@@ -934,11 +934,17 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
 // button embedded in the brief message does exactly what tapping it in an
 // individual card always did. Zero new approval logic.
 //
-// Deliberately scoped to these two pipelines only (both have a clean,
-// single 'notified' status gate and a tested callback contract). group_posts
-// pending_admin_approval and video_library pending_heath_review stay
-// COUNT-only in the STUCK section above — not wired into tappable buttons
-// yet (their approval paths aren't the simple notified->approved shape).
+// group_posts pending_admin_approval stays COUNT-only in the STUCK section
+// above — its approval path isn't the simple notified->approved shape.
+//
+// video_library WAS count-only for the same stated reason; that was wrong on
+// inspection (Carter, 2026-09-17). Its approval path is exactly the same
+// shape: api/telegram-webhook.js already handles `video_approve_{id}` /
+// `video_reject_{id}` and PATCHes status to heath_approved / rejected. So it
+// is wired in here, verbatim callback_data, zero new approval logic — which is
+// what lets api/cron-post-videos.js stop sending one Telegram card per video
+// and let the daily brief carry them instead (Heath, 2026-09-17: batch the
+// routine approvals, don't ping per item).
 const DECISION_SOURCES = [
   {
     table: 'comment_opportunities',
@@ -972,6 +978,27 @@ const DECISION_SOURCES = [
       ]],
     }),
     select: 'id,commenter_name,source_group,reply_notified_at',
+  },
+  {
+    table: 'video_library',
+    statusCol: 'status',
+    statusVal: 'pending_heath_review',
+    // video_library has no notified_at column; created_at is when the row was
+    // queued, which for a pending_heath_review row is the age that matters.
+    orderCol: 'created_at',
+    label: (row) => `Video ready to post: ${row.topic || row.id}`
+      + `${row.target_owner && row.target_owner !== 'dossie' ? ` [${row.target_owner}]` : ''}`
+      + `${row.supabase_url ? `\n${row.supabase_url}` : ''}`,
+    // EXACTLY the callback_data api/telegram-webhook.js already handles for
+    // the individual video cards — an underscore separator here, not the colon
+    // the two comment pipelines use. Do not "normalise" it.
+    keyboard: (id) => ({
+      inline_keyboard: [[
+        { text: 'Approve', callback_data: `video_approve_${id}` },
+        { text: 'Reject', callback_data: `video_reject_${id}` },
+      ]],
+    }),
+    select: 'id,topic,target_owner,supabase_url,created_at',
   },
 ];
 

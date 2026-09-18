@@ -572,6 +572,25 @@ async function visibleText(page) {
   });
   fs.writeFileSync(path.join(OUT_DIR, 'timeline.md'), lines.join('\n'));
 
+  // marks.json - the SAME beat list timeline.md renders as prose, in a shape a
+  // program can index. Added 2026-09-17 so the unattended render half
+  // (scripts/render-ask-dossie-video.js) can pick segment boundaries by beat
+  // name instead of regex-scraping markdown headings, which would break the
+  // moment the timeline's wording changed. timeline.md stays exactly as it is:
+  // it is what a human reads. Purely additive - no existing consumer changes.
+  fs.writeFileSync(path.join(OUT_DIR, 'marks.json'), JSON.stringify({
+    flow: FLOW,
+    duration_ms: durationMs,
+    frames: frames.length,
+    marks: marks.map((m, i) => ({
+      i,
+      ts: m.ts,
+      end: i + 1 < marks.length ? marks[i + 1].ts : durationMs,
+      note: m.note,
+      on_screen: m.onScreen || null,
+    })),
+  }, null, 2));
+
   // The ask-dossie flow additionally emits the verbatim text the app rendered.
   // Captions/VO are built from this file, so it must never be hand-edited.
   if (askAnswer) {
