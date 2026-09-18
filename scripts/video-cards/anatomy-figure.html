@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rust — Anatomy Figure Card</title>
+<!--
+  Rust muscle-map card: stylized anterior + posterior figure, working muscle lit.
+  Rendered by scripts/generate-anatomy-card.js (static PNG + looping MP4).
+
+  Conventions borrowed from scripts/video-cards/_base.css (safe zones, PJS fonts).
+  Tokens are inlined rather than @import'ed because _base.css is not present in
+  this branch's working tree; the .safe geometry below is byte-identical to it.
+
+  Placeholders {{EXERCISE}} {{PRIMARY}} {{SECONDARY_JSON}} {{CUES_JSON}}
+  {{FOCUS}} {{FORMAT}} {{DRIVEN}} are substituted by the generator. Left
+  unsubstituted the card still renders with the defaults below, so the file can
+  be opened directly in a browser to iterate on the figure.
+
+  COMPLIANCE: Rust is not listed in any app store. No download CTA on this card.
+-->
+<style>
+@font-face { font-family:'PJS';  src:url('../../public/fonts/PlusJakartaSans-Bold.ttf') format('truetype'); font-weight:700; }
+@font-face { font-family:'PJSR'; src:url('../../public/fonts/PlusJakartaSans-Regular.ttf') format('truetype'); font-weight:400; }
+
+:root{
+  --p:0;                 /* pulse phase value 0..1 — driven by setPhase() */
+  /* Rust content brand tokens */
+  --bg:#0D0D0F; --ink:#F2F2F2; --accent:#E4572E; --muted:#8A8A8A; --note:#9A9A9A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow:hidden;background:var(--bg)}
+body{font-family:'PJSR',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+#card{position:relative;background:var(--bg);overflow:hidden}
+html.story,body.story,#card.story{width:1080px;height:1920px}
+html.card, body.card, #card.card { width:1080px;height:1350px}
+
+/* ambient light — kept subtle so the figure stays the brightest thing */
+#card::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(58% 34% at 50% 40%, rgba(228,87,46,.15) 0%, rgba(228,87,46,0) 72%),
+    radial-gradient(90% 46% at 50% 0%,  rgba(255,255,255,.045) 0%, transparent 70%);
+}
+#card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:72px 72px;
+  -webkit-mask-image:radial-gradient(70% 55% at 50% 42%,#000 0%,transparent 80%);
+          mask-image:radial-gradient(70% 55% at 50% 42%,#000 0%,transparent 80%);
+}
+
+/* SAFE ZONE — identical geometry to _base.css .safe (TikTok UI reserve).
+   story: top 200 / left 44 / right 140 / bottom 484.
+   card (1080x1350, feed post): bottom reserve relaxed, sides kept. */
+.safe{position:absolute;top:200px;left:44px;right:148px;bottom:496px;
+      display:flex;flex-direction:column;z-index:3}
+#card.card .safe{top:80px;left:64px;right:64px;bottom:62px}
+
+.topbar{display:flex;align-items:baseline;justify-content:space-between;flex:none}
+.brand{font-family:'PJS';font-size:30px;letter-spacing:.40em;color:var(--accent)}
+.brand em{font-style:normal;color:var(--ink);opacity:.42}
+.kick{font-family:'PJS';font-size:17px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
+
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative}
+.stage svg{width:100%;height:100%;overflow:visible}
+.viewtags{flex:none;display:flex;justify-content:center;gap:clamp(180px,30%,300px);
+          font-family:'PJS';font-size:15px;letter-spacing:.26em;color:#5A5A5E;margin-bottom:18px}
+
+.meta{flex:none}
+.rule{height:2px;background:linear-gradient(90deg,var(--accent),rgba(228,87,46,0));margin-bottom:26px}
+.chiprow{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:11px;padding:10px 21px 10px 16px;border-radius:100px;
+      font-family:'PJS';font-size:19px;letter-spacing:.18em;color:#FF9068;
+      background:rgba(228,87,46,.14);border:1px solid rgba(228,87,46,.45)}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
+           box-shadow:0 0 calc(3px + 13px*var(--p)) rgba(228,87,46,.95)}
+.chip.sec{color:var(--note);background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.13);
+          font-size:16px;letter-spacing:.15em;padding:9px 18px}
+.chip.sec .dot{background:#6E5A50;box-shadow:none;width:8px;height:8px}
+
+h1{font-family:'PJS';font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1.03;
+   font-size:66px;margin-bottom:26px}
+#card.story h1{font-size:72px}
+h1.long{font-size:56px}
+#card.story h1.long{font-size:60px}
+
+.cues{list-style:none;display:flex;flex-direction:column;gap:13px}
+.cues li{display:flex;gap:16px;align-items:flex-start;font-size:27px;line-height:1.32;color:#C4C4C6}
+#card.story .cues li{font-size:28px}
+#card.story h1{margin-bottom:22px}
+.cues .n{flex:none;width:32px;height:32px;margin-top:3px;border-radius:9px;
+         font-family:'PJS';font-size:15px;color:var(--accent);
+         background:rgba(228,87,46,.12);border:1px solid rgba(228,87,46,.32);
+         display:flex;align-items:center;justify-content:center}
+.focus{margin-top:18px;font-family:'PJS';font-size:16px;letter-spacing:.22em;color:#5A5A5E}
+.focus b{color:var(--accent)}
+
+/* ---------- muscle highlight states ---------- */
+.mg{fill:url(#restGrad)}
+.mg.primary{
+  fill:url(#hotGrad);
+  filter:
+    drop-shadow(0 0 calc(7px + 23px*var(--p)) rgba(228,87,46, calc(.55 + .40*var(--p))))
+    drop-shadow(0 0 calc(21px + 50px*var(--p)) rgba(255,126,60, calc(.20 + .32*var(--p))));
+}
+.mg.secondary{
+  fill:url(#warmGrad);
+  filter:drop-shadow(0 0 calc(3px + 10px*var(--p)) rgba(228,87,46, calc(.18 + .24*var(--p))));
+}
+.seams{fill:none;stroke:#0A0C10;stroke-opacity:.42;stroke-width:2.2;stroke-linecap:round}
+</style>
+</head>
+<body>
+<div id="card">
+ <div class="safe">
+
+  <div class="topbar">
+    <div class="brand">RUST<em>&nbsp;/ TRAIN</em></div>
+    <div class="kick">Muscles worked</div>
+  </div>
+
+  <div class="stage">
+    <svg id="fig" viewBox="0 0 720 960" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#363C45"/><stop offset=".45" stop-color="#282D35"/><stop offset="1" stop-color="#1B1F25"/>
+        </linearGradient>
+        <linearGradient id="restGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3B414B"/><stop offset=".45" stop-color="#2C313A"/><stop offset="1" stop-color="#1F242B"/>
+        </linearGradient>
+        <linearGradient id="hotGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FF9E4D"/><stop offset=".36" stop-color="#E4572E"/><stop offset="1" stop-color="#A81E12"/>
+        </linearGradient>
+        <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8A5A3E"/><stop offset="1" stop-color="#5E3A2A"/>
+        </linearGradient>
+        <radialGradient id="floorGrad" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#E4572E" stop-opacity=".18"/><stop offset="1" stop-color="#E4572E" stop-opacity="0"/>
+        </radialGradient>
+
+
+        <!-- ===== shared half-body silhouette (x>=0, mirrored with scale(-1,1)) =====
+             Limbs are SINGLE continuous outlines (shoulder->hand, hip->foot) so the
+             figure never reads as a segmented mannequin. Parts overlap generously;
+             they share one fill so the seams are invisible. -->
+        <g id="H-body">
+          <!-- torso: trap -> shoulder -> lat taper -> waist -->
+          <path d="M0,150 C32,153 66,166 96,186 C103,207 105,232 102,258
+                   C99,294 91,330 83,362 C76,386 68,402 66,418
+                   C66,436 70,452 80,466 L0,474 Z"/>
+          <!-- pelvis -->
+          <path d="M0,410 C46,410 84,424 98,450 C106,476 102,506 90,524
+                   C78,540 60,548 44,548 L0,482 Z"/>
+          <!-- arm: shoulder cap -> upper arm -> elbow -> forearm -> hand, one path -->
+          <path d="M62,178 C86,166 111,175 119,202 C125,224 127,254 128,284
+                   C129,320 131,357 133,393 C136,425 140,462 143,497
+                   C146,517 145,533 139,547 C141,567 137,586 127,594
+                   C119,600 111,596 109,586 C105,568 105,549 107,535
+                   C101,515 97,487 93,459 C89,425 85,397 81,375
+                   C79,353 77,331 75,307 C71,273 64,222 62,178 Z"/>
+          <!-- leg: hip -> thigh -> knee -> calf -> ankle -> foot, one path -->
+          <path d="M98,438 C107,486 107,560 101,614 C97,648 91,666 85,678
+                   C89,714 89,754 83,792 C79,818 75,838 71,854
+                   C75,868 79,880 79,890 C79,897 73,900 64,900
+                   L25,900 C19,900 16,894 19,886 C25,874 32,864 38,854
+                   C35,826 31,798 30,772 C29,740 29,708 31,680
+                   C23,666 17,642 15,614 C11,562 9,500 13,450 Z"/>
+        </g>
+        <g id="H-head">
+          <path d="M0,0 C28,0 49,28 49,64 C49,97 38,121 21,127
+                   L27,151 C39,158 49,164 59,173 L-59,173
+                   C-49,164 -39,158 -27,151 L-21,127
+                   C-38,121 -49,97 -49,64 C-49,28 -28,0 0,0 Z"/>
+        </g>
+
+        <!-- ===== anterior muscle overlays ===== -->
+        <g id="A-delt"><path d="M60,172 C88,161 113,174 119,204 C123,228 119,250 106,258
+                                C93,265 83,256 78,238 C71,214 58,186 60,172 Z"/></g>
+        <g id="A-chest"><path d="M7,190 C40,186 76,194 96,208 C102,226 99,250 87,266
+                                 C72,284 42,289 21,284 C11,282 7,275 7,264 Z"/></g>
+        <g id="A-abs"><path d="M7,288 C28,286 50,291 61,301 C65,330 65,372 61,406
+                               C57,434 48,452 36,462 C23,470 11,466 7,455 Z"/></g>
+        <g id="A-bi"><path d="M70,210 C90,203 106,218 112,246 C117,276 119,310 117,338
+                              C115,357 106,365 95,363 C84,361 79,349 77,335
+                              C73,299 64,240 70,210 Z"/></g>
+        <g id="A-tri"><path d="M117,240 C124,268 128,312 129,348 C130,368 124,377 115,375
+                               C109,373 107,365 106,353 C104,314 102,272 99,244 Z"/></g>
+        <g id="A-legs">
+          <path d="M94,452 C104,490 104,552 98,600 C94,636 88,658 80,670 C67,683 50,685 40,672 C34,644 30,600 28,558 C26,520 26,484 30,456 Z"/>
+          <path d="M82,688 C88,718 88,752 82,782 C78,806 74,828 71,844 C64,855 52,855 45,844 C42,820 38,790 36,762 C34,734 34,710 36,688 Z"/>
+        </g>
+        <g id="A-seams">
+          <path d="M33,322 C46,324 56,328 62,333"/>
+          <path d="M33,366 C46,368 56,372 62,377"/>
+          <path d="M33,410 C45,412 54,416 60,420"/>
+          <path d="M16,206 C34,213 50,226 59,244"/>
+          <path d="M38,470 C43,514 45,570 43,620"/>
+          <path d="M95,200 C102,218 103,238 99,256"/>
+        </g>
+
+        <!-- ===== posterior muscle overlays ===== -->
+        <g id="P-back">
+          <path d="M5,148 C33,152 66,165 92,182 C85,204 66,217 46,221
+                   C27,223 11,213 5,197 Z"/>
+          <path d="M5,221 C33,221 64,229 86,244 C97,269 96,306 85,335
+                   C72,368 46,387 22,390 C11,390 5,384 5,372 Z"/>
+          <path d="M5,330 C22,330 37,343 44,365 C48,391 48,425 44,448
+                   C37,467 22,476 5,476 Z"/>
+        </g>
+        <g id="P-tri"><path d="M78,214 C96,208 110,222 115,248 C120,278 122,312 120,340
+                               C118,358 110,366 100,364 C90,362 85,350 83,336
+                               C79,300 72,244 78,214 Z"/></g>
+        <g id="P-bi"><path d="M117,240 C124,268 128,312 129,348 C130,368 124,377 115,375
+                              C109,373 107,365 106,353 C104,314 102,272 99,244 Z"/></g>
+        <g id="P-chest"><path d="M99,196 C106,212 105,234 96,250 C91,257 86,254 85,245
+                                 C84,226 87,208 92,194 Z"/></g>
+        <g id="P-legs">
+          <path d="M10,432 C46,430 82,444 95,468 C101,492 94,518 77,530
+                   C55,543 26,541 12,530 Z"/>
+          <path d="M92,546 C102,584 102,622 96,646 C92,664 86,671 79,676 C66,689 50,689 40,676 C34,648 30,606 28,564 C27,552 28,548 30,542 Z"/>
+          <path d="M84,690 C92,716 92,752 86,782 C82,806 76,830 72,846 C65,857 53,857 46,846 C43,822 39,792 37,764 C35,734 35,710 39,690 Z"/>
+        </g>
+        <g id="P-seams">
+          <path d="M5,238 C28,244 52,257 68,276"/>
+          <path d="M5,288 C26,292 45,302 60,316"/>
+          <path d="M8,436 C24,443 38,456 46,472"/>
+          <path d="M40,556 C45,596 47,640 45,684"/>
+          <path d="M20,158 C40,168 60,182 74,198"/>
+        </g>
+            </defs>
+
+      <ellipse cx="180" cy="928" rx="150" ry="22" fill="url(#floorGrad)"/>
+      <ellipse cx="540" cy="928" rx="150" ry="22" fill="url(#floorGrad)"/>
+
+      <g class="figure" transform="translate(180,16)">
+        <g fill="url(#bodyGrad)">
+          <use href="#H-head"/><use href="#H-body"/><use href="#H-body" transform="scale(-1,1)"/>
+        </g>
+        <g class="mg" data-g="legs"><use href="#A-legs"/><use href="#A-legs" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="chest"><use href="#A-chest"/><use href="#A-chest" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="abs"><use href="#A-abs"/><use href="#A-abs" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="triceps"><use href="#A-tri"/><use href="#A-tri" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="biceps"><use href="#A-bi"/><use href="#A-bi" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="shoulders"><use href="#A-delt"/><use href="#A-delt" transform="scale(-1,1)"/></g>
+        <g class="seams"><use href="#A-seams"/><use href="#A-seams" transform="scale(-1,1)"/></g>
+      </g>
+
+      <g class="figure" transform="translate(540,16)">
+        <g fill="url(#bodyGrad)">
+          <use href="#H-head"/><use href="#H-body"/><use href="#H-body" transform="scale(-1,1)"/>
+        </g>
+        <g class="mg" data-g="legs"><use href="#P-legs"/><use href="#P-legs" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="back"><use href="#P-back"/><use href="#P-back" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="chest"><use href="#P-chest"/><use href="#P-chest" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="biceps"><use href="#P-bi"/><use href="#P-bi" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="triceps"><use href="#P-tri"/><use href="#P-tri" transform="scale(-1,1)"/></g>
+        <g class="mg" data-g="shoulders"><use href="#A-delt"/><use href="#A-delt" transform="scale(-1,1)"/></g>
+        <g class="seams"><use href="#P-seams"/><use href="#P-seams" transform="scale(-1,1)"/></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="viewtags"><span>ANTERIOR</span><span>POSTERIOR</span></div>
+
+  <div class="meta">
+    <div class="rule"></div>
+    <div class="chiprow" id="chiprow"></div>
+    <h1 id="exname">Exercise</h1>
+    <ul class="cues" id="cues"></ul>
+    <div class="focus" id="focus"></div>
+  </div>
+
+ </div>
+</div>
+
+<script id="cfg" type="application/json">
+{"exercise":"{{EXERCISE}}","muscleGroup":"{{PRIMARY}}","secondary":{{SECONDARY_JSON}},
+ "cues":{{CUES_JSON}},"focus":"{{FOCUS}}","format":"{{FORMAT}}","driven":{{DRIVEN}}}
+</script>
+<script>
+(function(){
+  var DEFAULTS = {
+    exercise:'Barbell Bench Press', muscleGroup:'chest', secondary:['triceps','shoulders'],
+    cues:['Retract and depress your scapulae','Bar path: diagonal chest to lockout','Plant feet flat, leg drive engaged'],
+    focus:'Grip', format:'story', driven:false
+  };
+  var cfg = DEFAULTS;
+  try {
+    var parsed = JSON.parse(document.getElementById('cfg').textContent);
+    if (parsed && parsed.exercise && parsed.exercise.indexOf('{{') === -1) cfg = Object.assign({}, DEFAULTS, parsed);
+  } catch(e) { /* placeholders unsubstituted — keep defaults for direct preview */ }
+  if (window.__CONFIG) cfg = Object.assign({}, cfg, window.__CONFIG);
+
+  var fmt = cfg.format === 'card' ? 'card' : 'story';
+  document.documentElement.className = fmt;
+  document.body.className = fmt;
+  document.getElementById('card').className = fmt;
+
+  var primary = String(cfg.muscleGroup||'').toLowerCase();
+  var secondary = (cfg.secondary||[]).map(function(s){return String(s).toLowerCase();});
+
+  Array.prototype.forEach.call(document.querySelectorAll('.mg'), function(el){
+    var g = el.getAttribute('data-g');
+    if (g === primary) el.classList.add('primary');
+    else if (secondary.indexOf(g) !== -1) el.classList.add('secondary');
+  });
+  // Re-stack so lit groups paint last — a sibling must never clip the glow.
+  Array.prototype.forEach.call(document.querySelectorAll('.figure'), function(fig){
+    ['.mg.secondary','.mg.primary','.seams'].forEach(function(sel){
+      Array.prototype.forEach.call(fig.querySelectorAll(sel), function(el){ fig.appendChild(el); });
+    });
+  });
+
+  var h1 = document.getElementById('exname');
+  h1.textContent = cfg.exercise;
+  if (String(cfg.exercise).length > 21) h1.classList.add('long');
+
+  document.getElementById('chiprow').innerHTML =
+    '<span class="chip"><i class="dot"></i>' + primary.toUpperCase() + '</span>' +
+    secondary.slice(0,2).map(function(s){
+      return '<span class="chip sec"><i class="dot"></i>' + s.toUpperCase() + '</span>'; }).join('');
+
+  document.getElementById('cues').innerHTML = (cfg.cues||[]).slice(0,3).map(function(c,i){
+    return '<li><span class="n">' + (i+1) + '</span><span>' + c + '</span></li>'; }).join('');
+
+  document.getElementById('focus').innerHTML = cfg.focus ? 'FOCUS &nbsp;<b>' + String(cfg.focus).toUpperCase() + '</b>' : '';
+
+  // Deterministic pulse. t in [0,1); value starts and ends at 0 -> seamless loop.
+  function setPhase(t){
+    document.documentElement.style.setProperty('--p', (0.5 - 0.5*Math.cos(2*Math.PI*t)).toFixed(5));
+  }
+  window.setPhase = setPhase;
+  setPhase(0);
+  if (!cfg.driven) {
+    var PERIOD = 2000;
+    (function loop(){ setPhase((performance.now()%PERIOD)/PERIOD); requestAnimationFrame(loop); })();
+  }
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
