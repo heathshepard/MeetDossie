@@ -408,6 +408,80 @@ async function makeGoodFixture(tmpDir) {
       `expected ~0.33 coverage, measured ${naivePadResult.detail.content_coverage}`);
   });
 
+  // Test 9b — orientation-aware gating (2026-09-17). The whole point: a
+  // caller that passes the row's real platforms gets graded against the
+  // matching rule family, without touching a single vertical assertion
+  // above. realBad (stage-checklist-desktop, genuinely 1920x1080, the exact
+  // file this gate's own header used as its vertical-lane negative fixture)
+  // is the perfect positive case for the horizontal lane: it's really 16:9,
+  // so it MUST pass the horizontal aspect rule — but it should still fail
+  // overall, because its frame 0 really is a blank white splash (Test 6
+  // above measured spread 0), proving the horizontal lane isn't a rubber
+  // stamp.
+  console.log('\nTest 9b: orientation-aware gating (16:9 horizontal lane)');
+  const { classifyOrientation, VERTICAL_PLATFORMS, HORIZONTAL_PLATFORMS } =
+    require(path.join(REPO, 'api', '_lib', 'verify-video-quality.js'));
+
+  check('classifyOrientation: tiktok/instagram -> vertical', () => {
+    assert.strictEqual(classifyOrientation(undefined, ['tiktok']), 'vertical');
+    assert.strictEqual(classifyOrientation(undefined, ['instagram', 'tiktok']), 'vertical');
+  });
+  check('classifyOrientation: facebook/twitter/linkedin -> horizontal', () => {
+    assert.strictEqual(classifyOrientation(undefined, ['facebook', 'twitter', 'linkedin']), 'horizontal');
+    assert.strictEqual(classifyOrientation(undefined, ['linkedin']), 'horizontal');
+  });
+  check('classifyOrientation: explicit orientation short-circuits platforms', () => {
+    assert.strictEqual(classifyOrientation('vertical', ['facebook']), 'vertical');
+  });
+  check('classifyOrientation: mixed vertical+horizontal platforms throws (fail-closed, never guessed)', () => {
+    assert.throws(() => classifyOrientation(undefined, ['tiktok', 'facebook']), /mix vertical.*horizontal/);
+  });
+  check('classifyOrientation: no signal at all throws', () => {
+    assert.throws(() => classifyOrientation(undefined, []), /no opts.orientation/);
+    assert.throws(() => classifyOrientation(undefined, undefined), /no opts.orientation/);
+  });
+  check('classifyOrientation: unrecognized-only platform (e.g. youtube_shorts typo) throws rather than defaulting', () => {
+    assert.throws(() => classifyOrientation(undefined, ['pinterest']), /no opts.orientation/);
+  });
+
+  const restoreOrientation = installFetchMock(allGoodVision);
+  const realBadAsHorizontal = await checkVideoQuality({
+    videoPath: realBad, coverPath: realBad, platforms: ['facebook', 'twitter', 'linkedin'],
+  });
+  const realGoodStillVertical = await checkVideoQuality({
+    videoPath: realGood, coverPath: realGood, platforms: ['tiktok', 'instagram'],
+  });
+  restoreOrientation();
+
+  check('REAL BAD (stage-checklist) reclassified horizontal: aspect_ratio_horizontal_16x9 PASSES — this is the exact bug fixed (was rejected for being 16:9 when it should be)', () => {
+    assert.strictEqual(realBadAsHorizontal.detail.orientation, 'horizontal');
+    assert.strictEqual(realBadAsHorizontal.rules.aspect_ratio_horizontal_16x9.pass, true,
+      `expected the genuinely-16:9 file to pass the horizontal aspect rule, got: ${realBadAsHorizontal.rules.aspect_ratio_horizontal_16x9 && realBadAsHorizontal.rules.aspect_ratio_horizontal_16x9.note}`);
+    assert.strictEqual(realBadAsHorizontal.rules.aspect_ratio_vertical_9x16, undefined,
+      'horizontal lane must not also run/emit the vertical aspect rule');
+  });
+  check('REAL BAD (stage-checklist) reclassified horizontal: still fails overall — the blank-frame-0 defect is real regardless of orientation', () => {
+    assert.strictEqual(realBadAsHorizontal.pass, false);
+    assert.ok(realBadAsHorizontal.failedRules.includes('first_frame_not_uniform'),
+      'the horizontal lane must still catch a genuinely blank opening frame — orientation-aware is not toothless');
+  });
+  check('REAL BAD (stage-checklist) reclassified horizontal: gets legible_ui_frame instead of the Reels hook-then-clear pair', () => {
+    assert.ok('legible_ui_frame' in realBadAsHorizontal.rules);
+    assert.strictEqual(realBadAsHorizontal.rules.hook_visible_frame0, undefined);
+    assert.strictEqual(realBadAsHorizontal.rules.hook_cleared_by_3s, undefined);
+  });
+  check('REAL BAD (stage-checklist) reclassified horizontal: captions_present is advisory (non-blocking), never fails the gate alone', () => {
+    assert.strictEqual(realBadAsHorizontal.rules.captions_present.blocking, false);
+  });
+  check('REAL GOOD (contract-scan-mobile) as vertical (tiktok/instagram): unchanged from the no-platforms default', () => {
+    assert.strictEqual(realGoodStillVertical.detail.orientation, 'vertical');
+    assert.strictEqual(realGoodStillVertical.rules.aspect_ratio_vertical_9x16.pass, true);
+    assert.strictEqual(realGoodStillVertical.rules.captions_present.blocking, true);
+  });
+  check('no-platforms/no-orientation call still defaults to vertical (backward compatible with every test above)', () => {
+    assert.strictEqual(realGoodResult.detail.orientation, 'vertical');
+  });
+
   // Test 10 — the vision rule that catches the login opening.
   console.log('\nTest 10: opening_not_login_or_empty is wired into the verdict');
   const restoreLoginVision = installFetchMock({

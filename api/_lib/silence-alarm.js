@@ -39,6 +39,15 @@ const APPROVAL_STALE_HOURS = 48;
 const DRAFT_STALE_HOURS = 24;
 const BACKLOG_THRESHOLD = 5;
 const VIDEO_REVIEW_STALE_HOURS = 48;
+// Carter, 2026-09-17: pending_approval is a dead end for any row that didn't
+// arrive there via api/cron-video-approval.js's own PATCH — see
+// checkVideoLibraryPendingApprovalStale()'s header comment. 7 days is
+// deliberately much longer than VIDEO_REVIEW_STALE_HOURS's 48h: a
+// pending_review row is a known-good state waiting on a human tap (should
+// resolve fast), whereas pending_approval can legitimately sit for the
+// ~24h between cron-video-approval.js's daily run and Heath's reply — 7 days
+// is "something is actually wrong," not "he hasn't checked Telegram yet today."
+const PENDING_APPROVAL_STALE_DAYS = 7;
 const ALERT_COOLDOWN_HOURS = 20; // < 24 so a once-daily cron always re-fires next day, never skips one
 
 // scripts/harvest-tc-discovery-responses.js's own HOT_WINDOW_MS/HOT_INTERVAL_MS
@@ -387,6 +396,34 @@ async function checkVideoLibraryPendingReview(staleHours = VIDEO_REVIEW_STALE_HO
   }];
 }
 
+// 4c. video_library rows stuck at pending_approval past
+// PENDING_APPROVAL_STALE_DAYS (default 7) — the dead-end status Carter found
+// 2026-09-17: 9 rows sat here for up to 4 months because pending_approval is
+// only ever a CRON-WRITTEN transient state (api/cron-video-approval.js
+// PATCHes a 'ready' row to pending_approval right before sending the
+// Telegram Approve/Reject message) — nothing ever re-reads a row that a
+// caller drops directly into pending_approval, so a miswired ingestion path
+// (scripts/feature-demo-publish.js used to do exactly this) produces a row
+// with no Telegram message ever sent (telegram_message_id stays null) and no
+// cron that will ever look at it again. Distinct from
+// checkVideoLibraryPendingReview() above: that one catches a row that WAS
+// sent to Telegram and is waiting on a tap; this one catches a row that may
+// never have been sent at all. Both are worth knowing, so both alarms run.
+async function checkVideoLibraryPendingApprovalStale(staleDays = PENDING_APPROVAL_STALE_DAYS) {
+  const cutoff = hoursAgoIso(staleDays * 24);
+  const res = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.pending_approval&created_at=lt.${encodeURIComponent(cutoff)}&select=id,topic,platforms,telegram_message_id,created_at&order=created_at.asc`,
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+  const neverSent = res.data.filter((r) => !r.telegram_message_id).length;
+  return [{
+    key: 'video_library_pending_approval_stale',
+    count: res.data.length,
+    oldest: res.data[0],
+    message: `${res.data.length} video(s) in video_library stuck at pending_approval for >${staleDays}d (${neverSent} never got a Telegram message at all — telegram_message_id is null, meaning nothing ever sent them to you) — oldest: ${res.data[0].topic}, created ${res.data[0].created_at}. This status is a dead end unless a cron actively moves it; check whether the ingestion path that created these skipped api/cron-video-approval.js's 'ready' entry point.`,
+  }];
+}
+
 // 5. TC-discovery/group-post HOST COMMENT HARVEST gone silent while a post
 // is still in its hot window (Heath, 2026-09-15: people commenting on our
 // own FB group posts and never getting a reply, because the harvester
@@ -702,12 +739,13 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
     checkAccumulatingBacklog(opts.backlogThreshold),
     checkVideoLibraryPendingReview(opts.videoReviewStaleHours),
+    checkVideoLibraryPendingApprovalStale(opts.pendingApprovalStaleDays),
     checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
@@ -719,7 +757,7 @@ async function runAllChecks(opts = {}) {
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -1042,6 +1080,7 @@ module.exports = {
   DRAFT_STALE_HOURS,
   BACKLOG_THRESHOLD,
   VIDEO_REVIEW_STALE_HOURS,
+  PENDING_APPROVAL_STALE_DAYS,
   ALERT_COOLDOWN_HOURS,
   TC_HARVEST_HOT_WINDOW_HOURS,
   TC_HARVEST_HOT_STALE_HOURS,
@@ -1057,6 +1096,7 @@ module.exports = {
   checkStaleDrafts,
   checkAccumulatingBacklog,
   checkVideoLibraryPendingReview,
+  checkVideoLibraryPendingApprovalStale,
   checkTcHarvestHotWindowStale,
   checkTcHarvestScopeGap,
   checkCommentsAwaitingReplyStale,
