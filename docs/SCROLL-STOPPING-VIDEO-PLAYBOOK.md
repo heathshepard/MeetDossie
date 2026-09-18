@@ -226,6 +226,19 @@ never claim "live in the store." Never invent user counts or testimonials.
 render (a real slider moving, a real chat reply streaming, a real field populating) — never a
 static quote card standing in for footage that doesn't exist in the edit yet.
 
+### From the swipe file (accepted candidates)
+
+<!-- SWIPE-CANDIDATES:BEGIN -->
+<!-- Managed by scripts/swipe-merge-hook-candidates.js. Entries below were
+     proposed from a real, evidenced external pattern (docs/SWIPE-FILE-PIPELINE.md)
+     and then ACCEPTED BY A HUMAN. Nothing writes here automatically: the
+     collector can only create a row in swipe_hook_candidates with
+     status='pending'. Editing entries by hand is fine — the merge script only
+     appends inside this block and never rewrites what is already here. -->
+
+_None accepted yet._
+<!-- SWIPE-CANDIDATES:END -->
+
 ---
 
 ## 3. Cover spec (apply per platform, per §1.2)

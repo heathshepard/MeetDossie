@@ -154,11 +154,49 @@ async function handler(req, res) {
     return res.status(502).json({ ok: false, error: 'enqueue_failed', detail: enq.data });
   }
 
+  // ── Swipe-file collectors (2026-09-18) ───────────────────────────────────
+  // Rides this existing Monday dispatcher instead of taking a Vercel cron
+  // slot — vercel.json is at 99/100 and the cap is hard. The Meta collector
+  // needs a real browser (Playwright) so it cannot run in serverless anyway;
+  // scripts/agent-queue-poller.js on Heath's PC picks this up and runs it,
+  // exactly like the competitor_scan task above.
+  //
+  // Failure here must never fail the competitor scan, which is the older and
+  // more important job on this schedule — hence the separate, non-fatal call.
+  const swipeEnq = await enqueueClaudeCodeTask(host, {
+    task_type: 'swipe_collect',
+    agent_name: 'sage',
+    priority: 4,
+    title: `Swipe-file collection ${weekOfIso}`,
+    description:
+      'Run the swipe-file collectors, then report what landed. Commands, in order, '
+      + 'from the MeetDossie repo root:\n'
+      + '  node scripts/swipe-collect-meta.js\n'
+      + '  node scripts/swipe-collect-youtube.js   (exits 2 and prints setup steps if YOUTUBE_API_KEY is unset — that is expected, not a failure)\n'
+      + 'Then propose hook-bank candidates from the highest-evidence new patterns:\n'
+      + '  node scripts/swipe-propose-hook-candidates.js\n'
+      + 'Do NOT edit docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md — candidates are written to '
+      + 'swipe_hook_candidates for Heath to accept. See docs/SWIPE-FILE-PIPELINE.md.',
+    idempotency_key: `swipe_collect:${weekOfIso}`,
+    payload: {
+      week_of: weekOfIso,
+      markets: ['tx_real_estate', 'tc_saas', 'fitness_ai'],
+      doc: 'docs/SWIPE-FILE-PIPELINE.md',
+      // Same guardrails the competitor scan carries, restated so the spawned
+      // session sees them without having to go read another payload.
+      never_scrape_authenticated: true,   // no Instagram/LinkedIn logged-in surfaces, ever
+      never_copy_verbatim: true,          // structure and patterns only
+      never_fabricate_metrics: true,      // a number a source did not publish is not a number
+    },
+  });
+
   return res.status(200).json({
     ok: true,
     week_of: weekOfIso,
     tracked_count: tracked.length,
     queue_id: enq.data && enq.data.queue_id,
+    swipe_queue_id: swipeEnq.ok ? (swipeEnq.data && swipeEnq.data.queue_id) : null,
+    swipe_enqueue_error: swipeEnq.ok ? null : (swipeEnq.status || 'enqueue_failed'),
   });
 }
 
