@@ -35,6 +35,7 @@
 
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { checkRateLimit, RateLimitError, clientIpFromReq } = require('./_middleware/rateLimit');
+const accountInvites = require('./_lib/account-invites');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -188,7 +189,7 @@ function setPasswordEmailHtml(actionLink, firstName) {
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 18px 0 0;">Reply to this email any time. I read every one.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <p style="margin-top: 32px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it's expired, use "Forgot password?" at meetdossie.com/app or email heath@meetdossie.com.</p>
+  <p style="margin-top: 32px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it stops working, go to <a href="https://meetdossie.com/forgot-password.html" style="color: ${BRAND_BLUSH_DEEP};">meetdossie.com/forgot-password</a> and we'll send a fresh one straight away &mdash; no need to wait on anybody.</p>
 </div>`;
 }
 
@@ -391,16 +392,55 @@ module.exports = async function handler(req, res) {
       // The set-password link is the ONLY way into a comped account — there is
       // no password to guess. If it doesn't send, say so plainly instead of
       // returning a cheerful success the person can't act on.
+      //
+      // CHANGED 2026-09-18: issue a DURABLE invite (30 days, re-clickable,
+      // self-service resend at /api/invite-resend) instead of a bare one-hour
+      // Supabase recovery link. See api/_lib/account-invites.js and
+      // docs/ACTIVATION-FORENSICS-2026-09-18.md. The fallback below preserves
+      // today's behavior if the account_invites table is not yet available, so
+      // nobody is ever left with no credential at all.
       let passwordEmailSent = false;
-      const actionLink = await generateRecoveryLink(d.email);
-      if (actionLink) {
-        passwordEmailSent = await sendEmail({
+      let credentialDurable = false;
+      const invite = await accountInvites.createInvite({
+        userId: result.userId,
+        email: d.email,
+        source: 'signup',
+      });
+      if (invite) {
+        const sent = await accountInvites.sendInviteEmail({
           to: d.email,
-          subject: "You're in — set your Dossie password",
-          html: setPasswordEmailHtml(actionLink, d.name),
+          fullName: d.name,
+          actionUrl: invite.url,
+          expiresAt: invite.expiresAt,
         });
+        if (sent.ok) {
+          await accountInvites.markInviteEmailed(invite.inviteId, sent.id);
+          await accountInvites.logLifecycleEmail({
+            userId: result.userId,
+            email: d.email,
+            sequence: 'invite',
+            step: 'invite',
+            resendMessageId: sent.id,
+            source: 'api/signup',
+            metadata: { invite_id: invite.inviteId },
+          });
+          passwordEmailSent = true;
+          credentialDurable = true;
+        } else {
+          console.error('[signup] durable invite created but email failed for', d.email, sent.error);
+        }
       } else {
-        console.error('[signup] no action_link generated for', d.email);
+        console.warn('[signup] durable invite unavailable — falling back to a 1-hour recovery link for', d.email);
+        const actionLink = await generateRecoveryLink(d.email);
+        if (actionLink) {
+          passwordEmailSent = await sendEmail({
+            to: d.email,
+            subject: "You're in — set your Dossie password",
+            html: setPasswordEmailHtml(actionLink, d.name),
+          });
+        } else {
+          console.error('[signup] no action_link generated for', d.email);
+        }
       }
 
       await telegram(
@@ -410,8 +450,10 @@ module.exports = async function handler(req, res) {
         `<b>Brokerage:</b> ${esc(d.brokerage || '—')}\n` +
         `<b>Comped until:</b> ${esc(String(result.compEndsAt || '').slice(0, 10))}\n\n` +
         (passwordEmailSent
-          ? '<i>Set-password email sent. No card, no Stripe.</i>'
-          : '🚨 <b>SET-PASSWORD EMAIL DID NOT SEND — they cannot sign in. Send them a link manually.</b>'),
+          ? (credentialDurable
+            ? '<i>Durable invite emailed (good 30 days, resendable). No card, no Stripe.</i>'
+            : '⚠️ <i>Only a ONE-HOUR link went out (durable invite unavailable). If they miss it, run /api/invite-resend.</i>')
+          : '🚨 <b>SET-PASSWORD EMAIL DID NOT SEND — they cannot sign in. Run /api/invite-resend with deliver=none and send them the link yourself.</b>'),
       );
 
       if (!passwordEmailSent) {

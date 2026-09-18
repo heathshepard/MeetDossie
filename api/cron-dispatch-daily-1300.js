@@ -15,6 +15,16 @@
 //   - /api/cron-pipeline-health
 //   - /api/cron-render-skits
 //   - /api/cron-morning-ops-digest
+//   - /api/cron-pierce-activation   (added 2026-09-18)
+//
+// cron-pierce-activation was never registered ANYWHERE before 2026-09-18 — its
+// own header claimed an external cron-job.org trigger that does not exist, so
+// nothing ever invoked it. It is the job that flags paying customers who cannot
+// or do not sign in, and its absence is why five of eight went unnoticed for
+// four months (docs/ACTIVATION-FORENSICS-2026-09-18.md). Its documented
+// schedule is "0 13 * * *", which is exactly this dispatcher's, so it joins the
+// group rather than consuming another of vercel.json's 100 cron slots.
+// It notifies Heath on Telegram only and never emails a customer.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -28,6 +38,7 @@ const HANDLERS = [
   { name: 'cron-pipeline-health', mod: require('./cron-pipeline-health.js') },
   { name: 'cron-render-skits', mod: require('./cron-render-skits.js') },
   { name: 'cron-morning-ops-digest', mod: require('./cron-morning-ops-digest.js') },
+  { name: 'cron-pierce-activation', mod: require('./cron-pierce-activation.js') },
 ];
 
 module.exports = async function handler(req, res) {
