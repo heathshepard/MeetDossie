@@ -236,6 +236,76 @@ async function checkStaleApprovals(staleHours = APPROVAL_STALE_HOURS) {
   return results;
 }
 
+// 2b. Group posting has gone quiet — no group_posts row has actually
+// reached status='posted' in GROUP_POSTING_SILENCE_HOURS, while there IS
+// real approved (or draft-with-nothing-approved) content sitting waiting.
+// checkStaleApprovals/checkStaleDrafts above catch individual stale rows,
+// but neither one answers "is the pipeline moving AT ALL" — a day where
+// every group's draft gets rejected/skipped (never approved) would sail
+// through both of those checks with zero alerts while zero posts go out.
+// Distinguishes two real causes so the alert names the right thing to look
+// at: content sitting APPROVED and simply not draining (queue/scheduler/
+// circuit-breaker problem — scripts/fb-group5-post-queue.js,
+// scripts/fb-listing-group-post-queue.js) vs nothing ever getting approved
+// at all (Heath backlog or a broken notify step — same failure class fixed
+// in api/_lib/telegram-gate.js's 2026-09-17 job-context bug, see that
+// file's header). Deliberately does NOT fire on a day with truly nothing
+// generated and nothing approved (e.g. every group hard-blocked by content
+// gates) — that is a content-supply problem, not a "posting has gone
+// quiet while work waits" problem, and alarming on it would just be noise
+// the model architecture change (fix the generator) is the real answer to.
+const GROUP_POSTING_SILENCE_HOURS = 24;
+
+async function checkGroupPostingSilence(staleHours = GROUP_POSTING_SILENCE_HOURS) {
+  const results = [];
+  const cutoff = hoursAgoIso(staleHours);
+
+  const recentlyPosted = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.posted&posted_at=gte.${encodeURIComponent(cutoff)}&select=id&limit=1`,
+  );
+  const hasPostedRecently = recentlyPosted.ok && Array.isArray(recentlyPosted.data) && recentlyPosted.data.length > 0;
+  if (hasPostedRecently) return results; // pipeline is moving — nothing to say
+
+  const approvedWaiting = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.approved&select=id,group_name,approved_at&order=approved_at.asc`,
+  );
+  const approvedRows = approvedWaiting.ok && Array.isArray(approvedWaiting.data) ? approvedWaiting.data : [];
+
+  const undispositionedDrafts = await supabaseFetch(
+    `/rest/v1/group_posts?status=eq.draft&created_at=gte.${encodeURIComponent(daysAgoIso(7))}&select=id&limit=1`,
+  );
+  const hasRecentDrafts = undispositionedDrafts.ok && Array.isArray(undispositionedDrafts.data) && undispositionedDrafts.data.length > 0;
+
+  // Nothing approved AND nothing even drafted this week — genuinely quiet
+  // pipeline (content-supply problem, not a stuck-queue problem). Still
+  // worth naming, just distinctly.
+  if (approvedRows.length === 0 && !hasRecentDrafts) {
+    results.push({
+      key: 'group_posting_silent:no_supply',
+      count: 0,
+      message: `No group_posts row has posted in >${staleHours}h AND nothing is approved or has even been drafted in the last 7 days — the generator itself has gone quiet (check api/cron-daily-group5-posts.js / scripts/listing-marketing-generate-live.js cron_runs).`,
+    });
+    return results;
+  }
+
+  if (approvedRows.length > 0) {
+    results.push({
+      key: 'group_posting_silent:approved_not_draining',
+      count: approvedRows.length,
+      oldest: approvedRows[0],
+      message: `No group_posts row has posted in >${staleHours}h, but ${approvedRows.length} row(s) sit approved and waiting (oldest: "${approvedRows[0].group_name}", approved ${approvedRows[0].approved_at || 'unknown'}). Check scripts/fb-group5-post-queue.js / scripts/fb-listing-group-post-queue.js are actually running on their Task Scheduler tick, and the shared circuit breaker (scripts/_lib/comment-hunt-halt.js) isn't halted.`,
+    });
+  } else {
+    results.push({
+      key: 'group_posting_silent:nothing_approved',
+      count: 0,
+      message: `No group_posts row has posted in >${staleHours}h and nothing is currently approved, even though drafts exist from the last 7 days — content is being generated but never approved. Check the Telegram approval cards are actually reaching Heath (telegram-gate job-name gating, cron_runs for cron-daily-group5-posts) and clear the draft backlog.`,
+    });
+  }
+
+  return results;
+}
+
 // 3. Drafts older than 24h never sent for approval.
 async function checkStaleDrafts(staleHours = DRAFT_STALE_HOURS) {
   const cutoff = hoursAgoIso(staleHours);
@@ -632,7 +702,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -645,10 +715,11 @@ async function runAllChecks(opts = {}) {
     checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
+    checkGroupPostingSilence(opts.groupPostingSilenceHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -953,6 +1024,7 @@ module.exports = {
   REPLY_UNVERIFIED_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
+  GROUP_POSTING_SILENCE_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -965,6 +1037,7 @@ module.exports = {
   checkUnverifiedRepliesStuck,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
+  checkGroupPostingSilence,
   checkCronSanity,
   shouldFire,
   markFired,
