@@ -20,8 +20,10 @@ Each test declares `tier`:
 - **`ui`** — Playwright signed-in. Local runner ONLY (Vercel serverless has no Chromium).
 - **`db`** — Supabase probe. Runs in Vercel cron + local runner.
 - **`cron`** — reads `cron_runs` table. Runs in Vercel cron.
+- **`contract`** — pure in-process assertion over the deployed contract logic.
+  No I/O of any kind. Runs in Vercel cron. See Category 18.
 
-Vercel cron runs `api`+`db`+`cron` tiers. Local runner runs ALL tiers (superset).
+Vercel cron runs `api`+`db`+`cron`+`contract` tiers. Local runner runs ALL tiers (superset).
 
 ## Pass/fail rubric
 
@@ -239,13 +241,63 @@ Read `cron_runs` table. For every cron scheduled to run daily-or-more-often, ass
 
 ---
 
+## Category 18 — Contract safety (tier: contract)
+
+Added 2026-09-17. Pure in-process assertions — no network, no DB, no browser —
+run by `api/cron-regression-suite.js` via `api/_lib/contract-safety-checks.js`.
+Whole tier costs ~6ms.
+
+These validate the **deployed** `api/_lib` copies, not the repo. CI
+(`.github/workflows/trec-validator-tests.yml`) covers the repo, but it is
+path-gated and only fires when one of its listed files changes — so a
+hand-edited rules file or a bad deploy copy is caught here and nowhere else.
+
+- [ ] `contract.trec2018.golden.conventional` — hand-verified conventional offer validates clean
+- [ ] `contract.trec2018.golden.cash` — cash offer validates clean
+- [ ] `contract.trec2018.golden.fha` — FHA offer validates clean
+- [ ] `contract.trec2018.golden.va` — VA offer validates clean
+- [ ] `contract.trec2018.golden.seller` — seller-financed offer validates clean
+- [ ] `contract.trec2018.golden.assumption` — assumption offer validates clean
+- [ ] `contract.trec2018.broken_case_rejected` — 5 injected defects (3C arithmetic,
+      currency format, numeric regex, confidence floor, conditional predicate) are each
+      still caught by fieldId. A validator that stopped enforcing signs off on a wrong contract.
+- [ ] `contract.trec2018.rules_integrity` — deployed rules file still has 263 mapped fields,
+      0 unmapped, 18 MUTEX-tagged fields. Guards against golden cases passing vacuously
+      against a gutted rules file.
+- [ ] `contract.deadlines.pfeiffers_gate` — the 2026-09-10 live failure: 9-day option from
+      effective 2026-09-09 ends 09-18 (not 09-16), and the Saturday funds deadline rolls to
+      Monday 09-14 with `fundsDeliveryRolled` set.
+- [ ] `contract.deadlines.rollover_scope` — ¶5A(2) rollover applies to funds delivery ONLY;
+      option expiration and closing are fixed calendar dates and never move. No effective
+      date means null, never an invented deadline.
+
+**Not in this tier, and why:**
+
+- `scripts/regression-chat-deadline-rollover.js` (26 assertions) and
+  `npm run test:regression-alerting` (30 assertions) read source files off disk
+  and use `node --test`. Neither works inside a Vercel function. They run in CI
+  instead — see the added steps in `trec-validator-tests.yml`.
+- The contract **election gate** (35 tests, `scripts/test-contract-election-gate.js`)
+  is on unmerged branch `feat/contract-election-gate`. A ready-to-uncomment block
+  is parked at the bottom of `api/_lib/contract-safety-checks.js`.
+- Mutex enforcement is **not** asserted. On main today the validator keys mutex
+  groups off each field's raw `crossRef` string, which differs per member, so every
+  group has one member and enforcement is a no-op — `accept_as_is` and
+  `accept_as_is_with_repairs` can both be true and the contract still validates.
+  Real open defect; fix is on `feat/contract-election-gate`. Asserting it now would
+  add a seventh standing failure to a delta-based alarm instead of fixing it.
+
+---
+
 ## Coverage total (target)
 
 - Auth: 4 · Pages: 10 · API health: 21 · Dossier: 9 · Workspace: 6 · Documents: 6
 - Fill-form: 4 · Dossie Sign: 5 · Amendment: 2 · Talk tools: 5 · Voice: 2 · Founding: 4
-- Stripe: 3 · Content: 5 · Email: 3 · Cron: 20 · DB: 8
+- Stripe: 3 · Content: 5 · Email: 3 · Cron: 20 · DB: 8 · Contract safety: 10
 
-**Total: 117 test points** (v1 baseline; grows as customer surface grows).
+**Total: 127 test points** (v1 baseline 117 + 10 contract-safety, 2026-09-17).
+
+Vercel cron subset (what actually runs daily): **63** — 21 api + 21 cron + 11 db + 10 contract.
 
 ## When to add a new test point
 
