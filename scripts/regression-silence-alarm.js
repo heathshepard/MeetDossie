@@ -38,6 +38,7 @@ function matchFilter(row, key, expr) {
   if (expr.startsWith('eq.')) return String(row[key]) === decodeURIComponent(expr.slice(3));
   if (expr === 'is.null') return row[key] === null || row[key] === undefined;
   if (expr.startsWith('gte.')) return row[key] != null && String(row[key]) >= decodeURIComponent(expr.slice(4));
+  if (expr.startsWith('gt.')) return row[key] != null && String(row[key]) > decodeURIComponent(expr.slice(3));
   if (expr.startsWith('lt.')) return row[key] != null && String(row[key]) < decodeURIComponent(expr.slice(3));
   if (expr.startsWith('in.(')) {
     const vals = expr.slice(4, -1).split(',').map(decodeURIComponent);

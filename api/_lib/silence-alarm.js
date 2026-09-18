@@ -58,6 +58,19 @@ const TC_HARVEST_SCOPE_GAP_HOURS = 3; // a posted row should get its first harve
 //     comment replies drafted by the Claude Code worker, awaiting posting.
 const COMMENT_REPLY_STALE_HOURS = 24;
 
+// The gap checkCommentsAwaitingReplyStale() cannot see: it only looks at
+// reply_status='notified' (Heath WAS pinged, hasn't tapped a button yet).
+// A row can also get stuck at reply_status='new' FOREVER without ever
+// reaching 'notified' — draft + classify can succeed while the Telegram
+// notify step silently fails (send throws, or telegram-gate suppresses it)
+// and the row is simply never retried into anyone's view. Found 2026-09-17:
+// 14 real comments sat at 'new' for up to 22h, harvester kept adding more on
+// top, cron_runs said 'ok' every 30 minutes, and nothing surfaced this until
+// Heath asked why nobody got answered. A stale 'new' row with the harvester
+// still actively inserting siblings is the "worse than notified-and-ignored"
+// case — it means the notify step itself is broken, not that Heath is slow.
+const NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS = 3;
+
 // A reply SUBMIT happened but verification could not confirm it landed --
 // the "submitted-but-not-found" terminal outcome from the 2026-09-17
 // false-'posted' fix (scripts/_lib/fb-post-verify-outcome.js,
@@ -428,6 +441,43 @@ async function checkCommentsAwaitingReplyStale(staleHours = COMMENT_REPLY_STALE_
   return results;
 }
 
+// 8a. Comments stuck at 'new'/'flagged' that never even reached 'notified' —
+// see NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS above for why this is a
+// separate, worse condition than checkCommentsAwaitingReplyStale's
+// already-notified case. Also reports whether the harvester is STILL adding
+// rows on top of the stuck backlog (the exact "actively getting worse, not
+// just old" signal from the 2026-09-17 incident) by checking for any row
+// harvested more recently than the oldest stuck one.
+async function checkNewCommentsNeverNotifiedStale(staleHours = NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const results = [];
+
+  const stuck = await supabaseFetch(
+    '/rest/v1/tc_discovery_responses?reply_status=in.(new,flagged)&reply_notified_at=is.null'
+    + `&is_own_comment=eq.false&harvested_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,commenter_name,harvested_at,reply_status&order=harvested_at.asc',
+  );
+  if (!stuck.ok || !Array.isArray(stuck.data) || stuck.data.length === 0) return results;
+
+  const oldest = stuck.data[0];
+  const growing = await supabaseFetch(
+    '/rest/v1/tc_discovery_responses?is_own_comment=eq.false'
+    + `&harvested_at=gt.${encodeURIComponent(oldest.harvested_at)}&select=id&limit=1`,
+  );
+  const stillGrowing = growing.ok && Array.isArray(growing.data) && growing.data.length > 0;
+
+  results.push({
+    key: 'new_comments_never_notified:tc_discovery',
+    count: stuck.data.length,
+    oldest,
+    message: `${stuck.data.length} tc_discovery_responses comment(s) stuck at '${oldest.reply_status}' >${staleHours}h with NO Telegram notification ever sent (oldest: reply to ${oldest.commenter_name || 'unknown'}, harvested ${oldest.harvested_at}).`
+      + (stillGrowing
+        ? ' The harvester has added MORE comments on top of this backlog since — the notify step is broken, not just slow. Check cron-tc-reply-approval / telegram-gate.'
+        : ''),
+  });
+  return results;
+}
+
 // 8b. Reply SUBMITS that could not be verified, sitting stale. Terminal by
 // design (never auto-retried — see REPLY_UNVERIFIED_STALE_HOURS above), so
 // this is the only thing that will ever surface them again after the
@@ -582,7 +632,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -591,13 +641,14 @@ async function runAllChecks(opts = {}) {
     checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
+    checkNewCommentsNeverNotifiedStale(opts.newCommentNeverNotifiedStaleHours),
     checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -898,6 +949,7 @@ module.exports = {
   TC_HARVEST_HOT_STALE_HOURS,
   TC_HARVEST_SCOPE_GAP_HOURS,
   COMMENT_REPLY_STALE_HOURS,
+  NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS,
   REPLY_UNVERIFIED_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
@@ -909,6 +961,7 @@ module.exports = {
   checkTcHarvestHotWindowStale,
   checkTcHarvestScopeGap,
   checkCommentsAwaitingReplyStale,
+  checkNewCommentsNeverNotifiedStale,
   checkUnverifiedRepliesStuck,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
