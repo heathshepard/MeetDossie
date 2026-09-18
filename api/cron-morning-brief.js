@@ -38,6 +38,9 @@ require('./_lib/telegram-gate').install('cron-morning-brief');
 const { execSync } = require('child_process');
 const nodePath = require('path');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+// Swipe-file weekly section. Returns '' on any day except Monday and on any
+// error, so the rest of the brief is unaffected. See docs/SWIPE-FILE-PIPELINE.md.
+const { buildSwipeDigest } = require('./_lib/swipe-digest.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -704,6 +707,16 @@ async function buildBrief() {
     }
   }
   lines.push('');
+
+  // SWIPE FILE — Mondays only. Empty string every other day.
+  const swipeSection = await buildSwipeDigest(now).catch((err) => {
+    console.error('[morning-brief] swipe digest failed:', err && err.message);
+    return '';
+  });
+  if (swipeSection) {
+    lines.push(swipeSection);
+    lines.push('');
+  }
 
   lines.push('📍 Full dashboard: https://meetdossie.com/admin.html');
 
