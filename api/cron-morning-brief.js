@@ -25,7 +25,10 @@
 // whole brief. The brief is high-value even when one number is missing.
 //
 // Sections added 2026-05-25:
-//   - STAGING DIFF: commits on staging not yet merged to main (child_process.execSync)
+//   - STAGING DIFF: commits on staging not yet merged to main (reads the
+//     merge_queue table — fixed 2026-09-18, was an execSync git call that
+//     could never succeed in Vercel's serverless runtime; see
+//     getStagingDiff() below)
 //   - SOCIAL: yesterday's post activity from social_posts table
 //   - FOUNDING SPOTS REMAINING: 50 - active founding count
 //   - REFERRAL PIPELINE: pending founding_applications with names
@@ -35,8 +38,6 @@
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
 require('./_lib/telegram-gate').install('cron-morning-brief');
 
-const { execSync } = require('child_process');
-const nodePath = require('path');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 // Swipe-file weekly section. Returns '' on any day except Monday and on any
 // error, so the rest of the brief is unaffected. See docs/SWIPE-FILE-PIPELINE.md.
@@ -325,26 +326,30 @@ function buildVideoBrief(now) {
 
 // ─── Staging diff ─────────────────────────────────────────────────────────
 
-// Returns an array of one-line commit strings that are on staging but not yet
-// merged to main. Uses git log main..staging so it's safe even when run from
-// inside a Vercel build — if .git isn't present the catch returns null.
-function getStagingDiff() {
-  try {
-    // __dirname is api/ inside the repo. Walk up one level to repo root.
-    const repoRoot = nodePath.join(__dirname, '..');
-    const output = execSync('git log main..staging --oneline', {
-      cwd: repoRoot,
-      timeout: 5000,
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-    if (!output) return [];
-    return output.split('\n').filter(Boolean);
-  } catch (err) {
-    // git not available in Vercel serverless runtime — degrade gracefully.
-    console.error('[morning-brief] git staging diff unavailable:', err && err.message);
+// FIXED 2026-09-18 (Heath: the 7AM message ALWAYS read "git unavailable in
+// this runtime — check manually" — 100% of the time, every single day,
+// forever). Root cause: this ran `git log main..staging` via execSync
+// inside a Vercel serverless function. Vercel's deployed bundle never
+// ships a .git directory — there was no runtime in which this could ever
+// succeed. It wasn't a flaky degrade path, it was permanently dead code
+// dressed up as a diagnostic.
+//
+// Real fix: reuse the merge_queue table (api/cron-staging-watcher.js polls
+// GitHub's Compare API every 5 min and keeps this current — same
+// infrastructure api/merge-queue-list.js's PWA panel reads). No new GitHub
+// API calls, no execSync, just a Supabase read consistent with every other
+// section of this brief.
+async function getStagingDiff() {
+  const r = await supabaseFetch(
+    '/rest/v1/merge_queue?repo=eq.heathshepard%2FMeetDossie&merged_to_main=eq.false'
+    + '&select=commit_sha,title&order=created_at.asc',
+  );
+  if (!r.ok) {
+    console.error('[morning-brief] merge_queue staging diff unavailable:', r.status);
     return null; // null = unavailable (vs [] = clean)
   }
+  const rows = Array.isArray(r.data) ? r.data : [];
+  return rows.map((row) => `${(row.commit_sha || '').slice(0, 7)} ${row.title || '(no title)'}`);
 }
 
 // ─── Customer filtering ──────────────────────────────────────────────────
@@ -564,7 +569,7 @@ async function buildBrief() {
   }, null);
 
   // 6d. Staging diff.
-  const stagingDiff = getStagingDiff();
+  const stagingDiff = await getStagingDiff();
 
   // 7. Churn-risk action items.
   // 🔴 Critical:

@@ -292,8 +292,9 @@ async function main() {
   }
 
   if (!allFound.length) {
-    console.log('[competitor-monitor] No new competitor posts found');
-    await sendTelegram('Competitor monitor ran - no new posts from DealDock, ListedKit, Done Deal TC, or Click Contracts.');
+    // FIXED 2026-09-18: same zero-noise pattern as linkedin-engager.js —
+    // log locally, don't ping Telegram for "ran, found nothing."
+    console.log('[competitor-monitor] No new competitor posts found — staying quiet on Telegram.');
     return;
   }
 
