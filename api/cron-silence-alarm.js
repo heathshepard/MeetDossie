@@ -31,6 +31,31 @@
 //     api/_lib/attribution.js on the content_tag stamped at publish time
 //     (api/_lib/content-tag.js). Rust is explicitly reported as
 //     not-available (separate Supabase project) rather than a fake zero.
+//   - (2026-09-18) CONSOLIDATION — Heath had THREE competing 7AM Telegram
+//     messages: this heartbeat, api/cron-morning-brief.js's "Business Brief"
+//     (Claudy), and api/cron-social-digest.js's "[DAILY DIGEST]" (sent to
+//     BOTH Claudy and the Sage bot). The digest had gone silent for a full
+//     month (last successful send 2026-08-16, the exact day
+//     api/_lib/telegram-gate.js's kill switch shipped without adding
+//     'cron-social-digest' to ALWAYS_ALLOW — every scheduled send since has
+//     returned a fake 200 and never reached Heath; see that file's header).
+//     Now consolidated to ONE message: this one.
+//       - api/cron-morning-brief.js's buildBrief() (financial/customer
+//         health, founding spots, referral pipeline, staging diff, the
+//         daily video-recording brief) is required and folded in verbatim
+//         below as the BUSINESS BRIEF block. That file no longer sends its
+//         own Telegram message.
+//       - api/cron-social-digest.js is fully retired (removed from
+//         api/cron-dispatch-daily-1200.js and from Sage's chat-trigger
+//         allowlist). The one genuinely useful number it had — per-platform
+//         status counts for posts CREATED in the last 24h — is folded into
+//         the CREATED heartbeat section via
+//         buildHeartbeatSnapshot().created_last_24h. Its coarse per-platform
+//         alerts (e.g. "LinkedIn has nothing published today") are
+//         superseded by this file's own checkPlatformSilence /
+//         checkAccumulatingBacklog, which are more precise and were never
+//         gated off ('cron-silence-alarm' is on the telegram-gate
+//         ALWAYS_ALLOW floor) — no alerting capability is lost.
 //
 // This cron checks, once a day (ALARM half, dedup'd):
 //   1. Platform silence — no successful post on a (platform, owner) pair in
@@ -75,6 +100,9 @@ require('./_lib/telegram-gate').install('cron-silence-alarm');
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { runAllChecks, buildHeartbeatSnapshot, pickTopDecisions } = require('./_lib/silence-alarm.js');
 const { formatGoalProgressLines } = require('./_lib/social-goals-progress.js');
+// Retired-standalone-send Business Brief (financial/customer health), folded
+// into this heartbeat 2026-09-18 — see header comment above.
+const { buildBrief: buildBusinessBrief } = require('./cron-morning-brief.js');
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -95,6 +123,24 @@ async function sendTelegram(text, replyMarkup) {
 function fmtPlatformOwnerList(list) {
   if (!Array.isArray(list) || list.length === 0) return '(none)';
   return list.map((r) => `${r.platform}${r.target_owner !== 'dossie' ? ` (${r.target_owner})` : ''}: ${r.count}`).join(', ');
+}
+
+// Folded in from the retired api/cron-social-digest.js (2026-09-18) — the
+// per-platform status breakdown of posts CREATED in the last 24h.
+function fmtCreatedLast24hLines(byPlatformStatus) {
+  const lines = [];
+  for (const [platform, t] of Object.entries(byPlatformStatus || {})) {
+    const parts = [];
+    if (t.posted) parts.push(`${t.posted} posted`);
+    if (t.approved) parts.push(`${t.approved} approved`);
+    if (t.draft) parts.push(`${t.draft} draft`);
+    if (t.rejected) parts.push(`${t.rejected} rejected`);
+    if (t.failed) parts.push(`${t.failed} failed`);
+    if (t.pending) parts.push(`${t.pending} pending`);
+    const summary = parts.length ? parts.join(', ') : 'no activity';
+    lines.push(`  ${platform.charAt(0).toUpperCase() + platform.slice(1)}: ${summary}`);
+  }
+  return lines;
 }
 
 // CONVERSION ATTRIBUTION section (Carter, 2026-09-17): closes "which post
@@ -171,12 +217,30 @@ function buildDecisionsKeyboard(decisions) {
   return { inline_keyboard: decisions.flatMap((d) => d.keyboard.inline_keyboard) };
 }
 
-function formatHeartbeatMessage(snapshot, fired, suppressed, decisions = []) {
+function formatHeartbeatMessage(snapshot, fired, suppressed, decisions = [], businessBrief = null) {
   const lines = [`DOSSIE MORNING HEARTBEAT — ${new Date().toISOString().slice(0, 10)}`, ''];
+
+  // BUSINESS BRIEF — folded in from the retired api/cron-morning-brief.js
+  // standalone send (2026-09-18). Graceful-degrade: a failure here never
+  // blocks the rest of the heartbeat (same pattern as attribution/goals
+  // below) — buildBrief() itself already safeQuery()-degrades every metric
+  // inside it, so this only trips on a total crash (e.g. Supabase down).
+  lines.push('=== BUSINESS BRIEF ===');
+  if (businessBrief && businessBrief.error) {
+    lines.push(`  could not compute this run — ${businessBrief.error}`);
+  } else if (businessBrief && businessBrief.text) {
+    lines.push(businessBrief.text);
+  } else {
+    lines.push('  unavailable this run.');
+  }
+  lines.push('', '=== PIPELINE HEARTBEAT ===', '');
 
   lines.push('POSTED last 24h:');
   lines.push(`  ${fmtPlatformOwnerList(snapshot.posted_last_24h.by_platform_owner)}`);
   lines.push(`  FB groups: ${snapshot.posted_last_24h.group_posts ?? 'unknown'}`);
+
+  lines.push('', 'CREATED last 24h (by status, per platform):');
+  lines.push(...fmtCreatedLast24hLines(snapshot.created_last_24h && snapshot.created_last_24h.by_platform_status));
 
   lines.push('', 'SCHEDULED today:');
   lines.push(`  ${fmtPlatformOwnerList(snapshot.scheduled_today.by_platform_owner)}`);
@@ -255,13 +319,14 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
   }
 
   const dryRun = req.query && req.query.dry_run === '1';
-  const [{ fired, suppressed, totalConditions }, snapshot, decisions] = await Promise.all([
+  const [{ fired, suppressed, totalConditions }, snapshot, decisions, businessBrief] = await Promise.all([
     runAllChecks({ dryRun }),
     buildHeartbeatSnapshot(),
     pickTopDecisions(3),
+    buildBusinessBrief().then((text) => ({ text })).catch((err) => ({ error: err && err.message })),
   ]);
 
-  const text = formatHeartbeatMessage(snapshot, fired, suppressed, decisions);
+  const text = formatHeartbeatMessage(snapshot, fired, suppressed, decisions, businessBrief);
   const keyboard = buildDecisionsKeyboard(decisions);
 
   let telegram = { ok: false, reason: 'dry_run' };
@@ -277,6 +342,7 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
     conditions: fired.map((c) => c.key),
     heartbeat: snapshot,
     decisions,
+    business_brief_ok: !businessBrief.error,
     telegram_sent: !!telegram.ok,
     dry_run: !!dryRun,
     preview: dryRun ? text : undefined,
@@ -288,3 +354,4 @@ module.exports = withTelemetry('cron-silence-alarm', async function handler(req,
 module.exports.formatHeartbeatMessage = formatHeartbeatMessage;
 module.exports.formatDecisionsLines = formatDecisionsLines;
 module.exports.buildDecisionsKeyboard = buildDecisionsKeyboard;
+module.exports.fmtCreatedLast24hLines = fmtCreatedLast24hLines;

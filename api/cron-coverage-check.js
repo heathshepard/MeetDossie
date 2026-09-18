@@ -12,7 +12,10 @@
 // NOTE: The daily social digest (platform tally to Telegram) was previously
 // duplicated here as sendDailyDigest(). That logic was consolidated into
 // cron-social-digest.js (runs 12:05 UTC / 7AM CDT) and removed from this
-// file on 2026-05-27 to eliminate the duplicate.
+// file on 2026-05-27 to eliminate the duplicate. cron-social-digest.js
+// itself is now retired (2026-09-18) — its per-platform tally lives on
+// inside api/cron-silence-alarm.js's daily heartbeat. See that file's
+// header for why (it had been silently suppressed for a month).
 //
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 1 * * * (01:00 UTC = 8PM CST)
