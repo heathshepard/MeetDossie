@@ -97,11 +97,115 @@ async function smoothScrollBy(page, y) {
   await page.evaluate((yy) => window.scrollBy({ top: yy, behavior: 'smooth' }), y);
 }
 
+// ─── Fatal scene errors ───────────────────────────────────────────────────────
+//
+// The per-scene loop in record() deliberately SWALLOWS scene failures ("we'd
+// rather ship a slightly-flawed video than abandon the whole take"). That is
+// the right default for a missed hover or an unstable click — and it is
+// exactly what shipped 35 seconds of Dossie's login page, twice: sign-in
+// silently failed, every later scene threw against a page that was still the
+// sign-in form, each threw quietly, and the recorder reported DONE over a
+// video of nothing but the login screen (see api/_lib/verify-video-quality.js's
+// opening_not_login_or_empty rule, added for those two files).
+//
+// A FatalSceneError is the narrow exception: it means the recording's
+// premise is false, so no amount of later footage can rescue the take. It is
+// re-thrown out of the scene loop, the partial .webm is deleted, and the
+// process exits non-zero and loud. Nothing "continues on" from here.
+class FatalSceneError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'FatalSceneError';
+    this.fatal = true;
+  }
+}
+
+// Reads the same authenticated-session evidence the app itself runs on:
+// dossie-app.jsx persists the Supabase session under the localStorage key
+// 'supabase.auth.token' (not the sb-<ref>-auth-token library default — see
+// the switch_account handler below). Three independent signals, because any
+// one alone has a false-positive mode: a stale token can outlive its session,
+// a missing password field can just mean the form hasn't rendered yet, and a
+// signed-in chrome element can be server-rendered shell.
+async function readAuthState(page) {
+  return page.evaluate(() => {
+    let token = null;
+    try {
+      const raw = localStorage.getItem('supabase.auth.token');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
+        if (session && session.access_token) {
+          token = { email: (session.user && session.user.email) || null, expires_at: session.expires_at || null };
+        }
+      }
+    } catch (_) { /* unparseable == not signed in */ }
+    const passwordField = document.querySelector("input[type='password']");
+    const passwordVisible = !!passwordField && !!passwordField.offsetParent;
+    const bodyText = document.body ? document.body.innerText : '';
+    return {
+      token,
+      passwordVisible,
+      hasSignOut: /sign\s*out/i.test(bodyText),
+      sample: bodyText.slice(0, 200),
+    };
+  });
+}
+
 // ─── Scene action handlers ────────────────────────────────────────────────────
 
-async function runScene(page, scene, scriptCfg) {
+async function runScene(page, scene, scriptCfg, ctx = {}) {
   const action = scene.action;
   switch (action) {
+    case 'assert_signed_in': {
+      // HARD GATE — the one scene that is allowed to kill the take.
+      //
+      // Also stamps ctx.contentStartMs: the offset, from the first recorded
+      // frame, at which the signed-in product UI was actually on screen.
+      // feature-demo-merge.js seeks past everything before it, so the final
+      // mp4 opens on real UI instead of the browser's white startup frame and
+      // the sign-in form. That matters beyond taste — the quality gate takes
+      // frame 0 as the video's cover asset and grades frames 0.0s/1.5s with
+      // opening_not_login_or_empty, so an untrimmed take cannot pass.
+      const expectedEmail = (scene.email || scriptCfg.demo_account || 'demo@meetdossie.com').toLowerCase();
+      const timeout = scene.timeout || 30000;
+      const deadline = Date.now() + timeout;
+      let state = null;
+      console.log(`  [scene] assert_signed_in -> waiting for a real ${expectedEmail} session (<=${timeout}ms)`);
+      while (Date.now() < deadline) {
+        state = await readAuthState(page).catch(() => null);
+        if (state && state.token && !state.passwordVisible && state.hasSignOut) break;
+        await page.waitForTimeout(500);
+      }
+      if (!state || !state.token) {
+        throw new FatalSceneError(
+          `NOT SIGNED IN after ${timeout}ms — no usable Supabase session in localStorage. ` +
+          `Page still shows: "${(state && state.sample ? state.sample : '(unreadable)').replace(/\s+/g, ' ').slice(0, 160)}". ` +
+          `Refusing to film an unauthenticated app: this is the exact failure that shipped 35s of the login screen twice. ` +
+          `Check DEMO_PASSWORD in .env.local and that ${expectedEmail} can still sign in.`
+        );
+      }
+      if (state.passwordVisible) {
+        throw new FatalSceneError('A password field is still VISIBLE — the sign-in form is on screen, so the session is not in effect yet. Aborting rather than filming it.');
+      }
+      if (!state.hasSignOut) {
+        throw new FatalSceneError('Session token present but no signed-in chrome rendered (no "Sign Out" anywhere on the page) — the app has not actually entered its authenticated state. Aborting.');
+      }
+      const actual = (state.token.email || '').toLowerCase();
+      if (actual !== expectedEmail) {
+        throw new FatalSceneError(
+          `WRONG ACCOUNT — signed in as "${actual || '(no email on session)'}" but this scene expects "${expectedEmail}". ` +
+          `Refusing to record: a feature demo must never be filmed against a real customer's data.`
+        );
+      }
+      // Give the authenticated first paint a beat to settle before marking it
+      // as the trim point, so the trimmed opening frame is rendered UI rather
+      // than a half-painted transition.
+      await page.waitForTimeout(scene.settle_ms || 1200);
+      ctx.contentStartMs = Date.now() - ctx.sessionStart;
+      console.log(`  [scene] assert_signed_in -> OK, ${actual}; content starts at +${ctx.contentStartMs}ms`);
+      break;
+    }
     case 'navigate': {
       console.log(`  [scene] navigate -> ${scene.url}`);
       await page.goto(scene.url, { waitUntil: scene.wait_until || 'domcontentloaded', timeout: 30000 });
@@ -389,31 +493,57 @@ async function record(scriptPath) {
   //
   // A scene that genuinely wants a landscape take (an internal sales-demo
   // walkthrough, say) opts out explicitly with "allow_non_vertical": true.
-  const VERTICAL_SURFACES = ['tiktok', 'instagram', 'facebook', 'youtube'];
-  const targetsVertical = !Array.isArray(scriptCfg.platforms)
-    || scriptCfg.platforms.some((p) => VERTICAL_SURFACES.includes(String(p).toLowerCase()));
+  //
+  // ORIENTATION SOURCE OF TRUTH (fixed 2026-09-17). This preflight originally
+  // carried its own list with 'facebook' counted as a vertical surface — the
+  // identical mistake commit 4a28c6ca fixed in feature-demo-publish.js but
+  // did not fix here, leaving the recorder and the gate disagreeing about the
+  // same scene JSON. Result: a desktop 16:9 demo bound for
+  // facebook/twitter/linkedin was REFUSED at capture for being exactly the
+  // shape docs/FEATURE-VIDEO-DAILY-PLAN.md §1 specifies for those surfaces,
+  // so the only way to record one was to set allow_non_vertical and skip the
+  // framing check entirely. Both ends now call the same
+  // classifyOrientation(), so a scene is graded against one ruleset from
+  // capture through publish, and each lane keeps a real framing check.
+  const { classifyOrientation } = require(path.join(__dirname, '..', 'api', '_lib', 'verify-video-quality.js'));
+  let orientation;
+  try {
+    orientation = classifyOrientation(scriptCfg.orientation, scriptCfg.platforms);
+  } catch (err) {
+    // No platforms at all (or an unrecognized set) keeps the historical
+    // default: this recorder has only ever produced vertical-first content.
+    if (!Array.isArray(scriptCfg.platforms) || !scriptCfg.platforms.length) orientation = 'vertical';
+    else throw new Error(`[recorder] REFUSING to record "${scriptCfg.name}": ${err.message}`);
+  }
+  console.log(`[recorder] orientation: ${orientation} (platforms ${JSON.stringify(scriptCfg.platforms || '(none)')})`);
 
-  if (targetsVertical && scriptCfg.allow_non_vertical !== true) {
+  if (scriptCfg.allow_non_vertical !== true) {
     const ratio = outputSize.width / outputSize.height;
-    if (Math.abs(ratio - 9 / 16) > 0.02) {
+    const target = orientation === 'vertical' ? 9 / 16 : 16 / 9;
+    if (Math.abs(ratio - target) > 0.02) {
       throw new Error(
         `[recorder] REFUSING to record "${scriptCfg.name}": recorded size would be `
-        + `${outputSize.width}x${outputSize.height} (aspect ${ratio.toFixed(4)}), not 9:16.\n`
-        + `  Platforms ${JSON.stringify(scriptCfg.platforms || '(default)')} include a vertical surface, `
-        + 'which will letterbox a non-9:16 file into ~80% black bars.\n'
-        + '  Fix the scene JSON to capture vertically, e.g.\n'
-        + '    "viewport": { "width": 540, "height": 960 }, "device_scale_factor": 2,\n'
-        + '    "is_mobile": true, "has_touch": true\n'
-        + '  (and no "output_size" override), which records the real mobile UI at 1080x1920.\n'
-        + '  If a landscape take is genuinely intended, set "allow_non_vertical": true.',
+        + `${outputSize.width}x${outputSize.height} (aspect ${ratio.toFixed(4)}), not `
+        + `${orientation === 'vertical' ? '9:16' : '16:9'}.\n`
+        + `  Platforms ${JSON.stringify(scriptCfg.platforms || '(default)')} classify as ${orientation}.\n`
+        + (orientation === 'vertical'
+          ? '  Fix the scene JSON to capture vertically, e.g.\n'
+            + '    "viewport": { "width": 540, "height": 960 }, "device_scale_factor": 2,\n'
+            + '    "is_mobile": true, "has_touch": true\n'
+            + '  (and no "output_size" override), which records the real mobile UI at 1080x1920.\n'
+          : '  Fix the scene JSON to capture landscape, e.g. "viewport": { "width": 1920, "height": 1080 } '
+            + 'with no "output_size" override.\n')
+        + '  If an off-spec take is genuinely intended, set "allow_non_vertical": true.',
       );
     }
-    if (outputSize.height < 1920) {
+    const minHeight = orientation === 'vertical' ? 1920 : 1080;
+    if (outputSize.height < minHeight) {
       throw new Error(
         `[recorder] REFUSING to record "${scriptCfg.name}": recorded size `
-        + `${outputSize.width}x${outputSize.height} is below the 1080x1920 delivery resolution.\n`
+        + `${outputSize.width}x${outputSize.height} is below the `
+        + `${orientation === 'vertical' ? '1080x1920' : '1920x1080'} delivery resolution.\n`
         + '  This is usually an "output_size" override cancelling out device_scale_factor — '
-        + 'drop "output_size" and let viewport x device_scale_factor produce 1080x1920.',
+        + 'drop "output_size" and let viewport x device_scale_factor produce the delivery size.',
       );
     }
   }
@@ -450,14 +580,22 @@ async function record(scriptPath) {
   // Stamp the recording session start so we can find the new webm afterward.
   const sessionStart = Date.now();
   const page = await context.newPage();
+  // Shared mutable scene context. assert_signed_in stamps contentStartMs here.
+  const ctx = { sessionStart, contentStartMs: null };
+  let aborted = null;
 
   try {
     for (let i = 0; i < scriptCfg.scenes.length; i++) {
       const scene = scriptCfg.scenes[i];
       console.log(`\n[recorder] scene ${i + 1}/${scriptCfg.scenes.length}`);
       try {
-        await runScene(page, scene, scriptCfg);
+        await runScene(page, scene, scriptCfg, ctx);
       } catch (err) {
+        // A FatalSceneError means the take's premise is false (not signed in,
+        // wrong account). No later footage can rescue it — stop filming now.
+        if (err && err.fatal) {
+          throw new Error(`[recorder] ABORTING take: ${err.message}`);
+        }
         console.error(`[recorder] scene ${i + 1} failed: ${err.message}`);
         // Continue rest of timeline — we'd rather ship a slightly-flawed video
         // than abandon the whole take. The merge step trims to voiceover length.
@@ -474,6 +612,8 @@ async function record(scriptPath) {
         }
       }
     }
+  } catch (err) {
+    aborted = err;
   } finally {
     await page.close();
     await context.close();
@@ -490,6 +630,14 @@ async function record(scriptPath) {
     .filter((r) => r.mtime >= sessionStart - 1000)
     .sort((a, b) => b.mtime - a.mtime);
 
+  // An aborted take's partial .webm is footage of the failure. Delete it here
+  // rather than leaving it on disk where a later merge/publish could pick it
+  // up believing it's a finished recording.
+  if (aborted) {
+    for (const w of webms) fs.promises.unlink(w.full).catch(() => {});
+    throw aborted;
+  }
+
   if (!webms.length) throw new Error('No new .webm found in raw/ after recording.');
 
   // Rename to a stable name so the merger can find it without ambiguity
@@ -498,7 +646,19 @@ async function record(scriptPath) {
   if (fs.existsSync(stablePath)) fs.unlinkSync(stablePath);
   fs.renameSync(webms[0].full, stablePath);
 
+  // Sidecar for feature-demo-merge.js: where the real, signed-in content
+  // begins. Written even when null (no assert_signed_in scene) so the merge
+  // step can tell "this take declared no trim point" apart from "the sidecar
+  // is missing because the recorder predates this".
+  const metaPath = `${stablePath}.meta.json`;
+  fs.writeFileSync(metaPath, `${JSON.stringify({
+    scene_script: path.basename(scriptPath),
+    recorded_at: new Date(sessionStart).toISOString(),
+    content_start_ms: ctx.contentStartMs,
+  }, null, 2)}\n`);
+
   console.log(`\n[recorder] Raw recording: ${stablePath}`);
+  console.log(`[recorder] content_start_ms=${ctx.contentStartMs === null ? 'null (no assert_signed_in scene)' : ctx.contentStartMs}`);
   return stablePath;
 }
 

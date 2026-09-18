@@ -149,8 +149,45 @@ async function merge(scriptPath, opts = {}) {
   const ffmpeg = findFfmpeg();
   const ffprobe = findFfprobe();
   const voDur = durationSeconds(ffprobe, voPath);
-  const vidDur = durationSeconds(ffprobe, rawWebm);
-  console.log(`[merge] voiceover=${voDur.toFixed(2)}s  video=${vidDur.toFixed(2)}s`);
+  const rawDur = durationSeconds(ffprobe, rawWebm);
+
+  // 2b. Trim the pre-sign-in opening.
+  //
+  // Playwright starts recording when the browser context is created, so every
+  // raw take opens on the browser's blank startup frame followed by Dossie's
+  // sign-in page — several seconds of it, before any product UI exists. That
+  // is not cosmetic: api/_lib/verify-video-quality.js grades frames 0.0s and
+  // 1.5s with opening_not_login_or_empty, checks frame 0 for uniformity, and
+  // scripts/feature-demo-publish.js uses frame 0 as the video's cover asset.
+  // An untrimmed take therefore cannot pass the gate, and its cover would be
+  // a picture of the login screen.
+  //
+  // feature-demo-recorder.js's assert_signed_in scene stamps content_start_ms
+  // into a <raw>.meta.json sidecar — the measured moment the authenticated UI
+  // was confirmed on screen. Seek there. A take with no sidecar, or a null
+  // stamp, is left alone (pre-2026-09-17 recordings still merge exactly as
+  // they always did).
+  let startOffset = 0;
+  const metaPath = `${rawWebm}.meta.json`;
+  if (fs.existsSync(metaPath)) {
+    try {
+      const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      if (typeof meta.content_start_ms === 'number' && meta.content_start_ms > 0) {
+        startOffset = meta.content_start_ms / 1000;
+      }
+    } catch (err) {
+      console.warn(`[merge] WARN: could not read ${metaPath} (${err.message}) — not trimming the opening`);
+    }
+  }
+  if (startOffset >= rawDur) {
+    throw new Error(
+      `[merge] content_start_ms (${startOffset.toFixed(2)}s) is at or past the end of the ${rawDur.toFixed(2)}s recording — ` +
+      'the take has no post-sign-in footage. Re-record rather than shipping the sign-in screen.',
+    );
+  }
+  const vidDur = rawDur - startOffset;
+  console.log(`[merge] voiceover=${voDur.toFixed(2)}s  video=${rawDur.toFixed(2)}s`
+    + (startOffset > 0 ? `  (trimming ${startOffset.toFixed(2)}s of pre-sign-in opening -> ${vidDur.toFixed(2)}s usable)` : ''));
 
   // 3. Target length = voiceover + 1.0s tail (so last frame breathes)
   const targetLen = voDur + 1.0;
@@ -160,17 +197,22 @@ async function merge(scriptPath, opts = {}) {
   //    - If video longer than target: hard-trim with -t.
   //    - Audio: pad with silence to targetLen via apad+atrim.
 
-  const args = ['-y',
+  const args = ['-y'];
+  // Input-side seek, so decoding starts at the trim point rather than
+  // decoding-then-discarding the whole login opening. setpts=PTS-STARTPTS in
+  // both filter branches below rebases the surviving frames to t=0.
+  if (startOffset > 0) args.push('-ss', startOffset.toFixed(3));
+  args.push(
     '-i', rawWebm,
     '-i', voPath,
-  ];
+  );
 
   if (vidDur < targetLen) {
     // tpad clones the last frame for (targetLen - vidDur)s
     const padSec = (targetLen - vidDur).toFixed(2);
     args.push(
       '-filter_complex',
-      `[0:v]tpad=stop_mode=clone:stop_duration=${padSec},fps=30[v];[1:a]apad,atrim=duration=${targetLen.toFixed(2)},asetpts=N/SR/TB[a]`,
+      `[0:v]setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=${padSec},fps=30[v];[1:a]apad,atrim=duration=${targetLen.toFixed(2)},asetpts=N/SR/TB[a]`,
       '-map', '[v]', '-map', '[a]',
       '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '192k',
@@ -182,7 +224,7 @@ async function merge(scriptPath, opts = {}) {
     // Trim video to targetLen, voiceover is shorter so pad with silence
     args.push(
       '-filter_complex',
-      `[0:v]trim=duration=${targetLen.toFixed(2)},setpts=PTS-STARTPTS,fps=30[v];[1:a]apad,atrim=duration=${targetLen.toFixed(2)},asetpts=N/SR/TB[a]`,
+      `[0:v]setpts=PTS-STARTPTS,trim=duration=${targetLen.toFixed(2)},setpts=PTS-STARTPTS,fps=30[v];[1:a]apad,atrim=duration=${targetLen.toFixed(2)},asetpts=N/SR/TB[a]`,
       '-map', '[v]', '-map', '[a]',
       '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '192k',
