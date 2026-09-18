@@ -38,6 +38,7 @@ function matchFilter(row, key, expr) {
   if (expr.startsWith('eq.')) return String(row[key]) === decodeURIComponent(expr.slice(3));
   if (expr === 'is.null') return row[key] === null || row[key] === undefined;
   if (expr.startsWith('gte.')) return row[key] != null && String(row[key]) >= decodeURIComponent(expr.slice(4));
+  if (expr.startsWith('gt.')) return row[key] != null && String(row[key]) > decodeURIComponent(expr.slice(3));
   if (expr.startsWith('lt.')) return row[key] != null && String(row[key]) < decodeURIComponent(expr.slice(3));
   if (expr.startsWith('in.(')) {
     const vals = expr.slice(4, -1).split(',').map(decodeURIComponent);
@@ -241,6 +242,65 @@ async function run() {
     assert.strictEqual(videoReview.length, 1);
     assert.ok(/tiktok/.test(videoReview[0].message) && /instagram/.test(videoReview[0].message), `expected platforms named, got: ${videoReview[0].message}`);
   });
+
+  console.log('\nTest 2a-2: group posting silence (2026-09-17, the "1 post in 24h" incident)');
+  const sharedGroupSilence = await lib.checkGroupPostingSilence(24);
+  check('shared seed has a group_posts row posted 10h ago -> does NOT fire (pipeline is moving)', () => {
+    assert.strictEqual(sharedGroupSilence.length, 0, `expected no group-posting-silence alert, got: ${JSON.stringify(sharedGroupSilence)}`);
+  });
+
+  const approvedWaitingMock = await startMockSupabase({
+    group_posts: [
+      { id: 'gp-approved-stuck', group_name: 'Texas Real Estate Agents (22K)', status: 'approved', approved_at: hoursAgo(96), created_at: hoursAgo(100) },
+      { id: 'gp-old-post', group_name: 'DFW Realtors', status: 'posted', posted_at: daysAgo(3) },
+    ],
+    alert_state: [],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${approvedWaitingMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const approvedWaitingLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const approvedWaitingResult = await approvedWaitingLib.checkGroupPostingSilence(24);
+  check('nothing posted in 24h but a row sits approved -> fires approved_not_draining, names the queue scripts', () => {
+    const cond = approvedWaitingResult.find((x) => x.key === 'group_posting_silent:approved_not_draining');
+    assert.ok(cond, `expected group_posting_silent:approved_not_draining, got: ${JSON.stringify(approvedWaitingResult.map((x) => x.key))}`);
+    assert.strictEqual(cond.count, 1);
+    assert.ok(/Texas Real Estate Agents \(22K\)/.test(cond.message));
+    assert.ok(/fb-group5-post-queue\.js/.test(cond.message));
+  });
+  approvedWaitingMock.server.close();
+
+  const noSupplyMock = await startMockSupabase({ group_posts: [], alert_state: [] });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${noSupplyMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const noSupplyLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const noSupplyResult = await noSupplyLib.checkGroupPostingSilence(24);
+  check('zero group_posts rows at all -> fires no_supply, distinct key from approved_not_draining', () => {
+    const cond = noSupplyResult.find((x) => x.key === 'group_posting_silent:no_supply');
+    assert.ok(cond, `expected group_posting_silent:no_supply, got: ${JSON.stringify(noSupplyResult.map((x) => x.key))}`);
+  });
+  noSupplyMock.server.close();
+
+  const draftsNoApprovalMock = await startMockSupabase({
+    group_posts: [
+      { id: 'gp-draft-1', group_name: 'Keller Williams Real Estate Group (28.6K)', status: 'draft', created_at: hoursAgo(20) },
+      { id: 'gp-old-post-2', group_name: 'DFW Realtors', status: 'posted', posted_at: daysAgo(5) },
+    ],
+    alert_state: [],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${draftsNoApprovalMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const draftsNoApprovalLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const draftsNoApprovalResult = await draftsNoApprovalLib.checkGroupPostingSilence(24);
+  check('drafts exist this week but nothing approved -> fires nothing_approved, not no_supply/approved_not_draining', () => {
+    assert.ok(draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:nothing_approved'), `expected group_posting_silent:nothing_approved, got: ${JSON.stringify(draftsNoApprovalResult.map((x) => x.key))}`);
+    assert.ok(!draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:no_supply'));
+    assert.ok(!draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:approved_not_draining'));
+  });
+  draftsNoApprovalMock.server.close();
+
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
 
   console.log('\nTest 2b: TC-discovery host-comment harvest staleness + scope-gap (2026-09-15)');
   const hotStale = await lib.checkTcHarvestHotWindowStale(24, 48);

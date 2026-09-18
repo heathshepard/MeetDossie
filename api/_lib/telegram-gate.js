@@ -49,6 +49,33 @@
 //   var value to suppress those too (total silence).
 //
 // Owner: Atlas, 2026-08-16.
+//
+// BUGFIX 2026-09-17 (Carter) — MULTIPLEXED DISPATCHER JOB-NAME COLLISION.
+// api/_lib/cron-multiplex.js (Atlas, 2026-09-16) fans out N sub-jobs from ONE
+// dispatcher route IN-PROCESS (e.g. api/cron-dispatch-every30.js requires 9
+// job modules, each calling `telegramGate.install(<its own name>)` at module
+// top level). install() used to bind the gate PERMANENTLY to whichever job
+// name called it FIRST (`_installedFor`, now removed) — every later
+// install() call from a sibling module in the same require chain was a
+// silent no-op, so ALL 9 jobs' Telegram sends were gated under the FIRST
+// job's name for the lifetime of the process. Found via
+// tc_discovery_responses: cron-tc-reply-approval (in ALWAYS_ALLOW) reported
+// 'ok' on every run, drafted replies correctly, but every send came back
+// wasSuppressed()=true and nothing ever left reply_status='new' — because
+// cron-publish-approved (first in cron-dispatch-every30's HANDLERS array,
+// NOT in ALWAYS_ALLOW) had locked the gate to its own name.
+//
+// FIX: AsyncLocalStorage-scoped job context. Each dispatcher invocation runs
+// every sub-handler inside `runWithJobContext(jobName, fn)` (see
+// cron-multiplex.js's runGroup); gatedFetch reads the ACTIVE job name from
+// that per-call-stack context, not a module-level variable — correct even
+// when multiple handlers run concurrently via Promise.all. A route invoked
+// directly (not through a dispatcher, no context set) falls back to the
+// name passed to the first install() call, preserving old single-job
+// behavior exactly.
+
+const { AsyncLocalStorage } = require('async_hooks');
+const jobContext = new AsyncLocalStorage();
 
 // Jobs that stay audible even when the switch is off, because they are
 // exception-only alerts (they send nothing on a healthy system) rather than
@@ -215,7 +242,11 @@ function fakeTelegramOk(method) {
   };
 }
 
-let _installedFor = null;
+// Name captured by the FIRST install() call in this process — the correct
+// (and only) name for a standalone route invocation. Only used as a
+// fallback when no per-call jobContext is active (see runWithJobContext).
+let _fallbackName = null;
+let _fetchWrapped = false;
 
 /**
  * Gate scheduled Telegram sends for this function instance.
@@ -224,50 +255,75 @@ let _installedFor = null;
  */
 function install(jobName) {
   const name = String(jobName || 'unknown-cron');
+  if (_fallbackName === null) _fallbackName = name;
 
-  // Idempotent: repeated requires in the same lambda must not stack wrappers.
-  if (_installedFor === name) return { jobName: name, muted: !isAllowed(name) };
-  if (_installedFor !== null) return { jobName: name, muted: !isAllowed(name) };
-  _installedFor = name;
-
-  const original = globalThis.fetch;
-  if (typeof original !== 'function') return { jobName: name, muted: !isAllowed(name) };
-
-  globalThis.fetch = function gatedFetch(input, init) {
-    let url = '';
-    try {
-      url = typeof input === 'string' ? input : (input && input.url) || '';
-    } catch (_) {
-      url = '';
-    }
-
-    if (url.includes('api.telegram.org')) {
-      const method = methodOf(url);
-      const isSend = method && !READ_ONLY_METHODS.has(method);
-      if (isSend && !isAllowed(name)) {
-        // WARN-level and self-describing: a suppressed notification must leave
-        // a trace someone can find later. The 2026-08-17 video_library incident
-        // cost three weeks because suppression was silent-and-invisible.
-        let preview = '';
+  // Idempotent: the global fetch wrap itself only needs to happen once per
+  // process — every install() call after the first just registers a
+  // (possibly different) fallback candidate, which we don't overwrite; the
+  // REAL per-call resolution happens in gatedFetch via jobContext.
+  if (!_fetchWrapped) {
+    const original = globalThis.fetch;
+    if (typeof original === 'function') {
+      globalThis.fetch = function gatedFetch(input, init) {
+        let url = '';
         try {
-          const parsed = init && init.body ? JSON.parse(init.body) : null;
-          const text = parsed && (parsed.text || parsed.caption);
-          if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
-          if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
-        } catch (_) { /* body not JSON — no preview */ }
-        console.warn(
-          `[telegram-gate] SUPPRESSED ${method} from ${name} — NOT delivered ` +
-          `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
-          preview
-        );
-        return Promise.resolve(fakeTelegramOk(method));
-      }
+          url = typeof input === 'string' ? input : (input && input.url) || '';
+        } catch (_) {
+          url = '';
+        }
+
+        if (url.includes('api.telegram.org')) {
+          // Resolve the ACTIVE job for THIS call, not whichever job happened
+          // to call install() first. Set by runWithJobContext() around each
+          // sub-handler invocation in cron-multiplex.js; absent for a
+          // standalone (non-multiplexed) route, where the single install()
+          // call's own name is correct.
+          const activeName = jobContext.getStore() || _fallbackName;
+          const method = methodOf(url);
+          const isSend = method && !READ_ONLY_METHODS.has(method);
+          if (isSend && !isAllowed(activeName)) {
+            // WARN-level and self-describing: a suppressed notification must leave
+            // a trace someone can find later. The 2026-08-17 video_library incident
+            // cost three weeks because suppression was silent-and-invisible.
+            let preview = '';
+            try {
+              const parsed = init && init.body ? JSON.parse(init.body) : null;
+              const text = parsed && (parsed.text || parsed.caption);
+              if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
+              if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
+            } catch (_) { /* body not JSON — no preview */ }
+            console.warn(
+              `[telegram-gate] SUPPRESSED ${method} from ${activeName} — NOT delivered ` +
+              `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
+              preview
+            );
+            return Promise.resolve(fakeTelegramOk(method));
+          }
+        }
+
+        return original.call(this, input, init);
+      };
+      _fetchWrapped = true;
     }
+  }
 
-    return original.call(this, input, init);
-  };
+  return { jobName: name, muted: !isAllowed(jobContext.getStore() || name) };
+}
 
-  return { jobName: name, muted: !isAllowed(name) };
+/**
+ * Run `fn` with `jobName` bound as the ACTIVE job for any Telegram sends it
+ * (or anything it awaits) makes, regardless of which job's install() call
+ * happened to wrap fetch first. Used by cron-multiplex.js's runGroup so each
+ * multiplexed sub-handler is gated under its OWN name, including when
+ * several run concurrently via Promise.all — AsyncLocalStorage keeps each
+ * call's context isolated per async execution chain.
+ * @template T
+ * @param {string} jobName
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+function runWithJobContext(jobName, fn) {
+  return jobContext.run(String(jobName || 'unknown-cron'), fn);
 }
 
 // Did the gate eat this send? Accepts either the parsed Telegram JSON body or
@@ -280,4 +336,4 @@ function wasSuppressed(x) {
   return false;
 }
 
-module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode };
+module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode, runWithJobContext };
