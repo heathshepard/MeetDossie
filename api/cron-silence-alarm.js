@@ -40,6 +40,15 @@
 //     'cron-social-digest' to ALWAYS_ALLOW — every scheduled send since has
 //     returned a fake 200 and never reached Heath; see that file's header).
 //     Now consolidated to ONE message: this one.
+//     CORRECTION, same day (Quinn QA round 2 on staging 816ccd57): this
+//     heartbeat was NOT actually one of the three 7AM messages at the time
+//     this paragraph was written — its own standalone vercel.json schedule
+//     was "20 15 * * *" (10:20am CDT), left over from before this
+//     consolidation. The other two retired jobs really did run at 7am CDT.
+//     Fixed by moving this cron onto the existing 7am dispatcher
+//     (api/cron-dispatch-daily-1200.js) — see the "Schedule:" line above.
+//     Consolidating three messages into one that then arrives at a fourth,
+//     different time is not what "replaces" means; it's fixed now.
 //       - api/cron-morning-brief.js's buildBrief() (financial/customer
 //         health, founding spots, referral pipeline, staging diff, the
 //         daily video-recording brief) is required and folded in verbatim
@@ -87,11 +96,24 @@
 // The heartbeat section is NEVER dedup'd — it's a fresh snapshot every run.
 //
 // Auth: Authorization: Bearer ${CRON_SECRET} OR x-vercel-cron header.
-// Schedule: vercel.json — 0 15 * * * (10am CDT daily)
-// includeFiles: vercel.json's functions block gives this route
-// {vercel.json,api/**/*.js} so api/_lib/cron-sanity.js can read the cron
-// config + check handler files exist at runtime (same pattern as
-// api/cron-codebase-facts-indexer.js).
+// Schedule: dispatched via api/cron-dispatch-daily-1200.js at "0 12 * * *"
+// (7am CDT) — moved here 2026-09-18 (Carter, Quinn QA round 2 on staging
+// 816ccd57). Previously had its own standalone vercel.json entry at
+// "20 15 * * *" (10:20am CDT), left over from before this file absorbed
+// cron-morning-brief + cron-social-digest below — both of THOSE ran at 7am
+// CDT, so the "one message replaces three" consolidation never actually
+// landed at the hour it claimed to. Fixed by joining the existing 7am
+// dispatcher (cron-dispatch-daily-1200 was already registered at that exact
+// schedule) rather than adding a new standalone crons[] entry. This file's
+// standalone /api/cron-silence-alarm route still exists (still directly
+// curl-able with Authorization: Bearer $CRON_SECRET for manual triggers);
+// only the scheduled trigger moved.
+// includeFiles: vercel.json's functions block gives BOTH this route AND
+// api/cron-dispatch-daily-1200.js {vercel.json,api/**/*.js} so
+// api/_lib/cron-sanity.js can read the cron config + check handler files
+// exist at runtime (same pattern as api/cron-codebase-facts-indexer.js) —
+// needed on the dispatcher too now, since that's the function actually
+// invoked on schedule.
 //
 // Owner: Carter, 2026-09-12 (heartbeat extension 2026-09-16)
 

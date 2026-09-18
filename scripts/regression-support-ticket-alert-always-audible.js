@@ -151,8 +151,27 @@ function fakeReqRes() {
   });
   check('routine digests are STILL suppressed (gate purpose intact)', () => {
     assert.strictEqual(gate.isAllowed('cron-morning-brief'), false);
-    assert.strictEqual(gate.isAllowed('cron-video-approval'), false);
-    assert.strictEqual(gate.isAllowed('cron-send-for-approval'), false);
+  });
+  // UPDATED 2026-09-18 (Quinn QA): cron-video-approval and cron-send-for-approval
+  // used to be asserted here as "still suppressed" alongside cron-morning-brief.
+  // That was correct when written but is now a STALE fixture encoding the exact
+  // bug this file's own header describes -- the 2026-09-18 telegram-gate audit
+  // (see api/_lib/telegram-gate.js's ALWAYS_ALLOW comment) found both were
+  // silently muted approval-plumbing (the same incident class as
+  // cron-support-ticket-alert / cron-unsubscribe-spike-monitor tested above)
+  // and correctly added them to ALWAYS_ALLOW. Asserting `false` here would
+  // mean this regression test starts FAILING the moment the real bug is
+  // fixed, and would silently pass again if someone ever regressed the fix
+  // by removing either entry -- exactly backwards for a regression guard.
+  check('cron-video-approval and cron-send-for-approval are audible (2026-09-18 fix)', () => {
+    assert.strictEqual(gate.isAllowed('cron-video-approval'), true,
+      'cron-video-approval must be in ALWAYS_ALLOW -- muting it hid 5 finished ' +
+      'videos for 3 weeks (2026-08-17 incident); it must reach Heath even with ' +
+      'cron notifications off');
+    assert.strictEqual(gate.isAllowed('cron-send-for-approval'), true,
+      'cron-send-for-approval must be in ALWAYS_ALLOW -- it is the daily ' +
+      'social_posts Approve/Reject/Edit card, interactive approval plumbing ' +
+      'not digest noise');
   });
   check("'strict' mode silences even ALWAYS_ALLOW (documented escape hatch)", () => {
     process.env.TELEGRAM_CRON_NOTIFICATIONS = 'strict';

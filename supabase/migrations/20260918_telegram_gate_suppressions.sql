@@ -16,6 +16,22 @@
 -- reach Heath and never gets through.
 --
 -- Owner: Carter, 2026-09-18
+--
+-- KNOWN DRIFT (found by Quinn QA, 2026-09-18, staging 816ccd57): the live
+-- table's `id` column is actually a plain integer identity/sequence, not the
+-- UUID this file declares below. The table already existed (created ad hoc,
+-- before this migration file was written) when this CREATE TABLE IF NOT
+-- EXISTS ran, so Postgres silently no-op'd the whole statement against the
+-- live schema -- this file has never actually taken effect for that column.
+-- Left as-is rather than reconciled: nothing in the codebase reads
+-- telegram_gate_suppressions.id (job_name + created_at is the only lookup
+-- key anything uses -- see the index below and silence-alarm.js's reader),
+-- so the mismatch is harmless today, and an ALTER TABLE to convert a live
+-- production column's type/default is a real-risk migration to run just to
+-- make a comment-and-code-match exercise -- not worth it for a column
+-- nothing depends on. If anything ever needs telegram_gate_suppressions.id
+-- as a foreign key or an external reference, reconcile then, for real, with
+-- a proper ALTER TABLE migration -- not by editing this file to match.
 
 CREATE TABLE IF NOT EXISTS public.telegram_gate_suppressions (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

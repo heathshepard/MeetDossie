@@ -388,8 +388,12 @@
     "api/{cron-dispatch-daily-0800,cron-dispatch-daily-1500,cron-dispatch-every30,cron-dispatch-every5,cron-dispatch-hourly}.js": {
       "maxDuration": 70
     },
-    "api/{cron-dispatch-daily-1200,cron-dispatch-daily-1330,cron-dispatch-daily-1400}.js": {
+    "api/{cron-dispatch-daily-1330,cron-dispatch-daily-1400}.js": {
       "maxDuration": 20
+    },
+    "api/cron-dispatch-daily-1200.js": {
+      "maxDuration": 30,
+      "includeFiles": "{vercel.json,api/**/*.js}"
     },
     "api/cron-dispatch-every10.js": {
       "maxDuration": 60
@@ -549,10 +553,6 @@
     {
       "path": "/api/cron-weekly-batch-digest",
       "schedule": "0 23 * * 0"
-    },
-    {
-      "path": "/api/cron-silence-alarm",
-      "schedule": "20 15 * * *"
     },
     {
       "path": "/api/cron-dispatch-every5",

@@ -117,8 +117,28 @@ function fakeReqRes() {
   const server = await startMockSupabase();
   const port = server.address().port;
 
-  // Env BEFORE any require: suppress-all default, everything local.
-  delete process.env.TELEGRAM_CRON_NOTIFICATIONS; // unset => gate suppresses
+  // Env BEFORE any require: force total suppression via the documented
+  // 'strict' escape hatch (see api/_lib/telegram-gate.js's parseMode()).
+  //
+  // UPDATED 2026-09-18 (Quinn QA): this test used to rely on the plain
+  // unset/off default to reproduce a suppressed send for cron-video-approval.
+  // That stopped reproducing anything the moment the 2026-09-18 telegram-gate
+  // audit correctly added 'cron-video-approval' to ALWAYS_ALLOW (it is
+  // literally the job this incident is named after -- Heath must always see
+  // its approval card). Under plain unset/off, cron-video-approval's send is
+  // now genuinely delivered, not suppressed -- the mock server below has no
+  // /sendMessage route, so the real fetch it now makes 404s instead, which
+  // is a DIFFERENT failure mode than the one this file exists to guard
+  // against and was starting to mask it (all 4 Test 1 assertions failed
+  // outright; Test 2 happened to still pass, but only by coincidence, since
+  // a generic send failure reverts state the same way a suppressed one
+  // does). 'strict' silences even ALWAYS_ALLOW jobs on purpose (it's the
+  // documented total-silence mode), which is exactly what's needed to
+  // exercise the suppressed-send code path against a job that is correctly
+  // audible by default. See regression-support-ticket-alert-always-audible.js
+  // Test 1's "'strict' mode silences even ALWAYS_ALLOW" check for the
+  // sibling assertion on the gate side.
+  process.env.TELEGRAM_CRON_NOTIFICATIONS = 'strict';
   process.env.SUPABASE_URL = `http://127.0.0.1:${port}`;
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'regr-dummy-key';
   process.env.TELEGRAM_BOT_TOKEN = 'regr-dummy-token';

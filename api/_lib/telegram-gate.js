@@ -213,6 +213,58 @@ const ALWAYS_ALLOW = new Set([
                         // veto card — Heath's only visible chance to stop an auto-post before it goes
                         // out under his name/license. Muting this is a silent auto-post, not digest
                         // noise — Carter, 2026-09-18.
+  'cron-content-pipeline-review', // nightly-content Approve/Reject card for content_pipeline_queue
+                                   // (guide/feature/answer pages). Its own file header says it
+                                   // "Mirrors api/cron-send-for-approval.js's pattern" — same
+                                   // interactive-approval class, found muted in the same 2026-09-18
+                                   // audit that caught cron-send-for-approval itself — Carter,
+                                   // 2026-09-18 (Quinn QA round 2 on staging 816ccd57).
+  'cron-engagement-review', // human Approve/Reject gate for FB-group engagement drafts
+                             // (engagement_queue). Explicitly "Mirrors
+                             // api/cron-content-pipeline-review.js's per-row pattern" per its own
+                             // header — same silently-muted-approval-plumbing class — Carter,
+                             // 2026-09-18 (Quinn QA round 2 on staging 816ccd57).
+  //
+  // The four below were found by building the enumeration test itself
+  // (scripts/regression-telegram-gate-approval-jobs-allowlisted.js, Quinn QA
+  // round 2 on staging 816ccd57): every api/*.js that both installs this gate
+  // AND sends a message with a real callback_data button. None of these were
+  // named by the QA report — they surfaced only once the check stopped being
+  // "did a human happen to notice" and started being "grep for the actual
+  // signal." Leaving them out would have shipped a test that enforces the
+  // rule going forward while still lying about the present. Added together,
+  // same commit, same audit — Carter, 2026-09-18.
+  'cron-generate-skit', // Approve-Render-It / Reject card for a freshly-generated skit script
+                         // (skit_queue). Nothing downstream renders without this tap — a muted
+                         // send here means the twice-weekly skit pipeline silently stalls at
+                         // script_pending forever.
+  'cron-post-videos', // per-item Approve/Reject card for video_library rows (falls back to this
+                       // direct send whenever the 'batch_routine_approvals' ops_flag is off or
+                       // unreadable — the file's own comment says it "Fails CLOSED to the old
+                       // per-item send", i.e. this path is live, not dead code). Same incident
+                       // class the whole gate exists to close — a suppressed card here is
+                       // literally the 2026-08-17 cron-video-approval incident one file over.
+  'cron-reddit-scanner', // sends the STOP button for a drafted Reddit reply that auto-posts in
+                          // 10 minutes if untapped. A suppressed STOP here isn't a missed digest —
+                          // it's a reply going out under Heath's account with no working veto,
+                          // the worst version of the silent-auto-post class cron-auto-approve
+                          // exists to prevent.
+  'cron-weekly-batch-digest', // the "Approve all" button for the week's rolled-up social_posts +
+                               // group_posts drafts — built 2026-09-12 specifically because Heath
+                               // said "I'm a bottleneck... lets prepare a week's worth of posts
+                               // that I can approve at a time." A muted send here defeats the
+                               // feature by design: the whole week's drafts sit at status='draft'
+                               // with no way to move them, and the per-item daily cards this was
+                               // meant to replace are the ones doing the work instead.
+  'cron-publish-approved', // fires the "PUBLISH FAILED" alert + Retry Now callback for a post
+                            // that already cleared approval but failed at Zernio, and the
+                            // publish summary (only sent when something actually
+                            // published/failed — explicitly gated by the file's own "Skipped-
+                            // only runs are noise" check). Exception-only by construction, same
+                            // bar as cron-support-ticket-alert already on this floor — and the
+                            // Retry Now button is the only one-tap recovery path for a failed
+                            // post; muting it just leaves the row at status='failed' with no
+                            // visible way back.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
