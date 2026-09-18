@@ -674,6 +674,15 @@
       "maxWidth": 20,
       "align": "left",
       "notes": "Closing statement days default (footer margin annotation — 20-19 flat has no discrete blank)"
+    },
+    "natural_resource_lease_days": {
+      "page": 1,
+      "x": 338.0,
+      "y": 62.5,
+      "fontSize": 10,
+      "maxWidth": 34.0,
+      "align": "left",
+      "notes": "¶4C(2) Buyer's termination window: \"Buyer may terminate the contract within ___ days after the date the Buyer receives all the Natural Resource Leases.\" Derived 2026-09-17 from the AcroForm widget rect on page 1 (x=336.9 y=60.0 w=35.5), whose own name is 'to escrow agent within 1' and has nothing to do with escrow -- the printed line it sits on was located by pdftotext -bbox (baseline pdf y=59.6, blank between \"within\" and \"days\") and the fill was render-verified. Offset from the rect matches the rest of page 1 (dx ~+1, dy ~+2). Paired with RESALE_CHECKBOX.natural_resource_lease_not_delivered: the box and this blank must always travel together."
     }
   }
 }

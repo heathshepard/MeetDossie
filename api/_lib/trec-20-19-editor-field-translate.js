@@ -92,6 +92,59 @@ function translateEditorFieldNames(fv) {
     out.survey_days_buyer = src.survey_buyer_new_days;
   }
 
+  // ¶3B FINANCING TYPE + ¶4 LEASES — 2026-09-17. Five editor controls that
+  // had no rule here and no widget in fill-trec-20-19.js, i.e. dead: a
+  // member could tick them, see them ticked in the editor on reload (the
+  // draft persists), and get a contract where the box is empty.
+  //
+  //   financing_third_party_addendum     -> ¶3B Third Party Financing
+  //   financing_loan_assumption_addendum -> ¶3B Loan Assumption
+  //   financing_seller_financing_addendum-> ¶3B Seller Financing
+  //   lease_residential_attached         -> ¶4A Residential Leases
+  //   lease_natural_resource             -> ¶4C Natural Resource Leases
+  //   natural_resource_lease_not_delivered -> ¶4C(2)
+  //
+  // All go through truthy() — the editor sends the string 'true'/'false'
+  // (see the ¶22 block below for the full account of that failure mode).
+  //
+  // financing_third_party_addendum is gap-fill only: fillTrec2019 already
+  // auto-checks ¶3B Third Party from loan_amount > 0, and
+  // addendum_third_party_financing (the ¶22 row) already writes
+  // addendum_financing below. This just stops the ¶3B-side control from
+  // being silently inert when a member uses it directly.
+  if (out.addendum_financing == null && hasValue(src.financing_third_party_addendum)) {
+    out.addendum_financing = truthy(src.financing_third_party_addendum);
+  }
+  if (out.addendum_loan_assumption == null && hasValue(src.financing_loan_assumption_addendum)) {
+    out.addendum_loan_assumption = truthy(src.financing_loan_assumption_addendum);
+  }
+  if (out.addendum_seller_financing == null && hasValue(src.financing_seller_financing_addendum)) {
+    out.addendum_seller_financing = truthy(src.financing_seller_financing_addendum);
+  }
+  if (out.lease_residential == null && hasValue(src.lease_residential_attached)) {
+    out.lease_residential = truthy(src.lease_residential_attached);
+  }
+  // lease_natural_resource and natural_resource_lease_not_delivered are the
+  // SAME key on both sides, so `out` already carries the editor's raw string
+  // and a `== null` gap-fill guard can never fire for them (out is a shallow
+  // copy of src). They must be coerced in place — the identical-name case is
+  // precisely what hid the ¶7B bug below for a month.
+  if (out.lease_natural_resource !== true && truthy(src.lease_natural_resource)) {
+    out.lease_natural_resource = true;
+  }
+  // ¶4C(2) only. There is NO editor control for ¶4C(1) "Seller HAS
+  // delivered all the Natural Resource Leases" — and none is invented here.
+  // (1) is an affirmative statement about documents already handed over; the
+  // absence of a tick on (2) is not evidence for it. Reported as a gap.
+  if (out.natural_resource_lease_not_delivered !== true
+    && truthy(src.natural_resource_lease_not_delivered)) {
+    out.natural_resource_lease_not_delivered = true;
+  }
+  if (!hasValue(out.natural_resource_lease_days)
+    && hasValue(src.natural_resource_lease_termination_days)) {
+    out.natural_resource_lease_days = src.natural_resource_lease_termination_days;
+  }
+
   // ¶6A(8)(ii) "shortages in area" title-exclusion amendment — editor:
   // survey_exception_amendment ("will NOT be amended", option (i)) vs.
   // shortages_amendment_expense / shortages_amendment_expense_seller
@@ -131,6 +184,62 @@ function translateEditorFieldNames(fv) {
     } else if (truthy(src.hoa_membership_is_not)) {
       out.hoa_mandatory = false;
     }
+  }
+
+  // ¶7B SELLER'S DISCLOSURE NOTICE — "(Check one box only)", 3 options.
+  //
+  // 2026-09-17 — FOUND AND RENDER-CONFIRMED. This paragraph had NO rule in
+  // this module at all, because the editor's key names
+  // (seller_disclosure_received / seller_disclosure_not_required) are
+  // character-for-character identical to the fv keys fillTrec2019 reads, so
+  // every previous pass concluded "matches by name, nothing to do".
+  //
+  // They do not match by VALUE. CheckboxField.jsx sends the STRING 'true',
+  // and fillTrec2019 gates on strict `=== true` — the exact failure the
+  // 2026-09-11 ¶22 addenda block below documents ("an unrenamed key sailing
+  // straight through with no truthy() pass silently never checks the box").
+  // Six ¶22 rows were fixed that day; ¶7B was missed because it needed no
+  // rename either.
+  //
+  // Reproduced through the real path (translateEditorFieldNames ->
+  // fillTrec2019 -> pdftoppm page 4): a member who ticks "(1) Buyer has
+  // received the Seller's Disclosure Notice" and nothing else gets a
+  // contract with all THREE ¶7B boxes empty, under the form's own printed
+  // "(Check one box only)". That is [[feedback_verify-contract-elections-
+  // before-execution]]'s Pfeiffers ¶7D failure in a different paragraph,
+  // reachable today from the shipping editor.
+  //
+  // Two further traps this rule deliberately avoids:
+  //
+  //   1. NEVER write `false`. fillTrec2019 reads
+  //      `seller_disclosure_received === false` as option (2) "Buyer has NOT
+  //      received". An UNTICKED editor checkbox sends the string 'false', so
+  //      a blanket `= truthy(src...)` would check option (2) on every
+  //      contract where the member simply left ¶7B alone — a wrong box, which
+  //      is worse than a blank one because nobody looks twice at a box that
+  //      is already ticked ([[acroform-field-names-lie]]). Only an
+  //      affirmative tick is ever propagated; silence stays silence and
+  //      fillTrec2019's own not-guessed-when-omitted branch applies.
+  //   2. The editor carries a DUPLICATE, orphaned pair for this same
+  //      paragraph — sellers_disclosure_received / sellers_disclosure_not_
+  //      required (note the 's'), from the same Fable5 run, which nothing
+  //      downstream has ever read. Both spellings are honoured here so the
+  //      member's tick lands whichever control the editor rendered.
+  //
+  // STILL UNREACHABLE, reported not fabricated: option (2) "Buyer has not
+  // received" has no editor control of any kind. The day-count blank that
+  // belongs to it (seller_disclosure_delivery_days) does, which is worse
+  // than nothing — see the report.
+  if (out.seller_disclosure_received !== true
+    && (truthy(src.seller_disclosure_received) || truthy(src.sellers_disclosure_received))) {
+    out.seller_disclosure_received = true;
+  }
+  if (out.seller_disclosure_not_required !== true
+    && (truthy(src.seller_disclosure_not_required) || truthy(src.sellers_disclosure_not_required))) {
+    out.seller_disclosure_not_required = true;
+  }
+  if (!hasValue(out.seller_disclosure_days) && hasValue(src.sellers_disclosure_delivery_days)) {
+    out.seller_disclosure_days = src.sellers_disclosure_delivery_days;
   }
 
   // ¶7D ACCEPTANCE OF PROPERTY CONDITION — editor only has ONE toggle
