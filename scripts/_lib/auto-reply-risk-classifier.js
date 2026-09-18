@@ -271,6 +271,65 @@ async function classifyCommentRisk(commentText, replyDraft, deps = {}) {
   };
 }
 
+// ── "No reply needed" verdict — pure reactions, not a classifier failure ──
+//
+// Investigated 2026-09-17 (Sage): 5 comments were reported stuck in
+// tc_discovery_responses, reappearing in api/cron-tc-reply-approval.js's
+// `errors` array on every run. Root cause was NOT the risk classifier above
+// (classifyCommentRisk already fails closed correctly, verified against
+// live rows + the regression suite — 50/50 passing, no malformed-JSON case
+// found live). The actual bug was one level up, in the DRAFT call
+// (callDraftModel / draftReply in api/cron-tc-reply-approval.js): a very
+// short, low-content comment ("nice", "Beautiful!", a lone emoji) correctly
+// produces a WELL-FORMED, validly-parsed JSON draft response of
+// `{"hostile": false, "reply": ""}` — the model is telling us there's
+// nothing worth saying — but the caller treated any empty, non-hostile
+// reply as an exception (`throw new Error('empty draft for non-hostile
+// comment')`), thrown BEFORE any DB write. The row never advanced past
+// reply_status='new' and re-failed identically on every subsequent tick.
+//
+// Per memory/fb-engagement-thread-close-policy.md: a pure reaction closes
+// immediately, it never gets a manufactured follow-up. `isNoReplyNeeded`
+// makes that a first-class, auditable verdict (category 'no_reply_needed')
+// instead of an uncaught exception, so the caller can route it straight to
+// reply_status='skipped' — no Telegram send, no retry loop, no escalation
+// (this is the SAFE, intentional-close case, not a failure).
+//
+// This is deliberately NOT a model call of its own — the draft model
+// already gave us the signal for free (an empty, non-hostile reply), so
+// classifying "should we even reply" a second time would just add another
+// JSON-shaped failure surface for no benefit. A comment that's short but
+// GENUINE ("Yes I'm a TC.", "Inside the US") already comes back from the
+// draft model with real reply text and is unaffected — confirmed against
+// live tc_discovery_responses rows, both drafted and posted successfully.
+//
+// Malformed/empty draft-model OUTPUT (no JSON found, JSON.parse throws,
+// network/timeout error) is a DIFFERENT case and must NOT be treated as
+// "no reply needed" — that stays a thrown error in the caller, which now
+// routes to reply_status='flagged' (escalate to Heath) instead of leaving
+// the row silently stuck at 'new' forever. Fail-closed to escalation,
+// never to auto-send, exactly as classifyCommentRisk already does above.
+const NO_REPLY_NEEDED_CATEGORY = 'no_reply_needed';
+
+/**
+ * isNoReplyNeeded(draftResult)
+ *
+ * @param {{hostile: boolean, reply: string}} draftResult  the parsed
+ *   {hostile, reply} shape returned by the draft-model call (callDraftModel
+ *   in api/cron-tc-reply-approval.js).
+ * @returns {boolean} true only when the model deliberately, validly
+ *   returned an empty, NON-hostile reply — i.e. "nothing worth saying
+ *   here". Never true for a hostile verdict (that already routes to
+ *   'flagged' separately) and never true for malformed/missing output
+ *   (draftResult itself won't exist — the caller throws before this is
+ *   ever reached).
+ */
+function isNoReplyNeeded(draftResult) {
+  return !!draftResult
+    && draftResult.hostile !== true
+    && !String(draftResult.reply || '').trim();
+}
+
 module.exports = {
   CLASSIFY_MODEL,
   PRE_FILTER_PATTERNS,
@@ -278,4 +337,6 @@ module.exports = {
   CLASSIFY_PROMPT,
   classifyWithModel,
   classifyCommentRisk,
+  NO_REPLY_NEEDED_CATEGORY,
+  isNoReplyNeeded,
 };

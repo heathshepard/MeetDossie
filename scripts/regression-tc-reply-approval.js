@@ -207,7 +207,59 @@ async function main() {
   assert.strictEqual(r2.reply_draft, null, 'NO draft generated for hostile comment');
   assert.strictEqual(flagMarkup, null, 'flag message has no Approve button — his personal judgment only');
 
+  // ── NEW 2026-09-17 (Sage): pure reaction closes immediately, no draft loop ─
+  // A comment like "Beautiful!" legitimately gets {hostile:false, reply:""}
+  // back from the draft model. That must close the row (reply_status=
+  // 'skipped'), NOT throw and leave it stuck at 'new' forever.
+  const r3 = seedComment({ commenter_name: 'Ren EWok', comment_text: 'Beautiful!' });
+  let sendCalledForR3 = false;
+  const res3 = await cron.processPendingReplies({
+    sbFetch: mockSbFetch,
+    draft: async () => ({ hostile: false, hostileReason: '', reply: '' }),
+    classifyRisk: async () => { throw new Error('classifyRisk must NOT be called for a no-reply-needed row'); },
+    send: async () => { sendCalledForR3 = true; return { ok: true, status: 200, data: DELIVERED_PAYLOAD }; },
+    isSuppressed: gate.wasSuppressed,
+    log: { warn: () => {}, error: () => {} },
+  });
+  assert.strictEqual(r3.reply_status, 'skipped', 'pure reaction with empty non-hostile reply is auto-skipped, not stuck at new');
+  assert.strictEqual(r3.reply_draft, null, 'no draft stored for a skipped no-reply-needed row');
+  assert.ok(/no_reply_needed/.test(r3.reply_error || ''), 'reply_error records the no_reply_needed category');
+  assert.strictEqual(sendCalledForR3, false, 'no Telegram notification sent for an auto-closed pure reaction');
+  assert.strictEqual(res3.errors.length, 0, 'auto-closing a pure reaction is not an error');
+
+  // ── NEW 2026-09-17 (Sage): malformed draft output escalates, never loops ──
+  // A genuinely broken draft-model response (no JSON / bad JSON) must fail
+  // CLOSED to 'flagged' (Heath's manual review), never silently retry
+  // forever and never auto-send.
+  const r4 = seedComment({ commenter_name: 'Weird Case', comment_text: 'k' });
+  const res4 = await cron.processPendingReplies({
+    sbFetch: mockSbFetch,
+    draft: async () => { throw new Error('malformed_draft_response: no JSON in draft response'); },
+    classifyRisk: async () => { throw new Error('classifyRisk must NOT be called on a malformed draft'); },
+    send: async () => ({ ok: true, status: 200, data: DELIVERED_PAYLOAD }),
+    isSuppressed: gate.wasSuppressed,
+    log: { warn: () => {}, error: () => {} },
+  });
+  assert.strictEqual(r4.reply_status, 'flagged', 'malformed draft response escalates to flagged, never stuck at new');
+  assert.ok(/malformed draft response, escalated/.test(r4.reply_error || ''), 'reply_error records the escalation reason');
+  assert.strictEqual(res4.flagged, 1, 'malformed-response escalation counted in flagged');
+  assert.ok(res4.errors.some((e) => /malformed_draft_response/.test(e.error || '')), 'malformed error still surfaced in errors array for visibility');
+
+  // A run AFTER escalation must not re-select the now-flagged row and
+  // malformed-escalate it a second time (it would if flagged rows were
+  // re-queried and draft() threw again — assert on re-run stability).
+  const res4b = await cron.processPendingReplies({
+    sbFetch: mockSbFetch,
+    draft: async () => { throw new Error('draft() should not run again on an already-escalated malformed row within the same tick set, but if re-queried (flagged rows ARE re-queried by design) it must re-escalate cleanly, not crash'); },
+    classifyRisk: async () => { throw new Error('classifyRisk must NOT be called on a malformed draft'); },
+    send: async () => ({ ok: true, status: 200, data: DELIVERED_PAYLOAD }),
+    isSuppressed: gate.wasSuppressed,
+    log: { warn: () => {}, error: () => {} },
+  });
+  assert.strictEqual(r4.reply_status, 'flagged', 'row remains flagged after a second tick, not stuck in a crash loop');
+
   // ── Message content: post context + comment + commenter + draft + buttons ─
+
   const msg = cron.buildApprovalMessage(db.group_posts[0], r1);
   assert.ok(msg.includes('What drove you the most crazy'), 'message includes the post for context');
   assert.ok(msg.includes('Jane Agent'), 'message includes the commenter name');

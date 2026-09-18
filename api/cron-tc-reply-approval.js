@@ -57,7 +57,7 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const voiceGuard = require('./_lib/heath-voice-guard');
-const { classifyCommentRisk } = require('../scripts/_lib/auto-reply-risk-classifier.js');
+const { classifyCommentRisk, isNoReplyNeeded, NO_REPLY_NEEDED_CATEGORY } = require('../scripts/_lib/auto-reply-risk-classifier.js');
 const { checkContentGates } = require('../scripts/_lib/auto-reply-content-gates.js');
 const autoReplyKillSwitch = require('../scripts/_lib/auto-reply-kill-switch.js');
 const opsPolicy = require('./_lib/ops-policy.js');
@@ -193,8 +193,18 @@ async function callDraftModel(promptText) {
     .join('')
     .trim());
   const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('no JSON in draft response');
-  const parsed = JSON.parse(match[0]);
+  // Tagged 'malformed_draft_response:' so the caller can distinguish a real
+  // parse/schema failure (escalate to 'flagged', never silently retry
+  // forever) from ordinary transient errors (network, Supabase, Telegram)
+  // that should just retry next tick. See scripts/_lib/
+  // auto-reply-risk-classifier.js header, 2026-09-17 (Sage).
+  if (!match) throw new Error('malformed_draft_response: no JSON in draft response');
+  let parsed;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch (e) {
+    throw new Error(`malformed_draft_response: draft JSON failed to parse: ${e.message}`);
+  }
   return {
     hostile: parsed.hostile === true,
     hostileReason: String(parsed.hostile_reason || '').slice(0, 200),
@@ -458,8 +468,22 @@ async function processPendingReplies(deps) {
             body: JSON.stringify({ reply_status: 'flagged', reply_error: row.reply_error, updated_at: new Date().toISOString() }),
           });
           out.flagged++;
+        } else if (isNoReplyNeeded(d)) {
+          // Pure reaction ("nice", "Beautiful!", a lone emoji) — the draft
+          // model validly returned {hostile:false, reply:""}. Close it,
+          // don't manufacture a follow-up (memory:
+          // fb-engagement-thread-close-policy.md), and don't leave the row
+          // stuck at 'new' re-failing on every future run. Fixed 2026-09-17
+          // (Sage) — see scripts/_lib/auto-reply-risk-classifier.js header.
+          row.reply_status = 'skipped';
+          row.reply_error = `${NO_REPLY_NEEDED_CATEGORY}: pure reaction, no reply warranted (auto-closed)`;
+          await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ reply_status: 'skipped', reply_error: row.reply_error, updated_at: new Date().toISOString() }),
+          });
+          continue; // closed — no Telegram send, nothing left to notify
         } else {
-          if (!d.reply) throw new Error('empty draft for non-hostile comment');
           row.reply_draft = d.reply;
 
           // Risk classification (model call, api/../scripts/_lib/
@@ -579,6 +603,30 @@ async function processPendingReplies(deps) {
     } catch (err) {
       log.error(`[cron-tc-reply-approval] row ${row.id} failed: ${err.message}`);
       out.errors.push({ id: row.id, step: 'process', error: err.message });
+
+      // Fail CLOSED to escalation, never to auto-send, and never to a
+      // silent infinite retry: a genuinely malformed draft-model response
+      // (bad JSON, missing fields) now flags the row for Heath instead of
+      // leaving it at reply_status='new' to re-fail identically every
+      // future tick (the original 5-comments-stuck bug). Ordinary
+      // transient errors (network/Supabase/Telegram) are NOT tagged this
+      // way and correctly just retry next run.
+      if (/^malformed_draft_response:/.test(err.message || '') && row.reply_status !== 'flagged') {
+        try {
+          await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              reply_status: 'flagged',
+              reply_error: `malformed draft response, escalated: ${err.message}`.slice(0, 500),
+              updated_at: new Date().toISOString(),
+            }),
+          });
+          out.flagged++;
+        } catch (patchErr) {
+          log.error(`[cron-tc-reply-approval] row ${row.id} escalate-on-malformed patch failed: ${patchErr.message}`);
+        }
+      }
     }
   }
 
