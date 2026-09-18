@@ -177,6 +177,15 @@ async function run() {
     ],
     video_library: [
       { id: 'vid-1', status: 'pending_heath_review', topic: 'feature-demo-x', platforms: ['tiktok', 'instagram'], created_at: hoursAgo(96) },
+      // Gate-passed, never picked up by cron-post-videos.js Step 1 — the
+      // exact four-stuck-videos incident (2026-09-18), retargeted check.
+      { id: 'vid-2', status: 'approved', topic: 'ask-deadline-mobile', platforms: ['tiktok'], telegram_message_id: null, created_at: hoursAgo(20) },
+      // 'approved' but still fresh — must NOT fire yet.
+      { id: 'vid-3', status: 'approved', topic: 'too-fresh-to-alarm', platforms: ['facebook'], telegram_message_id: null, created_at: hoursAgo(2) },
+      // Old row still sitting at the now-RETIRED 'pending_approval' status —
+      // must never surface here; that status has no writer anymore, so
+      // treating it as live would silently mask real 'approved' backlog.
+      { id: 'vid-4', status: 'pending_approval', topic: 'stale-legacy-status', platforms: ['facebook'], telegram_message_id: null, created_at: hoursAgo(200) },
     ],
     fb_comment_replies: [
       // Stale unverified submit (2026-09-17 fix) -- must fire.
@@ -242,6 +251,22 @@ async function run() {
   check('video_library pending review fires and names target platforms', () => {
     assert.strictEqual(videoReview.length, 1);
     assert.ok(/tiktok/.test(videoReview[0].message) && /instagram/.test(videoReview[0].message), `expected platforms named, got: ${videoReview[0].message}`);
+  });
+
+  // Retargeted 2026-09-18: 'approved' rows cron-post-videos.js never picked
+  // up, not the retired 'pending_approval' status. Default threshold 6h.
+  const videoApprovedStale = await lib.checkVideoLibraryPendingApprovalStale();
+  check("video_library 'approved' unnotified >6h fires exactly the stale row", () => {
+    assert.strictEqual(videoApprovedStale.length, 1);
+    assert.strictEqual(videoApprovedStale[0].count, 1);
+    assert.strictEqual(videoApprovedStale[0].oldest.id, 'vid-2');
+  });
+  check("a fresh 'approved' row (2h old) does not fire", () => {
+    assert.ok(!videoApprovedStale.some((c) => c.oldest && c.oldest.id === 'vid-3'));
+  });
+  check("a row still at the retired 'pending_approval' status (200h old) does not fire here", () => {
+    assert.ok(!videoApprovedStale.some((c) => c.oldest && c.oldest.id === 'vid-4'),
+      'checkVideoLibraryPendingApprovalStale must only read status=approved, not the retired pending_approval');
   });
 
   console.log('\nTest 2a-2: group posting silence (2026-09-17, the "1 post in 24h" incident)');

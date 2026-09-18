@@ -4,6 +4,18 @@
 // to status='pending_approval' but the Telegram message was never sent (telegram_message_id
 // is null). cron-video-approval only picks up status='ready', so it will never send this.
 //
+// STALE (Carter, 2026-09-18): api/cron-video-approval.js's video_library flow
+// referenced above is RETIRED — see that file's header. 'ready'/'pending_approval'
+// are no longer read by anything; 'approved' is now canonical (see
+// api/cron-post-videos.js's "REVIEW GATE FLOW" comment). This script's
+// video_approve_/video_reject_ callback_data still works if run (telegram-
+// webhook.js still handles it), but the row will PATCH to 'pending_approval'
+// afterwards, a status api/_lib/silence-alarm.js no longer monitors for
+// staleness — don't rely on it to self-alarm if Heath misses the tap. Left
+// as-is (historical one-off, not part of the automated pipeline); if this
+// specific video is still stuck, PATCH it to 'approved' instead and let
+// api/cron-post-videos.js pick it up on its next run.
+//
 // Run: node scripts/resend-video-approval.js
 // Requires: .env.local in the MeetDossie root (loaded via dotenv).
 

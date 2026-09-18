@@ -200,6 +200,68 @@ async function main() {
     assert.strictEqual(tcKb.inline_keyboard[0][0].callback_data, `tcreply_approve:${tcRow.id}`);
   });
 
+  // ── 5. pickTopDecisions — round-robin so one pipeline can't starve
+  //      another out of every brief (Carter, 2026-09-18 — the four-stuck-
+  //      videos incident: video_library rows sat unsurfaced for two days).
+  //      Real end-to-end call through pickTopDecisions() against a mock
+  //      PostgREST server (not the DECISION_SOURCES-contract shortcut
+  //      above), because the fairness guarantee lives in pickTopDecisions'
+  //      own selection loop, not in any per-source query.
+  await checkAsync('pickTopDecisions gives every source with a pending decision at least one slot, even against an older/larger backlog elsewhere', async () => {
+    const http = require('http');
+    const db = {
+      // 5 comment_opportunities rows, ALL older than the one video_library
+      // row below — a pure global-oldest sort would fill every slot from
+      // this table alone and the video would never appear in any brief.
+      comment_opportunities: [
+        { id: 'opp-1', group_name: 'G1', author_name: 'A', score: 50, notified_at: '2026-09-01T00:00:00Z' },
+        { id: 'opp-2', group_name: 'G2', author_name: 'B', score: 50, notified_at: '2026-09-02T00:00:00Z' },
+        { id: 'opp-3', group_name: 'G3', author_name: 'C', score: 50, notified_at: '2026-09-03T00:00:00Z' },
+        { id: 'opp-4', group_name: 'G4', author_name: 'D', score: 50, notified_at: '2026-09-04T00:00:00Z' },
+        { id: 'opp-5', group_name: 'G5', author_name: 'E', score: 50, notified_at: '2026-09-05T00:00:00Z' },
+      ],
+      tc_discovery_responses: [],
+      video_library: [
+        { id: 'vid-late', topic: 'ask-deadline-mobile', target_owner: 'dossie', supabase_url: 'https://x/y.mp4', created_at: '2026-09-16T00:00:00Z' },
+      ],
+    };
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url, 'http://localhost');
+      const table = url.pathname.replace('/rest/v1/', '');
+      const rows = db[table] || [];
+      const params = url.searchParams;
+      const statusFilter = [...params.entries()].find(([k]) => k === 'status' || k === 'reply_status');
+      let data = rows;
+      if (statusFilter) {
+        const wanted = statusFilter[1].replace('eq.', '');
+        const expected = table === 'video_library' ? 'pending_heath_review'
+          : table === 'tc_discovery_responses' ? 'notified' : 'notified';
+        data = wanted === expected ? rows : [];
+      }
+      const orderCol = table === 'video_library' ? 'created_at' : table === 'tc_discovery_responses' ? 'reply_notified_at' : 'notified_at';
+      const sorted = [...data].sort((a, b) => String(a[orderCol]).localeCompare(String(b[orderCol])));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(sorted));
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = server.address().port;
+
+    process.env.SUPABASE_URL = `http://127.0.0.1:${port}`;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'regr-dummy-key';
+    delete require.cache[require.resolve(path.join(REPO, 'api', '_lib', 'silence-alarm.js'))];
+    const freshLib = require(path.join(REPO, 'api', '_lib', 'silence-alarm.js'));
+
+    const decisions = await freshLib.pickTopDecisions(3);
+    server.close();
+
+    assert.strictEqual(decisions.length, 3, `expected 3 decisions, got ${JSON.stringify(decisions)}`);
+    assert.ok(decisions.some((d) => d.table === 'video_library' && d.id === 'vid-late'),
+      `video_library's only pending decision was starved out by comment_opportunities' larger backlog: ${JSON.stringify(decisions.map((d) => `${d.table}:${d.id}`))}`);
+    const videoDecision = decisions.find((d) => d.table === 'video_library');
+    assert.strictEqual(videoDecision.keyboard.inline_keyboard[0][0].callback_data, 'video_approve_vid-late',
+      'reuses the EXACT existing video_approve_ callback');
+  });
+
   console.log(`\n${passed} passed${process.exitCode ? ', with failures' : ''}`);
   if (!process.exitCode) console.log('ALL PASS');
 }

@@ -1234,7 +1234,15 @@ def _register_video_library(slug: str, out_path: Path):
         "type": "skit",
         "topic": topic,
         "produced_date": today,
-        "status": "ready",
+        # 'approved' is the ONE canonical pre-review status every
+        # video_library producer writes (Carter 2026-09-18 — see
+        # api/cron-post-videos.js's "REVIEW GATE FLOW" comment). This used to
+        # write 'ready', which nothing consumes once
+        # api/cron-video-approval.js's video_library flow was retired; the
+        # MODE B (hardcoded-skit) call path never calls
+        # _register_video_library_with_caption() afterwards, so a row
+        # written here was the row's ONLY write — leaving it dead forever.
+        "status": "approved",
         "platforms": ["tiktok", "instagram"],
         "caption": (
             "When the TC ghosts you mid-contract. Dossie never does. "

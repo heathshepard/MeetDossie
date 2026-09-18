@@ -39,16 +39,24 @@ const SILENCE_DAYS_DEFAULT = 3;
 const APPROVAL_STALE_HOURS = 48;
 const DRAFT_STALE_HOURS = 24;
 const BACKLOG_THRESHOLD = 5;
-const VIDEO_REVIEW_STALE_HOURS = 48;
-// Carter, 2026-09-17: pending_approval is a dead end for any row that didn't
-// arrive there via api/cron-video-approval.js's own PATCH — see
-// checkVideoLibraryPendingApprovalStale()'s header comment. 7 days is
-// deliberately much longer than VIDEO_REVIEW_STALE_HOURS's 48h: a
-// pending_review row is a known-good state waiting on a human tap (should
-// resolve fast), whereas pending_approval can legitimately sit for the
-// ~24h between cron-video-approval.js's daily run and Heath's reply — 7 days
-// is "something is actually wrong," not "he hasn't checked Telegram yet today."
-const PENDING_APPROVAL_STALE_DAYS = 7;
+// Carter, 2026-09-18: lowered from 48h. Four gate-passed videos sat
+// unnotified for TWO DAYS before Heath ever saw them (activation-forensics
+// review) — 48h was never going to catch that in time for a daily content
+// pipeline. Heath's ask: any gate-passed video sitting unnotified >6h alarms.
+const VIDEO_REVIEW_STALE_HOURS = 6;
+// Carter, 2026-09-18: retargeted from status='pending_approval' (7-day
+// threshold) to status='approved' at 6h. 'pending_approval' is now a dead
+// status — api/cron-video-approval.js's video_library flow that used to
+// write it is RETIRED (see that file's header); nothing writes
+// 'pending_approval' anymore, so a check that only ever looked there would
+// silently stop catching anything. 'approved' is the ONE canonical
+// pre-review status every producer now writes (see
+// api/cron-post-videos.js's "REVIEW GATE FLOW" comment); a row sitting
+// there past VIDEO_APPROVED_UNNOTIFIED_STALE_HOURS means cron-post-videos
+// never picked it up at all — the exact class of bug (four rows, up to two
+// days unnotified) this whole fix closes. 7 days -> 6h for the same reason
+// as VIDEO_REVIEW_STALE_HOURS above.
+const VIDEO_APPROVED_UNNOTIFIED_STALE_HOURS = 6;
 const ALERT_COOLDOWN_HOURS = 20; // < 24 so a once-daily cron always re-fires next day, never skips one
 
 // scripts/harvest-tc-discovery-responses.js's own HOT_WINDOW_MS/HOT_INTERVAL_MS
@@ -462,31 +470,33 @@ async function checkVideoLibraryPendingReview(staleHours = VIDEO_REVIEW_STALE_HO
   }];
 }
 
-// 4c. video_library rows stuck at pending_approval past
-// PENDING_APPROVAL_STALE_DAYS (default 7) — the dead-end status Carter found
-// 2026-09-17: 9 rows sat here for up to 4 months because pending_approval is
-// only ever a CRON-WRITTEN transient state (api/cron-video-approval.js
-// PATCHes a 'ready' row to pending_approval right before sending the
-// Telegram Approve/Reject message) — nothing ever re-reads a row that a
-// caller drops directly into pending_approval, so a miswired ingestion path
-// (scripts/feature-demo-publish.js used to do exactly this) produces a row
-// with no Telegram message ever sent (telegram_message_id stays null) and no
-// cron that will ever look at it again. Distinct from
+// 4c. video_library rows stuck at 'approved' past
+// VIDEO_APPROVED_UNNOTIFIED_STALE_HOURS (default 6h) — a row api/cron-post-
+// videos.js's Step 1 should have picked up (individually sent OR queued for
+// the morning brief) on the very next daily run but never did. RETARGETED
+// 2026-09-18 (Carter) from status='pending_approval' at a 7-day threshold:
+// that status is now a dead end — api/cron-video-approval.js's video_library
+// flow that used to write it is RETIRED (see that file's header), so nothing
+// writes 'pending_approval' anymore and a check that only ever looked there
+// would silently go quiet forever. 'approved' is the ONE canonical pre-
+// review status every producer writes (queue-finished-videos.py,
+// feature-demo-publish.js, produce-skits.py, register-video.js,
+// listing-reel-trigger.js's Pipeline B). Distinct from
 // checkVideoLibraryPendingReview() above: that one catches a row that WAS
-// sent to Telegram and is waiting on a tap; this one catches a row that may
-// never have been sent at all. Both are worth knowing, so both alarms run.
-async function checkVideoLibraryPendingApprovalStale(staleDays = PENDING_APPROVAL_STALE_DAYS) {
-  const cutoff = hoursAgoIso(staleDays * 24);
+// advanced to pending_heath_review (queued/sent) and is waiting on a tap;
+// this one catches a row that never even got that far. Both are worth
+// knowing, so both alarms run.
+async function checkVideoLibraryPendingApprovalStale(staleHours = VIDEO_APPROVED_UNNOTIFIED_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
   const res = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.pending_approval&created_at=lt.${encodeURIComponent(cutoff)}&select=id,topic,platforms,telegram_message_id,created_at&order=created_at.asc`,
+    `/rest/v1/video_library?status=eq.approved&created_at=lt.${encodeURIComponent(cutoff)}&select=id,topic,platforms,telegram_message_id,created_at&order=created_at.asc`,
   );
   if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
-  const neverSent = res.data.filter((r) => !r.telegram_message_id).length;
   return [{
-    key: 'video_library_pending_approval_stale',
+    key: 'video_library_approved_unnotified_stale',
     count: res.data.length,
     oldest: res.data[0],
-    message: `${res.data.length} video(s) in video_library stuck at pending_approval for >${staleDays}d (${neverSent} never got a Telegram message at all — telegram_message_id is null, meaning nothing ever sent them to you) — oldest: ${res.data[0].topic}, created ${res.data[0].created_at}. This status is a dead end unless a cron actively moves it; check whether the ingestion path that created these skipped api/cron-video-approval.js's 'ready' entry point.`,
+    message: `${res.data.length} video(s) in video_library stuck at 'approved' for >${staleHours}h — gate-passed but api/cron-post-videos.js never picked them up (individual send or morning-brief queue) — oldest: ${res.data[0].topic}, created ${res.data[0].created_at}. Check that cron-post-videos.js's daily dispatch (cron-dispatch-daily-1330) actually ran.`,
   }];
 }
 
@@ -811,7 +821,7 @@ async function runAllChecks(opts = {}) {
     checkStaleDrafts(opts.draftStaleHours),
     checkAccumulatingBacklog(opts.backlogThreshold),
     checkVideoLibraryPendingReview(opts.videoReviewStaleHours),
-    checkVideoLibraryPendingApprovalStale(opts.pendingApprovalStaleDays),
+    checkVideoLibraryPendingApprovalStale(opts.videoApprovedUnnotifiedStaleHours),
     checkTcHarvestHotWindowStale(opts.tcHarvestStaleHours, opts.tcHarvestHotWindowHours),
     checkTcHarvestScopeGap(opts.tcHarvestScopeGapHours),
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
@@ -1159,10 +1169,35 @@ async function pickTopDecisions(limit = 3) {
     }));
   }));
 
-  return perSource
-    .flat()
+  // Round-robin across sources, oldest-first WITHIN each source (Carter,
+  // 2026-09-18 — the four-stuck-videos incident: video_library rows sat
+  // unsurfaced for two days despite being correctly queued at
+  // pending_heath_review, in part because a pure global-oldest sort lets a
+  // single large/older backlog in one pipeline (comment_opportunities,
+  // tc_discovery_responses) starve every other pipeline out of all `limit`
+  // slots, every single day). Each pass below takes the next-oldest
+  // still-unpicked item from EVERY source in turn, so a pipeline with a
+  // pending decision always gets at least one shot at a slot before any
+  // pipeline gets a second. Final list is still re-sorted oldest-first for
+  // display, so the render order is unchanged from before.
+  const picked = [];
+  const cursors = perSource.map(() => 0);
+  let progressed = true;
+  while (picked.length < limit && progressed) {
+    progressed = false;
+    for (let i = 0; i < perSource.length; i += 1) {
+      if (picked.length >= limit) break;
+      const queue = perSource[i];
+      if (cursors[i] < queue.length) {
+        picked.push(queue[cursors[i]]);
+        cursors[i] += 1;
+        progressed = true;
+      }
+    }
+  }
+
+  return picked
     .sort((a, b) => String(a.notified_at).localeCompare(String(b.notified_at)))
-    .slice(0, limit)
     .map((d) => ({
       ...d,
       age_hours: d.notified_at ? Math.round((Date.now() - new Date(d.notified_at).getTime()) / 3600000) : null,
@@ -1176,7 +1211,7 @@ module.exports = {
   DRAFT_STALE_HOURS,
   BACKLOG_THRESHOLD,
   VIDEO_REVIEW_STALE_HOURS,
-  PENDING_APPROVAL_STALE_DAYS,
+  VIDEO_APPROVED_UNNOTIFIED_STALE_HOURS,
   ALERT_COOLDOWN_HOURS,
   TC_HARVEST_HOT_WINDOW_HOURS,
   TC_HARVEST_HOT_STALE_HOURS,

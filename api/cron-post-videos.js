@@ -24,7 +24,9 @@
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
-require('./_lib/telegram-gate').install('cron-post-videos');
+const telegramGate = require('./_lib/telegram-gate');
+telegramGate.install('cron-post-videos');
+const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { DateTime } = require('luxon');
@@ -395,11 +397,47 @@ async function sendForHeathReview(video, { batched = false } = {}) {
     { text: 'Reject',  callback_data: `video_reject_${video.id}` },
   ]];
 
-  await sendTelegramMessage(text, {
+  const tgData = await sendTelegramMessage(text, {
     reply_markup: { inline_keyboard },
   });
 
-  console.log(`[cron-post-videos] Sent ${video.id} to Heath for review`);
+  // Carter, 2026-09-18 (ported from the retired api/cron-video-approval.js
+  // Part 1, same incident: on 2026-08-17 five videos were marked
+  // pending_approval off telegram-gate's fake-success response and sat
+  // invisible for three weeks). A gate-suppressed send is NOT a delivery —
+  // revert to 'approved' so the row stays retryable and visible instead of
+  // sitting at pending_heath_review with no Telegram message ever sent.
+  const tgSuppressed = wasSuppressed(tgData);
+  if (!tgData || tgSuppressed) {
+    if (tgSuppressed) {
+      console.warn(`[cron-post-videos] approval message for video ${video.id} was SUPPRESSED by telegram-gate — reverting to 'approved', NOT staying pending_heath_review`);
+    } else {
+      console.error(`[cron-post-videos] Telegram send failed for video ${video.id} — reverting to 'approved'`);
+    }
+    await supabaseFetch(
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'approved' }),
+      },
+    );
+    return;
+  }
+
+  const messageId = tgData?.result?.message_id || null;
+  if (messageId) {
+    await supabaseFetch(
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ telegram_message_id: messageId }),
+      },
+    );
+  }
+
+  console.log(`[cron-post-videos] Sent ${video.id} to Heath for review, message_id=${messageId}`);
 }
 
 // opts.scheduledFor: ISO timestamp → Zernio schedules the post for that

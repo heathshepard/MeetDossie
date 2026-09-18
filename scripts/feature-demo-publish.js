@@ -3,28 +3,34 @@
 // scripts/feature-demo-publish.js
 //
 // Upload a finished feature-demo mp4 to Supabase Storage and insert a row in
-// the video_library table with type='feature_demo' and status='ready' so it
-// flows through the standard Telegram approval pipeline.
+// the video_library table with type='feature_demo' and status='approved' so
+// it flows through the standard Telegram approval pipeline.
 //
 // STATUS FIX (2026-09-17): this used to insert directly as
 // status='pending_approval', on the belief that "cron-post-videos already
 // picks up rows when Heath approves." That's true of the APPROVE step, but
 // nothing ever sends the video to Heath in the first place from that state:
-// api/cron-video-approval.js (the only code that PATCHes a row TO
-// pending_approval and fires the Telegram Approve/Reject message) only
-// SELECTs rows already at status='ready' — it never re-reads a row a caller
-// dropped directly into pending_approval. api/cron-post-videos.js only reads
-// 'approved' and 'heath_approved'. The result: a row inserted straight into
-// pending_approval has no code path that ever sends it to Telegram, so it
-// sits invisible forever with `telegram_message_id` staying null. This is
+// api/cron-video-approval.js (the only code that PATCHed a row TO
+// pending_approval and fired the Telegram Approve/Reject message) only
+// SELECTed rows already at status='ready' — it never re-read a row a caller
+// dropped directly into pending_approval. The result: a row inserted straight
+// into pending_approval has no code path that ever sends it to Telegram, so
+// it sits invisible forever with `telegram_message_id` staying null. This is
 // exactly how 8 of the 9 rows that piled up 2026-06-09 through 2026-08-23
-// went dead — confirmed by querying video_library directly: all 8 have
-// telegram_message_id=null, versus the one non-feature_demo row in that same
-// pending_approval backlog (amendment-demo-desktop-2026-05-27, inserted
-// through the OLD/correct 'ready' path) which DOES carry a real
-// telegram_message_id, because cron-video-approval.js actually ran on it.
-// Inserting as 'ready' here routes every future publish through the front
-// door instead of skipping the one step that sends the approval message.
+// went dead.
+//
+// STATUS FIX #2 (2026-09-18): the 2026-09-17 fix above pointed this at
+// 'ready' because that was the front door AT THE TIME. It has since drifted:
+// api/cron-video-approval.js's 'ready'-reading video_library flow is RETIRED
+// (see that file's header) in favor of api/cron-post-videos.js's Step 1,
+// which reads status='approved' — the SAME canonical status
+// scripts/queue-finished-videos.py, scripts/listing-reel-trigger.js's Pipeline
+// B, api/register-video.js, and scripts/produce-skits.py all already used.
+// Four gate-passed rows (three via the OLD 'pending_heath_review' hop, one
+// stuck right here at 'ready') sat unnotified for two days before Heath ever
+// saw them — this file was the one producer still writing the non-canonical
+// value. 'approved' is now THE single entry point; see
+// api/cron-post-videos.js's "REVIEW GATE FLOW" comment for the full chain.
 //
 // Usage:
 //   node scripts/feature-demo-publish.js <scene-script.json>
@@ -137,7 +143,7 @@ async function upsertVideoLibrary(row) {
 // design and would have refused every correctly-shaped desktop demo.)
 //
 // Never throws — mirrors scripts/queue-finished-videos.py's run_quality_gate
-// pattern: returns a verdict, and the caller decides status ('ready' on
+// pattern: returns a verdict, and the caller decides status ('approved' on
 // pass, 'quality_hold' on fail), uploading either way so a held video is
 // still visible to Heath with its real failure reasons attached, instead of
 // silently vanishing before it ever reaches the database.
@@ -217,12 +223,13 @@ async function publish(scriptPath) {
     type: 'feature_demo',
     topic: cfg.topic || cfg.name,
     produced_date: today,
-    // status='ready' ONLY on a quality-gate pass — cron-video-approval.js
-    // sends 'ready' rows straight to Heath's Telegram, so a failing video
-    // must never reach that state. 'quality_hold' keeps it out of every
-    // approval/posting cron (see api/_lib/silence-alarm.js's
+    // status='approved' ONLY on a quality-gate pass — the canonical
+    // pre-review status api/cron-post-videos.js Step 1 reads to send Heath's
+    // Telegram approval (individually or batched into the morning brief),
+    // so a failing video must never reach that state. 'quality_hold' keeps
+    // it out of every approval/posting cron (see api/_lib/silence-alarm.js's
     // quality_hold check) until someone fixes and re-runs this script.
-    status: qualityPassed ? 'ready' : 'quality_hold',
+    status: qualityPassed ? 'approved' : 'quality_hold',
     platforms,
     caption: cfg.caption || '',
     supabase_url: publicUrl,

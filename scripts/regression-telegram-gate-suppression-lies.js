@@ -22,18 +22,28 @@
  *     suppressed_by:'telegram-gate', logged at WARN with a text preview.
  *   - Gate exports wasSuppressed(parsedBody) for callers to branch on.
  *   - Every caller that advances "the human was notified" state
- *     (pending_approval, *_sent_at, debounce/dedup stamps) skips or reverts
- *     that state when the send was suppressed.
+ *     (pending_heath_review, *_sent_at, debounce/dedup stamps) skips or
+ *     reverts that state when the send was suppressed.
+ *
+ * UPDATE (Carter, 2026-09-18): api/cron-video-approval.js's video_library
+ * flow (Part 1 — the 'ready'->'pending_approval' path this test originally
+ * exercised) is RETIRED — see that file's header. The individual-send path
+ * into video_library approval now lives in api/cron-post-videos.js's
+ * sendForHeathReview(), which ported this exact suppression-revert
+ * protection (revert to 'approved' instead of 'ready'). Test 2 below now
+ * exercises THAT function so the regression still pins down the real,
+ * live code path instead of dead code.
  *
  * TESTS (local mock PostgREST — ZERO production access, ZERO real Telegram):
  *   1. Gate contract: with TELEGRAM_CRON_NOTIFICATIONS unset (suppress-all
  *      default), a sendMessage fetch resolves to a body with delivered===false
  *      and suppressed===true, and wasSuppressed() flags it — while a real
  *      Telegram success shape is NOT flagged.
- *   2. THE EXACT INCIDENT: cron-video-approval, given one 'ready'
- *      video_library row and a suppressed gate, must NOT leave the row in
- *      pending_approval — final status PATCHed for that row must be 'ready'
- *      and no telegram_message_id may be stamped.
+ *   2. THE EXACT INCIDENT, ON THE LIVE PATH: cron-post-videos, given one
+ *      'approved' video_library row, the batching capability OFF (individual
+ *      send), and a suppressed gate, must NOT leave the row in
+ *      pending_heath_review — final status PATCHed for that row must be
+ *      'approved' and no telegram_message_id may be stamped.
  *
  * Run manually:
  *   node scripts/regression-telegram-gate-suppression-lies.js
@@ -47,8 +57,11 @@ const REPO = path.join(__dirname, '..');
 const VIDEO_ID = 'regr-video-0817-aaaa';
 
 // ------------------------------------------------------------ mock PostgREST
-// Just enough for cron-video-approval + fail-soft telemetry: serves the one
-// 'ready' video, an empty skit_queue, and records every PATCH body in order.
+// Just enough for cron-post-videos' Step 1 + fail-soft telemetry: serves the
+// one 'approved' video for the approved-status query, empty for every other
+// query (heath_approved candidates, ops_flags capability lookup — which
+// makes checkCapability() fail closed to batched=false, exercising the
+// individual-send path this test targets), and records every PATCH body.
 const patches = []; // { table, query, body }
 
 function startMockSupabase() {
@@ -68,21 +81,23 @@ function startMockSupabase() {
           return;
         }
 
-        if (req.method === 'GET' && table === 'video_library') {
+        if (req.method === 'GET' && table === 'video_library' && url.search.includes('status=eq.approved')) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify([{
             id: VIDEO_ID,
-            status: 'ready',
+            status: 'approved',
             type: 'feature-demo',
             topic: 'regression harness',
             platforms: ['facebook'],
             caption: 'regression test video',
             supabase_url: 'https://example.com/video.mp4',
+            quality_status: 'passed',
           }]));
           return;
         }
 
-        // skit_queue GET and anything else (telemetry upserts etc.): absorb.
+        // heath_approved candidates, ops_flags, posting_schedule, post-count
+        // queries, skit_queue, telemetry upserts etc.: absorb.
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('[]');
       });
@@ -122,11 +137,13 @@ function fakeReqRes() {
   process.env.SUPABASE_URL = `http://127.0.0.1:${port}`;
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'regr-dummy-key';
   process.env.TELEGRAM_BOT_TOKEN = 'regr-dummy-token';
+  process.env.TELEGRAM_MARKETING_BOT_TOKEN = 'regr-dummy-token'; // cron-post-videos prefers this one
   process.env.TELEGRAM_CHAT_ID = '111111';
   process.env.CRON_SECRET = 'regr-dummy-secret';
+  process.env.ZERNIO_API_KEY = 'regr-dummy-zernio-key'; // cron-post-videos short-circuits without it
 
   // Requiring the handler installs the gate's fetch wrapper for this process.
-  const handler = require(path.join(REPO, 'api', 'cron-video-approval.js'));
+  const handler = require(path.join(REPO, 'api', 'cron-post-videos.js'));
   const gate = require(path.join(REPO, 'api', '_lib', 'telegram-gate.js'));
 
   // ---- Test 1: gate contract --------------------------------------------
@@ -160,8 +177,8 @@ function fakeReqRes() {
     assert.strictEqual(gate.wasSuppressed(null), false);
   });
 
-  // ---- Test 2: the exact 2026-08-17 incident ----------------------------
-  console.log('\nTest 2: cron-video-approval must not mark pending_approval on a suppressed send');
+  // ---- Test 2: the exact 2026-08-17 incident, on the live path ----------
+  console.log('\nTest 2: cron-post-videos must not leave a row at pending_heath_review on a suppressed send');
   patches.length = 0;
   const { req, res } = fakeReqRes();
   await handler(req, res);
@@ -176,14 +193,14 @@ function fakeReqRes() {
     assert.strictEqual(res.result.statusCode, 200,
       `handler returned ${res.result.statusCode}: ${JSON.stringify(res.result.jsonBody)}`);
   });
-  check('row does NOT end up pending_approval (incident condition)', () => {
-    assert.notStrictEqual(finalStatus, 'pending_approval',
-      `final PATCHed status for ${VIDEO_ID} is 'pending_approval' — the exact ` +
-      `2026-08-17 bug: suppressed send treated as delivered. PATCH log: ${JSON.stringify(videoPatches)}`);
+  check('row does NOT end up pending_heath_review (incident condition)', () => {
+    assert.notStrictEqual(finalStatus, 'pending_heath_review',
+      `final PATCHed status for ${VIDEO_ID} is 'pending_heath_review' — the exact ` +
+      `2026-08-17-class bug: suppressed send treated as delivered. PATCH log: ${JSON.stringify(videoPatches)}`);
   });
-  check("row is reverted to 'ready' so it stays retryable", () => {
-    assert.strictEqual(finalStatus, 'ready',
-      `expected final status 'ready', got ${JSON.stringify(statuses)}`);
+  check("row is reverted to 'approved' so it stays retryable", () => {
+    assert.strictEqual(finalStatus, 'approved',
+      `expected final status 'approved', got ${JSON.stringify(statuses)}`);
   });
   check('no telegram_message_id stamped from the fake success', () => {
     const stamped = videoPatches.some((p) => p.body && p.body.telegram_message_id);
