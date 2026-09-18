@@ -64,6 +64,14 @@ const pairs = [
     path.join(repoRoot, 'scripts', 'trec-20-18-field-rules.json'),
     path.join(repoRoot, 'api', '_lib', 'trec-20-18-field-rules.json'),
   ],
+  [
+    // The election rules the validator and the send-path gate BOTH read. If
+    // these two copies drift, the dev harness and production disagree about
+    // which "check one box only" paragraph is mandatory — exactly the class of
+    // silent divergence this integrity check exists to prevent.
+    path.join(repoRoot, 'scripts', 'contract-election-rules.json'),
+    path.join(repoRoot, 'api', '_lib', 'contract-election-rules.json'),
+  ],
 ];
 
 let allOK = true;

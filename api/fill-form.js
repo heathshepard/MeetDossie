@@ -27,6 +27,12 @@ const {
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const {
+  evaluateElections,
+  summarize: summarizeElections,
+  blockingMessage: electionBlockingMessage,
+  formCodeForFormType,
+} = require('./_lib/contract-election-gate');
 const { fillFlatPdfFromMapStrict } = require('./_assets/flat-pdf-filler.js');
 
 // 2026-08-31 CARTER — coordinate field-maps for the four flat (0-AcroForm-
@@ -4351,6 +4357,56 @@ module.exports = async function handler(req, res) {
       baseValues: txDefaults,
       callerValues: fieldValues,
     });
+
+    // ----------------------------------------------------------------------
+    // ELECTION GATE — every "check one box only" paragraph on this form.
+    //
+    // This runs on mergedFields, which is the exact object handed to the
+    // renderer, so what the gate judges is what lands on the page. It is NOT
+    // opt-in: the strict-validation pipeline below only runs when a caller
+    // passes strict_validate, which is precisely how a contract reaches a
+    // signature through a path that checks nothing.
+    //
+    // 29046 Pfeiffers Gate executed 2026-09-09 with paragraph 7D blank. It was
+    // flagged in a report and executed anyway. A note in a report is not a
+    // gate — this is the gate.
+    //
+    // Blocking is deliberately narrow: only elections the form genuinely
+    // requires AND the member can actually fix. See contract-election-rules.json.
+    // ----------------------------------------------------------------------
+    let electionReport = null;
+    const electionFormCode = formCodeForFormType(resolvedFormType);
+    if (electionFormCode) {
+      electionReport = evaluateElections({
+        formCode: electionFormCode,
+        fieldValues: mergedFields,
+      });
+      console.log('[fill-form][elections]', resolvedFormType, summarizeElections(electionReport));
+      if (electionReport.warnings.length) {
+        console.warn('[fill-form][elections] warnings:',
+          JSON.stringify(electionReport.warnings.map((w) => w.message)));
+      }
+      if (electionReport.unreachable.length) {
+        console.warn('[fill-form][elections] unreachable controls:',
+          JSON.stringify(electionReport.unreachable.map((u) => u.message)));
+      }
+      if (!electionReport.pass) {
+        console.error('[fill-form] BLOCKED — required election blank/ambiguous on %s for tx %s: %s',
+          resolvedFormType, transactionId,
+          JSON.stringify(electionReport.blocking.map((b) => b.message)));
+        return res.status(422).json({
+          ok: false,
+          blocked: true,
+          error: electionBlockingMessage(electionReport),
+          elections: {
+            form: electionReport.formName,
+            blocking: electionReport.blocking,
+            warnings: electionReport.warnings,
+            unreachable: electionReport.unreachable,
+          },
+        });
+      }
+    }
 
     // ----------------------------------------------------------------------
     // TREC 20-18 strict validation pipeline (opt-in via body.strict_validate)
