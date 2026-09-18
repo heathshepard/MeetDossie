@@ -116,7 +116,7 @@ Source of truth: ~/.claude/projects/.../memory/reference_existing_tools.md + CLA
 - api/cron-send-for-approval.js — sends draft + card to DossieMarketingBot with Approve/Reject buttons
 - api/cron-publish-approved.js — every 30 min, posts approved drafts to Zernio (Twitter thread-split max 6)
 - api/cron-verify-posts.js — confirms publish status
-- api/cron-analytics-sync.js + cron-social-digest.js — pulls engagement, daily digest
+- api/cron-analytics-sync.js — pulls engagement (daily digest folded into api/cron-silence-alarm.js's heartbeat, 2026-09-18; cron-social-digest.js retired)
 - api/cron-sage-intelligence.js + cron-sage-trends.js — your own intelligence feeds
 - social_posts, posting_schedule, content_calendar tables
 

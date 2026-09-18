@@ -33,6 +33,16 @@
 //   - FOUNDING SPOTS REMAINING: 50 - active founding count
 //   - REFERRAL PIPELINE: pending founding_applications with names
 //   - LOGIN DETECTION FIX: caveat on last_sign_in_at accuracy + is_demo exclusion verified
+//
+// RETIRED as a standalone Telegram push (Carter, 2026-09-18) — this was one
+// of THREE competing 7AM Telegram messages to Heath (this one, the Sage-bot
+// [DAILY DIGEST] from api/cron-social-digest.js, and api/cron-silence-alarm.js's
+// morning heartbeat). Consolidated to exactly one: api/cron-silence-alarm.js
+// now requires buildBrief() from this file and folds its full text into the
+// heartbeat message, then sends once. buildBrief() itself is UNCHANGED and
+// still exported below for reuse. This file's own handler still computes and
+// RETURNS the brief (handy for `?` debug curls) but no longer calls
+// sendTelegram() — see the handler below.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -376,6 +386,9 @@ function priceForCustomer({ plan, isFoundingFriend }) {
 }
 
 // ─── Telegram ────────────────────────────────────────────────────────────
+//
+// Unused since the 2026-09-18 retirement (see file header) — kept in place
+// rather than deleted in case this route is ever un-retired standalone.
 
 async function sendTelegram(text) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
@@ -730,6 +743,10 @@ async function buildBrief() {
 
 // ─── Handler ─────────────────────────────────────────────────────────────
 
+// RETIRED 2026-09-18 (Carter): no longer sends its own Telegram message —
+// see the file header. buildBrief() still runs on every hit so this route
+// stays useful for a manual debug curl (?dry_run implied — sent:false always
+// now), and stays exported below for api/cron-silence-alarm.js to reuse.
 module.exports = withTelemetry('cron-morning-brief', async function handler(req, res) {
   try {
     // Auth: accept Vercel cron header OR Bearer CRON_SECRET.
@@ -745,22 +762,13 @@ module.exports = withTelemetry('cron-morning-brief', async function handler(req,
 
     const text = await buildBrief();
 
-    try {
-      await sendTelegram(text);
-    } catch (telegramErr) {
-      console.error('[morning-brief] Telegram send failed:', telegramErr.message);
-      return res.status(500).json({
-        ok: false,
-        error: `Telegram send failed: ${telegramErr.message}`,
-        brief_preview: text.slice(0, 500),
-      });
-    }
-
     return res.status(200).json({
       ok: true,
-      sent: true,
+      sent: false,
+      retired: 'folded into cron-silence-alarm.js heartbeat, 2026-09-18',
       brief_length: text.length,
       brief_lines: text.split('\n').length,
+      brief_preview: text,
     });
   } catch (err) {
     console.error('[morning-brief] uncaught error:', err);
@@ -770,3 +778,5 @@ module.exports = withTelemetry('cron-morning-brief', async function handler(req,
     });
   }
 });
+
+module.exports.buildBrief = buildBrief;

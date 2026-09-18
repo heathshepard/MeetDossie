@@ -129,6 +129,14 @@ const TRACKED_PAIRS = [
   { platform: 'instagram', target_owner: 'heath-realtor' },
 ];
 
+// Platforms tallied by the CREATED-last-24h status breakdown below. Mirrors
+// api/cron-social-digest.js's own PLATFORMS list — that cron is retired
+// (2026-09-18, folded in here, see api/cron-dispatch-daily-1200.js header)
+// but this specific number (what got CREATED in the last 24h, by status,
+// per platform — distinct from posted_last_24h's posted-only count above)
+// was the one genuinely useful thing it had that the heartbeat lacked.
+const DIGEST_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'tiktok'];
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -876,6 +884,7 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     videoFailed,
     tcNotified,
     socialDraftReplies,
+    createdLast24h,
   ] = await Promise.all([
     supabaseFetch(`/rest/v1/social_posts?status=eq.posted&posted_at=gte.${encodeURIComponent(since24h)}&select=platform,target_owner`),
     supabaseFetch(`/rest/v1/video_library?status=eq.posted&posted_date=gte.${encodeURIComponent(since24h)}&select=platforms,target_owner`),
@@ -895,6 +904,12 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     supabaseFetch(`/rest/v1/video_library?status=eq.failed&select=id`),
     supabaseFetch(`/rest/v1/tc_discovery_responses?reply_status=eq.notified&select=id`),
     supabaseFetch(`/rest/v1/social_comment_replies?reply_status=eq.draft&select=id`),
+    // Folded in from the retired cron-social-digest.js (2026-09-18): what got
+    // CREATED (not posted) in the last 24h, by status, per platform. Distinct
+    // signal from posted_last_24h below — this shows drafts/approvals/
+    // rejections/failures piling up on a platform even on a day nothing
+    // actually posted yet.
+    supabaseFetch(`/rest/v1/social_posts?created_at=gte.${encodeURIComponent(since24h)}&select=platform,status`),
   ]);
 
   // Fold both posted-social and posted-video rows into one (platform,owner)
@@ -942,6 +957,25 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     return { platform, target_owner, last_posted_at: lastPostedAt, days_silent: daysSilent };
   }));
 
+  // created_last_24h tally — same shape as the old cron-social-digest.js
+  // (posted/approved/draft/rejected/failed/pending per platform).
+  const createdTally = {};
+  for (const plat of DIGEST_PLATFORMS) {
+    createdTally[plat] = { posted: 0, approved: 0, draft: 0, rejected: 0, failed: 0, pending: 0 };
+  }
+  if (createdLast24h.ok && Array.isArray(createdLast24h.data)) {
+    for (const row of createdLast24h.data) {
+      const t = createdTally[row.platform];
+      if (!t) continue;
+      if (row.status === 'posted') t.posted++;
+      else if (row.status === 'approved') t.approved++;
+      else if (row.status === 'draft') t.draft++;
+      else if (row.status === 'rejected') t.rejected++;
+      else if (row.status === 'failed') t.failed++;
+      else t.pending++;
+    }
+  }
+
   const cronSanity = scanCronSanity(cronSanityScanOpts);
 
   const count = (res) => (res.ok && Array.isArray(res.data) ? res.data.length : null);
@@ -988,6 +1022,9 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     posted_last_24h: {
       by_platform_owner: toList(postedByPlatform),
       group_posts: count(postedGroups),
+    },
+    created_last_24h: {
+      by_platform_status: createdTally,
     },
     scheduled_today: {
       by_platform_owner: toList(scheduledTodayByPlatform),

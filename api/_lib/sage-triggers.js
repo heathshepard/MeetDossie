@@ -18,7 +18,9 @@ const ALLOWED_TRIGGERS = {
   'send-for-approval':   { path: '/api/cron-send-for-approval',  method: 'POST' },
   'fb-group-post':       { path: '/api/cron-daily-fb-posts',     method: 'POST' },
   'publish-approved':    { path: '/api/cron-publish-approved',   method: 'POST' },
-  'social-digest':       { path: '/api/cron-social-digest',      method: 'POST' },
+  // 'social-digest' removed 2026-09-18 — cron-social-digest.js was retired
+  // (folded into api/cron-silence-alarm.js's morning heartbeat, see that
+  // file's header). Deleted, not just unlisted — do not re-add.
   'analytics-sync':      { path: '/api/cron-analytics-sync',     method: 'POST' },
   'sage-trends':         { path: '/api/cron-sage-trends',        method: 'POST' },
 };
