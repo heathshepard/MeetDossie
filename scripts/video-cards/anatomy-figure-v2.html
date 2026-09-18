@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rust — Anatomy Figure Card v2</title>
+<!--
+  Rust muscle-map card, v2. Same chrome as anatomy-figure.html (safe zones, PJS
+  type, chips, cues) but the figure is no longer flat SVG vector art — it is the
+  AI-generated anatomical render from Media/anatomy-v2/base/ with the worked
+  muscle group lit by scripts/anatomy-v2/figure-lib.js.
+
+  Each view stacks two images: the unlit base and the pre-composited highlight.
+  The pulse is a cross-fade of the highlight layer's opacity, so the animation
+  costs nothing per frame and the anatomy never shifts between frames.
+
+  Placeholders {{EXERCISE}} {{PRIMARY}} {{SECONDARY_JSON}} {{CUES_JSON}}
+  {{FOCUS}} {{FORMAT}} {{FRONT_BASE}} {{FRONT_HOT}} {{BACK_BASE}} {{BACK_HOT}}
+  are substituted by the generator.
+
+  COMPLIANCE: Rust is not listed in any app store. No download CTA on this card.
+-->
+<style>
+@font-face { font-family:'PJS';  src:url('../../public/fonts/PlusJakartaSans-Bold.ttf') format('truetype'); font-weight:700; }
+@font-face { font-family:'PJSR'; src:url('../../public/fonts/PlusJakartaSans-Regular.ttf') format('truetype'); font-weight:400; }
+
+:root{
+  --p:0;                 /* pulse phase 0..1 — driven by setPhase() */
+  --bg:#0A0C0F; --ink:#F2F2F2; --accent:#E4572E; --muted:#8A8A8A; --note:#9A9A9A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow:hidden;background:var(--bg)}
+body{font-family:'PJSR',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+#card{position:relative;background:var(--bg);overflow:hidden}
+html.story,body.story,#card.story{width:1080px;height:1920px}
+html.card, body.card, #card.card{width:1080px;height:1350px}
+
+#card::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:
+    radial-gradient(70% 40% at 50% 46%, rgba(228,87,46,calc(.055 + .045*var(--p))) 0%, rgba(228,87,46,0) 76%),
+    radial-gradient(90% 46% at 50% 0%,  rgba(255,255,255,.04) 0%, transparent 70%);
+}
+#card::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:72px 72px;
+  -webkit-mask-image:radial-gradient(70% 55% at 50% 42%,#000 0%,transparent 80%);
+          mask-image:radial-gradient(70% 55% at 50% 42%,#000 0%,transparent 80%);
+}
+
+.safe{position:absolute;top:200px;left:44px;right:148px;bottom:496px;
+      display:flex;flex-direction:column;z-index:3}
+#card.card .safe{top:80px;left:64px;right:64px;bottom:62px}
+
+.topbar{display:flex;align-items:baseline;justify-content:space-between;flex:none}
+.brand{font-family:'PJS';font-size:30px;letter-spacing:.40em;color:var(--accent)}
+.brand em{font-style:normal;color:var(--ink);opacity:.42}
+.kick{font-family:'PJS';font-size:17px;letter-spacing:.26em;color:var(--muted);text-transform:uppercase}
+
+/* ---------- the figures ---------- */
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+       gap:clamp(10px,3%,48px);position:relative}
+.fig{position:relative;height:100%;flex:1;min-width:0}
+.fig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center}
+.fig .hot{opacity:calc(.40 + .60*var(--p))}
+/* The matte is flattened onto the card colour inside figure-lib.js, so these
+   need no blend mode — a blend mode here would either wash the highlight out
+   (screen) or clip the accent's blue channel and turn it white (lighten).
+   The glow is a radial gradient BEHIND the figure: a drop-shadow on an opaque
+   image just draws a rectangle. */
+/* Deliberately NOTHING bright sits directly behind a figure. The cutout's alpha
+   is near-perfect but not exact — a little of the charcoal fabric stays
+   partially transparent (see bodyMask in figure-lib.js) — and anything luminous
+   behind it shows through the shorts as a coloured patch. The ambient warmth
+   lives in #card::after instead, which is broad and low-contrast enough that
+   the residual transparency reads as nothing at all. */
+.fig img{z-index:1}
+
+.viewtags{flex:none;display:flex;justify-content:center;gap:clamp(180px,32%,320px);
+          font-family:'PJS';font-size:15px;letter-spacing:.26em;color:#5A5A5E;margin-bottom:18px}
+
+.meta{flex:none}
+.rule{height:2px;background:linear-gradient(90deg,var(--accent),rgba(228,87,46,0));margin-bottom:26px}
+.chiprow{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:11px;padding:10px 21px 10px 16px;border-radius:100px;
+      font-family:'PJS';font-size:19px;letter-spacing:.18em;color:#FF9068;
+      background:rgba(228,87,46,.14);border:1px solid rgba(228,87,46,.45)}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
+           box-shadow:0 0 calc(3px + 13px*var(--p)) rgba(228,87,46,.95)}
+.chip.sec{color:var(--note);background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.13);
+          font-size:16px;letter-spacing:.15em;padding:9px 18px}
+.chip.sec .dot{background:#6E5A50;box-shadow:none;width:8px;height:8px}
+
+h1{font-family:'PJS';font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1.03;
+   font-size:66px;margin-bottom:26px}
+#card.story h1{font-size:72px;margin-bottom:22px}
+h1.long{font-size:56px}
+#card.story h1.long{font-size:60px}
+
+.cues{list-style:none;display:flex;flex-direction:column;gap:13px}
+.cues li{display:flex;gap:16px;align-items:flex-start;font-size:27px;line-height:1.32;color:#C4C4C6}
+#card.story .cues li{font-size:28px}
+.cues .n{flex:none;width:32px;height:32px;margin-top:3px;border-radius:9px;
+         font-family:'PJS';font-size:15px;color:var(--accent);
+         background:rgba(228,87,46,.12);border:1px solid rgba(228,87,46,.32);
+         display:flex;align-items:center;justify-content:center}
+.focus{margin-top:18px;font-family:'PJS';font-size:16px;letter-spacing:.22em;color:#5A5A5E}
+.focus b{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="card">
+ <div class="safe">
+
+  <div class="topbar">
+    <div class="brand">RUST<em>&nbsp;/ TRAIN</em></div>
+    <div class="kick">Muscles worked</div>
+  </div>
+
+  <div class="stage">
+    <div class="fig">
+      <img class="rest" src="{{FRONT_BASE}}" alt="">
+      <img class="hot"  src="{{FRONT_HOT}}"  alt="">
+    </div>
+    <div class="fig">
+      <img class="rest" src="{{BACK_BASE}}" alt="">
+      <img class="hot"  src="{{BACK_HOT}}"  alt="">
+    </div>
+  </div>
+
+  <div class="viewtags"><span>ANTERIOR</span><span>POSTERIOR</span></div>
+
+  <div class="meta">
+    <div class="rule"></div>
+    <div class="chiprow" id="chips"></div>
+    <h1 id="title">{{EXERCISE}}</h1>
+    <ul class="cues" id="cues"></ul>
+    <div class="focus" id="focus"></div>
+  </div>
+
+ </div>
+</div>
+
+<script>
+const EXERCISE  = "{{EXERCISE}}";
+const PRIMARY   = "{{PRIMARY}}";
+const SECONDARY = {{SECONDARY_JSON}};
+const CUES      = {{CUES_JSON}};
+const FOCUS     = "{{FOCUS}}";
+const FORMAT    = "{{FORMAT}}";
+
+document.documentElement.className = FORMAT;
+document.body.className = FORMAT;
+document.getElementById('card').className = FORMAT;
+
+const title = document.getElementById('title');
+title.textContent = EXERCISE;
+if (EXERCISE.length > 22) title.classList.add('long');
+
+const chips = document.getElementById('chips');
+chips.innerHTML =
+  `<span class="chip"><span class="dot"></span>${PRIMARY.toUpperCase()}</span>` +
+  SECONDARY.map(s => `<span class="chip sec"><span class="dot"></span>${s.toUpperCase()}</span>`).join('');
+
+document.getElementById('cues').innerHTML =
+  CUES.map((c, i) => `<li><span class="n">${i + 1}</span><span>${c}</span></li>`).join('');
+
+const focus = document.getElementById('focus');
+if (FOCUS) focus.innerHTML = `FOCUS&nbsp;&nbsp;<b>${FOCUS.toUpperCase()}</b>`;
+
+/** Phase is set explicitly per frame, never wall-clock driven, so frame N lands
+ *  on exactly the same state as frame 0 and the MP4 loops with no seam. */
+window.setPhase = function (t) {
+  const p = 0.5 - 0.5 * Math.cos(2 * Math.PI * t);   // 0 -> 1 -> 0
+  document.documentElement.style.setProperty('--p', p.toFixed(4));
+};
+window.setPhase(0);
+
+Promise.all(Array.from(document.images).map(img =>
+  img.complete ? Promise.resolve() : new Promise(r => { img.onload = r; img.onerror = r; })
+)).then(() => { window.__ready = true; });
+</script>
+</body>
+</html>
