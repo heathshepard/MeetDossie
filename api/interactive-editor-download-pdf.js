@@ -39,6 +39,11 @@ const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { fillTrec2019 } = require('./_lib/fill-trec-20-19');
 const { translateEditorFieldNames, translateSnapshotAddressFields } = require('./_lib/trec-20-19-editor-field-translate');
+const {
+  evaluateElections,
+  summarize: summarizeElections,
+  blockingMessage: electionBlockingMessage,
+} = require('./_lib/contract-election-gate');
 
 const TREC_RESALE_20_19_B64 = require('./_assets/trec-resale-20-19-base64.js');
 
@@ -253,6 +258,49 @@ module.exports = async function handler(req, res) {
     // live editor snapshot.
     const merged = translateEditorFieldNames(mergeFieldValues(txn, translateSnapshotAddressFields(snapshot)));
 
+    // ------------------------------------------------------------------
+    // ELECTION GATE. `merged` is the exact object handed to the renderer,
+    // so what the gate judges is what lands on the page.
+    //
+    // This endpoint has two very different modes and they get different
+    // treatment on purpose:
+    //
+    //   persist === true  — the editor's Send button. It bakes the PDF to
+    //       storage and hands the documentId to /api/esign-create. That is a
+    //       send path, so a blank required election BLOCKS and nothing is
+    //       persisted.
+    //
+    //   plain download    — a member pulling a draft down to read it. This
+    //       is the very review that FIXES a blank election, so blocking it
+    //       would be self-defeating. The verdict rides along in response
+    //       headers instead, and the download proceeds.
+    // ------------------------------------------------------------------
+    const electionReport = evaluateElections({ formCode: '20-19', fieldValues: merged });
+    console.log('[interactive-editor-download-pdf][elections]', summarizeElections(electionReport));
+    if (electionReport.warnings.length) {
+      console.warn('[interactive-editor-download-pdf][elections] warnings:',
+        JSON.stringify(electionReport.warnings.map((w) => w.message)));
+    }
+    if (electionReport.unreachable.length) {
+      console.warn('[interactive-editor-download-pdf][elections] unreachable controls:',
+        JSON.stringify(electionReport.unreachable.map((u) => u.message)));
+    }
+    if (req.method === 'POST' && params.persist === true && !electionReport.pass) {
+      console.error('[interactive-editor-download-pdf] BLOCKED persist — required election blank: %s',
+        JSON.stringify(electionReport.blocking.map((b) => b.message)));
+      return res.status(422).json({
+        ok: false,
+        blocked: true,
+        error: electionBlockingMessage(electionReport),
+        elections: {
+          form: electionReport.formName,
+          blocking: electionReport.blocking,
+          warnings: electionReport.warnings,
+          unreachable: electionReport.unreachable,
+        },
+      });
+    }
+
     // Render the filled PDF.
     let buffer;
     try {
@@ -292,6 +340,15 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
     res.setHeader('Content-Length', String(buffer.length));
     res.setHeader('Cache-Control', 'no-store');
+    // The download is never blocked, but the verdict travels with it so a
+    // blank election is visible to the caller rather than silent.
+    res.setHeader('X-Dossie-Elections', electionReport.pass ? 'pass' : 'blocking');
+    if (!electionReport.pass) {
+      res.setHeader(
+        'X-Dossie-Elections-Blocking',
+        electionReport.blocking.map((b) => `¶${b.paragraph}`).join(',')
+      );
+    }
     return res.status(200).send(buffer);
   } catch (err) {
     if (err instanceof ValidationError) {

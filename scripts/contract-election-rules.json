@@ -1,0 +1,395 @@
+{
+  "_doc": [
+    "Mutually-exclusive election rules for TREC contract forms — the 'check one box only'",
+    "paragraphs. Consumed by api/_lib/contract-election-gate.js, which runs on every path",
+    "that can put a contract in front of a signer.",
+    "",
+    "WHY THIS FILE EXISTS: 29046 Pfeiffers Gate executed 2026-09-09 with paragraph 7D blank —",
+    "neither As-Is box checked. It survived drafting, three offer versions, a page-by-page",
+    "verification, four signatures and delivery to title. A note in a report is not a gate.",
+    "Memory: feedback_verify-contract-elections-before-execution.md.",
+    "",
+    "ENFORCEMENT — read this before promoting anything to 'blocking'.",
+    "A validator that wrongly blocks a legitimate send is its own disaster: Heath sends real",
+    "contracts against option deadlines, and a false positive at 4:59pm on the last day of an",
+    "option period costs a client their termination right just as surely as a blank box does.",
+    "So an election is 'blocking' ONLY when BOTH are true:",
+    "  (a) the paragraph is genuinely mandatory — the form itself does not permit it to be",
+    "      left blank or inapplicable; AND",
+    "  (b) at least one satisfier is REACHABLE, i.e. the member can actually set it today",
+    "      through the Interactive Editor or a canonical transactions column.",
+    "Condition (b) is the important one. Blocking a send on a box nobody can check is a trap",
+    "with no remedy — it does not prevent a defect, it prevents the deal. Everything that",
+    "fails (b) is 'warn': it is reported loudly, by paragraph, and never silently passed.",
+    "",
+    "Reachability was determined by reading, for form 20-19:",
+    "  api/_lib/trec-20-19-transaction-field-map.js  (canonical transactions columns -> editor keys)",
+    "  api/_lib/trec-20-19-editor-field-translate.js (editor keys -> fill-trec-20-19 fv keys)",
+    "  api/_lib/fill-trec-20-19.js                   (fv keys -> drawn checkboxes)",
+    "A satisfier is reachable only if a value can travel that whole chain from something a",
+    "member can actually edit.",
+    "",
+    "DELIBERATELY NOT ENCODED: paragraph 10A (possession) defaults to 'upon closing and",
+    "funding' and paragraph 6A(8) auto-follows the title-expense choice. Both are pre-existing",
+    "behaviors. Whether they should default at all is Heath's call and he has not made it, so",
+    "this gate does not force a choice on either — 6A(8) is reported as a warning only, and",
+    "10A is not evaluated at all."
+  ],
+
+  "forms": {
+    "20-19": {
+      "formName": "One to Four Family Residential Contract (Resale) — TREC 20-19",
+      "fieldSpace": "fill-trec-20-19 fv keys (post trec-20-19-editor-field-translate)",
+      "elections": [
+        {
+          "id": "acceptance_of_property_condition",
+          "paragraph": "7D",
+          "label": "Acceptance of Property Condition (As Is)",
+          "enforcement": "blocking",
+          "why": "TREC 20-19 paragraph 7D offers exactly two mutually-exclusive options and the form directs that one be checked. 7D decides whether the sellers owe repairs. Blank is not a neutral default — it is an ambiguity construed against the drafter. Neither option is a placeholder for a later inspection: post-inspection repairs are handled by amendment during the option period, which stays available regardless of what 7D says. Both options are reachable, so a member who is blocked here can actually fix it.",
+          "satisfiers": [
+            {
+              "field": "accepts_as_is",
+              "kind": "boolTrue",
+              "label": "7D(1) — Buyer accepts the Property As Is",
+              "reachable": true,
+              "reachableVia": "Interactive Editor toggle `acceptance_as_is`; canonical transactions mapping `acceptance_as_is` in trec-20-19-transaction-field-map.js"
+            },
+            {
+              "field": "accepts_as_is_with_repairs",
+              "kind": "boolTrue",
+              "label": "7D(2) — As Is provided Seller completes the specific repairs listed",
+              "reachable": true,
+              "reachableVia": "inferred true by trec-20-19-editor-field-translate.js whenever the editor's `specific_repairs_line1`/`_line2` repair text is non-empty"
+            }
+          ],
+          "dependents": [
+            {
+              "when": "accepts_as_is_with_repairs",
+              "requireNonEmptyAny": ["required_repairs", "specific_repairs_line1", "specific_repairs_line2"],
+              "renderedField": "required_repairs",
+              "sourceFields": ["specific_repairs_line1", "specific_repairs_line2"],
+              "enforcement": "blocking",
+              "why": "7D(2) is 'As Is provided Seller, at Seller's expense, shall complete the following specific repairs'. Checking that box with no repairs written in anywhere creates an executed obligation with no content — the sellers have agreed to complete an empty list. Blocking is correct here because the member can fix it by writing the repairs in.",
+              "renderGapWhy": "Separate, pre-existing defect, deliberately NOT blocked: the editor's repair text lives in `specific_repairs_line1`/`_line2` (fed from transactions.repairs_summary) and nothing ever translates it into `required_repairs`, which is the only key the filler draws. So a member who HAS written the repairs would be blocked by a rule they cannot satisfy — the 4:59pm-on-the-last-day-of-the-option-period failure this gate must never cause. The repairs are therefore treated as listed, and the fact that they will not appear on the page is raised as a loud warning instead. Fixing that mapping is a separate change."
+            }
+          ]
+        },
+
+        {
+          "id": "sellers_disclosure_notice",
+          "paragraph": "7B",
+          "label": "Seller's Disclosure Notice delivery",
+          "enforcement": "warn",
+          "why": "Paragraph 7B carries the form's own printed '(Check one box only)' across three options, so a blank IS a real defect — this is the second of today's two headline defects. Held at warn, not blocking, for one specific reason: 7B(2) ('Buyer has not received the notice; Seller shall deliver within ___ days') has no editor control of any kind. The day-count blank that belongs to it exists, which is worse than nothing. Blocking would trap any deal that legitimately needs (2) with no way to satisfy the gate, and an option-period send that cannot be completed is the exact failure mode this gate must not create. Promote to blocking once 7B(2) is settable — that is a Supabase-cached field-inventory edit, tracked separately from this gate.",
+          "satisfiers": [
+            {
+              "field": "seller_disclosure_received",
+              "kind": "boolTrue",
+              "label": "7B(1) — Buyer has received the Seller's Disclosure Notice",
+              "reachable": true,
+              "reachableVia": "transactions column `sdn_received` via trec-20-19-transaction-field-map.js (`sellers_disclosure_received`); also set directly by fill-form.js from seller-disclosure-check.js"
+            },
+            {
+              "field": "seller_disclosure_days",
+              "kind": "nonEmpty",
+              "label": "7B(2) — Seller shall deliver the notice within N days",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control for the election itself. This is one of the unreachable-control gaps that must be reported, never silently passed."
+            },
+            {
+              "field": "seller_disclosure_not_required",
+              "kind": "boolTrue",
+              "label": "7B(3) — Seller is not required to furnish the notice",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE at this commit — no canonical transactions column. Becomes reachable from the editor once the 20-19 election audit branch lands."
+            }
+          ]
+        },
+
+        {
+          "id": "survey",
+          "paragraph": "6C",
+          "label": "Survey — which party furnishes it",
+          "enforcement": "warn",
+          "why": "Paragraph 6C carries the form's printed '(Check one box only)' and all three boxes are drawable. Options (1) and (2) are reachable from the editor (`survey_option_existing` / `survey_option_buyer_new`), but option (3) — Seller obtains a new survey at Seller's expense — has no editor control. Blocking would trap an option-(3) deal, so this stays a warning until all three are settable.",
+          "satisfiers": [
+            {
+              "field": "survey_option",
+              "kind": "equals",
+              "values": ["1", "2", "3"],
+              "label": "6C(1) existing survey + T-47 / 6C(2) new survey at Buyer's expense / 6C(3) new survey at Seller's expense",
+              "reachable": true,
+              "reachableVia": "editor `survey_option_existing` -> '1', `survey_option_buyer_new` -> '2' (trec-20-19-editor-field-translate.js). Value '3' is NOT REACHABLE from the editor."
+            }
+          ]
+        },
+
+        {
+          "id": "hoa_mandatory_membership",
+          "paragraph": "6E(2)",
+          "label": "Property is / is not subject to mandatory HOA membership",
+          "enforcement": "warn",
+          "why": "Both sides of this election ARE reachable (editor `hoa_membership` / `hoa_membership_is_not`, both mapped from the transactions `hoa` column, the second inverted), so this is a legitimate candidate for blocking. Held at warn deliberately: promoting it would start blocking sends that complete fine today, and that behavior change is Heath's call, not this gate's. This is the first election to promote once he confirms.",
+          "satisfiers": [
+            {
+              "field": "hoa_mandatory",
+              "kind": "boolTrue",
+              "label": "6E(2) — is subject to mandatory membership",
+              "reachable": true,
+              "reachableVia": "editor `hoa_membership`; transactions column `hoa`"
+            },
+            {
+              "field": "hoa_mandatory",
+              "kind": "boolFalse",
+              "label": "6E(2) — is not subject to mandatory membership",
+              "reachable": true,
+              "reachableVia": "editor `hoa_membership_is_not`; transactions column `hoa` inverted"
+            }
+          ]
+        },
+
+        {
+          "id": "title_policy_expense",
+          "paragraph": "6A",
+          "label": "Title policy premium paid by Seller / Buyer",
+          "enforcement": "warn",
+          "why": "Reported only, and deliberately never blocking. This choice is the input that paragraph 6A(8) auto-follows — `shortages_in_area_amended` falls back to `title_seller_expense === true` when unset. That auto-follow is a pre-existing behavior this gate was explicitly told not to change, and forcing a choice here would change it by making the 6A(8) default unreachable.",
+          "satisfiers": [
+            {
+              "field": "title_seller_expense",
+              "kind": "boolTrue",
+              "label": "6A — paid by Seller",
+              "reachable": true,
+              "reachableVia": "editor `title_policy_expense`"
+            },
+            {
+              "field": "title_seller_expense",
+              "kind": "boolFalse",
+              "label": "6A — paid by Buyer",
+              "reachable": true,
+              "reachableVia": "editor `title_policy_expense_buyer`"
+            }
+          ]
+        },
+
+        {
+          "id": "sellers_water_disclosure",
+          "paragraph": "7I",
+          "label": "Seller's Water Disclosure (surface/groundwater notice)",
+          "enforcement": "warn",
+          "why": "Carries the form's printed '(Check one box only)', and the backend wiring is complete — but there is NO editor control for any of the three options. This is one of the named unreachable-control gaps. It is reported here so it can never silently pass, and it is explicitly NOT blocking because blocking an election nobody can make would halt every 20-19 send outright.",
+          "satisfiers": [
+            {
+              "field": "water_disclosure_received",
+              "kind": "boolTrue",
+              "label": "7I(1) — Buyer has received the required notice",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control at all."
+            },
+            {
+              "field": "water_disclosure_days",
+              "kind": "nonEmpty",
+              "label": "7I(2) — Seller shall deliver within N days",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control at all."
+            },
+            {
+              "field": "water_disclosure_not_required",
+              "kind": "boolTrue",
+              "label": "7I(3) — Seller is not required to deliver the notice",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control at all."
+            }
+          ]
+        },
+
+        {
+          "id": "shortages_in_area_amendment",
+          "paragraph": "6A(8)",
+          "label": "Title exception — will not be amended (i) / will be amended to 'shortages in area' (ii)",
+          "enforcement": "warn",
+          "why": "An either/or, but it legitimately auto-follows the 6A title-expense choice today (`shortages_in_area_amended` defaults to `title_seller_expense === true`). That pre-existing auto-follow is explicitly out of scope to change, so this gate reports a blank without forcing a choice. It can never be 'blank' in the rendered output while the auto-follow stands — this entry exists to surface the case where neither the election nor the title-expense input was ever set.",
+          "satisfiers": [
+            {
+              "field": "shortages_in_area_amended",
+              "kind": "boolTrue",
+              "label": "6A(8)(ii) — amended to read 'shortages in area'",
+              "reachable": true,
+              "reachableVia": "editor `shortages_amendment_expense` / `shortages_amendment_expense_seller`"
+            },
+            {
+              "field": "shortages_in_area_amended",
+              "kind": "boolFalse",
+              "label": "6A(8)(i) — will not be amended or deleted",
+              "reachable": true,
+              "reachableVia": "editor `survey_exception_amendment`"
+            }
+          ]
+        },
+
+        {
+          "id": "natural_resource_lease_delivery",
+          "paragraph": "4C",
+          "label": "Natural resource leases — delivered / not yet delivered",
+          "enforcement": "warn",
+          "appliesWhen": { "field": "addendum_mineral_reservation", "kind": "boolTrue" },
+          "why": "Only live once paragraph 4C itself is checked, so it is legitimately inapplicable on most deals — it fails the 'genuinely required' condition outright. 4C(1) also has no editor control. It is a statement of fact about documents actually delivered and must never acquire a default or an 'opposite of (2)' inference, so this gate reports an unmade election rather than guessing one.",
+          "satisfiers": [
+            {
+              "field": "natural_resource_lease_delivered",
+              "kind": "boolTrue",
+              "label": "4C(1) — leases have been delivered to Buyer",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control. Deliberately never derived from the absence of (2)."
+            },
+            {
+              "field": "natural_resource_lease_not_delivered",
+              "kind": "boolTrue",
+              "label": "4C(2) — leases not delivered; Seller shall deliver within N days",
+              "reachable": true,
+              "reachableVia": "editor `lease_natural_resource`"
+            }
+          ]
+        },
+
+        {
+          "id": "brokerage_compensation_basis",
+          "paragraph": "12B",
+          "label": "Brokerage compensation expressed as a dollar amount / percentage",
+          "enforcement": "warn",
+          "why": "Two rows, each carrying its own '(check one box only)' for $ versus %. Neither row has an editor control — the boxes are driven only by whichever of the amount/percent field pairs happens to be populated. Another named unreachable-control gap: reported so it cannot silently pass, never blocking because the member has no way to answer it.",
+          "satisfiers": [
+            {
+              "field": "broker_compensation_other_broker_amt",
+              "kind": "nonEmpty",
+              "label": "12B(1) — dollar amount",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control."
+            },
+            {
+              "field": "broker_compensation_other_broker_pct",
+              "kind": "nonEmpty",
+              "label": "12B(1) — percentage",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control."
+            },
+            {
+              "field": "broker_compensation_buyer_agent_amt",
+              "kind": "nonEmpty",
+              "label": "12B(2) — dollar amount",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control."
+            },
+            {
+              "field": "broker_compensation_buyer_agent_pct",
+              "kind": "nonEmpty",
+              "label": "12B(2) — percentage",
+              "reachable": false,
+              "reachableVia": "NOT REACHABLE — no editor control."
+            }
+          ]
+        }
+      ]
+    },
+
+    "20-18": {
+      "formName": "One to Four Family Residential Contract (Resale) — TREC 20-18 (superseded)",
+      "fieldSpace": "trec-20-18-field-rules.json fieldId space",
+      "_note": "20-18 is superseded by 20-19 for live deals. These groups exist so the shared mutex-group repair in trec-validator.js has correct pairings to enforce, and so the 20-18 strict-validate pipeline stops treating every mutex group as a single-member group. Only the As-Is pair is blocking, matching 20-19.",
+      "elections": [
+        {
+          "id": "acceptance_of_property_condition",
+          "paragraph": "7D",
+          "label": "Acceptance of Property Condition (As Is)",
+          "enforcement": "blocking",
+          "why": "Same rationale as 20-19 paragraph 7D. Both members are ordinary fields in the 20-18 rules file, so both are settable.",
+          "satisfiers": [
+            { "field": "accept_as_is", "kind": "boolTrue", "label": "7D(1) — As Is", "reachable": true },
+            { "field": "accept_as_is_with_repairs", "kind": "boolTrue", "label": "7D(2) — As Is with specific repairs", "reachable": true }
+          ],
+          "dependents": [
+            {
+              "when": "accept_as_is_with_repairs",
+              "requireNonEmpty": ["repairs_specified_text"],
+              "enforcement": "warn",
+              "why": "Warn rather than block: the 20-18 rules file has no confirmed field id for the repair text, so this dependent cannot be proven blank versus merely unmapped."
+            }
+          ]
+        },
+        {
+          "id": "repairs_election",
+          "paragraph": "7D repairs list",
+          "label": "Repairs — none / specified",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "repairs_none_box", "kind": "boolTrue", "label": "no repairs", "reachable": true },
+            { "field": "repairs_specified_box", "kind": "boolTrue", "label": "repairs specified", "reachable": true }
+          ]
+        },
+        {
+          "id": "hoa_subject",
+          "paragraph": "6E",
+          "label": "Property is / is not subject to a property owners association",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "hoa_is_subject", "kind": "boolTrue", "label": "is subject", "reachable": true },
+            { "field": "hoa_is_not_subject", "kind": "boolTrue", "label": "is not subject", "reachable": true }
+          ]
+        },
+        {
+          "id": "title_policy_expense",
+          "paragraph": "6A(8)",
+          "label": "Title policy premium paid by Buyer / Seller",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "title_expense_buyer", "kind": "boolTrue", "label": "paid by Buyer", "reachable": true },
+            { "field": "title_expense_seller", "kind": "boolTrue", "label": "paid by Seller", "reachable": true }
+          ]
+        },
+        {
+          "id": "survey_area_amended",
+          "paragraph": "6C",
+          "label": "Survey area amended / not amended",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "survey_area_amended", "kind": "boolTrue", "label": "amended", "reachable": true },
+            { "field": "survey_area_not_amended", "kind": "boolTrue", "label": "not amended", "reachable": true }
+          ]
+        },
+        {
+          "id": "option_fee_credit",
+          "paragraph": "23",
+          "label": "Option fee credited / not credited to the sales price",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "option_fee_credited_box", "kind": "boolTrue", "label": "credited", "reachable": true },
+            { "field": "option_fee_not_credited_box", "kind": "boolTrue", "label": "not credited", "reachable": true }
+          ]
+        },
+        {
+          "id": "listing_fee_basis",
+          "paragraph": "broker fee",
+          "label": "Listing fee expressed as a dollar amount / percentage",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "listing_fee_dollar_box", "kind": "boolTrue", "label": "dollar amount", "reachable": true },
+            { "field": "listing_fee_percent_box", "kind": "boolTrue", "label": "percentage", "reachable": true }
+          ]
+        },
+        {
+          "id": "broker_representation",
+          "paragraph": "8",
+          "label": "Broker representation — buyer only / intermediary / subagent / seller only",
+          "enforcement": "warn",
+          "satisfiers": [
+            { "field": "rep_buyer_only", "kind": "boolTrue", "label": "represents Buyer only", "reachable": true },
+            { "field": "rep_intermediary", "kind": "boolTrue", "label": "intermediary", "reachable": true },
+            { "field": "rep_subagent", "kind": "boolTrue", "label": "subagent", "reachable": true },
+            { "field": "rep_seller_only", "kind": "boolTrue", "label": "represents Seller only", "reachable": true }
+          ]
+        }
+      ]
+    }
+  }
+}
