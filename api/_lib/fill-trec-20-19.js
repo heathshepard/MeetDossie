@@ -375,6 +375,19 @@ async function fillTrec2019(pdfDoc, fv) {
   drawFieldText('addition_name', fv.addition_name);
   drawFieldText('exclusions', fv.exclusions);
 
+  // ¶4C(2) Buyer's termination window. Drawn ONLY when ¶4C(2) is the elected
+  // option, because the blank belongs to that sentence and means nothing
+  // without it. NEW 2026-09-17, together with the ¶4C checkboxes.
+  //
+  // This pairing is the whole lesson of the 2026-09-17 ¶7D(2) finding: that
+  // box was being checked off a repairs-text signal while the repairs blanks
+  // had no coordinate at all, so contracts went out asserting a Seller
+  // repair obligation with no repairs named. A checkbox and the blank that
+  // completes its sentence must never ship one without the other.
+  if (fv.lease_natural_resource === true && fv.natural_resource_lease_not_delivered === true) {
+    drawFieldText('natural_resource_lease_days', fv.natural_resource_lease_days);
+  }
+
   // ¶11 SPECIAL PROVISIONS (Section 11) — 2026-09-10 CARTER regression fix
   // (Defect A2). These two keys are exactly what the Phase 1 FormEditor's
   // Fable5-derived field list already sends (no translate-layer renaming
@@ -861,6 +874,77 @@ const RESALE_CHECKBOX = {
   // revert to "Check Box2" for this field.
   para3b_third_party_financing: 'B Sum of all financing described in the attached',
 
+  // 2026-09-17 — the other TWO ¶3B financing-type boxes. The editor has
+  // exposed financing_loan_assumption_addendum and
+  // financing_seller_financing_addendum since the Fable5 run; neither had a
+  // widget here, so both were dead controls.
+  //
+  // Position-derived, NOT name-derived, and the names here are exactly the
+  // trap [[acroform-field-names-lie]] describes — the widget printed next to
+  // "Seller Financing Addendum" is itself NAMED 'Loan Assumption Addendum'.
+  // Method: pdftotext -bbox on the live blank asset, then for each checkbox
+  // widget rect take the printed words whose vertical centre falls inside
+  // that rect's band and whose x starts past the widget's right edge:
+  //   page 1 y=269.1 x=75.7  name 'Check Box2'
+  //        -> "Loan Assumption Addendum, q Seller Financing Addendum ... $"
+  //           (line 2's LEFT box = Loan Assumption)
+  //   page 1 y=268.8 x=249.3 name 'Loan Assumption Addendum'
+  //        -> "Seller Financing Addendum .......... $"
+  // This is the same y=[269,279] band the 2026-08-19 pass explicitly warned
+  // about after wrongly guessing 'Check Box2' was Third Party Financing.
+  // 'Check Box2' IS on that band — it is just Loan Assumption, not Third
+  // Party, exactly as that comment concluded. Render-confirmed below.
+  para3b_loan_assumption: 'Check Box2',
+  para3b_seller_financing: 'Loan Assumption Addendum',
+
+  // ¶4 LEASES (page 1) — "(Check all applicable boxes)". NEW 2026-09-17;
+  // previously no widget in this map at all, so the editor's
+  // lease_residential_attached / lease_natural_resource /
+  // natural_resource_lease_not_delivered controls reached nothing.
+  //
+  // Position-derived. These three widget NAMES are the most actively
+  // misleading on the whole asset — they are borrowed verbatim from ¶6A's
+  // title-exclusion language and sit ~90pt lower, in ¶4:
+  //   page 1 y=195.9 name 'i will not be amended or deleted from the title
+  //     policy or'            -> "A. RESIDENTIAL LEASES: The Property is
+  //                              subject to one or more residential leases"
+  //   page 1 y=170.0 name 'ii will be amended to read shortages in area at
+  //     the expense of'       -> "B. FIXTURE LEASES: Fixtures on the
+  //                              Property are subject to one or more fixture"
+  //   page 1 y=134.4 name 'A TITLE POLICY Seller shall furnish to Buyer at'
+  //                          -> "C. NATURAL RESOURCE LEASES: ..."
+  // Mapping any of these by name would have put a lease election on the
+  // title-policy line. The real ¶6A(8) widgets ('2Within' / '3Within') are
+  // on page 2 and are mapped above, unchanged.
+  lease_residential: 'i will not be amended or deleted from the title policy or',
+  lease_fixture: 'ii will be amended to read shortages in area at the expense of',
+  lease_natural_resource: 'A TITLE POLICY Seller shall furnish to Buyer at',
+
+  // ¶4C(1)/(2) NATURAL RESOURCE LEASES — mutually exclusive sub-election.
+  //   page 1 y=98.4 name 'Sellers' -> "(1) Seller has delivered to Buyer a
+  //                                    copy of all the Natural Resource
+  //                                    Leases."
+  //   page 1 y=84.1 name 'Seller'  -> "(2) Seller has not delivered ..."
+  // (1) is a STATEMENT OF FACT about documents delivered, made on the
+  // Seller's behalf. It is the same shape as the TREC 9-17 field that was
+  // checked by default on every fill for as long as that form existed
+  // ([[acroform-field-names-lie]]). It is wired to an explicit flag only and
+  // must never acquire a default, an inference, or an "opposite of (2)"
+  // fallback.
+  natural_resource_lease_delivered: 'Sellers',
+  natural_resource_lease_not_delivered: 'Seller',
+
+  // ¶22 rows that pair with ¶4A/¶4B. Position-derived the same way; both
+  // names lie (the widget on the "Addendum Regarding Residential Leases"
+  // row is named 'Sellers Temporary Residential Lease').
+  //   page 9 y=537.6 -> "Addendum Regarding Residential Leases"
+  //   page 9 y=524.5 -> "Addendum Regarding Fixture Leases"
+  // Gated on their OWN explicit flags below, deliberately NOT coupled to the
+  // ¶4A/¶4B boxes — see the report; whether ticking ¶4A should also tick its
+  // ¶22 row is a contract-convention call for Heath, not for this file.
+  addendum_residential_leases: 'Sellers Temporary Residential Lease',
+  addendum_fixture_leases: 'Seller Financing Addendum',
+
   // Paragraph 22 ADDENDA CHECKLIST (page 9) -- extensively scrambled, see
   // comment above. Only the rows Brokerage's workflows actually use are
   // mapped; do not assume any OTHER field on this page is named correctly.
@@ -1024,6 +1108,24 @@ function applyResaleContractCheckboxes(pdfDoc, fv) {
     } else {
       check(RESALE_CHECKBOX.title_shortages_sellers_expense, '¶6A(8)(ii) at Seller\'s expense');
     }
+  } else if (fv.shortages_in_area_amended === false) {
+    // 2026-09-17 — ¶6A(8) is an either/or: "(i) will not be amended or
+    // deleted from the title policy; OR (ii) will be amended to read
+    // 'shortages in area'...". RESALE_CHECKBOX.title_shortages_not_amended
+    // has been position-verified and present since 2026-08-19 but was
+    // referenced by NOTHING — there was no else branch, so a member who
+    // affirmatively elected (i) in the editor
+    // (survey_exception_amendment -> shortages_in_area_amended = false) got
+    // a contract with BOTH ¶6A(8) boxes empty. Reachable from the UI,
+    // silently discarded, blank on a two-way election.
+    //
+    // Gated on `=== false` STRICTLY, never on the falsy default above:
+    // `shortagesAmended` is also false whenever nothing was elected at all
+    // (it falls back to `title_seller_expense === true`), and turning that
+    // silence into a ticked (i) would be inventing an election the member
+    // never made. Only an explicit false — which translateEditorFieldNames
+    // writes solely from a real tick on the (i) control — reaches here.
+    check(RESALE_CHECKBOX.title_shortages_not_amended, '¶6A(8)(i) title exception will NOT be amended');
   }
 
   // HOA MANDATORY MEMBERSHIP (¶6E(2)) -- fv.hoa_mandatory: true|false.
@@ -1119,6 +1221,51 @@ function applyResaleContractCheckboxes(pdfDoc, fv) {
     check(RESALE_CHECKBOX.para3b_third_party_financing, '¶3B Third Party Financing Addendum (page 1)');
     check(RESALE_CHECKBOX.addendum_third_party_financing, 'Third Party Financing Addendum (¶22)');
   }
+  // ¶3B FINANCING TYPE -- the other two addendum boxes on the same printed
+  // sentence. Explicit flag only; unlike Third Party Financing above these
+  // are never inferred from loan_amount, because a positive loan amount says
+  // nothing about WHICH financing instrument is attached. NEW 2026-09-17.
+  if (fv.addendum_loan_assumption === true) {
+    check(RESALE_CHECKBOX.para3b_loan_assumption, '¶3B Loan Assumption Addendum (page 1)');
+  }
+  if (fv.addendum_seller_financing === true) {
+    check(RESALE_CHECKBOX.para3b_seller_financing, '¶3B Seller Financing Addendum (page 1)');
+  }
+
+  // ¶4 LEASES -- "(Check all applicable boxes)", so these are independent
+  // assertions rather than one exclusive group, but each is still a
+  // statement of fact about the Property that must come from the member.
+  // Explicit flag only, never inferred. NEW 2026-09-17.
+  if (fv.lease_residential === true) {
+    check(RESALE_CHECKBOX.lease_residential, '¶4A Property is subject to residential leases');
+  }
+  if (fv.lease_fixture === true) {
+    check(RESALE_CHECKBOX.lease_fixture, '¶4B Fixtures are subject to fixture leases');
+  }
+  if (fv.lease_natural_resource === true) {
+    check(RESALE_CHECKBOX.lease_natural_resource, '¶4C Property is subject to a Natural Resource Lease');
+    // ¶4C(1)/(2) is a two-way election that only exists once ¶4C itself is
+    // checked. Each side requires its OWN explicit flag: (1) asserts Seller
+    // has already delivered every Natural Resource Lease, and is never
+    // derived from the absence of (2). If the member checks ¶4C and elects
+    // neither, both boxes stay blank and the pre-send election audit is what
+    // catches it -- an unmade election must look unmade, not be guessed.
+    if (fv.natural_resource_lease_delivered === true) {
+      check(RESALE_CHECKBOX.natural_resource_lease_delivered, '¶4C(1) Seller HAS delivered all Natural Resource Leases');
+    } else if (fv.natural_resource_lease_not_delivered === true) {
+      check(RESALE_CHECKBOX.natural_resource_lease_not_delivered, '¶4C(2) Seller has NOT delivered all Natural Resource Leases');
+    }
+  }
+
+  // ¶22 lease addenda rows -- explicit flags only, deliberately not coupled
+  // to the ¶4A/¶4B boxes above. NEW 2026-09-17.
+  if (fv.addendum_residential_leases === true) {
+    check(RESALE_CHECKBOX.addendum_residential_leases, 'Addendum Regarding Residential Leases (¶22)');
+  }
+  if (fv.addendum_fixture_leases === true) {
+    check(RESALE_CHECKBOX.addendum_fixture_leases, 'Addendum Regarding Fixture Leases (¶22)');
+  }
+
   // Appraisal Termination Addendum (TREC 49-1) -- explicit flag only, never
   // inferred; this addendum is a separate document Brokerage attaches
   // deliberately (see fillAppraisalTermination), so the checklist box
