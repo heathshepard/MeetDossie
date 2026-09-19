@@ -250,6 +250,24 @@
       "align": "center",
       "notes": "¶7B(2) Seller's Disclosure Notice delivery days"
     },
+    "required_repairs": {
+      "page": 5,
+      "x": 301.75,
+      "y": 699.42,
+      "fontSize": 10,
+      "maxWidth": 249,
+      "align": "left",
+      "notes": "¶7D(2) ACCEPTANCE OF PROPERTY CONDITION -- the specific repairs and treatments blank on the SAME printed line as '...shall complete the following specific repairs and treatments:'. NEW 2026-09-17: fill-trec-20-19.js has called drawFieldText('required_repairs') since 2026-08-19 but no coordinate ever existed, so every call logged 'No coordinate for field' and dropped the value. Real AcroForm widget rect x0=300.65 y0=696.89 w=251.40 (field internally named 'following specific repairs and treatments'); x/y offset +1.1/+2.53 from the rect, the same offset already render-proven on buyer_notice_address_line2. The full-width continuation blank directly below is mapped separately as repairs_additional (widget 'undefined_13', rect x0=88.49 y0=685.85 w=463.51); no secondLine overflow is declared here deliberately, so a long line1 never draws on top of an explicitly-typed line2. Why this mattered: the editor's specific_repairs_line1/2 ALSO drive the ¶7D(2) checkbox via trec-20-19-editor-field-translate.js, so the box was being checked with both printed blanks left empty -- a Seller repair obligation with no repairs identified. Render-verified 2026-09-17 (pdftoppm, page 5)."
+    },
+    "repairs_additional": {
+      "page": 5,
+      "x": 89.59,
+      "y": 688.38,
+      "fontSize": 10,
+      "maxWidth": 461,
+      "align": "left",
+      "notes": "¶7D(2) repairs continuation line -- the full-width blank directly below required_repairs. Real AcroForm widget rect x0=88.49 y0=685.85 w=463.51 (internally named 'undefined_13'). Same +1.1/+2.53 offset convention. Used when the editor sends specific_repairs_line2 explicitly; Render-verified 2026-09-17."
+    },
     "service_contract_amount": {
       "page": 5,
       "x": 423.42,

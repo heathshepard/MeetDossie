@@ -151,6 +151,23 @@ function translateEditorFieldNames(fv) {
   if (out.accepts_as_is == null && truthy(src.acceptance_as_is)) {
     out.accepts_as_is = true;
   }
+  // 2026-09-17 — the repairs TEXT itself was never aliased, only used as a
+  // signal above. fillTrec2019 draws the two ¶7D(2) blanks from
+  // fv.required_repairs / fv.repairs_additional (bbox-verified coords, drawn
+  // since 2026-08-19); the editor sends specific_repairs_line1/2. Result,
+  // reproduced on production 2026-09-17 against the demo dossier and
+  // rendered to PNG: the "(2) Buyer accepts the Property As Is provided
+  // Seller ... shall complete the following specific repairs and
+  // treatments:" box was CHECKED (off the signal above) while both printed
+  // blanks stayed EMPTY — a repair obligation with no repairs identified,
+  // against TREC's own printed warning immediately below it. The checkbox
+  // and its text must always travel together.
+  if (!hasValue(out.required_repairs) && hasValue(src.specific_repairs_line1)) {
+    out.required_repairs = src.specific_repairs_line1;
+  }
+  if (!hasValue(out.repairs_additional) && hasValue(src.specific_repairs_line2)) {
+    out.repairs_additional = src.specific_repairs_line2;
+  }
 
   // ¶10A POSSESSION — PRIORITY. Editor: possession_upon_closing /
   // possession_temporary_lease, each an independent toggle. Backend:
@@ -371,6 +388,94 @@ function translateEditorFieldNames(fv) {
   }
   if (!hasValue(out.seller_attorney) && hasValue(src.seller_attorney_name)) {
     out.seller_attorney = src.seller_attorney_name;
+  }
+
+  // -------------------------------------------------------------------
+  // 2026-09-17 — DEAL TERMS (¶3, ¶5, ¶6A, ¶6D, ¶7H, ¶12A). Backlog B2.
+  //
+  // Found by driving the demo dossier end to end on PRODUCTION (typed 142
+  // distinctive text values through /api/interactive-editor-update-field,
+  // generated via /api/fill-form AND /api/interactive-editor-download-pdf,
+  // extracted the PDF text, rendered pages to PNG). 90 of 142 never reached
+  // the document. These are the subset that is a pure NAME mismatch onto a
+  // blank fillTrec2019 already draws at a bbox-verified coordinate — no new
+  // coordinates, no new printed blanks, no guessed elections.
+  //
+  // This group is the most dangerous of the 90 because the blank is NOT
+  // empty: fill-form supplies the same blank from the canonical
+  // `transactions` column, so the member retypes the sale price in the
+  // editor, sees their new number in the editor UI, and the generated
+  // contract silently keeps the OLD one. Reproduced exactly: typed
+  // 3,100,002 into ¶3C, the PDF printed 647,000; typed a new earnest money,
+  // the PDF printed 6,470; typed a new title company, the PDF printed
+  // "University Title".
+  //
+  // Each target below was position-verified by rendering the filled page to
+  // PNG and reading the printed label the value landed against — per
+  // [[acroform-field-names-lie]], never by matching a field name.
+  //   sales_price_cash_portion -> ¶3A "Cash portion of Sales Price payable
+  //     by Buyer"        (fillTrec2019 key: down_payment_amt)
+  //   sales_price_total        -> ¶3C "Sales Price (Sum of A and B)"
+  //                              (fillTrec2019 key: sale_price)
+  //   earnest_money_amount     -> ¶5A "$___ as earnest money"
+  //   option_fee_amount        -> ¶5A "$___ as the option fee"
+  //   additional_earnest_*     -> ¶5A(1) additional earnest money $ / days
+  //   title_company_name       -> ¶6A "issued by ___ (Title Company)"
+  //   objection_days           -> ¶6D "Buyer must object ... within ___ days"
+  //   objections_prohibited_use-> ¶6D prohibited-activity blank
+  //   residential_service_contract_amount -> ¶7H "amount not exceeding $___"
+  //   seller_contribution_amount -> ¶12A(1)(b) "an amount not to exceed $___
+  //     to be applied to Buyer's Expenses"   (fillTrec2019 key:
+  //     settlement_expense_cap). NOT seller_concessions, which was the
+  //     obvious-looking name match and is WRONG: seller_concessions has no
+  //     coordinate on this template at all (fillTrec2019 has been calling
+  //     drawFieldText for it into nowhere), while the widget behind the
+  //     ¶12A(1)(b) blank — rect x0=248 y0=141 w=82 — is the one
+  //     settlement_expense_cap already draws at x=249.83 y=143.06. Caught by
+  //     rendering page 6, not by reading names.
+  //   seller(s)_disclosure_delivery_days -> ¶7B(2) "within ___ days" (drawn
+  //     only when the Notice has NOT been received — that gate is unchanged)
+  //
+  // PRECEDENCE — deliberately NOT gap-fill, unlike the rules above, and this
+  // is the whole point of the fix. By the time this function runs, the
+  // canonical column has ALREADY been merged onto `out` (see
+  // merge-contract-field-drafts.js: Object.assign(base, drafts, caller)), so
+  // a gap-fill would never fire for sale_price / earnest_money / option_fee /
+  // title_company and the member's edit would stay invisible. The editor-side
+  // key (sales_price_total, earnest_money_amount, ...) is NOT a `transactions`
+  // column and can only have arrived from something the member typed, so when
+  // it carries a value it is by definition the newer of the two. This matches
+  // what the member is already looking at: interactive-editor-init.js resolves
+  // every field draft-first ("Last thing the agent typed always wins"), so
+  // overriding here is what makes the generated PDF agree with the editor
+  // screen instead of contradicting it.
+  //
+  // Known consequence, flagged rather than silently handled: if a value is
+  // later changed through a CANONICAL path (Talk-to-Dossie, scan-contract)
+  // while an older editor draft for the same blank is still stored, the draft
+  // wins here — exactly as it already does on the editor screen. Clearing
+  // stale drafts on a canonical write is a separate decision, not this fix.
+  const seenTargets = new Set();
+  const RENAMES = [
+    ['down_payment_amt', 'sales_price_cash_portion'],
+    ['sale_price', 'sales_price_total'],
+    ['earnest_money', 'earnest_money_amount'],
+    ['option_fee', 'option_fee_amount'],
+    ['additional_earnest_money', 'additional_earnest_money_amount'],
+    ['additional_earnest_days', 'additional_earnest_money_days'],
+    ['title_company', 'title_company_name'],
+    ['title_objection_days', 'objection_days'],
+    ['title_objection_activity', 'objections_prohibited_use'],
+    ['service_contract_amount', 'residential_service_contract_amount'],
+    ['settlement_expense_cap', 'seller_contribution_amount'],
+    ['seller_disclosure_days', 'seller_disclosure_delivery_days'],
+    ['seller_disclosure_days', 'sellers_disclosure_delivery_days'],
+  ];
+  for (const [target, editorKey] of RENAMES) {
+    if (seenTargets.has(target)) continue; // first editor key listed wins (duplicate Fable5 names)
+    if (!hasValue(src[editorKey])) continue;
+    out[target] = src[editorKey];
+    seenTargets.add(target);
   }
 
   return out;
