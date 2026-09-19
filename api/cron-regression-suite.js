@@ -38,6 +38,13 @@ const {
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
+// Contract-safety tier (2026-09-17). TREC 20-18 golden/broken fixtures, the
+// deployed rules-file integrity tripwire, and the ¶5A(2) deadline rollover —
+// run in-process against the DEPLOYED api/_lib copies, not the repo. Until
+// now the only thing watching them was a path-gated GitHub workflow, so a gate
+// nobody runs could rot silently. See api/_lib/contract-safety-checks.js.
+const { runContractSafetyChecks } = require('./_lib/contract-safety-checks.js');
+
 const CRON_SECRET = process.env.CRON_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -456,6 +463,20 @@ async function handler(req, res) {
   results.push(...(await runApiTests()));
   results.push(...(await runCronTests()));
   results.push(...(await runDbTests()));
+  // Synchronous, no network, ~6ms for the whole tier. Wrapped anyway so a
+  // throw inside contract-safety can never cost us the API/DB/cron results.
+  try {
+    results.push(...runContractSafetyChecks());
+  } catch (e) {
+    results.push({
+      id: 'contract.tier.runner',
+      category: 'contract',
+      tier: 'contract',
+      verdict: 'FAIL',
+      response_ms: 0,
+      error: `contract-safety tier threw: ${e.message}`,
+    });
+  }
   const duration_ms = Date.now() - started;
 
   const sum = summarize(results);

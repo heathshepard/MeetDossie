@@ -276,3 +276,48 @@ test('an unauthenticated request is rejected before any test or alert runs', asy
     delete require.cache[GATE_PATH];
   }
 });
+
+// ---------------------------------------------------------------------------
+// Contract-safety tier (added 2026-09-17). The TREC gate is only protected if
+// it actually rides the daily alarm — these assert the wiring end to end,
+// through the real handler, not just the module in isolation.
+// ---------------------------------------------------------------------------
+
+test('the contract-safety tier rides the daily run and is GREEN', async () => {
+  const { calls } = await runHandler();
+  const results = calls.inserts[0].body.results;
+  const contract = results.filter((r) => r.category === 'contract');
+
+  assert.equal(contract.length, 10, 'contract-safety tier is not in the daily run');
+
+  const failing = contract.filter((r) => r.verdict !== 'PASS');
+  assert.deepEqual(
+    failing.map((r) => `${r.id}: ${r.error}`),
+    [],
+    'a red contract check is noise in a delta-based alarm — fix it or do not wire it'
+  );
+
+  for (const id of [
+    'contract.trec2018.golden.conventional',
+    'contract.trec2018.broken_case_rejected',
+    'contract.trec2018.rules_integrity',
+    'contract.deadlines.pfeiffers_gate',
+    'contract.deadlines.rollover_scope',
+  ]) {
+    assert.ok(contract.some((r) => r.id === id), `missing contract check: ${id}`);
+  }
+});
+
+test('the daily check count is 63 — 53 pre-existing plus the 10 contract checks', async () => {
+  const { calls, payload } = await runHandler();
+  assert.equal(calls.inserts[0].body.total_tests, 63);
+  assert.equal(payload.sum.total, 63);
+});
+
+test('a throwing contract tier degrades to one FAIL row, never taking the cron down', async () => {
+  // The handler wraps the tier in try/catch precisely so a bad check cannot
+  // cost us the API/DB/cron results the rest of the alarm depends on.
+  const src = require('node:fs').readFileSync(CRON_PATH, 'utf8');
+  assert.match(src, /try \{\s*\n\s*results\.push\(\.\.\.runContractSafetyChecks\(\)\);/);
+  assert.match(src, /contract\.tier\.runner/);
+});
