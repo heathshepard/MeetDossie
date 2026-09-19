@@ -233,7 +233,7 @@ confirmed against the Tax Code this session. Title re-issue and loss of the liab
 while title sits in his personal name are real costs of the manoeuvre.
 
 **One more thing nobody mentions:** conventional underwriting qualifies *him*, not the property.
-A self-employed REALTOR carrying a rental that loses $555–798/mo would have that negative
+A self-employed REALTOR carrying a rental that loses $785–1,237/mo would have that negative
 cash flow charged against his DTI. **Inferred from standard agency practice, not verified.**
 
 ### 3. Local / regional portfolio lenders — one real lead, the rest unverifiable
@@ -312,7 +312,7 @@ days at $339,900, so stalling is the live risk.
 
 ### HELOC / borrowing against other equity — solves nothing, adds risk
 Pulling equity from his Boerne homestead to prop up Fawndale means **borrowing at 8–10% to fund
-an asset that loses $798/mo**. That is doubling down on the losing position.
+an asset that loses $1,237/mo**. That is doubling down on the losing position.
 
 Texas-specific constraints he should know before anyone suggests it (**general knowledge of
 Texas homestead law, NOT re-verified from a 2026 citation — confirm with Josh Sisam**):
