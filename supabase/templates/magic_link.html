@@ -1,0 +1,34 @@
+<!--
+  Supabase Auth template: MAGIC LINK
+  Paste into: Dashboard > Authentication > Emails > Magic Link
+  Subject:    Your Dossie sign-in link
+
+  NOT CURRENTLY LIVE. Nothing in the app calls signInWithOtp today. Filled in
+  for the same reason as confirmation.html: an unused template that still holds
+  Supabase's default is a branded-email gap waiting to open the first time
+  somebody uses the feature.
+
+  Variables: .ConfirmationURL .Token .TokenHash .SiteURL .Email
+-->
+<div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: #FDFCFA; color: #1C2B3A;">
+
+  <div style="font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size: 36px; line-height: 1.15; margin: 0 0 16px; font-weight: 600; color: #1C2B3A;">Here's your way in</h1>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 0 0 28px;">You asked to sign in to Dossie as <strong style="color: #1C2B3A;">{{ .Email }}</strong>. This link does it &mdash; no password needed.</p>
+
+  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: #ffffff; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Sign In to Dossie</a>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 28px 0 0;">If you didn't ask to sign in, delete this. Nobody gets into your account without that link.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: #5C6B7A; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+
+  <hr style="border: none; border-top: 1px solid #E8E2D9; margin: 32px 0 20px;">
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0 0 10px;">You're getting this because a sign-in link was requested for your Dossie account at <a href="https://meetdossie.com" style="color: #D4A0A0;">meetdossie.com</a>. Dossie is the transaction assistant for Texas REALTORS.</p>
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0;">The link is good for 24 hours and works once.</p>
+
+</div>

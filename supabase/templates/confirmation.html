@@ -1,0 +1,39 @@
+<!--
+  Supabase Auth template: CONFIRM SIGNUP
+  Paste into: Dashboard > Authentication > Emails > Confirm signup
+  Subject:    Confirm your Dossie account
+
+  NOT CURRENTLY LIVE. The project runs with mailer_autoconfirm = true
+  (verified against GET /auth/v1/settings on 2026-09-19), so GoTrue marks new
+  addresses confirmed on creation and never sends this. It is filled in anyway
+  so that if email confirmation is ever switched on -- deliberately, or by
+  somebody toggling "Confirm email" in the dashboard without realising it
+  starts a mail flow -- the customer does not receive a stock Supabase email.
+
+  Leaving a template at its default is how the reset email ended up looking
+  like phishing in the first place.
+
+  Variables: .ConfirmationURL .Token .TokenHash .SiteURL .Email
+-->
+<div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: #FDFCFA; color: #1C2B3A;">
+
+  <div style="font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size: 36px; line-height: 1.15; margin: 0 0 16px; font-weight: 600; color: #1C2B3A;">Confirm your email</h1>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 0 0 28px;">A Dossie account was just created with <strong style="color: #1C2B3A;">{{ .Email }}</strong>. Confirm it's you and you're through.</p>
+
+  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: #ffffff; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Confirm My Email</a>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 28px 0 0;">If you didn't sign up for Dossie, just delete this &mdash; nothing happens without that link.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: #5C6B7A; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+
+  <hr style="border: none; border-top: 1px solid #E8E2D9; margin: 32px 0 20px;">
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0 0 10px;">You're getting this because this address was used to sign up at <a href="https://meetdossie.com" style="color: #D4A0A0;">meetdossie.com</a>. Dossie is the transaction assistant for Texas REALTORS.</p>
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0;">The link is good for 24 hours.</p>
+
+</div>
