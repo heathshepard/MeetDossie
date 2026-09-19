@@ -30,6 +30,10 @@ const { scanCronSanity } = require('./cron-sanity.js');
 const { listGoalSetKeys } = require('./social-goals.js');
 const { getAttributionSummary } = require('./attribution.js');
 const { computeGoalProgress } = require('./social-goals-progress.js');
+// Pure, no-I/O module — safe to pull into the alarm bundle. Used so the
+// "untriaged customer ticket" condition applies the SAME not-a-customer rule
+// as the triage cron itself, rather than a second copy that can drift.
+const { isInternalSender } = require('./support-ticket-classify.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -694,6 +698,106 @@ async function checkCommentOppApprovedStale(staleHours = COMMENT_OPP_APPROVED_ST
   }];
 }
 
+// ─── support-ticket triage ─────────────────────────────────────────────────
+//
+// The autonomous bug-report pipeline (api/cron-support-ticket-triage.js) is
+// itself a poller, and a poller that dies quietly is the exact failure class
+// it was built to fix. Amanda Nuckles's cancellation ticket sat open for 25
+// days and nothing said so. Shipping that pipeline without an alarm on the
+// pipeline would repeat the mistake one level up
+// (feedback_silent-failure-is-the-enemy.md).
+//
+// TWO INDEPENDENT CONDITIONS, deliberately. They fail in different ways:
+//
+//   1. THE CRON STOPPED. cron_runs has no recent row for
+//      cron-support-ticket-triage. Catches: removed from the every15
+//      dispatcher, route 404, crashing on import, Vercel dropped it.
+//
+//   2. THE CRON IS RUNNING AND STILL NOT DECIDING. A real customer ticket is
+//      open past the window with no support_triage_log row. This is the
+//      nastier one — cron_runs says 'ok' every 15 minutes while tickets pile
+//      up behind a bad filter, a permissions error, or a claim that keeps
+//      409ing. The 2026-09-17 comment-reply incident was exactly this shape:
+//      green telemetry, 14 unanswered humans.
+//
+// Condition 2 checks only NON-INTERNAL senders. quinn@meetdossie.internal
+// writes 10+ rows on a bad audit day and would otherwise keep this alarm
+// permanently lit, which is how an alarm becomes wallpaper.
+const SUPPORT_TRIAGE_CRON_STALE_HOURS = 3;   // */15 cadence — 3h is ~12 missed runs, not a blip
+const SUPPORT_TRIAGE_UNTRIAGED_HOURS = 2;    // matches cron-support-ticket-alert's own first-escalation threshold
+
+async function checkSupportTriageSilence(
+  cronStaleHours = SUPPORT_TRIAGE_CRON_STALE_HOURS,
+  untriagedHours = SUPPORT_TRIAGE_UNTRIAGED_HOURS,
+) {
+  const conditions = [];
+
+  // ── 1. Has the poller run at all?
+  const runRes = await supabaseFetch(
+    '/rest/v1/cron_runs?cron_name=eq.cron-support-ticket-triage&select=last_run,last_status&limit=1',
+  );
+  const runRow = runRes.ok && Array.isArray(runRes.data) ? runRes.data[0] : null;
+  const cutoff = Date.now() - cronStaleHours * 60 * 60 * 1000;
+  if (!runRow || !runRow.last_run) {
+    conditions.push({
+      key: 'support_triage_never_ran',
+      message: 'api/cron-support-ticket-triage.js has NEVER reported a run in cron_runs. '
+        + 'Customer support tickets are not being classified, acknowledged, or dispatched by anything. '
+        + 'Check it is still in api/cron-dispatch-every15.js HANDLERS and that the module imports cleanly.',
+    });
+  } else if (new Date(runRow.last_run).getTime() < cutoff) {
+    conditions.push({
+      key: 'support_triage_cron_stale',
+      last_run: runRow.last_run,
+      last_status: runRow.last_status,
+      message: `Support-ticket triage last ran ${runRow.last_run} (status ${runRow.last_status || 'unknown'}) — over ${cronStaleHours}h ago on a */15 schedule. `
+        + 'Nothing is triaging customer tickets right now. Check api/cron-dispatch-every15.js.',
+    });
+  }
+
+  // ── 2. Green telemetry, unhandled customers. The worse failure.
+  const openRes = await supabaseFetch(
+    '/rest/v1/support_tickets?status=in.(open,new,in_progress)'
+    + `&created_at=lt.${encodeURIComponent(hoursAgoIso(untriagedHours))}`
+    + '&select=id,agent_email,ticket_type,created_at&order=created_at.asc&limit=50',
+  );
+  if (openRes.ok && Array.isArray(openRes.data) && openRes.data.length > 0) {
+    const customerTickets = openRes.data.filter(
+      (t) => !isInternalSender(t.agent_email, t.ticket_type),
+    );
+    if (customerTickets.length > 0) {
+      const ids = customerTickets.map((t) => `"${t.id}"`).join(',');
+      const logRes = await supabaseFetch(
+        `/rest/v1/support_triage_log?select=ticket_id&source=eq.dossie&ticket_id=in.(${encodeURIComponent(ids)})`,
+      );
+      const decided = new Set(
+        logRes.ok && Array.isArray(logRes.data) ? logRes.data.map((r) => r.ticket_id) : [],
+      );
+      const untriaged = customerTickets.filter((t) => !decided.has(t.id));
+      if (untriaged.length > 0) {
+        const oldest = untriaged[0];
+        conditions.push({
+          key: 'support_tickets_untriaged',
+          count: untriaged.length,
+          oldest_id: oldest.id,
+          oldest_created_at: oldest.created_at,
+          message: `${untriaged.length} customer support ticket(s) open >${untriagedHours}h with NO support_triage_log row — `
+            + `nothing has classified or acknowledged them (oldest: ${oldest.id} from ${oldest.agent_email || 'unknown'}, filed ${oldest.created_at}). `
+            + 'The triage cron may be reporting ok while failing to decide. Run it manually with Bearer $CRON_SECRET and read stats.errors.',
+        });
+      }
+    }
+  } else if (!openRes.ok) {
+    conditions.push({
+      key: 'support_triage_query_failed',
+      message: `Could not read support_tickets to verify triage coverage (status ${openRes.status}). `
+        + 'Treat customer-ticket handling as unverified until this query works.',
+    });
+  }
+
+  return conditions;
+}
+
 async function checkCronSanity(scanOpts) {
   const scan = scanCronSanity(scanOpts);
   if (!scan.ok) {
@@ -739,7 +843,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -754,10 +858,11 @@ async function runAllChecks(opts = {}) {
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkGroupPostingSilence(opts.groupPostingSilenceHours),
+    checkSupportTriageSilence(opts.supportTriageCronStaleHours, opts.supportTriageUntriagedHours),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -1091,6 +1196,8 @@ module.exports = {
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
+  SUPPORT_TRIAGE_CRON_STALE_HOURS,
+  SUPPORT_TRIAGE_UNTRIAGED_HOURS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -1105,6 +1212,7 @@ module.exports = {
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
   checkGroupPostingSilence,
+  checkSupportTriageSilence,
   checkCronSanity,
   shouldFire,
   markFired,

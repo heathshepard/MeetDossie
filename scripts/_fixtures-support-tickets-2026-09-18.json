@@ -1,0 +1,164 @@
+[
+  {
+    "id": "812f908d-fcb7-4a4e-b9f0-516555422901",
+    "user_id": null,
+    "agent_email": "demo2@meetdossie.com",
+    "ticket_type": "bug",
+    "status": "resolved",
+    "created_at": "2026-05-12T21:15:58Z",
+    "message": "there are no shareable milestone cards displaying in the appropriate place in the pipeline"
+  },
+  {
+    "id": "4ed6866b-e8b8-4af4-8416-b147109577ab",
+    "user_id": null,
+    "agent_email": "demo2@meetdossie.com",
+    "ticket_type": "feature",
+    "status": "open",
+    "created_at": "2026-05-12T21:17:18Z",
+    "message": "when will signatures be available"
+  },
+  {
+    "id": "11ecadee-d375-4f1e-8f21-1f9933cce19b",
+    "user_id": null,
+    "agent_email": "demo2@meetdossie.com",
+    "ticket_type": "bug",
+    "status": "open",
+    "created_at": "2026-05-12T21:18:58Z",
+    "message": "I need help with an issue im running into"
+  },
+  {
+    "id": "89938c2c-21b5-4cbd-a999-94ce67e41b1b",
+    "user_id": null,
+    "agent_email": "agent-b@example-realty.com",
+    "ticket_type": "feature",
+    "status": "resolved",
+    "created_at": "2026-06-07T22:00:21Z",
+    "message": "Follow up date on active listings to stay in touch on consistent basis, etc.."
+  },
+  {
+    "id": "4141c097-c354-4f52-a9c5-d7c9bf25b942",
+    "user_id": null,
+    "agent_email": "agent-b@example-realty.com",
+    "ticket_type": "bug",
+    "status": "resolved",
+    "created_at": "2026-06-16T01:21:51Z",
+    "message": "The pre-contract and pre-listing columns have disappeared"
+  },
+  {
+    "id": "1b605557-31c5-4242-a904-fe0dc3a97e14",
+    "user_id": null,
+    "agent_email": "agent-b@example-realty.com",
+    "ticket_type": "bug",
+    "status": "resolved",
+    "created_at": "2026-06-17T03:07:57Z",
+    "message": "Names of clients not showing in pre-listing or pre-contract.. having to put them in property address line to appear"
+  },
+  {
+    "id": "86c299c7-16c0-4920-8fe7-d937fcd91beb",
+    "user_id": null,
+    "agent_email": "agent-b@example-realty.com",
+    "ticket_type": "bug",
+    "status": "resolved",
+    "created_at": "2026-06-17T03:10:36Z",
+    "message": "I have 2 pre listings that are showing in active listings, and it won't let me shift them back.."
+  },
+  {
+    "id": "27e07178-d775-4c04-acd2-3f373b908b96",
+    "user_id": null,
+    "agent_email": "agent-m@example-mail.com",
+    "ticket_type": "bug",
+    "status": "resolved",
+    "created_at": "2026-06-17T17:14:43Z",
+    "message": "I am trying to upload a new executed contract in pdf format and receiving an error. This is the 2nd contract where I get an error. Will manually input info and see if I can find a work around."
+  },
+  {
+    "id": "5774fbc8-ec24-43f9-a387-2ad7ce4184f9",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn_sev2",
+    "status": "resolved",
+    "created_at": "2026-07-03T13:36:36Z",
+    "message": "[quinn-daily-audit] T05-talk-to-dossie failed: chat_http_401"
+  },
+  {
+    "id": "9b60f6a3-5324-4f8d-8689-69c7b73f2fb4",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn_sev1",
+    "status": "open",
+    "created_at": "2026-07-03T13:36:36Z",
+    "message": "[quinn-daily-audit] T08-upload-automap failed: automap_stuck_count_30"
+  },
+  {
+    "id": "ae8b1529-f4a4-42e7-84e4-94fe59f89f87",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn_sev2",
+    "status": "resolved",
+    "created_at": "2026-07-03T13:36:36Z",
+    "message": "[quinn-daily-audit] T10-trec-citation failed: chat_http_401"
+  },
+  {
+    "id": "90d1e6a4-e279-4165-931b-e236dfd037bd",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "resolved",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 T08 FAIL SEV-1 — Auto-map cron cron-automap-pending-documents last ran 2026-07-03 14:18:36 UTC. Test document uploaded at 14:25:40 remained scan_status=pending for 7+ minutes."
+  },
+  {
+    "id": "50d6ab1b-428a-45b3-8323-5b13dc814c19",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "resolved",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 T11 FAIL SEV-2 — Morning Brief renders one BLANK card (no address prefix) in \"First things first\" section"
+  },
+  {
+    "id": "2b7926e1-6cb3-4c95-9557-e94c000fb33a",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "resolved",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 T13 FAIL SEV-2 — Follow-up dates feature (Atlas #2 ship) is NOT surfaced in UI."
+  },
+  {
+    "id": "068418b4-fe5b-4669-8289-ebc6bf1f00f0",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "resolved",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 finding SEV-3 — Console errors on dossier detail view: /api/wire-fraud-status returns 404 for every transaction load; /api/form-packages returns 500."
+  },
+  {
+    "id": "2b124a8a-9ff0-4b0c-8aeb-68409298f6a3",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "resolved",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 finding SEV-3 — Deal details section shows \"$0\" for sale_price/earnest_money/option_fee when values are null."
+  },
+  {
+    "id": "bd628ee4-7ff9-45a6-b009-12d6f90b7319",
+    "user_id": null,
+    "agent_email": "quinn@meetdossie.internal",
+    "ticket_type": "quinn-daily-audit",
+    "status": "open",
+    "created_at": "2026-07-03T14:33:39Z",
+    "message": "ITER1 finding SEV-3 — Create Dossier form fields are not saved on submit."
+  },
+  {
+    "id": "503a1d1b-3c49-4a25-abe1-27eb94afd62f",
+    "user_id": null,
+    "agent_email": "agent-a@example.com",
+    "ticket_type": "bug",
+    "status": "open",
+    "created_at": "2026-08-24T19:26:06Z",
+    "message": "How do I cancel my account?"
+  }
+]
