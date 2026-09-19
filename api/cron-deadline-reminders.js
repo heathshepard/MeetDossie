@@ -28,8 +28,8 @@
 //   - hoa_document_deadline     → "HOA document deadline"
 //   - loan_approval_deadline    → "Loan approval deadline"
 //   - possession_date           → "Possession"
-//   - option_fee_due_date       → "Option fee delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once option_fee_paid_at is set
-//   - earnest_money_due_date    → "Earnest money delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once deposited/confirmed
+//   - option_fee_due_date       → "Option fee delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once option_fee_confirmed_at is set
+//   - earnest_money_due_date    → "Earnest money delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once earnest_money_confirmed_at is set
 //   - expected_completion_date  → "Expected completion (new construction)" — T-7 if CO not received
 //   - builder_warranty_expiration → "Builder warranty expiration" — T-30
 //
@@ -84,24 +84,64 @@ const DEADLINE_FIELDS = [
   { col: 'loan_approval_deadline', label: 'Loan approval deadline' },
   { col: 'possession_date',        label: 'Possession date' },
   // TREC ¶5.A funds delivery — the 3-day window means T-7 can never fire, so
-  // these run T-3/T-1/T-0. Receipt suppression uses the *received* fields
-  // (option_fee_paid_at / earnest_money_deposited_at|confirmed_at),
-  // never "instructions sent" — sent is not received (spec Gate 6).
+  // these run T-3/T-1/T-0.
+  //
+  // SUPPRESSION IS CONFIRMED-RECEIPT ONLY (spec Gate 6, 2026-09-17). The two
+  // *_confirmed_at columns are the only fields in this schema that mean "the
+  // escrow agent acknowledged receipt" — earnest_money_confirmed_at is written
+  // from the page-11 receipt block parsed off the executed contract, and
+  // option_fee_confirmed_at is its option-fee counterpart (20260917 migration).
+  //
+  // The self-reported fields are deliberately NOT consulted:
+  //   - option_fee_paid_at          the workspace stamps this with Date.now()
+  //                                 on executed-contract upload whenever ¶5.A
+  //                                 shows any option fee amount. It records
+  //                                 "a contract mentioning an option fee was
+  //                                 filed," not that money reached title.
+  //   - earnest_money_deposited_at  same auto-stamp on the EM amount; also
+  //                                 hand-editable ("deposit sent").
+  // Suppressing on either one silences the reminder at the exact moment the
+  // agent most needs chasing. That is the Low Oak $5,200 failure mode, and it
+  // is why the option-expiration escalation ~340 lines below has always keyed
+  // off earnest_money_confirmed_at alone. Sent is not received.
   {
     col: 'option_fee_due_date',
     label: 'Option fee delivery deadline (TREC ¶5.A)',
     milestones: [3, 1, 0],
-    suppressWhen: (tx) => Boolean(tx.option_fee_paid_at),
+    suppressWhen: (tx) => Boolean(tx.option_fee_confirmed_at),
     deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).option_fee_due_date,
   },
   {
     col: 'earnest_money_due_date',
     label: 'Earnest money delivery deadline (TREC ¶5.A)',
     milestones: [3, 1, 0],
-    suppressWhen: (tx) => Boolean(tx.earnest_money_deposited_at || tx.earnest_money_confirmed_at),
+    suppressWhen: (tx) => Boolean(tx.earnest_money_confirmed_at),
     deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).earnest_money_due_date,
   },
 ];
+
+// Every transactions column a suppressWhen reads. Kept next to the suppressors
+// so the two can't drift: loadOpenTransactions selects exactly this list, and
+// the regression suite asserts the set matches. A suppressor reading a column
+// the select doesn't fetch is silently always-undefined (= never suppress);
+// a select naming a column that doesn't exist is a PostgREST 400 that kills
+// every reminder for every customer. Both have happened — see SELECT_OPTIONAL.
+const SUPPRESSION_FIELDS = [
+  'option_fee_confirmed_at',
+  'earnest_money_confirmed_at',
+];
+
+// Columns that may not exist yet in a given environment because their
+// migration has not been applied. On a PostgREST 42703 ("column ... does not
+// exist") we drop these and retry once, so a code-before-migration deploy
+// degrades to *extra* reminders instead of zero.
+//
+// 2026-09-10 (fe4311b2): cron-deadline-reminders 500'd on EVERY run for a week
+// because the select named option_fee_receipt_date, which is a TREC 20-19
+// AcroForm field key, not a transactions column. All 10 active customers got
+// zero deadline reminders for seven days and the failure was only visible in
+// cron logs. Never let an unknown column take the whole cron down again.
+const SELECT_OPTIONAL = new Set(['option_fee_confirmed_at']);
 
 const REMINDER_MILESTONES = [7, 1, 0]; // default days_out values we fire on
 
@@ -248,13 +288,12 @@ async function loadActiveCustomers() {
 async function loadOpenTransactions(userId) {
   const baseFields = ['id', 'user_id', 'property_address', 'status', ...DEADLINE_FIELDS.map((f) => f.col)];
   const conditionalFields = [
-    // ¶5.A funds delivery: derivation source + receipt-suppression fields.
-    // (option_fee_due_date / earnest_money_due_date ride in via baseFields —
-    // they're DEADLINE_FIELDS columns. Requires the 20260903 migration.)
+    // ¶5.A funds delivery: derivation source + confirmed-receipt suppression
+    // fields. (option_fee_due_date / earnest_money_due_date ride in via
+    // baseFields — they're DEADLINE_FIELDS columns. Requires the 20260903
+    // migration; option_fee_confirmed_at requires the 20260917 one.)
     'contract_effective_date',
-    'option_fee_paid_at',
-    'earnest_money_deposited_at',
-    'earnest_money_confirmed_at',
+    ...SUPPRESSION_FIELDS,
     'inspection_scheduled_at',
     'inspection_completed_at',
     'appraisal_received_at',
@@ -278,10 +317,29 @@ async function loadOpenTransactions(userId) {
     'land_survey_received_date',
     'land_survey_clear',
   ];
-  const fields = [...baseFields, ...conditionalFields].join(',');
-  const r = await supabaseFetch(
-    `/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&or=(status.is.null,status.neq.closed)&select=${fields}`,
+  const allFields = [...baseFields, ...conditionalFields];
+
+  const fetchWith = (cols) => supabaseFetch(
+    `/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}&or=(status.is.null,status.neq.closed)&select=${cols.join(',')}`,
   );
+
+  let r = await fetchWith(allFields);
+
+  // Pending-migration fallback: PostgREST 42703 = "column ... does not exist".
+  // Retry once without the columns we know may not be migrated yet. Their
+  // absence only costs suppression (we remind instead of going quiet), which
+  // is the safe direction; losing the whole read costs every reminder.
+  if (!r.ok && r.data && r.data.code === '42703') {
+    const reduced = allFields.filter((c) => !SELECT_OPTIONAL.has(c));
+    if (reduced.length !== allFields.length) {
+      console.warn(
+        '[deadline-reminders] pending migration — retrying without',
+        [...SELECT_OPTIONAL].join(','), '|', r.data.message,
+      );
+      r = await fetchWith(reduced);
+    }
+  }
+
   // A failed read is NOT "this customer has no open deadlines". Swallowing it
   // here meant a DB blip produced a clean run summary — ok:true, 0 reminders,
   // no errors — on a day an option period expired. Throw so the per-customer
@@ -978,4 +1036,10 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
 
 // Test-only surface for scripts/regression-funds-delivery-due-dates.js.
 // The telemetry-wrapped handler remains the sole runtime export.
-module.exports.__test = { DEADLINE_FIELDS, REMINDER_MILESTONES, ALL_MILESTONES };
+module.exports.__test = {
+  DEADLINE_FIELDS,
+  REMINDER_MILESTONES,
+  ALL_MILESTONES,
+  SUPPRESSION_FIELDS,
+  SELECT_OPTIONAL,
+};

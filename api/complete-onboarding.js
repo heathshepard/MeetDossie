@@ -14,6 +14,7 @@ const Stripe = require('stripe');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { tierForPriceId } = require('./_lib/pricing-tiers');
 const { createOrgWithFounder } = require('./_lib/team-org');
+const accountInvites = require('./_lib/account-invites');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -236,7 +237,7 @@ function setPasswordEmailHtml(actionLink, plan) {
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; line-height: 1.15; margin: 0 0 16px; color: ${BRAND_NAVY};">Welcome to Dossie.</h1>
   <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">${accessLine}</p>
   <a href="${actionLink}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Set Your Password</a>
-  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it's expired, contact us at heath@meetdossie.com and we'll send a new one. If you didn't request this, ignore this email.</p>
+  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it stops working, go to <a href="https://meetdossie.com/forgot-password.html" style="color: #C08080;">meetdossie.com/forgot-password</a> and we'll send a fresh one right away &mdash; you don't need to wait on anybody. If you didn't request this, ignore this email.</p>
 </div>`;
 }
 
@@ -584,24 +585,70 @@ module.exports = async function handler(req, res) {
       console.error('[complete-onboarding] welcome email failed (non-fatal):', err && err.message);
     }
 
-    // Generate recovery link and send password-set email. This one IS critical —
-    // it is the customer's only way into the account they just paid for. If it
-    // does not go out we say so loudly instead of returning a cheerful 200.
+    // Issue the access credential. This one IS critical — it is the customer's
+    // only way into the account they just paid for. If it does not go out we
+    // say so loudly instead of returning a cheerful 200.
+    //
+    // CHANGED 2026-09-18: prefer a DURABLE invite (30 days, re-clickable,
+    // self-service resend) over the one-hour Supabase recovery link that was
+    // previously the sole credential. See api/_lib/account-invites.js and
+    // docs/ACTIVATION-FORENSICS-2026-09-18.md — three paying customers never
+    // set a password because that one-hour window closed before they opened
+    // their email.
     let passwordEmailSent = false;
+    let credentialDurable = false;
     try {
-      const actionLink = await generateRecoveryLink(email);
-      if (actionLink) {
-        await sendEmail({
+      const invite = await accountInvites.createInvite({
+        userId,
+        email,
+        source: 'complete_onboarding',
+      });
+      if (invite) {
+        const sent = await accountInvites.sendInviteEmail({
           to: email,
-          subject: 'Welcome to Dossie — Set Your Password',
-          html: setPasswordEmailHtml(actionLink, plan),
+          fullName: name,
+          actionUrl: invite.url,
+          expiresAt: invite.expiresAt,
         });
-        passwordEmailSent = true;
+        if (sent.ok) {
+          await accountInvites.markInviteEmailed(invite.inviteId, sent.id);
+          await accountInvites.logLifecycleEmail({
+            userId,
+            email,
+            sequence: 'invite',
+            step: 'invite',
+            resendMessageId: sent.id,
+            source: 'api/complete-onboarding',
+            metadata: { invite_id: invite.inviteId, plan },
+          });
+          passwordEmailSent = true;
+          credentialDurable = true;
+        } else {
+          console.error('[complete-onboarding] durable invite created but email failed:', sent.error);
+        }
       } else {
-        console.error('[complete-onboarding] no action_link returned for', email);
+        // account_invites unavailable — fall back to today's behavior rather
+        // than leaving the customer with nothing.
+        console.warn('[complete-onboarding] durable invite unavailable — falling back to a 1-hour recovery link for', email);
+        const actionLink = await generateRecoveryLink(email);
+        if (actionLink) {
+          await sendEmail({
+            to: email,
+            subject: 'Welcome to Dossie — Set Your Password',
+            html: setPasswordEmailHtml(actionLink, plan),
+          });
+          passwordEmailSent = true;
+        } else {
+          console.error('[complete-onboarding] no action_link returned for', email);
+        }
       }
     } catch (err) {
       console.error('[complete-onboarding] password-set email failed:', err && err.message);
+    }
+    if (!passwordEmailSent) {
+      console.error('[complete-onboarding] NO USABLE CREDENTIAL DELIVERED to', email);
+    } else if (!credentialDurable) {
+      console.warn('[complete-onboarding] delivered only a ONE-HOUR link to', email, '— if they miss it, use /api/invite-resend');
     }
 
     // Notify Heath via Telegram

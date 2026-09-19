@@ -25,6 +25,7 @@
 const Stripe = require('stripe');
 const { captureServerEvent } = require('./_lib/posthog');
 const { FOUNDING_PRICE_ID, PRICE_TIERS } = require('./_lib/pricing-tiers');
+const accountInvites = require('./_lib/account-invites');
 
 // Stripe requires the raw request body for signature verification, so disable
 // Vercel's default JSON parser on this route.
@@ -386,12 +387,28 @@ async function logPayment({ invoiceId, subscriptionId, customerId, amountCents, 
   }
 }
 
-async function notifyHeathOnTelegram({ name, email, source }) {
+// `credential` (optional) is the result of provisionAccessCredential. Heath
+// needs to know on the FIRST message whether the person who just paid can
+// actually sign in — the whole activation failure was invisible because this
+// notification only ever said "new member" and never said "…and they have no
+// way in." A silent failure that reaches Heath as good news is worse than no
+// notification at all.
+async function notifyHeathOnTelegram({ name, email, source, credential }) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.warn('[stripe-webhook] Telegram not configured — skipping notification');
     return;
   }
-  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Source:</b> ${source || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}`;
+  let accessLine = '';
+  if (credential) {
+    if (credential.sent && credential.durable) {
+      accessLine = '\n\n<b>Access:</b> ✅ durable invite emailed (good 30 days, resendable).';
+    } else if (credential.sent) {
+      accessLine = '\n\n<b>Access:</b> ⚠️ only a ONE-HOUR link went out (durable invite unavailable). If they miss it, run /api/invite-resend.';
+    } else {
+      accessLine = `\n\n🚨 <b>Access: NOTHING DELIVERED — they cannot sign in.</b> Reason: ${credential.reason || 'unknown'}. Send them a link via /api/invite-resend.`;
+    }
+  }
+  const text = `🎉 <b>NEW FOUNDING MEMBER</b>\n\n<b>Name:</b> ${name || 'unknown'}\n<b>Email:</b> ${email || 'unknown'}\n<b>Source:</b> ${source || 'unknown'}\n<b>Time:</b> ${new Date().toISOString()}${accessLine}`;
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -486,14 +503,72 @@ function welcomeEmailHtml(fullName) {
 </div>`;
 }
 
+// DEPRECATED as the primary path (2026-09-18) — kept only as the fallback body
+// used when a durable invite cannot be created (see provisionAccessCredential).
+// The "expires in 1 hour ... contact us and we'll send a new one" line below is
+// the exact defect documented in docs/ACTIVATION-FORENSICS-2026-09-18.md: it
+// hands a paying customer a perishable credential and makes a human the only
+// route to recovery. It now appears only in the degraded case, and says so.
 function setPasswordEmailHtml(actionLink) {
   return `<div style="font-family: 'Cormorant Garamond', Georgia, serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; line-height: 1.15; margin: 0 0 16px; color: ${BRAND_NAVY};">Welcome to Dossie.</h1>
   <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">Your founding member access is confirmed. Click below to set your password and get started.</p>
   <a href="${actionLink}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Set Your Password</a>
-  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it's expired, contact us at heath@meetdossie.com and we'll send a new one. If you didn't request this, ignore this email.</p>
+  <p style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; margin-top: 36px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link expires in 1 hour. If it stops working, go to <a href="https://meetdossie.com/forgot-password.html" style="color: #C08080;">meetdossie.com/forgot-password</a> and we'll send you a fresh one right away. If you didn't request this, ignore this email.</p>
 </div>`;
+}
+
+// Issue the customer a way in, and tell the caller honestly whether it worked.
+//
+// Order of preference:
+//   1. A DURABLE invite (30 days, re-clickable, self-service resend). This is
+//      the fix for the defect that left three paying customers without a usable
+//      credential — see api/_lib/account-invites.js for the full rationale.
+//   2. A direct one-hour Supabase recovery link. Only reached when the
+//      account_invites table is unavailable (migration not yet applied) or the
+//      insert failed. Strictly worse, and loudly logged, but better than
+//      sending nothing at all.
+//
+// Returns { sent, durable, reason } so the caller can alert Heath with an
+// accurate description instead of a cheerful success the customer can't act on.
+async function provisionAccessCredential({ userId, email, fullName, source }) {
+  if (userId) {
+    const invite = await accountInvites.createInvite({ userId, email, source });
+    if (invite) {
+      const sent = await accountInvites.sendInviteEmail({
+        to: email,
+        fullName,
+        actionUrl: invite.url,
+        expiresAt: invite.expiresAt,
+      });
+      if (sent.ok) {
+        await accountInvites.markInviteEmailed(invite.inviteId, sent.id);
+        await accountInvites.logLifecycleEmail({
+          userId,
+          email,
+          sequence: 'invite',
+          step: 'invite',
+          resendMessageId: sent.id,
+          source: `stripe-webhook:${source}`,
+          metadata: { invite_id: invite.inviteId },
+        });
+        return { sent: true, durable: true };
+      }
+      console.error('[stripe-webhook] durable invite created but email failed for', email, sent.error);
+      return { sent: false, durable: true, reason: sent.error || 'send_failed' };
+    }
+    console.warn('[stripe-webhook] durable invite unavailable — falling back to a 1-hour recovery link for', email);
+  }
+
+  const actionLink = await generateRecoveryLink(email);
+  if (!actionLink) return { sent: false, durable: false, reason: 'no_action_link' };
+  await sendEmail({
+    to: email,
+    subject: 'Welcome to Dossie — Set Your Password',
+    html: setPasswordEmailHtml(actionLink),
+  });
+  return { sent: true, durable: false, reason: 'fallback_one_hour_link' };
 }
 
 async function sendEmail({ to, subject, html }) {
@@ -969,20 +1044,27 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
     console.error('[stripe-webhook] welcome email failed in invoice.paid:', err && err.message);
   }
 
-  // 5) Generate recovery link + send password-set email.
+  // 5) Issue the access credential (durable invite, falling back to a
+  //    one-hour link) and email it.
+  //
+  //    This is the step that decides whether the person who just paid can ever
+  //    sign in. Three founding members failed here and nobody noticed for four
+  //    months, because the old code logged an error and moved on. It now
+  //    reports its outcome to Heath in the Telegram message below.
+  let credential = { sent: false, durable: false, reason: 'not_attempted' };
   try {
-    const actionLink = await generateRecoveryLink(customerEmail);
-    if (actionLink) {
-      await sendEmail({
-        to: customerEmail,
-        subject: 'Welcome to Dossie — Set Your Password',
-        html: setPasswordEmailHtml(actionLink),
-      });
-    } else {
-      console.error('[stripe-webhook] invoice.paid: no action_link returned for', customerEmail);
-    }
+    credential = await provisionAccessCredential({
+      userId,
+      email: customerEmail,
+      fullName: customerName,
+      source: 'invoice_paid',
+    });
   } catch (err) {
-    console.error('[stripe-webhook] password-set email failed in invoice.paid:', err && err.message);
+    console.error('[stripe-webhook] access credential failed in invoice.paid:', err && err.message);
+    credential = { sent: false, durable: false, reason: (err && err.message) || 'threw' };
+  }
+  if (!credential.sent) {
+    console.error('[stripe-webhook] invoice.paid: NO USABLE CREDENTIAL DELIVERED to', customerEmail, '| reason:', credential.reason);
   }
 
   // 6) Notify Heath via Telegram, flagged as direct-invoice source.
@@ -991,6 +1073,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
       name: customerName,
       email: customerEmail,
       source: `direct invoice (${invoice.id})`,
+      credential,
     });
   } catch (err) {
     console.error('[stripe-webhook] Telegram notify failed in invoice.paid:', err && err.message);

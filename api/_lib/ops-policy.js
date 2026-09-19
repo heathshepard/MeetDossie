@@ -104,6 +104,38 @@ const CAPABILITIES = {
     description: 'Fold routine (non-time-sensitive) per-item approval pings into the one daily morning brief instead of firing individually.',
     gates: [],
   },
+  ack_support_ticket: {
+    // Seeded DISABLED by 20260918_support_ticket_triage.sql. This is the ONLY
+    // switch between api/cron-support-ticket-triage.js and a real customer
+    // inbox.
+    //
+    // WHY THIS ISN'T contact_real_client (ALWAYS_HEATH): that key covers a
+    // message Heath INITIATES to a client, lead, or the other side of a deal
+    // — a judgement call with deal consequences. This is strictly narrower:
+    // a receipt, to a paying Dossie customer who just wrote in to Heath
+    // unprompted, confirming his software received what they sent and
+    // promising nothing. Heath granted standing authority for exactly that
+    // act after ticket 503a1d1b (Amanda Nuckles, 2026-08-24) sat unanswered
+    // until she cancelled.
+    //
+    // WHAT IT CAN NEVER COVER: a cancellation, a billing dispute, an unhappy
+    // customer, or anything legal. Those are
+    // pricing_demo_complaint_conversation below — ALWAYS_HEATH, no flag, no
+    // path. The classifier routes them there BEFORE this capability is ever
+    // consulted.
+    flagKey: 'ack_support_ticket',
+    defaultEnabled: false,
+    description: 'Send a one-time receipt acknowledgement to a customer who filed an in-app support ticket. Acknowledges only — no timeline, no promise, no claim of a fix.',
+    gates: [
+      'not_internal_sender',
+      'not_escalation_class',
+      'within_backfill_age_window',
+      'idempotent_unique_ticket',
+      'suppression_list',
+      'rate_caps_and_flood_guard',
+      'no_promise_in_copy',
+    ],
+  },
 };
 
 // ALWAYS HEATH. No flagKey — there is nothing to read. checkCapability()

@@ -152,9 +152,22 @@ the deadline approaches — not a single mention on the due date itself. Existin
 loan approval, and possession — **it does not currently include an option-fee or
 earnest-money delivery deadline at all**, because no such deadline column/date currently
 exists on `transactions` (only `option_fee_amount`, `earnest_money_amount`,
-`option_fee_receipt_date`, `earnest_money_deposited_at` — amounts and *receipt* timestamps,
-no *due-date* field to remind against). This is the first concrete build item — see the
-checklist.
+`option_fee_paid_at`, `earnest_money_deposited_at` — amounts and *self-reported* payment
+markers, no *due-date* field to remind against). This is the first concrete build item —
+see the checklist.
+
+> **Correction, 2026-09-17.** Earlier drafts of this section listed
+> `option_fee_receipt_date` as a column on `transactions` and called these "receipt
+> timestamps." Both were wrong, and the error propagated straight into shipped code.
+> `option_fee_receipt_date` is a **TREC 20-19 AcroForm field key** on the page-11 receipt
+> block (see `api/_lib/trec-20-19-transaction-field-map.js`, which fills it *from*
+> `option_fee_paid_at`) — it has never existed on `transactions`. Naming it in a PostgREST
+> select 400s, which is what 500'd `cron-deadline-reminders.js` on every run for a week in
+> September 2026 (fe4311b2). And `option_fee_paid_at` / `earnest_money_deposited_at` are
+> not receipts: the workspace stamps both with the *upload time* when an executed contract
+> is scanned and ¶5.A shows an amount. Only `earnest_money_confirmed_at` (parsed from the
+> page-11 escrow receipt block) and `option_fee_confirmed_at` (added 20260917e) mean
+> confirmed receipt. See Gate 6.
 **What it prevents:** failure #6, same as gate 3 but on the notification side — one
 passive mention isn't notice; a tightening reminder schedule is.
 
@@ -205,9 +218,10 @@ blur in any external-facing draft pulled from this section.
   currently marketing content, not application logic.
 - `contract_effective_date` and `option_days` already exist as real columns on
   `transactions`, and `api/_lib/trec-20-19-transaction-field-map.js` already reads
-  `option_fee_amount`, `earnest_money_amount`, `option_fee_receipt_date`, and
-  `earnest_money_deposited_at` — the raw data a due-date computation and a receipt-tracking
-  gate would both build on already exists.
+  `option_fee_amount`, `earnest_money_amount`, `option_fee_paid_at`, and
+  `earnest_money_deposited_at` — the raw data a due-date computation would build on already
+  exists. (A receipt-tracking gate needs more than this: those last two are self-reported
+  payment markers, not receipts. See the 2026-09-17 correction above and Gate 6.)
 - `api/cron-deadline-reminders.js` runs daily, T-7/T-1/T-0, against a real deadline table
   (`deadline_reminders`) for `option_expiration_date`, `closing_date`,
   `appraisal_deadline`, `survey_deadline`, `hoa_document_deadline`,

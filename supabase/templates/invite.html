@@ -1,0 +1,40 @@
+<!--
+  Supabase Auth template: INVITE USER
+  Paste into: Dashboard > Authentication > Emails > Invite user
+  Subject:    You're in - set your Dossie password
+
+  WHEN THIS FIRES: only when somebody is invited from the Supabase dashboard
+  Users page, or via the auth admin invite API. The NORMAL paid-signup path
+  does NOT use this -- api/stripe-webhook.js, api/signup.js and
+  api/complete-onboarding.js all mint a link with admin/generate_link and send
+  it themselves through Resend, and the fix/durable-account-invites-0918 branch
+  replaces that with a durable 30-day token. This template is the safety net
+  for the manual route, so that a hand-invite from the dashboard is not the one
+  unbranded email left standing.
+
+  Variables: .ConfirmationURL .Token .TokenHash .SiteURL .Email
+-->
+<div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: #FDFCFA; color: #1C2B3A;">
+
+  <div style="font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size: 36px; line-height: 1.15; margin: 0 0 16px; font-weight: 600; color: #1C2B3A;">You're in.</h1>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 0 0 28px;">Your Dossie account is set up and waiting on <strong style="color: #1C2B3A;">{{ .Email }}</strong>. Pick a password and you can start dropping contracts in right away.</p>
+
+  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: #ffffff; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Set Your Password</a>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 28px 0 0;">Once you're in: open any deal you're working &mdash; even a closed one &mdash; and drop the contract in. She reads it, pulls every TREC deadline with the paragraph it came from, and lays your file out in order.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 18px 0 0;">Reply to this email any time. I read every one.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: #5C6B7A; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+
+  <hr style="border: none; border-top: 1px solid #E8E2D9; margin: 32px 0 20px;">
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0 0 10px;">You're getting this because a Dossie account was created for you at <a href="https://meetdossie.com" style="color: #D4A0A0;">meetdossie.com</a>. Dossie is the transaction assistant for Texas REALTORS.</p>
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0;">The link is good for 24 hours. If it's expired by the time you get to it, go to <a href="https://meetdossie.com/forgot-password.html" style="color: #D4A0A0;">meetdossie.com/forgot-password</a> and we'll send a fresh one straight away &mdash; no need to wait on anybody.</p>
+
+</div>

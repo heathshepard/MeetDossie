@@ -25,20 +25,49 @@ Auditing the working tree gives the wrong answer (see B12).
 - `Heath` — needs a credential, a payment, a legal call, a physical action, or a judgment only
   he can make. Not pullable.
 
-**Total: 88 items** — A: 7, B: 22, C: 22, D: 12, E: 6, F: 12, G: 7. By Blocked-by:
+**Total: 94 items — 91 open, 3 resolved and struck through.**
+Open by section: A: 6, B: 25, C: 24, D: 12, E: 5, F: 12, G: 7.
+
+**Reconciled 2026-09-17** against what actually shipped that day. Counts below are not estimates
+— they are the output of running the real parser (`api/_lib/backlog-parser.js`, the same module
+the autonomous loop uses) over this file:
 
 | Category | Count | Pullable by a loop? |
 |---|---|---|
-| `agent` — fully unattended | 18 | yes |
-| `agent, Heath gates merge` — agent does all the work | 33 | yes |
-| mixed — agent does the engineering, Heath does one specific step (a login, an approval, a preview test) | 10 | the engineering half, yes |
-| **`Heath`** — blocked on him before anything can finish | 27 | no |
+| eligible — `Blocked by` reads `agent` or `agent, Heath gates merge` | **54** | yes |
+| withheld — `Heath` | 27 | no |
+| withheld — `agent, …` with a further Heath dependency | 10 | the engineering half only |
+| closed — struck through, skipped at parse time | 3 | no |
 
-So **51 items a loop can pull today**, plus the engineering half of 10 more.
+So **54 items a loop can legitimately pull today**, up from 50 before this pass — 3 finished
+items were removed and 6 real ones (B23-B26, C23, C24) were added.
+
+**⚠️ Closing an item in this file is not free-text.** The loop detects closure from the `###`
+**heading only**, and this file's headings begin `### A1.` — whose trailing period truncates the
+parser's status region. Appending `— RESOLVED` to an engineering heading therefore does
+**nothing**. **Strike the title instead:** `### ~~A1. Title~~ — RESOLVED …`. All three closed
+items here use that form. Full mechanics are in E1.
 
 ---
 
 ## Top 5 across everything
+
+> **⚠️ SUPERSEDED 2026-09-17 — do not pick work from this list.** Four of the five below moved
+> the same day this file was compiled, and the list has not been re-ranked. Read the items.
+>
+> | Was #1-5 | Where it actually stands on 2026-09-17 |
+> |---|---|
+> | **A1** anon can read the whole DB | **RESOLVED.** Two migrations applied to prod; 19 anon-executable SECURITY DEFINER functions → 1 (token-gated by design). Verified live. |
+> | **B17** uncommitted P0 dossier-save fix | **Premise now false, item still open — and still broken in production.** The fix was committed and merged in `Dossie`, but the built bundle was never shipped to `MeetDossie`. Read B17 before touching it; both "it's uncommitted" and "it's done" are wrong. |
+> | **C1** real signatures bypass the product | **Agent half RESOLVED.** Write-back shipped; `signature_requests` went 0 → 5 completed. What remains is Heath's, not engineering's. |
+> | **B3** regression suite red, alerts swallowed | **RESOLVED and merged.** Alerts are delta-based and now actually fire. |
+> | **B1** deadline math wrong in client-facing output | **Half shipped.** Business-day rollover is wired into the chat path and verified live. The survey/HOA builders are still `TODO-SARAH` and still need Heath. |
+>
+> **What is genuinely most severe now:** **B17** (a member-facing data-loss bug fixed in source
+> and still live in production), **B2** (~75 typed fields still not reaching the contract, some
+> printing *stale* values the member never typed), and **C23/C24** (contract elections that
+> cannot be set at all, on paragraphs headed "check one box only"). **B23** is the reason B17
+> could happen silently and will happen again.
 
 1. **[A1] Anyone on the internet can read the entire database.** 19 `SECURITY DEFINER`
    functions are executable by the `anon` role, including `jarvis_run_select(sql_text)`, which
@@ -84,9 +113,21 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
 
 ## A. Platform, security, data integrity (MeetDossie / Supabase)
 
-### A1. `anon` can execute 19 SECURITY DEFINER functions, one of which runs arbitrary SQL
-- **What** — The `anon` role holds EXECUTE on 19 `postgres`-owned `SECURITY DEFINER` functions,
-  so they bypass RLS entirely. `jarvis_run_select(sql_text text)` takes raw SQL.
+### ~~A1. `anon` can execute 19 SECURITY DEFINER functions, one of which runs arbitrary SQL~~ — RESOLVED 2026-09-17
+- **RESOLUTION (2026-09-17)** — Shipped as **two Supabase migrations applied directly to the
+  database**, not as a MeetDossie commit. Do not go looking for a git SHA; there isn't one.
+  - `20260917173809_revoke_anon_public_execute_on_security_definer_functions`
+  - `20260917182337_fix_mt_acting_user_impersonation` (the org-admin half — the functions that
+    took an acting-user id as a *parameter* instead of deriving it from the JWT)
+- **Verified live 2026-09-17, after the fact, by re-running the original detection query**
+  (`pg_proc` joined against `has_function_privilege('anon', oid, 'EXECUTE')` where `prosecdef`):
+  **19 → 1**. The single remaining function is `consume_tc_consent_token`, which is
+  token-gated by design — an unauthenticated invitee must be able to redeem a consent token.
+  `jarvis_run_select` is no longer anon-executable.
+- **Residual** — none for this item. `A5` (PDF blobs in public git history) and `A6` are
+  unrelated and still open.
+- **What it was** — The `anon` role held EXECUTE on 19 `postgres`-owned `SECURITY DEFINER`
+  functions, so they bypassed RLS entirely. `jarvis_run_select(sql_text text)` took raw SQL.
 - **Evidence** — `pg_proc` joined against `has_function_privilege('anon', oid, 'EXECUTE')`
   returns 19: `jarvis_run_select`, `jarvis_prune_expired_audio`, `jarvis_current_tenant_id`,
   `create_org_with_founder`, `update_member_roles`, `remove_org_member`,
@@ -103,8 +144,11 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
 - **Effort** — Hours. `REVOKE EXECUTE ... FROM anon` on all 19, re-grant to `authenticated` only
   where the browser genuinely calls them (`get_my_org_context`, `is_org_admin`, `get_org_roster`,
   `invite_member_with_roles` are plausible), then a real browser pass to confirm nothing broke.
-- **Blocked by** — agent, Heath gates merge.
-- **Confidence** — Verified now (exploit executed, read-only).
+- **Blocked by** — nothing. Closed.
+- **Confidence** — Fix verified live 2026-09-17 by re-running the detection query against
+  production. **Not** re-verified through a real browser session, so a regression in the app's
+  own use of `get_my_org_context` / `is_org_admin` / `get_org_roster` would not have been
+  caught here — that specific check is **unverified**.
 
 ### A2. `audit_logs` is dead — 26 rows, nothing written since 2026-07-03
 - **Evidence** — `count(*)=26`, `max(created_at)=2026-07-03T15:00:48Z`.
@@ -173,8 +217,35 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
 
 ## B. Dossie product (app + API)
 
-### B17. A finished P0 fix for silent dossier-save failure has been uncommitted for a week
-- **What** — The only modified file in the Dossie repo is a complete, coherent fix for a
+### B17. The P0 fix for silent dossier-save failure is committed in Dossie and STILL NOT DEPLOYED
+- **STATUS CHANGED 2026-09-17 — read this before acting.** The premise of the original item
+  ("uncommitted") is now **false**, but the item is **not resolved**. The bug is still live for
+  members. Both halves of that sentence matter:
+  - The fix **was committed and merged in the `Dossie` repo today** — `f244745`
+    *fix(dossiers): stop reporting success when a new dossier never saved*, merged as `a009d08`
+    *merge(staging): P0 …*. The `Dossie` working tree is now **clean**; there is no dirty file
+    to find.
+  - The built bundle **was never rebuilt into `MeetDossie`**. `origin/main` still ships
+    `assets/workspace-C_206Lx0.js`, referenced by both `app.html` and `workspace.html`, and
+    that file contains **zero** occurrences of `persistResult` — the identifier the fix
+    introduces (`Dossie/dossie-app.jsx:6141-6142`, `const persistResult = await
+    persistTransaction(newDeal); if (!persistResult.ok) {`). Verified 2026-09-17 by extracting
+    `origin/main:assets/workspace-C_206Lx0.js` and grepping it.
+  - **Therefore production still runs the fire-and-forget code path.** A member can still
+    "create" a dossier that was never written to the database and be shown the celebration card.
+- **Why this is a trap for the next agent.** An agent that checks the *Dossie repo* concludes
+  "done, clean tree, merged" and closes it. An agent that reads the original wording looks for
+  "the only modified file in the Dossie repo" and finds nothing, and may also close it. Neither
+  is true. The only check that answers the question is: **does the bundle referenced by
+  `app.html` on `MeetDossie origin/main` contain `persistResult`?** Today it does not.
+- **What remains** — the standard step 2-4 of CLAUDE.md §3: `cd ../Dossie && npm run build`,
+  copy `dist/assets/workspace-*.js` into `MeetDossie/assets/`, update the hash in `app.html`
+  and `workspace.html`, `git rm` the old bundle, push to `staging`, Quinn gate, Heath merges.
+- **Generalised** — this is one instance of a class. See **B23**.
+- **Effort** — Under an hour; it is a build-and-copy, not a code change.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 (both repos inspected; bundle content grepped directly).
+- **What it was** — The only modified file in the Dossie repo was a complete, coherent fix for a
   member-facing data-loss bug.
 - **Evidence** — `Dossie/dossie-app.jsx`, +50/−14, comments dated `2026-09-10 CARTER P0 (Quinn)`.
   Three changes: (a) a client-side guard on `property_address`, Supabase's one NOT-NULL column
@@ -186,11 +257,24 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
 - **Impact** — Without it, a member can "create" a dossier that was never written to the
   database and never appears in Pipeline, having been told it worked. Textbook
   "confirmations must be earned." The fix exists and is not shipped.
-- **Effort** — Hours: build, staging, Quinn gate.
-- **Blocked by** — agent, Heath gates merge.
-- **Confidence** — Verified now (full diff read).
+  *(Still true on 2026-09-17 — see the status block at the top of this item. Only the
+  "uncommitted" part changed.)*
 
-### B1. Survey and HOA-document deadlines are never computed; rollover isn't wired into the client-email path
+### B1. Survey and HOA-document deadlines are never computed — ROLLOVER HALF SHIPPED 2026-09-17, builders still open
+- **STATUS 2026-09-17 — the rollover half is done; the item stays open on the other half.**
+  - **Shipped:** `04a77cab` *fix(deadlines): wire ¶5A(2) rollover into the client-facing chat
+    path (B1)* is on `origin/main`. `api/chat.js` now uses `rollForwardYMD` from
+    `api/_lib/business-calendar.js`. Reported verified live on production by QA today.
+  - **Still open, and still `TODO-SARAH`:** `buildSurveyDeadline` and `buildHOADocDeadline` are
+    **still commented out** in `Dossie/src/utils/trec-deadline-engine.js`. A member under
+    contract still gets no survey deadline and no HOA-document deadline.
+  - **Also still open and worse than the original wording suggests:** the deadline engine does
+    not merely *default* to the superseded form — it **rejects** anything else.
+    `trec-deadline-engine.js:228-230` reads `else if (inputs.formVersion !== "20-17")` →
+    `formVersion '…' is not yet supported. Only '20-17' is implemented.`, and
+    `deadlines.js:199` hardcodes `formVersion: "20-17"`. Production contracts are **20-19**.
+  - **Found while fixing this, now tracked separately:** the ¶5.A option-fee/earnest-money
+    suppression defect — see **B24**.
 - **Evidence** — `Dossie/src/utils/trec-deadline-engine.js:575-576`:
   `// TODO-SARAH: buildSurveyDeadline (depends on survey path)` and
   `// TODO-SARAH: buildHOADocDeadline (depends on whether HOA addendum 36-10 attached)` — both
@@ -207,25 +291,75 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
   can be handed a wrong date to send a client. The most damaging correctness defect in the product.
 - **Effort** — Days.
 - **Blocked by** — **Heath** for the domain input (survey-path conventions, 36-10 handling) — the
-  `TODO-SARAH` markers mark them as parked pending a TC interview. The rollover wiring alone is
-  agent work now.
-- **Confidence** — Code state verified now. The wrong-date output is inherited from the
-  2026-09-10 live test and was **not** re-driven this pass.
+  `TODO-SARAH` markers mark them as parked pending a TC interview. **The rollover wiring that
+  used to be the agent half of this item shipped on 2026-09-17 (`04a77cab`); what is left is
+  the Heath-blocked half only.** Do not dispatch an agent at this item expecting the rollover
+  to still be missing.
+- **Confidence** — Rollover fix verified shipped (commit on `origin/main`). The two commented-out
+  builders and the `20-17`-only `formVersion` guard were re-read in `Dossie` on 2026-09-17 and
+  are **still present**.
 
-### B2. Defect A2 — ~150 member-typed fields may still not reach the generated PDF
-- **Evidence** — `docs/AUDIT-REMEDIATION-PLAN-2026-09-10.md` item 2 marks it "doubted, treat as
-  still-broken." The merge code is present and live: `contract_field_drafts` is read by
+### B2. Defect A2 — SETTLED 2026-09-17: it is real. 90 of 142 typed fields never reached the PDF; ~75 still unmapped
+- **VERDICT SETTLED 2026-09-17 — this is no longer an open question, it is open work.** An agent
+  drove the demo dossier end to end on production rather than reading code. **142** distinctive
+  text values were typed through `/api/interactive-editor-update-field`; **52 reached the
+  document, 90 did not.** Identical result through `/api/fill-form` and
+  `/api/interactive-editor-download-pdf`, so it is not path-specific. Throughout, `fill_report`
+  reported `{complete: true, fields_failed: 0}` — the pipeline's own success signal is worthless
+  here.
+- **The worst class is STALE values, not blank ones.** Where the editor's key names a blank that
+  `fill-form` *also* supplies from the canonical `transactions` column, the canonical value wins.
+  Typed `3,100,002` into ¶3C; the PDF printed `647,000`. Same for earnest money, option fee and
+  title company. **The member sees their number on screen and the contract carries the old one.**
+- **Partial fix exists but is NOT on `origin/main`.** Commit `9885e05f` *fix(trec-20-19): 14
+  member-typed fields that never reached the PDF (B2)* lives only on the worktree branch
+  `worktree-agent-a90d4cee22798850b`. It maps **14** editor keys onto blanks `fillTrec2019`
+  already draws, plus the two genuinely missing ¶7D(2) repair-text coordinates. Local result on
+  the same typed input: **48 → 61 landed, 0 regressions.**
+  - Also found and fixed there: the editor's `specific_repairs_line1/2` drive the ¶7D(2)
+    "As Is provided Seller completes the following specific repairs" checkbox, but the repair
+    **text** had no coordinate at all — `drawFieldText` logged "No coordinate for field" and
+    dropped it. Every such contract went out with **the box CHECKED and both repair blanks
+    EMPTY**: a Seller repair obligation naming no repairs.
+- **WHAT REMAINS: roughly 75 field mappings, still unlanded.** 90 missing − 14 fixed ≈ 75. That
+  is the actual remaining scope of this item. Every target must be verified by **rendering the
+  filled page and reading the printed label the value landed against**, per
+  `[[acroform-field-names-lie]]` — never by matching a field name. That method already caught
+  one wrong guess in the first 14: `seller_contribution_amount` looked like
+  `seller_concessions` (which has no coordinate at all) and is really `settlement_expense_cap`.
+- **Next agent: start from `9885e05f`, do not redo those 14.** Rebase it onto `origin/main`
+  first; it is unmerged and will conflict with nothing else, but it has never been through
+  staging or a Quinn gate.
+- **Effort** — Days. It is ~75 individually render-verified mappings, not one fix.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 by driving production end to end. The count "~75" is
+  arithmetic from the measured 90/142 and the 14 fixed; the exact residue has **not** been
+  re-counted against the branch and is **unverified** to ±a few.
+- **Superseded evidence (kept for provenance)** — `docs/AUDIT-REMEDIATION-PLAN-2026-09-10.md`
+  item 2 marked it "doubted, treat as still-broken." The merge code is present and live:
+  `contract_field_drafts` is read by
   `api/fill-form.js`, `api/dossiesign-prepare.js` and `api/_lib/merge-contract-field-drafts.js`
   (commit `cfa0d147`, 2026-09-01), and **112 transactions now carry drafts** (was 3). Heath's
   2026-09-10 live Pfeiffers run still found ~150 typed fields missing from the output.
-- **Impact** — If real, the core promise (type once, it appears on the contract) is broken.
-- **Effort** — Days: drive one real transaction end to end, diff typed fields against the
-  generated PDF, fix what that surfaces.
-- **Blocked by** — agent (needs the product driven, not a code read).
-- **Confidence** — **UNRESOLVED.** Code read and live test disagree; neither verdict is settled.
+- **Impact** — Confirmed real: the core promise (type once, it appears on the contract) is broken
+  for 90 of 142 measured fields, and silently — worse, it can print a *stale* value the member
+  never typed.
+  *(The former "UNRESOLVED — code read and live test disagree" confidence line is superseded.
+  The live drive on 2026-09-17 settled it in favour of the live test.)*
 
-### B3. Regression suite has been RED continuously and the alert path is gated
-- **Evidence** — `regression_runs` (`source='vercel-cron'`): `failed=6, passed=47` every day
+### ~~B3. Regression suite has been RED continuously and the alert path is gated~~ — RESOLVED 2026-09-17, MERGED
+- **RESOLUTION** — Shipped to `origin/main`. `f2cb04b9` *fix(B3): un-gate regression alerts, make
+  them delta-based, make alert_sent honest*, merged as `e77aa7d6`. The note further down this
+  item saying "on branch `fix/b3-regression-alerting` (not merged, not deployed)" was written
+  before the merge and is **stale** — it is now merged and deployed.
+- **What that means for anything downstream** — the suite's alert path is live, so a *new*
+  regression will now be announced. The suite itself is still RED on its standing failures; that
+  is **B4** (two miscalibrated assertions) and **A2**/**D-section** items for the rest, not this
+  one. Do not re-open B3 because the suite is still red — red was never what B3 was about.
+- **Newly unblocked by this** — wiring more checks into the suite is now worth doing, because a
+  failure will actually be heard. That work exists on an unmerged branch; see **B26**.
+- **Blocked by** — nothing. Closed.
+- **Evidence (as found)** — `regression_runs` (`source='vercel-cron'`): `failed=6, passed=47` every day
   sampled 2026-09-04 → 2026-09-17; the earliest failing run in the table is **2026-07-12**.
   `api/cron-regression-suite.js:22` calls
   `require('./_lib/telegram-gate').install('cron-regression-suite')`; that job name does not
@@ -243,7 +377,9 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
   var — **Heath** should read it to learn how much else is suppressed (see D7).
 - **Confidence** — Gate wiring and failure history verified now; actual suppression depends on
   that unreadable env value — **unverified**.
-- **FIXED 2026-09-17 on branch `fix/b3-regression-alerting` (not merged, not deployed).**
+- **FIXED 2026-09-17 — originally landed on branch `fix/b3-regression-alerting`; MERGED to
+  `origin/main` the same day as `f2cb04b9` → `e77aa7d6`. (The "not merged, not deployed"
+  wording that used to be on this line was true for a few hours and is no longer.)**
   Three changes, which only work as one:
   1. `cron-regression-suite` added to `ALWAYS_ALLOW` in `api/_lib/telegram-gate.js`.
   2. Alert policy extracted to `api/_lib/regression-alert-policy.js` and made **delta-based**:
@@ -461,6 +597,93 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
   one-Dossie-brand 10DLC decision are all open and all his.
 - **Confidence** — Verified now.
 
+### B23. Dossie source and the deployed bundle drift, and nothing detects it
+- **Added 2026-09-17.** Found while reconciling B17, which is the live instance of this class.
+- **What** — The two-repo deploy (build in `Dossie`, ship a built bundle from `MeetDossie`) has
+  **no check that the shipped bundle was built from current `Dossie` source**. A fix can be
+  written, reviewed, committed and merged in `Dossie` — with a clean tree and a green history —
+  and still not be running for a single member, because step 3 of CLAUDE.md §3 (copy the bundle)
+  was never done.
+- **Evidence** — 2026-09-17: `Dossie` `main` contains the P0 dossier-save fix (`f244745`, merged
+  `a009d08`), working tree clean. `MeetDossie` `origin/main` ships
+  `assets/workspace-C_206Lx0.js`, referenced by `app.html` and `workspace.html`, and that file
+  contains **zero** occurrences of `persistResult`, the identifier the fix introduces. A
+  member-facing data-loss fix was merged and is not deployed, and nothing anywhere reported that.
+- **Impact** — This silently converts "merged" into "shipped" in every status report, including
+  this document's own. It is `feedback_silent-failure-is-the-enemy.md` applied to the deploy
+  path itself: the gap is invisible from either repo alone.
+- **What to build** — A check that fails loudly when the two disagree. The cheapest honest
+  version: a regression-suite assertion (the suite's alerts now actually fire — see B3) that
+  rebuilds `Dossie` and compares the output hash against the bundle `app.html` references, or
+  at minimum records `Dossie` HEAD in the bundle at build time and asserts it matches
+  `Dossie origin/main`.
+- **Effort** — Hours for the recorded-HEAD version; ~a day for a real rebuild-and-compare.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 (bundle extracted from `origin/main` and grepped; both
+  repos inspected).
+
+### B24. ¶5.A option-fee / earnest-money reminders suppress on self-report — fix written, NOT merged, migration NOT run
+- **Added 2026-09-17.** Found incidentally by the B1 deadline agent, then confirmed and fixed.
+- **What** — `cron-deadline-reminders` stopped chasing the TREC ¶5.A option fee as soon as
+  `option_fee_paid_at` was set. That column is **not a receipt** — the workspace stamps it with
+  the *upload time* whenever an executed contract is scanned and ¶5.A shows any option fee
+  amount. So the reminder went quiet on day zero, before anything was delivered. Earnest money
+  had the identical defect: suppression was `(deposited_at || confirmed_at)`, and `deposited_at`
+  is the same upload-time auto-stamp, so the self-reported half always won.
+- **Why it matters** — This is the Low Oak shape (`friday-execution-option-fee-trap.md`, $5,200).
+  In Texas a late option fee costs the buyer the unrestricted right to terminate. Dossie went
+  quiet exactly when an agent most needed chasing.
+- **Also uncovered** — the *test* asserted suppression on `option_fee_receipt_date`, which is a
+  TREC 20-19 AcroForm field key on the page-11 receipt block, **not a column on
+  `public.transactions`**. Naming it in a PostgREST select is what 500'd this cron on every run
+  for a week (`fe4311b2`) — **zero deadline reminders for all 10 active customers**. The spec
+  and the `20260903` migration comment both stated it was a column; that false claim is what
+  propagated into shipped code.
+- **State** — Fix is commit `dbe64c50` *fix(deadline-guardian): suppress ¶5.A funds reminders on
+  confirmed receipt only*, on worktree branch `worktree-agent-a00ceddc509a284e8`. **Not on
+  `origin/main`. Not deployed. Not migrated.** Tests 19/19.
+- **Three things must land together, and the commit says so explicitly:**
+  1. Merge `dbe64c50`.
+  2. Run `api/admin-migrate-option-fee-confirmed-at` (migration `20260917e`, adds
+     `transactions.option_fee_confirmed_at`) **before or with** the deploy.
+  3. The workspace UI field for `option_fee_confirmed_at` **lives in the `Dossie` repo and is
+     still outstanding** — without it there is no way for a member to record confirmed receipt,
+     so suppression can only ever come from `scan-contract`'s automatic promotion of the
+     OPTION FEE RECEIPT box.
+- **Effort** — Hours to merge and migrate; the Dossie UI field is a small separate change.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 (commit read in full; confirmed absent from `origin/main`).
+
+### B25. Chat panel leaves stale off-screen Send buttons in the DOM; a click landed in the Generate+Sign modal
+- **Added 2026-09-17.** Found by QA while verifying the B1 deadline fix on production (demo
+  account, dossier #011). Tracked in `jarvis_todos` the same day.
+- **What** — The chat panel's DOM returns multiple stale/off-screen `Send` buttons from earlier
+  scrollback. A click intended for the live Send button mis-fired into a **Generate + Sign**
+  modal. No data was touched and nothing was sent in that instance.
+- **Impact** — Beyond the automation that found it: if a stray click can land in a signing flow,
+  a member's thumb can do the same on a phone, and the destination modal starts document
+  generation and signature collection. That is not a harmless place to land a misdirected click.
+- **Effort** — Small — unmount or aria-hide scrolled-out chat rows, or scope the Send handler to
+  the live composer.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 by QA on production. **Not** re-reproduced during this
+  reconciliation pass — **unverified** by me directly.
+
+### B26. Today's contract-safety tests are not wired into the daily suite — branch unmerged
+- **Added 2026-09-17.** This is the alarm half of the contract work done today, and it is the
+  half that rots first if left.
+- **What** — Neither the pre-existing TREC tests nor the 35-test election-gate suite (see C23)
+  run from the daily regression suite, so a future edit to a rules file can silently disarm the
+  contract safety gate.
+- **State** — `e58f7378` *feat(regression): wire contract-safety checks into the daily suite
+  (53 → 63)* on branch `feat/wire-contract-safety-into-daily-regression`. **Not merged.**
+- **Dependency** — This only became worth doing because **B3** landed today: before that, a
+  failure in these checks would have been swallowed by the Telegram gate like everything else.
+  Wiring tests into an unwatched suite would have been theatre.
+- **Effort** — Small — the work is written; it needs staging, a Quinn gate and a merge.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 (branch and commit confirmed present and unmerged).
+
 ---
 
 ## C. DossieSign / e-sign
@@ -469,8 +692,22 @@ finished Rust progression/deload work have been unmerged for 16 days and conflic
 packet, the initials geometry, the audit-trail storage and the draft merge all shipped between
 8/16 and 9/11. The remaining problems are different and sharper than the docs say.*
 
-### C1. Every real signature bypasses the product — 35 completions in DocuSeal, zero in Dossie
-- **Evidence** — Live DocuSeal API (read-only GET, this session): **35 submissions
+### C1. Real signatures now reach the product — WRITE-BACK SHIPPED 2026-09-17; the DoD gate is still Heath's
+- **STATUS 2026-09-17 — the agent half is done and verified; the item stays open on Heath's half.**
+  - **Shipped to `origin/main`:** `003616c7` *feat(esign): write real CLI signature sends back
+    into Dossie [C1]*, merged as `f8c03d1e`, plus migration
+    `20260917213805_signature_requests_suppress_notifications` (the webhook notification guard,
+    so backfilled rows don't fire member-facing notifications).
+  - **Verified live 2026-09-17, after the fact:** `signature_requests` grouped by status now
+    reads **33 `sent`, 5 `completed`**. It was **33 `sent`, 0 `completed`** when this item was
+    written. The verification leg has now been handed real completions for the first time —
+    the five Ridge Bluff amendments.
+  - **Still open, and it is not engineering:** Heath consenting to route one real deal through
+    the product path end to end, and the `real_deal_closed` rows in `dossie_sign_dod_progress`
+    flipping. All 8 red DoD rows remain the human-gated ones.
+- **Do not re-dispatch an agent at the write-back.** It exists. The only thing left on C1 needs
+  Heath.
+- **Evidence (as found, before the fix)** — Live DocuSeal API (read-only GET, this session): **35 submissions
   `status=completed`**, including Heath's five Ridge Bluff amendments 9/15–9/16 (submission
   `11272607` completed 2026-09-16 21:51, audit-log PDF present). Live Supabase:
   `signature_requests` = **33 rows, all `status='sent'`, 0 completed**;
@@ -487,11 +724,12 @@ packet, the initials geometry, the audit-trail storage and the draft merge all s
   `scripts/send-trec-amendment.js` collects real signatures daily and writes no
   `signature_requests` row, so the product learns nothing: no executed PDF in Storage, no
   certificate, no gate movement.
-- **Effort** — ~0.5 day to make `send-trec-amendment.js` insert a `signature_requests` row (it
-  already reads the submission back). That alone starts feeding the verification leg real data.
-- **Blocked by** — agent for the write-back; **Heath** consents to routing one real deal through
-  the product path and flips `real_deal_closed`.
-- **Confidence** — Verified now (live DocuSeal API + live DB, cross-referenced).
+- **Effort** — The ~0.5 day write-back is **done**. What is left is not engineering effort.
+- **Blocked by** — **Heath.** He consents to routing one real deal through the product path and
+  flips `real_deal_closed`. *(This field used to read "agent for the write-back; Heath …". The
+  agent half shipped 2026-09-17, so that wording would now send an agent at finished work.)*
+- **Confidence** — Original finding verified (live DocuSeal API + live DB, cross-referenced).
+  Fix verified live 2026-09-17 by re-querying `signature_requests` (0 → 5 completed).
 
 ### C2. No envelope lifecycle — no resend, void, remind, expire, or signing order
 - **Evidence** — Full e-sign route list on `origin/main`: `esign-create`, `esign-status`,
@@ -737,6 +975,96 @@ packet, the initials geometry, the audit-trail storage and the draft merge all s
   workflow header names them his source of truth).
 - **Confidence** — Verified now.
 
+### C23. Five TREC 20-19 elections have no editor control at all; the pre-send gate is written but unmerged
+- **Added 2026-09-17**, from the two contract audits run today.
+- **Still completely unreachable from the editor — no control of any kind exists.** These are not
+  mis-mapped fields; there is nothing for a member to click:
+  **¶7B(2)**, **¶4C(1)**, **¶4B fixture leases**, **¶7I water disclosure** (the backend is ready
+  and waiting; only the UI control is missing), **¶12B commission**.
+- **Worst finding, and it is shipping right now.** A member who ticks ¶7B(1) *"Buyer has received
+  the Seller's Disclosure Notice"* and nothing else gets a contract with **all three ¶7B boxes
+  empty** — on a paragraph headed "check one box only." Reproduced through the real path and
+  rendered. Cause: the editor's key names are *character-for-character identical* to the `fv`
+  keys `fillTrec2019` reads, so every previous audit concluded "matches by name, nothing to do."
+  They do not match by **value**: `CheckboxField.jsx` sends the **string** `'true'` and
+  `fillTrec2019` gates on strict `=== true`. The identical-name case is exactly what hid it.
+  This is the Pfeiffers Gate failure (`feedback_verify-contract-elections-before-execution.md`,
+  29046 Pfeiffers Gate executed 2026-09-09 with ¶7D blank) in a different paragraph.
+- **Partly fixed on an unmerged branch.** `49d87851` *fix(trec-20-19): 7 contract elections
+  unsettable or silently dropped* on `audit/trec-20-19-unreachable-elections` fixes ¶7B,
+  ¶6A(8)(i), ¶4A, ¶4C, ¶4C(2) (including a blank with no coordinate), and the ¶3B Loan
+  Assumption / Seller Financing addendum boxes. Result on the same typed input: **17 → 23 of 61
+  boxes correctly checked**, and with no input at all the output is byte-for-byte unchanged — no
+  box auto-ticks. All four TREC 20-19 regression suites pass. **Not merged.**
+- **The gate that would have caught all of this is also written and also unmerged.** `fe0b6900`
+  *feat(trec): election gate — block a contract whose required box is blank* on
+  `feat/contract-election-gate`. `esign-create.js` called **no** contract validator at all;
+  `fill-form`'s was opt-in behind `body.strict_validate`. The gate is now wired into
+  `esign-create` (both packet and single-document paths, before the DocuSeal call), `fill-form`
+  (not opt-in), and the editor's persist/Send and readiness paths. Rules existed only for 20-18;
+  20-19 was added. 35 new tests. Exactly two rules **block** (both ¶7D); ¶7B, ¶7I, ¶6C, ¶6E,
+  ¶6A, ¶6A(8), ¶12B and ¶4C **warn**, deliberately — blocking a box nobody can check is a trap
+  with no remedy, and a send stopped at 4:59pm on the last day of an option period costs a
+  client their termination right just as surely as a blank box does.
+  **Those warn-only rules become block-eligible once the missing controls in this item exist.**
+- **A design rule both commits hold to, which any follow-up must keep** — never write `false`.
+  An unticked box sends the string `'false'`, so a blanket truthy pass would have ticked the
+  *opposite* election on every contract where the member left the paragraph alone. A wrong box
+  is worse than a blank one: nobody looks twice at a box already ticked.
+- **Needs Heath, and is deliberately NOT part of this item** — the ¶22 improvement-district row.
+  The editor exposes `addendum_improvement_district_assessment`, but this 20-19 revision has no
+  such addendum row; the widget sits on the *"following utility, water, drainage, public
+  improvement, and other district notices"* line. Ticking it from a boolean would assert that
+  district notices are attached while naming none. That is a judgment about what the control
+  means, not a mapping. See **C24** for why a control exists for a row the form doesn't have.
+- **Effort** — Days: five new editor controls in the `Dossie` repo, each render-verified, plus
+  merging the two branches above.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — Verified 2026-09-17 (both commits read in full; branches confirmed unmerged).
+  The ¶7B reproduction is the commit author's, render-verified there, and was **not** re-driven
+  by me — **unverified** at second hand.
+
+### C24. The editor's field inventory is a never-QA'd July auto-map run, and it does not match the form being filled
+- **Added 2026-09-17.** This is the *root cause* sitting under B2 and C23, which is why it is its
+  own item rather than a line in either.
+- **What** — The Phase 1 Interactive Editor does not hardcode its field list. It ships its whole
+  field inventory — the key names it sends — straight from **one cached Fable5 auto-map row**,
+  `dossiesign_auto_map_runs` id `8e3bc446-eb01-43b9-8447-6da9de22bcc7`. `FieldGroup.jsx` /
+  `RadioField.jsx` render generically off whatever `key` each row carries. Documented at the top
+  of `api/_lib/trec-20-19-editor-field-translate.js`.
+- **That row, read live 2026-09-17:** created **2026-07-03**, `doc_name`
+  `TREC-Resale-Contract-1780103076276.pdf`, `page_count` 11, `field_count` 219,
+  **`requested_form_number` NULL**, **`qa_status` `awaiting_hadley_qa`**.
+  - It has **never been QA-approved** — 76 days in `awaiting_hadley_qa`.
+  - It **does not record which form revision it mapped.** There is no field in the row that says
+    20-18 or 20-19. So the editor's entire field vocabulary has no recorded provenance.
+- **Evidence that it genuinely mismatches the form being filled** — today's audit found the
+  editor exposes a control, `addendum_improvement_district_assessment`, for a paragraph-22
+  "Notice of Obligation to Pay Improvement District Assessment" addendum row **that does not
+  exist in the 20-19 revision being filled**. A control for a row the form does not have is only
+  possible if the inventory was taken from a different artefact than the one being filled.
+- **Why it keeps producing defects** — the 2026-08-19 checkbox rewrite (`9aab37d6`) changed the
+  key names `fill-trec-20-19.js` reads for several sections, but the July auto-map row was never
+  updated, so those sections went silently blank — or, for Possession, silently *wrong*, because
+  the backend defaults to `'closing'` whenever the key is absent.
+  `trec-20-19-editor-field-translate.js` exists **solely** to paper over that drift, one hand-
+  written mapping at a time. B2's ~75 missing fields and C23's unreachable elections are both
+  downstream of this. Fixing them one by one treats symptoms.
+- **What to do** — re-run the auto-map against the *actual* live 20-19 blank asset, record the
+  form revision and PDF hash on the run, put it through the Hadley QA it never had, and make the
+  editor point at the approved run. Then the translate module should shrink rather than grow.
+- **Note on the QA step** — `qa_status: awaiting_hadley_qa` refers to the **Hadley agent
+  persona**, not a person, so re-running and approving the map is agent work end to end. If that
+  turns out to be wrong in practice, correct the `Blocked by` line below rather than working
+  around it.
+- **Effort** — Days.
+- **Blocked by** — agent, Heath gates merge.
+- **Confidence** — The auto-map row's contents, age and `qa_status` were read live from Supabase
+  2026-09-17. The ¶22 mismatch is quoted from today's audit commit. **Which revision the run was
+  actually taken against is unrecorded and remains unverified** — the 20-19 asset has been in
+  the repo since 2026-06-03, so a July run *could* have used it; the row does not say, and
+  nobody should assume either way.
+
 ---
 
 ## D. Crons and pipeline reliability
@@ -878,8 +1206,29 @@ packet, the initials geometry, the audit-trail storage and the draft merge all s
 
 *This is the machinery that will consume this backlog, so defects here multiply.*
 
-### E1. The autonomous loop re-dispatches tech-debt items already marked RESOLVED
-- **Evidence** — `api/cron-autonomous-loop.js:292-296` takes the first 10 lines starting with
+### ~~E1. The autonomous loop re-dispatches tech-debt items already marked RESOLVED~~ — RESOLVED 2026-09-17, MERGED
+- **RESOLUTION** — `9404868e` *fix(autonomous-loop): skip closed tech debt, add backlog +
+  alert_state signals*, merged as `40559f6b`. Both on `origin/main`.
+- **What shipped** — A new pure module `api/_lib/backlog-parser.js` with three exported
+  functions: `classifyClosed(line)`, `parseTechDebt(text)` and `parseBacklogDoc(text)`. Closed
+  items are now filtered out *before* the 10-item cap, not after, so a struck-through entry can
+  no longer eat a slot from real work. Two new signal sources were added at the same time:
+  **these two backlog documents** and `alert_state`.
+- **⚠️ CONSEQUENCE — THIS FILE IS NOW A DISPATCH SOURCE.** As of `40559f6b`, the loop reads
+  `docs/BACKLOG-ENGINEERING.md` and `docs/BACKLOG-BUSINESS.md` every tick and dispatches from
+  them. Two mechanics that anyone editing these files must know:
+  1. **Closure is detected from the `###` heading ONLY** (`finalizeBacklogItem` calls
+     `classifyClosed(cur.heading)`). A "RESOLVED" note in the body does **nothing**.
+  2. In this file, headings are `### A1. Title` — and `classifyClosed`'s status region stops at
+     the first `.` followed by whitespace, which is the `A1.`. So appending `— RESOLVED` to an
+     engineering heading is **not** detected. **Strike the title instead**
+     (`### ~~A1. Title~~ — RESOLVED …`), which is matched by the separate title-region
+     strikethrough rule. Every closed item in this file uses that form deliberately.
+  3. `Blocked by` is parsed from the **first** `- **Blocked by**` bullet in the item. Anything
+     not starting with `agent` is withheld; `agent, Heath gates merge` is eligible; any *other*
+     mention of Heath after `agent` disqualifies it.
+- **Blocked by** — nothing. Closed.
+- **Evidence (as found)** — `api/cron-autonomous-loop.js:292-296` takes the first 10 lines starting with
   `- ` from the "NOT DONE / ACTIVE BLOCKERS" section of `docs/TECH-DEBT.md`; the only skip filters
   are for `URGENT` and Heath-personal patterns — **none for `~~strikethrough~~` or "RESOLVED"**.
   `autonomous_loop_runs` shows

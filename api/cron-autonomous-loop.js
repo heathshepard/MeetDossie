@@ -71,6 +71,9 @@ const fs = require('fs');
 const path = require('path');
 const pausedCrons = require('./_lib/paused-crons.js');
 const { parseTechDebt, parseBacklogDoc } = require('./_lib/backlog-parser.js');
+// Pure, no-I/O. Shared with api/cron-support-ticket-triage.js so both systems
+// agree on what a customer ticket actually is — see gatherCustomerBugs().
+const { classify: classifySupportTicket } = require('./_lib/support-ticket-classify.js');
 
 const SUPABASE_URL              = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -195,6 +198,24 @@ async function tg(text) {
 //   { signal_source, signal_key, signal_score, title, description, agent, meta }
 
 // 1) Customer bug reports — support_tickets, unresolved bugs
+//
+// FIXED 2026-09-18 (Carter). This gatherer trusted `ticket_type` alone, and
+// ticket_type is whatever the customer picked in the modal. Support ticket
+// 503a1d1b is Amanda Nuckles asking "How do I cancel my account?" with
+// ticket_type='bug'. This loop dispatched it to Carter as a CUSTOMER BUG on
+// 2026-08-25, -26 and -27 (queue rows 0d0d3a33, 709c2667, f5debc94 — two of
+// them marked 'completed'), told him to reproduce and ship a fix for it, and
+// meanwhile nobody ever replied to her. She cancelled.
+//
+// Now every candidate goes through api/_lib/support-ticket-classify.js, the
+// same pure classifier api/cron-support-ticket-triage.js uses, so the two
+// systems can never disagree about what a ticket is. Anything that is not a
+// genuine, auto-fixable customer bug is dropped here — cancellations, billing,
+// unhappy customers, legal, questions, feature requests, internal Quinn/demo
+// noise, and bugs in protected areas (auth, payments, contract generation,
+// data deletion). The triage cron handles those on its own path: it
+// acknowledges the customer where that's appropriate, and escalates to Heath
+// where it isn't. Dropping them here does not lose them.
 async function gatherCustomerBugs() {
   const out = [];
   // support_tickets is created outside migrations. Column names inferred from
@@ -205,6 +226,15 @@ async function gatherCustomerBugs() {
   if (!ok || !Array.isArray(data)) return out;
   for (const t of data) {
     if (t.ticket_type !== 'bug') continue;
+    const cls = classifySupportTicket(t);
+    if (cls.ticketClass !== 'bug' || !cls.mayAutoFix) {
+      console.log(
+        `[autonomous-loop] skipping support ticket ${t.id}: ticket_type='bug' but classified `
+        + `'${cls.ticketClass}' (${cls.route})${cls.sensitiveAreas.length ? ` [${cls.sensitiveAreas.map((a) => a.key).join(',')}]` : ''} — `
+        + `${cls.reasons[0] || 'not an auto-fixable defect'}`
+      );
+      continue;
+    }
     const key = `customer_bug:${t.id}`;
     out.push({
       signal_source: 'customer_bug',

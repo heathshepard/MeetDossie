@@ -22,6 +22,8 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { fieldNameToPrompt } = require('./_lib/fill-form-required-fields');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const { evaluateElections, summarize: summarizeElections } = require('./_lib/contract-election-gate');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -171,11 +173,43 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    // ------------------------------------------------------------------
+    // ELECTION READINESS. The checks above only look at text fields — a
+    // price, a date, a day count. They have never looked at a checkbox, so
+    // a contract with paragraph 7D blank reported "ready to send".
+    //
+    // These errors are additive to the existing ones and use the same
+    // isReady flag, so the editor's existing Send-button wiring picks them
+    // up with no frontend change. Blocking elections become errors;
+    // warnings and unreachable controls ride along separately so the member
+    // can see them without being stopped by them.
+    // ------------------------------------------------------------------
+    let electionWarnings = [];
+    let electionUnreachable = [];
+    if (availableForms.has('resale-contract')) {
+      const mergedForElections = mergeContractFieldDrafts({
+        tx: txn,
+        formType: 'resale-contract',
+        baseValues: {},
+        callerValues: {},
+      });
+      const electionReport = evaluateElections({
+        formCode: '20-19',
+        fieldValues: mergedForElections,
+      });
+      console.log('[interactive-editor-validate][elections]', summarizeElections(electionReport));
+      for (const b of electionReport.blocking) errors.push(b.message);
+      electionWarnings = electionReport.warnings.map((w) => w.message);
+      electionUnreachable = electionReport.unreachable.map((u) => u.message);
+    }
+
     const isReady = errors.length === 0;
     return res.status(200).json({
       ok: true,
       isReady,
       errors,
+      electionWarnings,
+      electionUnreachable,
       esignRedirectUrl: isReady ? `/app?deal=${transactionId}&action=send-for-signature` : null,
     });
   } catch (err) {

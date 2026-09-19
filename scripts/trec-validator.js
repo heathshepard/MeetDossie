@@ -9,12 +9,69 @@
  * HARD RULES enforced here:
  *  - No catch-all bucket. Every field is PASS | FAIL(reason) | SKIP(conditional) | UNMATCHED.
  *  - Confidence floor: < CONFIDENCE_FLOOR auto-flags even if format-valid.
- *  - Mutex groups: at most one checkbox true.
+ *  - Mutex groups: at most one checkbox true, and EXACTLY one where the form
+ *    requires an election to be made.
  *  - crossRef arithmetic (e.g. 3C = 3A + 3B) verified.
  *  - Conditional fields only fill when their predicate is true.
+ *
+ * 2026-09-17 — MUTEX REPAIR. Two defects made mutex enforcement a no-op:
+ *
+ *   1. GROUPING. `crossRef` names the OTHER members of the group, not the
+ *      group itself: accept_as_is carries "MUTEX(accept_as_is_with_repairs)"
+ *      while accept_as_is_with_repairs carries "MUTEX(accept_as_is)". Keying
+ *      the group map on that raw string put every one of the 18 mutex fields
+ *      in its own single-member group — all 18 of them — so no two checkboxes
+ *      were ever compared against each other and the rule could not fire at
+ *      all. Fixed by canonicalising: the group is {this field} UNION {members
+ *      named in the crossRef}, sorted and joined, so both halves of a pair
+ *      resolve to the same key.
+ *
+ *   2. COLLECTION. Members were only added to a group after passing every
+ *      earlier check, and an unset checkbox `continue`s out of the loop long
+ *      before that. The blank case — the actual failure mode — was therefore
+ *      invisible to the enforcement step even in principle. Fixed by building
+ *      group membership from the RULES up front, independent of whether any
+ *      given member got a value.
+ *
+ * Enforcement is now "exactly one" for elections the form genuinely requires,
+ * and "at most one" everywhere else. Which groups are required is declared in
+ * contract-election-rules.json, alongside the reasoning — see that file's
+ * header for why blocking is deliberately narrow.
  */
 
 const CONFIDENCE_FLOOR = 0.85;
+
+// Groups the form REQUIRES an answer to, keyed by canonical member set.
+// Sourced from the shared election rules so trec-validator and the send-path
+// gate can never disagree about which paragraph is mandatory.
+const ELECTION_RULES = require('./contract-election-rules.json');
+
+function canonicalKey(fieldIds) {
+  return [...new Set(fieldIds)].sort().join('|');
+}
+
+/** Parse "MUTEX(a,b,c)" -> ['a','b','c']. */
+function parseMutexMembers(crossRef) {
+  const m = /^MUTEX\(([^)]*)\)$/.exec(String(crossRef).trim());
+  if (!m) return [];
+  return m[1].split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * Canonical member-set keys for the elections the form requires an answer to.
+ * `enforcement: "blocking"` in the rules file means zero-selected is a hard
+ * failure; anything else means a conflict still fails but a blank does not.
+ */
+function requiredElectionKeys(formCode) {
+  const form = ELECTION_RULES.forms[formCode];
+  if (!form) return new Map();
+  const out = new Map();
+  for (const el of form.elections) {
+    if (el.enforcement !== 'blocking') continue;
+    out.set(canonicalKey(el.satisfiers.map((s) => s.field)), el);
+  }
+  return out;
+}
 
 // ---- format validators ----
 const FORMATS = {
@@ -55,13 +112,27 @@ function evalConditional(expr, intake, assignments) {
   });
 }
 
-function validate(rules, assignments, intake) {
+function validate(rules, assignments, intake, opts) {
+  const formCode = (opts && opts.formCode) || rules.formCode || '20-18';
   const byId = {};
   rules.fields.forEach((f) => (byId[f.fieldId] = f));
   const report = [];
   const fillable = {};
   const flags = [];
-  const mutexGroups = {}; // key -> [{fieldId, value}]
+
+  // ---- mutex groups, built from the RULES, not from what happened to pass ----
+  // Membership must exist before any value is looked at, or the blank case
+  // (the one that let Pfeiffers Gate execute with 7D empty) is unrepresentable.
+  const mutexGroups = {}; // canonical key -> { members: [fieldId], election }
+  const requiredElections = requiredElectionKeys(formCode);
+  for (const f of rules.fields) {
+    if (!f.crossRef || !String(f.crossRef).startsWith('MUTEX')) continue;
+    if (f.valueType !== 'checkbox') continue;
+    const members = canonicalKey([f.fieldId, ...parseMutexMembers(f.crossRef)]);
+    if (!mutexGroups[members]) {
+      mutexGroups[members] = { members: members.split('|'), election: requiredElections.get(members) || null };
+    }
+  }
 
   // derive values that are computed from other fields (headers, year suffix)
   const propAddr = assignments["property_street_address"]?.value;
@@ -149,12 +220,6 @@ function validate(rules, assignments, intake) {
       }
     }
 
-    // collect mutex
-    if (f.crossRef && f.crossRef.startsWith("MUTEX") && f.valueType === "checkbox") {
-      const key = f.crossRef;
-      (mutexGroups[key] = mutexGroups[key] || []).push({ fieldId: f.fieldId, value: a.value });
-    }
-
     report.push({ fieldId: f.fieldId, status: "PASS", value: a.value });
     fillable[f.fieldId] = a.value;
   }
@@ -176,21 +241,86 @@ function validate(rules, assignments, intake) {
     }
   }
 
-  // mutex enforcement: at most one true
-  for (const [key, members] of Object.entries(mutexGroups)) {
-    const trues = members.filter((m) => m.value === true || m.value === "true");
-    if (trues.length > 1) {
-      trues.forEach((m) => {
-        const idx = report.findIndex((r) => r.fieldId === m.fieldId);
-        report[idx] = { fieldId: m.fieldId, status: "FAIL", reason: `mutex violation in ${key}` };
-        flags.push(m.fieldId);
-        delete fillable[m.fieldId];
+  // ---- mutex enforcement ----
+  // Two selected is a contradiction on any election and always fails.
+  // ZERO selected fails only where the form genuinely requires the election to
+  // be made — that list is narrow on purpose (contract-election-rules.json),
+  // because blocking a send on a paragraph the form permits to be inapplicable
+  // would be its own defect.
+  const elections = [];
+  for (const [key, group] of Object.entries(mutexGroups)) {
+    // Read values straight from the assignments so an unset member still counts
+    // as a member. Only a real boolean true selects a box — the string 'true'
+    // looks set in the data but renders as an empty box, so it must not satisfy
+    // an election here either.
+    const selected = group.members.filter((fieldId) => assignments[fieldId]?.value === true);
+    const stringTrue = group.members.filter(
+      (fieldId) => typeof assignments[fieldId]?.value === 'string'
+        && assignments[fieldId].value.trim().toLowerCase() === 'true'
+    );
+    const el = group.election;
+    const paragraph = el ? `¶${el.paragraph} (${el.label})` : key;
+
+    const failMember = (fieldId, reason) => {
+      const idx = report.findIndex((r) => r.fieldId === fieldId);
+      const entry = { fieldId, status: 'FAIL', reason };
+      if (idx >= 0) report[idx] = entry; else report.push(entry);
+      flags.push(fieldId);
+      delete fillable[fieldId];
+    };
+
+    if (selected.length > 1) {
+      elections.push({ key, paragraph, status: 'FAIL', problem: 'multiple_selected', selected });
+      selected.forEach((fieldId) => failMember(
+        fieldId,
+        `mutex violation: ${selected.length} boxes selected in ${paragraph}, the form allows one`
+      ));
+      continue;
+    }
+
+    if (selected.length === 1) {
+      elections.push({ key, paragraph, status: 'OK', selected });
+      continue;
+    }
+
+    // Zero selected.
+    const coercion = stringTrue.length
+      ? ` (${stringTrue.join(', ')} holds the text "true", which does not render as a checked box)`
+      : '';
+    if (el) {
+      elections.push({ key, paragraph, status: 'FAIL', problem: 'none_selected', selected: [] });
+      // Attribute the failure to the group, not to one arbitrary member.
+      report.push({
+        fieldId: `election:${el.id}`,
+        status: 'FAIL',
+        reason: `${paragraph}: no box selected — the form requires exactly one${coercion}`,
+      });
+      flags.push(`election:${el.id}`);
+    } else {
+      elections.push({ key, paragraph, status: 'BLANK', problem: 'none_selected', selected: [] });
+      report.push({
+        fieldId: `election:${key}`,
+        status: 'SKIP',
+        reason: `${paragraph}: no box selected — not enforced as required on this form${coercion}`,
       });
     }
   }
 
   const hardFails = report.filter((r) => r.status === "FAIL" || r.status === "UNMATCHED");
-  return { report, pass: hardFails.length === 0, fillable, flags: [...new Set(flags)] };
+  return {
+    report,
+    pass: hardFails.length === 0,
+    fillable,
+    flags: [...new Set(flags)],
+    elections,
+  };
 }
 
-module.exports = { validate, CONFIDENCE_FLOOR };
+module.exports = {
+  validate,
+  CONFIDENCE_FLOOR,
+  // exported for tests
+  canonicalKey,
+  parseMutexMembers,
+  requiredElectionKeys,
+};

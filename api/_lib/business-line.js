@@ -15,8 +15,14 @@
 // Owner: Atlas, 2026-08-10 (SV-ENG-JARVIS-TASK-VIZ)
 // ============================================================================
 
+// 'rust' added 2026-09-18 (Carter) so a bug report from the Rust fitness app
+// can be queued into the SAME agent_queue as everything else instead of
+// needing a parallel pipeline. Rust has no agent persona of its own, so those
+// rows go to the 'cole' lane (an inherit-type agent, which is why the explicit
+// override below matters) with business_line='rust' — see
+// api/cron-support-ticket-triage.js dispatchFix().
 const VALID_BUSINESS_LINES = Object.freeze([
-  'dossie', 'sawyer', 'brokerage', 'trading', 'shepard-ventures',
+  'dossie', 'sawyer', 'brokerage', 'trading', 'rust', 'shepard-ventures',
 ]);
 
 // null = "inherit" (cross-cutting agent — use explicit override or default)

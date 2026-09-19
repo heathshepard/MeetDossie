@@ -12,7 +12,9 @@
     "test:mail-oauth": "node scripts/carter-mail-oauth-dispatcher-test.js && node scripts/carter-addon-checkout-provider-guard-test.js",
     "test:autonomous-loop": "node scripts/carter-autonomous-loop-backlog-parser-test.js",
     "test:regression-alerting": "node --test api/_lib/regression-alert-policy.test.js api/_lib/telegram-gate.test.js api/cron-regression-suite.test.js",
-    "test:inbox": "node --test api/_lib/inbox-tools.test.js api/_lib/inbox-resolve-loop.test.js"
+    "test:inbox": "node --test api/_lib/inbox-tools.test.js api/_lib/inbox-resolve-loop.test.js",
+    "test:contract-safety": "node --test api/_lib/contract-safety-checks.test.js",
+    "test:contract": "node scripts/artifact-integrity-check.js && node --test api/_lib/contract-safety-checks.test.js && node scripts/regression-chat-deadline-rollover.js && npm run test:regression-alerting"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",

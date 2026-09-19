@@ -65,6 +65,13 @@ const {
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
+const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const {
+  evaluateElections,
+  summarize: summarizeElections,
+  blockingMessage: electionBlockingMessage,
+  formCodeForFormType,
+} = require('./_lib/contract-election-gate');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -784,6 +791,73 @@ function buildResaleContractPrefill(tx, profile) {
   if (otherAgentPhone) v.selling_associate_phone = otherAgentPhone;
 
   return v;
+}
+
+// =============================================================================
+// ELECTION GATE — the last gate before a contract reaches a real signature.
+//
+// Before 2026-09-17 this endpoint called no contract validator of any kind. A
+// blank "check one box only" paragraph travelled straight through to DocuSeal
+// and to four signatures: 29046 Pfeiffers Gate executed 2026-09-09 with
+// paragraph 7D blank, the paragraph deciding whether the sellers owe repairs.
+//
+// RECONSTRUCTION, AND WHY IT IS FAITHFUL. This endpoint sends an already-filled
+// PDF; it does not hold the field values that produced it, and fill-form.js
+// does not persist them. So the values are rebuilt through
+// mergeContractFieldDrafts — the same single choke point fill-form.js itself
+// uses, so a preview, a filled PDF and this gate can never disagree about what
+// a draft means. That is exact for elections specifically: every election on
+// 20-19 is sourced from transactions.contract_field_drafts (the canonical
+// txDefaults block in fill-form.js contains no election field at all), and no
+// production caller passes an election through field_values. A caller override
+// is the one thing that would not be visible here, and nothing in the codebase
+// does it outside test scripts.
+//
+// Blocking here is narrow by design — see contract-election-rules.json. A send
+// stopped at 4:59pm on the last day of an option period is its own disaster, so
+// the gate only blocks on an election the form genuinely requires AND the
+// member can actually fix.
+// =============================================================================
+async function evaluateElectionsForDocs(docRows, tx) {
+  if (!tx) return null;
+  const seen = new Set();
+  const reports = [];
+  for (const d of docRows || []) {
+    const formCode = formCodeForFormType(d.form_type || d.document_type);
+    if (!formCode || seen.has(formCode)) continue;
+    seen.add(formCode);
+    // 'resale-contract' is the fill-form form_type whose drafts key is '20-19'.
+    const merged = mergeContractFieldDrafts({
+      tx,
+      formType: 'resale-contract',
+      baseValues: {},
+      callerValues: {},
+    });
+    const report = evaluateElections({ formCode, fieldValues: merged });
+    report.documentId = d.id;
+    report.fileName = d.file_name || null;
+    reports.push(report);
+  }
+  return reports.length ? reports : null;
+}
+
+/**
+ * Logs every report and returns the first one that blocks, or null.
+ */
+function firstBlockingElectionReport(reports) {
+  if (!reports) return null;
+  for (const r of reports) {
+    console.log('[esign-create][elections]', r.fileName || r.documentId, summarizeElections(r));
+    if (r.warnings.length) {
+      console.warn('[esign-create][elections] warnings:',
+        JSON.stringify(r.warnings.map((w) => w.message)));
+    }
+    if (r.unreachable.length) {
+      console.warn('[esign-create][elections] unreachable controls:',
+        JSON.stringify(r.unreachable.map((u) => u.message)));
+    }
+  }
+  return reports.find((r) => !r.pass) || null;
 }
 
 async function getTransactionRow(transactionId, userId) {
@@ -1890,6 +1964,28 @@ module.exports = async function handler(req, res) {
       }
       assertPacketSignable(packetDocs, packetSigners);
 
+      // Last gate before DocuSeal. Nothing is sent if a required election is
+      // blank or contradictory.
+      const packetElectionReports = await evaluateElectionsForDocs(packetDocRows, packetTx);
+      const packetElectionBlock = firstBlockingElectionReport(packetElectionReports);
+      if (packetElectionBlock) {
+        console.error('[esign-create] BLOCKED — required election blank/ambiguous on %s: %s',
+          packetElectionBlock.fileName || packetElectionBlock.documentId,
+          JSON.stringify(packetElectionBlock.blocking.map((b) => b.message)));
+        return res.status(422).json({
+          ok: false,
+          blocked: true,
+          error: electionBlockingMessage(packetElectionBlock),
+          elections: {
+            form: packetElectionBlock.formName,
+            document: packetElectionBlock.fileName,
+            blocking: packetElectionBlock.blocking,
+            warnings: packetElectionBlock.warnings,
+            unreachable: packetElectionBlock.unreachable,
+          },
+        });
+      }
+
       const firstName = packetDocs[0].fileName.replace(/\.pdf$/i, '');
       const packetLabel = packetDocs.length > 1
         ? `${firstName} + ${packetDocs.length - 1} more document${packetDocs.length > 2 ? 's' : ''}`
@@ -1993,6 +2089,29 @@ module.exports = async function handler(req, res) {
           { name: agentSignerName, email: agentSignerEmail, role: 'Agent' },
         ]
       : signers;
+
+    // Election gate on the single-document path. This is the most common send
+    // of all — one resale contract — and until 2026-09-17 it reached DocuSeal
+    // without any contract-level check. Same narrow blocking policy as the
+    // packet path; see evaluateElectionsForDocs above.
+    const singleElectionReports = await evaluateElectionsForDocs([doc], tx);
+    const singleElectionBlock = firstBlockingElectionReport(singleElectionReports);
+    if (singleElectionBlock) {
+      console.error('[esign-create] BLOCKED — required election blank/ambiguous on %s: %s',
+        fileName, JSON.stringify(singleElectionBlock.blocking.map((b) => b.message)));
+      return res.status(422).json({
+        ok: false,
+        blocked: true,
+        error: electionBlockingMessage(singleElectionBlock),
+        elections: {
+          form: singleElectionBlock.formName,
+          document: fileName,
+          blocking: singleElectionBlock.blocking,
+          warnings: singleElectionBlock.warnings,
+          unreachable: singleElectionBlock.unreachable,
+        },
+      });
+    }
 
     let submissionResult;
 

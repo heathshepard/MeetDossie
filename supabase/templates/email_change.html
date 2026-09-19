@@ -1,0 +1,44 @@
+<!--
+  Supabase Auth template: CHANGE EMAIL ADDRESS
+  Paste into: Dashboard > Authentication > Emails > Change Email Address
+  Subject:    Confirm your new Dossie email
+
+  WHEN THIS FIRES: a signed-in customer changes their address with
+  supabase.auth.updateUser({ email }). There is no server-side path in this
+  repo that intercepts it, so unlike the reset email it cannot be rerouted
+  through Resend in application code -- the template and the SMTP sender are
+  the only levers. That is why custom SMTP matters even after the invites
+  branch lands.
+
+  NOTE ON THE TWO COPIES: with "Secure email change" on (the default), GoTrue
+  sends this SAME template to BOTH the old and the new address, and each
+  recipient must click. The copy below therefore names both addresses
+  explicitly instead of saying "your email", so it reads correctly whichever
+  mailbox it lands in and neither recipient has to guess which side they are.
+
+  Variables: .ConfirmationURL .Token .TokenHash .SiteURL .Email .NewEmail
+-->
+<div style="font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: #FDFCFA; color: #1C2B3A;">
+
+  <div style="font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size: 36px; line-height: 1.15; margin: 0 0 16px; font-weight: 600; color: #1C2B3A;">Confirm your new email</h1>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 0 0 20px;">You asked to move your Dossie account from <strong style="color: #1C2B3A;">{{ .Email }}</strong> to <strong style="color: #1C2B3A;">{{ .NewEmail }}</strong>.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 0 0 28px;">For safety we send this to both addresses, so click the link in each one. The change only takes effect once both are confirmed.</p>
+
+  <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 16px 32px; background: #D4A0A0; color: #ffffff; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Confirm the Change</a>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 28px 0 0;">If you didn't ask for this, don't click anything &mdash; reply and tell me, and I'll lock it down. Your address stays as it is until both links are used.</p>
+
+  <p style="font-size: 16px; color: #5C6B7A; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: #5C6B7A; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+
+  <hr style="border: none; border-top: 1px solid #E8E2D9; margin: 32px 0 20px;">
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0 0 10px;">You're getting this because an email change was requested on your Dossie account at <a href="https://meetdossie.com" style="color: #D4A0A0;">meetdossie.com</a>. Dossie is the transaction assistant for Texas REALTORS.</p>
+
+  <p style="font-size: 13px; color: #9CA8B4; line-height: 1.6; margin: 0;">The link is good for 24 hours.</p>
+
+</div>

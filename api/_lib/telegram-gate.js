@@ -134,6 +134,13 @@ const ALWAYS_ALLOW = new Set([
                                // Added 2026-09-07 (Carter): ticket 503a1d1b (Amanda Nuckles, a founding member asking how to
                                // cancel) had 4 escalation alerts eaten by this gate while heath_alerted_at got stamped anyway.
                                // A silent support queue is a customer-losing outage, not digest noise.
+  'cron-support-ticket-triage', // */15 — sends NOTHING on a quiet queue. Only fires when a real customer ticket is
+                               // classified as a cancellation, billing dispute, unhappy customer, legal matter,
+                               // question, or a bug in a protected area (auth/payments/contracts/data-deletion)
+                               // that deliberately was NOT auto-fixed — plus a flood halt and a failed-send notice.
+                               // Same reasoning as cron-support-ticket-alert directly below: a swallowed message
+                               // here is a customer nobody answers, which is the exact 2026-08-24 Amanda Nuckles
+                               // failure this pipeline was built to prevent — Carter, 2026-09-18.
   'cron-unsubscribe-spike-monitor', // hourly probe, but only SENDS when >2 unsubscribes/24h (6h dedup) — silent on a
                                     // healthy list. Deliverability/domain-reputation bleed threatens every transactional
                                     // send (deadline reminders, e-sign) — Carter, 2026-09-07.

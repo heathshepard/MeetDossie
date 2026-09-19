@@ -4,12 +4,31 @@ Built 2026-09-17. Scope: marketing/content engine, Dossie GTM, Heath's real esta
 business, Rust launch, business admin. **Engineering, product code, crons and the
 agent queue are deliberately excluded** — a separate inventory covers those.
 
-**90 items.** **22 an agent can complete with no input from Heath.** 43 need Heath
-personally. 23 are mixed — an agent does the work and stops at one gate (a click, a
-send approval, a forwarded letter). 2 are correctly parked behind a named trigger.
+**91 items — 89 open, 2 closed and struck through.**
 
-By area: marketing/content engine 14 · Dossie GTM 11 · real estate 24 · Rust launch 20 ·
+**Reconciled 2026-09-17.** The figures below are the output of running the real parser
+(`api/_lib/backlog-parser.js`, the same module the autonomous loop uses) over this file, not a
+hand count:
+
+| Category | Count | Pullable by a loop? |
+|---|---|---|
+| eligible — `Blocked by` reads `agent` | **17** | yes |
+| withheld — `Heath` | 43 | no |
+| withheld — `mixed` | 21 | the agent half only |
+| withheld — `agent, …` with a further Heath dependency | 6 | the agent half only |
+| withheld — `gated on …` (correctly parked behind a named trigger) | 2 | no |
+| closed — struck through, skipped at parse time | 2 | no |
+
+Eligible went **18 → 17**: RM3 was closed as *already fixed and factually wrong* (see section 6),
+and RE25 was added as a standing correction rather than as work.
+
+By area (open): marketing/content engine 14 · Dossie GTM 11 · real estate 24 · Rust launch 19 ·
 business admin 21.
+
+**⚠️ Closing an item in this file** — the loop reads the `###` heading only; a "RESOLVED" note in
+the body does nothing. This file's headings are `### M1 — Title` (no early period), so
+`— RESOLVED <date>` appended to the heading *is* detected. Striking the title as well, as RM3
+and RE25 do, is belt-and-braces and always works.
 
 ## How to read this
 
@@ -36,9 +55,16 @@ business admin 21.
 | 4 | **702 Fawndale security-deposit disposition, statutory deadline ~2026-10-10** (BA5) | 23 days out. Tex. Prop. Code §92.109 exposure is 3× the deposit + $100 + tenant's attorney fees. **No todo anywhere tracks it** — verified against `jarvis_todos` today. | mixed |
 | 5 | **713/715 Homer Ave S (FL duplex) has zero liability coverage** (BA7) | Quoted 2024-12-05, never bound. 21 months open. A tenant or guest injury is an uncapped personal-asset claim, and an umbrella cannot fix it because there is no underlying limit to sit above. | Heath |
 
-**Best unattended quick win:** RM13 — four fabricated claims still live in
+~~**Best unattended quick win:** RM13 — four fabricated claims still live in
 `marketing/rust-hook-library.md`. 15 minutes, replacement text already written,
-no dependencies, and it is a false-advertising risk on a health app.
+no dependencies, and it is a false-advertising risk on a health app.~~
+
+**WITHDRAWN 2026-09-17.** (The pointer said RM13; the item is RM3.) It was already fixed
+when this document was written — `78ab840b` on 2026-09-16 — and half of it was factually
+wrong besides. See the RM3 entry and section 6. **No replacement "best quick win" is
+nominated here**, deliberately: this box is what pushed a false item to the top of the
+queue, and a ranking guess is worth less than the per-item `Blocked by` and `Confidence`
+fields an agent should be reading instead.
 
 ---
 
@@ -581,11 +607,18 @@ The website build is in flight and largely handled. Only what remains is listed.
   2026-09-16 extension run stopped without acting because **the brief had keep/delete
   backwards and would have deleted the only profile Heath controls.**
 - **Impact.** Review equity split across two pins, map-pack dilution on his single
-  biggest free local lead source. Also a TREC §535.155 issue — the duplicate advertises
-  an assumed name that isn't registered.
+  biggest free local lead source. ~~Also a TREC §535.155 issue — the duplicate advertises
+  an assumed name that isn't registered.~~ **That second half is FALSE — struck 2026-09-17.**
+  "The Heath Shepard Real Estate Team" **is** registered with TREC under §535.154, on broker
+  entity `547594-BB`. There is no advertising violation here. See **RE25**. The duplicate
+  profile is still worth removing, but on marketing grounds only — do not escalate it as a
+  compliance matter, and do not let a "regulatory risk" framing raise its priority.
+  - Related, same source: the **808 number on the keeper profile is correct** — it is the number
+    on Heath's own TREC licence record. It is not a stray or third-party number to replace.
 - **Effort.** Small — 15 minutes once signed into the right account.
 - **Blocked by.** Heath (must sign into business.google.com as heath.shepard@gmail.com).
-- **Confidence.** verified 2026-09-17 (both sources agree it hasn't happened).
+- **Confidence.** verified 2026-09-17 (both sources agree the merge hasn't happened). The
+  §535.155 claim was **disproven** 2026-09-17 against TREC's own team-name registry.
 
 ### RE14 — Website punch list: Wix items B, C, E plus placement of two written pages
 - **What.** Item A is done and **saved but not published**. B (replace the booking
@@ -612,9 +645,51 @@ The website build is in flight and largely handled. Only what remains is listed.
   appears on every page.
 - **Effort.** Small — 30 minutes.
 - **Blocked by.** Heath (zipForm profile edit + Wix upload picker).
-- **Note.** "Keller Willis San Antonio Inc" is the **correct registered entity name** —
-  do not "fix" that part.
-- **Confidence.** inherited.
+- **🛑 DO NOT "FIX" THE BROKER NAME — "Keller Willis San Antonio Inc" IS CORRECT.**
+  This has already cost one full agent dispatch (~45 tool calls, 2026-09-17) and it will cost
+  another unless this note is read. The name looks like a typo for "Keller Williams." It is not.
+  - **TREC's own record, verified 2026-09-17:** license **`547594-BB`**, type *Broker Company*,
+    status **Active**, expires 2026-12-31. TREC returns the legal name verbatim as
+    `"organizationName":"Keller Willis San Antonio Inc"` and
+    `"businessName":"Keller Willis San Antonio Inc"`. This is the entity sponsoring Heath's
+    sales-agent licence `751964-SA` (sponsor date 2023-01-17).
+  - Human-readable source: `https://www.trec.texas.gov/license-search?detail_id=547594-BB`
+    (first-party TREC detail API, not a third-party mirror).
+  - **The field is also read-only in zipForm**, so the dispatch could not have changed it even
+    if the premise had been right.
+  - **Nothing was ever wrong here.** If a future audit flags this string again, the correct
+    action is to close the finding and point at this note — not to re-verify it a third time.
+- **Confidence.** inherited — the 11-year-old IABS form claim itself was **not** re-verified this
+  pass. The broker-name note above *was* verified today, against TREC directly.
+
+### ~~RE25 — TREC records flagged as problems that are actually correct~~ — RESOLVED 2026-09-17, standing correction, do not re-open
+- **Added 2026-09-17** as a standing correction, for the same reason as the broker-name note
+  above: both of these were recorded as problems, both are fine, and both would otherwise keep
+  generating work.
+- **"The Heath Shepard Real Estate Team" IS registered with TREC.** Verified 2026-09-17 against
+  the broker entity's `teamNames` registry (TREC §535.154) on licence `547594-BB`: the array
+  holds 166 registered team names and contains exactly one Shepard variant, the exact string
+  **"The Heath Shepard Real Estate Team"**. It had been flagged as *pending* and treated as a
+  publish blocker on the realtor pages. **It is not pending and is not a blocker.**
+  - Two details worth keeping, because they are the likely source of the confusion: the team
+    name lives on the **broker entity's** record, not on Heath's individual licence (his own
+    record shows `teamNames: []`, `dbas: []`, `alternateNames: []`), and only the variant
+    **with the leading "The"** is registered. "Heath Shepard Real Estate Team" and "Shepard
+    Real Estate Team" do **not** appear as separate registered entries.
+- **The 808 number on the Google Business Profile came from Heath's own TREC record.** TREC's
+  detail record for licence `751964-SA` lists **(808) 392-3032**. No 830 number appears anywhere
+  in that record. It was not supplied by a third party and is not an error to correct.
+  Source: `https://www.trec.texas.gov/license-search?detail_id=1000525188`.
+- **Consequence for RE13** — RE13 argues the duplicate Google profile is *"also a TREC §535.155
+  issue — the duplicate advertises an assumed name that isn't registered."* **That reasoning is
+  wrong and has been struck there.** The duplicate-profile problem is real, but it is a
+  review-equity and map-pack problem, not a registration violation.
+- **Blocked by.** nothing. This is a standing correction, not work. It is recorded as an item
+  only so that an agent searching these files by keyword finds the correction before it starts
+  "fixing" a correct record.
+- **Confidence.** Verified 2026-09-17 against first-party TREC APIs (the same endpoints
+  `trec.texas.gov/license-search` itself calls). Naming variants and the phone number were read
+  directly from those responses.
 
 ### RE16 — GA4 is parked awaiting one word from Heath
 - **What.** The extension will fill the entire GA4 property + web stream form and stop
@@ -755,21 +830,46 @@ both Rust marketing docs open by naming a blocker that has since been solved.
 - **Blocked by.** Heath (entity identity, D&B application).
 - **Confidence.** inherited.
 
-### RM3 — Four fabricated claims still live in the hook library
-- **What.** Hooks #20 and #35 claim an automatic 5th-week deload that does not exist in
-  the codebase. Hooks #11 and #15 state a 1-10 sleep slider (it's 1-5) and auto-rewriting
-  of the session (the coach only recommends).
-- **Evidence.** `marketing/rust-hook-library.md` read on disk 2026-09-17 — line 76 still
-  reads *"Deload week hits automatically every 5th week"*, line 106 *"I stopped guessing
-  my own deload weeks. The app just does it"*, lines 62 and 71 *"3 out of 10."* All four
-  unchanged. Flagged in `RUST-PRELAUNCH-MARKETING-PLAN.md` and `RUST-INFLUENCER-PROGRAM.md`,
-  both 2026-09-14, with replacement text already written.
-- **Impact.** Marked ❌ Fabricated. This is `dossie-demo-must-match-real-capability`
-  applied to Rust. One of these in a TikTok overlay is a false advertising claim on a
-  health app.
-- **Effort.** Small — 15 minutes.
-- **Blocked by.** **agent.** Cheapest open item in this document.
-- **Confidence.** verified 2026-09-17.
+### ~~RM3 — Four fabricated claims still live in the hook library~~ — RESOLVED 2026-09-17: they were already fixed, and half the item was itself wrong
+- **CORRECTED 2026-09-17. This item was false when written, in two separate ways.** It was also
+  promoted as "the best unattended quick win" in this document's own TOP 5 box, so it would
+  have been an early pick for the autonomous loop. It is closed.
+- **(1) The fixes had already shipped, a day before this item was written.** `78ab840b`
+  *fix(rust): dead CTA domain + fabricated deload/scale claims* (2026-09-16) is on
+  `origin/main` — confirmed by `git merge-base --is-ancestor`. A second pass,
+  `f2d6dfe6` *fix(rust-marketing): remove unverifiable capability claim from hook library*,
+  merged as `9939dc12` (2026-09-17), is also on `origin/main`.
+- **What `origin/main:marketing/rust-hook-library.md` actually says today** (extracted from the
+  branch and read, not read from a working tree):
+  - Hook **#20** now reads *"Ask for an exercise that isn't even in its library and it builds it
+    on the spot, mid-workout"* and carries an inline note: *"REPLACED 2026-09-16: this slot
+    previously read 'Deload week hits automatically every 5th week,' a fabricated feature."*
+  - Hook **#35** now reads *"I stopped guessing what weight to load next. The app already knows
+    from last time"*, annotated *"Corrected 2026-09-16 — the original claimed 'deload weeks,' a
+    calendar feature that doesn't exist."*
+  - Hook **#11** now reads *"…my sleep was a 1 out of 5"*, annotated *"Corrected 2026-09-16:
+    readiness is a 1-5 scale (`ReadinessCheck.tsx`), not 1-10."*
+  - The file's reference block states plainly: **"There is no calendar-based deload."**
+  - A further fabrication the original item never spotted (hook #12) was found and fixed on
+    2026-09-17.
+- **Why this item said otherwise** — it cites "line 76", "line 106", "lines 62 and 71" of
+  `marketing/rust-hook-library.md` "read on disk 2026-09-17". Those line numbers do not hold any
+  such text on `origin/main`; line 76 is a `---` rule. The audit read a **stale working tree**,
+  not the branch. This is the same class of error the engineering backlog warns about in its own
+  header ("Read `origin/main`, not the checkout") — and it produced a false item anyway.
+- **(2) One of the four claims was never a fabrication at all.** The item asserts hooks #11/#15
+  falsely claim "auto-rewriting of the session (the coach only recommends)." That is wrong: the
+  coach's `adjust_workout` / `swap_exercise` calls are **real tool calls that write to the
+  database**, verified against `Rust/api/chat.ts` and re-verified 2026-09-17. The hook library
+  now carries an explicit standing instruction on this point: *"Nothing in this file may cite
+  RM3 as a reason to weaken them."* Acting on this item would have **removed a true claim.**
+- **Do not re-open. Do not "restore" the deload or 1-10 wording, and do not weaken hooks #8 or
+  #15 on RM3's authority.**
+- **Blocked by.** nothing. Closed.
+- **Confidence.** Verified 2026-09-17 against `origin/main` file contents and commit ancestry.
+  The underlying Rust source claims (1-5 sliders, the write-through tool calls) are quoted from
+  the hook library's own re-verification note and were **not** independently re-checked against
+  `Rust/src` by me — **unverified** at second hand, though consistent across two passes.
 
 ### RM4 — No subscription products exist in either store, so IAP ships dark
 - **What.** Native IAP was built 2026-09-16 and cannot activate, because gate #4 requires
@@ -1258,6 +1358,11 @@ Verified today. Several are recorded as open in files an agent would read.
 | HB 235 veteran sales-tax exemption / SB 524 | **Both died in the legislature.** Debunked. |
 | Biddle v. Disney settlement | **Missed.** Claim deadline was 2026-09-08. Money gone. |
 | Cold email queue "fills but never drains" | **Wrong in that form.** It drained — 838 of 841. The real problem is the 33% bounce rate. See M12. |
+| **"Keller Willis San Antonio Inc" is a typo for "Keller Williams"** | **Wrong — it is the correct registered legal name.** TREC licence `547594-BB`, *Broker Company*, Active, `businessName: "Keller Willis San Antonio Inc"`, verified 2026-09-17. An agent was dispatched to "fix" this on 2026-09-17, spent ~45 tool calls, and found the zipForm field read-only. Nothing was ever wrong. See RE15. |
+| **The team name "The Heath Shepard Real Estate Team" is pending registration / a publish blocker** | **Wrong — it is registered.** Present verbatim in the §535.154 `teamNames` registry on broker entity `547594-BB`, verified 2026-09-17. Only the variant *with* the leading "The" is registered. Not a blocker on anything. See RE25. |
+| **The 808 number on the Google Business Profile came from a third party** | **Wrong — it is the number on Heath's own TREC licence record** (`751964-SA` → (808) 392-3032). No 830 number appears in that record. Not an error to correct. See RE25. |
+| **Four fabricated claims still live in `marketing/rust-hook-library.md` (RM3)** | **Wrong twice over.** The fixes shipped in `78ab840b` (2026-09-16) and `f2d6dfe6` → `9939dc12` (2026-09-17), both on `origin/main`; the audit had read a stale working tree. And the "session auto-rewriting" claim was never a fabrication — those are real DB-writing tool calls. Acting on RM3 would have deleted a true claim. See RM3. |
+| Content engine shut down (again) | Still wrong, and worth repeating: FB, LinkedIn and Twitter all posted 2026-09-17. `posting_schedule` shows 7 active rows on every one of the six platforms. |
 
 ---
 
@@ -1265,6 +1370,13 @@ Verified today. Several are recorded as open in files an agent would read.
 
 These generate wrong work every time an agent reads them. All are small, and all but
 one are agent-doable unattended.
+
+> **Updated 2026-09-17 (reconciliation pass).** Items 12-14 below were added after three
+> separate dispatches were wasted on stale or disproven records in a single day. Note that
+> **this document was itself one of the sources of wrong work** — see the RM3 correction in
+> section 6, where an item in *this file* was both already-fixed and factually wrong, while
+> sitting in the TOP 5 box as "best unattended quick win." Treat every `inherited` confidence
+> line here as a lead, and re-verify against `origin/main` — not a working tree — before acting.
 
 1. **`content-engine-shutdown-2026-07-12.md`** — describes a shutdown that has been
    reversed. Rewrite around the real failures (M1, M4, M9).
@@ -1296,6 +1408,16 @@ one are agent-doable unattended.
     says SOLVED, and Pfeiffers e-sign traffic went out 2026-09-15. Close it.
 11. **`jarvis_todos` "Create rust instagram"** — both Rust social todos are now partly
     satisfied (see RM6). Rescope to TikTok/YouTube.
+12. **Any note calling "Keller Willis San Antonio Inc" a typo** — it is the correct TREC-
+    registered legal name of the sponsoring broker (`547594-BB`). Verified against TREC
+    2026-09-17. This already cost one ~45-tool-call dispatch. Delete the claim wherever it
+    appears; do not re-verify it again. See RE15.
+13. **Any note treating "The Heath Shepard Real Estate Team" as unregistered or pending** —
+    it is registered under §535.154 on the broker entity record. It is not a publish blocker,
+    and the duplicate Google profile is **not** a §535.155 violation. See RE25 and RE13.
+14. **`docs/BACKLOG-BUSINESS.md` RM3 itself** (this file) — was already fixed when written, and
+    half of it was factually wrong. Corrected and closed 2026-09-17. Nothing may cite RM3 as a
+    reason to weaken hooks #8 or #15.
 
 ---
 
@@ -1306,14 +1428,25 @@ support tickets, prod errors, KPI drift, `docs/TECH-DEBT.md`. **Nothing in this 
 would ever be picked up by it**, which is precisely why these 59 items accumulated
 unseen while the loop ran every four hours.
 
-The 22 items marked `Blocked by: agent` are:
-M2, M3, M8, M9, M10, M13, M14 · G11 · RE9, RE10, RE19, RE20, RE22, RE23 ·
-RM3, RM16, RM17 · BA10, BA14 — plus RM18 and RM11 if a Bitwarden session is
-available, and G9 if copy changes are pre-approved.
+**UPDATE 2026-09-17 — both additions below were built and merged the same day.** `9404868e`,
+merged as `40559f6b`, added **this file and `docs/BACKLOG-ENGINEERING.md` as signal sources**
+and **`alert_state`** alongside them, and introduced `api/_lib/backlog-parser.js` so closed
+items are filtered out before the candidate cap rather than after. The gap this section
+described is closed; the section is kept because the *mechanics* below still govern what gets
+pulled.
 
-Two additions would close that gap:
+The items currently marked `Blocked by: agent`, verified by running the parser (**17**):
+M3, M4, M8, M9, M10, M13, M14 · G11 · RE9, RE10, RE19, RE20, RE22, RE23 ·
+RM16, RM17 · BA14 — plus RM18 and RM11 if a Bitwarden session is available, and G9 if copy
+changes are pre-approved.
 
-1. **`alert_state` as a signal source.** M13 shows eleven conditions firing daily with no
-   responder. The detection already works; only the routing is missing.
-2. **This file as a signal source**, the same way `docs/TECH-DEBT.md` is — filtered to
-   `Blocked by: agent`, which is the 17 items an unattended loop can actually finish.
+*(Changes from the original list: **RM3 removed** — closed as already-fixed and factually wrong;
+**M2 and M6 removed** — their `Blocked by` values carry a Heath dependency beyond the merge gate,
+so the parser withholds them and always did; **BA10 removed** for the same reason; **M4 added**.
+The original "22" was a hand count that did not match what the parser actually accepts.)*
+
+**Because this file is now a dispatch source, an item left stale here is a wasted agent run.**
+When you close something, close it in the heading (see the note at the top of this file), and
+when you disprove something, **correct the record rather than deleting it** — a corrected entry
+stops the next audit from rediscovering the same false lead. Sections 6 and 7 exist for exactly
+that and are the first thing to read.

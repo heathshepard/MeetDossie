@@ -92,6 +92,59 @@ function translateEditorFieldNames(fv) {
     out.survey_days_buyer = src.survey_buyer_new_days;
   }
 
+  // ¶3B FINANCING TYPE + ¶4 LEASES — 2026-09-17. Five editor controls that
+  // had no rule here and no widget in fill-trec-20-19.js, i.e. dead: a
+  // member could tick them, see them ticked in the editor on reload (the
+  // draft persists), and get a contract where the box is empty.
+  //
+  //   financing_third_party_addendum     -> ¶3B Third Party Financing
+  //   financing_loan_assumption_addendum -> ¶3B Loan Assumption
+  //   financing_seller_financing_addendum-> ¶3B Seller Financing
+  //   lease_residential_attached         -> ¶4A Residential Leases
+  //   lease_natural_resource             -> ¶4C Natural Resource Leases
+  //   natural_resource_lease_not_delivered -> ¶4C(2)
+  //
+  // All go through truthy() — the editor sends the string 'true'/'false'
+  // (see the ¶22 block below for the full account of that failure mode).
+  //
+  // financing_third_party_addendum is gap-fill only: fillTrec2019 already
+  // auto-checks ¶3B Third Party from loan_amount > 0, and
+  // addendum_third_party_financing (the ¶22 row) already writes
+  // addendum_financing below. This just stops the ¶3B-side control from
+  // being silently inert when a member uses it directly.
+  if (out.addendum_financing == null && hasValue(src.financing_third_party_addendum)) {
+    out.addendum_financing = truthy(src.financing_third_party_addendum);
+  }
+  if (out.addendum_loan_assumption == null && hasValue(src.financing_loan_assumption_addendum)) {
+    out.addendum_loan_assumption = truthy(src.financing_loan_assumption_addendum);
+  }
+  if (out.addendum_seller_financing == null && hasValue(src.financing_seller_financing_addendum)) {
+    out.addendum_seller_financing = truthy(src.financing_seller_financing_addendum);
+  }
+  if (out.lease_residential == null && hasValue(src.lease_residential_attached)) {
+    out.lease_residential = truthy(src.lease_residential_attached);
+  }
+  // lease_natural_resource and natural_resource_lease_not_delivered are the
+  // SAME key on both sides, so `out` already carries the editor's raw string
+  // and a `== null` gap-fill guard can never fire for them (out is a shallow
+  // copy of src). They must be coerced in place — the identical-name case is
+  // precisely what hid the ¶7B bug below for a month.
+  if (out.lease_natural_resource !== true && truthy(src.lease_natural_resource)) {
+    out.lease_natural_resource = true;
+  }
+  // ¶4C(2) only. There is NO editor control for ¶4C(1) "Seller HAS
+  // delivered all the Natural Resource Leases" — and none is invented here.
+  // (1) is an affirmative statement about documents already handed over; the
+  // absence of a tick on (2) is not evidence for it. Reported as a gap.
+  if (out.natural_resource_lease_not_delivered !== true
+    && truthy(src.natural_resource_lease_not_delivered)) {
+    out.natural_resource_lease_not_delivered = true;
+  }
+  if (!hasValue(out.natural_resource_lease_days)
+    && hasValue(src.natural_resource_lease_termination_days)) {
+    out.natural_resource_lease_days = src.natural_resource_lease_termination_days;
+  }
+
   // ¶6A(8)(ii) "shortages in area" title-exclusion amendment — editor:
   // survey_exception_amendment ("will NOT be amended", option (i)) vs.
   // shortages_amendment_expense / shortages_amendment_expense_seller
@@ -133,6 +186,62 @@ function translateEditorFieldNames(fv) {
     }
   }
 
+  // ¶7B SELLER'S DISCLOSURE NOTICE — "(Check one box only)", 3 options.
+  //
+  // 2026-09-17 — FOUND AND RENDER-CONFIRMED. This paragraph had NO rule in
+  // this module at all, because the editor's key names
+  // (seller_disclosure_received / seller_disclosure_not_required) are
+  // character-for-character identical to the fv keys fillTrec2019 reads, so
+  // every previous pass concluded "matches by name, nothing to do".
+  //
+  // They do not match by VALUE. CheckboxField.jsx sends the STRING 'true',
+  // and fillTrec2019 gates on strict `=== true` — the exact failure the
+  // 2026-09-11 ¶22 addenda block below documents ("an unrenamed key sailing
+  // straight through with no truthy() pass silently never checks the box").
+  // Six ¶22 rows were fixed that day; ¶7B was missed because it needed no
+  // rename either.
+  //
+  // Reproduced through the real path (translateEditorFieldNames ->
+  // fillTrec2019 -> pdftoppm page 4): a member who ticks "(1) Buyer has
+  // received the Seller's Disclosure Notice" and nothing else gets a
+  // contract with all THREE ¶7B boxes empty, under the form's own printed
+  // "(Check one box only)". That is [[feedback_verify-contract-elections-
+  // before-execution]]'s Pfeiffers ¶7D failure in a different paragraph,
+  // reachable today from the shipping editor.
+  //
+  // Two further traps this rule deliberately avoids:
+  //
+  //   1. NEVER write `false`. fillTrec2019 reads
+  //      `seller_disclosure_received === false` as option (2) "Buyer has NOT
+  //      received". An UNTICKED editor checkbox sends the string 'false', so
+  //      a blanket `= truthy(src...)` would check option (2) on every
+  //      contract where the member simply left ¶7B alone — a wrong box, which
+  //      is worse than a blank one because nobody looks twice at a box that
+  //      is already ticked ([[acroform-field-names-lie]]). Only an
+  //      affirmative tick is ever propagated; silence stays silence and
+  //      fillTrec2019's own not-guessed-when-omitted branch applies.
+  //   2. The editor carries a DUPLICATE, orphaned pair for this same
+  //      paragraph — sellers_disclosure_received / sellers_disclosure_not_
+  //      required (note the 's'), from the same Fable5 run, which nothing
+  //      downstream has ever read. Both spellings are honoured here so the
+  //      member's tick lands whichever control the editor rendered.
+  //
+  // STILL UNREACHABLE, reported not fabricated: option (2) "Buyer has not
+  // received" has no editor control of any kind. The day-count blank that
+  // belongs to it (seller_disclosure_delivery_days) does, which is worse
+  // than nothing — see the report.
+  if (out.seller_disclosure_received !== true
+    && (truthy(src.seller_disclosure_received) || truthy(src.sellers_disclosure_received))) {
+    out.seller_disclosure_received = true;
+  }
+  if (out.seller_disclosure_not_required !== true
+    && (truthy(src.seller_disclosure_not_required) || truthy(src.sellers_disclosure_not_required))) {
+    out.seller_disclosure_not_required = true;
+  }
+  if (!hasValue(out.seller_disclosure_days) && hasValue(src.sellers_disclosure_delivery_days)) {
+    out.seller_disclosure_days = src.sellers_disclosure_delivery_days;
+  }
+
   // ¶7D ACCEPTANCE OF PROPERTY CONDITION — editor only has ONE toggle
   // (acceptance_as_is = option (1)) plus free-text repair lines
   // (specific_repairs_line1/2). No dedicated control for option (2) — see
@@ -150,6 +259,23 @@ function translateEditorFieldNames(fv) {
   }
   if (out.accepts_as_is == null && truthy(src.acceptance_as_is)) {
     out.accepts_as_is = true;
+  }
+  // 2026-09-17 — the repairs TEXT itself was never aliased, only used as a
+  // signal above. fillTrec2019 draws the two ¶7D(2) blanks from
+  // fv.required_repairs / fv.repairs_additional (bbox-verified coords, drawn
+  // since 2026-08-19); the editor sends specific_repairs_line1/2. Result,
+  // reproduced on production 2026-09-17 against the demo dossier and
+  // rendered to PNG: the "(2) Buyer accepts the Property As Is provided
+  // Seller ... shall complete the following specific repairs and
+  // treatments:" box was CHECKED (off the signal above) while both printed
+  // blanks stayed EMPTY — a repair obligation with no repairs identified,
+  // against TREC's own printed warning immediately below it. The checkbox
+  // and its text must always travel together.
+  if (!hasValue(out.required_repairs) && hasValue(src.specific_repairs_line1)) {
+    out.required_repairs = src.specific_repairs_line1;
+  }
+  if (!hasValue(out.repairs_additional) && hasValue(src.specific_repairs_line2)) {
+    out.repairs_additional = src.specific_repairs_line2;
   }
 
   // ¶10A POSSESSION — PRIORITY. Editor: possession_upon_closing /
@@ -371,6 +497,94 @@ function translateEditorFieldNames(fv) {
   }
   if (!hasValue(out.seller_attorney) && hasValue(src.seller_attorney_name)) {
     out.seller_attorney = src.seller_attorney_name;
+  }
+
+  // -------------------------------------------------------------------
+  // 2026-09-17 — DEAL TERMS (¶3, ¶5, ¶6A, ¶6D, ¶7H, ¶12A). Backlog B2.
+  //
+  // Found by driving the demo dossier end to end on PRODUCTION (typed 142
+  // distinctive text values through /api/interactive-editor-update-field,
+  // generated via /api/fill-form AND /api/interactive-editor-download-pdf,
+  // extracted the PDF text, rendered pages to PNG). 90 of 142 never reached
+  // the document. These are the subset that is a pure NAME mismatch onto a
+  // blank fillTrec2019 already draws at a bbox-verified coordinate — no new
+  // coordinates, no new printed blanks, no guessed elections.
+  //
+  // This group is the most dangerous of the 90 because the blank is NOT
+  // empty: fill-form supplies the same blank from the canonical
+  // `transactions` column, so the member retypes the sale price in the
+  // editor, sees their new number in the editor UI, and the generated
+  // contract silently keeps the OLD one. Reproduced exactly: typed
+  // 3,100,002 into ¶3C, the PDF printed 647,000; typed a new earnest money,
+  // the PDF printed 6,470; typed a new title company, the PDF printed
+  // "University Title".
+  //
+  // Each target below was position-verified by rendering the filled page to
+  // PNG and reading the printed label the value landed against — per
+  // [[acroform-field-names-lie]], never by matching a field name.
+  //   sales_price_cash_portion -> ¶3A "Cash portion of Sales Price payable
+  //     by Buyer"        (fillTrec2019 key: down_payment_amt)
+  //   sales_price_total        -> ¶3C "Sales Price (Sum of A and B)"
+  //                              (fillTrec2019 key: sale_price)
+  //   earnest_money_amount     -> ¶5A "$___ as earnest money"
+  //   option_fee_amount        -> ¶5A "$___ as the option fee"
+  //   additional_earnest_*     -> ¶5A(1) additional earnest money $ / days
+  //   title_company_name       -> ¶6A "issued by ___ (Title Company)"
+  //   objection_days           -> ¶6D "Buyer must object ... within ___ days"
+  //   objections_prohibited_use-> ¶6D prohibited-activity blank
+  //   residential_service_contract_amount -> ¶7H "amount not exceeding $___"
+  //   seller_contribution_amount -> ¶12A(1)(b) "an amount not to exceed $___
+  //     to be applied to Buyer's Expenses"   (fillTrec2019 key:
+  //     settlement_expense_cap). NOT seller_concessions, which was the
+  //     obvious-looking name match and is WRONG: seller_concessions has no
+  //     coordinate on this template at all (fillTrec2019 has been calling
+  //     drawFieldText for it into nowhere), while the widget behind the
+  //     ¶12A(1)(b) blank — rect x0=248 y0=141 w=82 — is the one
+  //     settlement_expense_cap already draws at x=249.83 y=143.06. Caught by
+  //     rendering page 6, not by reading names.
+  //   seller(s)_disclosure_delivery_days -> ¶7B(2) "within ___ days" (drawn
+  //     only when the Notice has NOT been received — that gate is unchanged)
+  //
+  // PRECEDENCE — deliberately NOT gap-fill, unlike the rules above, and this
+  // is the whole point of the fix. By the time this function runs, the
+  // canonical column has ALREADY been merged onto `out` (see
+  // merge-contract-field-drafts.js: Object.assign(base, drafts, caller)), so
+  // a gap-fill would never fire for sale_price / earnest_money / option_fee /
+  // title_company and the member's edit would stay invisible. The editor-side
+  // key (sales_price_total, earnest_money_amount, ...) is NOT a `transactions`
+  // column and can only have arrived from something the member typed, so when
+  // it carries a value it is by definition the newer of the two. This matches
+  // what the member is already looking at: interactive-editor-init.js resolves
+  // every field draft-first ("Last thing the agent typed always wins"), so
+  // overriding here is what makes the generated PDF agree with the editor
+  // screen instead of contradicting it.
+  //
+  // Known consequence, flagged rather than silently handled: if a value is
+  // later changed through a CANONICAL path (Talk-to-Dossie, scan-contract)
+  // while an older editor draft for the same blank is still stored, the draft
+  // wins here — exactly as it already does on the editor screen. Clearing
+  // stale drafts on a canonical write is a separate decision, not this fix.
+  const seenTargets = new Set();
+  const RENAMES = [
+    ['down_payment_amt', 'sales_price_cash_portion'],
+    ['sale_price', 'sales_price_total'],
+    ['earnest_money', 'earnest_money_amount'],
+    ['option_fee', 'option_fee_amount'],
+    ['additional_earnest_money', 'additional_earnest_money_amount'],
+    ['additional_earnest_days', 'additional_earnest_money_days'],
+    ['title_company', 'title_company_name'],
+    ['title_objection_days', 'objection_days'],
+    ['title_objection_activity', 'objections_prohibited_use'],
+    ['service_contract_amount', 'residential_service_contract_amount'],
+    ['settlement_expense_cap', 'seller_contribution_amount'],
+    ['seller_disclosure_days', 'seller_disclosure_delivery_days'],
+    ['seller_disclosure_days', 'sellers_disclosure_delivery_days'],
+  ];
+  for (const [target, editorKey] of RENAMES) {
+    if (seenTargets.has(target)) continue; // first editor key listed wins (duplicate Fable5 names)
+    if (!hasValue(src[editorKey])) continue;
+    out[target] = src[editorKey];
+    seenTargets.add(target);
   }
 
   return out;

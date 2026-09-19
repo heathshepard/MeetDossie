@@ -26,6 +26,20 @@ on:
       - 'api/fill-form.js'
       - 'api/fill-forms-batch.js'
       - '.github/workflows/trec-validator-tests.yml'
+      # Added 2026-09-17 — contract-safety tier + the two suites CI is the
+      # only host for (node:test / reads api/chat.js off disk).
+      - 'api/_lib/contract-safety-checks.js'
+      - 'api/_lib/contract-safety-checks.test.js'
+      - 'api/_lib/golden-cases/*.json'
+      - 'api/cron-regression-suite.js'
+      - 'api/cron-regression-suite.test.js'
+      - 'api/_lib/regression-alert-policy.js'
+      - 'api/_lib/telegram-gate.js'
+      - 'api/_lib/chat-deal-deadlines.js'
+      - 'api/_lib/business-calendar.js'
+      - 'api/chat.js'
+      - 'scripts/regression-chat-deadline-rollover.js'
+      - 'package.json'
   pull_request:
     branches: [main, staging]
     paths:
@@ -41,6 +55,20 @@ on:
       - 'api/_lib/trec-20-18-field-rules.json'
       - 'api/fill-form.js'
       - 'api/fill-forms-batch.js'
+      # Added 2026-09-17 — contract-safety tier + the two suites CI is the
+      # only host for (node:test / reads api/chat.js off disk).
+      - 'api/_lib/contract-safety-checks.js'
+      - 'api/_lib/contract-safety-checks.test.js'
+      - 'api/_lib/golden-cases/*.json'
+      - 'api/cron-regression-suite.js'
+      - 'api/cron-regression-suite.test.js'
+      - 'api/_lib/regression-alert-policy.js'
+      - 'api/_lib/telegram-gate.js'
+      - 'api/_lib/chat-deal-deadlines.js'
+      - 'api/_lib/business-calendar.js'
+      - 'api/chat.js'
+      - 'scripts/regression-chat-deadline-rollover.js'
+      - 'package.json'
 
 jobs:
   validator-regression:
@@ -66,3 +94,19 @@ jobs:
 
       - name: Pipeline retry loop (self-correction; no fabrication)
         run: node scripts/pipeline-retry-test.js
+
+      # ---------------------------------------------------------------------
+      # Added 2026-09-17. The suites below are ALSO wired into the daily
+      # regression cron where they can run there (api/_lib/contract-safety-
+      # checks.js, 10 checks). These two cannot: they use node:test and read
+      # api/chat.js off disk, neither of which works inside a Vercel function.
+      # CI is the only place they can run, so they run here.
+      # ---------------------------------------------------------------------
+      - name: Contract-safety tier wired into the daily regression cron
+        run: npm run test:contract-safety
+
+      - name: Chat deadline rollover — TREC 5A(2) (26 assertions)
+        run: node scripts/regression-chat-deadline-rollover.js
+
+      - name: Regression-suite alerting (30 assertions)
+        run: npm run test:regression-alerting
