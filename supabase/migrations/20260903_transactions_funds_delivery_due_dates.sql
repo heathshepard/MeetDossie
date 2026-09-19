@@ -2,8 +2,13 @@
 --
 -- Deadline Guardian checklist item #1 (docs/DOSSIE-DEADLINE-GUARDIAN-SPEC.md).
 -- The transactions table already carries option_fee_amount /
--- earnest_money_amount and the *receipt* timestamps (option_fee_receipt_date,
+-- earnest_money_amount and self-reported payment markers (option_fee_paid_at,
 -- earnest_money_deposited_at) but had no *due-date* column for either — so
+-- [2026-09-17: this comment originally said "the *receipt* timestamps
+-- (option_fee_receipt_date, ...)". Both halves were wrong.
+-- option_fee_receipt_date is a TREC 20-19 PDF field key, not a column, and
+-- *_paid_at / *_deposited_at are not receipts. Confirmed receipt lives in
+-- earnest_money_confirmed_at and option_fee_confirmed_at (20260917e).]
 -- cron-deadline-reminders.js could not remind against the two deadlines that
 -- caused the real $5,200 loss the spec documents.
 --

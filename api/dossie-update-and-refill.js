@@ -93,7 +93,11 @@ const ALLOWED_FIELDS = new Set([
   'appraisal_deadline', 'survey_deadline', 'hoa_document_deadline',
   'loan_approval_deadline',
   // Block 3 — Option period
+  // *_paid_at / *_deposited_at are self-reported; *_confirmed_at is the
+  // escrow agent's acknowledged receipt and the only thing that may silence a
+  // ¶5.A delivery reminder (see cron-deadline-reminders.js SUPPRESSION_FIELDS).
   'option_fee_amount', 'option_fee_paid_at', 'option_fee_paid_to',
+  'option_fee_confirmed_at',
   'earnest_money_amount', 'earnest_money_deposited_at',
   'earnest_money_confirmed_at', 'earnest_money_title_company',
   // Block 4 — Inspection
