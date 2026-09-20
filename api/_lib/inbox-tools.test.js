@@ -29,10 +29,15 @@ const {
   isIdentityKey,
   redactForLog,
   buildGmailQuery,
+  buildGmailContactQuery,
   buildMicrosoftQuery,
+  contactNameVariants,
+  parseAddressList,
+  messageDirection,
   sanitizeFreeText,
   clampInt,
   resolveOwnedTransaction,
+  GMAIL_FOLDER_SCOPE,
   __setTestDeps,
   __resetTestDeps,
   LIMITS,
@@ -108,7 +113,7 @@ test.afterEach(() => __resetTestDeps());
 //    This is the test that would have caught _mt_acting_user.
 // ==========================================================================
 test('no inbox tool schema exposes an identity parameter', () => {
-  assert.equal(INBOX_TOOLS.length, 3);
+  assert.equal(INBOX_TOOLS.length, 4);
   for (const tool of INBOX_TOOLS) {
     const props = Object.keys(tool.input_schema.properties || {});
     for (const prop of props) {
@@ -331,13 +336,77 @@ test('date window and result count are clamped, not trusted', () => {
   assert.equal(clampInt(9999, LIMITS.DEFAULT_MAX_RESULTS, 1, LIMITS.MAX_MAX_RESULTS), LIMITS.MAX_MAX_RESULTS);
 });
 
-test('the gmail query always carries a date bound and the inbox-only scope', () => {
+test('the gmail query always carries a date bound and the folder exclusions', () => {
   const q = buildGmailQuery({ text: 'nopalito', from: '', days: 14, hasAttachment: true });
   assert.ok(q.includes('newer_than:14d'));
   assert.ok(q.includes('-in:spam'));
   assert.ok(q.includes('-in:trash'));
-  assert.ok(q.includes('-in:sent'));
+  assert.ok(q.includes('-in:chats'));
+  assert.ok(q.includes('-in:drafts'));
   assert.ok(q.includes('has:attachment'));
+});
+
+// ==========================================================================
+// 7b. Sent mail is reachable; spam/trash/drafts/chats are not.
+//
+//     Most of an agent's client addresses only ever appear as a RECIPIENT of
+//     mail they sent (Barry Whyte: no inbound message inside a year, but on
+//     the To: line of a dozen sent ones). Excluding the sent folder made
+//     "what is this person's address" unanswerable at any setting.
+// ==========================================================================
+test('sent mail is searchable', () => {
+  assert.ok(!GMAIL_FOLDER_SCOPE.includes('-in:sent'), 'sent mail is excluded again');
+  for (const q of [
+    buildGmailQuery({ text: 'whyte', from: '', days: 30, hasAttachment: false }),
+    buildGmailContactQuery({ variants: ['whyte'], days: 730 }),
+  ]) {
+    assert.ok(!q.includes('-in:sent'), `query still excludes sent mail: ${q}`);
+  }
+});
+
+test('spam, trash, chats and drafts stay excluded from every gmail query', () => {
+  const queries = [
+    buildGmailQuery({ text: 'nopalito', from: '', days: 14, hasAttachment: false }),
+    buildGmailQuery({ text: '', from: 'a@b.com', days: 730, hasAttachment: true }),
+    buildGmailContactQuery({ variants: ['whyte', 'barry'], days: 730 }),
+    buildGmailContactQuery({ variants: ['whyte'], days: 1 }),
+  ];
+  for (const q of queries) {
+    for (const excluded of ['-in:spam', '-in:trash', '-in:chats', '-in:drafts']) {
+      assert.ok(q.includes(excluded), `query is missing ${excluded}: ${q}`);
+    }
+  }
+});
+
+// ==========================================================================
+// 7c. The widened window is still a window.
+// ==========================================================================
+test('the date window is widened but still bounded', () => {
+  assert.equal(LIMITS.DEFAULT_DAYS, 14, 'the recency default should not have moved');
+  assert.ok(LIMITS.MAX_DAYS > 100, 'max window must reach a >100-day-old message — the real failing case');
+  assert.ok(LIMITS.MAX_DAYS <= 730, 'max window must stay a bound, not an unlimited history');
+
+  // Nothing can exceed it, by any route the model controls.
+  assert.equal(clampInt(999999, LIMITS.DEFAULT_DAYS, 1, LIMITS.MAX_DAYS), LIMITS.MAX_DAYS);
+  // A non-finite value is treated as unset and falls back to the default —
+  // never to "unbounded".
+  for (const bad of [Infinity, -Infinity, NaN, null, 'all', {}]) {
+    const got = clampInt(bad, LIMITS.DEFAULT_DAYS, 1, LIMITS.MAX_DAYS);
+    assert.ok(got >= 1 && got <= LIMITS.MAX_DAYS, `clampInt(${String(bad)}) escaped the bound: ${got}`);
+  }
+  assert.ok(buildGmailQuery({ text: 'x', from: '', days: LIMITS.MAX_DAYS, hasAttachment: false })
+    .includes(`newer_than:${LIMITS.MAX_DAYS}d`));
+});
+
+test('contact lookup is bounded on every axis', () => {
+  assert.equal(clampInt(999, LIMITS.DEFAULT_MAX_CONTACTS, 1, LIMITS.MAX_MAX_CONTACTS), LIMITS.MAX_MAX_CONTACTS);
+  assert.equal(clampInt(9999, LIMITS.CONTACT_DEFAULT_DAYS, 1, LIMITS.MAX_DAYS), LIMITS.MAX_DAYS);
+  assert.ok(LIMITS.MAX_CONTACT_MESSAGES <= 50, 'header scan must stay bounded');
+  assert.ok(LIMITS.MAX_ADDRESSES_PER_HEADER <= 50, 'a single header cannot expand without limit');
+  // A contact search with no name is refused — there is still no "list
+  // everyone I have ever emailed" affordance.
+  assert.ok(contactNameVariants('').length === 0);
+  assert.ok(contactNameVariants('   ').length === 0);
 });
 
 test('free text cannot smuggle gmail operators that widen the scope', () => {
@@ -434,4 +503,269 @@ test('read_email returns an attachment manifest, never attachment content', asyn
   assert.equal(res.attachments[0].filename, 'contract.pdf');
   assert.equal(res.attachments[0].size_bytes, 495246);
   assert.ok(!JSON.stringify(res).includes('SHOULD-NEVER-APPEAR'), 'attachment content leaked into the tool result');
+});
+
+// ==========================================================================
+// 9. find_contact_email — header parsing.
+// ==========================================================================
+test('a bare address keeps its first character', () => {
+  // parseFromHeader used to parse "bwhyte@hotmail.com" as
+  // {name:'b', email:'whyte@hotmail.com'} — an address that does not exist.
+  // Every sender without a display name was silently corrupted, here and in
+  // the three watcher crons.
+  const [barry] = parseAddressList('bwhyte@hotmail.com');
+  assert.equal(barry.email, 'bwhyte@hotmail.com');
+  assert.equal(barry.name, '');
+
+  const [heath] = parseAddressList('heath.shepard@kw.com');
+  assert.equal(heath.email, 'heath.shepard@kw.com');
+});
+
+test('an address list splits on real separators only', () => {
+  const list = parseAddressList('Jenny Whyte <jwhyte5590@gmail.com>, DAD <bwhyte@hotmail.com>');
+  assert.deepEqual(list.map((p) => p.email), ['jwhyte5590@gmail.com', 'bwhyte@hotmail.com']);
+  assert.deepEqual(list.map((p) => p.name), ['Jenny Whyte', 'DAD']);
+
+  // A comma inside a quoted display name is not a separator.
+  const quoted = parseAddressList('"Whyte, Barry" <bwhyte@hotmail.com>, jwhyte5590@gmail.com');
+  assert.deepEqual(quoted.map((p) => p.email), ['bwhyte@hotmail.com', 'jwhyte5590@gmail.com']);
+
+  assert.deepEqual(parseAddressList(''), []);
+  assert.deepEqual(parseAddressList(undefined), []);
+  // Junk that is not an address is dropped rather than returned as a contact.
+  assert.deepEqual(parseAddressList('undisclosed-recipients:;'), []);
+});
+
+test('a pluralised surname still matches the singular', () => {
+  // "get me the Whytes' email addresses" is how this is actually spoken.
+  const variants = contactNameVariants("the Whytes'");
+  assert.ok(variants.includes('whyte'), `expected a singular variant, got ${JSON.stringify(variants)}`);
+});
+
+test('speech filler is dropped from the name so it cannot flood the result', () => {
+  // A stopword inside the OR group matches nearly every message; live, "the
+  // Whytes'" pulled back Vercel, LinkedIn and a games newsletter.
+  const variants = contactNameVariants("the Whytes' email address");
+  for (const junk of ['the', 'email', 'address']) {
+    assert.ok(!variants.includes(junk), `"${junk}" survived into the query: ${JSON.stringify(variants)}`);
+  }
+  assert.ok(variants.includes('whyte'));
+  // A name made only of filler is not a search.
+  assert.equal(contactNameVariants('the email address for my client').length, 0);
+});
+
+test('direction is derived from the SENT label, with a from-address fallback', () => {
+  const headers = [{ name: 'From', value: 'Heath Shepard <heath.shepard@kw.com>' }];
+  assert.equal(messageDirection({ labelIds: ['SENT'], payload: { headers } }, 'heath.shepard@kw.com'), 'sent');
+  assert.equal(messageDirection({ labelIds: ['INBOX'], payload: { headers } }, 'heath.shepard@kw.com'), 'received');
+  // No labels (the Graph client returns none) — fall back to who sent it.
+  assert.equal(messageDirection({ payload: { headers } }, 'heath.shepard@kw.com'), 'sent');
+  assert.equal(messageDirection({ payload: { headers } }, 'someone.else@kw.com'), 'received');
+});
+
+// ==========================================================================
+// 10. find_contact_email — the real failing case, in unit form.
+//
+//     Reproduces the live shape: the person asked about appears ONLY on the
+//     To: line of mail the member sent, as a bare address, and their one
+//     inbound message is older than the old 90-day ceiling.
+// ==========================================================================
+const MAILBOX = 'heath.shepard@kw.com';
+
+function contactHarness({ messages, provider = 'google' } = {}) {
+  const log = { queries: [], formats: [] };
+  __setTestDeps({
+    makeMailClient: async ({ userId }) => ({
+      provider,
+      email: MAILBOX,
+      tokens: {},
+      client: async (path, params = {}) => {
+        if (path === 'messages') {
+          log.queries.push(String(params.q || ''));
+          return { messages: messages.map((m) => ({ id: m.id })) };
+        }
+        const hit = messages.find((m) => `messages/${m.id}` === path);
+        if (!hit) throw new Error(`unexpected path ${path}`);
+        log.formats.push(params.format);
+        return hit;
+      },
+    }),
+    fetch: async (url) => ({
+      ok: true,
+      status: 200,
+      text: async () => (String(url).includes('/subscriptions?') ? JSON.stringify([{ user_id: ATTACKER }]) : '[]'),
+    }),
+    loadScanner: () => { throw new Error('scanner must not be reached'); },
+  });
+  return log;
+}
+
+const SENT_TO_BARRY = {
+  id: 'sent-1',
+  labelIds: ['SENT'],
+  snippet: 'NEVER-A-SNIPPET',
+  payload: {
+    headers: [
+      { name: 'From', value: 'heath.shepard@kw.com' },
+      { name: 'To', value: 'bwhyte@hotmail.com, jwhyte5590@gmail.com' },
+      { name: 'Subject', value: '23 Nopalito - Full Price Offer + Net Sheet' },
+      { name: 'Date', value: 'Sat, 19 Sep 2026 13:07:31 -0500' },
+    ],
+    parts: [{ mimeType: 'text/plain', body: { data: Buffer.from('NEVER-A-BODY').toString('base64url') } }],
+  },
+};
+
+const OLD_INBOUND_FROM_BARRY = {
+  id: 'in-1',
+  labelIds: ['INBOX'],
+  snippet: 'NEVER-A-SNIPPET',
+  payload: {
+    headers: [
+      { name: 'From', value: 'Barry Whyte <bwhyte@hotmail.com>' },
+      { name: 'To', value: 'Heath Shepard <heath.shepard@kw.com>' },
+      { name: 'Subject', value: 'Re: Nopalito Strategy Update' },
+      { name: 'Date', value: 'Thu, 11 Jun 2026 22:25:55 +0000' },
+    ],
+    parts: [{ mimeType: 'text/plain', body: { data: Buffer.from('NEVER-A-BODY').toString('base64url') } }],
+  },
+};
+
+test('find_contact_email surfaces an address that only ever appears on a To: line', async () => {
+  contactHarness({ messages: [SENT_TO_BARRY] });
+  const res = await executeInboxTool('find_contact_email', { name: "the Whytes'" }, { userId: ATTACKER });
+
+  assert.equal(res.ok, true);
+  const barry = res.contacts.find((c) => c.email === 'bwhyte@hotmail.com');
+  assert.ok(barry, `Barry was not found: ${JSON.stringify(res.contacts)}`);
+  assert.equal(barry.direction, 'sent');
+  assert.equal(barry.matched_name, true);
+  // The other Whyte comes back too — "the Whytes" is two people.
+  assert.ok(res.contacts.some((c) => c.email === 'jwhyte5590@gmail.com'));
+});
+
+test('find_contact_email reaches a message older than the old 90-day ceiling', async () => {
+  const log = contactHarness({ messages: [OLD_INBOUND_FROM_BARRY] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+
+  assert.equal(res.ok, true);
+  assert.equal(res.searched_days, LIMITS.CONTACT_DEFAULT_DAYS);
+  assert.ok(res.searched_days > 101, 'the default window must reach the 101-day-old message');
+  assert.ok(log.queries[0].includes(`newer_than:${LIMITS.CONTACT_DEFAULT_DAYS}d`));
+  assert.equal(res.contacts[0].email, 'bwhyte@hotmail.com');
+  assert.equal(res.contacts[0].name, 'Barry Whyte');
+  assert.equal(res.contacts[0].direction, 'received');
+});
+
+test('find_contact_email returns addresses and never message content', async () => {
+  const log = contactHarness({ messages: [SENT_TO_BARRY, OLD_INBOUND_FROM_BARRY] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+
+  const blob = JSON.stringify(res);
+  assert.ok(!blob.includes('NEVER-A-BODY'), 'a message body reached the contact result');
+  assert.ok(!blob.includes('NEVER-A-SNIPPET'), 'a snippet reached the contact result');
+  for (const c of res.contacts) {
+    assert.equal(c.body_text, undefined);
+    assert.equal(c.snippet, undefined);
+    assert.equal(c.attachments, undefined);
+  }
+  // Headers-only fetch is what makes that structural, not a policy.
+  assert.ok(log.formats.length > 0);
+  assert.ok(log.formats.every((f) => f === 'metadata'), `expected metadata-only fetches, got ${log.formats}`);
+  assert.match(res.content_warning, /not verified|spoofed/i);
+});
+
+test('find_contact_email never hands back the member their own address', async () => {
+  contactHarness({ messages: [SENT_TO_BARRY, OLD_INBOUND_FROM_BARRY] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  assert.ok(!res.contacts.some((c) => c.email === MAILBOX), 'returned the mailbox owner as a contact');
+});
+
+test('find_contact_email caps what it returns and what it scans', async () => {
+  const many = Array.from({ length: 60 }, (_, i) => ({
+    id: `m${i}`,
+    labelIds: ['INBOX'],
+    payload: {
+      headers: [
+        { name: 'From', value: `Person ${i} <person${i}@whyte-partners.com>` },
+        { name: 'To', value: `heath.shepard@kw.com, extra${i}@whyte-partners.com` },
+        { name: 'Subject', value: `subject ${i}` },
+        { name: 'Date', value: 'Thu, 11 Jun 2026 22:25:55 +0000' },
+      ],
+    },
+  }));
+  const log = contactHarness({ messages: many });
+
+  const res = await executeInboxTool('find_contact_email', { name: 'whyte', max_results: 9999 }, { userId: ATTACKER });
+  assert.equal(res.ok, true);
+  assert.ok(res.contacts.length <= LIMITS.MAX_MAX_CONTACTS, `returned ${res.contacts.length} contacts`);
+  assert.ok(log.formats.length <= LIMITS.MAX_CONTACT_MESSAGES, `scanned ${log.formats.length} messages`);
+  assert.equal(res.truncated, true);
+});
+
+test('find_contact_email refuses an empty name', async () => {
+  contactHarness({ messages: [SENT_TO_BARRY] });
+  for (const bad of [{ name: '' }, { name: '   ' }, {}, { name: 'a' }]) {
+    const res = await executeInboxTool('find_contact_email', bad, { userId: ATTACKER });
+    assert.equal(res.ok, false, `accepted ${JSON.stringify(bad)}`);
+    assert.equal(res.reason, 'query_too_broad');
+  }
+});
+
+test('find_contact_email cannot smuggle gmail operators through the name', async () => {
+  const log = contactHarness({ messages: [SENT_TO_BARRY] });
+  await executeInboxTool(
+    'find_contact_email',
+    { name: 'whyte in:anywhere -in:drafts label:secret has:attachment' },
+    { userId: ATTACKER },
+  );
+  const q = log.queries[0];
+  assert.ok(!/(^|\s)in:anywhere/.test(q), `folder scope widened by caller text: ${q}`);
+  assert.ok(!q.includes('label:'), q);
+  assert.ok(q.includes('-in:spam') && q.includes('-in:drafts') && q.includes('-in:trash'), q);
+});
+
+test('find_contact_email refuses on Microsoft rather than dumping the mailbox', async () => {
+  // Graph drops free text, so running this there would become "every message
+  // in the last two years", and it reshapes no To:/Cc: headers to harvest.
+  contactHarness({ messages: [SENT_TO_BARRY], provider: 'microsoft' });
+  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  assert.equal(res.ok, false);
+  assert.equal(res.reason, 'unsupported_query_for_provider');
+});
+
+test('find_contact_email is subject to the same identity and access gates', async () => {
+  // Identity injection.
+  contactHarness({ messages: [SENT_TO_BARRY] });
+  for (const inj of [{ user_id: VICTIM }, { email: 'victim@example.com' }, { mailbox: 'victim@example.com' }]) {
+    await assert.rejects(
+      () => executeInboxTool('find_contact_email', { name: 'Whyte', ...inj }, { userId: ATTACKER }),
+      (err) => err instanceof InboxSecurityError && /identity_param_not_allowed/.test(err.message),
+    );
+  }
+  // No session.
+  await assert.rejects(
+    () => executeInboxTool('find_contact_email', { name: 'Whyte' }, {}),
+    (err) => err instanceof InboxSecurityError && /missing_session_user/.test(err.message),
+  );
+  // Not entitled — the mailbox is never touched.
+  const log = harness({ entitled: [], connected: [ATTACKER] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  assert.equal(res.ok, false);
+  assert.equal(res.reason, 'not_entitled');
+  assert.deepEqual(log.mailClientUserIds, []);
+});
+
+test('find_contact_email logs no address, name or subject', async () => {
+  const line = JSON.stringify(redactForLog({
+    tool: 'find_contact_email',
+    provider: 'google',
+    ok: true,
+    count: 2,
+    mailbox: MAILBOX,
+    contacts: [{ name: 'Barry Whyte', email: 'bwhyte@hotmail.com', last_subject: '23 Nopalito - Full Price Offer' }],
+  }));
+  for (const secret of ['bwhyte@hotmail.com', 'Barry Whyte', 'Nopalito', MAILBOX]) {
+    assert.ok(!line.includes(secret), `log leaked: ${secret}`);
+  }
+  assert.ok(line.includes('find_contact_email'));
 });
