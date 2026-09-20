@@ -117,10 +117,34 @@ function headerMap(headers) {
   return m;
 }
 
+// Parses one address. Two forms, tried in order: `Display Name <a@b.com>` and
+// a bare `a@b.com`.
+//
+// The previous single regex made the display-name group both OPTIONAL and
+// LAZY, with no requirement that an angle bracket follow it. On a bare
+// address it therefore matched the shortest possible "name" and handed the
+// rest to the address group: "bwhyte@hotmail.com" parsed as
+// {name:'b', email:'whyte@hotmail.com'}, silently dropping the first
+// character of every address sent without a display name. Confirmed against
+// the real mailbox 2026-09-20 on a message addressed to bare
+// `bwhyte@hotmail.com`. That corrupted `from_email` in the inbox tools and
+// broke sender matching in the three watcher crons for the same senders.
 function parseFromHeader(fromHeader) {
-  const m = String(fromHeader || '').match(/^(?:"?([^"<]+?)"?\s*)?<?([^<>\s]+@[^<>\s]+)>?$/);
-  if (!m) return { name: '', email: String(fromHeader || '').trim().toLowerCase() };
-  return { name: (m[1] || '').trim(), email: (m[2] || '').trim().toLowerCase() };
+  const raw = String(fromHeader || '').trim();
+  if (!raw) return { name: '', email: '' };
+
+  const angled = raw.match(/^(.*?)\s*<\s*([^<>\s]+@[^<>\s]+?)\s*>$/);
+  if (angled) {
+    return {
+      name: angled[1].trim().replace(/^"(.*)"$/, '$1').trim(),
+      email: angled[2].trim().toLowerCase(),
+    };
+  }
+
+  const bare = raw.match(/^([^<>\s]+@[^<>\s]+)$/);
+  if (bare) return { name: '', email: bare[1].toLowerCase() };
+
+  return { name: '', email: raw.toLowerCase() };
 }
 
 function bodyOfMessage(msg) {

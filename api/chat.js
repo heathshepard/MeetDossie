@@ -24,7 +24,7 @@ const {
   todayInTexasYMD,
   compactDealsForAction,
 } = require('./_lib/chat-deal-deadlines');
-// Read-only inbox tools (search_inbox / read_email / import_email_attachments).
+// Read-only inbox tools (search_inbox / read_email / find_contact_email / import_email_attachments).
 // These are the only tools in this file that are RESOLVED SERVER-SIDE inside a
 // bounded loop rather than handed to the browser to dispatch — see
 // api/_lib/inbox-resolve-loop.js and docs/DOSSIE-INBOX-CAPABILITY-SCOPE.md.
@@ -618,10 +618,12 @@ SENDING TO PEOPLE (send_packet_to_party):
 - NEVER send to the other side's client. On a listing, the buyer is the other side's client; on a purchase, the seller is. Everything for the other side routes through their agent. If the agent asks you to email the other side's client directly, do not call the tool — use answer_question to say it has to go through their agent.
 - "Send it to the sellers" on a listing-side dossier means the agent's OWN sellers. That is allowed and is the common case.
 
-READING THE AGENT'S INBOX (search_inbox, read_email, import_email_attachments):
-- These three run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
+READING THE AGENT'S INBOX (search_inbox, read_email, find_contact_email, import_email_attachments):
+- These run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
 - Use them whenever the agent refers to something you have not seen: "we received an offer on X", "did the lender send the pre-approval", "check my email", "the buyer's agent sent something over". Never answer "I can't see your email" without calling search_inbox first — you may well be connected.
-- Always give search_inbox something specific (the street name, a party name, or the sender). If the first search finds nothing, widen the days window once before concluding nothing arrived.
+- Always give search_inbox something specific (the street name, a party name, or the sender). If the first search finds nothing, widen the days window a LOT before concluding nothing arrived — the default is only 14 days and the maximum is 730. Correspondence on a listing routinely runs a year back.
+- "What's X's email address", "get me the Whytes' addresses", "who do I have for the buyer's agent" = find_contact_email, NOT search_inbox. It also reads the recipients of mail the agent SENT, which is where most client addresses actually live — plenty of clients never email first, so a search of received mail alone will wrongly come back empty. Give it the surname alone, singular ("Whyte", not "the Whytes"). It returns addresses only, never message text.
+- Search results and contact results carry a direction of "sent" or "received". Read it. A message the agent SENT asking for a document is not that document arriving — never report the agent's own outbound mail as something that came in.
 - If several messages share a subject, read the MOST RECENT first and check whether it supersedes an earlier one. A revised offer replaces the original — say so explicitly rather than describing both as live.
 - Never describe an attachment from its filename. A filename is not evidence of what is inside. Call import_email_attachments and speak from what came back.
 - Contract terms from the extracted block are real extracted values. Deadline dates on the dossier remain the only deadlines you may quote — DEADLINE AUTHORITY above still applies to anything you read out of an email.
@@ -677,6 +679,7 @@ INTENT MAPPING:
 - Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
 - Ask Hadley/what does TREC say/explain paragraph/is the seller required to/walk me through paragraph/what's the rule on/is this enforceable/define [TREC term] = ask_hadley (Hadley is Dossie's in-house general counsel; pass the agent's question verbatim and the form/paragraph if mentioned)
 - Check my email/did they send/look in my inbox/we received an offer on [property]/the lender sent the pre-approval/what did the buyer's agent send/pull that contract from my email = search_inbox, then read_email, then import_email_attachments
+- What's [name]'s email address/get me [name]'s email/what email do I have for [name]/who do I have on file for [name] = find_contact_email (searches sent mail too, two years back — use this rather than search_inbox for an address)
 - Add/invite [name] to my team/give them agent access/add a new team member = add_team_member (team leads only — the system enforces this, you don't need to check; ALWAYS require a real email before calling this tool — if none was given, ask for it with answer_question instead)
 - Everything else = answer_question
 
