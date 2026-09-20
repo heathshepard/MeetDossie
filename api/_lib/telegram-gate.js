@@ -220,6 +220,17 @@ const ALWAYS_ALLOW = new Set([
                         // veto card — Heath's only visible chance to stop an auto-post before it goes
                         // out under his name/license. Muting this is a silent auto-post, not digest
                         // noise — Carter, 2026-09-18.
+  'cron-deal-watch',       // sends NOTHING on a quiet morning, and a quiet morning is the expected case.
+                           // It speaks only about a fact that is (a) new since the member's baseline,
+                           // (b) never spoken before — UNIQUE(user_id, fact_key) in Postgres, not an
+                           // application check — (c) 'high' or 'critical' by what it costs to MISS, and
+                           // (d) on a deal somebody has actually touched this month. At most 3 facts per
+                           // member per run. Measured on live data 2026-09-20, the naive version of this
+                           // job would have opened by firing 26 deadline alerts in one message across
+                           // deals that were 30+ days dormant; every one of those is suppressed by the
+                           // baseline gate. Same delta-based discipline as cron-regression-suite above,
+                           // and the same reason it belongs on this list: it is an exception-only alert,
+                           // not a scheduled digest. api/_lib/deal-watch-policy.js holds the rule.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
