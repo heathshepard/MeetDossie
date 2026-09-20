@@ -798,6 +798,111 @@ async function checkSupportTriageSilence(
   return conditions;
 }
 
+// ── DEAL WATCH ───────────────────────────────────────────────────────────────
+//
+// WHO WATCHES THE WATCHER.
+//
+// api/cron-deal-watch.js is the job that notices things on a member's live
+// deals — a party reply, an unreturned signature packet against a closing
+// deadline, a listing with no seller's disclosure. It is EXCEPTION-ONLY: on a
+// normal morning it says nothing at all, and staying quiet is the expected
+// outcome, not a symptom.
+//
+// That property is exactly what makes it dangerous to leave unmonitored. A
+// job whose healthy state is silence is indistinguishable, from the outside,
+// from a job that has stopped running — which is how 18 days of dead Instagram
+// posting went unnoticed (feedback_silent-failure-is-the-enemy.md: four
+// invisible defects in one week, every one of them a pipeline nobody watched).
+// "Dossie didn't say anything this morning" must never be ambiguous between
+// "nothing needed you" and "the noticing stopped".
+//
+// So this detector deliberately does NOT try to infer health from how much the
+// watcher said. It checks two things that are true regardless of how quiet a
+// given morning was:
+//
+//   1. Did the job run at all? (cron_runs freshness — a daily cadence, so 30h
+//      is one clearly missed run rather than a scheduling jitter.)
+//   2. Did it run but decide nothing, for everyone, for days? A green
+//      telemetry row proves the function returned 200; it does not prove the
+//      function looked at anything. A watcher that runs on time and writes
+//      zero ledger rows across every member for days has almost certainly lost
+//      its data access (a broken query, a revoked key, an empty member list)
+//      rather than genuinely found nothing — real deals generate observations
+//      continuously, most of them below the speaking threshold. That is the
+//      "green telemetry, still not deciding" shape, and it is the worse one.
+const DEAL_WATCH_CRON_STALE_HOURS = 30;      // daily cadence — 30h is a missed run, not jitter
+const DEAL_WATCH_NO_DECISIONS_DAYS = 4;      // ran fine, decided nothing, for anyone, this long
+
+async function checkDealWatchSilence(
+  cronStaleHours = DEAL_WATCH_CRON_STALE_HOURS,
+  noDecisionsDays = DEAL_WATCH_NO_DECISIONS_DAYS,
+) {
+  const conditions = [];
+
+  // ── 1. Has the watcher run at all?
+  const runRes = await supabaseFetch(
+    '/rest/v1/cron_runs?cron_name=eq.cron-deal-watch&select=last_run,last_status&limit=1',
+  );
+  const runRow = runRes.ok && Array.isArray(runRes.data) ? runRes.data[0] : null;
+  const cutoff = Date.now() - cronStaleHours * 60 * 60 * 1000;
+
+  if (!runRow || !runRow.last_run) {
+    conditions.push({
+      key: 'deal_watch_never_ran',
+      message: 'api/cron-deal-watch.js has NEVER reported a run in cron_runs. '
+        + 'Nothing is watching member deals for party replies, unreturned signature packets, '
+        + 'or missing disclosures — and because this job is silent by design when healthy, '
+        + 'that failure is invisible from the outside. '
+        + 'Check it is still in api/cron-dispatch-daily-1330.js HANDLERS and that the module imports cleanly.',
+    });
+    return conditions; // nothing further is meaningful if it has never run
+  }
+
+  if (new Date(runRow.last_run).getTime() < cutoff) {
+    conditions.push({
+      key: 'deal_watch_cron_stale',
+      last_run: runRow.last_run,
+      last_status: runRow.last_status,
+      message: `Deal watch last ran ${runRow.last_run} (status ${runRow.last_status || 'unknown'}) — over ${cronStaleHours}h ago on a daily schedule. `
+        + 'No deal is being watched right now. Check api/cron-dispatch-daily-1330.js.',
+    });
+  }
+
+  // ── 2. Running green, deciding nothing, for everybody. The worse failure.
+  //
+  // Only meaningful once at least one member has been baselined — before that,
+  // an empty ledger is correct rather than alarming.
+  const stateRes = await supabaseFetch(
+    '/rest/v1/deal_watch_state?select=user_id,last_run_at&limit=1',
+  );
+  const hasBaselinedMembers = stateRes.ok && Array.isArray(stateRes.data) && stateRes.data.length > 0;
+
+  if (hasBaselinedMembers) {
+    const since = daysAgoIso(noDecisionsDays);
+    const logRes = await supabaseFetch(
+      `/rest/v1/deal_watch_log?select=id&created_at=gte.${encodeURIComponent(since)}&limit=1`,
+    );
+    if (logRes.ok && Array.isArray(logRes.data) && logRes.data.length === 0) {
+      conditions.push({
+        key: 'deal_watch_no_decisions',
+        message: `Deal watch has run without writing a single deal_watch_log row for ${noDecisionsDays} days, across every member. `
+          + 'Telemetry is green, so the function is returning 200 — but it is not forming opinions about anything. '
+          + 'Real deals produce observations continuously (most below the speaking threshold), so an entirely empty ledger '
+          + 'points at lost data access — a broken transactions query, an empty member list, or a revoked service key — '
+          + 'rather than a genuinely quiet week. Run it manually with Bearer $CRON_SECRET and read results[].observed.',
+      });
+    } else if (!logRes.ok) {
+      conditions.push({
+        key: 'deal_watch_query_failed',
+        message: `Could not read deal_watch_log to verify the watcher is still deciding (status ${logRes.status}). `
+          + 'Treat deal watching as unverified until this query works.',
+      });
+    }
+  }
+
+  return conditions;
+}
+
 async function checkCronSanity(scanOpts) {
   const scan = scanCronSanity(scanOpts);
   if (!scan.ok) {
@@ -843,7 +948,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -859,10 +964,11 @@ async function runAllChecks(opts = {}) {
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkGroupPostingSilence(opts.groupPostingSilenceHours),
     checkSupportTriageSilence(opts.supportTriageCronStaleHours, opts.supportTriageUntriagedHours),
+    checkDealWatchSilence(opts.dealWatchCronStaleHours, opts.dealWatchNoDecisionsDays),
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -1198,6 +1304,8 @@ module.exports = {
   GROUP_POSTING_SILENCE_HOURS,
   SUPPORT_TRIAGE_CRON_STALE_HOURS,
   SUPPORT_TRIAGE_UNTRIAGED_HOURS,
+  DEAL_WATCH_CRON_STALE_HOURS,
+  DEAL_WATCH_NO_DECISIONS_DAYS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -1213,6 +1321,7 @@ module.exports = {
   checkCommentOppApprovedStale,
   checkGroupPostingSilence,
   checkSupportTriageSilence,
+  checkDealWatchSilence,
   checkCronSanity,
   shouldFire,
   markFired,
