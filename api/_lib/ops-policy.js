@@ -136,6 +136,35 @@ const CAPABILITIES = {
       'no_promise_in_copy',
     ],
   },
+  deal_watch_notify: {
+    // Seeded DISABLED by 20260920_deal_watch.sql. The only switch between
+    // api/cron-deal-watch.js and a notification on the member's phone.
+    //
+    // WHY THIS ISN'T contact_real_client (ALWAYS_HEATH): nothing here reaches
+    // a client, a lead, or the other side of a deal. The watcher's entire
+    // outbound surface is one message to THE MEMBER, about THE MEMBER'S OWN
+    // deals — the software telling its owner what it noticed. Chasing the
+    // other agent, emailing the seller, or filing anything remains outside
+    // this capability entirely; drafting a nudge for the member to approve is
+    // in scope, sending it is not.
+    //
+    // The gates below are the anti-fatigue contract, and they are what makes
+    // this safe to turn on at all. A watcher that speaks daily is trained out
+    // inside a week and is then worse than nothing, because it looks like
+    // coverage. See api/_lib/deal-watch-policy.js.
+    flagKey: 'deal_watch_notify',
+    defaultEnabled: false,
+    description: 'Send the member an unprompted notification about their own live deals — a party reply, an unreturned signature packet against a closing deadline, a listing missing its seller\'s disclosure. Notify-only; never contacts anyone but the member.',
+    gates: [
+      'member_baselined_on_a_previous_run',
+      'fact_new_since_baseline',
+      'idempotent_unique_fact_key',
+      'consequence_at_or_above_high',
+      'deal_not_dormant',
+      'per_run_speaking_cap',
+      'channel_owned_by_that_member',
+    ],
+  },
 };
 
 // ALWAYS HEATH. No flagKey — there is nothing to read. checkCapability()
