@@ -407,8 +407,12 @@ module.exports = async function handler(req, res) {
     const safeTx = encodeURIComponent(transactionId);
     const txResp = await supabaseRest(
       `transactions?id=eq.${safeTx}&user_id=eq.${safeUid}&select=id,property_address,city_state_zip,role,transaction_type,closing_date,` +
-      `buyer_name,buyer_email,buyer2_name,buyer2_email,buyer_notice_name,buyer_notice_email,` +
-      `seller_name,seller_email,seller2_name,seller2_email,seller_notice_name,seller_notice_email,` +
+      // NOTE: buyer_notice_email / seller_notice_email are TREC 20-19 form
+      // fields (the ¶21 notice blank), NOT columns on transactions. Selecting
+      // them made PostgREST reject the whole query with 42703, which failed
+      // every preview before it could resolve a single recipient.
+      `buyer_name,buyer_email,buyer2_name,buyer2_email,buyer_notice_name,` +
+      `seller_name,seller_email,seller2_name,seller2_email,seller_notice_name,` +
       `listing_agent_name,listing_agent_email_addr,other_agent_name,other_agent_email_addr,` +
       `title_officer_name,title_officer_email,escrow_officer_name,loan_officer_name,loan_officer_email,lender_name,` +
       `sale_price,commission_rate,option_fee,stage,status&limit=1`,

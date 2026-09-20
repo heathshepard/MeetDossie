@@ -99,14 +99,16 @@ function opposingPrincipalContacts(tx, side) {
     return [
       { name: tx.buyer_name, email: tx.buyer_email },
       { name: tx.buyer2_name, email: tx.buyer2_email },
-      { name: tx.buyer_notice_name, email: tx.buyer_notice_email },
+      // There is no buyer_notice_email column — the ¶21 notice email lives on
+      // the TREC form, not the deal record. buyer_email/buyer2_email are the
+      // only addresses a buyer principal can actually have here.
     ].filter((c) => c.email);
   }
   if (side === 'buyer') {
     return [
       { name: tx.seller_name, email: tx.seller_email },
       { name: tx.seller2_name, email: tx.seller2_email },
-      { name: tx.seller_notice_name, email: tx.seller_notice_email },
+      // Same as above: no seller_notice_email column exists.
     ].filter((c) => c.email);
   }
   return [];
