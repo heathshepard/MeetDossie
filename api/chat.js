@@ -423,6 +423,67 @@ const TOOLS = [
     },
   },
   {
+    name: 'prepare_net_sheet',
+    description:
+      "Build an ESTIMATED seller's net sheet for a listing and show it in the conversation. Use whenever the agent says anything like: " +
+      'compose a net sheet, run the net sheet, what does the seller net, what will they walk away with, net proceeds, seller proceeds, ' +
+      'how much does my seller get, put together a net sheet. ' +
+      'CRITICAL: a net sheet is always an estimate. NEVER invent, guess, or fill in a figure the agent has not given you — not a typical ' +
+      "escrow fee, not a standard title policy cost, not an assumed mortgage payoff. Omit any figure you weren't told and the net sheet " +
+      'will correctly report it as unknown and show the total as a ceiling rather than a prediction. Substituting a plausible-looking ' +
+      'number is the single worst thing you can do here: it produces a proceeds figure a seller may rely on. ' +
+      'Only pass a value the agent actually stated. If the agent says something does not apply ("there\'s no HOA", "seller isn\'t paying ' +
+      'a warranty"), pass that field as the string "n/a" so it is recorded as a real zero rather than an unknown.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or seller name to identify the listing' },
+        sale_price: { type: 'number', description: 'Sale or offer price in dollars. Omit to use the price already on the dossier.' },
+        commission_pct: { type: 'number', description: 'TOTAL commission percentage off the top (e.g. 5.5 for 5.5%). Omit if the agent has not stated it — do not assume 3 or 6.' },
+        mortgage_payoff: { type: 'string', description: 'Payoff amount from the lender. Omit unless stated — this is usually the largest line item and guessing it is unacceptable. Pass "n/a" only if the property is owned free and clear.' },
+        escrow_fee: { type: 'string', description: 'Escrow / closing fee from the title company quote. Omit unless stated.' },
+        title_policy_cost: { type: 'string', description: "Owner's title policy cost. Omit unless stated." },
+        hoa_transfer_fee: { type: 'string', description: 'HOA transfer fee. Pass "n/a" if the agent says there is no HOA.' },
+        home_warranty_cap: { type: 'string', description: 'Home warranty the seller agreed to pay. Pass "n/a" if none.' },
+        survey_cost: { type: 'string', description: 'Survey cost if the seller is providing one. Pass "n/a" if not.' },
+        repairs: { type: 'string', description: 'Agreed repair amount. Omit if repairs are not yet negotiated.' },
+        other_credits: { type: 'string', description: 'Other credits/concessions to the buyer. Pass "n/a" if none.' },
+        option_fee_credit: { type: 'string', description: 'Option fee credited back to the seller. Omit to use the contract value on the dossier.' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'send_packet_to_party',
+    description:
+      'Assemble the documents on a dossier (optionally with a net sheet) and PREPARE an email to a named party on the deal. Use whenever ' +
+      'the agent says anything like: send it to the sellers, send the documents to the title company, email that to the lender, ' +
+      'send the packet to the other agent, put the documents together and send them. ' +
+      'This NEVER sends on its own — it shows the agent exactly who it would go to, the subject, and every attachment, and the agent ' +
+      'must confirm before anything leaves. ' +
+      'You address a party by ROLE, never by typing an email address: the recipient is resolved from the deal record. ' +
+      "You may NOT send to the other side's client. On a listing, the buyer is the other side's client; on a purchase, the seller is. " +
+      "Their agent is the correct recipient and the system will refuse the client directly. If the agent asks you to email the other " +
+      "side's client, use answer_question to explain it has to route through their agent.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or client name to identify the dossier' },
+        recipient_role: {
+          type: 'string',
+          enum: ['seller', 'buyer', 'listing_agent', 'buyer_agent', 'other_agent', 'title', 'lender', 'compliance', 'self'],
+          description:
+            "Which party receives the packet. Use 'seller' ONLY on a listing-side dossier and 'buyer' ONLY on a buyer-side dossier — " +
+            "these mean the agent's OWN client. To reach the other side, use their agent ('other_agent'/'buyer_agent'/'listing_agent').",
+        },
+        include_net_sheet: { type: 'boolean', description: 'Attach an estimated net sheet built from the dossier. Use when the agent asks for a net sheet to go out with the documents.' },
+        note: { type: 'string', description: "A short line from the agent to open the email, in their voice. Omit if they didn't give one." },
+        subject: { type: 'string', description: 'Optional subject override. Omit to use a sensible default.' },
+      },
+      required: ['deal_identifier', 'recipient_role'],
+    },
+  },
+  {
     name: 'initiate_termination',
     description: 'Generate a TREC 38-7 Buyer Termination of Contract form. Use whenever the agent says anything like: buyer wants to terminate, buyer is terminating, generate termination, draft the termination, buyer is backing out, buyer is walking away, terminate the contract, file for termination.',
     input_schema: {
@@ -530,7 +591,7 @@ ${teamBlock}
 
 EXECUTION RULES:
 - Always call a tool. Never respond with plain text only.
-- Execute immediately. Never ask for confirmation. Just do it.
+- Execute immediately. Never ask for confirmation. Just do it. (The ONE exception is send_packet_to_party — see SENDING TO PEOPLE below. That tool only ever prepares a send; the agent approves it on screen. You still call it immediately.)
 - Never hallucinate. Only use data the agent explicitly provided. Leave unknown fields null.
 - Remember context within the conversation. Connect information across messages.
 - Never use emoji. Ever.
@@ -542,6 +603,20 @@ AMENDMENT & STAGE SAFETY RULES:
 - CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, or initiate_termination on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
+
+NET SHEETS ARE ESTIMATES — NEVER FILL IN A NUMBER YOU WEREN'T GIVEN:
+- A net sheet is an estimate. The binding figures come from the title company's settlement statement at closing. Say so in your spoken reply every time you produce one — not as a disclaimer you rush past, as a fact the seller needs.
+- NEVER invent, assume, or "use a typical" figure for anything: not escrow fees, not the title policy, not the HOA transfer fee, and above all not the mortgage payoff. Pass only what the agent actually told you. A figure you leave out is correctly reported as unknown; a figure you make up becomes a number a seller may rely on and act against.
+- If the agent says something does not apply ("no HOA", "they own it free and clear"), pass that field as "n/a" so it counts as a real zero. Unknown and zero are different things and must not be conflated.
+- When figures are missing, the net sheet reports a ceiling rather than a prediction. Tell the agent plainly which figures are still missing and that the seller's actual proceeds will be lower once those land. Do not soften this.
+- Never state a net proceeds number as what the seller "will get" or "walks away with". It is what they would net on these assumptions.
+
+SENDING TO PEOPLE (send_packet_to_party):
+- This tool PREPARES a send and shows the agent exactly who it would go to, the subject, and every attachment. Nothing leaves until the agent approves it on screen. Call it immediately when asked — do not ask "are you sure" in your reply, the screen does that.
+- After calling it, say who it is addressed to and what is attached, so the agent hears the recipient as well as seeing it.
+- You address a party by ROLE and the address is looked up from the deal record. Never pass an email address you inferred, remembered, or recognised from a name. If the agent wants a recipient not on the dossier, use answer_question and ask them to add it to the deal first.
+- NEVER send to the other side's client. On a listing, the buyer is the other side's client; on a purchase, the seller is. Everything for the other side routes through their agent. If the agent asks you to email the other side's client directly, do not call the tool — use answer_question to say it has to go through their agent.
+- "Send it to the sellers" on a listing-side dossier means the agent's OWN sellers. That is allowed and is the common case.
 
 READING THE AGENT'S INBOX (search_inbox, read_email, import_email_attachments):
 - These three run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
