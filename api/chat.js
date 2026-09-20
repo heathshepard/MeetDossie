@@ -484,6 +484,99 @@ const TOOLS = [
     },
   },
   {
+    name: 'capture_seller_intake',
+    description:
+      'Record seller intake facts on a listing — the answers that make a net sheet computable later instead of guessed at. '
+      + 'Use whenever the agent states a fact about the SELLER or the PROPERTY that is not a contract term, especially at or '
+      + 'after a listing appointment. Trigger phrases: they own it outright, no mortgage, the payoff is about X, they have a '
+      + 'homestead exemption, disabled veteran exemption, they already moved out, they still live there, it is a rental, the '
+      + 'HOA is X, HOA dues are X, the resale certificate fee is X, we are using X Title, they have a survey, they will sign '
+      + 'a T-47, there are solar panels, the propane tank is leased, they will offer a home warranty, taxes were X last year. '
+      + 'Record whatever the agent said; every field is optional and answers accumulate across conversations. '
+      + 'IMPORTANT: never infer or fill a value the agent did not actually state. A blank field is reported to the seller as '
+      + '"not yet confirmed"; a guessed one becomes a wrong number on a document a seller relies on.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or seller name to identify the listing' },
+        payoff_status: { type: 'string', enum: ['owns_outright', 'has_mortgage', 'unsure'], description: 'Whether there is a loan on the property. "owns_outright" only if the agent affirmatively said so.' },
+        payoff_lender_name: { type: 'string', description: 'Lender on the first lien' },
+        payoff_balance_approx: { type: 'number', description: 'Approximate payoff balance in dollars' },
+        has_second_lien: { type: 'boolean', description: 'HELOC / home equity / solar lien exists' },
+        has_other_liens: { type: 'boolean', description: 'Contractor liens, judgments, tax liens, past-due HOA assessments' },
+        other_liens_amount: { type: 'number', description: 'Approximate total of other liens in dollars' },
+
+        tax_annual_amount: { type: 'number', description: 'Annual property tax as billed, in dollars' },
+        tax_year: { type: 'integer', description: 'Tax year the amount is from' },
+        tax_exemptions: {
+          type: 'array',
+          items: { type: 'string', enum: ['homestead', 'over_65', 'disabled_person', 'disabled_veteran', 'dv4_100_percent', 'surviving_spouse', 'ag_timber', 'none'] },
+          description: 'Exemptions on file. A 100% disabled veteran exemption is dv4_100_percent and can drive the bill to $0.00 — which tells you nothing about what the buyer will pay.',
+        },
+        occupancy_status: {
+          type: 'string',
+          enum: ['seller_occupies', 'seller_moved_out', 'tenant_occupied', 'vacant_never_occupied'],
+          description: 'Does the seller still live there. This is what makes the exemption answer meaningful: exemptions follow the homestead, so a seller who has moved is exposed under TREC ¶13.',
+        },
+        tax_amount_without_exemptions: { type: 'number', description: 'What the annual tax would be with NO exemptions. The single figure that removes the tax question mark from a net sheet. Only record it if the agent states it.' },
+
+        hoa_exists: { type: 'boolean', description: 'Is there an HOA' },
+        hoa_name: { type: 'string' },
+        hoa_management_company: { type: 'string' },
+        hoa_dues_amount: { type: 'number' },
+        hoa_dues_frequency: { type: 'string', enum: ['monthly', 'quarterly', 'semiannual', 'annual'] },
+        hoa_resale_certificate_fee: { type: 'number', description: 'Resale certificate fee in dollars' },
+        hoa_resale_certificate_payer: { type: 'string', enum: ['seller', 'buyer', 'split', 'per_contract', 'unknown'] },
+        hoa_transfer_fee: { type: 'number' },
+        hoa_transfer_fee_payer: { type: 'string', enum: ['seller', 'buyer', 'split', 'per_contract', 'unknown'] },
+        hoa_second_association: { type: 'boolean', description: 'A second / master association exists — means a second set of fees' },
+
+        preferred_title_company: { type: 'string' },
+        title_closer_name: { type: 'string' },
+        title_policy_cost_quoted: { type: 'number' },
+        title_policy_payer: { type: 'string', enum: ['seller', 'buyer', 'split', 'per_contract', 'unknown'] },
+        escrow_fee_quoted: { type: 'number' },
+        tax_certificate_fee_quoted: { type: 'number' },
+        deed_prep_fee_quoted: { type: 'number' },
+        recording_fees_quoted: { type: 'number' },
+
+        has_existing_survey: { type: 'boolean' },
+        will_sign_t47: { type: 'string', enum: ['yes', 'no', 'unsure'], description: 'Will the seller sign a T-47 affidavit. "no" means a new survey at seller cost under ¶6.C even though a survey exists.' },
+        new_survey_cost_quoted: { type: 'number' },
+
+        leased_items: {
+          type: 'array',
+          description: 'TREC ¶4.B leased or financed fixtures staying with the house. An EMPTY array is meaningful — it records that the seller said there are none.',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['solar_panels', 'propane_tank', 'water_softener', 'security_system', 'alarm_monitoring', 'pool_equipment', 'hvac', 'generator', 'other'] },
+              lessor: { type: 'string' },
+              monthly_payment: { type: 'number' },
+              payoff_balance: { type: 'number' },
+              transferable: { type: 'boolean' },
+            },
+          },
+        },
+        leased_items_payoff_total: { type: 'number', description: 'Total payoff if the leases do not transfer' },
+
+        will_offer_home_warranty: { type: 'string', enum: ['yes', 'no', 'unsure'] },
+        home_warranty_cap: { type: 'number' },
+
+        is_tenant_occupied: { type: 'boolean' },
+        security_deposit_held: { type: 'number' },
+
+        in_mud_district: { type: 'string', enum: ['yes', 'no', 'unsure'] },
+        in_pid_district: { type: 'string', enum: ['yes', 'no', 'unsure'] },
+        pid_assessment_balance: { type: 'number' },
+
+        seller_is_us_person: { type: 'string', enum: ['yes', 'no', 'unsure'], description: 'FIRPTA. "no" means withholding of up to 15% of the GROSS sale price.' },
+        notes: { type: 'string', description: 'Anything else the seller said that does not fit a field' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
     name: 'initiate_termination',
     description: 'Generate a TREC 38-7 Buyer Termination of Contract form. Use whenever the agent says anything like: buyer wants to terminate, buyer is terminating, generate termination, draft the termination, buyer is backing out, buyer is walking away, terminate the contract, file for termination.',
     input_schema: {
@@ -676,6 +769,7 @@ INTENT MAPPING:
 - Draft/email/send/write/intro/introduction/notify = draft_email
 - Send wire fraud warning/TAR 2517/fraud notice to buyer = send_wire_fraud_warning
 - We got an offer/received an offer/offer came in/buyer submitted/got a bid = log_offer (seller-side)
+- They own it outright/no mortgage/the payoff is about X/they have a homestead (or disabled veteran) exemption/they already moved out/they still live there/taxes were X last year/the HOA is X/HOA dues are X/the resale certificate fee is X/we're using X Title/they have a survey/they'll sign a T-47/there are solar panels/the propane tank is leased/they'll offer a home warranty = capture_seller_intake (listing-side facts about the SELLER or the PROPERTY, as opposed to contract terms). Record only what the agent actually said — a blank field is reported to the seller as "not yet confirmed", and a value you filled in becomes a wrong number on a document a seller relies on. Answers accumulate across conversations, so a later fact never wipes an earlier one.
 - Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
 - Ask Hadley/what does TREC say/explain paragraph/is the seller required to/walk me through paragraph/what's the rule on/is this enforceable/define [TREC term] = ask_hadley (Hadley is Dossie's in-house general counsel; pass the agent's question verbatim and the form/paragraph if mentioned)
 - Check my email/did they send/look in my inbox/we received an offer on [property]/the lender sent the pre-approval/what did the buyer's agent send/pull that contract from my email = search_inbox, then read_email, then import_email_attachments
