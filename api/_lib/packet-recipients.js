@@ -318,16 +318,41 @@ const TOKEN_TTL_MS = 20 * 60 * 1000;
  * A stable digest of everything the member is being shown. Recipients are
  * sorted so ordering noise doesn't invalidate a token; document ids are
  * sorted for the same reason.
+ *
+ * `counts` (optional, 2026-09-21) — per-document per-signer field counts for
+ * an e-signature packet (api/esign-packet-send.js). Digesting them closes a
+ * specific replay: without this, a preview taken from a clean, correctly
+ * paired document could be replayed with `document_ids` left unchanged but
+ * the underlying document swapped for a different revision between preview
+ * and send — same ids, same recipients, different (possibly unpaired)
+ * fields. `send-compliance-packet.js` never passes this field, so its
+ * digest is unaffected (an empty array digests identically to omitted).
  */
-function packetDigest({ userId, transactionId, recipients, subject, documentIds }) {
+function packetDigest({ userId, transactionId, recipients, subject, documentIds, counts }) {
   const payload = JSON.stringify({
     u: userId,
     t: transactionId,
     r: (recipients || []).map((x) => normEmail(x.email)).sort(),
     s: String(subject || ''),
     d: (documentIds || []).map(String).sort(),
+    c: canonicalizeCounts(counts),
   });
   return crypto.createHash('sha256').update(payload).digest('hex');
+}
+
+// Deterministic ordering so the same counts always digest the same way
+// regardless of object key iteration order or array construction order.
+function canonicalizeCounts(counts) {
+  if (!Array.isArray(counts) || counts.length === 0) return [];
+  return counts
+    .map((c) => ({
+      d: String(c.document_id || ''),
+      r: String(c.role || ''),
+      sig: Number(c.signatures) || 0,
+      dt: Number(c.dates) || 0,
+      ini: Number(c.initials) || 0,
+    }))
+    .sort((a, b) => (a.d + a.r).localeCompare(b.d + b.r));
 }
 
 function issueConfirmationToken(parts) {
