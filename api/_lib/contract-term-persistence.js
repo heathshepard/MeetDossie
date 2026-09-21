@@ -58,6 +58,20 @@ const TERM_FIELD_MAP = [
   { column: 'title_officer_name', get: (ef) => ef.titleOfficerName, label: 'Title officer' },
   { column: 'title_officer_email', get: (ef) => ef.titleOfficerEmail, label: 'Title officer email' },
   { column: 'title_officer_phone', get: (ef) => ef.titleOfficerPhone, label: 'Title officer phone' },
+  // 2026-09-21 — found missing on 23 Nopalito: Dossie READ these off the
+  // contract and STATED them in chat, but nothing wrote them here. The
+  // extraction was never the gap; the persistence map was.
+  { column: 'hoa_name', get: (ef) => ef.hoaName, label: 'HOA name' },
+  { column: 'hoa_phone', get: (ef) => ef.hoaPhone, label: 'HOA phone' },
+  { column: 'hoa_management_company', get: (ef) => ef.hoaManagementCompany, label: 'HOA management company' },
+  { column: 'survey_payer', get: (ef) => ef.surveyPayer, label: 'Survey payer (¶6.C verbatim)' },
+  // boolean + treatFalseAsBlank: seller_provides_survey has a DB-level
+  // DEFAULT of false, not null — nothing else has ever written to this
+  // column (confirmed by grep across both repos), so an untouched row reads
+  // as "buyer provides" regardless of what ¶6.C actually says. false is
+  // therefore NOT a genuine "already answered, don't touch" value the way
+  // it would be for a column defaulting to null — see isBlank() below.
+  { column: 'seller_provides_survey', get: (ef) => ef.sellerProvidesSurvey, label: 'Seller provides existing survey (¶6.C election)', boolean: true, treatFalseAsBlank: true },
 ];
 
 const CONFIDENCE_MIN = 0.70;
@@ -65,10 +79,18 @@ const CONFIDENCE_MIN = 0.70;
 // A numeric term of exactly 0 is indistinguishable from "never set" on this
 // schema (dossie-app.jsx's own directMap relies on the same `> 0` convention)
 // — treated as blank, not as a real zero-dollar/zero-day term.
-function isBlank(v) {
+//
+// treatFalseAsBlank: for a boolean column whose DB default is false (not
+// null) and that no other write path has ever touched — see
+// seller_provides_survey above — false on the existing row cannot be told
+// apart from "never answered." Without this, Rule 1 ("never overwrite an
+// existing value") would treat every untouched row's default as a genuine
+// human-confirmed false forever, exactly the bug that shipped.
+function isBlank(v, treatFalseAsBlank = false) {
   if (v === null || v === undefined) return true;
   if (typeof v === 'string') return v.trim() === '';
   if (typeof v === 'number') return !Number.isFinite(v) || v === 0;
+  if (typeof v === 'boolean') return treatFalseAsBlank && v === false;
   return false;
 }
 
@@ -113,13 +135,15 @@ function planContractTermWrites({ tx, extracted, documentTypeConfidence = 1, sou
     if (field.numeric) {
       raw = normNumber(raw);
       if (raw === null || raw <= 0) continue;
+    } else if (field.boolean) {
+      raw = Boolean(raw);
     } else {
       raw = String(raw).trim();
       if (!raw) continue;
     }
 
     const existing = row[field.column];
-    if (!isBlank(existing)) {
+    if (!isBlank(existing, field.treatFalseAsBlank)) {
       if (!sameValue(existing, raw)) {
         conflicts.push({
           column: field.column,
