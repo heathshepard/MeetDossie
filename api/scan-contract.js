@@ -135,7 +135,17 @@ const DOCUMENT_LABELS = {
 };
 
 const COMPLIANCE_PROMPTS = {
-  'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract (TREC 20-17) for compliance.
+  // 2026-09-21 — 23 Nopalito: Dossie told Heath "TREC 20-17" in chat about a
+  // document that is actually a TREC 20-19. This prompt is where that
+  // number came from — it told the MODEL the document's name was literally
+  // "TREC 20-17" (the internal document_type slug, which per the comment
+  // above is deliberately generic across every revision), and the model's
+  // own free-text documentDescription output inherited that. The document's
+  // real revision has exactly one legitimate source: the file's own name
+  // (CONTRACT_REVISION_RE / contractDocumentMeta() in dossie-app.jsx,
+  // already the source for the document tiles). Nothing else — including
+  // this prompt — states a specific revision number.
+  'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract for compliance.
 
 IMPORTANT — ELECTRONIC SIGNATURES:
 This contract may have been signed via DocuSign or other electronic signature platforms. Electronic signatures are legally valid under ESIGN and UETA. When checking for signatures and initials, look for:
