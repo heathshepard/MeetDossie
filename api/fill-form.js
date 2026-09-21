@@ -27,6 +27,7 @@ const {
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const { extractBase64 } = require('./_lib/base64-asset.js');
 const {
   evaluateElections,
   summarize: summarizeElections,
@@ -3989,8 +3990,12 @@ async function fillForm(formType, fieldValues) {
 
   // Legacy pdf-lib forms
   const raw = config.getBase64();
-  // Assets may export a raw base64 string OR { base64Pdf: '...' }
-  const base64 = (raw && typeof raw === 'object' && raw.base64Pdf) ? raw.base64Pdf : raw;
+  // Assets may export a raw base64 string OR { base64Pdf: '...' } — single
+  // source of truth in api/_lib/base64-asset.js (2026-09-21).
+  const base64 = extractBase64(raw);
+  if (!base64) {
+    throw new Error(`Failed to load PDF for ${formType}: base64 asset resolved to an unrecognized shape.`);
+  }
   const pdfBytes = Buffer.from(base64, 'base64');
 
   let pdfDoc;
