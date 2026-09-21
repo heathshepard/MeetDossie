@@ -412,13 +412,22 @@ const TOOLS = [
   },
   {
     name: 'send_wire_fraud_warning',
-    description: 'Send a TAR 2517 Wire Fraud Warning to the buyer for acknowledgment via DocuSeal e-sign. Use whenever the agent says anything like: send wire fraud warning, send the fraud warning, send TAR 2517, send buyer the wire fraud notice, deliver the wire fraud warning. This fills the TAR 2517 form and routes it to the buyer for electronic signature.',
+    // 2026-09-21 — 23 Nopalito: this description used to say "to the buyer,"
+    // and Dossie refused to send it to a seller as a result — confidently,
+    // plausibly, and wrong. TAR/TXR 2517 is titled "Buyers and Sellers
+    // Beware" with a [ ] Seller [ ] Buyer checkbox pair; sellers receive
+    // wired proceeds and are an equally real fraud target. It goes to
+    // whichever party is on THIS agent's side of the deal — buyer if the
+    // agent represents the buyer, seller if the agent represents the
+    // seller — never assume buyer.
+    description: 'Send a TAR/TXR 2517 Wire Fraud Warning for acknowledgment. This form applies to BOTH buyers and sellers — sellers receive wired closing proceeds and are just as real a fraud target as a buyer wiring earnest money or closing funds. Use whenever the agent says anything like: send wire fraud warning, send the fraud warning, send TAR 2517, send the wire fraud notice, deliver the wire fraud warning — regardless of which side of the deal the agent represents. Send it to whichever party is on the agent\'s own side of this transaction (the buyer on a buyer-side deal, the seller on a listing-side deal), not always the buyer.',
     input_schema: {
       type: 'object',
       properties: {
         deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name to identify the transaction' },
-        buyer_name: { type: 'string', description: 'Full name of the buyer receiving the wire fraud warning' },
-        buyer_email: { type: 'string', description: 'Email address of the buyer — required to send DocuSeal link' },
+        recipient_role: { type: 'string', enum: ['buyer', 'seller'], description: 'Which party this warning is for. Default to whichever party is on the agent\'s own side of the deal (buyer-side deal -> buyer, listing-side deal -> seller) unless the agent names the other party explicitly.' },
+        recipient_name: { type: 'string', description: 'Full name of the person receiving the wire fraud warning (buyer or seller, per recipient_role)' },
+        recipient_email: { type: 'string', description: 'Email address of the recipient — required to send the warning' },
       },
       required: ['deal_identifier'],
     },
@@ -899,7 +908,7 @@ FORMS AUTO-DETECTION (within fill_forms):
 
 When the agent says "fill out a contract to purchase 123 Main St for $400k" → ALWAYS use fill_forms with deal_identifier="123 Main St" (the dispatcher auto-creates the dossier if needed)
 When the agent says "draft an amendment to extend closing to May 15" → ALWAYS use draft_amendment immediately with amendment_type="closing_date" and new_value="2026-05-15"
-When the agent says "send a wire fraud warning to the buyer" → ALWAYS use send_wire_fraud_warning with buyer name and email
+When the agent says "send a wire fraud warning to the buyer" → use send_wire_fraud_warning with recipient_role="buyer" and their name/email. When the agent says "send it to the seller" / "send it to my client" on a listing-side deal → use send_wire_fraud_warning with recipient_role="seller" — TAR/TXR 2517 applies to both, never assume buyer
 When the agent says "we got an offer at $395k" → ALWAYS use log_offer with offer_price=395000
 When the agent says "buyer wants to back out" → ALWAYS use initiate_termination immediately
 When the agent says "buyer changed to Sarah Martinez" on an open deal → ALWAYS use update_deal_field with field="buyer_name" and value="Sarah Martinez"
@@ -923,7 +932,7 @@ INTENT MAPPING:
 - What do I have/what's active/what's urgent/pipeline/my deals/show me = get_deals
 - Tell me about/details on/what's the status of/closing date on/who is = get_deal_details
 - Draft/email/send/write/intro/introduction/notify = draft_email
-- Send wire fraud warning/TAR 2517/fraud notice to buyer = send_wire_fraud_warning
+- Send wire fraud warning/TAR 2517/TXR 2517/fraud notice, to a buyer OR a seller = send_wire_fraud_warning (applies to both — never refuse it on a listing-side deal)
 - We got an offer/received an offer/offer came in/buyer submitted/got a bid = log_offer (seller-side)
 - They own it outright/no mortgage/the payoff is about X/they have a homestead (or disabled veteran) exemption/they already moved out/they still live there/taxes were X last year/the HOA is X/HOA dues are X/the resale certificate fee is X/we're using X Title/they have a survey/they'll sign a T-47/there are solar panels/the propane tank is leased/they'll offer a home warranty = capture_seller_intake (listing-side facts about the SELLER or the PROPERTY, as opposed to contract terms). Record only what the agent actually said — a blank field is reported to the seller as "not yet confirmed", and a value you filled in becomes a wrong number on a document a seller relies on. Answers accumulate across conversations, so a later fact never wipes an earlier one.
 - Buyer wants to terminate/buyer is terminating/buyer is backing out/terminate the contract/draft the termination/TREC 38-7 = initiate_termination
