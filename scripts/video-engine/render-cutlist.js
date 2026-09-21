@@ -55,6 +55,7 @@ function main() {
     '-y', '-i', src,
     '-filter_complex', filter,
     '-map', mapV, '-map', mapA,
+    '-r', String(args.fps || 30), '-vsync', 'cfr',
     '-c:v', 'libx264', '-crf', '20', '-preset', 'fast',
     '-c:a', 'aac',
     out,

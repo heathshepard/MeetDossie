@@ -70,7 +70,14 @@ async function tensorToPng(tensor, w, h, channels, outPath) {
       buf[p * channels + c] = Math.max(0, Math.min(255, Math.round(v * 255)));
     }
   }
-  await sharp(buf, { raw: { width: w, height: h, channels } }).png().toFile(outPath);
+  let img = sharp(buf, { raw: { width: w, height: h, channels } });
+  // Force a genuinely single-channel PNG for the alpha matte — without this,
+  // sharp's encoder silently promotes 1-channel raw input to a 3-channel
+  // (RGB) PNG on write, and a plain .raw() read-back later reports
+  // channels:3, corrupting anyone who assumes 1 byte/pixel (see
+  // recomposite-matte.js's fix comment for the failure this caused).
+  if (channels === 1) img = img.toColourspace('b-w');
+  await img.png().toFile(outPath);
 }
 
 async function main() {
@@ -130,23 +137,27 @@ async function main() {
     await tensorToPng(results.pha, w, h, 1, path.join(outDir, 'alpha', alphaName));
     await tensorToPng(results.fgr, w, h, 3, path.join(outDir, 'fgr', alphaName));
 
-    // Composite (a): blurred/darkened version of the SAME source frame.
-    const srcBuf = fs.readFileSync(inPath);
-    const blurredBg = await sharp(srcBuf).blur(18).modulate({ brightness: 0.55 }).png().toBuffer();
-    const fgrPngPath = path.join(outDir, 'fgr', alphaName);
-    const alphaPngPath = path.join(outDir, 'alpha', alphaName);
-    const fgrBuf = await sharp(fgrPngPath).ensureAlpha().png().toBuffer();
-    const alphaBuf = await sharp(alphaPngPath).raw().toBuffer();
-    const fgrRaw = await sharp(fgrBuf).removeAlpha().raw().toBuffer();
-    const rgba = Buffer.alloc(w * h * 4);
-    for (let p = 0; p < w * h; p++) {
-      rgba[p * 4] = fgrRaw[p * 3];
-      rgba[p * 4 + 1] = fgrRaw[p * 3 + 1];
-      rgba[p * 4 + 2] = fgrRaw[p * 3 + 2];
-      rgba[p * 4 + 3] = alphaBuf[p];
+    // Build the foreground-with-alpha RGBA buffer directly from tensors —
+    // skips a PNG encode/decode round trip through disk per frame.
+    const plane = w * h;
+    const fgrData = results.fgr.data, phaData = results.pha.data;
+    const rgba = Buffer.alloc(plane * 4);
+    for (let p = 0; p < plane; p++) {
+      rgba[p * 4] = Math.max(0, Math.min(255, Math.round(fgrData[p] * 255)));
+      rgba[p * 4 + 1] = Math.max(0, Math.min(255, Math.round(fgrData[plane + p] * 255)));
+      rgba[p * 4 + 2] = Math.max(0, Math.min(255, Math.round(fgrData[2 * plane + p] * 255)));
+      rgba[p * 4 + 3] = Math.max(0, Math.min(255, Math.round(phaData[p] * 255)));
     }
     const fgWithAlpha = await sharp(rgba, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
-    await sharp(blurredBg).resize(w, h).composite([{ input: fgWithAlpha }]).png()
+
+    // Composite (a): blurred/darkened version of the SAME source frame.
+    // Downscale-then-blur-then-upscale instead of blurring at full res —
+    // visually identical for a heavy background blur, far cheaper.
+    const srcBuf = fs.readFileSync(inPath);
+    const smallW = 220, smallH = Math.round(220 * h / w);
+    const blurredBg = await sharp(srcBuf).resize(smallW, smallH).blur(6).modulate({ brightness: 0.55 })
+      .resize(w, h).png().toBuffer();
+    await sharp(blurredBg).composite([{ input: fgWithAlpha }]).png()
       .toFile(path.join(outDir, 'comp-blurbg', alphaName));
 
     // Composite (b): workspace backdrop.
