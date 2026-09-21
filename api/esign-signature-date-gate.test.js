@@ -33,6 +33,8 @@ const { assertPlausibleMappedFieldCount, validateCustomFieldsForDoc, resaleFormE
 
 const BUYER1 = { name: 'Test Buyer', email: 'buyer@example.com', role: 'Buyer 1' };
 const SELLER1 = { name: 'Test Seller', email: 'seller@example.com', role: 'Seller 1' };
+const BUYER2 = { name: 'Test Buyer 2', email: 'buyer2@example.com', role: 'Buyer 2' };
+const SELLER2 = { name: 'Test Seller 2', email: 'seller2@example.com', role: 'Seller 2' };
 
 // ---------------------------------------------------------------------------
 // NEGATIVE TEST — unmapped document, caller-placed fields with signatures
@@ -104,6 +106,76 @@ test('POSITIVE: a correctly paired resale-contract packet previews cleanly with 
   const buyer1Expected = formEntry.expected_field_count_per_role.buyer1;
   const buyer1Actual = counts['Buyer 1'].signatures + counts['Buyer 1'].dates + counts['Buyer 1'].initials;
   assert.equal(buyer1Actual, buyer1Expected, 'Buyer 1 total widget count matches the verified map');
+});
+
+// ---------------------------------------------------------------------------
+// POSITIVE — 2026-09-21 date-widget rollout. Heath, verbatim: "Build the
+// date widgets into all 22 form maps you found with zero. Every signature
+// on every form gets a paired date." (The real count of non-resale maps
+// with zero dates was 19, not 22 — see report.) Each form below had its
+// signature area rendered to a PNG and visually checked against the real
+// PDF before its date field was added (scripts/esign-role-maps/<slug>.json)
+// — this test proves the mapping now actually pairs for every signer with a
+// printed line, using the REAL compiled map, not a mock.
+// ---------------------------------------------------------------------------
+const FOUR_ROLE_MAPPED_FORMS = [
+  ['unimproved-property', 'unimproved_property_contract'],
+  ['buyers-temp-lease', 'buyers_temp_lease'],
+  ['sellers-temp-lease', 'sellers_temp_lease'],
+  ['sale-other-property', 'sale_other_property_addendum'],
+  ['hydrostatic-testing', 'hydrostatic_testing_addendum'],
+  ['environmental', 'environmental_addendum'],
+  ['seller-financing', 'seller_financing_addendum'],
+  ['hoa-addendum', 'hoa_addendum'],
+  ['appraisal-termination', 'appraisal_termination'],
+  ['oil-gas-minerals', 'oil_gas_minerals_addendum'],
+  ['backup-contract', 'backup_contract_addendum'],
+  ['financing-addendum', 'financing_addendum'],
+  ['residential-leases', 'residential_leases_addendum'],
+  ['loan-assumption', 'loan_assumption_addendum'],
+  ['fixture-leases', 'fixture_leases_addendum'],
+];
+
+for (const [slug, documentType] of FOUR_ROLE_MAPPED_FORMS) {
+  test(`POSITIVE: ${slug} pairs signature+date for all 4 printed signature lines`, () => {
+    const doc = { id: `doc-${slug}`, file_name: `Test - ${slug}.pdf`, document_type: documentType };
+    const result = computePacketFieldCounts({
+      documents: [doc], signers: [BUYER1, SELLER1, BUYER2, SELLER2], callerFields: [],
+    });
+    assert.equal(result.ok, true, result.ok ? '' : result.error);
+    const counts = result.documents[0].counts;
+    for (const role of ['Buyer 1', 'Seller 1', 'Buyer 2', 'Seller 2']) {
+      assert.ok(counts[role], `${role} got real fields on ${slug}`);
+      assert.ok(counts[role].signatures > 0, `${role} has a real signature count on ${slug}`);
+      assert.equal(counts[role].signatures, counts[role].dates, `${role} sig/date paired on ${slug}`);
+    }
+  });
+}
+
+// short-sale is the one form mapped BUYER1/SELLER1 only — its printed
+// buyer2/seller2 lines sit too close to the footer disclaimer for any safe
+// date placement (rendered + visually confirmed, see report), so those two
+// roles were deliberately left signature-only. This must keep refusing a
+// 2-buyer/2-seller send rather than silently drop the missing dates.
+test('POSITIVE: short-sale pairs signature+date for buyer1/seller1 (the mapped roles)', () => {
+  const doc = { id: 'doc-short-sale-1v1', file_name: 'Test - short-sale.pdf', document_type: 'short_sale_addendum' };
+  const result = computePacketFieldCounts({ documents: [doc], signers: [BUYER1, SELLER1], callerFields: [] });
+  assert.equal(result.ok, true, result.ok ? '' : result.error);
+  const counts = result.documents[0].counts;
+  assert.equal(counts['Buyer 1'].signatures, counts['Buyer 1'].dates, 'Buyer 1 sig/date paired on short-sale');
+  assert.equal(counts['Seller 1'].signatures, counts['Seller 1'].dates, 'Seller 1 sig/date paired on short-sale');
+  assert.ok(counts['Buyer 1'].signatures > 0);
+});
+
+test('NEGATIVE: short-sale still refuses a 2-buyer/2-seller send (buyer2/seller2 intentionally left dateless)', () => {
+  const doc = { id: 'doc-short-sale-2v2', file_name: 'Test - short-sale.pdf', document_type: 'short_sale_addendum' };
+  const result = computePacketFieldCounts({
+    documents: [doc], signers: [BUYER1, SELLER1, BUYER2, SELLER2], callerFields: [],
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Buyer 2|Seller 2/);
+  assert.match(result.error, /signature field/);
+  assert.match(result.error, /date field/);
 });
 
 // ---------------------------------------------------------------------------

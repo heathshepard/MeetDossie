@@ -157,11 +157,14 @@ check('5. esign-create resolves + assigns: first buyer -> first line, no crossin
     { name: 'S1', email: 'delivered@resend.dev', role: 'Seller' },
   ];
   const { fieldMap } = T.buildMappedFieldMap(byDocType, signers);
-  // financing-addendum: each principal = 1 initials (p1) + 1 signature (p2).
+  // financing-addendum: each principal = 1 initials (p1) + 1 signature (p2)
+  // + 1 date (p2, added 2026-09-21 — every signature on every mapped form
+  // now pairs with a date; see esign-signature-date-gate.test.js).
   for (const role of ['Buyer', 'Co-Buyer', 'Seller']) {
-    assert(fieldMap[role] && fieldMap[role].length === 2, `${role}: expected 2 widgets`);
+    assert(fieldMap[role] && fieldMap[role].length === 3, `${role}: expected 3 widgets (initials+signature+date)`);
     assert(fieldMap[role].some((f) => f.type === 'signature'), `${role}: no signature`);
     assert(fieldMap[role].some((f) => f.type === 'initials'), `${role}: no initials`);
+    assert(fieldMap[role].some((f) => f.type === 'date'), `${role}: no date`);
   }
   // buyer1 (Buyer) and buyer2 (Co-Buyer) must be on DIFFERENT rects — no sharing.
   const b1Sig = fieldMap['Buyer'].find((f) => f.type === 'signature').areas[0];
