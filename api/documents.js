@@ -1,7 +1,17 @@
 // Vercel Serverless Function: /api/documents
-// GET    /api/documents?transactionId=X  -> list documents (with fresh signed URLs)
-// DELETE /api/documents?documentId=Y     -> delete document row + storage object
+// GET    /api/documents?transactionId=X        -> list ACTIVE documents (archived_at IS NULL), with fresh signed URLs
+// DELETE /api/documents?documentId=Y            -> archive one document
+// DELETE /api/documents?documentIds=A,B,C        -> archive several (bulk action)
 // Authorization: Bearer <supabase user JWT>
+//
+// 2026-09-21 CARTER — document/offer model, Rule A: "Nothing is ever
+// destroyed. 'Delete' means archive... He may have to prove what was in
+// force on a given date." DELETE used to remove the Storage object AND the
+// row outright — a member's own client record, gone permanently on one
+// click and one confirm dialog. Now sets archived_at instead; the row and
+// the Storage object are never removed by member action. GET filters
+// archived_at IS NULL so an archived document disappears from the working
+// view exactly like a real delete did, but nothing is gone.
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const {
@@ -72,18 +82,6 @@ async function signUrl(storagePath) {
   return `${SUPABASE_URL}/storage/v1${path}`;
 }
 
-async function removeStorageObject(storagePath) {
-  const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`;
-  const response = await fetch(url, {
-    method: 'DELETE',
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-  });
-  return response.ok || response.status === 404;
-}
-
 function shapeDocumentRow(row, signedUrl, isBlankTemplate) {
   return {
     id: row.id,
@@ -134,7 +132,7 @@ module.exports = async function handler(req, res) {
       const safeUid = encodeURIComponent(userId);
       const safeTx = encodeURIComponent(transactionId);
       const listResp = await supabaseRest(
-        `documents?select=*&user_id=eq.${safeUid}&transaction_id=eq.${safeTx}&order=created_at.desc`,
+        `documents?select=*&user_id=eq.${safeUid}&transaction_id=eq.${safeTx}&archived_at=is.null&order=created_at.desc`,
         { method: 'GET' },
       );
       if (!listResp.ok) {
@@ -161,19 +159,28 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const documentId = sanitizeString(
-        (req.query && req.query.documentId) || '',
-        { maxLength: 200 },
-      );
-      if (!documentId) {
-        throw new ValidationError('documentId query parameter is required.');
+      const singleId = sanitizeString((req.query && req.query.documentId) || '', { maxLength: 200 });
+      const idsParam = sanitizeString((req.query && req.query.documentIds) || '', { maxLength: 2000 });
+      const documentIds = idsParam
+        ? idsParam.split(',').map((s) => s.trim()).filter(Boolean)
+        : (singleId ? [singleId] : []);
+      if (!documentIds.length) {
+        throw new ValidationError('documentId or documentIds query parameter is required.');
+      }
+      // Same bound as a packet's MAX_PACKET_DOCUMENTS-style caps elsewhere —
+      // a bulk action still has a sane ceiling, not an unbounded batch.
+      if (documentIds.length > 100) {
+        throw new ValidationError('Too many documents in one request (max 100).');
       }
 
       const safeUid = encodeURIComponent(userId);
-      const safeId = encodeURIComponent(documentId);
-      // Confirm ownership: only fetch the row if user_id matches.
+      const idList = documentIds.map((id) => `"${id}"`).join(',');
+
+      // Confirm ownership: only rows that are actually this member's, and
+      // not already archived (archiving twice is a no-op, not an error, but
+      // the count returned should reflect what actually changed).
       const fetchResp = await supabaseRest(
-        `documents?select=*&id=eq.${safeId}&user_id=eq.${safeUid}`,
+        `documents?select=id,file_name&id=in.(${idList})&user_id=eq.${safeUid}&archived_at=is.null`,
         { method: 'GET' },
       );
       if (!fetchResp.ok) {
@@ -181,25 +188,28 @@ module.exports = async function handler(req, res) {
         throw new Error(`documents fetch failed (${fetchResp.status}): ${text.slice(0, 200)}`);
       }
       const rows = await fetchResp.json();
-      if (!Array.isArray(rows) || rows.length === 0) {
-        return res.status(404).json({ ok: false, error: 'Document not found.' });
+      const owned = Array.isArray(rows) ? rows : [];
+      if (!owned.length) {
+        return res.status(404).json({ ok: false, error: 'No matching document found to archive.' });
       }
-      const row = rows[0];
+      const ownedIdList = owned.map((r) => `"${r.id}"`).join(',');
 
-      // Delete storage first, then row. If storage delete fails, still try
-      // to remove the DB row so the UI list doesn't show a ghost.
-      await removeStorageObject(row.storage_path);
-
-      const delResp = await supabaseRest(
-        `documents?id=eq.${safeId}&user_id=eq.${safeUid}`,
-        { method: 'DELETE', headers: { Prefer: 'return=minimal' } },
+      // Archive, never delete — Rule A. The Storage object and the row both
+      // stay; only archived_at is set. See the file header for why.
+      const archiveResp = await supabaseRest(
+        `documents?id=in.(${ownedIdList})&user_id=eq.${safeUid}`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ archived_at: new Date().toISOString() }),
+        },
       );
-      if (!delResp.ok) {
-        const text = await delResp.text().catch(() => '');
-        throw new Error(`documents delete failed (${delResp.status}): ${text.slice(0, 200)}`);
+      if (!archiveResp.ok) {
+        const text = await archiveResp.text().catch(() => '');
+        throw new Error(`documents archive failed (${archiveResp.status}): ${text.slice(0, 200)}`);
       }
 
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, archivedCount: owned.length, archivedIds: owned.map((r) => r.id) });
     }
 
     res.setHeader('Allow', 'GET, DELETE, OPTIONS');
