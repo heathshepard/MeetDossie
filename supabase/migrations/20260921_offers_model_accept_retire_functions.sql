@@ -35,6 +35,17 @@
 -- REVERTED-FROM-A state as if it were pristine pre-offer, corrupting the
 -- chain. retire_offer refuses on a non-accepted offer (offer_not_accepted).
 --
+-- CORRECTION (same day, live testing): retire_offer as originally written
+-- below breaks if an offer is accepted, retired, then re-accepted later (a
+-- real sequence — accept_offer's idempotency guard only blocks re-running on
+-- a CURRENTLY 'accepted' offer, not a retired one). The second accept inserts
+-- a second batch of 17 snapshot rows, and retire_offer's bare per-field
+-- subqueries then match 2 rows instead of 0-1 and error. See
+-- supabase/migrations/20260921_retire_offer_latest_batch_only.sql for the
+-- fix (ORDER BY captured_at DESC LIMIT 1 on every subquery) — that migration
+-- supersedes the retire_offer definition below; this file is left as the
+-- original historical record.
+--
 -- Owner: Carter, 2026-09-21.
 -- ============================================================================
 
