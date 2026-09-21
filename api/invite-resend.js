@@ -187,6 +187,7 @@ module.exports = async function handler(req, res) {
         actionUrl: actionLink,
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
         subject: 'Reset your Dossie password',
+        kind: 'reset',
       });
       if (!sent.ok) console.error('[invite-resend] reset email failed for an activated account:', sent.error);
     } else {
