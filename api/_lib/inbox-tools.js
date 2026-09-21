@@ -953,12 +953,60 @@ async function importEmailAttachments(input, { userId }) {
   // bound, not a limit of the extractor — the residential contract is the
   // document whose terms the agent actually asked about. ---
   let extracted = null;
+  let contacts = null;
   if (scanner && primaryContractBytes && elapsed() < EXTRACT_DEADLINE_MS) {
     try {
       const scan = await scanner.scanContract(primaryContractBytes.toString('base64'));
       extracted = (scan && scan.extracted) || null;
     } catch (err) {
       notes.push("Filed the contract but couldn't read the terms off it automatically.");
+    }
+
+    // --- Phase 4b: WRITE THE PEOPLE DOWN. ---
+    //
+    // Until 2026-09-20 this function read a full broker block, the title
+    // company and both parties off the contract, handed `extracted` to the
+    // model, and persisted none of it. Verified on the real 23 Nopalito
+    // packet: 69 fields read, all 17 contact columns null, `parties` = {}.
+    //
+    // That is not a cosmetic gap. cron-email-to-dossier matches inbound mail
+    // to a deal BY SENDER ADDRESS, so a deal with no addresses on file can
+    // never have a reply filed against it; send_packet_to_party resolves a
+    // recipient off these same columns and refuses without them. The
+    // extraction was already correct — only the write was missing.
+    //
+    // Deliberately best-effort and non-fatal: the member asked to file
+    // documents, and they are filed. A contact-write failure logs loudly (see
+    // contact-persistence-store.js) but never turns a successful import into
+    // a reported failure.
+    if (extracted) {
+      try {
+        const { persistContactsFromScan } = require('./contact-persistence-store');
+        const primary = imported.find((i) => i.document_type === 'trec-20-17') || imported[0] || {};
+        const result = await persistContactsFromScan(sb, {
+          userId,
+          transactionId: tx.id,
+          extracted,
+          source: {
+            documentId: primary.document_id || null,
+            fileName: primary.filename || null,
+            documentLabel: primary.document_label || 'Residential contract',
+            scanId: `inbox-import-${messageId}`,
+          },
+        });
+        if (result.ok && result.plan) {
+          contacts = {
+            filled: result.plan.filled.map((f) => ({ field: f.column, value: f.value })),
+            conflicts: result.plan.conflicts,
+            blocked: result.plan.blocked.map((b) => ({ party: b.party, reason: b.reason })),
+          };
+          const { summarizePlan } = require('./contact-persistence');
+          const line = summarizePlan(result.plan);
+          if (line) notes.push(line);
+        }
+      } catch (err) {
+        console.error('[inbox-tools] contact persistence failed', err && err.message);
+      }
     }
   } else if (scanner && primaryContractBytes) {
     notes.push('Filed the contract, but reading the terms off it timed out — open the dossier to scan it.');
@@ -981,6 +1029,11 @@ async function importEmailAttachments(input, { userId }) {
     imported,
     skipped,
     extracted,
+    // What was actually written to the deal record off that contract, so the
+    // model can tell the member "I saved the buyer's agent" rather than
+    // silently having done it — and so a conflict with something they typed
+    // gets said out loud instead of buried.
+    contacts,
     notes,
   };
 }

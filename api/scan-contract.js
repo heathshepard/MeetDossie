@@ -506,6 +506,17 @@ Do NOT confuse the two blocks.
 Additional aliases to recognize for the BUYER'S block: "Buyer's Agent", "Buyer's Broker", "Cooperating Broker", "Selling Broker" (because the buyer's agent "sells" the home to the buyer — this is NOT the listing side).
 Additional aliases to recognize for the LISTING block: "Listing Agent", "Seller's Broker", "Seller's Representative".
 
+TREC 20-19 LAYS THIS PAGE OUT DIFFERENTLY — DO NOT USE POSITION:
+On form 20-19 the page is titled "BROKER CONTACT INFORMATION (Print name(s) only. Do not sign)" and the two blocks are stacked VERTICALLY, not side by side. There is no left/right to go by. Each block is identified ONLY by the sentence on its first line:
+- "... (Broker Firm) represents Seller only as Seller's agent"  -> this is the LISTING side -> listingAgent / listingAgentEmail / listingAgentPhone / listingBrokerage
+- "... (Broker Firm) represents Buyer only as Buyer's agent"    -> this is the BUYER side   -> buyerAgent / buyerAgentEmail / buyerAgentPhone / buyerBrokerage
+- "... (Broker Firm) represents Seller and Buyer as an intermediary" -> the INTERMEDIARY block. On a normal two-broker deal this block is entirely blank. NEVER take values from it unless the other two blocks are empty.
+Read that sentence for EVERY block before assigning a single field. The seller's block usually comes first, but do not rely on order — rely on the sentence.
+
+Within each 20-19 block the labels are: "(Broker Firm)" on the first line -> brokerage; "Associate's Name:" -> the agent; "Associate's Email:" -> their email; "Associate's Phone No.:" -> their phone. IGNORE "Licensed Supervisor of Associate" and "Phone No. of Licensed Supervisor" — that is the broker who supervises the agent, NOT the agent, and NOT the person to contact about the deal. IGNORE "Team Name" and every "License No." field.
+
+IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Stephen D. Foster & Associates, 2141 NW Military Hwy # 101 San Antonio TX 78213  Phone: 2107893727  Fax:  Nopalito" followed by "Clyde Johnson   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Stephen D. Foster & Associates" while the actual buyer's broker firm on the form is "Pure Home River". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
+
 Inside each block, the fields are typically laid out as:
 - "Broker/Firm Name" or just "Broker" → buyerBrokerage / listingBrokerage
 - "Associate" or "Licensed Supervisor" or "Listing Associate" → buyerAgent / listingAgent (this is the human agent's name, NOT the firm)
@@ -557,6 +568,20 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "debugContractReceiptDate": string | null,   // DEBUG ONLY: verbatim handwritten Date from the neighboring CONTRACT RECEIPT box, used only to cross-check a hard-to-read earnestMoneyReceiptDate. Null if that box's date is blank.
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
+    // PARAGRAPH 21 "NOTICES" — the two contact blocks the parties nominate for
+    // formal notice. Laid out as two columns headed "To Buyer at:" (left) and
+    // "To Seller at:" (right), each with Address / Phone(s) / E-mail(s), and
+    // BELOW them a second pair headed "To Buyer's agent at:" and "To Seller's
+    // agent at:" with their own Address / Phone / Email.
+    // Take buyerNotice*/sellerNotice* from the UPPER pair only (the principals).
+    // The LOWER pair is the two agents and belongs in buyerAgentEmail /
+    // listingAgentEmail — do not mix them up, and do not copy an agent's
+    // address into a principal's field when the principal's blank is empty.
+    // Either column may legitimately be blank; return null, never a guess.
+    "buyerNoticeEmail": string | null,           // ¶21 "To Buyer at:" E-mail(s)
+    "buyerNoticePhone": string | null,           // ¶21 "To Buyer at:" Phone(s)
+    "sellerNoticeEmail": string | null,          // ¶21 "To Seller at:" E-mail(s)
+    "sellerNoticePhone": string | null,          // ¶21 "To Seller at:" Phone(s)
     "parties": {
       "buyerAgentEmail": string | null,
       "buyerAgentPhone": string | null,
@@ -882,6 +907,10 @@ function emptyResult(warning) {
       debugContractReceiptDate: null,
       buyerAgent: null,
       listingAgent: null,
+      buyerNoticeEmail: null,
+      buyerNoticePhone: null,
+      sellerNoticeEmail: null,
+      sellerNoticePhone: null,
       parties: {
         buyerAgentEmail: null,
         buyerAgentPhone: null,
@@ -1822,9 +1851,84 @@ async function handler(req, res) {
       }
     }
 
+    // --- Persist the PEOPLE this scan just read. -----------------------------
+    //
+    // Until 2026-09-20 nothing did. The browser's document-upload path took
+    // `extracted` and wrote agent contacts into the `parties` jsonb ONLY —
+    // mapAppTransactionToDb never writes other_agent_email_addr or
+    // listing_agent_email_addr at all — while api/_lib/packet-recipients.js
+    // resolved recipients exclusively from those flat columns. The result was
+    // a deal that carried the buyer's agent's address and still answered "I
+    // don't have an email address for the buyer's agent."
+    //
+    // This runs server-side off the transactionId the client already sends,
+    // so it needs no bundle change, and it applies the same rules to the
+    // browser path that import_email_attachments gets: validation, provenance,
+    // never overwriting a member-typed value, and never making the other
+    // side's client a send target.
+    //
+    // Non-fatal by construction. A contact-write problem must never turn a
+    // successful scan into a failed one — the member asked to scan a document
+    // and the scan worked.
+    let contacts = null;
+    if (userId && transactionId && result.extracted
+        && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const { persistContactsFromScan } = require('./_lib/contact-persistence-store');
+        const sb = async (p, init = {}) => {
+          const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${p}`, {
+            ...init,
+            headers: {
+              apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              ...(init.headers || {}),
+            },
+          });
+          const t = await r.text().catch(() => '');
+          let d = null;
+          try { d = t ? JSON.parse(t) : null; } catch (_) { d = null; }
+          return { ok: r.ok, status: r.status, data: d };
+        };
+
+        // The member's own address, used to catch a reversed broker block.
+        let profile = null;
+        const profResp = await sb(`profiles?id=eq.${encodeURIComponent(userId)}&select=email,full_name&limit=1`);
+        if (profResp.ok && Array.isArray(profResp.data) && profResp.data.length) profile = profResp.data[0];
+
+        const persisted = await persistContactsFromScan(sb, {
+          userId,
+          transactionId,
+          extracted: result.extracted,
+          source: {
+            documentId,
+            fileName: typeof fileName === 'string' ? fileName : null,
+            documentLabel: result.documentLabel || null,
+            scanId: `scan-${Date.now()}`,
+          },
+          profile,
+        });
+
+        if (persisted.plan) {
+          contacts = {
+            filled: persisted.plan.filled.map((f) => ({ field: f.column, value: f.value })),
+            conflicts: persisted.plan.conflicts,
+            blocked: persisted.plan.blocked.map((b) => ({ party: b.party, kind: b.kind, reason: b.reason })),
+            written: persisted.written,
+          };
+        }
+      } catch (contactErr) {
+        console.error('[scan-contract] contact persistence error:', contactErr && contactErr.message);
+      }
+    }
+
     return res.status(200).json({
       ok: true,
       documentId,
+      // What was written to the deal record off this document, so the UI can
+      // show the member which people were saved and — importantly — which
+      // parsed values disagreed with something they had already entered.
+      contacts,
       documentType: result.documentType,
       documentLabel: result.documentLabel,
       documentTypeConfidence: result.documentTypeConfidence,

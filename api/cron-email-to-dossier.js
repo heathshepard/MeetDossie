@@ -120,7 +120,16 @@ async function loadActiveDealsWithContacts(userId) {
       v.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).forEach((e) => emails.add(e));
     };
     const p = r.parties || {};
-    ['buyer', 'seller', 'buyerAgent', 'listingAgent', 'title', 'lender'].forEach((k) => addEmail(p[k]?.email));
+    ['buyer', 'seller', 'buyerAgent', 'listingAgent', 'title', 'lender'].forEach((k) => {
+      addEmail(p[k]?.email);
+      // The contract scan stores an opposing principal's address under
+      // `contact_blocked` so that no code path can promote it to a send
+      // target. Matching INBOUND mail is a read, not a send: when the other
+      // side's client emails the member directly, that reply still belongs
+      // filed against the deal. Leaving it out is how a $20,000 tax question
+      // stays unmatched and unfindable.
+      addEmail(p[k]?.contact_blocked?.email);
+    });
     [r.buyer_email, r.seller_email, r.buyer2_email, r.seller2_email, r.listing_agent_email_addr, r.other_agent_email_addr, r.loan_officer_email, r.title_officer_email]
       .forEach(addEmail);
     return {
