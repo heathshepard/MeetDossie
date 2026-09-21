@@ -346,8 +346,8 @@ const TOOLS = [
         deal_identifier: { type: 'string', description: 'Property address or buyer/seller name' },
         amendment_type: {
           type: 'string',
-          enum: ['closing_date', 'option_extension', 'price_change', 'repair_items'],
-          description: 'closing_date for new close date, option_extension for additional option days, price_change for new sale price, repair_items for a repair amendment listing items seller must fix',
+          enum: ['closing_date', 'option_extension', 'price_change', 'repair_items', 'party_name'],
+          description: 'closing_date for new close date, option_extension for additional option days, price_change for new sale price, repair_items for a repair amendment listing items seller must fix, party_name to correct the spelling of a buyer\'s or seller\'s name on an already-executed contract (a signed contract can never be edited, so a name correction is an amendment)',
         },
         new_value: {
           type: 'string',
@@ -634,6 +634,45 @@ const TOOLS = [
       required: ['email'],
     },
   },
+  // -------------------------------------------------------------------------
+  // The inconsistency flow. See api/_lib/inconsistency-flow.js.
+  //
+  // Two tools because the flow has two member-facing moments, and they must
+  // stay separate: raising a mismatch, and answering one. Dossie may never do
+  // the second on the member's behalf — she has no way to know whether "Jenny"
+  // and "Jennifer" are one person.
+  // -------------------------------------------------------------------------
+  {
+    name: 'review_inconsistencies',
+    description: 'List the mismatches between what a deal\'s documents say and what the dossier says, for one deal. Use when the agent asks: does anything not line up, are there any mismatches/discrepancies/conflicts on X, does the contract match the dossier, check the names on X, is anything inconsistent, did anything come back wrong from the scan. This tool only REPORTS the disagreements and both values — it never decides which value is correct, because only the agent knows that. Do not follow it with update_deal_field or draft_amendment on your own initiative; wait for the agent to say which value is right.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Property address or buyer/seller name' },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
+    name: 'resolve_inconsistency',
+    description: 'Record which of two disagreeing values the agent says is correct, and get back what has to happen next. Use ONLY after a mismatch has been raised (by review_inconsistencies or by the deal view) and the agent has answered which value is right — e.g. "the dossier is right", "go with the contract", "those are the same person", "Jenny is her nickname, Jennifer is her legal name", "neither, it is actually X". The remedy is computed server-side from where the wrong value lives: a dossier field gets corrected, an unsigned document gets redrafted, and an EXECUTED document requires an amendment signed by all parties. Never guess the choice; if the agent has not clearly said which value is correct, use answer_question to ask.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Property address or buyer/seller name' },
+        conflict_id: { type: 'string', description: 'The conflict_id from review_inconsistencies. Pass it whenever you have it. If the agent is plainly answering about a single mismatch that was just raised and you do not have the id, omit it and the field will be matched instead.' },
+        field: { type: 'string', description: 'The dossier column the mismatch is about (e.g. seller2_name, buyer_name, closing_date). Used to find the conflict when conflict_id is not known.' },
+        choice: {
+          type: 'string',
+          enum: ['dossier', 'document', 'same', 'other', 'not_now'],
+          description: 'dossier = the value already on the dossier is correct. document = the value read off the document is correct. same = both values are the same person/entity, just spelled differently (nothing is wrong and nothing needs amending). other = both are wrong and the agent gave a third value. not_now = the agent wants to leave it open.',
+        },
+        value: { type: 'string', description: 'Required when choice is "other": the correct value the agent gave. Optional when choice is "same": the LEGAL spelling, if the agent named which one it is.' },
+        note: { type: 'string', description: "The agent's own words about why, kept verbatim on the record (e.g. \"confirmed against her driver's licence\")." },
+      },
+      required: ['deal_identifier', 'choice'],
+    },
+  },
   // Inbox tools are appended rather than inlined so their schemas stay in one
   // reviewable place (api/_lib/inbox-tools.js) alongside the guard that keeps
   // identity out of them.
@@ -693,6 +732,8 @@ EXECUTION RULES:
 
 AMENDMENT & STAGE SAFETY RULES:
 - CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-10), not a silent dossier edit.
+- CRITICAL: when a document and the dossier disagree, you do NOT get to decide which one is right. Report both values and both sources and ask. You cannot tell whether "Jenny Whyte" and "Jennifer Whyte" are one woman with a nickname or two different people, and guessing wrong either leaves a defective signed contract standing or invents an amendment nobody needs. Never "reconcile", "correct" or "fix" a mismatch on your own initiative, and never say which value looks more likely.
+- After the agent answers, resolve_inconsistency works out the remedy and tells you what it is. Do not pre-announce the remedy yourself — whether it is a one-line dossier edit or an amendment signed by all parties depends on whether the wrong value is sitting on an executed document, which the tool checks and you have not.
 - CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, or initiate_termination on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
@@ -762,6 +803,8 @@ INTENT MAPPING:
 - Financing addendum / TREC 40 / third party financing addendum = fill_forms with form_type_override: "financing-addendum"
 - Termination notice / TREC 38-7 / terminate the contract / cancel the deal = fill_forms with form_type_override: "termination-notice"
 - Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price, draft a repair amendment/list repairs seller must fix = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
+- Does anything not line up / any mismatches, discrepancies or conflicts / does the contract match the dossier / check the names on this file = review_inconsistencies
+- The agent telling you WHICH of two disagreeing values is correct ("the dossier is right", "go with the contract", "same person", "neither, it's X") = resolve_inconsistency
 - Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
 - Passed/moved to/we are now/advance/next stage/under contract/in inspection = advance_stage
 - What do I have/what's active/what's urgent/pipeline/my deals/show me = get_deals
