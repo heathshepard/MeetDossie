@@ -1,12 +1,12 @@
 {
  "form_type": "seller-financing",
  "trecNo": "26-8",
- "description": "Semantic role map for TREC 26-8 (Seller Financing Addendum). MODE-A-ONLY MAP built 2026-09-08 (Carter): contains ONLY the party signing widgets (signatures + footer initials) — deal/property fields are not mapped here (the fill engine handles them via its own field maps). Coordinates extracted from the live AcroForm widget rects (pdf-lib, same method as the 2026-09-02 role-map batch); party assignment derived by rendering the page and reading the printed labels, NOT from AcroForm field names. x_pct/y_pct/w_pct/h_pct are top-left-origin percentages 0-100.",
+ "description": "Semantic role map for TREC 26-8 (Seller Financing Addendum). MODE-A-ONLY MAP built 2026-09-08 (Carter): contains ONLY the party signing widgets (signatures + footer initials) — deal/property fields are not mapped here (the fill engine handles them via its own field maps). Coordinates extracted from the live AcroForm widget rects (pdf-lib, same method as the 2026-09-02 role-map batch); party assignment derived by rendering the page and reading the printed labels, NOT from AcroForm field names. x_pct/y_pct/w_pct/h_pct are top-left-origin percentages 0-100. DATE FIELDS ADDED 2026-09-21 (Carter): buyer1_date, seller1_date, buyer2_date, seller2_date — synthetic placement in verified blank space below each role's existing signature widget (no real AcroForm field backs these; see acroform-field-names-lie memory + esign-signature-date-gate.test.js). Coordinates rendered to PNG and visually checked against the real PDF before being added, not guessed.",
  "pageCount": 2,
  "generated_at": "2026-09-08T06:46:09.436Z",
  "field_summary": {
-  "total": 8,
-  "mapped_confident": 8,
+  "total": 12,
+  "mapped_confident": 12,
   "mapped_with_note": 0,
   "unknown": 0
  },
@@ -110,6 +110,54 @@
    "y_pct": 75.98,
    "w_pct": 40.36,
    "h_pct": 4.04
+  },
+  {
+   "num": 9,
+   "pdf_field_name": "SYNTHETIC:buyer1_date_no_real_acroform_field",
+   "role": "buyer1",
+   "field_key": "buyer1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 9.07,
+   "y_pct": 71.71,
+   "w_pct": 16,
+   "h_pct": 2
+  },
+  {
+   "num": 10,
+   "pdf_field_name": "SYNTHETIC:seller1_date_no_real_acroform_field",
+   "role": "seller1",
+   "field_key": "seller1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 51.04,
+   "y_pct": 71.82,
+   "w_pct": 16,
+   "h_pct": 2
+  },
+  {
+   "num": 11,
+   "pdf_field_name": "SYNTHETIC:buyer2_date_no_real_acroform_field",
+   "role": "buyer2",
+   "field_key": "buyer2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 8.99,
+   "y_pct": 81.48,
+   "w_pct": 16,
+   "h_pct": 1.4
+  },
+  {
+   "num": 12,
+   "pdf_field_name": "SYNTHETIC:seller2_date_no_real_acroform_field",
+   "role": "seller2",
+   "field_key": "seller2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 50.96,
+   "y_pct": 81.42,
+   "w_pct": 16,
+   "h_pct": 1.4
   }
  ]
 }
