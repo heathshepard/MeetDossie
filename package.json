@@ -23,6 +23,7 @@
     "@sparticuz/chromium-min": "^149.0.0",
     "@supabase/supabase-js": "^2.106.0",
     "luxon": "^3.7.2",
+    "onnxruntime-node": "^1.30.0",
     "pdf-lib": "^1.17.1",
     "pg": "^8.23.0",
     "playwright": "^1.60.0",
@@ -30,10 +31,14 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "resend": "^6.12.3",
+    "sharp": "^0.35.4",
     "stripe": "^22.1.0",
     "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "allowScripts": {
+    "onnxruntime-node@1.30.0": true
   }
 }
