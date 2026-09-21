@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Dossie Remembers — Dossie</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8927C'/><text y='.9em' font-size='90' x='10'>D</text></svg>">
+<meta name="theme-color" content="#E8836B">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Colors copied from team-dashboard.html, which copies them 1:1 from the
+     BRAND constant in Dossie/dossie-app.jsx — keep in sync if that changes. */
+  :root {
+    --bg: #FDFCFA; --surface: #FFFFFF; --blush: #D4A0A0; --blush-light: #F2E4E4;
+    --sage: #8BA888; --sage-light: #E4EDE2; --gold: #C9A96E; --gold-light: #F5EDD8;
+    --navy: #1A1A2E; --coral: #E8836B; --red: #D95C52;
+    --border: #EAE1D8; --soft-border: #F1EBE4;
+    --text: #2E2A27; --text-soft: #7E776F; --text-muted: #9F988F;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+  .serif { font-family: 'Cormorant Garamond', 'Georgia', serif; }
+  header { padding: 16px 24px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .nav-mark { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; color: #fff; font-family: 'Cormorant Garamond', serif; flex-shrink: 0; }
+  header h1 { font-family: 'Cormorant Garamond', serif; font-size: 22px; margin: 0; font-weight: 600; letter-spacing: -0.2px; }
+  header .sub { font-size: 12.5px; color: var(--blush-light); opacity: 0.9; margin-top: 1px; }
+  #signOutBtn { background: none; border: 1px solid rgba(255,255,255,0.28); color: #fff; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 12.5px; display: none; font-family: inherit; font-weight: 600; }
+  #signOutBtn:hover { background: rgba(255,255,255,0.1); }
+  main { max-width: 880px; margin: 0 auto; padding: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--soft-border); border-radius: 18px; padding: 22px; margin-bottom: 16px; box-shadow: 0 10px 24px rgba(26,26,46,0.04); }
+  .card h2 { font-family: 'Cormorant Garamond', serif; font-size: 22px; margin: 0 0 6px; font-weight: 600; color: var(--navy); }
+  .card p.lead { color: var(--text-soft); font-size: 13.5px; margin: 0 0 16px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; }
+  input[type=email], input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; margin-bottom: 12px; }
+  button.primary { background: var(--coral); color: #fff; border: none; border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 13.5px; cursor: pointer; font-family: inherit; }
+  button.primary:disabled { opacity: 0.55; cursor: default; }
+  #authMsg { font-size: 12.5px; color: var(--red); min-height: 16px; margin-top: 4px; }
+  .section-title { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 700; color: var(--navy); margin: 26px 0 10px; }
+  .memo { border: 1px solid var(--soft-border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; background: #fff; }
+  .memo.pending { border-color: var(--gold); background: var(--gold-light); }
+  .memo.retired { opacity: 0.55; }
+  .memo-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .badge { font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+  .badge.cat { background: var(--blush-light); color: var(--navy); }
+  .badge.pending { background: var(--gold); color: #fff; }
+  .badge.active { background: var(--sage-light); color: #33513a; }
+  .badge.retired { background: var(--border); color: var(--text-muted); }
+  .memo-title { font-weight: 700; font-size: 14.5px; color: var(--navy); }
+  .memo-content { font-size: 13.5px; color: var(--text); margin: 4px 0 10px; line-height: 1.5; }
+  .memo-content textarea { width: 100%; min-height: 60px; font-family: inherit; font-size: 13.5px; padding: 8px; border-radius: 8px; border: 1px solid var(--border); }
+  .memo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .memo-actions button { border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--text); }
+  .memo-actions button.confirm { border-color: var(--sage); color: #33513a; }
+  .memo-actions button.reject { border-color: var(--red); color: var(--red); }
+  .memo-actions button.danger { border-color: var(--red); color: var(--red); }
+  .empty { color: var(--text-muted); font-size: 13.5px; padding: 12px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="nav-mark">D</div>
+    <div>
+      <h1>What Dossie Remembers</h1>
+      <div class="sub" id="userLabel">Sign in to view</div>
+    </div>
+  </div>
+  <button id="signOutBtn">Sign out</button>
+</header>
+<main>
+  <div class="card" id="authCard">
+    <h2>Sign in</h2>
+    <p class="lead">Your Dossie account email and password.</p>
+    <label for="authEmail">Email</label>
+    <input type="email" id="authEmail" autocomplete="username">
+    <label for="authPw">Password</label>
+    <input type="password" id="authPw" autocomplete="current-password">
+    <button class="primary" id="authBtn">Sign in</button>
+    <div id="authMsg"></div>
+  </div>
+
+  <div id="memCard" style="display:none;">
+    <div class="card">
+      <h2>Needs your confirmation</h2>
+      <p class="lead">Dossie noted these but will not reuse them until you say they're right.</p>
+      <div id="pendingList"></div>
+    </div>
+    <div class="card">
+      <h2>What she knows</h2>
+      <p class="lead">Preferences she's picked up, and facts you've confirmed. Edit or remove anything.</p>
+      <div id="activeList"></div>
+    </div>
+    <div class="card">
+      <h2>Removed</h2>
+      <p class="lead">Rejected or retired — never used in a reply.</p>
+      <div id="retiredList"></div>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+
+  const API_BASE = window.location.origin;
+  let supabase = null;
+
+  const authCard = document.getElementById('authCard');
+  const memCard = document.getElementById('memCard');
+  const authEmail = document.getElementById('authEmail');
+  const authPw = document.getElementById('authPw');
+  const authBtn = document.getElementById('authBtn');
+  const authMsg = document.getElementById('authMsg');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const userLabel = document.getElementById('userLabel');
+  const pendingList = document.getElementById('pendingList');
+  const activeList = document.getElementById('activeList');
+  const retiredList = document.getElementById('retiredList');
+
+  async function bootSupabase() {
+    const res = await fetch(`${API_BASE}/api/config`);
+    if (!res.ok) throw new Error('config fetch failed');
+    const data = await res.json();
+    const url = data?.supabaseUrl;
+    const key = data?.supabaseKey;
+    if (!url || !key) throw new Error('missing supabase config');
+    supabase = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  }
+
+  async function getAuthHeader() {
+    const { data } = await supabase.auth.getSession();
+    if (!data || !data.session) throw new Error('Not signed in');
+    return `Bearer ${data.session.access_token}`;
+  }
+
+  async function apiCall(path, opts = {}) {
+    const authHeader = await getAuthHeader();
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: { Authorization: authHeader, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.ok) throw new Error(json.error || `Request failed (${res.status})`);
+    return json;
+  }
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function memoRow(m, kind) {
+    const div = document.createElement('div');
+    div.className = `memo ${kind === 'pending' ? 'pending' : kind === 'retired' ? 'retired' : ''}`;
+    const statusBadge = m.status === 'pending_confirmation' ? '<span class="badge pending">Needs confirmation</span>'
+      : m.status === 'retired' ? '<span class="badge retired">Removed</span>'
+      : '<span class="badge active">Known</span>';
+    div.innerHTML = `
+      <div class="memo-top">
+        <span class="badge cat">${escapeHtml(m.category)}</span>
+        ${statusBadge}
+      </div>
+      <div class="memo-title">${escapeHtml(m.title)}</div>
+      <div class="memo-content" data-content>${escapeHtml(m.content)}</div>
+      <div class="memo-actions" data-actions></div>
+    `;
+    const actions = div.querySelector('[data-actions]');
+    const contentEl = div.querySelector('[data-content]');
+
+    if (kind === 'pending') {
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'confirm'; confirmBtn.textContent = 'Confirm — this is right';
+      confirmBtn.onclick = () => act(m.id, 'confirm');
+      const rejectBtn = document.createElement('button');
+      rejectBtn.className = 'reject'; rejectBtn.textContent = 'Not right — remove';
+      rejectBtn.onclick = () => act(m.id, 'reject');
+      actions.append(confirmBtn, rejectBtn);
+    } else if (kind === 'active') {
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.onclick = () => startEdit(m, contentEl, actions);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger'; delBtn.textContent = 'Delete';
+      delBtn.onclick = () => del(m.id);
+      actions.append(editBtn, delBtn);
+    } else {
+      const reactivateBtn = document.createElement('button');
+      reactivateBtn.textContent = 'Restore';
+      reactivateBtn.onclick = () => act(m.id, 'reactivate');
+      const delBtn = document.createElement('button');
+      delBtn.className = 'danger'; delBtn.textContent = 'Delete';
+      delBtn.onclick = () => del(m.id);
+      actions.append(reactivateBtn, delBtn);
+    }
+    return div;
+  }
+
+  function startEdit(m, contentEl, actions) {
+    contentEl.innerHTML = `<textarea>${escapeHtml(m.content)}</textarea>`;
+    const ta = contentEl.querySelector('textarea');
+    actions.innerHTML = '';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'confirm'; saveBtn.textContent = 'Save';
+    saveBtn.onclick = async () => {
+      try {
+        await apiCall('/api/member-memory', { method: 'PATCH', body: JSON.stringify({ id: m.id, action: 'edit', content: ta.value }) });
+        await load();
+      } catch (e) { alert(e.message); }
+    };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => load();
+    actions.append(saveBtn, cancelBtn);
+  }
+
+  async function act(id, action) {
+    try {
+      await apiCall('/api/member-memory', { method: 'PATCH', body: JSON.stringify({ id, action }) });
+      await load();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function del(id) {
+    if (!confirm('Delete this permanently?')) return;
+    try {
+      await apiCall(`/api/member-memory?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      await load();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function load() {
+    let json;
+    try {
+      json = await apiCall('/api/member-memory');
+    } catch (e) {
+      pendingList.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+      return;
+    }
+    const memories = json.memories || [];
+    const pending = memories.filter((m) => m.status === 'pending_confirmation');
+    const active = memories.filter((m) => m.status === 'active');
+    const retired = memories.filter((m) => m.status === 'retired');
+
+    pendingList.innerHTML = '';
+    if (!pending.length) pendingList.innerHTML = '<div class="empty">Nothing waiting on you.</div>';
+    else pending.forEach((m) => pendingList.appendChild(memoRow(m, 'pending')));
+
+    activeList.innerHTML = '';
+    if (!active.length) activeList.innerHTML = '<div class="empty">Nothing yet — Dossie learns as you use her.</div>';
+    else active.forEach((m) => activeList.appendChild(memoRow(m, 'active')));
+
+    retiredList.innerHTML = '';
+    if (!retired.length) retiredList.innerHTML = '<div class="empty">Nothing removed.</div>';
+    else retired.forEach((m) => retiredList.appendChild(memoRow(m, 'retired')));
+  }
+
+  async function showSignedIn(session) {
+    authCard.style.display = 'none';
+    memCard.style.display = '';
+    signOutBtn.style.display = '';
+    userLabel.textContent = session.user.email || '';
+    await load();
+  }
+
+  authBtn.addEventListener('click', async () => {
+    authMsg.textContent = '';
+    authBtn.disabled = true;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail.value.trim(), password: authPw.value });
+      if (error) throw error;
+      await showSignedIn(data.session);
+    } catch (e) {
+      authMsg.textContent = e.message || 'Sign-in failed.';
+    } finally {
+      authBtn.disabled = false;
+    }
+  });
+
+  signOutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    memCard.style.display = 'none';
+    authCard.style.display = '';
+    signOutBtn.style.display = 'none';
+    userLabel.textContent = 'Sign in to view';
+  });
+
+  (async () => {
+    await bootSupabase();
+    const { data } = await supabase.auth.getSession();
+    if (data && data.session) await showSignedIn(data.session);
+  })();
+</script>
+</body>
+</html>
