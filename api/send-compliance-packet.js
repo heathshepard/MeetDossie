@@ -415,6 +415,13 @@ module.exports = async function handler(req, res) {
       `seller_name,seller_email,seller2_name,seller2_email,seller_notice_name,` +
       `listing_agent_name,listing_agent_email_addr,other_agent_name,other_agent_email_addr,` +
       `title_officer_name,title_officer_email,escrow_officer_name,loan_officer_name,loan_officer_email,lender_name,` +
+      // `parties` is the jsonb the contract scan writes agent/title/lender
+      // contacts into. resolveRoleRecipients() falls back to it when the flat
+      // column is empty, and opposingPrincipalContacts() reads it to block a
+      // hand-typed opposing-principal address. Without it selected here both
+      // of those are dead code — which is exactly how a deal could carry the
+      // buyer's agent's address and still refuse to send to them.
+      `parties,` +
       `sale_price,commission_rate,option_fee,stage,status&limit=1`,
       { method: 'GET' },
     );

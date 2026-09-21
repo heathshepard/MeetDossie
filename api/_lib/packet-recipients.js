@@ -89,29 +89,59 @@ function memberSide(tx) {
 }
 
 /**
+ * The `parties` jsonb, safely. Written by the contract scan (both the browser
+ * document-upload path and api/_lib/contact-persistence.js) in the shape
+ * { buyer|seller|buyerAgent|listingAgent|title|lender: {name,email,phone,...} }.
+ */
+function partyBlock(tx, key) {
+  const p = tx && tx.parties && typeof tx.parties === 'object' && !Array.isArray(tx.parties) ? tx.parties : {};
+  const block = p[key];
+  return block && typeof block === 'object' && !Array.isArray(block) ? block : {};
+}
+
+/**
  * Every address belonging to the party the member does NOT represent.
  * Used as a blocklist, so it errs toward listing more addresses rather than
  * fewer — a false positive here costs an explanatory message, a false
  * negative costs an improper contact with a represented party.
+ *
+ * 2026-09-20 — also reads `parties`. The contract scan records an opposing
+ * principal's ¶21 notice address there (marked `contactable: false`) and
+ * deliberately keeps it OUT of buyer_email/seller_email so it can never be
+ * resolved as a recipient by role. That is the right call for the role path,
+ * but it left this hand-typed-address check blind to the very address the
+ * scan had just read: a member who typed the buyer's address in by hand would
+ * have sailed straight past it. Reading both sources closes that.
  */
 function opposingPrincipalContacts(tx, side) {
+  const out = [];
+  const add = (name, email) => { if (email) out.push({ name, email }); };
+
+  const addBlock = (key, fallbackName) => {
+    const b = partyBlock(tx, key);
+    add(b.name || fallbackName, b.email);
+    add(b.name2 || fallbackName, b.email2);
+    // The contract scan files an opposing principal's ¶21 notice address here
+    // rather than under `email`, precisely so nothing can promote it into a
+    // sendable column. It is still an address belonging to the other side's
+    // client, so it still belongs on the blocklist.
+    const blockedBag = b.contact_blocked && typeof b.contact_blocked === 'object' ? b.contact_blocked : {};
+    add(b.name || fallbackName, blockedBag.email);
+  };
+
   if (side === 'listing') {
-    return [
-      { name: tx.buyer_name, email: tx.buyer_email },
-      { name: tx.buyer2_name, email: tx.buyer2_email },
-      // There is no buyer_notice_email column — the ¶21 notice email lives on
-      // the TREC form, not the deal record. buyer_email/buyer2_email are the
-      // only addresses a buyer principal can actually have here.
-    ].filter((c) => c.email);
+    add(tx.buyer_name, tx.buyer_email);
+    add(tx.buyer2_name, tx.buyer2_email);
+    addBlock('buyer', tx.buyer_name);
+    return out;
   }
   if (side === 'buyer') {
-    return [
-      { name: tx.seller_name, email: tx.seller_email },
-      { name: tx.seller2_name, email: tx.seller2_email },
-      // Same as above: no seller_notice_email column exists.
-    ].filter((c) => c.email);
+    add(tx.seller_name, tx.seller_email);
+    add(tx.seller2_name, tx.seller2_email);
+    addBlock('seller', tx.seller_name);
+    return out;
   }
-  return [];
+  return out;
 }
 
 /**
@@ -152,6 +182,22 @@ function resolveRoleRecipients({ tx, profile, role }) {
     }
   }
 
+  // 2026-09-20 — every non-principal role falls back to the `parties` jsonb.
+  //
+  // This was a split brain, and it is the reason Dossie could read a buyer's
+  // agent off a contract and still say she had no address for them. The
+  // browser's document-upload scan (dossie-app.jsx handleUploadDocument)
+  // writes agent contacts ONLY into `parties.buyerAgent` / `parties.listingAgent`
+  // — mapAppTransactionToDb never writes other_agent_email_addr or
+  // listing_agent_email_addr at all. This resolver read only those columns. So
+  // on every deal scanned through the UI the address was on file and
+  // unreachable at the same time.
+  //
+  // The flat column stays FIRST: it is what a member types in the deal record,
+  // and rule one everywhere in this feature is that a human value outranks a
+  // parsed one. The jsonb is the fallback, not the override.
+  const pick = (...cands) => cands.find((c) => c && c.email && isEmail(c.email)) || cands[0] || {};
+
   let raw = [];
   switch (role) {
     case 'seller':
@@ -166,21 +212,39 @@ function resolveRoleRecipients({ tx, profile, role }) {
         { name: tx.buyer2_name, email: tx.buyer2_email },
       ];
       break;
-    case 'listing_agent':
-      raw = [{ name: tx.listing_agent_name, email: tx.listing_agent_email_addr }];
+    case 'listing_agent': {
+      const p = partyBlock(tx, 'listingAgent');
+      raw = [pick(
+        { name: tx.listing_agent_name, email: tx.listing_agent_email_addr },
+        { name: tx.listing_agent_name || p.name, email: p.email },
+      )];
       break;
+    }
     case 'buyer_agent':
-    case 'other_agent':
-      raw = [{ name: tx.other_agent_name, email: tx.other_agent_email_addr }];
+    case 'other_agent': {
+      const p = partyBlock(tx, 'buyerAgent');
+      raw = [pick(
+        { name: tx.other_agent_name, email: tx.other_agent_email_addr },
+        { name: tx.other_agent_name || p.name, email: p.email },
+      )];
       break;
-    case 'title':
-      raw = [
+    }
+    case 'title': {
+      const p = partyBlock(tx, 'title');
+      raw = [pick(
         { name: tx.title_officer_name || tx.escrow_officer_name, email: tx.title_officer_email },
-      ];
+        { name: tx.title_officer_name || tx.escrow_officer_name || p.name, email: p.email },
+      )];
       break;
-    case 'lender':
-      raw = [{ name: tx.loan_officer_name || tx.lender_name, email: tx.loan_officer_email }];
+    }
+    case 'lender': {
+      const p = partyBlock(tx, 'lender');
+      raw = [pick(
+        { name: tx.loan_officer_name || tx.lender_name, email: tx.loan_officer_email },
+        { name: tx.loan_officer_name || tx.lender_name || p.name, email: p.email },
+      )];
       break;
+    }
     case 'compliance':
       raw = [{ name: profile.brokerage ? `${profile.brokerage} compliance` : 'Compliance', email: profile.compliance_email }];
       break;
