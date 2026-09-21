@@ -65,7 +65,20 @@ function num(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-const VALID_STATUSES = new Set(['pending', 'accepted', 'rejected', 'countered']);
+const VALID_STATUSES = new Set(['pending', 'accepted', 'rejected', 'countered', 'retired']);
+
+// 'accepted' and 'retired' route through the atomic accept_offer/retire_offer
+// Postgres functions (supabase/migrations/20260921_offers_model_accept_retire_functions.sql)
+// instead of a plain field PATCH — see that migration's header for why a
+// single RPC call is the correct atomicity boundary here. Every other status
+// transition (pending/rejected/countered) never touched the transaction, so
+// a plain PATCH is still correct for those.
+async function supabaseRpc(fnName, args) {
+  return supabaseRest('rpc/' + fnName, {
+    method: 'POST',
+    body: JSON.stringify(args),
+  });
+}
 
 module.exports = async function handler(req, res) {
   const corsAllowed = applyCors(req, res);
@@ -195,7 +208,48 @@ module.exports = async function handler(req, res) {
       const newStatus = sanitizeString(body.status, { maxLength: 50 });
       if (!offerId) throw new ValidationError('id is required.');
       if (!newStatus || !VALID_STATUSES.has(newStatus)) {
-        throw new ValidationError('status must be one of: pending, accepted, rejected, countered.');
+        throw new ValidationError('status must be one of: pending, accepted, rejected, countered, retired.');
+      }
+
+      if (newStatus === 'accepted') {
+        const rpcResp = await supabaseRpc('accept_offer', { p_offer_id: offerId, p_user_id: userId });
+        if (!rpcResp.ok) {
+          const t = await rpcResp.text().catch(() => '');
+          if (/offer_already_accepted/.test(t)) {
+            throw new ValidationError('This offer is already accepted.');
+          }
+          if (/offer_not_found|transaction_not_found/.test(t)) {
+            return res.status(404).json({ ok: false, error: 'Offer or dossier not found.' });
+          }
+          throw new Error('accept_offer failed (' + rpcResp.status + '): ' + t.slice(0, 300));
+        }
+        const offerResp = await supabaseRest(
+          'transaction_offers?id=eq.' + encodeURIComponent(offerId) + '&select=*',
+          { method: 'GET' },
+        );
+        const offerRows = offerResp.ok ? await offerResp.json() : [];
+        return res.status(200).json({ ok: true, offer: Array.isArray(offerRows) ? offerRows[0] : offerRows });
+      }
+
+      if (newStatus === 'retired') {
+        const reason = sanitizeString(body.reason, { maxLength: 500 }) || null;
+        const rpcResp = await supabaseRpc('retire_offer', { p_offer_id: offerId, p_user_id: userId, p_reason: reason });
+        if (!rpcResp.ok) {
+          const t = await rpcResp.text().catch(() => '');
+          if (/offer_not_accepted/.test(t)) {
+            throw new ValidationError('Only an accepted offer can be retired.');
+          }
+          if (/offer_not_found/.test(t)) {
+            return res.status(404).json({ ok: false, error: 'Offer not found.' });
+          }
+          throw new Error('retire_offer failed (' + rpcResp.status + '): ' + t.slice(0, 300));
+        }
+        const offerResp = await supabaseRest(
+          'transaction_offers?id=eq.' + encodeURIComponent(offerId) + '&select=*',
+          { method: 'GET' },
+        );
+        const offerRows = offerResp.ok ? await offerResp.json() : [];
+        return res.status(200).json({ ok: true, offer: Array.isArray(offerRows) ? offerRows[0] : offerRows });
       }
 
       const patchResp = await supabaseRest(
