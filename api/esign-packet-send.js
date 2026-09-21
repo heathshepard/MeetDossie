@@ -54,6 +54,10 @@ const {
   verifyConfirmationToken,
 } = require('./_lib/packet-recipients');
 const esignCreateHandler = require('./esign-create');
+// Real field counts, not a separate estimate — the exact same
+// buildPacketDocEntry() call the actual send makes. See that function's own
+// header comment in api/esign-create.js.
+const { computePacketFieldCounts } = require('./esign-create');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -131,6 +135,55 @@ function defaultOwnClientRole(tx) {
 
 function docusealRoleLabel(baseLabel, index) {
   return index === 0 ? `${baseLabel} 1` : `${baseLabel} ${index + 1}`;
+}
+
+// Flattens computePacketFieldCounts()'s per-document/per-role shape into the
+// list the confirmation-token digest signs — see packet-recipients.js's
+// packetDigest for why counts belong in the digest at all.
+function flattenCountsForDigest(perDocumentCounts) {
+  const out = [];
+  for (const doc of perDocumentCounts) {
+    for (const [role, c] of Object.entries(doc.counts || {})) {
+      out.push({
+        document_id: doc.document_id, role,
+        signatures: c.signatures, dates: c.dates, initials: c.initials,
+      });
+    }
+  }
+  return out;
+}
+
+// Collapses per-document/per-role counts into the single flat object
+// SignatureConfirmCard.jsx renders ({signatures, dates, initials,
+// executed_block}). This is a SUM of the same real numbers computed above —
+// never a separately-estimated figure, so what the member sees cannot drift
+// from what computePacketFieldCounts (and therefore the send path) actually
+// found.
+function aggregateCountsForCard(perDocumentCounts) {
+  const totals = { signatures: 0, dates: 0, initials: 0, executed_block: false };
+  for (const doc of perDocumentCounts) {
+    if (doc.form_type === 'resale_contract') totals.executed_block = true;
+    for (const c of Object.values(doc.counts || {})) {
+      totals.signatures += c.signatures;
+      totals.dates += c.dates;
+      totals.initials += c.initials;
+    }
+  }
+  return totals;
+}
+
+// Runs the real, shared field-count computation and refuses (throwing
+// ValidationError, same shape every other gate in this file throws) the
+// instant any document/signer pairing is unsafe. Called from BOTH preview
+// and send — "the server refuses, not just the client": a caller that skips
+// the confirmation card entirely and calls mode:'send' directly still hits
+// this before a token is ever honored.
+function computeCountsOrRefuse(docs, signers) {
+  const result = computePacketFieldCounts({ documents: docs, signers, callerFields: [] });
+  if (!result.ok) {
+    throw new ValidationError(result.error, result.status || 422);
+  }
+  return result.documents;
 }
 
 // Invokes api/esign-create.js's real handler in-process — no parallel send
@@ -218,27 +271,52 @@ module.exports = async function handler(req, res) {
       role: docusealRoleLabel(def.label, i),
     }));
 
+    // Real per-document/per-signer field counts — computed (and the packet
+    // refused on any unsafe pairing) in BOTH modes, from the same call. A
+    // mismatch throws ValidationError here and is caught by the handler's
+    // outer try/catch, so preview and send refuse identically and neither
+    // ever issues/honors a token for an unsignable or undated packet.
+    const perDocumentCounts = computeCountsOrRefuse(docs, signers);
+    const countsForDigest = flattenCountsForDigest(perDocumentCounts);
+    const cardCounts = aggregateCountsForCard(perDocumentCounts);
+
     if (mode === 'preview') {
       const token = issueConfirmationToken({
         userId, transactionId, recipients: signers, subject: message || '', documentIds,
+        counts: countsForDigest,
       });
       const who = signers.length === 1 ? (signers[0].name || signers[0].email) : `${signers.length} signers`;
       return res.status(200).json({
         ok: true,
         confirmation_token: token,
         transaction_id: transactionId,
-        documents: docs.map((d) => ({ document_id: d.id, file_name: d.file_name })),
+        documents: docs.map((d) => {
+          const detail = perDocumentCounts.find((p) => p.document_id === d.id);
+          return { document_id: d.id, file_name: d.file_name, counts: (detail && detail.counts) || {} };
+        }),
         signers: signers.map((s) => ({ name: s.name, email: s.email, role: s.role })),
         message: message || null,
-        counts_sentence: `${docs.length} document${docs.length === 1 ? '' : 's'} to ${who}`,
+        counts: cardCounts,
+        counts_sentence: `${docs.length} document${docs.length === 1 ? '' : 's'} to ${who}, `
+          + `${cardCounts.signatures} signature${cardCounts.signatures === 1 ? '' : 's'}, `
+          + `${cardCounts.dates} date${cardCounts.dates === 1 ? '' : 's'}, `
+          + `${cardCounts.initials} initial${cardCounts.initials === 1 ? '' : 's'}`,
       });
     }
 
     // ------------------------------------------------------------- send
     const token = body.confirmation_token;
     if (!token) throw new ValidationError('confirmation_token is required to send.');
+    // Verified against counts RE-DERIVED just above, not counts carried in
+    // the request body (there aren't any — the client only ever echoes
+    // document_ids/message/token). If the underlying documents changed
+    // between preview and send, countsForDigest differs from what the token
+    // was issued against, the digest no longer matches, and this is a
+    // 'packet_changed' rejection — the exact replay this digest exists to
+    // catch.
     const verify = verifyConfirmationToken(token, {
       userId, transactionId, recipients: signers, subject: message || '', documentIds,
+      counts: countsForDigest,
     });
     if (!verify.ok) {
       return res.status(409).json({ ok: false, error: TOKEN_ERROR_MESSAGES[verify.reason] || 'That confirmation was not valid.' });
