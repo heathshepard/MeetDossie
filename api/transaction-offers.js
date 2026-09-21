@@ -1,14 +1,19 @@
 // Vercel Serverless Function: /api/transaction-offers
 // Offer comparison table for seller-side transactions (Block 11C)
 //
-// GET  ?transactionId=<uuid>          — list all offers for a transaction
+// GET  ?transactionId=<uuid>          — list all offers for a transaction (active only)
 // POST { transaction_id, buyer_name, offer_price, financing_type, down_payment_pct,
 //        option_fee, option_days, earnest_money, closing_date, escalation_clause,
 //        escalation_cap, notes }      — create an offer
 // PATCH { id, status }               — update status: pending|accepted|rejected|countered
-// DELETE ?id=<uuid>                  — delete an offer
+// DELETE ?id=<uuid>                  — archive an offer (soft delete)
 //
 // Authorization: Bearer <supabase user JWT>
+//
+// Changed 2026-09-21 (hard-delete sibling audit, priority 1): DELETE used to
+// hard-delete the offer row. Now it sets archived_at and stops there — same
+// pattern as documents.archived_at / transactions.archived_at. See
+// supabase/migrations/20260921_transactions_and_offers_archive.sql.
 
 const { sanitizeString, ValidationError } = require('./_middleware/validate');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
@@ -101,11 +106,25 @@ module.exports = async function handler(req, res) {
 
       const offersResp = await supabaseRest(
         'transaction_offers?transaction_id=eq.' + encodeURIComponent(transactionId) +
-        '&order=submitted_at.asc&select=*',
+        '&archived_at=is.null&order=submitted_at.asc&select=*',
         { method: 'GET' },
       );
       if (!offersResp.ok) {
         const t = await offersResp.text().catch(() => '');
+        // Column not there yet (migration hasn't run) — degrade instead of a
+        // bare 500: fall back to the unfiltered list rather than break the
+        // offer-compare table for every seller-side dossier.
+        if (offersResp.status === 400 && /archived_at/.test(t)) {
+          const fallbackResp = await supabaseRest(
+            'transaction_offers?transaction_id=eq.' + encodeURIComponent(transactionId) +
+            '&order=submitted_at.asc&select=*',
+            { method: 'GET' },
+          );
+          if (fallbackResp.ok) {
+            const offers = await fallbackResp.json();
+            return res.status(200).json({ ok: true, offers: Array.isArray(offers) ? offers : [] });
+          }
+        }
         throw new Error('offers fetch failed (' + offersResp.status + '): ' + t.slice(0, 200));
       }
       const offers = await offersResp.json();
@@ -197,19 +216,27 @@ module.exports = async function handler(req, res) {
     }
 
     // -------------------------------------------------------------------------
-    // DELETE — remove an offer
+    // DELETE — archive an offer (soft delete, nothing destroyed)
     // -------------------------------------------------------------------------
     if (req.method === 'DELETE') {
       const offerId = sanitizeString(req.query && req.query.id, { maxLength: 200 });
       if (!offerId) throw new ValidationError('id query param required.');
 
-      const delResp = await supabaseRest(
+      const archiveResp = await supabaseRest(
         'transaction_offers?id=eq.' + encodeURIComponent(offerId) + '&user_id=eq.' + safeUid,
-        { method: 'DELETE' },
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ archived_at: new Date().toISOString() }),
+        },
       );
-      if (!delResp.ok) {
-        const t = await delResp.text().catch(() => '');
-        throw new Error('offer delete failed (' + delResp.status + '): ' + t.slice(0, 300));
+      if (!archiveResp.ok) {
+        const t = await archiveResp.text().catch(() => '');
+        if (archiveResp.status === 400 && /archived_at/.test(t)) {
+          console.error('[transaction-offers] archived_at column missing — run admin-migrate-transactions-archive.');
+          return res.status(503).json({ ok: false, error: 'Archiving is not ready yet. Try again shortly.' });
+        }
+        throw new Error('offer archive failed (' + archiveResp.status + '): ' + t.slice(0, 300));
       }
       return res.status(200).json({ ok: true });
     }
