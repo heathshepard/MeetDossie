@@ -361,15 +361,46 @@ function inviteEmailHtml({ actionUrl, fullName, expiresAt }) {
 }
 
 /**
+ * 2026-09-21 — invite-resend.js calls this for TWO different situations that
+ * had been sharing one template: a never-activated account getting its
+ * FIRST credential ("you're in, pick a password") and an already-activated
+ * customer who just forgot their password and wants an ordinary reset. The
+ * "you're in" copy is wrong for the second case — someone who has used
+ * Dossie for months does not need to be welcomed. docs/AUTH-EMAIL-SETUP-
+ * 2026-09-19.md §5 item 2 flagged this; this is that fix.
+ */
+function resetEmailHtml({ actionUrl, fullName, expiresAt }) {
+  const name = firstNameOf(fullName);
+  const hours = expiresAt
+    ? Math.max(1, Math.round((new Date(expiresAt).getTime() - Date.now()) / 3600000))
+    : 1;
+  return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 48px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
+  <div style="font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
+  <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 36px; line-height: 1.15; margin: 0 0 16px; color: ${BRAND_NAVY};">Reset your password</h1>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">${name ? name + ', someone' : 'Someone'} asked to reset the password on your Dossie account. If that was you, here's the link.</p>
+  <a href="${actionUrl}" style="display: inline-block; padding: 16px 32px; background: ${BRAND_BLUSH_DEEP}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px;">Set a New Password</a>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 28px 0 0;">If you didn't ask for this, just delete it — your password stays exactly as it is until somebody uses that link.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 18px 0 0;">Reply to this email any time. I read every one.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 18px 0 4px;">Heath</p>
+  <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
+  <p style="margin-top: 32px; font-size: 13px; color: ${BRAND_MUTED}; line-height: 1.6;">This link is good for ${hours} hour${hours === 1 ? '' : 's'}. If it's expired by the time you get to it, go to <a href="${SITE_URL}/forgot-password.html" style="color: ${BRAND_BLUSH_DEEP};">meetdossie.com/forgot-password</a> and request a fresh one — it's instant, you don't have to wait on anybody.</p>
+</div>`;
+}
+
+/**
  * The ONLY function in this module that contacts Resend.
  *
+ * @param {'invite'|'reset'} [kind] - which template/copy this email is.
+ *   Defaults to 'invite' (the existing behavior every current caller except
+ *   invite-resend.js's activated-account branch relies on).
  * @returns {Promise<{ok: boolean, id?: string, error?: string}>}
  */
-async function sendInviteEmail({ to, fullName, actionUrl, expiresAt, subject }) {
+async function sendInviteEmail({ to, fullName, actionUrl, expiresAt, subject, kind }) {
   if (!RESEND_API_KEY) {
     console.error('[account-invites] RESEND_API_KEY not set — cannot email', to);
     return { ok: false, error: 'resend_not_configured' };
   }
+  const isReset = kind === 'reset';
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -377,8 +408,10 @@ async function sendInviteEmail({ to, fullName, actionUrl, expiresAt, subject }) 
       body: JSON.stringify({
         from: 'Dossie <dossie@meetdossie.com>',
         to: [to],
-        subject: subject || "You're in — set your Dossie password",
-        html: inviteEmailHtml({ actionUrl, fullName, expiresAt }),
+        subject: subject || (isReset ? 'Reset your Dossie password' : "You're in — set your Dossie password"),
+        html: isReset
+          ? resetEmailHtml({ actionUrl, fullName, expiresAt })
+          : inviteEmailHtml({ actionUrl, fullName, expiresAt }),
         bcc: ['heath@meetdossie.com'],
       }),
     });
@@ -517,6 +550,7 @@ module.exports = {
   mintRecoveryLink,
   sendInviteEmail,
   inviteEmailHtml,
+  resetEmailHtml,
   logLifecycleEmail,
   fetchLedgerSteps,
   inviteUrl,
