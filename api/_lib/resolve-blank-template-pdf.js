@@ -26,6 +26,7 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { extractBase64 } = require('./base64-asset.js');
 
 const FORM_TEMPLATE_B64 = {
   'resale-contract':       () => require('../_assets/trec-resale-20-19-base64.js'),
@@ -158,8 +159,11 @@ async function resolveBlankTemplatePdf(doc) {
 
   let buffer;
   try {
-    const b64 = loader();
-    if (!b64 || typeof b64 !== 'string') return null;
+    // 2026-09-21 CARTER — trec-unimproved-property-base64.js (and 3 other
+    // un-suffixed legacy assets) export { base64Pdf: '...' }, not a plain
+    // string; `typeof b64 !== 'string'` alone silently dropped this form.
+    const b64 = extractBase64(loader());
+    if (!b64) return null;
     buffer = Buffer.from(b64, 'base64');
   } catch (err) {
     console.warn(`[resolve-blank-template-pdf] loader failed for slug="${slug}":`, err && err.message);
