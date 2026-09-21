@@ -1,7 +1,13 @@
 // Vercel Serverless Function: /api/send-wire-fraud-warning
-// Sends a wire fraud prevention email to a buyer and logs the delivery.
+// Sends a wire fraud prevention email to a buyer OR seller and logs the
+// delivery. TAR/TXR 2517 is buyer AND seller facing — see
+// supabase/migrations/20260921_wire_fraud_deliveries_recipient_role.sql for
+// why this used to be buyer-only and isn't anymore.
 //
-// POST { transaction_id, buyer_email, buyer_name, property_address, closing_date? }
+// POST { transaction_id, buyer_email, buyer_name, recipient_role?, property_address, closing_date? }
+// buyer_email/buyer_name are the generic recipient name/email params (kept
+// for backward compat with existing callers) — recipient_role ('buyer' |
+// 'seller', defaults 'buyer') records which party this delivery is for.
 // Authorization: Bearer <supabase user JWT>
 //
 // Environment:
@@ -60,7 +66,8 @@ module.exports = async function handler(req, res) {
     return res.status(status).json({ ok: false, error: 'Unauthorized' });
   }
 
-  const { transaction_id, buyer_email, buyer_name, property_address, closing_date } = req.body || {};
+  const { transaction_id, buyer_email, buyer_name, recipient_role, property_address, closing_date } = req.body || {};
+  const recipientRole = (recipient_role === 'seller') ? 'seller' : 'buyer';
 
   if (!transaction_id) {
     return res.status(400).json({ ok: false, error: 'transaction_id is required' });
@@ -174,6 +181,36 @@ If you don't see future emails from Dossie, please check your spam folder and ma
       });
     } catch (err) {
       console.warn('[send-wire-fraud-warning] email_queue log failed:', err && err.message);
+    }
+
+    // 2026-09-21 — this endpoint used to only log to email_queue, which the
+    // "Wire Fraud Warning not sent" banner never reads (it reads
+    // wire_fraud_deliveries, populated only by the separate DocuSeal
+    // fill-form path). A send through THIS endpoint never cleared that
+    // banner even though the warning genuinely went out — the send path and
+    // the status-check path didn't talk to each other. Now both writers
+    // feed the one table the banner actually reads.
+    try {
+      await fetch(`${process.env.SUPABASE_URL}/rest/v1/wire_fraud_deliveries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({
+          transaction_id: String(transaction_id),
+          user_id: userId,
+          document_id: null,
+          delivered_at: new Date().toISOString(),
+          recipient_role: recipientRole,
+          buyer_name: trimmedName,
+          buyer_email: trimmedEmail,
+        }),
+      });
+    } catch (err) {
+      console.warn('[send-wire-fraud-warning] wire_fraud_deliveries log failed:', err && err.message);
     }
   }
 
