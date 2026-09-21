@@ -71,13 +71,15 @@ Document types and their KEY IDENTIFIERS:
 - "trec-hydrostatic-testing-addendum": Title says "ADDENDUM FOR AUTHORIZING HYDROSTATIC TESTING" — authorizes a water-pressure test of plumbing/septic lines.
 - "trec-unimproved-property-addendum": Title says "ADDENDUM FOR SALE OF UNIMPROVED PROPERTY" or similar, TREC No. 9 series — property has no residence on it (land, a lot).
 - "trec-termination-notice": Title says "NOTICE OF BUYER'S TERMINATION OF CONTRACT" or "TERMINATION OF CONTRACT". TREC No. 38-x. States a contract is being terminated and, if applicable, who gets the earnest money.
+- "amendment": Title says "AMENDMENT TO CONTRACT" (TREC No. 39-x, sometimes "AMENDMENT" alone). MODIFIES a term of an ALREADY-SIGNED contract — most commonly extending the option period, changing the closing date, or changing the sales price. Has fields for "Paragraph __ is amended to..." or similarly-worded blanks the parties fill in, plus buyer/seller signature lines. This is a GENERAL-PURPOSE modification form, not a specific-contingency addendum.
 - "other": Anything that does not clearly match the above.
 
 CRITICAL DISAMBIGUATION RULES:
 1. trec-sellers-disclosure vs trec-lead-paint: If the form mentions foundation, roof, plumbing, electrical — it is trec-sellers-disclosure. If the form ONLY discusses lead paint hazards and has federal law language — it is trec-lead-paint.
 2. trec-buyer-representation vs trec-listing-agreement: Buyer representation protects the buyer. Listing agreement gives agent the right to sell the property.
 3. trec-hoa-addendum vs "hoa-docs": trec-hoa-addendum is the ONE-PAGE contract addendum form itself (a checkbox/signature form). "hoa-docs" is the multi-page PACKAGE of the association's actual bylaws, financials, and resale certificate.
-4. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
+4. "amendment" vs the "trec-*-addendum" types: an addendum is attached AT SIGNING to add a specific contingency or disclosure that becomes part of the original contract. An amendment CHANGES a term of a contract that was ALREADY signed and is now in effect — most often the option period end date, the closing date, or the sales price. If the document's own language is "amends," "extends," or "changes" a paragraph of an existing contract rather than adding a new contingency, it is "amendment."
+5. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
 
 const DOCUMENT_LABELS = {
   'trec-20-17': 'TREC One to Four Family Residential Contract',
@@ -119,6 +121,15 @@ const DOCUMENT_LABELS = {
   'trec-hydrostatic-testing-addendum': 'Hydrostatic Testing Addendum',
   'trec-unimproved-property-addendum': 'Unimproved Property Addendum',
   'trec-termination-notice': 'Notice of Termination',
+  // 2026-09-21 — reuses the SAME literal draft-amendment.js and
+  // DOCUMENT_TYPE_META (dossie-app.jsx) already use for a
+  // Dossie-generated amendment, rather than a new "trec-amendment" slug —
+  // one canonical value, not two competing ones the UI only recognizes one
+  // of. Added after the 507 Ridge Blf finding: 6 real amendment documents
+  // all landed on "other" at 0.95-0.98 confidence, because this type simply
+  // didn't exist in the classifier's enum — a confidently correct "not any
+  // of the above," not a low-confidence miss.
+  'amendment': 'Amendment',
   'other': 'Document',
 };
 
