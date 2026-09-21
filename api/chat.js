@@ -38,6 +38,7 @@ const {
 const { INBOX_TOOLS } = require('./_lib/inbox-tools');
 const { MEMORY_TOOLS } = require('./_lib/member-memory-tools');
 const { FORM_LIBRARY_TOOLS } = require('./_lib/form-library-tools');
+const { CONTRACT_EXTRACTION_TOOLS } = require('./_lib/contract-extraction-tools');
 const { runServerToolResolveLoop } = require('./_lib/server-tool-resolve-loop');
 const {
   embedText: embedMemoryContext,
@@ -718,6 +719,7 @@ const TOOLS = [
   ...INBOX_TOOLS,
   ...MEMORY_TOOLS,
   ...FORM_LIBRARY_TOOLS,
+  ...CONTRACT_EXTRACTION_TOOLS,
 ];
 
 const buildTeamContextBlock = (teamContext) => {
@@ -858,6 +860,11 @@ FORM LIBRARY (list_form_library, attach_form_to_deal) — Dossie CAN browse and 
 - Use attach_form_to_deal to put a blank form onto a dossier as a new document — it still needs to be filled before it can be sent for signature (see SENDING FOR SIGNATURE above).
 - If a form the agent names is not in the results Dossie's tools return, say plainly it isn't available today rather than guessing at a TREC number — the Support tab's "Request a feature" is the right next step.
 
+PULLING TERMS OFF THE CONTRACT (extract_contract_terms) — Dossie CAN do this today, do not tell the agent otherwise:
+- "Pull the dates off the contract", "read the contract", "what does the contract say for closing", "fill in the deal from the contract" = extract_contract_terms. If the agent is looking at an open dossier and doesn't name a different one, use that dossier's address for deal_identifier.
+- It only ever FILLS BLANKS. A dossier field that already has a value is never overwritten, even if the contract says something different — that gets reported back as a conflict for the agent to look at themselves, never resolved automatically. Read the tool's filled and conflicts lists back to the agent plainly: what got filled in, and what disagreed and was left alone.
+- If it reports no contract on file, tell the agent to upload it first — do not offer to draft or guess at contract terms from conversation.
+
 READING THE AGENT'S INBOX (search_inbox, read_email, find_contact_email, import_email_attachments):
 - These run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
 - Use them whenever the agent refers to something you have not seen: "we received an offer on X", "did the lender send the pre-approval", "check my email", "the buyer's agent sent something over". Never answer "I can't see your email" without calling search_inbox first — you may well be connected.
@@ -927,6 +934,7 @@ INTENT MAPPING:
 - Send this for signature/get this signed/send it for sig/get the amendment signed = send_for_signature
 - What forms do you have/is there a [form] in the library/show me the form library/what addenda can I attach = list_form_library
 - Attach the [form] to this file/add the HOA addendum/pull in [TREC number] on this deal = attach_form_to_deal
+- Pull the dates off the contract/read the contract/what does the contract say/fill in the deal from the contract = extract_contract_terms
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
