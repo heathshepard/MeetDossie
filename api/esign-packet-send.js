@@ -87,7 +87,7 @@ async function loadOwnedDocuments(documentIds, userId) {
   const idList = documentIds.map((id) => `"${id}"`).join(',');
   const r = await supa(
     `documents?id=in.(${idList})&user_id=eq.${encodeURIComponent(userId)}` +
-    `&select=id,file_name,document_type,status,transaction_id`
+    `&select=id,file_name,document_type,status,transaction_id,executed_at`
   );
   if (!r.ok) throw new Error(`documents fetch failed: ${r.status}`);
   const rows = await r.json();
@@ -98,7 +98,14 @@ async function loadOwnedDocuments(documentIds, userId) {
   if (txIds.size !== 1 || !rows[0].transaction_id) {
     throw new ValidationError('Those documents are not all on the same dossier — send them separately.');
   }
-  const unsendable = rows.find((d) => EXCLUDED_DOC_TYPES.has(String(d.document_type || '')));
+  // executed_at (2026-09-21+) is the authoritative "already an executed
+  // copy" signal now that api/esign-download.js preserves the real
+  // document_type instead of overwriting it to the generic 'signed' literal
+  // — checking document_type alone would let an executed HOA addendum, say,
+  // through as if it were unsent. EXCLUDED_DOC_TYPES stays as a second
+  // signal for older rows and the Gmail-parsed completion path, which still
+  // writes the generic literal.
+  const unsendable = rows.find((d) => d.executed_at || EXCLUDED_DOC_TYPES.has(String(d.document_type || '')));
   if (unsendable) {
     throw new ValidationError(`${unsendable.file_name || 'That document'} is already an executed/signed copy — it can't be sent for signature again.`);
   }
