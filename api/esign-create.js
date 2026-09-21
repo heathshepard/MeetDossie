@@ -251,12 +251,18 @@ function resaleFormEntry() {
         title: `${label} Date`,
         type: 'date',
         preferences: { format: 'MM/DD/YYYY' },
+        // 2026-09-21 CARTER — was y=sig.y+sig.h+0.005/h=0.022, which rendered
+        // the date box directly on top of the printed "Buyer"/"Seller"
+        // caption text on p10 (rendered + visually confirmed; caught by
+        // Cole's review of the reference-form assumption during the 19-form
+        // date rollout). 0.014 clears the caption; 0.020 height still lands
+        // well clear of the next signer's row (rendered + confirmed).
         areas: [{
           page: sig.page,
           x: sig.x,
-          y: Math.min(sig.y + sig.h + 0.005, 0.99),
+          y: Math.min(sig.y + sig.h + 0.014, 0.99),
           w: Math.min(sig.w * 0.5, 0.18),
-          h: 0.022,
+          h: 0.020,
         }],
       });
       roles[`${side}${i + 1}`] = fields;
