@@ -111,13 +111,13 @@ async function handleGet(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// POST action: attach — copies a template into the transaction's documents
+// Core attach logic — copies a template into the transaction's documents.
+// Extracted from the POST action:'attach' handler (2026-09-21) so
+// api/_lib/form-library-tools.js (Dossie chat's attach_form_to_deal tool)
+// calls the SAME code path rather than a second copy of it. Throws
+// ValidationError/Error; callers translate to their own response shape.
 // ---------------------------------------------------------------------------
-async function handleAttach(req, res, userId) {
-  const body = req.body || {};
-  const templateId = sanitizeString(body.templateId, { maxLength: 200 });
-  const transactionId = sanitizeString(body.transactionId, { maxLength: 200 });
-
+async function attachFormTemplate(userId, templateId, transactionId) {
   if (!templateId) throw new ValidationError('templateId is required.');
   if (!transactionId) throw new ValidationError('transactionId is required.');
 
@@ -176,10 +176,22 @@ async function handleAttach(req, res, userId) {
   }
   const inserted = await insertRes.json();
   const newDoc = Array.isArray(inserted) ? inserted[0] : inserted;
+  return { documentId: newDoc && newDoc.id ? newDoc.id : null, template };
+}
+
+// ---------------------------------------------------------------------------
+// POST action: attach — HTTP wrapper around attachFormTemplate
+// ---------------------------------------------------------------------------
+async function handleAttach(req, res, userId) {
+  const body = req.body || {};
+  const templateId = sanitizeString(body.templateId, { maxLength: 200 });
+  const transactionId = sanitizeString(body.transactionId, { maxLength: 200 });
+
+  const { documentId } = await attachFormTemplate(userId, templateId, transactionId);
 
   return res.status(200).json({
     ok: true,
-    documentId: newDoc?.id || null,
+    documentId,
     message: 'Form attached to transaction',
   });
 }
@@ -234,3 +246,9 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'An unexpected error occurred.' });
   }
 };
+
+// Exposed for api/_lib/form-library-tools.js (Dossie chat's list_form_library
+// / attach_form_to_deal tools) so they share this file's exact query shape
+// and the ownership-checked attach path rather than a second copy of either.
+module.exports.attachFormTemplate = attachFormTemplate;
+module.exports.supa = supa;
