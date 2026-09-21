@@ -143,11 +143,90 @@ function planRevertPatch(snapshotRows) {
   return patch;
 }
 
+// Which transaction_offers columns feed which transactions columns at the
+// moment an offer is accepted. Deliberately small — most of SNAPSHOT_FIELDS
+// (the due-date/confirmation/deposit columns) are NOT set by acceptance
+// itself; they get written later in the deal's life by the funds-due-date
+// trigger, contract-term-persistence.js, or manual TC edits. They're still
+// snapshotted at accept time (see planAcceptSnapshots) purely so a later
+// revert has a correct pre-offer prior_value for them too — accepting an
+// offer is what starts that field's lifecycle even though the offer's own
+// row doesn't carry the value.
+const OFFER_TO_TRANSACTION_FIELD_MAP = {
+  offer_price: 'sale_price',
+  closing_date: 'closing_date',
+  option_fee: 'option_fee',
+  option_days: 'option_days',
+  earnest_money: 'earnest_money',
+};
+
+/**
+ * Build the FULL 17-field offer_field_snapshots rows for an offer
+ * acceptance. Every SNAPSHOT_FIELDS column gets a row — the ~5 the offer
+ * directly maps to get new_value = the offer's value; every other field
+ * (due dates, confirmations, deposits, title company) gets new_value equal
+ * to its own prior_value (untouched by acceptance itself, but still
+ * captured so a future revert correctly wipes out whatever got written
+ * under this offer's lifecycle later, without needing to track every
+ * intermediate write separately — see the module header comment).
+ *
+ * @param {object} currentTransactionRow - transaction row's values
+ *   immediately before this offer's terms are applied.
+ * @param {object} offer - the transaction_offers row being accepted.
+ * @param {{offerId: string, transactionId: string, userId: string}} ids
+ * @returns {Array<object>} all 17 snapshot rows.
+ */
+function planAcceptSnapshots(currentTransactionRow, offer, ids) {
+  if (!ids || !ids.offerId || !ids.transactionId || !ids.userId) {
+    throw new Error('planAcceptSnapshots requires offerId, transactionId, and userId.');
+  }
+  const row = currentTransactionRow || {};
+  const off = offer || {};
+
+  return SNAPSHOT_FIELDS.map(({ column }) => {
+    const priorValue = serializeValue(row[column]);
+    const offerColumn = Object.keys(OFFER_TO_TRANSACTION_FIELD_MAP)
+      .find((k) => OFFER_TO_TRANSACTION_FIELD_MAP[k] === column);
+    const newValue = offerColumn && off[offerColumn] != null
+      ? serializeValue(off[offerColumn])
+      : priorValue; // untouched by acceptance — new_value == prior_value
+    return {
+      offer_id: ids.offerId,
+      transaction_id: ids.transactionId,
+      user_id: ids.userId,
+      field_name: column,
+      prior_value: priorValue,
+      new_value: newValue,
+    };
+  });
+}
+
+/**
+ * Build the PATCH body to write onto `transactions` when an offer is
+ * accepted — only the fields the offer actually maps to (the other 12 are
+ * snapshotted as no-ops, not written, since acceptance itself doesn't know
+ * their values).
+ *
+ * @param {object} offer - the transaction_offers row being accepted.
+ * @returns {object} { [transactionsColumn]: value }
+ */
+function planAcceptPatch(offer) {
+  const off = offer || {};
+  const patch = {};
+  for (const [offerColumn, txColumn] of Object.entries(OFFER_TO_TRANSACTION_FIELD_MAP)) {
+    if (off[offerColumn] != null) patch[txColumn] = off[offerColumn];
+  }
+  return patch;
+}
+
 module.exports = {
   SNAPSHOT_FIELDS,
   SNAPSHOT_FIELD_NAMES,
+  OFFER_TO_TRANSACTION_FIELD_MAP,
   serializeValue,
   deserializeValue,
   planFieldSnapshots,
   planRevertPatch,
+  planAcceptSnapshots,
+  planAcceptPatch,
 };
