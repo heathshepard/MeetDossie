@@ -37,6 +37,7 @@ const {
 // parameter. Do not add one.
 const { INBOX_TOOLS } = require('./_lib/inbox-tools');
 const { MEMORY_TOOLS } = require('./_lib/member-memory-tools');
+const { FORM_LIBRARY_TOOLS } = require('./_lib/form-library-tools');
 const { runServerToolResolveLoop } = require('./_lib/server-tool-resolve-loop');
 const {
   embedText: embedMemoryContext,
@@ -502,6 +503,23 @@ const TOOLS = [
     },
   },
   {
+    name: 'send_for_signature',
+    description:
+      'PREPARE a document on a dossier to be sent for e-signature via DocuSeal. Use whenever the agent says anything like: send this for signature, get this signed, send it for sig, send the contract for signature, get the amendment signed. ' +
+      'This NEVER sends on its own — it resolves the document(s) and who would sign, and puts a confirmation card in front of the agent showing every document and every signer. Nothing goes out until the agent presses send on that card. Call it immediately when asked; do not ask "are you sure" in your reply, the card does that. ' +
+      "The signer is always the agent's OWN client (buyer or seller, whichever side this dossier is), resolved from the dossier record — never a hand-typed address. You may NOT send to the other side's client; if the agent asks for that, use answer_question to explain it has to route through their agent instead. " +
+      'If the agent does not say which document, use the most recently discussed or most recently created document on this dossier; if several plausible documents exist and none was named, describe the choices with answer_question and ask which one.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        deal_identifier: { type: 'string', description: 'Any part of the address or buyer/seller name to identify the dossier' },
+        document_description: { type: 'string', description: "Words the agent used to identify which document — e.g. \"the amendment\", \"the resale contract\", \"the disclosure\". Omit if they didn't specify; the most recent document is used instead." },
+        message: { type: 'string', description: "Optional short cover note from the agent to include with the signature request. Omit if they didn't give one." },
+      },
+      required: ['deal_identifier'],
+    },
+  },
+  {
     name: 'capture_seller_intake',
     description:
       'Record seller intake facts on a listing — the answers that make a net sheet computable later instead of guessed at. '
@@ -691,12 +709,14 @@ const TOOLS = [
       required: ['deal_identifier', 'choice'],
     },
   },
-  // Inbox tools and member-memory tools are appended rather than inlined so
-  // their schemas stay in one reviewable place (api/_lib/inbox-tools.js,
-  // api/_lib/member-memory-tools.js) alongside the guards that keep identity
+  // Inbox tools, member-memory tools, and Form Library tools are appended
+  // rather than inlined so their schemas stay in one reviewable place
+  // (api/_lib/inbox-tools.js, api/_lib/member-memory-tools.js,
+  // api/_lib/form-library-tools.js) alongside the guards that keep identity
   // out of them.
   ...INBOX_TOOLS,
   ...MEMORY_TOOLS,
+  ...FORM_LIBRARY_TOOLS,
 ];
 
 const buildTeamContextBlock = (teamContext) => {
@@ -807,7 +827,7 @@ AMENDMENT & STAGE SAFETY RULES:
 - CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-10), not a silent dossier edit.
 - CRITICAL: when a document and the dossier disagree, you do NOT get to decide which one is right. Report both values and both sources and ask. You cannot tell whether "Jenny Whyte" and "Jennifer Whyte" are one woman with a nickname or two different people, and guessing wrong either leaves a defective signed contract standing or invents an amendment nobody needs. Never "reconcile", "correct" or "fix" a mismatch on your own initiative, and never say which value looks more likely.
 - After the agent answers, resolve_inconsistency works out the remedy and tells you what it is. Do not pre-announce the remedy yourself — whether it is a one-line dossier edit or an amendment signed by all parties depends on whether the wrong value is sitting on an executed document, which the tool checks and you have not.
-- CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, or initiate_termination on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
+- CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, initiate_termination, or send_for_signature on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
 - If the agent says "option period ends in 3 days" or "financing ends Friday", acknowledge it naturally with answer_question (it's a computed deadline, not editable). Do NOT write to option_fee_paid_at or other *_paid_at fields unless the agent specifically says "I paid" or "we paid".
 
@@ -824,6 +844,17 @@ SENDING TO PEOPLE (send_packet_to_party):
 - You address a party by ROLE and the address is looked up from the deal record. Never pass an email address you inferred, remembered, or recognised from a name. If the agent wants a recipient not on the dossier, use answer_question and ask them to add it to the deal first.
 - NEVER send to the other side's client. On a listing, the buyer is the other side's client; on a purchase, the seller is. Everything for the other side routes through their agent. If the agent asks you to email the other side's client directly, do not call the tool — use answer_question to say it has to go through their agent.
 - "Send it to the sellers" on a listing-side dossier means the agent's OWN sellers. That is allowed and is the common case.
+
+SENDING FOR SIGNATURE (send_for_signature) — Dossie CAN do this today, do not tell the agent otherwise:
+- This tool PREPARES a signature request and shows the agent every document and every signer on a confirmation card. Nothing is sent for signature until the agent presses send on that card. Call it immediately when asked — do not ask "are you sure" in your reply, the card does that.
+- The signer is resolved from the dossier record — the agent's OWN client (buyer or seller depending on which side this dossier is), never a hand-typed address and never the other side's client. If the agent asks to send it to the other side directly, do not call the tool — use answer_question to say it has to go through their agent, same as send_packet_to_party.
+- After calling it, say what document(s) and who it's addressed to, so the agent hears it as well as seeing the card.
+- Never call this on a blank, unfilled form — a Form Library attachment must be filled first (fill_forms or the dossier's own Fill flow); if the agent asks to send a blank template for signature, say it needs to be filled first.
+
+FORM LIBRARY (list_form_library, attach_form_to_deal) — Dossie CAN browse and attach blank TREC/TAR forms today, do not tell the agent otherwise:
+- Use list_form_library when the agent asks what forms are available or whether a specific one exists; it only ever returns forms Dossie can actually deliver, so anything it returns is safe to offer.
+- Use attach_form_to_deal to put a blank form onto a dossier as a new document — it still needs to be filled before it can be sent for signature (see SENDING FOR SIGNATURE above).
+- If a form the agent names is not in the results Dossie's tools return, say plainly it isn't available today rather than guessing at a TREC number — the Support tab's "Request a feature" is the right next step.
 
 READING THE AGENT'S INBOX (search_inbox, read_email, find_contact_email, import_email_attachments):
 - These run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
@@ -891,6 +922,9 @@ INTENT MAPPING:
 - Check my email/did they send/look in my inbox/we received an offer on [property]/the lender sent the pre-approval/what did the buyer's agent send/pull that contract from my email = search_inbox, then read_email, then import_email_attachments
 - What's [name]'s email address/get me [name]'s email/what email do I have for [name]/who do I have on file for [name] = find_contact_email (searches sent mail too, two years back — use this rather than search_inbox for an address)
 - Add/invite [name] to my team/give them agent access/add a new team member = add_team_member (team leads only — the system enforces this, you don't need to check; ALWAYS require a real email before calling this tool — if none was given, ask for it with answer_question instead)
+- Send this for signature/get this signed/send it for sig/get the amendment signed = send_for_signature
+- What forms do you have/is there a [form] in the library/show me the form library/what addenda can I attach = list_form_library
+- Attach the [form] to this file/add the HOA addendum/pull in [TREC number] on this deal = attach_form_to_deal
 - Everything else = answer_question
 
 CANONICAL STAGE IDS — use ONLY these exact values for advance_stage.stage:
