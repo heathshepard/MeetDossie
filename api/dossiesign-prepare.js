@@ -21,6 +21,7 @@ const {
 
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const { extractBase64 } = require('./_lib/base64-asset.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -200,13 +201,16 @@ async function fillFormPreview(formType, fv) {
 
   let b64;
   try {
-    b64 = loader();
+    // 2026-09-21 CARTER — trec-unimproved-property-base64.js (and 3 other
+    // un-suffixed legacy assets) export { base64Pdf: '...' }, not a plain
+    // string; `typeof b64 !== 'string'` alone silently dropped this form.
+    b64 = extractBase64(loader());
   } catch (e) {
     console.warn(`[dossiesign-prepare] could not load b64 for ${formType}:`, e && e.message);
     return null;
   }
 
-  if (!b64 || typeof b64 !== 'string') return null;
+  if (!b64) return null;
 
   let pdfDoc;
   try {
@@ -542,3 +546,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Could not prepare forms. Try again.' });
   }
 };
+
+// Exposed for scripts/regression-base64-asset-shapes.js so a future asset
+// shape mismatch fails a test instead of silently dropping a form.
+module.exports.__testing = { FORM_B64_MAP };
