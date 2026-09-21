@@ -899,28 +899,44 @@ async function importEmailAttachments(input, { userId }) {
   }
 
   // --- Phase 2: identify, in parallel, against a deadline. ---
+  // 2026-09-21 — identifyDocument also returns a confidence score; this used
+  // to discard it and keep only documentType. Needed now so Phase 4c (term
+  // persistence) can apply the SAME 0.70 confidence gate dossie-app.jsx's
+  // handleUploadDocument already uses on the general-upload path, instead of
+  // trusting every identification unconditionally.
   const identifications = await Promise.all(
     filed.map(async (f) => {
-      if (!scanner || elapsed() > IDENTIFY_DEADLINE_MS) return null;
+      if (!scanner || elapsed() > IDENTIFY_DEADLINE_MS) return { documentType: null, confidence: 0 };
       try {
         const identified = await scanner.identifyDocument(f.bytes.toString('base64'));
-        return (identified && identified.documentType) || null;
+        return {
+          documentType: (identified && identified.documentType) || null,
+          confidence: (identified && typeof identified.confidence === 'number') ? identified.confidence : 0,
+        };
       } catch (err) {
-        return null;
+        return { documentType: null, confidence: 0 };
       }
     }),
   );
-  if (scanner && filed.length && identifications.every((t) => t === null)) {
+  if (scanner && filed.length && identifications.every((t) => !t.documentType)) {
     notes.push("Filed everything, but I couldn't identify the form types on this batch.");
   }
 
   // --- Phase 3: write the document rows. ---
   let primaryContractBytes = null;
+  let primaryContractConfidence = 0;
   for (let i = 0; i < filed.length; i += 1) {
     const f = filed[i];
-    const documentType = identifications[i];
+    const documentType = identifications[i].documentType;
     const documentLabel = (documentType && scanner && scanner.DOCUMENT_LABELS[documentType]) || null;
-    if (documentType === 'trec-20-17' && !primaryContractBytes) primaryContractBytes = f.bytes;
+    // NOTE: trec-20-17 used here as the generic "this is the 1-4 family
+    // contract" marker, same as the rest of dossie-app.jsx today — a real
+    // 20-19 file identifies as trec-20-17 too. Queued for a proper "is this
+    // the contract" vs "which revision" split; not decoupled in this change.
+    if (documentType === 'trec-20-17' && !primaryContractBytes) {
+      primaryContractBytes = f.bytes;
+      primaryContractConfidence = identifications[i].confidence;
+    }
 
     // user_id is the session user. transaction_id was resolved under that
     // same user_id filter above, so this row cannot be attached to another
@@ -1006,6 +1022,46 @@ async function importEmailAttachments(input, { userId }) {
         }
       } catch (err) {
         console.error('[inbox-tools] contact persistence failed', err && err.message);
+      }
+
+      // --- Phase 4c: WRITE THE TERMS DOWN. ---
+      //
+      // 2026-09-21 — root cause of the empty 23 Nopalito record before Heath
+      // filled it by hand: /api/scan-contract only ever ran from the
+      // UnderContractDropStep drop zone in dossie-app.jsx. A contract that
+      // arrived by email (this path) or any other way never had its dates,
+      // deadlines or dollar amounts written down at all — 38 documents on
+      // file, executed contract included, and not one field populated since
+      // 8/09. Same non-fatal contract as contact persistence just above: a
+      // failure here logs loudly but never turns a successful import into a
+      // reported failure.
+      try {
+        const { persistContractTermsFromScan } = require('./contract-term-persistence-store');
+        const primary = imported.find((i) => i.document_type === 'trec-20-17') || imported[0] || {};
+        const termResult = await persistContractTermsFromScan(sb, {
+          userId,
+          transactionId: tx.id,
+          extracted,
+          documentTypeConfidence: primaryContractConfidence,
+          source: {
+            document_id: primary.document_id || null,
+            file_name: primary.filename || null,
+            document_label: primary.document_label || 'Residential contract',
+          },
+          scanId: `inbox-import-${messageId}`,
+        });
+        if (termResult.ok && termResult.plan) {
+          const filledCount = termResult.plan.filled.length;
+          const conflictCount = termResult.plan.conflicts.length;
+          if (filledCount > 0) {
+            notes.push(`Pulled ${filledCount} contract term${filledCount === 1 ? '' : 's'} off the file (${termResult.plan.filled.map((f) => f.label).join(', ')}).`);
+          }
+          if (conflictCount > 0) {
+            notes.push(`${conflictCount} value${conflictCount === 1 ? '' : 's'} on the contract disagreed with what's already on the dossier — left as-is, open the deal to review.`);
+          }
+        }
+      } catch (err) {
+        console.error('[inbox-tools] contract term persistence failed', err && err.message);
       }
     }
   } else if (scanner && primaryContractBytes) {

@@ -21,6 +21,7 @@
 const { INBOX_TOOL_NAMES, executeInboxTool: defaultExecuteInboxTool, InboxSecurityError } = require('./inbox-tools');
 const { MEMORY_TOOL_NAMES, executeMemoryTool: defaultExecuteMemoryTool, MemorySecurityError } = require('./member-memory-tools');
 const { FORM_LIBRARY_TOOL_NAMES, executeFormLibraryTool: defaultExecuteFormLibraryTool, FormLibrarySecurityError } = require('./form-library-tools');
+const { CONTRACT_EXTRACTION_TOOL_NAMES, executeContractExtractionTool: defaultExecuteContractExtractionTool, ContractExtractionSecurityError } = require('./contract-extraction-tools');
 
 // 4 inbox calls (search -> read -> import, +1 headroom, per
 // inbox-resolve-loop.js's own reasoning) + a couple of memory writes + a
@@ -28,7 +29,7 @@ const { FORM_LIBRARY_TOOL_NAMES, executeFormLibraryTool: defaultExecuteFormLibra
 // runaway loop room to walk any one surface indefinitely.
 const MAX_SERVER_TOOL_CALLS = 6;
 
-const SERVER_TOOL_NAMES = new Set([...INBOX_TOOL_NAMES, ...MEMORY_TOOL_NAMES, ...FORM_LIBRARY_TOOL_NAMES]);
+const SERVER_TOOL_NAMES = new Set([...INBOX_TOOL_NAMES, ...MEMORY_TOOL_NAMES, ...FORM_LIBRARY_TOOL_NAMES, ...CONTRACT_EXTRACTION_TOOL_NAMES]);
 
 /**
  * @param {object}   args
@@ -48,6 +49,7 @@ async function runServerToolResolveLoop({
   executeInboxTool = defaultExecuteInboxTool,
   executeMemoryTool = defaultExecuteMemoryTool,
   executeFormLibraryTool = defaultExecuteFormLibraryTool,
+  executeContractExtractionTool = defaultExecuteContractExtractionTool,
 }) {
   let response = firstResponse;
   const conversation = [...anthropicArgs.messages];
@@ -65,11 +67,13 @@ async function runServerToolResolveLoop({
         toolResult = await executeInboxTool(toolUse.name, toolUse.input || {}, { userId });
       } else if (MEMORY_TOOL_NAMES.has(toolUse.name)) {
         toolResult = await executeMemoryTool(toolUse.name, toolUse.input || {}, { userId });
-      } else {
+      } else if (FORM_LIBRARY_TOOL_NAMES.has(toolUse.name)) {
         toolResult = await executeFormLibraryTool(toolUse.name, toolUse.input || {}, { userId });
+      } else {
+        toolResult = await executeContractExtractionTool(toolUse.name, toolUse.input || {}, { userId });
       }
     } catch (err) {
-      if (err instanceof InboxSecurityError || err instanceof MemorySecurityError || err instanceof FormLibrarySecurityError) {
+      if (err instanceof InboxSecurityError || err instanceof MemorySecurityError || err instanceof FormLibrarySecurityError || err instanceof ContractExtractionSecurityError) {
         // An identity-shaped parameter reached a tool call. Refuse the whole
         // turn rather than re-prompting — a retry would just teach the model
         // to rephrase the same attempt.
