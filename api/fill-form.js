@@ -4576,11 +4576,17 @@ module.exports = async function handler(req, res) {
 
     // If this is a wire fraud warning, insert a delivery tracking row.
     if (resolvedFormType === 'wire-fraud-warning' && docRow && docRow.id) {
+      // buyer_name/buyer_email are the table's generic recipient name/email
+      // columns (TAR/TXR 2517 is buyer AND seller facing — see
+      // 20260921_wire_fraud_deliveries_recipient_role.sql); every caller of
+      // this fill-form path today only ever passes buyer fields, so
+      // recipient_role defaults 'buyer' unless the caller says otherwise.
       const wfdPayload = {
         transaction_id: transactionId,
         user_id: userId,
         document_id: docRow.id,
         delivered_at: new Date().toISOString(),
+        recipient_role: mergedFields.recipient_role || 'buyer',
         buyer_name: mergedFields.buyer_name || null,
         buyer_email: mergedFields.buyer_email || null,
       };
