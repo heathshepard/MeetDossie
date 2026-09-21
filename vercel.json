@@ -435,6 +435,10 @@
       "schedule": "20 13 * * *"
     },
     {
+      "path": "/api/cron-option-timing-risk",
+      "schedule": "25 13 * * *"
+    },
+    {
       "path": "/api/cron-newsletter-draft-reminder",
       "schedule": "0 21 * * 4"
     },
