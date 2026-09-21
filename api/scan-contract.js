@@ -12,6 +12,7 @@ const {
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
 const { addCalendarDaysYMD, rollForwardYMD } = require('./_lib/business-calendar.js');
+const { parseCheckedOption } = require('./_lib/checkbox-election.js');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -694,6 +695,7 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     },
     "paragraph13Prorations": string | null,             // free-text note ONLY if prorations are non-standard/customized, else null
     "surveyPayer": string | null,                       // DO NOT FILL — computed deterministically server-side from debugParagraph6C after extraction, same as surveyDeadline. Always return null here.
+    "sellerProvidesSurvey": boolean | null,              // DO NOT FILL — computed deterministically server-side from debugParagraph6C (true only if checkbox option (1) is marked). Always return null here.
     "paragraph23TerminationOption": {
       "optionDays": number | null,                      // mirror of top-level optionDays
       "optionFee": number | null,                       // mirror of top-level optionFee
@@ -1021,6 +1023,7 @@ function emptyResult(warning) {
       },
       paragraph13Prorations: null,
       surveyPayer: null,
+      sellerProvidesSurvey: null,
       addendaSummary: [],
       paragraph23TerminationOption: {
         optionDays: null,
@@ -1260,6 +1263,31 @@ async function scanContract(pdfBase64) {
       if (payerText) {
         extracted.surveyPayer = payerText;
       }
+    }
+  }
+
+  // CRITICAL: Derive sellerProvidesSurvey deterministically from the SAME
+  // debugParagraph6C checked-option match used for surveyPayer directly
+  // above — one regex read, two projections of the same fact, so they can
+  // never disagree with each other. TRUE only when option (1) is the one
+  // marked ("Seller shall furnish to Buyer... Seller's existing survey...
+  // and a... T-47 Affidavit"); options (2) and (3) both mean the seller
+  // does NOT furnish the existing survey (buyer obtains a new one, or
+  // seller obtains a NEW one — neither is "furnish the existing survey").
+  //
+  // Found 2026-09-21 on 23 Nopalito: Dossie correctly TOLD Heath "seller to
+  // furnish existing survey + T-47" (reading it straight off
+  // debugParagraph6C/surveyPayer), but transactions.seller_provides_survey
+  // was false — because nothing anywhere in either repo has ever written to
+  // that column. It has a DB-level default of false and was never wired
+  // into an extraction path, so it silently read as "buyer provides" on
+  // every contract ever scanned, election (1) or not. See
+  // api/_lib/contract-term-persistence.js's treatFalseAsBlank handling for
+  // why this column's false default gets special Rule-1 treatment.
+  {
+    const checkedOption = parseCheckedOption(extracted.debugParagraph6C);
+    if (checkedOption) {
+      extracted.sellerProvidesSurvey = checkedOption === '1';
     }
   }
 
