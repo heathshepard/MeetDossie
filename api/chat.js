@@ -45,6 +45,10 @@ const {
   bumpUsage: bumpMemoryUsage,
   formatMemoryAsSystemBlock,
 } = require('./_lib/member-memory');
+// The currently-open dossier, re-verified server-side against the caller's
+// own user_id before it's trusted for anything — see the header comment in
+// that module and OPEN DOSSIER CONTEXT below.
+const { loadOpenDossierContext } = require('./_lib/open-dossier-context');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -751,10 +755,11 @@ async function loadMemberMemoryBlock(userId, contextText) {
   return formatMemoryAsSystemBlock(rows);
 }
 
-const buildActionSystemPrompt = (deals, today, teamContext, memoryBlock) => {
+const buildActionSystemPrompt = (deals, today, teamContext, memoryBlock, openDossierBlock) => {
   const dealsJson = JSON.stringify(deals || [], null, 2);
   const teamBlock = buildTeamContextBlock(teamContext);
   const memberMemorySection = memoryBlock ? `\n\n${memoryBlock}` : '';
+  const openDossierSection = openDossierBlock ? `\n${openDossierBlock}` : '';
   return `You are Dossie, an elite AI transaction coordinator for Texas real estate agents. You are warm, sharp, and completely reliable. You work 24/7/365 — nights, weekends, holidays. You never miss a deadline and never drop the ball.
 
 NAME RULES: Your name is Dossie (rhymes with "bossy"). Speech-to-text frequently mishears it as Darcy, Dorothy, Daisy, Dossy, Docie, Dottie, or similar sound-alikes. If the agent greets you or addresses you using any wrong name, warmly correct it in one breath without making a thing of it — for example: "It's Dossie, by the way — but good morning." Never adopt the wrong name. Never repeat the wrong name back to them. After the gentle correction, continue normally.
@@ -781,7 +786,7 @@ A wrong deadline in a message to a client can cost that client their earnest mon
 
 TODAY: ${today}
 AGENT'S ACTIVE DEALS: ${dealsJson}
-${teamBlock}${memberMemorySection}
+${teamBlock}${memberMemorySection}${openDossierSection}
 
 MEMBER MEMORY, REMEMBERING NEW THINGS (remember_preference / remember_fact):
 - The MEMBER MEMORY block above (when present) is what Dossie has already learned about this member from past conversations — small, bounded, and never a substitute for the real deal data above it or CALIBRATION's rule against asserting an unread fact.
@@ -1145,7 +1150,7 @@ async function executeAddTeamMember({ teamContext, userId, params }) {
   }
 }
 
-async function handleActionMode({ message, deals, messages, userId }) {
+async function handleActionMode({ message, deals, messages, userId, openTransactionId }) {
   const today = todayInTexasYMD();
   const compactDeals = compactDealsForAction(deals);
   // Team-lead awareness: null for every solo agent (the overwhelming
@@ -1160,11 +1165,18 @@ async function handleActionMode({ message, deals, messages, userId }) {
     console.warn('[chat] loadMemberMemoryBlock threw:', err && err.message);
     return '';
   });
+  // The dossier the member has open on screen, if any — openTransactionId is
+  // caller-supplied and re-verified against userId inside
+  // loadOpenDossierContext before any of it reaches the prompt.
+  const { block: openDossierBlock } = await loadOpenDossierContext(openTransactionId, userId).catch((err) => {
+    console.warn('[chat] loadOpenDossierContext threw:', err && err.message);
+    return { block: '' };
+  });
   // Split system into static (persona + rules + tools — cache-eligible) and
   // variable (today's date + per-user deals snapshot — too unique to cache).
   // We split on the TODAY: marker which the action prompt uses to anchor
   // today's date + deals JSON.
-  const fullSystem = buildActionSystemPrompt(compactDeals, today, teamContext, memoryBlock);
+  const fullSystem = buildActionSystemPrompt(compactDeals, today, teamContext, memoryBlock, openDossierBlock);
   const variableMarker = `TODAY: ${today}`;
   const varIdx = fullSystem.indexOf(variableMarker);
   const systemStatic = varIdx > 0 ? fullSystem.slice(0, varIdx) : fullSystem;
@@ -1272,7 +1284,7 @@ export default async function handler(req, res) {
     const ip = clientIpFromReq(req);
     await checkIpRateLimit(ip, 'chat', 30, 60 * 60 * 1000);
 
-    const { message, transactionContext, userPlan, mode, deals, messages } = req.body;
+    const { message, transactionContext, userPlan, mode, deals, messages, open_transaction_id } = req.body;
 
     // userId comes from the verified JWT, not the request body.
     const userId = jwtUserId;
@@ -1315,7 +1327,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const result = await handleActionMode({ message: effectiveMessage, deals, messages, userId });
+      const result = await handleActionMode({ message: effectiveMessage, deals, messages, userId, openTransactionId: open_transaction_id });
       return res.status(200).json({
         ok: true,
         action: result.action,
