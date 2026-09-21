@@ -32,7 +32,15 @@ const ALLOWED_ORIGINS = new Set([
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+(?:-heathshepard-6590s-projects)?\.vercel\.app$/;
 
-const ALLOWED_TYPES = new Set(['closing_date', 'option_extension', 'price_change', 'repair_items']);
+// 'party_name' and 'other' were added 2026-09-20 for the inconsistency flow
+// (api/_lib/inconsistency-flow.js). When a member confirms that an EXECUTED
+// contract carries the wrong party name, the only lawful fix is an amendment
+// all parties sign — an executed instrument may never be edited
+// (memory:feedback_verify-contract-elections-before-execution). Before this,
+// the remedy router could correctly say "this needs an amendment" and then had
+// no amendment type to express it with.
+const ALLOWED_TYPES = new Set(['closing_date', 'option_extension', 'price_change', 'repair_items', 'party_name', 'other']);
+const ALLOWED_TYPES_MSG = [...ALLOWED_TYPES].join(', ');
 
 function applyCors(req, res) {
   const origin = (req && req.headers && req.headers.origin) || '';
@@ -220,7 +228,7 @@ const FIELDS = {
   optionFeeCreditNo: 'Fee 2',                     // "will NOT be credited"
 };
 
-async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
+async function fillTrec39_10(tx, { amendmentType, newValue, notes, originalValue = null }) {
   const pdfBytes = Buffer.from(TREC_39_10_BASE64, 'base64');
   const pdfDoc = await PDFDocument.load(pdfBytes);
   const form = pdfDoc.getForm();
@@ -236,7 +244,49 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
   // The TREC form instructs the broker to fill this in at signing.
   // Auto-filling garbles the pre-printed footer layout.
 
-  if (amendmentType === 'repair_items') {
+  if (amendmentType === 'party_name' || amendmentType === 'other') {
+    // Visual ¶10 "Other Modifications" — the same slot repair_items uses, and
+    // the correct one: TREC 39-10 has no dedicated party-name paragraph, and a
+    // name correction is exactly what "other modifications" is for.
+    //
+    // The wording states the correction rather than restating the name, because
+    // an amendment that just says "Seller: Jenny Whyte" reads as a substitution
+    // of parties. It is not — it is a scrivener's correction to the name of the
+    // same seller, and the text has to say so or a title examiner will read it
+    // as a new party.
+    //
+    const original = originalValue ? String(originalValue) : '';
+    const text = amendmentType === 'party_name'
+      ? (original
+        ? `The name of the party shown on the contract as "${original}" is corrected to read "${newValue}". `
+          + 'This corrects a clerical error in the spelling of that party\'s name only; no party to this contract is added, removed or substituted.'
+        : `The name of the party shown on the contract is corrected to read "${newValue}". `
+          + 'This corrects a clerical error in the spelling only; no party is added, removed or substituted.')
+      : String(newValue);
+
+    // ¶10 has exactly three 80-character lines. Verified by rendering and
+    // reading back, 2026-09-20: the Jenny/Jennifer wording lands at 233 of 240,
+    // which fits but leaves almost nothing spare.
+    //
+    // So overflow is REFUSED, not truncated. A legal instrument that silently
+    // loses its last clause mid-sentence is worse than no instrument at all —
+    // "no party to this contract is added, removed or" would change what the
+    // amendment appears to do. memory:feedback_silent-failure-is-the-enemy.
+    if (text.length > 240) {
+      throw new ValidationError(
+        'That correction is too long for the amendment\'s "Other Modifications" paragraph '
+        + `(${text.length} characters; 240 fit). Shorten it, or draft this one by hand.`,
+      );
+    }
+
+    // Visual ¶10 Other Modifications = field name "10" (NOT "9 Other
+    // Modifications", which visually checks ¶9 Buyer Notice).
+    // Text overflow reads top-to-bottom as Text5.1 → Text4.1 → Text3.1.
+    safeCheck(form, '10');
+    safeSetText(form, 'Text5.1', text.slice(0, 80));
+    if (text.length > 80) safeSetText(form, 'Text4.1', text.slice(80, 160));
+    if (text.length > 160) safeSetText(form, 'Text3.1', text.slice(160, 240));
+  } else if (amendmentType === 'repair_items') {
     // repair_items: newValue is a JSON array of repair item strings OR a
     // comma-separated plain string. notes contains the repair completion deadline.
     let items = [];
@@ -251,6 +301,20 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes }) {
     const repairText = deadline
       ? `Seller agrees to complete all repairs using licensed contractors by ${deadline}: ${numbered}`
       : `Seller agrees to complete all repairs using licensed contractors: ${numbered}`;
+
+    // ¶10 holds 240 characters. A repair list longer than that is truncated
+    // mid-sentence with no indication on the PDF — a real and pre-existing
+    // defect (a repair the seller never agreed to would simply vanish, or a
+    // clause would end mid-word). Not changed to a hard refusal here because
+    // this path already ships and a long repair list is normal; but it can no
+    // longer happen silently. memory:feedback_silent-failure-is-the-enemy.
+    if (repairText.length > 240) {
+      console.error('[draft-amendment] repair_items TRUNCATED', JSON.stringify({
+        transaction_id: tx && tx.id,
+        length: repairText.length,
+        dropped: repairText.slice(240),
+      }));
+    }
 
     // Visual ¶10 Other Modifications = field name "10" (NOT "9 Other Modifications",
     // which visually checks ¶9 Buyer Notice).
@@ -378,7 +442,7 @@ module.exports = async function handler(req, res) {
     if (!transactionId) throw new ValidationError('transactionId is required.');
     if (!amendmentType) throw new ValidationError('amendmentType is required.');
     if (!ALLOWED_TYPES.has(amendmentType)) {
-      throw new ValidationError('amendmentType must be one of: closing_date, option_extension, price_change, repair_items.');
+      throw new ValidationError(`amendmentType must be one of: ${ALLOWED_TYPES_MSG}.`);
     }
     const newValue = sanitizeString(newValueRaw == null ? '' : String(newValueRaw), { maxLength: 200 });
     if (!newValue) throw new ValidationError('newValue is required.');
@@ -405,9 +469,18 @@ module.exports = async function handler(req, res) {
     if (amendmentType === 'closing_date') originalValue = tx.closing_date || null;
     else if (amendmentType === 'option_extension') originalValue = tx.option_days != null ? String(tx.option_days) : null;
     else if (amendmentType === 'price_change') originalValue = tx.sale_price != null ? String(tx.sale_price) : null;
+    // party_name / other have no single dossier column to read the old value
+    // from — the caller supplies it, and for party_name the inconsistency flow
+    // always knows it (it is the value the member just rejected).
+    else if (amendmentType === 'party_name' || amendmentType === 'other') {
+      originalValue = sanitizeString(
+        body.originalValue != null ? body.originalValue : body.original_value,
+        { maxLength: 200 },
+      ) || null;
+    }
 
     // Fill the form.
-    const filledBytes = await fillTrec39_10(tx, { amendmentType, newValue, notes });
+    const filledBytes = await fillTrec39_10(tx, { amendmentType, newValue, notes, originalValue });
     const buffer = Buffer.from(filledBytes);
 
     // Upload to storage.
