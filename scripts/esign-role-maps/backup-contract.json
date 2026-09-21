@@ -1,12 +1,12 @@
 {
  "form_type": "backup-contract",
  "trecNo": "11-8",
- "description": "Semantic role map for TREC 11-8. Coordinates extracted directly from the live AcroForm widget rects (pdf-lib), same method as api/_assets/trec-20-19-esign-coords.json. Roles/keys/checkbox-meanings derived from viewing the rendered numbered overlay (.tmp/coord-overlays/backup-contract-page*.png) against the real printed form text — NOT from the raw AcroForm field names, which are frequently misleading or duplicated (see individual field notes). x_pct/y_pct/w_pct/h_pct are top-left-origin fractions of the page (0-1 is NOT used here — these are percentages 0-100, matching scripts/extract-trec-field-coords.js convention; divide by 100 before feeding into DocuSeal areas[] which expects 0-1 fractions). CORRECTION 2026-09-08: 4 page-1 footer initial widgets reassigned from deal-text to party initials (see field notes).",
+ "description": "Semantic role map for TREC 11-8. Coordinates extracted directly from the live AcroForm widget rects (pdf-lib), same method as api/_assets/trec-20-19-esign-coords.json. Roles/keys/checkbox-meanings derived from viewing the rendered numbered overlay (.tmp/coord-overlays/backup-contract-page*.png) against the real printed form text — NOT from the raw AcroForm field names, which are frequently misleading or duplicated (see individual field notes). x_pct/y_pct/w_pct/h_pct are top-left-origin fractions of the page (0-1 is NOT used here — these are percentages 0-100, matching scripts/extract-trec-field-coords.js convention; divide by 100 before feeding into DocuSeal areas[] which expects 0-1 fractions). CORRECTION 2026-09-08: 4 page-1 footer initial widgets reassigned from deal-text to party initials (see field notes). DATE FIELDS ADDED 2026-09-21 (Carter): buyer1_date, seller1_date, buyer2_date, seller2_date — synthetic placement in verified blank space below each role's existing signature widget (no real AcroForm field backs these; see acroform-field-names-lie memory + esign-signature-date-gate.test.js). Coordinates rendered to PNG and visually checked against the real PDF before being added, not guessed.",
  "pageCount": 2,
  "generated_at": "2026-09-02T02:37:47.343Z",
  "field_summary": {
-  "total": 17,
-  "mapped_confident": 17,
+  "total": 21,
+  "mapped_confident": 21,
   "mapped_with_note": 0,
   "unknown": 0
  },
@@ -286,6 +286,54 @@
    "y_pt": 540.59,
    "w_pt": 229.31,
    "h_pt": 32
+  },
+  {
+   "num": 13,
+   "pdf_field_name": "SYNTHETIC:buyer1_date_no_real_acroform_field",
+   "role": "buyer1",
+   "field_key": "buyer1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 10.7892,
+   "y_pct": 23.7127,
+   "w_pct": 16,
+   "h_pct": 2
+  },
+  {
+   "num": 14,
+   "pdf_field_name": "SYNTHETIC:seller1_date_no_real_acroform_field",
+   "role": "seller1",
+   "field_key": "seller1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 52.6296,
+   "y_pct": 23.7745,
+   "w_pct": 16,
+   "h_pct": 2
+  },
+  {
+   "num": 15,
+   "pdf_field_name": "SYNTHETIC:buyer2_date_no_real_acroform_field",
+   "role": "buyer2",
+   "field_key": "buyer2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 10.8692,
+   "y_pct": 33.1433,
+   "w_pct": 16,
+   "h_pct": 1.4
+  },
+  {
+   "num": 16,
+   "pdf_field_name": "SYNTHETIC:seller2_date_no_real_acroform_field",
+   "role": "seller2",
+   "field_key": "seller2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 52.9497,
+   "y_pct": 33.1433,
+   "w_pct": 16,
+   "h_pct": 1.4
   }
  ]
 }

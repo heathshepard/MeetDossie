@@ -1,12 +1,12 @@
 {
  "form_type": "buyers-temp-lease",
  "trecNo": "16-7",
- "description": "Semantic role map for TREC 16-7. Coordinates extracted directly from the live AcroForm widget rects (pdf-lib), same method as api/_assets/trec-20-19-esign-coords.json. Roles/keys/checkbox-meanings derived from viewing the rendered numbered overlay (.tmp/coord-overlays/buyers-temp-lease-page*.png) against the real printed form text — NOT from the raw AcroForm field names, which are frequently misleading or duplicated (see individual field notes). x_pct/y_pct/w_pct/h_pct are top-left-origin fractions of the page (0-1 is NOT used here — these are percentages 0-100, matching scripts/extract-trec-field-coords.js convention; divide by 100 before feeding into DocuSeal areas[] which expects 0-1 fractions). CORRECTION 2026-09-08: p1 footer initial slots split for second landlord/tenant initialers (see field notes).",
+ "description": "Semantic role map for TREC 16-7. Coordinates extracted directly from the live AcroForm widget rects (pdf-lib), same method as api/_assets/trec-20-19-esign-coords.json. Roles/keys/checkbox-meanings derived from viewing the rendered numbered overlay (.tmp/coord-overlays/buyers-temp-lease-page*.png) against the real printed form text — NOT from the raw AcroForm field names, which are frequently misleading or duplicated (see individual field notes). x_pct/y_pct/w_pct/h_pct are top-left-origin fractions of the page (0-1 is NOT used here — these are percentages 0-100, matching scripts/extract-trec-field-coords.js convention; divide by 100 before feeding into DocuSeal areas[] which expects 0-1 fractions). CORRECTION 2026-09-08: p1 footer initial slots split for second landlord/tenant initialers (see field notes). DATE FIELDS ADDED 2026-09-21 (Carter): buyer1_date, seller1_date, buyer2_date, seller2_date — synthetic placement in verified blank space below each role's existing signature widget (no real AcroForm field backs these; see acroform-field-names-lie memory + esign-signature-date-gate.test.js). Coordinates rendered to PNG and visually checked against the real PDF before being added, not guessed.",
  "pageCount": 2,
  "generated_at": "2026-09-02T02:37:47.322Z",
  "field_summary": {
-  "total": 45,
-  "mapped_confident": 26,
+  "total": 49,
+  "mapped_confident": 49,
   "mapped_with_note": 17,
   "unknown": 0
  },
@@ -745,6 +745,54 @@
    "h_pct": 1.2576,
    "synthesized": true,
    "notes": "SYNTHESIZED 2026-09-08 (Carter): the printed footer has one boxed slot per side but two signers per side exist (two signature lines on p2). Slot split in half — left half party 1, right half party 2, matching how two initialers share one printed slot on paper. Verified by overlay render."
+  },
+  {
+   "num": 46,
+   "pdf_field_name": "SYNTHETIC:buyer1_date_no_real_acroform_field",
+   "role": "buyer1",
+   "field_key": "buyer1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 51.0268,
+   "y_pct": 77.8882,
+   "w_pct": 16,
+   "h_pct": 1.55
+  },
+  {
+   "num": 47,
+   "pdf_field_name": "SYNTHETIC:seller1_date_no_real_acroform_field",
+   "role": "seller1",
+   "field_key": "seller1_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 8.8801,
+   "y_pct": 77.95,
+   "w_pct": 16,
+   "h_pct": 1.55
+  },
+  {
+   "num": 48,
+   "pdf_field_name": "SYNTHETIC:buyer2_date_no_real_acroform_field",
+   "role": "buyer2",
+   "field_key": "buyer2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 51.1069,
+   "y_pct": 84.2304,
+   "w_pct": 16,
+   "h_pct": 1.4
+  },
+  {
+   "num": 49,
+   "pdf_field_name": "SYNTHETIC:seller2_date_no_real_acroform_field",
+   "role": "seller2",
+   "field_key": "seller2_date",
+   "field_type": "text",
+   "page": 2,
+   "x_pct": 8.9601,
+   "y_pct": 84.2305,
+   "w_pct": 16,
+   "h_pct": 1.4
   }
  ]
 }
