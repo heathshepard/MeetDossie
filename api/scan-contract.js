@@ -58,12 +58,26 @@ Document types and their KEY IDENTIFIERS:
 - "closing-disclosure": Title says "CLOSING DISCLOSURE". Three-page federal form showing final loan terms and closing costs.
 - "wire-instructions": Shows bank routing number, account number for wire transfer of funds.
 - "cma": Comparative Market Analysis showing comparable property sales.
+- "trec-non-realty-addendum": Title says "NON-REALTY ITEMS ADDENDUM". TREC No. 51-0. Lists personal property items (e.g. a hot tub, playset, above-ground pool, furniture) being included in or excluded from the sale, separate from Paragraph 2's fixtures.
+- "trec-sale-other-property-addendum": Title says "ADDENDUM FOR SALE OF OTHER PROPERTY BY BUYER". Contract is contingent on the buyer selling a different property first.
+- "trec-backup-contract-addendum": Title says "ADDENDUM FOR 'BACK-UP' CONTRACT". TREC No. 11-9. Makes this contract contingent on the termination of a prior contract on the same property.
+- "trec-seller-financing-addendum": Title says "ADDENDUM FOR SELLER FINANCING". Seller is extending credit directly to the buyer instead of (or alongside) a third-party lender.
+- "trec-short-sale-addendum": Title says "SHORT SALE ADDENDUM". Contract is contingent on the seller's lender agreeing to accept less than the outstanding mortgage balance.
+- "trec-environmental-addendum": Title mentions an environmental assessment, threatened or endangered species, or similar environmental contingency.
+- "trec-oil-gas-minerals-addendum": Title says "ADDENDUM REGARDING RESERVATION OF OIL, GAS AND OTHER MINERALS" or similar — reserves or conveys mineral rights.
+- "trec-loan-assumption-addendum": Title says "ADDENDUM FOR ASSUMPTION OF FINANCING" or "LOAN ASSUMPTION" — buyer is assuming the seller's existing loan.
+- "trec-coastal-area-addendum": Title says "ADDENDUM FOR PROPERTY LOCATED SEAWARD OF THE GULF INTRACOASTAL WATERWAY" or a general Coastal Area Property notice.
+- "trec-propane-gas-addendum": Title says "ADDENDUM FOR PROPERTY SUBJECT TO MANDATORY MEMBERSHIP IN A PROPANE GAS SYSTEM SERVICE AREA" or mentions a propane gas system service area.
+- "trec-hydrostatic-testing-addendum": Title says "ADDENDUM FOR AUTHORIZING HYDROSTATIC TESTING" — authorizes a water-pressure test of plumbing/septic lines.
+- "trec-unimproved-property-addendum": Title says "ADDENDUM FOR SALE OF UNIMPROVED PROPERTY" or similar, TREC No. 9 series — property has no residence on it (land, a lot).
+- "trec-termination-notice": Title says "NOTICE OF BUYER'S TERMINATION OF CONTRACT" or "TERMINATION OF CONTRACT". TREC No. 38-x. States a contract is being terminated and, if applicable, who gets the earnest money.
 - "other": Anything that does not clearly match the above.
 
 CRITICAL DISAMBIGUATION RULES:
 1. trec-sellers-disclosure vs trec-lead-paint: If the form mentions foundation, roof, plumbing, electrical — it is trec-sellers-disclosure. If the form ONLY discusses lead paint hazards and has federal law language — it is trec-lead-paint.
 2. trec-buyer-representation vs trec-listing-agreement: Buyer representation protects the buyer. Listing agreement gives agent the right to sell the property.
-3. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
+3. trec-hoa-addendum vs "hoa-docs": trec-hoa-addendum is the ONE-PAGE contract addendum form itself (a checkbox/signature form). "hoa-docs" is the multi-page PACKAGE of the association's actual bylaws, financials, and resale certificate.
+4. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
 
 const DOCUMENT_LABELS = {
   'trec-20-17': 'TREC One to Four Family Residential Contract',
@@ -85,6 +99,26 @@ const DOCUMENT_LABELS = {
   'closing-disclosure': 'Closing Disclosure',
   'wire-instructions': 'Wire Instructions',
   'cma': 'Comparative Market Analysis',
+  // 2026-09-21 — Heath hit "Non-Realty Items Addendum.pdf" rendering as bare
+  // "Document" under Other: it had no slug at all, so identifyDocument (see
+  // IDENTIFY_PROMPT) could only ever return "other" for it. Added the rest
+  // of the addenda catalog Dossie already knows how to SERVE blank (see
+  // api/_lib/resolve-blank-template-pdf.js's FORM_TEMPLATE_B64 /
+  // SHORT_NAME_TO_FORM_TYPE) but could not previously RECOGNIZE in an
+  // uploaded copy — same root cause, evidently not a one-off.
+  'trec-non-realty-addendum': 'Non-Realty Items Addendum',
+  'trec-sale-other-property-addendum': 'Addendum for Sale of Other Property by Buyer',
+  'trec-backup-contract-addendum': "Back-Up Contract Addendum",
+  'trec-seller-financing-addendum': 'Seller Financing Addendum',
+  'trec-short-sale-addendum': 'Short Sale Addendum',
+  'trec-environmental-addendum': 'Environmental Assessment Addendum',
+  'trec-oil-gas-minerals-addendum': 'Oil, Gas & Minerals Addendum',
+  'trec-loan-assumption-addendum': 'Loan Assumption Addendum',
+  'trec-coastal-area-addendum': 'Coastal Area Property Addendum',
+  'trec-propane-gas-addendum': 'Propane Gas System Addendum',
+  'trec-hydrostatic-testing-addendum': 'Hydrostatic Testing Addendum',
+  'trec-unimproved-property-addendum': 'Unimproved Property Addendum',
+  'trec-termination-notice': 'Notice of Termination',
   'other': 'Document',
 };
 
