@@ -24,17 +24,27 @@ const {
   todayInTexasYMD,
   compactDealsForAction,
 } = require('./_lib/chat-deal-deadlines');
-// Read-only inbox tools (search_inbox / read_email / find_contact_email / import_email_attachments).
-// These are the only tools in this file that are RESOLVED SERVER-SIDE inside a
-// bounded loop rather than handed to the browser to dispatch — see
-// api/_lib/inbox-resolve-loop.js and docs/DOSSIE-INBOX-CAPABILITY-SCOPE.md.
+// Read-only inbox tools (search_inbox / read_email / find_contact_email / import_email_attachments)
+// plus the member-memory write tools (remember_preference / remember_fact,
+// api/_lib/member-memory-tools.js). Both groups are RESOLVED SERVER-SIDE
+// inside one bounded loop rather than handed to the browser to dispatch —
+// see api/_lib/server-tool-resolve-loop.js and docs/DOSSIE-INBOX-CAPABILITY-SCOPE.md.
 //
 // Security note for anyone extending this: the member's identity for these
-// tools comes from verifySupabaseToken(req) and is passed to executeInboxTool
-// as a separate argument. It is never read out of the model's tool input, and
-// no inbox tool schema has an identity-shaped parameter. Do not add one.
+// tools comes from verifySupabaseToken(req) and is passed to the tool
+// executor as a separate argument. It is never read out of the model's tool
+// input, and no tool schema in either group has an identity-shaped
+// parameter. Do not add one.
 const { INBOX_TOOLS } = require('./_lib/inbox-tools');
-const { runInboxResolveLoop } = require('./_lib/inbox-resolve-loop');
+const { MEMORY_TOOLS } = require('./_lib/member-memory-tools');
+const { runServerToolResolveLoop } = require('./_lib/server-tool-resolve-loop');
+const {
+  embedText: embedMemoryContext,
+  searchMemory: searchMemberMemory,
+  sbGet: memorySbGet,
+  bumpUsage: bumpMemoryUsage,
+  formatMemoryAsSystemBlock,
+} = require('./_lib/member-memory');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -677,10 +687,12 @@ const TOOLS = [
       required: ['deal_identifier', 'choice'],
     },
   },
-  // Inbox tools are appended rather than inlined so their schemas stay in one
-  // reviewable place (api/_lib/inbox-tools.js) alongside the guard that keeps
-  // identity out of them.
+  // Inbox tools and member-memory tools are appended rather than inlined so
+  // their schemas stay in one reviewable place (api/_lib/inbox-tools.js,
+  // api/_lib/member-memory-tools.js) alongside the guards that keep identity
+  // out of them.
   ...INBOX_TOOLS,
+  ...MEMORY_TOOLS,
 ];
 
 const buildTeamContextBlock = (teamContext) => {
@@ -704,9 +716,45 @@ TEAM_AGENT_ACTIVITY (per-agent active file count + days since last touch, from t
 `;
 };
 
-const buildActionSystemPrompt = (deals, today, teamContext) => {
+// Loads the top-N ACTIVE member_memory rows relevant to this turn's message,
+// bounded and small by design — this is background about the member, not a
+// second conversation history, and it must never crowd out the real one.
+// status='active' is enforced inside member_memory_search itself, so a
+// pending_confirmation fact is mechanically unreachable here.
+async function loadMemberMemoryBlock(userId, contextText) {
+  if (!userId) return '';
+  let embedding = null;
+  try {
+    embedding = await embedMemoryContext(contextText || 'general context');
+  } catch (err) {
+    console.warn('[chat] member memory embed failed, falling back to recency:', err.message);
+  }
+
+  let rows = [];
+  try {
+    if (embedding) {
+      rows = await searchMemberMemory(userId, embedding, { matchThreshold: 0.35, matchCount: 8 });
+    }
+    if (!rows || rows.length === 0) {
+      rows = await memorySbGet(
+        `member_memory?select=id,category,title,content,source,usage_count,created_at` +
+        `&user_id=eq.${userId}&status=eq.active&order=usage_count.desc,created_at.desc&limit=8`
+      );
+    }
+  } catch (err) {
+    console.warn('[chat] member memory load failed:', err.message);
+    return '';
+  }
+
+  if (!rows || rows.length === 0) return '';
+  bumpMemoryUsage(rows.map((r) => r.id)).catch(() => {});
+  return formatMemoryAsSystemBlock(rows);
+}
+
+const buildActionSystemPrompt = (deals, today, teamContext, memoryBlock) => {
   const dealsJson = JSON.stringify(deals || [], null, 2);
   const teamBlock = buildTeamContextBlock(teamContext);
+  const memberMemorySection = memoryBlock ? `\n\n${memoryBlock}` : '';
   return `You are Dossie, an elite AI transaction coordinator for Texas real estate agents. You are warm, sharp, and completely reliable. You work 24/7/365 — nights, weekends, holidays. You never miss a deadline and never drop the ball.
 
 NAME RULES: Your name is Dossie (rhymes with "bossy"). Speech-to-text frequently mishears it as Darcy, Dorothy, Daisy, Dossy, Docie, Dottie, or similar sound-alikes. If the agent greets you or addresses you using any wrong name, warmly correct it in one breath without making a thing of it — for example: "It's Dossie, by the way — but good morning." Never adopt the wrong name. Never repeat the wrong name back to them. After the gentle correction, continue normally.
@@ -733,7 +781,13 @@ A wrong deadline in a message to a client can cost that client their earnest mon
 
 TODAY: ${today}
 AGENT'S ACTIVE DEALS: ${dealsJson}
-${teamBlock}
+${teamBlock}${memberMemorySection}
+
+MEMBER MEMORY, REMEMBERING NEW THINGS (remember_preference / remember_fact):
+- The MEMBER MEMORY block above (when present) is what Dossie has already learned about this member from past conversations — small, bounded, and never a substitute for the real deal data above it or CALIBRATION's rule against asserting an unread fact.
+- Call remember_preference quietly, alongside whatever else you're doing, whenever the agent states or repeats a standing preference or workflow habit — a title company they always use, a typical option fee/period, wanting a net sheet before an offer summary, how they like things phrased. Never announce it, never ask permission — just note it and keep going.
+- Call remember_fact when the agent states something worth Dossie recalling later about a person, money, or a file that is not itself a field on the current dossier (already-covered ground like buyer_name/sale_price/etc. still goes through update_deal_field, not here). A fact saved this way is NOT immediately trusted — it starts unconfirmed and the member reviews it later — so keep any acknowledgment brief and undramatic; do not tell them it is now "on file" or treat it as settled.
+- Do not call either tool for something already being written to the dossier via another tool in this same turn (update_deal_field, capture_seller_intake, log_offer, etc.) — that would double-record the same fact in two places.
 
 EXECUTION RULES:
 - Always call a tool. Never respond with plain text only.
@@ -1098,11 +1152,19 @@ async function handleActionMode({ message, deals, messages, userId }) {
   // majority of callers) — only a real admin membership on a non-archived
   // org returns real data. See _lib/team-chat-context.js.
   const teamContext = await getTeamChatContext(userId);
+  // Per-member memory load step — top-N relevant ACTIVE memories for this
+  // member, scoped to them alone (member_memory_search filters by user_id
+  // server-side; userId here is the verified session's, never a tool input).
+  // Never blocks the reply: any failure degrades to no memory block.
+  const memoryBlock = await loadMemberMemoryBlock(userId, message).catch((err) => {
+    console.warn('[chat] loadMemberMemoryBlock threw:', err && err.message);
+    return '';
+  });
   // Split system into static (persona + rules + tools — cache-eligible) and
   // variable (today's date + per-user deals snapshot — too unique to cache).
   // We split on the TODAY: marker which the action prompt uses to anchor
   // today's date + deals JSON.
-  const fullSystem = buildActionSystemPrompt(compactDeals, today, teamContext);
+  const fullSystem = buildActionSystemPrompt(compactDeals, today, teamContext, memoryBlock);
   const variableMarker = `TODAY: ${today}`;
   const varIdx = fullSystem.indexOf(variableMarker);
   const systemStatic = varIdx > 0 ? fullSystem.slice(0, varIdx) : fullSystem;
@@ -1129,10 +1191,11 @@ async function handleActionMode({ message, deals, messages, userId }) {
 
   const firstResponse = await messagesCreateCached(anthropic, anthropicArgs);
 
-  // Resolves any search_inbox / read_email / import_email_attachments calls
-  // server-side and comes back with whatever the model concluded with. A turn
-  // that never touches the inbox costs nothing extra — no additional model call.
-  const response = await runInboxResolveLoop({
+  // Resolves any search_inbox / read_email / import_email_attachments /
+  // remember_preference / remember_fact calls server-side and comes back
+  // with whatever the model concluded with. A turn that never touches either
+  // group costs nothing extra — no additional model call.
+  const response = await runServerToolResolveLoop({
     anthropicArgs,
     firstResponse,
     userId,
