@@ -9,6 +9,8 @@ const {
   deserializeValue,
   planFieldSnapshots,
   planRevertPatch,
+  planAcceptSnapshots,
+  planAcceptPatch,
 } = require('./offer-field-snapshots');
 
 test('SNAPSHOT_FIELD_NAMES covers the full 17-field funds-due-date dependency set, not just the original 6', () => {
@@ -119,6 +121,59 @@ test('two-offer chain: retiring offer A restores the pre-A blank state, independ
   const revertB = planRevertPatch(offerBSnapshots);
   assert.deepEqual(revertB, { sale_price: null, closing_date: null, option_days: null });
   assert.notDeepEqual(offerBSnapshots, offerASnapshots);
+});
+
+// ---------------------------------------------------------------------------
+// planAcceptSnapshots / planAcceptPatch — the real accept-flow shape: only
+// ~5 fields come from the offer row directly, but all 17 get a snapshot row
+// so a later revert correctly wipes out whatever got written under this
+// offer's lifecycle (funds confirmations, deposits) even though acceptance
+// itself never touched them.
+// ---------------------------------------------------------------------------
+
+test('planAcceptSnapshots: snapshots all 17 fields, not just the ~5 the offer maps to', () => {
+  const blank = { sale_price: null, closing_date: null, option_fee: null, option_days: null, earnest_money: null };
+  const offer = { offer_price: 780000, closing_date: '2026-08-15', option_fee: 200, option_days: 10, earnest_money: 5000 };
+  const rows = planAcceptSnapshots(blank, offer, { offerId: 'offer-a', transactionId: 'tx-1', userId: 'user-1' });
+  assert.equal(rows.length, 17);
+});
+
+test('planAcceptSnapshots: offer-mapped fields get new_value from the offer; everything else is a no-op (new_value === prior_value)', () => {
+  const blank = { sale_price: null, closing_date: null, option_fee: null, option_days: null, earnest_money: null };
+  const offer = { offer_price: 780000, closing_date: '2026-08-15', option_fee: 200, option_days: 10, earnest_money: 5000 };
+  const rows = planAcceptSnapshots(blank, offer, { offerId: 'offer-a', transactionId: 'tx-1', userId: 'user-1' });
+
+  const salePrice = rows.find((r) => r.field_name === 'sale_price');
+  assert.equal(salePrice.prior_value, null);
+  assert.equal(salePrice.new_value, '780000');
+
+  const confirmedAt = rows.find((r) => r.field_name === 'earnest_money_confirmed_at');
+  assert.equal(confirmedAt.prior_value, null);
+  assert.equal(confirmedAt.new_value, null); // untouched by acceptance — no-op row
+});
+
+test('planAcceptPatch: only writes the fields the offer actually maps to', () => {
+  const offer = { offer_price: 780000, closing_date: '2026-08-15', option_fee: 200, option_days: 10, earnest_money: 5000, buyer_name: 'Wren Everly' };
+  const patch = planAcceptPatch(offer);
+  assert.deepEqual(patch, {
+    sale_price: 780000, closing_date: '2026-08-15', option_fee: 200, option_days: 10, earnest_money: 5000,
+  });
+  assert.ok(!('buyer_name' in patch));
+});
+
+test('the real accept -> LATER field gets written during the deal -> retire sequence: confirming earnest money under offer A, then A falling through, wipes the confirmation, not just the 5 accept-time fields', () => {
+  const blank = { sale_price: null, closing_date: null, option_fee: null, option_days: null, earnest_money: null, earnest_money_confirmed_at: null };
+  const offer = { offer_price: 780000, closing_date: '2026-08-15', option_fee: 200, option_days: 10, earnest_money: 5000 };
+  const acceptSnapshots = planAcceptSnapshots(blank, offer, { offerId: 'offer-a', transactionId: 'tx-1', userId: 'user-1' });
+
+  // Deal proceeds: earnest money gets confirmed weeks later, completely
+  // outside the accept flow — no new snapshot row is created for this (by
+  // design, see module header). The offer's original snapshot already holds
+  // prior_value=null for earnest_money_confirmed_at from accept time.
+  // Retiring offer A must still null it out.
+  const revert = planRevertPatch(acceptSnapshots);
+  assert.equal(revert.earnest_money_confirmed_at, null);
+  assert.equal(revert.sale_price, null);
 });
 
 test('two-offer chain: if offer B is accepted WITHOUT A ever being reverted (a data-integrity bug elsewhere), B still only records what IT overwrote', () => {
