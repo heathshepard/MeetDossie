@@ -572,7 +572,6 @@ async function createEmailAsk({ userId, transactionId, matchedLabel, subject, sn
     if (Array.isArray(rows) && rows.length) return { ok: true, skipped: true, reason: 'already_filed' };
   }
 
-  const threadUrl = gmailThreadId ? `https://mail.google.com/mail/u/0/#inbox/${gmailThreadId}` : null;
   const body = [
     reason || 'A new email came in on this deal.',
     subject ? `Subject: ${subject}` : null,
@@ -589,7 +588,16 @@ async function createEmailAsk({ userId, transactionId, matchedLabel, subject, sn
     due_label: null,
     suggested_actions: [
       { id: 'reviewed', label: 'Reviewed', kind: 'primary', effect: 'resolve' },
-      threadUrl ? { id: 'open_thread', label: 'Open in Gmail', kind: 'secondary', effect: 'none', url: threadUrl } : null,
+      // 2026-09-21 CARTER — carry the raw thread id, not a pre-built URL.
+      // This used to bake `/mail/u/0/#inbox/<id>` in at write time, which is
+      // a POSITIONAL index into whichever Google accounts are signed into
+      // the browser that later clicks it — wrong for anyone (Heath) signed
+      // into more than one, and dead for a thread that's since left the
+      // inbox label. The client (DossieAsks.jsx) builds the real link at
+      // render time from this threadId + the viewer's own connected account
+      // email (mailConnectedEmail, /api/addon-status), which is the only
+      // place that actually knows which mailbox to open.
+      gmailThreadId ? { id: 'open_thread', label: 'Open in Gmail', kind: 'secondary', effect: 'none', threadId: gmailThreadId } : null,
     ].filter(Boolean),
     created_by: 'system',
     source,
