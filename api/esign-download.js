@@ -3,8 +3,11 @@
 // Authorization: Bearer <CRON_SECRET>  (internal only — not a user JWT)
 //
 // Pulls the completed signed PDF from DocuSeal into Supabase Storage,
-// inserts a documents row with document_type='signed', and updates the
-// signature_requests row to status='completed'.
+// inserts a documents row (preserving the ORIGINAL document's real
+// document_type where known — see fetchOriginalDocumentMeta below — and
+// setting executed_at instead of overwriting to the generic 'signed'
+// literal, per supabase/migrations/20260921_documents_executed_at.sql), and
+// updates the signature_requests row to status='completed'.
 //
 // This endpoint is also called inline by esign-webhook when all signers complete,
 // but is exposed as a standalone endpoint so Heath can manually trigger a download
@@ -64,6 +67,27 @@ async function fetchDocumentName(documentId) {
   if (!res.ok) return 'Document.pdf';
   const rows = await res.json().catch(() => []);
   return (Array.isArray(rows) && rows[0]?.file_name) ? rows[0].file_name : 'Document.pdf';
+}
+
+// Generic/unhelpful literals a real document_type should never be replaced
+// by, and that a preserved value must not itself be one of — carrying
+// 'signed' or 'executed' forward as the "real" type would just reintroduce
+// the exact collapse this fix removes.
+const GENERIC_DOC_TYPES = new Set(['signed', 'executed', 'signing_certificate', 'other', '']);
+
+// The document that was actually sent for signature — its document_type is
+// the real category (e.g. 'trec-hoa-addendum') to carry onto the new signed
+// copy, instead of the generic 'signed' literal. Returns null if unknown or
+// already generic, so the caller falls back to 'signed' explicitly rather
+// than silently propagating a bad value.
+async function fetchOriginalDocumentType(documentId) {
+  if (!documentId) return null;
+  const res = await supa(`documents?id=eq.${encodeURIComponent(documentId)}&select=document_type&limit=1`);
+  if (!res.ok) return null;
+  const rows = await res.json().catch(() => []);
+  const type = Array.isArray(rows) && rows[0]?.document_type;
+  if (!type || GENERIC_DOC_TYPES.has(type)) return null;
+  return type;
 }
 
 module.exports = async function handler(req, res) {
@@ -138,6 +162,7 @@ module.exports = async function handler(req, res) {
 
     // Build storage path.
     const originalName = await fetchDocumentName(sr.document_id);
+    const preservedType = await fetchOriginalDocumentType(sr.document_id);
     const safeName = originalName.replace(/[^A-Za-z0-9._\-\s()]/g, '_');
     const ts = Date.now();
     const storagePath = `${sr.user_id}/${sr.transaction_id || 'no-transaction'}/signed-${ts}-${safeName}`;
@@ -167,7 +192,8 @@ module.exports = async function handler(req, res) {
         user_id: sr.user_id,
         file_name: `signed-${safeName}`,
         file_type: 'application/pdf',
-        document_type: 'signed',
+        document_type: preservedType || 'signed',
+        executed_at: new Date().toISOString(),
         storage_path: storagePath,
         file_size: pdfBuffer.length,
       }),

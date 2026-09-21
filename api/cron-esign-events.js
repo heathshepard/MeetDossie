@@ -251,7 +251,12 @@ async function storeExecutedPdf({ userId, transactionId, buffer, fileName }) {
       user_id: userId,
       file_name: `executed-${withExt}`,
       file_type: 'application/pdf',
+      // No structured link to an original document here (this path detects
+      // completion by parsing a Gmail thread, not via signature_requests.
+      // document_id) — 'signed' stays the honest "real category unknown"
+      // state. See esign-download.js for the path that CAN preserve it.
       document_type: 'signed',
+      executed_at: new Date().toISOString(),
       storage_path: storagePath,
       file_size: buffer.length,
     }),
