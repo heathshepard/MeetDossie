@@ -1,19 +1,20 @@
 -- form_templates: retire the superseded 1-4 Family contract and correct the
 -- TREC revision numbers shown in the Form Library.
 --
--- NOT APPLIED. Needs Heath's sign-off — this edits production rows.
--- Apply with: psql "$POSTGRES_URL_NON_POOLING" -f <this file>
---         or: the api/admin-migrate-* endpoint pattern, gated by CRON_SECRET.
+-- APPLIED 2026-09-21 to Supabase project pgwoitbdiyubjugwufhk, authorized by
+-- Heath, applied via Supabase MCP apply_migration. Ran after
+-- 20260816_form_templates_repoint_before_deactivate.sql. Do NOT re-run.
 --
 -- !! ORDERING PREREQUISITE (added 2026-08-16 CARTER) !!
 -- Run 20260816_form_templates_repoint_before_deactivate.sql FIRST.
 -- Deactivating a form_templates row is not inert: resolve-blank-template-pdf.js,
 -- form-packages.js and form-templates.js all filter `is_active = true`.
--- Production currently has 50 blank-template `documents` rows (32 on the 20-18
--- row, 18 on the mislabeled 'Seller Disclosure' row) and 3 form_package_items
--- pointing at the two rows steps 1 and 2 below deactivate. Applying this file
--- alone makes those 50 documents fail to resolve their PDF bytes and quietly
--- shortens two form packages.
+-- Production had ~50 blank-template `documents` rows estimated on 2026-08-16
+-- (32 on the 20-18 row, 18 on the mislabeled 'Seller Disclosure' row) and 3
+-- form_package_items pointing at the two rows steps 1 and 2 below deactivate.
+-- The real count on 2026-09-21 was 37 (25 + 12) — some rows had been deleted
+-- in the interim. Applying this file alone makes those documents fail to
+-- resolve their PDF bytes and quietly shortens two form packages.
 --
 -- WHY
 -- ---
@@ -80,5 +81,12 @@ commit;
 
 -- Verify after applying:
 --   select short_name, trec_number, is_active from public.form_templates order by short_name;
--- Expect: exactly one active '1-4 Family Contract' (20-19); no row numbered
--- 20-18 active; no duplicate 25-15; 'OP-H' numbered 55-1.
+--
+-- Observed 2026-09-21 (actual production result):
+--   '1-4 Family Contract' 20-18 -> is_active=false; 20-19 -> is_active=true —
+--     exactly one active row.
+--   'Seller Disclosure' 25-15 -> is_active=false. 'OP-H' -> trec_number 55-1,
+--     active.
+--   Corrected and active: TREC 25 -> 25-17, New Home Contract -> 23-20,
+--     New Home Completed -> 24-20, Amendment -> 39-11, HOA Addendum -> 36-11,
+--     Financing Addendum -> 40-11, Back-Up Contract -> 11-9.
