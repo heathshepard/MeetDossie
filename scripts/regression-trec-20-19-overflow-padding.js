@@ -51,7 +51,7 @@ async function loadBlank() {
 async function testMaxWidthEnforcedWithSecondLine() {
   const doc = await loadBlank();
   const fv = {
-    buyer_notice_email: 'strkanjain@gmail.com; ketanhthakkar@gmail.com', // ~222pt @ 10pt, real overflow case
+    buyer_notice_email: 'nkapoor@mail.example; rohandesai@mail.example', // ~228pt @ 10pt, models the real overflow case
   };
   await fillTrec2019(doc, fv);
   const savedBytes = await doc.save();
@@ -62,13 +62,13 @@ async function testMaxWidthEnforcedWithSecondLine() {
   assert.ok(coord.secondLine, 'buyer_notice_email must declare a secondLine coordinate');
 
   // The line1 slice (word-wrapped) must fit within coord.maxWidth.
-  const line1 = 'strkanjain@gmail.com;';
+  const line1 = 'nkapoor@mail.example;';
   assert.ok(
     helv.widthOfTextAtSize(line1, coord.fontSize || 10) <= coord.maxWidth,
     'line1 must fit within the declared maxWidth'
   );
   // The remainder drawn on secondLine must fit within its own maxWidth budget.
-  const line2 = 'ketanhthakkar@gmail.com';
+  const line2 = 'rohandesai@mail.example';
   const line2MaxWidth = coord.secondLine.maxWidth || coord.maxWidth;
   assert.ok(
     helv.widthOfTextAtSize(line2, coord.fontSize || 10) <= line2MaxWidth,
@@ -200,7 +200,7 @@ async function testBrokerPagePaddingApplied() {
       associateName: 'Heath Shepard',
       teamName: 'Test Team 2',
       associateEmail: 'heath.shepard@kw.com',
-      associatePhone: '(808) 392-3032',
+      associatePhone: '(830) 555-0119',
       associateLicenseNo: '751964',
     },
   });

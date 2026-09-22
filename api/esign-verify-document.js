@@ -13,7 +13,7 @@
 //                                           failure-case test, and by any UI
 //                                           that wants to check a file before
 //                                           it is filed)
-// Optional: { expectedSigners: ["Thomas Linton", "Carol Linton"] }
+// Optional: { expectedSigners: ["Gregory Hale", "Carol Hale"] }
 //
 // Authorization: Bearer <supabase user JWT>
 //

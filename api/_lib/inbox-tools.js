@@ -1,7 +1,7 @@
 // api/_lib/inbox-tools.js
 //
 // Read-only inbox tools for Dossie's conversational surface (api/chat.js,
-// mode:'action'). Lets a member say "we received an offer on Nopalito" and
+// mode:'action'). Lets a member say "we received an offer on Sablewood" and
 // have Dossie find the email, read it, and file its attachments into the
 // dossier — without ever handing the model raw mailbox access.
 //
@@ -52,8 +52,8 @@ const DEFAULT_DAYS = 14;
 // 730 days, raised from 90 on 2026-09-20. 90 was not a considered privacy
 // bound, it was a guess, and it made a whole category of question
 // unanswerable: "what is this client's email address" is about a relationship
-// that spans a listing, not a fortnight. The live failing case was Barry
-// Whyte, whose most recent inbound message was 101 days old — so the old
+// that spans a listing, not a fortnight. The live failing case was Marcus
+// Thorne, whose most recent inbound message was 101 days old — so the old
 // ceiling was not merely a bad default, it was unreachable at ANY setting the
 // model could choose. Verified against the real mailbox: no combination of
 // days<=90 and max_results<=20 surfaced his address.
@@ -83,7 +83,7 @@ const MAX_ADDRESSES_PER_HEADER = 25;
 // api/_lib/microsoft-oauth.js, so this string is Gmail-only by design.
 //
 // `-in:sent` was removed 2026-09-20. A real estate agent's sent folder is
-// where most client addresses live — plenty of clients (Barry Whyte among
+// where most client addresses live — plenty of clients (Marcus Thorne among
 // them) are only ever a recipient, never a sender, so excluding sent mail made
 // "what is this person's address" unanswerable no matter how the model
 // phrased it.
@@ -313,15 +313,15 @@ function buildGmailQuery({ text, from, days, hasAttachment }) {
 }
 
 // Names arrive from speech, and a surname almost always arrives pluralised —
-// "get me the Whytes' email addresses". Gmail does not stem inside an address,
-// so a literal "whytes" matches nothing while "whyte" matches everything.
+// "get me the Thornes' email addresses". Gmail does not stem inside an address,
+// so a literal "thornes" matches nothing while "thorne" matches everything.
 // Tokens are already sanitized to letters/digits/.@'- by sanitizeFreeText;
-// this additionally strips leading/trailing punctuation so "whytes'" reduces
+// this additionally strips leading/trailing punctuation so "thornes'" reduces
 // cleanly.
-// Speech carries filler into the name ("the Whytes", "my client Barry"). A
+// Speech carries filler into the name ("the Thornes", "my client Marcus"). A
 // stopword inside an OR group matches essentially every message in the
 // mailbox, which floods the result with unrelated co-recipients — verified
-// live: "the Whytes'" returned Vercel, LinkedIn and a games newsletter
+// live: "the Thornes'" returned Vercel, LinkedIn and a games newsletter
 // alongside the two people actually wanted. Dropping these is a precision fix
 // AND a data-minimisation one.
 const CONTACT_STOPWORDS = new Set([
@@ -348,7 +348,7 @@ function contactNameVariants(text) {
 
 // The parentheses and the OR are ours, built from already-sanitized tokens —
 // no caller text reaches this as an operator. OR across the variants is right
-// for a contact lookup: "barry whyte" should match a message carrying either.
+// for a contact lookup: "marcus thorne" should match a message carrying either.
 // Breadth here is safe because the result is deduplicated to at most
 // MAX_MAX_CONTACTS address/name pairs and carries no message content at all.
 function buildGmailContactQuery({ variants, days }) {
@@ -402,7 +402,7 @@ function collectAttachments(payload) {
 }
 
 // Splits a To:/Cc: header into individual addresses. Commas inside a quoted
-// display name ("Whyte, Barry" <b@x.com>) or inside angle brackets are not
+// display name ("Thorne, Marcus" <b@x.com>) or inside angle brackets are not
 // separators, so this cannot be a naive split(',').
 function parseAddressList(raw) {
   const s = String(raw || '');
@@ -593,7 +593,7 @@ async function readEmail(input, { userId }) {
 // --------------------------------------------------------------------------
 // TOOL 3 — find_contact_email
 //
-// "What is Barry's email address" and "did the offer come in" are different
+// "What is Marcus's email address" and "did the offer come in" are different
 // questions with different shapes. The second wants recent messages carrying
 // attachments; the first wants header pairs across a long history, and does
 // not want message content at ALL.
@@ -715,7 +715,7 @@ async function findContactEmail(input, { userId }) {
 
   // People whose own name or address matches what was asked for come first;
   // co-recipients of the same threads follow, because "who else was on this"
-  // is often the real question ("the Whytes" is two people). Both are capped
+  // is often the real question ("the Thornes" is two people). Both are capped
   // by the same maxContacts.
   for (const c of all) c.matched_name = contactMatchesVariants(c, variants);
   const ordered = [
@@ -982,7 +982,7 @@ async function importEmailAttachments(input, { userId }) {
     //
     // Until 2026-09-20 this function read a full broker block, the title
     // company and both parties off the contract, handed `extracted` to the
-    // model, and persisted none of it. Verified on the real 23 Nopalito
+    // model, and persisted none of it. Verified on the real 14 Sablewood
     // packet: 69 fields read, all 17 contact columns null, `parties` = {}.
     //
     // That is not a cosmetic gap. cron-email-to-dossier matches inbound mail
@@ -1026,7 +1026,7 @@ async function importEmailAttachments(input, { userId }) {
 
       // --- Phase 4c: WRITE THE TERMS DOWN. ---
       //
-      // 2026-09-21 — root cause of the empty 23 Nopalito record before Heath
+      // 2026-09-21 — root cause of the empty 14 Sablewood record before Heath
       // filled it by hand: /api/scan-contract only ever ran from the
       // UnderContractDropStep drop zone in dossie-app.jsx. A contract that
       // arrived by email (this path) or any other way never had its dates,
@@ -1150,7 +1150,7 @@ const INBOX_TOOLS = [
   {
     name: 'find_contact_email',
     description:
-      "Look up a person's email address in the agent's own mail. Use for any 'what is X's email address', 'get me the Whytes' addresses', 'who do I have on file for the buyer's agent' question — this is the right tool even when the person has never emailed the agent, because it also reads the recipients of mail the agent SENT, which is where most client addresses actually live. Searches two years back by default. Returns only names and addresses, never message text. Give the name the way it appears on mail: a surname alone works best, singular rather than plural ('Whyte', not 'the Whytes'). If the agent wants the contents of an email rather than an address, use search_inbox instead.",
+      "Look up a person's email address in the agent's own mail. Use for any 'what is X's email address', 'get me the Thornes' addresses', 'who do I have on file for the buyer's agent' question — this is the right tool even when the person has never emailed the agent, because it also reads the recipients of mail the agent SENT, which is where most client addresses actually live. Searches two years back by default. Returns only names and addresses, never message text. Give the name the way it appears on mail: a surname alone works best, singular rather than plural ('Thorne', not 'the Thornes'). If the agent wants the contents of an email rather than an address, use search_inbox instead.",
     input_schema: {
       type: 'object',
       properties: {

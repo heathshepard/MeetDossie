@@ -23,8 +23,8 @@ require.cache[authPath].exports = {
 };
 
 const TX = {
-  property_address: '23 Nopalito', sale_price: 999000,
-  commission_rate: '5.5%', seller_name: 'Linton', option_fee: 500,
+  property_address: '14 Sablewood', sale_price: 999000,
+  commission_rate: '5.5%', seller_name: 'Hale', option_fee: 500,
   updated_at: '2026-09-18T00:00:00Z',
 };
 let txRows = [TX];

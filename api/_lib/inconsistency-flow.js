@@ -26,22 +26,22 @@
 // recency. That design was proposed and rejected. The reason is not politeness,
 // it is that the information needed to decide is not in the database:
 //
-//   - "Jenny Whyte" (dossier) vs "Jennifer Whyte" (contract) — one person with
+//   - "Cathy Thorne" (dossier) vs "Catherine Thorne" (contract) — one person with
 //     a nickname, or two different people?
 //   - If it IS one person, which spelling is her LEGAL name? Only a human who
 //     has seen her driver's licence knows.
 //   - If the dossier is right, the executed contract is wrong, and that is a
 //     $0-to-catastrophic problem depending on the field.
 //
-// A document-precedence rule gets the live 23 Nopalito case right by accident
+// A document-precedence rule gets the live 14 Sablewood case right by accident
 // and the inverse case — a contract typed with the wrong party name, which is
-// exactly the 2026-08-12 Wild Cherry repair amendment — silently wrong.
+// exactly the 2026-08-12 Amberwood repair amendment — silently wrong.
 //
 // -----------------------------------------------------------------------------
 // WHY "WHERE DOES THE WRONG VALUE LIVE" IS THE INTERESTING HALF
 // -----------------------------------------------------------------------------
-// The naive remedy for "the contract says Jennifer, the dossier says Jenny, and
-// Jenny is right" is "update the dossier." That is backwards. If Jenny is right
+// The naive remedy for "the contract says Catherine, the dossier says Cathy, and
+// Cathy is right" is "update the dossier." That is backwards. If Cathy is right
 // then the EXECUTED CONTRACT carries a name that is not this seller's legal
 // name, and the remedy is an amendment signed by all parties.
 //
@@ -158,8 +158,8 @@ const SUFFIX_RE = /\b(?:jr|sr|ii|iii|iv|v|md|phd|esq|esquire|dds|cpa|trustee)\b\
 
 // A standalone single letter, WITH its trailing period. The period must be
 // consumed: an earlier version used /\b[a-z]\.?\b/ and the trailing `\b` could
-// not match after ".", so "Clark L. Champie" stripped to "Clark . Champie" and
-// the leftover period made it compare unequal to "Clark Champie" — which then
+// not match after ".", so "Arthur W. Kendrick" stripped to "Clark . Kendrick" and
+// the leftover period made it compare unequal to "Arthur Kendrick" — which then
 // fell through to 'extra_party' and ranked a middle initial as a missing human
 // being. Caught by the test, not by reading it.
 const MIDDLE_INITIAL_RE = /(?:^|\s)[a-z]\.?(?=\s|$)/gi;
@@ -188,7 +188,7 @@ function norm(s) {
  *   'suffix_only'        — differ only by Jr/Sr/III/trustee
  *   'middle_initial_only'— differ only by a single-letter middle name
  *   'nickname_candidate' — share a substantial leading stem and diverge after
- *                          ("Jenny" / "Jennifer", "Bob" / "Robert" will NOT hit
+ *                          ("Cathy" / "Catherine", "Bob" / "Robert" will NOT hit
  *                          this and that is correct — it is not detectable)
  *   'extra_party'        — one side names people the other does not
  *   'different'          — no relationship we can see; could be the wrong person
@@ -214,7 +214,7 @@ function classifyDifference(a, b) {
   //
   // The extra token must actually look like a NAME. Without that guard a
   // middle initial or a "Jr" reads as an extra person — which is how
-  // "Clark L. Champie" vs "Clark Champie" once ranked as a missing party.
+  // "Arthur W. Kendrick" vs "Arthur Kendrick" once ranked as a missing party.
   if (ta.length !== tb.length) {
     const shared = ta.filter((t) => tb.includes(t)).length;
     const longer = ta.length > tb.length ? ta : tb;
@@ -226,7 +226,7 @@ function classifyDifference(a, b) {
   }
 
   // Same token count, exactly one token differs, and that token shares a
-  // 4+ character stem with its counterpart. "jennifer whyte" vs "jenny whyte":
+  // 4+ character stem with its counterpart. "catherine thorne" vs "cathy thorne":
   // surname matches, given names share "jenn". A human has to tell us whether
   // that is one woman or two.
   if (ta.length === tb.length && ta.length > 0) {
@@ -307,7 +307,7 @@ function humanField(column, party, kind) {
  *
  * Execution state comes from esign_events (verification_verdict='signed'),
  * never from documents.signature_status — that column reads 'none' on all 357
- * live rows including the executed 23 Nopalito contract, so trusting it would
+ * live rows including the executed 14 Sablewood contract, so trusting it would
  * route every executed instrument down the "just edit it" path.
  * memory:feedback_poll-system-of-record-not-notifications.
  */
@@ -411,7 +411,7 @@ function describeConflict(conflict, evidence = {}, opts = {}) {
     { choice: CHOICE.DOCUMENT, label: `The document is right — ${c.parsed}`, value: c.parsed },
   ];
   // "They're the same person" was the actual answer on BOTH live conflicts
-  // (23 Nopalito and 29046 Pfeiffers Gate, 2026-09-20). It is neither of the
+  // (14 Sablewood and 4120 Harrow Lane, 2026-09-20). It is neither of the
   // two obvious options and leaving it out forces a wrong answer.
   if (c.kind === 'name' || isPartyNameColumn(c.column)) {
     choices.push({
@@ -716,8 +716,8 @@ function finish({ d, choice, correct, note, at, remedies, equivalence }) {
     summary: `${headline} ${remedies.map((r) => r.detail).join(' ')}`.trim(),
     remedies,
     // What gets written to contact_provenance._resolutions. Replaces the
-    // hand-written `_resolved_by_heath` array on the live Pfeiffers and
-    // Nopalito rows, which has two different shapes in one array (`field` on
+    // hand-written `_resolved_by_heath` array on the live Harrow and
+    // Sablewood rows, which has two different shapes in one array (`field` on
     // one entry, `column` on the next) because it was typed by hand.
     resolution_record: {
       conflict_id: d.conflict_id,

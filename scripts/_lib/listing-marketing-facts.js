@@ -83,7 +83,7 @@ const LISTINGS = {
     city: 'San Antonio',
     zip: '78261',
     mlsNumber: '1916402',
-    isAgentOwned: false, // Owner: Whyte Barry Jennifer Ann (confirmed live 2026-09-10)
+    isAgentOwned: false, // Owner: Thorne Marcus Catherine Ann (confirmed live 2026-09-10)
     propertyType: 'Single Family Detached',
     beds: 4,
     baths: '4/0',

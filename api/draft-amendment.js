@@ -250,7 +250,7 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes, originalValue
     // name correction is exactly what "other modifications" is for.
     //
     // The wording states the correction rather than restating the name, because
-    // an amendment that just says "Seller: Jenny Whyte" reads as a substitution
+    // an amendment that just says "Seller: Cathy Thorne" reads as a substitution
     // of parties. It is not — it is a scrivener's correction to the name of the
     // same seller, and the text has to say so or a title examiner will read it
     // as a new party.
@@ -265,7 +265,7 @@ async function fillTrec39_10(tx, { amendmentType, newValue, notes, originalValue
       : String(newValue);
 
     // ¶10 has exactly three 80-character lines. Verified by rendering and
-    // reading back, 2026-09-20: the Jenny/Jennifer wording lands at 233 of 240,
+    // reading back, 2026-09-20: the Cathy/Catherine wording lands at 233 of 240,
     // which fits but leaves almost nothing spare.
     //
     // So overflow is REFUSED, not truncated. A legal instrument that silently

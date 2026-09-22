@@ -10,8 +10,8 @@
 // could read a buyer's agent off a contract and still say she had no address
 // for them.
 //
-// Fixture is the real 23 Nopalito deal. Heath is the LISTING agent; the buyers
-// (the Bryans) are the other side's clients.
+// Fixture is the real 14 Sablewood deal. Heath is the LISTING agent; the buyers
+// (the Corlisses) are the other side's clients.
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -20,28 +20,28 @@ const { planContactWrites } = require('./contact-persistence');
 const { resolveRoleRecipients, assertNotOpposingPrincipal } = require('./packet-recipients');
 
 const EXTRACTED = {
-  buyerName: 'Christopher Bryan, Monica Bryan',
-  sellerName: 'Barry Whyte, Jennifer Whyte',
-  buyerAgent: 'Clyde Johnson',
+  buyerName: 'Nathan Corliss, Priya Corliss',
+  sellerName: 'Marcus Thorne, Catherine Thorne',
+  buyerAgent: 'Dale Whitaker',
   listingAgent: 'Heath Shepard',
-  buyerNoticeEmail: 'cwb03@hotmail.com',
-  buyerNoticePhone: '(210)467-2232',
-  titleCompany: 'Upward Title and Closing',
-  titleOfficerName: 'Lauren Lugo',
+  buyerNoticeEmail: 'nrc07@mail.example',
+  buyerNoticePhone: '(210)555-0147',
+  titleCompany: 'Crosswind Title and Escrow',
+  titleOfficerName: 'Rachel Vance',
   parties: {
-    buyerAgentEmail: 'jojohnson@purehomeriver.com',
-    buyerAgentPhone: '(210)789-3727',
-    buyerBrokerage: 'Pure Home River',
+    buyerAgentEmail: 'dwhitaker@riverbendrealty.example',
+    buyerAgentPhone: '(210)555-0182',
+    buyerBrokerage: 'Riverbend Realty',
     listingAgentEmail: 'heath.shepard@kw.com',
-    listingAgentPhone: '(808)392-3032',
+    listingAgentPhone: '(830)555-0119',
     listingBrokerage: 'Keller Williams City View',
   },
 };
 
 const BEFORE = {
-  id: '952e0d82-c453-4137-87b4-1ed46e738eb3',
+  id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
   role: 'listing',
-  seller_name: 'Jenny Whyte',
+  seller_name: 'Cathy Thorne',
   parties: {},
 };
 
@@ -68,8 +68,8 @@ test("AFTER: send_packet_to_party resolves the buyer's agent", () => {
   const r = resolveRoleRecipients({ tx: afterScan(), profile: PROFILE, role: 'buyer_agent' });
   assert.equal(r.ok, true);
   assert.equal(r.recipients.length, 1);
-  assert.equal(r.recipients[0].email, 'jojohnson@purehomeriver.com');
-  assert.equal(r.recipients[0].name, 'Clyde Johnson');
+  assert.equal(r.recipients[0].email, 'dwhitaker@riverbendrealty.example');
+  assert.equal(r.recipients[0].name, 'Dale Whitaker');
 });
 
 test('AFTER: title resolves to the named escrow officer', () => {
@@ -90,11 +90,11 @@ test('AFTER: the buyers are still unreachable by role', () => {
 
 test("AFTER: the buyer's address typed by hand is refused", () => {
   // This is the case the scan CREATED the risk for: before it ran, Dossie had
-  // never seen cwb03@hotmail.com and could not have blocked it. The address is
+  // never seen nrc07@mail.example and could not have blocked it. The address is
   // deliberately kept out of buyer_email and put in parties.buyer instead, so
   // the blocklist has to read there — otherwise persisting it would have made
   // the member MORE able to reach the other side's client, not less.
-  const r = assertNotOpposingPrincipal({ tx: afterScan(), email: 'cwb03@hotmail.com' });
+  const r = assertNotOpposingPrincipal({ tx: afterScan(), email: 'nrc07@mail.example' });
   assert.equal(r.ok, false);
   assert.equal(r.blocked, 'opposing_principal');
 });
@@ -108,23 +108,23 @@ test('THE SPLIT BRAIN: a deal scanned by the browser is sendable again', () => {
   const browserScanned = {
     role: 'listing',
     parties: {
-      buyerAgent: { name: 'Clyde Johnson', email: 'jojohnson@purehomeriver.com', phone: '(210) 789-3727' },
+      buyerAgent: { name: 'Dale Whitaker', email: 'dwhitaker@riverbendrealty.example', phone: '(210) 555-0182' },
     },
   };
   const r = resolveRoleRecipients({ tx: browserScanned, profile: PROFILE, role: 'buyer_agent' });
   assert.equal(r.ok, true);
-  assert.equal(r.recipients[0].email, 'jojohnson@purehomeriver.com');
+  assert.equal(r.recipients[0].email, 'dwhitaker@riverbendrealty.example');
 });
 
 test('a typed column still outranks the parsed jsonb', () => {
   const both = {
     role: 'listing',
     other_agent_name: 'Corrected Name',
-    other_agent_email_addr: 'corrected@purehomeriver.com',
-    parties: { buyerAgent: { name: 'Clyde Johnson', email: 'jojohnson@purehomeriver.com' } },
+    other_agent_email_addr: 'corrected@riverbendrealty.example',
+    parties: { buyerAgent: { name: 'Dale Whitaker', email: 'dwhitaker@riverbendrealty.example' } },
   };
   const r = resolveRoleRecipients({ tx: both, profile: PROFILE, role: 'buyer_agent' });
-  assert.equal(r.recipients[0].email, 'corrected@purehomeriver.com');
+  assert.equal(r.recipients[0].email, 'corrected@riverbendrealty.example');
   assert.equal(r.recipients[0].name, 'Corrected Name');
 });
 
@@ -137,7 +137,7 @@ test('the browser cannot promote a blocked address into a send column', () => {
   // route this module does not control. It goes under contact_blocked instead.
   const after = afterScan();
   assert.equal(after.parties.buyer.email, undefined);
-  assert.equal(after.parties.buyer.contact_blocked.email, 'cwb03@hotmail.com');
+  assert.equal(after.parties.buyer.contact_blocked.email, 'nrc07@mail.example');
 
   // Simulate the UI round-trip and confirm buyer_email is still empty.
   const promoted = after.buyer_email || after.parties?.buyer?.email || null;
@@ -147,7 +147,7 @@ test('the browser cannot promote a blocked address into a send column', () => {
 test('a malformed address in the jsonb does not become a recipient', () => {
   const junk = {
     role: 'listing',
-    parties: { buyerAgent: { name: 'Clyde Johnson', email: 'Email: jojohnson@purehomeriver.com' } },
+    parties: { buyerAgent: { name: 'Dale Whitaker', email: 'Email: dwhitaker@riverbendrealty.example' } },
   };
   const r = resolveRoleRecipients({ tx: junk, profile: PROFILE, role: 'buyer_agent' });
   assert.equal(r.ok, false);
