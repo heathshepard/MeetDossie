@@ -50,11 +50,38 @@
  *   finding) and --maxScaleRatio caps how far two consecutive shots may
  *   differ (its "jarring scale jump" finding). Both clamp the plan's own
  *   numbers here too, so a stale plan can't push past the cap.
+ *
+ * RECORDING PRESET (--presetBaseline, 2026-09-22)
+ *   A recording preset (scripts/video-engine/recording-presets.json) is a
+ *   measured, human-verified home framing for one physical place Heath
+ *   shoots from. `--presetBaseline` takes that preset's normalized rect plus
+ *   its faceAnchor/tracking policy as JSON.
+ *
+ *   IT IS A BASELINE, NOT A CROP. Two things come from it:
+ *     1. ZOOM — the crop window is sized from the preset instead of from the
+ *        adaptive face-size heuristic. The heuristic's HEAD_TOP_ABOVE_BOX /
+ *        CHIN_BELOW_BOX factors are explicitly unmeasured estimates; the
+ *        preset was checked against a real contact sheet, so where the two
+ *        disagree the preset wins and the heuristic is demoted to a safety
+ *        clamp that only ever prevents clipping the top of the head.
+ *     2. WHERE THE SUBJECT SITS IN THE WINDOW — faceAnchor.withinCrop. The
+ *        tracker keeps the face at that spot, which reproduces the verified
+ *        framing exactly when he is at his home position.
+ *
+ *   The window then FOLLOWS the face, with per-axis gain and an excursion
+ *   clamp, and is clamped to source bounds. Applied as a static rect the
+ *   2026-09-22 kitchen-island preset amputates a raised hand in the last
+ *   seconds of the very take it was derived from — he drifts left through
+ *   the middle of the read and gestures wide at the end. Tracking is not a
+ *   nice-to-have on top of the preset; it is what makes the preset safe.
  */
 const fs = require('fs');
 const path = require('path');
-const ort = require('onnxruntime-node');
 const sharp = require('sharp');
+// ONE detector implementation, shared with recording-preset.js's
+// auto-detection (extracted 2026-09-22 — a second copy would be a second
+// thing to keep in sync with the model's real output layout).
+const { createSession, detectFace } = require('./face-detect-lib.js');
 
 function parseArgs() {
   const a = process.argv.slice(2);
@@ -69,99 +96,9 @@ function parseArgs() {
   return out;
 }
 
-// --- RFB-320 prior box generation (matches the reference PyTorch repo) ---
-const IMG_W = 320, IMG_H = 240;
-const STRIDES = [8, 16, 32, 64];
-const MIN_BOXES = [[10, 16, 24], [32, 48], [64, 96], [128, 192, 256]];
-
-function generatePriors() {
-  const featureMapWs = STRIDES.map(s => Math.ceil(IMG_W / s));
-  const featureMapHs = STRIDES.map(s => Math.ceil(IMG_H / s));
-  const priors = [];
-  for (let idx = 0; idx < STRIDES.length; idx++) {
-    const fw = featureMapWs[idx], fh = featureMapHs[idx];
-    const boxSizes = MIN_BOXES[idx];
-    for (let y = 0; y < fh; y++) {
-      for (let x = 0; x < fw; x++) {
-        const cx = (x + 0.5) / fw;
-        const cy = (y + 0.5) / fh;
-        for (const size of boxSizes) {
-          const w = size / IMG_W;
-          const h = size / IMG_H;
-          priors.push([cx, cy, w, h]);
-        }
-      }
-    }
-  }
-  return priors;
-}
-const PRIORS = generatePriors();
-const CENTER_VARIANCE = 0.1, SIZE_VARIANCE = 0.2;
-
-// 2026-09-21 (video-engine-reviewer-0921, verified again on consolidation
-// 2026-09-22): the exported version-RFB-320.onnx already applies the SSD
-// decode INSIDE the graph — `boxes` is [1, 4420, 4] of normalized CORNER
-// boxes (x1, y1, x2, y2), not prior offsets. Re-decoding them against PRIORS
-// snapped every box to a prior's centre/size, so the crop path tracked prior
-// grid points near the face instead of the face, and box sizes came out
-// quantized (0.45 / 0.61 / 0.84 of the frame). review-lib/video.js measured
-// it. PRIORS is kept only as the record of how the model is laid out.
-function decodeBoxes(boxesRaw, scoresRaw, numPriors) {
-  const results = [];
-  for (let i = 0; i < numPriors; i++) {
-    const score = scoresRaw[i * 2 + 1]; // class 1 = face
-    if (score < 0.6) continue;
-    results.push({ x1: boxesRaw[i * 4], y1: boxesRaw[i * 4 + 1], x2: boxesRaw[i * 4 + 2], y2: boxesRaw[i * 4 + 3], score });
-  }
-  // NMS
-  results.sort((a, b) => b.score - a.score);
-  const kept = [];
-  const iou = (a, b) => {
-    const ix1 = Math.max(a.x1, b.x1), iy1 = Math.max(a.y1, b.y1);
-    const ix2 = Math.min(a.x2, b.x2), iy2 = Math.min(a.y2, b.y2);
-    const iw = Math.max(0, ix2 - ix1), ih = Math.max(0, iy2 - iy1);
-    const inter = iw * ih;
-    const areaA = (a.x2 - a.x1) * (a.y2 - a.y1);
-    const areaB = (b.x2 - b.x1) * (b.y2 - b.y1);
-    return inter / (areaA + areaB - inter);
-  };
-  for (const box of results) {
-    if (kept.every(k => iou(k, box) < 0.4)) kept.push(box);
-    if (kept.length >= 5) break;
-  }
-  return kept;
-}
-
-async function detectFace(session, filePath) {
-  const meta = await sharp(filePath).metadata();
-  const resized = await sharp(filePath).resize(IMG_W, IMG_H, { fit: 'fill' }).removeAlpha().raw().toBuffer();
-  const floatData = new Float32Array(3 * IMG_W * IMG_H);
-  const plane = IMG_W * IMG_H;
-  // model expects (x - 127) / 128 normalization, RGB, CHW
-  for (let p = 0; p < plane; p++) {
-    floatData[p] = (resized[p * 3] - 127) / 128;
-    floatData[plane + p] = (resized[p * 3 + 1] - 127) / 128;
-    floatData[2 * plane + p] = (resized[p * 3 + 2] - 127) / 128;
-  }
-  const input = new ort.Tensor('float32', floatData, [1, 3, IMG_H, IMG_W]);
-  const results = await session.run({ input });
-  const scores = results.scores.data;
-  const boxes = results.boxes.data;
-  const numPriors = PRIORS.length;
-  const faces = decodeBoxes(boxes, scores, numPriors);
-  if (faces.length === 0) return { found: false, srcW: meta.width, srcH: meta.height };
-  const best = faces[0];
-  return {
-    found: true,
-    srcW: meta.width, srcH: meta.height,
-    // face center + size in SOURCE pixel coords
-    cx: ((best.x1 + best.x2) / 2) * meta.width,
-    cy: ((best.y1 + best.y2) / 2) * meta.height,
-    fw: (best.x2 - best.x1) * meta.width,
-    fh: (best.y2 - best.y1) * meta.height,
-    score: best.score,
-  };
-}
+// The RFB-320 prior generation, SSD decode + NMS and detectFace() that used
+// to live here now live in ./face-detect-lib.js, so recording-preset.js's
+// auto-detection runs the exact same detector this tracker does.
 
 async function main() {
   const args = parseArgs();
@@ -171,7 +108,7 @@ async function main() {
   const smooth = parseFloat(args.smooth || '0.15'); // EMA alpha; lower = smoother/less jitter
   const outW = parseInt(args.w || '1080', 10);
   const outH = parseInt(args.h || '1920', 10);
-  const modelPath = require('./model-path.js').resolveModel('version-RFB-320.onnx', args.model);
+
   const sampleEvery = parseInt(args.sampleEvery || '1', 10); // run detection every Nth frame, interpolate the rest — big speedup on long clips
   const fps = parseFloat(args.fps || '30');
   const headroomFraction = parseFloat(args.headroomFraction || '0.33');
@@ -184,6 +121,20 @@ async function main() {
   const punchZoomMax = parseFloat(args.punchZoomMax || '1.6');
   const maxScaleRatio = parseFloat(args.maxScaleRatio || '1.3');
   const openOnFace = !!args.openOnFace && String(args.openOnFace) !== '0' && String(args.openOnFace) !== 'false';
+  // --- recording preset baseline (see file header) ---
+  // JSON: { name, baselineCropNormalized:{x,y,w,h}, baselineZoom,
+  //         faceAnchor:{ withinCrop:{x,y} }, tracking:{ gainX,gainY,
+  //         maxExcursionFracX,maxExcursionFracY,smooth } }
+  let preset = null;
+  if (args.presetBaseline) {
+    try {
+      preset = typeof args.presetBaseline === 'string' && args.presetBaseline.trim().startsWith('{')
+        ? JSON.parse(args.presetBaseline)
+        : JSON.parse(fs.readFileSync(args.presetBaseline, 'utf8'));
+    } catch (e) {
+      throw new Error(`--presetBaseline could not be parsed: ${e.message}`);
+    }
+  }
   // RFB-320's detected box is roughly hairline-to-chin, not scalp-to-jaw —
   // approximation factors to recover actual head-top/chin from the box
   // (unmeasured against Heath's own footage — see file header).
@@ -195,7 +146,7 @@ async function main() {
   }
   fs.mkdirSync(path.join(outDir, 'cropped'), { recursive: true });
 
-  const session = await ort.InferenceSession.create(modelPath, { executionProviders: ['cpu'], logSeverityLevel: 3 });
+  const session = await createSession(args.model);
   const files = fs.readdirSync(framesDir).filter(f => /\.png$/i.test(f)).sort();
 
   const detections = [];
@@ -242,7 +193,32 @@ async function main() {
   const facesForMedian = detections.filter(d => d.found).map(d => d.fh).sort((a, b) => a - b);
   const medianFh = facesForMedian.length ? facesForMedian[Math.floor(facesForMedian.length / 2)] : null;
   let effectiveBaseZoom = zoom;
-  if (medianFh && detections.length) {
+
+  // --- PRESET HOME FRAMING -------------------------------------------------
+  // The preset's zoom and the face's home position, both in the coordinate
+  // space of the frames we actually have (which are downsampled from the
+  // source, hence the normalized rect rather than the absolute pixels).
+  const med = (arr) => { const s = [...arr].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+  const foundDets = detections.filter(d => d.found);
+  let faceHome = null;
+  if (preset && foundDets.length) {
+    // The home position is the MEDIAN of this take's own detections, not the
+    // preset's recorded faceAnchor.source*Frac. The preset says "keep him at
+    // this spot inside the window"; where he actually stood today is a fact
+    // about today's take. Using the recorded value would bake in a few
+    // centimetres of 2026-09-22 standing position forever.
+    faceHome = { cx: med(foundDets.map(d => d.cx)), cy: med(foundDets.map(d => d.cy)) };
+  }
+  if (preset) {
+    // The preset was verified by eye against a real contact sheet. The
+    // adaptive heuristic below is built on HEAD_TOP_ABOVE_BOX /
+    // CHIN_BELOW_BOX, which the file header states are unmeasured estimates.
+    // Where they disagree, the measured one wins — so the adaptive pass is
+    // SKIPPED entirely and the headroom logic is demoted to a safety clamp
+    // that only prevents clipping the top of the head.
+    effectiveBaseZoom = preset.baselineZoom || (1 / preset.baselineCropNormalized.h);
+    console.log(`face-track-crop: recording preset "${preset.name || '(unnamed)'}" active — base zoom pinned to the preset's verified ${effectiveBaseZoom.toFixed(4)} (adaptive face-size zoom skipped), face home at ${faceHome ? `(${Math.round(faceHome.cx)}, ${Math.round(faceHome.cy)})` : 'n/a (no face detected)'}, tracking gains x=${(preset.tracking && preset.tracking.gainX) ?? 0.75} y=${(preset.tracking && preset.tracking.gainY) ?? 0.5}.`);
+  } else if (medianFh && detections.length) {
     const srcHForCalc = detections.find(d => d.srcH)?.srcH;
     if (srcHForCalc) {
       const requiredSpanFactor = (1 + HEAD_TOP_ABOVE_BOX + CHIN_BELOW_BOX); // head-top-to-chin-bottom, in face-heights
@@ -345,23 +321,63 @@ async function main() {
       emaFh = emaFh + smooth * (faceFh - emaFh);
     }
 
-    // Headroom/chin-margin driven vertical placement: recover approximate
-    // head-top / chin-bottom from the detected box, then place the crop so
-    // head-top sits headroomFraction down from the crop's top edge and
-    // chin-bottom sits chinMarginFraction up from a natural shoulder line —
-    // NOT a magic constant divisor on face center.
     const headTop = emaCy - emaFh / 2 - emaFh * HEAD_TOP_ABOVE_BOX;
     const chinBottom = emaCy + emaFh / 2 + emaFh * CHIN_BELOW_BOX;
-    const desiredCropTopForHeadroom = headTop - cropH * headroomFraction;
-    const desiredCropTopForChin = chinBottom - cropH * (1 - chinMarginFraction) - cropH * 0; // chin must stay above (1-chinMargin)*cropH from top
-    // Prefer the headroom target; but never let it push the chin off the
-    // bottom (or the top of the head above frame) — clamp between the two.
-    let cropY = desiredCropTopForHeadroom;
-    const minCropYForChin = chinBottom - cropH * (1 - chinMarginFraction);
-    if (cropY < minCropYForChin) cropY = minCropYForChin; // chin was about to clip off bottom, prioritize chin
-    if (cropY > headTop) cropY = headTop; // never clip the top of the head
 
-    let cropX = emaCx - cropW / 2;
+    let cropX, cropY;
+    let excursionClamped = false;
+
+    if (preset && faceHome) {
+      // --- PRESET MODE: track AROUND the verified home framing ------------
+      // Home rect for this shot's zoom, positioned so the face sits at the
+      // preset's withinCrop anchor when he is at his median position. At
+      // baseline zoom this reproduces the human-verified rect exactly.
+      const anchor = (preset.faceAnchor && preset.faceAnchor.withinCrop) || { x: 0.5, y: 0.38 };
+      const tr = preset.tracking || {};
+      const gainX = tr.gainX != null ? tr.gainX : 0.75;
+      const gainY = tr.gainY != null ? tr.gainY : 0.5;
+      const maxExX = (tr.maxExcursionFracX != null ? tr.maxExcursionFracX : 0.18) * cropW;
+      const maxExY = (tr.maxExcursionFracY != null ? tr.maxExcursionFracY : 0.12) * cropH;
+
+      const homeX = faceHome.cx - anchor.x * cropW;
+      const homeY = faceHome.cy - anchor.y * cropH;
+
+      // Follow only a FRACTION of his excursion from home. Gain 1.0 would
+      // pin him to one spot in frame, which removes the movement that makes
+      // a gesture read; gain 0 is the static crop that amputates him. Both
+      // gains are per-axis because lateral drift is real movement and most
+      // vertical face motion is head bob.
+      let dx = (emaCx - faceHome.cx) * gainX;
+      let dy = (emaCy - faceHome.cy) * gainY;
+      const cx0 = dx, cy0 = dy;
+      dx = Math.max(-maxExX, Math.min(maxExX, dx));
+      dy = Math.max(-maxExY, Math.min(maxExY, dy));
+      if (dx !== cx0 || dy !== cy0) excursionClamped = true;
+
+      cropX = homeX + dx;
+      cropY = homeY + dy;
+
+      // SAFETY CLAMP ONLY: the preset decides the framing, but nothing is
+      // allowed to slice the top of his head off. This is the headroom
+      // heuristic demoted to the one job its unmeasured constants are good
+      // enough for.
+      if (cropY > headTop) cropY = headTop;
+    } else {
+      // Headroom/chin-margin driven vertical placement: recover approximate
+      // head-top / chin-bottom from the detected box, then place the crop so
+      // head-top sits headroomFraction down from the crop's top edge and
+      // chin-bottom sits chinMarginFraction up from a natural shoulder line —
+      // NOT a magic constant divisor on face center.
+      const desiredCropTopForHeadroom = headTop - cropH * headroomFraction;
+      // Prefer the headroom target; but never let it push the chin off the
+      // bottom (or the top of the head above frame) — clamp between the two.
+      cropY = desiredCropTopForHeadroom;
+      const minCropYForChin = chinBottom - cropH * (1 - chinMarginFraction);
+      if (cropY < minCropYForChin) cropY = minCropYForChin; // chin was about to clip off bottom, prioritize chin
+      if (cropY > headTop) cropY = headTop; // never clip the top of the head
+      cropX = emaCx - cropW / 2;
+    }
+
     cropX = Math.max(0, Math.min(srcW - cropW, cropX));
     cropY = Math.max(0, Math.min(srcH - cropH, cropY));
 
@@ -377,7 +393,7 @@ async function main() {
       smoothedCx: Math.round(emaCx), smoothedCy: Math.round(emaCy),
       faceBoxH: Math.round(emaFh), faceBoxHRatioOfCropH: cropH > 0 ? +(emaFh / cropH).toFixed(4) : null,
       headroomFraction: actualHeadroomFraction != null ? +actualHeadroomFraction.toFixed(4) : null,
-      topClipped,
+      topClipped, excursionClamped,
       crop: { x: Math.round(cropX), y: Math.round(cropY), w: Math.round(cropW), h: Math.round(cropH) },
     });
   }
@@ -385,6 +401,15 @@ async function main() {
   const shotBoundarySecs = cropPath.filter(c => c.isShotBoundary).map(c => c.tSec);
   fs.writeFileSync(path.join(outDir, 'crop-path.json'), JSON.stringify({
     zoom, smooth, outW, outH, fps, headroomFraction, chinMarginFraction, hookZoomBoost, hookDurationSec,
+    recordingPreset: preset ? {
+      name: preset.name || null,
+      baselineZoom: preset.baselineZoom,
+      baselineCropNormalized: preset.baselineCropNormalized,
+      faceAnchorWithinCrop: (preset.faceAnchor && preset.faceAnchor.withinCrop) || null,
+      tracking: preset.tracking || null,
+      faceHome: faceHome ? { cx: Math.round(faceHome.cx), cy: Math.round(faceHome.cy) } : null,
+      adaptiveZoomSkipped: true,
+    } : null,
     shotPlanApplied: !!resolvedShots,
     shotCount: resolvedShots ? resolvedShots.length : 1,
     pictureCuts: shotBoundarySecs.length,
@@ -433,6 +458,17 @@ async function main() {
     scaleVarianceBaseFrames: scaleVariance != null ? +scaleVariance.toFixed(6) : null,
     meanHeadroomFraction: meanHeadroom != null ? +meanHeadroom.toFixed(4) : null,
     topClippedFrames: topClippedCount,
+    recordingPreset: preset ? {
+      name: preset.name || null,
+      baselineZoom: preset.baselineZoom,
+      faceHome: faceHome ? { cx: Math.round(faceHome.cx), cy: Math.round(faceHome.cy) } : null,
+      // How often he moved further than the preset's excursion clamp allows.
+      // A high count means the clamp — not the face — is choosing the
+      // framing for part of the take, which is worth knowing before trusting
+      // the preset on a new source.
+      excursionClampedFrames: cropPath.filter(c => c.excursionClamped).length,
+      adaptiveZoomSkipped: true,
+    } : null,
     shotPlanApplied: !!resolvedShots,
     pictureCuts: shotBoundarySecs.length,
     shotBoundarySecs: shotBoundarySecs.map(t => +t.toFixed(2)),

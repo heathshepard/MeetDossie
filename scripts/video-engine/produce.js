@@ -91,6 +91,15 @@ function applyPatch(brief, patch) {
     if (k === 'emphasisWords' && Array.isArray(old) && Array.isArray(v)) next = [...new Set([...old, ...v])];
     if (JSON.stringify(old) === JSON.stringify(next)) continue;
     brief[k] = next;
+    // Record that the REVIEWER set this key, not the brief's author.
+    // edit.js resolves framing as: reviewer override > recording preset >
+    // brief default. Once a value is in the brief file those three are
+    // indistinguishable, so without this list a preset would either always
+    // beat a review fix (the loop cannot fix framing) or never beat a
+    // generic default (the preset is a no-op). This is the only thing that
+    // tells them apart.
+    if (!Array.isArray(brief._reviewerOverrides)) brief._reviewerOverrides = [];
+    if (!brief._reviewerOverrides.includes(k)) brief._reviewerOverrides.push(k);
     changes.push(`${k}: ${JSON.stringify(old)} -> ${JSON.stringify(next)}`);
   }
   return changes;

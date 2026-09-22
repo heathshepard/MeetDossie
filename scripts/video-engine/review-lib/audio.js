@@ -183,13 +183,102 @@ function ending(a, words, durationSec, sourceWords) {
  * cutlist is given) or the whole source transcript (then only fragments /
  * extra words are meaningful, since the editor chose what to drop).
  */
+// Spoken number words -> value. Used to make a numeral in one transcript
+// comparable to the same number spelled out in the other.
+const NUM_WORDS = {
+  zero: 0, oh: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+  ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16,
+  seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50,
+  sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+
+/**
+ * collapseNumberWords — merge a run of spoken number words into ONE token
+ * holding the digits, so "twenty nineteen" and "2019" compare equal.
+ *
+ * WHY. ElevenLabs scribe renders the same spoken year differently depending
+ * on the audio it is given: the SOURCE take came back "TREC 2019 replaced
+ * 2018" and the rendered OUTPUT came back "TREC twenty nineteen replaced
+ * twenty eighteen". The old norm() stripped every non-letter, so "2019"
+ * normalised to the EMPTY STRING, could never match anything, and wordDiff
+ * reported both years as words lost in the edit. They were not: the keep
+ * segment covering 0.84-18.76 s contains both.
+ *
+ * That false positive is expensive, not cosmetic. It drove AUDIO to 1/5 and
+ * emitted an audio.missing_words fix, which tells produce.js to widen
+ * padStart/padEnd — so the loop would have spent rounds growing pads to
+ * recover words that were never missing, and every one of those rounds would
+ * have reported the same failure again.
+ */
+/**
+ * splitNumberCompounds — "twenty-nineteen" is ONE token, not two.
+ *
+ * Scribe hyphenates spoken number compounds, so the real output for this
+ * take was ["TREC", "twenty-nineteen", "replaced", "twenty-eighteen,"].
+ * A first pass at the fix assumed two separate tokens and was verified
+ * against a hand-written example rather than the actual transcript, so it
+ * passed its test and changed nothing on real data. Split on hyphens first,
+ * but ONLY when every part is a number word — "well-known" must stay one
+ * token.
+ */
+function splitNumberCompounds(tokens) {
+  const out = [];
+  for (const t of tokens) {
+    const parts = t.norm.split('-').filter(Boolean);
+    if (parts.length > 1 && parts.every(p => p in NUM_WORDS || p === 'hundred' || p === 'thousand')) {
+      parts.forEach((p, k) => out.push({ ...t, norm: p, splitFrom: t.text, partIndex: k }));
+    } else {
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+function collapseNumberWords(tokensIn) {
+  const tokens = splitNumberCompounds(tokensIn);
+  const out = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    const bare = t.norm;
+    if (!(bare in NUM_WORDS)) { out.push(t); continue; }
+    // Greedily take the run of number words and turn it into digits. Handles
+    // the two ways a year gets said: "twenty nineteen" (20,19 -> 2019) and
+    // "two thousand nineteen".
+    const run = [];
+    let j = i;
+    while (j < tokens.length && (tokens[j].norm in NUM_WORDS || tokens[j].norm === 'hundred' || tokens[j].norm === 'thousand')) { run.push(tokens[j]); j++; }
+    if (run.length < 2) { out.push(t); continue; }
+    const vals = run.map(r => r.norm === 'hundred' ? 'H' : r.norm === 'thousand' ? 'K' : NUM_WORDS[r.norm]);
+    let digits = null;
+    if (vals.length === 2 && typeof vals[0] === 'number' && typeof vals[1] === 'number' && vals[0] >= 10 && vals[0] % 10 === 0 && vals[1] < 100) {
+      digits = String(vals[0] * 100 + vals[1]);               // twenty nineteen -> 2019
+    } else if (vals.length === 2 && typeof vals[0] === 'number' && typeof vals[1] === 'number' && vals[0] >= 20 && vals[0] % 10 === 0) {
+      digits = String(vals[0] + vals[1]);                     // twenty five -> 25
+    } else if (vals[1] === 'K' && typeof vals[0] === 'number') {
+      const rest = vals.slice(2).filter(v => typeof v === 'number').reduce((a, b) => a + b, 0);
+      digits = String(vals[0] * 1000 + rest);                 // two thousand nineteen -> 2019
+    }
+    if (digits == null) { out.push(t); continue; }
+    out.push({ ...run[0], norm: digits, end: run[run.length - 1].end, collapsedFrom: run.length });
+    i = j - 1;
+  }
+  return out;
+}
+
 function wordDiff(outputWords, sourceWords, keepSegments) {
-  const norm = s => s.toLowerCase().replace(/[^a-z'\-]/g, '');
+  // Digits are KEPT (the old version stripped them, which is the bug above).
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9'\-]/g, '');
   let intended = sourceWords;
   if (Array.isArray(keepSegments) && keepSegments.length) {
     intended = sourceWords.filter(w => keepSegments.some(seg => w.start >= seg.start - 0.02 && w.end <= seg.end + 0.02));
   }
-  const A = intended.map(w => norm(w.text)), B = outputWords.map(w => norm(w.text));
+  // Collapse spoken numbers on BOTH sides so either transcript's rendering
+  // of the same number lines up.
+  const intendedTok = collapseNumberWords(intended.map(w => ({ text: w.text, start: w.start, end: w.end, norm: norm(w.text) })));
+  const outputTok = collapseNumberWords(outputWords.map(w => ({ text: w.text, start: w.start, end: w.end, norm: norm(w.text) })));
+  intended = intendedTok;
+  outputWords = outputTok;
+  const A = intendedTok.map(t => t.norm), B = outputTok.map(t => t.norm);
   const L = Array.from({ length: A.length + 1 }, () => new Int32Array(B.length + 1));
   for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
   const missing = [], extra = [];

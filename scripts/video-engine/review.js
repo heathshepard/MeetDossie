@@ -143,6 +143,23 @@ async function main() {
   const srcWords = srcTranscript ? srcTranscript.words.filter(w => w.type === 'word') : null;
   const src = args.src && fs.existsSync(args.src) ? args.src : null;
 
+  // SOURCE AUDIO DIAGNOSIS — measured here, from the raw take, rather than
+  // read back from edit.js's report. Two facts that are properties of the
+  // RECORDING and that no render can fix, so they belong in the review that
+  // reaches Heath: a dead channel, and clipping.
+  //
+  // Clipping in particular must never be quietly absorbed. edit.js may
+  // soft-limit it, which reduces harshness, but the samples recorded at full
+  // scale are gone and the only real fix is the transmitter gain at the NEXT
+  // shoot. If this block ever stops firing, the engine goes back to silently
+  // shipping distorted audio and calling it PASS.
+  let sourceAudio = null;
+  try {
+    if (src) sourceAudio = require('./audio-diagnose.js').diagnose(src);
+  } catch (e) {
+    log(`source audio diagnosis failed: ${e.message}`);
+  }
+
   const log = (...m) => console.error(`[review ${label}]`, ...m);
   const meta = V.ffprobe(video);
   log(`${meta.width}x${meta.height} ${meta.durationSec.toFixed(2)}s fps ${meta.fps && meta.fps.toFixed(2)}`);
@@ -399,6 +416,39 @@ async function main() {
       else if (off >= T.syncWarnMs) { s -= 1; why.push(`lip sync ${sync.medianOffsetMs} ms (borderline)`); fix('audio.sync_warn', 'AUDIO', `Audio is ${off} ms ${sync.medianOffsetMs > 0 ? 'ahead' : 'behind'}; nudge the voice ${sync.medianOffsetMs > 0 ? 'later' : 'earlier'} by ${off} ms.`, { audioOffsetMs: -sync.medianOffsetMs }, 17); }
       else why.push(`sync ${sync.medianOffsetMs} ms`);
     } else if (!src) why.push('sync not measured (no --src)');
+    // --- SOURCE-side audio facts (see the diagnosis block above) ---
+    if (sourceAudio && sourceAudio.clipping.clipping) {
+      const c = sourceAudio.clipping;
+      // NAME THE WORDS. Heath asked to be told which word was hit, not handed
+      // a percentage — a count of clipped samples is unactionable, "the word
+      // 'water' at 33.6s took it" is a thing he can hear and decide about.
+      // Source-take timestamps, so this maps against the SOURCE transcript.
+      if (srcWords && c.events && c.events.length) {
+        for (const ev of c.events) {
+          const hit = srcWords.find(w => ev.startSec >= w.start - 0.02 && ev.startSec <= w.end + 0.02);
+          ev.word = hit ? hit.text : null;
+        }
+        c.wordsHit = [...new Set(c.events.filter(e => e.word).map(e => e.word))];
+        c.audibleWordsHit = [...new Set(c.events.filter(e => e.word && e.likelyAudible).map(e => e.word))];
+      }
+      s = Math.min(s, c.severity === 'severe' ? 2 : 3);
+      const wordNote = c.audibleWordsHit && c.audibleWordsHit.length
+        ? ` — audible on: ${c.audibleWordsHit.map(w => `"${w}"`).join(', ')}`
+        : (c.wordsHit && c.wordsHit.length ? ` — lands on ${c.wordsHit.slice(0, 6).map(w => `"${w}"`).join(', ')}, all runs too short to hear` : '');
+      why.push(`source recorded with no headroom: true peak ${c.truePeakDb} dBFS, ${c.samplesAtFullScale} sample(s) at/over full scale in ${c.events ? c.events.length : '?'} event(s), longest run ${c.longestRunSamples || 0} (${c.severity})${wordNote}`);
+      // Deliberately a HUMAN fix with a null patch: there is no brief field
+      // that un-clips a take, and offering one would be a lie. fix-registry
+      // classifies it as human-only so produce.js names it and refuses to
+      // claim the round is closed.
+      fix('audio.source_clipped', 'AUDIO', `Recorded with no headroom — true peak ${c.truePeakDb} dBFS, ${c.samplesAtFullScale} sample(s) at/over full scale across ${c.events ? c.events.length : '?'} event(s), longest unbroken run ${c.longestRunSamples || 0} sample(s)${wordNote}. LOWER THE DJI TRANSMITTER GAIN before the next take (aim for peaks near -6 dBFS). Whatever did clip cannot be repaired in post: the waveform above full scale was never recorded, and normalizing only moves the flat tops down.`, null, 6);
+      if (c.audibleWordsHit && c.audibleWordsHit.length) {
+        for (const ev of c.audibleEvents.slice(0, 5)) weak.push(`${ev.startSec}s: "${ev.word || '?'}" clipped (${ev.longestRunSamples} samples flat-topped) — recording, not editing`);
+      }
+    }
+    if (sourceAudio && sourceAudio.channels.deadChannels.length) {
+      const dead = sourceAudio.channels.deadChannels.join(', ');
+      why.push(`source had a dead channel (ch${dead}) — single lav into one input; folded to both sides at unity by the chain (a -ac 1 downmix here would have cost 6 dB)`);
+    }
     if (!why.length) why.push(`${loud.integratedLufs} LUFS, room tone ${box} dB, crest ${chain.crestDb} dB, clean word boundaries`);
     set('AUDIO', s, why, [6, 7]);
   }
@@ -523,6 +573,12 @@ async function main() {
   if (verdict === 'RESHOOT' && !source.recommendReshoot) source.recommendReshoot = true;
 
   const review = {
+    sourceAudio: sourceAudio ? {
+      deadChannels: sourceAudio.channels.deadChannels,
+      channelRms: sourceAudio.channels.channels.map(c => ({ ch: c.index, rmsDb: c.rmsDb, dead: !!c.dead })),
+      clipping: sourceAudio.clipping,
+      findings: sourceAudio.findings,
+    } : null,
     label, video, durationSec: meta.durationSec, resolution: `${meta.width}x${meta.height}`,
     standard: 'docs/DOSSIE-CREATIVE-DIRECTOR-STANDARD.md',
     verdict, proud, average, failedOn: hardFails,
@@ -557,6 +613,14 @@ async function main() {
   fs.writeFileSync(outPath, JSON.stringify(review, null, 2));
 
   console.log(`\n=== REVIEW ${label}: ${verdict} (avg ${average}) — §22 proud: ${proud.answer ? 'YES' : 'NO'} — ${proud.reason} ===`);
+  // SOURCE AUDIO first, above the QC table. These are actions for the NEXT
+  // shoot, not notes about this edit, and burying them under eleven QC rows
+  // is how a recording fault gets repeated take after take.
+  if (sourceAudio && sourceAudio.findings.length) {
+    console.log('\n  !!! SOURCE RECORDING FAULTS (no edit can fix these) !!!');
+    for (const f of sourceAudio.findings) console.log(`   [${f.severity.toUpperCase()}] ${f.message}`);
+    console.log('');
+  }
   for (const k of order) console.log(`  ${k.padEnd(10)} ${qc[k].score}  ${qc[k].reason}`);
   console.log('  §18 weakest:'); for (const w of weakest) console.log(`   - ${w.atSec != null ? w.atSec + 's' : '—'}: ${w.what} [${w.cause}]`);
   if (source.recommendReshoot) console.log(`  §19 RESHOOT: ${source.reason} (signals: ${sourceSignals.join(', ')})`);

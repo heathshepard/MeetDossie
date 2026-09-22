@@ -96,6 +96,19 @@ const REGISTRY = {
     humanReason: 'Room reverb and a wrong-mic take cannot be removed, only reduced. §19 + the recording rules: RESHOOT on the DJI lav with the phone actually set to the receiver as its input source.',
     knobs: [],
   },
+  // HUMAN, and deliberately so. There is no brief field that un-clips a
+  // take. edit.js will soft-limit a clipped source (brief.declip, on by
+  // default) and that does reduce harshness, but the samples recorded at
+  // full scale are gone — the only real fix is the transmitter gain at the
+  // next shoot. Registering this as editor-fixable with some normalization
+  // knob would let produce.js "close" the finding while the distortion
+  // shipped, which is the exact silent-fix failure the clipping detector
+  // exists to prevent.
+  'audio.source_clipped': {
+    section: 6, check: 'AUDIO', owner: 'human',
+    humanReason: 'The take was recorded above full scale. Clipped peaks are destroyed information, not a level problem — normalizing moves the flat tops down and the distortion rides along unchanged. Lower the DJI transmitter gain before the next take (aim for peaks near -6 dBFS).',
+    knobs: [],
+  },
 
   // ---- §8 CAPTIONS ----
   'captions.coverage': { section: 8, check: 'CAPTIONS', owner: 'editor', knobs: ['captionCoverage'] },

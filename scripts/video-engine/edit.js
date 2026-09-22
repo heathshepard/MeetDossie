@@ -130,7 +130,7 @@ function loadEnvLocal() {
  *
  * Returns { src, report } — src is whichever take won.
  */
-async function isolationPrePass(src, workDir, brief) {
+async function isolationPrePass(src, workDir, brief, chanFixMono) {
   const p = (n) => path.join(workDir, n);
   const report = { attempted: false, used: false, reason: null, metrics: null };
   if (brief.audioIsolation === false) { report.reason = 'brief.audioIsolation === false'; return { src, report }; }
@@ -157,7 +157,11 @@ async function isolationPrePass(src, workDir, brief) {
       return { src, report };
     }
     const preWav = p('pre-isolation.wav');
-    run('ffmpeg', ['-y', '-i', src, '-vn', '-ac', '1', '-ar', '44100', preWav, '-hide_banner', '-loglevel', 'error']);
+    // FOLD, don't downmix. `-ac 1` alone on a one-lav-into-one-input
+    // recording averages the live channel with a silent one: -6 dB of the
+    // only signal in the file, handed to Audio Isolation as its input.
+    const foldArgs = chanFixMono ? ['-af', chanFixMono] : [];
+    run('ffmpeg', ['-y', '-i', src, '-vn', ...foldArgs, '-ac', '1', '-ar', '44100', preWav, '-hide_banner', '-loglevel', 'error']);
     const isoMp3 = p('isolated.mp3');
     console.log('[edit] isolation: sending the full take to ElevenLabs Audio Isolation (one call)...');
     await AC.isolateAudio(key, preWav, isoMp3);
@@ -250,9 +254,39 @@ async function main() {
 
   console.log(`=== Dossie local video engine ===\nsrc: ${src}\nbrief: ${briefPath}\nworkdir: ${workDir}\nmatte: ${useMatte}\nreuse: ${reuse}`);
 
+  // 0a. SOURCE AUDIO DIAGNOSIS — before a single sample is touched.
+  //     Two facts the rest of the chain cannot afford to guess at: is a
+  //     channel dead, and is the take clipping. See audio-diagnose.js for
+  //     why each one silently ruins the audio if it goes unhandled.
+  //     ALWAYS printed, never cached — a caller that skips this and reads
+  //     the JSON later still gets it, but the loud version is the point.
+  const AUDIODIAG = require('./audio-diagnose.js');
+  const audioDiag = AUDIODIAG.diagnose(src);
+  console.log(AUDIODIAG.report(audioDiag));
+  fs.writeFileSync(p('audio-diagnosis.json'), JSON.stringify(audioDiag, null, 2));
+  // The fold, if one is needed. Applied at EVERY point audio is extracted or
+  // re-encoded, because a dead channel that survives to the deliverable
+  // means the voice plays out of one speaker.
+  const chanFix = audioDiag.filters.channelFix;          // stereo fold, or null
+  const chanFixMono = audioDiag.filters.channelFixMono;  // mono fold, or null
+
+  // 0b. RECORDING PRESET — which physical setup was this shot from.
+  //     brief.recordingPreset: a name | 'none' to disable | absent = auto.
+  const RP = require('./recording-preset.js');
+  const presetRes = await RP.resolvePreset({ src, explicit: brief.recordingPreset });
+  console.log(`[edit] recording preset: ${presetRes.reason}`);
+  fs.writeFileSync(p('recording-preset.json'), JSON.stringify({
+    name: presetRes.name, how: presetRes.how, confidence: presetRes.confidence,
+    reason: presetRes.reason, evidence: presetRes.evidence,
+  }, null, 2));
+
   // 1. Extract 16kHz mono audio + transcribe.
-  stage('transcript', fileKey(src), [p('transcript.json')], () => {
-    run('ffmpeg', ['-y', '-i', src, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', p('audio-16k.wav'), '-hide_banner', '-loglevel', 'error']);
+  //    The fold matters here too: transcribing a (L+R)/2 downmix of a
+  //    one-sided recording hands the model a signal 6 dB quieter than the
+  //    one that was recorded, for no reason at all.
+  stage('transcript', fileKey(src) + String(chanFixMono), [p('transcript.json')], () => {
+    const af = chanFixMono ? ['-af', chanFixMono] : [];
+    run('ffmpeg', ['-y', '-i', src, '-vn', ...af, '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', p('audio-16k.wav'), '-hide_banner', '-loglevel', 'error']);
     node('transcribe.js', ['--audio', p('audio-16k.wav'), '--out', p('transcript.json')]);
   });
 
@@ -261,7 +295,7 @@ async function main() {
   //     and BEFORE the cut, because the API needs >= 4.6 s of input and
   //     because muxing it back at the original timeline is what keeps picture
   //     and sound locked together through render-cutlist.js.
-  const { src: workSrc, report: isoReport } = await isolationPrePass(src, workDir, brief);
+  const { src: workSrc, report: isoReport } = await isolationPrePass(src, workDir, brief, chanFixMono);
   fs.writeFileSync(p('isolation-report.json'), JSON.stringify(isoReport, null, 2));
 
   // 1b. Hook line — the one decision the standard gives no rule for. Auto-
@@ -317,17 +351,49 @@ async function main() {
   // 4b. SHOT PLAN — the picture's edit. See the file header and shot-plan.js.
   //     Cuts come from the transcript's sentence/clause boundaries, so they
   //     land on meaning; nothing here removes time or touches audio.
+  // RECORDING-PRESET SHOT RANGE. When a preset is active its shotRange — not
+  // the engine's generic defaults — sets the wide/punch band, because the
+  // generic defaults were written for arm's-length footage. The default
+  // punchZoomMax of 1.6 is BELOW the kitchen-island preset's own verified
+  // baseline of 1.6095, so leaving them in place would clamp the preset's
+  // wide shot to something tighter than the framing Heath actually approved
+  // and silently undo the whole preset. Explicit brief fields still win over
+  // the preset — a reviewer fix must be able to override a config default.
+  //
+  // PRECEDENCE: reviewer override > preset > brief default > engine default.
+  // The brief carries GENERIC defaults for framing (zoom 1.05, punchZoomMax
+  // 1.6) written for arm's-length footage. Letting those beat the preset
+  // would make the preset a no-op on the only brief that exists — the
+  // kitchen-island baseline of 1.6095 is above the brief's own 1.6 cap. But
+  // a value produce.js wrote in response to a review finding MUST still win,
+  // or the loop cannot fix a framing complaint. The two are otherwise
+  // indistinguishable once written to the same file, so produce.js records
+  // every key it patches in brief._reviewerOverrides and this honours it.
+  const presetShot = (presetRes.preset && presetRes.preset.shotRange) || null;
+  const reviewerOverrides = new Set(Array.isArray(brief._reviewerOverrides) ? brief._reviewerOverrides : []);
+  const dflt = (key, briefVal, presetVal, engineVal) => {
+    if (reviewerOverrides.has(key) && briefVal != null) return briefVal;
+    if (presetVal != null) return presetVal;
+    if (briefVal != null) return briefVal;
+    return engineVal;
+  };
+  const baseZoom = dflt('zoom', brief.zoom, presetShot && presetShot.wideZoom, 1.05);
+  const punchFactor = dflt('punchFactor', brief.punchFactor, presetShot && presetShot.punchFactor, 1.18);
+  const maxScaleRatioV = dflt('maxScaleRatio', brief.maxScaleRatio, presetShot && presetShot.maxScaleRatio, 1.3);
+  const punchZoomMaxV = dflt('punchZoomMax', brief.punchZoomMax, presetShot && presetShot.punchZoomMax, 1.6);
+  if (presetShot) console.log(`[edit] shot range from preset "${presetRes.name}": wide ${baseZoom}, punch x${punchFactor} (cap ${punchZoomMaxV}, max scale ratio ${maxScaleRatioV}).`);
+
   const SHOT_KEYS = ['shotPlan', 'minShotSec', 'maxShotSec', 'punchFactor', 'maxScaleRatio', 'punchZoomMax', 'openWide', 'jlCutSec', 'zoom'];
   const wantShotPlan = brief.shotPlan !== false; // ON by default — §4 is not optional
   if (wantShotPlan) {
-    stage('shotplan', fileKey(p('cutlist.json')) + fileKey(p('transcript.json')) + pick(...SHOT_KEYS), [p('shot-plan.json')], () => {
+    stage('shotplan', fileKey(p('cutlist.json')) + fileKey(p('transcript.json')) + pick(...SHOT_KEYS) + `preset:${presetRes.name}`, [p('shot-plan.json')], () => {
       const sArgs = ['--transcript', p('transcript.json'), '--cutlist', p('cutlist.json'), '--out', p('shot-plan.json'),
-        '--baseZoom', String(brief.zoom || 1.05),
+        '--baseZoom', String(baseZoom),
         '--minShotSec', String(brief.minShotSec != null ? brief.minShotSec : 1.8),
         '--maxShotSec', String(brief.maxShotSec != null ? brief.maxShotSec : 5.0),
-        '--punchFactor', String(brief.punchFactor != null ? brief.punchFactor : 1.18),
-        '--maxScaleRatio', String(brief.maxScaleRatio != null ? brief.maxScaleRatio : 1.3),
-        '--punchZoomMax', String(brief.punchZoomMax != null ? brief.punchZoomMax : 1.6),
+        '--punchFactor', String(punchFactor),
+        '--maxScaleRatio', String(maxScaleRatioV),
+        '--punchZoomMax', String(punchZoomMaxV),
         '--openWide', String(brief.openWide === false ? 0 : 1),
         '--jlCutSec', String(brief.jlCutSec != null ? brief.jlCutSec : 0.14)];
       node('shot-plan.js', sArgs);
@@ -338,16 +404,29 @@ async function main() {
   }
 
   const CROP_KEYS = ['zoom', 'smooth', 'sampleEvery', 'headroom', 'punchZoomMax', 'maxScaleRatio', 'openOnFace'];
-  stage('cropped', dirKey(p('frames')) + pick(...CROP_KEYS) + fileKey(p('shot-plan.json')), [p('cropped/cropped')], () => {
+  // The preset payload handed to the tracker: the normalized rect (the only
+  // resolution-independent form — these frames are downsampled from the
+  // source), where the face sits inside it, and the tracking policy.
+  const presetPayload = presetRes.preset ? JSON.stringify({
+    name: presetRes.name,
+    baselineCropNormalized: presetRes.preset.baselineCropNormalized,
+    baselineZoom: presetRes.preset.baselineZoom,
+    faceAnchor: presetRes.preset.faceAnchor,
+    tracking: presetRes.preset.tracking,
+  }) : null;
+  stage('cropped', dirKey(p('frames')) + pick(...CROP_KEYS) + fileKey(p('shot-plan.json')) + `preset:${presetRes.name}`, [p('cropped/cropped')], () => {
     fs.rmSync(p('cropped'), { recursive: true, force: true });
+    const presetSmooth = presetRes.preset && presetRes.preset.tracking && presetRes.preset.tracking.smooth;
     const fArgs = [
       '--frames', p('frames'), '--out', p('cropped'),
-      '--zoom', String(brief.zoom || 1.2), '--smooth', String(brief.smooth || 0.18),
+      '--zoom', String(dflt('zoom', brief.zoom, presetShot && presetShot.wideZoom, 1.2)),
+      '--smooth', String(dflt('smooth', brief.smooth, presetSmooth, 0.18)),
       '--sampleEvery', String(brief.sampleEvery || 4), '--headroom', String(brief.headroom || 0),
       '--fps', String(Math.round(fps)),
-      '--punchZoomMax', String(brief.punchZoomMax != null ? brief.punchZoomMax : 1.6),
-      '--maxScaleRatio', String(brief.maxScaleRatio != null ? brief.maxScaleRatio : 1.3),
+      '--punchZoomMax', String(punchZoomMaxV),
+      '--maxScaleRatio', String(maxScaleRatioV),
     ];
+    if (presetPayload) fArgs.push('--presetBaseline', presetPayload);
     if (wantShotPlan && fs.existsSync(p('shot-plan.json'))) fArgs.push('--shotPlan', p('shot-plan.json'));
     if (brief.openOnFace) fArgs.push('--openOnFace', '1');
     node('face-track-crop.js', fArgs);
@@ -485,6 +564,28 @@ Dialogue: 0,0:00:00.00,0:00:${String(Math.floor(cardSec)).padStart(2, '0')}.${St
   const denoiseAvailable = fs.existsSync(rnnoiseModel);
   if (!denoiseAvailable) console.warn(`WARNING: RNNoise model not found at ${rnnoiseModel} — skipping voice denoise. Run scripts/video-engine/download-models.sh.`);
   const voiceSteps = [];
+  // DEAD-CHANNEL FOLD — first in the chain, before anything measures level.
+  // This is the delivery-critical one: without it the finished reel plays
+  // the voice out of the left speaker only, and loudnorm measures a stereo
+  // pair that is half silence and over-boosts to compensate. `pan` with c0
+  // is correct whether the upstream audio is still stereo (isolation off) or
+  // already mono (isolation on), so it is safe to apply either way.
+  if (chanFix) {
+    voiceSteps.push(chanFix);
+    console.log(`[edit] audio: folding the live channel to both sides (${chanFix}) — dead channel detected in the source.`);
+  }
+  // CLIP REPAIR — soft-limit the clipped corners. Defaults ON because it
+  // genuinely reduces harshness, but it is NOT a fix and is never presented
+  // as one: audioDiag.findings still carries the clipping finding, review.js
+  // still reports it, and Heath still gets told to lower his transmitter
+  // gain. Set brief.declip = false to render the clipping untouched.
+  const wantDeclip = brief.declip !== false;
+  let declipApplied = false;
+  if (audioDiag.clipping.clipping && wantDeclip && audioDiag.filters.clipRepair) {
+    voiceSteps.push(audioDiag.filters.clipRepair);
+    declipApplied = true;
+    console.log(`[edit] audio: soft-limiting a CLIPPED source (${audioDiag.filters.clipRepair}). This rounds the corners; it does NOT restore the ${audioDiag.clipping.samplesAtFullScale} samples recorded at full scale. The clipping finding stands.`);
+  }
   // Sync nudge from the reviewer: positive = voice later (adelay), negative = voice earlier (atrim).
   const offsetMs = brief.audioOffsetMs != null ? Math.round(+brief.audioOffsetMs) : 0;
   if (offsetMs > 0) voiceSteps.push(`adelay=${offsetMs}|${offsetMs}`);
@@ -574,7 +675,31 @@ Dialogue: 0,0:00:00.00,0:00:${String(Math.floor(cardSec)).padStart(2, '0')}.${St
     // Heath called the oval "scary". It is off and there is no path that
     // turns it on; this asserts that rather than assuming it.
     vignette: brief.vignette === true ? 'REQUESTED-BUT-REFUSED' : false,
+    // Which physical setup this was shot from, and how that was decided.
+    recordingPreset: { name: presetRes.name, how: presetRes.how, confidence: presetRes.confidence },
+    presetTracking: cropMeta && cropMeta.recordingPreset ? {
+      faceHome: cropMeta.recordingPreset.faceHome,
+      excursionClampedFrames: cropMeta.frames ? cropMeta.frames.filter(f => f.excursionClamped).length : null,
+    } : null,
+    // SOURCE AUDIO — carried into the gate so it reaches review.js and the
+    // produce.js loop rather than scrolling past in a build log. The
+    // clipping entry in particular must survive to the review output: it is
+    // an action for Heath at the NEXT shoot and no render can fix it.
+    sourceAudio: {
+      deadChannels: audioDiag.channels.deadChannels,
+      channelFoldApplied: !!chanFix,
+      clipping: audioDiag.clipping.clipping,
+      clippingSeverity: audioDiag.clipping.severity,
+      truePeakDb: audioDiag.clipping.truePeakDb,
+      samplesAtFullScale: audioDiag.clipping.samplesAtFullScale,
+      declipApplied,
+      findings: audioDiag.findings,
+    },
   };
+  // NEVER-SILENT: re-print the source audio findings at the END of the run.
+  // Printing them only at stage 0 buries them under several minutes of
+  // ffmpeg output, which is functionally the same as not reporting them.
+  for (const f of audioDiag.findings) console.warn(`\n*** SOURCE AUDIO [${f.severity.toUpperCase()}] ${f.id}: ${f.message}\n`);
   if (brief.vignette === true) console.warn('WARNING: brief.vignette=true ignored — Heath rejected the oval vignette outright (trial-cut note 5). oval-vignette.js is not in the render path.');
   // brief.blackFrameGuard — knob for review.js's "accidental black frame"
   // finding. Measures the output directly instead of trusting the concat.
