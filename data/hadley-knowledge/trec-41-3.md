@@ -74,7 +74,9 @@ If the noteholder maintains an escrow account (ad valorem taxes, casualty insura
 | Either party terminates for excess variance | Prior to closing | Loan balance variance > cap in ¶C | Earnest money refunded to Buyer (unless other party covers excess) |
 | Either party terminates for noteholder non-consent | Prior to closing | Noteholder refuses consent | Earnest money refunded to Buyer |
 
-If any deadline lands on a Saturday, Sunday, or legal holiday, the standard TREC 20-18 ¶24 rule applies (extend to next day that is not a Saturday, Sunday, or legal holiday), because 41-3 rides on top of the master contract.
+**Legal-Holiday extension — narrower than it looks.** The master contract's Legal Holiday rule is **TREC 20-19 ¶5.A(2)**, and by its own terms it extends only the deadline to deliver the **earnest money, option fee, or additional earnest money** when that last day falls on a Saturday, Sunday, or Legal Holiday (as defined by Tex. Gov't Code §§662.003(a), (b)(4), (6)). It is **not** a general rule that rolls every deadline in the contract, and there is no other legal-holiday provision in 20-19. Do not assume a 41-3 deadline that lands on a holiday automatically moves — confirm the specific provision, and paper an amendment if the parties want it moved.
+
+*(Corrected 2026-09-22: this previously read "the standard TREC 20-18 ¶24 rule applies" to any deadline. Wrong three ways — there is no ¶24 in 20-18 or 20-19, the rule is ¶5.A(2), and it is not general.)*
 
 ## Common Q&A a working TX agent would ask
 
