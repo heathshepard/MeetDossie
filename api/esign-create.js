@@ -66,6 +66,7 @@ const {
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
+const { findNotarizationRequirement, notarizationRefusalMessage } = require('./_lib/notarization-required-forms');
 const {
   evaluateElections,
   summarize: summarizeElections,
@@ -2062,6 +2063,15 @@ module.exports = async function handler(req, res) {
       if (txIds.length > 1) {
         throw new ValidationError('Packet documents belong to different dossiers — send them separately.', 422);
       }
+      // Hard backstop — never create a DocuSeal submission for a document
+      // that legally requires a notary (e.g. the T-47 affidavit). See
+      // api/_lib/notarization-required-forms.js; this is the single list
+      // every send path checks.
+      const packetNotaryHit = packetDocRows.find((d) => findNotarizationRequirement(d));
+      if (packetNotaryHit) {
+        throw new ValidationError(notarizationRefusalMessage(packetNotaryHit), 422);
+      }
+
       const packetTransactionId = txIds[0] || null;
       const packetTx = packetTransactionId ? await getFullTransactionRow(packetTransactionId, userId) : null;
       const packetPropertyAddress = packetTx ? (packetTx.property_address || '') : '';
@@ -2203,6 +2213,12 @@ module.exports = async function handler(req, res) {
     const doc = await getDocumentRow(documentId, userId);
     const fileName = doc.file_name || 'Document.pdf';
     const transactionId = doc.transaction_id || null;
+
+    // Hard backstop — same notarization gate as the packet path above.
+    const singleNotaryHit = findNotarizationRequirement(doc);
+    if (singleNotaryHit) {
+      throw new ValidationError(notarizationRefusalMessage(doc, singleNotaryHit), 422);
+    }
 
     // Fetch the transaction so we have property_address for both email subjects
     // and template prefill. Non-fatal if missing.
