@@ -913,6 +913,169 @@ function buildDeadlineChain(extracted) {
   return items;
 }
 
+// CRITICAL — pure, testable, and the ONLY place any *_deadline field derived
+// from a per-contract "within N days after the Effective Date" blank gets
+// its final value. Extracted out of scanContract() 2026-09-22 so this logic
+// can be unit-tested against a fixed `extracted` object without an
+// Anthropic API call (see scripts/regression-scan-contract-day-count-deadlines.js).
+//
+// Root cause this replaces: 23 Nopalito (952e0d82-c453-4137-87b4-1ed46e738eb3)
+// shipped survey_deadline = 2026-09-24 to Heath's sellers when the executed
+// contract's checked ¶6C(1) box plainly reads "Within 14 days after the
+// Effective Date" (effective 2026-09-20 -> correct deadline 2026-10-04, not
+// 2026-09-24 — off by 10 days / wrongly matching a 4-day read). The
+// deterministic regex backstop for surveyDeadline (and the equivalent ones
+// for financingDays/loanApprovalDeadline, appraisalDeadline,
+// hoaDocumentDeadline) only ever OVERRODE the model's own top-level guess
+// when the regex found a match against the verbatim debug-paragraph text;
+// when it did not match — malformed/incomplete debug text, an unusual
+// checkbox rendering, an OCR gap — the code silently kept whatever the
+// model itself guessed for the finished date. The prompt for that field
+// says outright "this is a secondary check only... getting this exactly
+// right yourself is not critical" — i.e. the system already knew that guess
+// was unreliable, yet still shipped it as a silent, confident, WRONG date
+// with no null-fallback and no audit trail. A wrong deadline is a money
+// error, not a display error — same reasoning as "unknown is never zero" on
+// the net sheet: an unknown deadline must read as unknown, never as a
+// confident wrong date.
+//
+// Fix: every field below is now ALWAYS derived from ONLY the deterministic
+// day-count parse of the verbatim debug paragraph — never from the model's
+// own free-text date guess. If the debug paragraph exists but no day count
+// can be verified in it, the field is forced to null (unknown) even if the
+// model had already guessed something. If the debug paragraph was never
+// captured at all (e.g. no addendum attached), the field is left as the
+// model returned it (should already be null per the extraction prompt).
+// Every derived field also gets a matching `<field>Days` sibling so the
+// source day count — not just the finished date — is recoverable for a
+// human to check the arithmetic (persisted via transactions.contract_extraction,
+// see supabase/migrations/20260813_contract_extraction_persistence.sql).
+function applyDeterministicDeadlineOverrides(extracted) {
+  if (!extracted || typeof extracted !== 'object') return extracted;
+
+  const addDays = (isoDate, days) => {
+    if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
+    const t = new Date(isoDate);
+    if (Number.isNaN(t.getTime())) return null;
+    t.setUTCDate(t.getUTCDate() + days);
+    return t.toISOString().slice(0, 10);
+  };
+
+  // Parses a "within N days after the Effective Date" style sentence.
+  // Returns { days, deadline, found: true } only when a day count 1-90 is
+  // actually present in the text — never invents or defaults a count.
+  const deriveDaysDeadline = (debugText, dayPattern, { minDays = 1, maxDays = 90 } = {}) => {
+    if (!debugText || typeof debugText !== 'string') return { days: null, deadline: null, found: false };
+    const match = debugText.match(dayPattern);
+    if (!match) return { days: null, deadline: null, found: false };
+    const days = parseInt(match[1], 10);
+    if (!Number.isFinite(days) || days < minDays || days > maxDays) return { days: null, deadline: null, found: false };
+    return { days, deadline: addDays(extracted.contractEffectiveDate, days), found: true };
+  };
+
+  const warnMismatch = (fieldLabel, modelGuess, deterministicValue) => {
+    if (modelGuess && deterministicValue && modelGuess !== deterministicValue) {
+      console.warn(`[scan-contract] ${fieldLabel} mismatch — model guessed ${modelGuess}, deterministic parse says ${deterministicValue}. Using the deterministic value.`);
+    } else if (modelGuess && !deterministicValue) {
+      console.warn(`[scan-contract] ${fieldLabel}: model guessed ${modelGuess} but the day count could not be verified deterministically from the debug paragraph — reporting unknown instead of a possibly-wrong date.`);
+    }
+  };
+
+  // --- Financing (Third Party Financing Addendum -> financingDays -> loanApprovalDeadline)
+  {
+    const r = deriveDaysDeadline(extracted.debugThirdPartyFinancing, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
+    if (r.found) {
+      warnMismatch('loanApprovalDeadline', extracted.loanApprovalDeadline, r.deadline);
+      extracted.financingDays = r.days;
+      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.thirdPartyFinancingDays = r.days;
+      extracted.loanApprovalDeadline = r.deadline;
+    } else if (extracted.debugThirdPartyFinancing) {
+      // Addendum is attached (we have its debug text) but the day count
+      // could not be verified — never fall back to an unverified guess.
+      warnMismatch('loanApprovalDeadline', extracted.loanApprovalDeadline, null);
+      extracted.financingDays = null;
+      extracted.loanApprovalDeadline = null;
+    }
+    // else: no addendum attached at all — leave as the model returned
+    // (should already be null per the extraction prompt).
+  }
+
+  // --- Appraisal (Appraisal Right-to-Terminate Addendum)
+  {
+    const r = deriveDaysDeadline(extracted.debugAppraisalAddendum, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
+    if (r.found) {
+      warnMismatch('appraisalDeadline', extracted.appraisalDeadline, r.deadline);
+      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.appraisalTerminationDays = r.days;
+      extracted.appraisalDeadline = r.deadline;
+    } else if (extracted.debugAppraisalAddendum) {
+      warnMismatch('appraisalDeadline', extracted.appraisalDeadline, null);
+      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.appraisalTerminationDays = null;
+      extracted.appraisalDeadline = null;
+    }
+  }
+
+  // --- HOA documents (HOA Addendum)
+  {
+    const r = deriveDaysDeadline(extracted.debugHoaAddendum, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
+    if (r.found) {
+      warnMismatch('hoaDocumentDeadline', extracted.hoaDocumentDeadline, r.deadline);
+      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.hoaDocumentDeadlineDays = r.days;
+      extracted.hoaDocumentDeadline = r.deadline;
+    } else if (extracted.debugHoaAddendum) {
+      warnMismatch('hoaDocumentDeadline', extracted.hoaDocumentDeadline, null);
+      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.hoaDocumentDeadlineDays = null;
+      extracted.hoaDocumentDeadline = null;
+    }
+  }
+
+  // --- Survey (¶6.C — three mutually exclusive checkbox options, all three
+  // sharing the same "within N days after the Effective Date" deadline
+  // shape, so one pattern covers whichever option is actually checked).
+  // WHO pays (surveyPayer / sellerProvidesSurvey) is a separate, already
+  // deterministic derivation below and is unaffected by this block.
+  {
+    const r = deriveDaysDeadline(
+      extracted.debugParagraph6C,
+      /\[X\]\s*\(\d\)\s*Within\s+(\d+)\s+days after the Effective Date/i,
+    );
+    if (r.found) {
+      warnMismatch('surveyDeadline', extracted.surveyDeadline, r.deadline);
+      extracted.surveyDeadline = r.deadline;
+      extracted.surveyDeadlineDays = r.days;
+    } else {
+      // No verifiable day count for the checked ¶6.C option — this covers
+      // an unchecked/blank contract, a malformed debug paragraph, AND the
+      // case that shipped wrong on 23 Nopalito. Never keep whatever the
+      // model's own top-level surveyDeadline guess was; force unknown.
+      warnMismatch('surveyDeadline', extracted.surveyDeadline, null);
+      extracted.surveyDeadline = null;
+      extracted.surveyDeadlineDays = null;
+    }
+  }
+
+  // --- Survey payer / who furnishes the existing survey — deterministic
+  // from the SAME debugParagraph6C checked-option match, one regex read,
+  // two projections of the same fact so they can never disagree.
+  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
+    const checkedBlock = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)[^[]*/i);
+    if (checkedBlock) {
+      const payerText = checkedBlock[0]
+        .replace(/^\[X\]\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (payerText) {
+        extracted.surveyPayer = payerText;
+      }
+    }
+    const checkedOption = parseCheckedOption(extracted.debugParagraph6C);
+    if (checkedOption) {
+      extracted.sellerProvidesSurvey = checkedOption === '1';
+    }
+  }
+
+  return extracted;
+}
+
 function emptyResult(warning) {
   return {
     extracted: {
@@ -1162,144 +1325,12 @@ async function scanContract(pdfBase64) {
     extracted.buyer2Name = buyerParts[1] || null;
     extracted.seller2Name = sellerParts[1] || null;
   }
-  const addDays = (isoDate, days) => {
-    if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
-    const t = new Date(isoDate);
-    if (Number.isNaN(t.getTime())) return null;
-    t.setUTCDate(t.getUTCDate() + days);
-    return t.toISOString().slice(0, 10);
-  };
-  // CRITICAL: Parse the addenda day counts (financing/appraisal/HOA) directly
-  // from their verbatim debug sentences via regex, same reasoning and same
-  // pattern as optionDays/surveyDeadline elsewhere in this file — asking the
-  // model to both find AND transcribe a day count in one JSON number field is
-  // exactly the failure mode that made those unreliable (confirmed via a live
-  // scan 2026-09-10: financingDays/appraisalTerminationDays/
-  // hoaDocumentDeadlineDays all came back null on a real contract that
-  // plainly states 21 days for all three, while the verbatim debug sentence
-  // was available to parse deterministically). Must run BEFORE the
-  // loanApprovalDeadline/appraisalDeadline/hoaDocumentDeadline computations
-  // directly below, which depend on these day counts.
-  const parseDaysSentence = (s) => {
-    if (typeof s !== 'string') return null;
-    const m = s.match(/within\s+[_\s]*(\d+)[_\s]*\s+days/i);
-    if (!m) return null;
-    const n = parseInt(m[1], 10);
-    return (Number.isFinite(n) && n >= 1 && n <= 90) ? n : null;
-  };
-  if (!extracted.financingDays) {
-    const days = parseDaysSentence(extracted.debugThirdPartyFinancing);
-    if (days) {
-      extracted.financingDays = days;
-      extracted.addenda.thirdPartyFinancingDays = days;
-    }
-  }
-  if (typeof extracted.addenda.appraisalTerminationDays !== 'number') {
-    const days = parseDaysSentence(extracted.debugAppraisalAddendum);
-    if (days) extracted.addenda.appraisalTerminationDays = days;
-  }
-  if (typeof extracted.addenda.hoaDocumentDeadlineDays !== 'number') {
-    const days = parseDaysSentence(extracted.debugHoaAddendum);
-    if (days) extracted.addenda.hoaDocumentDeadlineDays = days;
-  }
-
-  if (!extracted.loanApprovalDeadline) {
-    const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
-    if (calc) extracted.loanApprovalDeadline = calc;
-  }
-  // appraisalDeadline: the TREC 49-1 addendum never states a literal calendar
-  // date — it's always "within N days after the Effective Date" (paragraph
-  // (3), the common case) — so requiring an explicit date meant this field
-  // was null on every real appraisal-termination addendum ever scanned. The
-  // day count itself (addenda.appraisalTerminationDays) IS reliably
-  // extracted; this was purely a missing post-processing step, same shape as
-  // loanApprovalDeadline just above. Found 2026-08-05 auditing a real scan.
-  if (!extracted.appraisalDeadline && extracted.addenda && typeof extracted.addenda.appraisalTerminationDays === 'number') {
-    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
-    if (calc) extracted.appraisalDeadline = calc;
-  }
-
-  // hoaDocumentDeadline — same shape/reasoning as appraisalDeadline directly
-  // above: the HOA Addendum states a day count ("Seller shall deliver ...
-  // within N days after the Effective Date"), never a literal calendar date,
-  // so asking the model for a finished date left this null on every real
-  // HOA-addendum scan. addenda.hoaDocumentDeadlineDays is the reliably
-  // extracted day count; compute the date deterministically from it.
-  if (!extracted.hoaDocumentDeadline && extracted.addenda && typeof extracted.addenda.hoaDocumentDeadlineDays === 'number') {
-    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.hoaDocumentDeadlineDays);
-    if (calc) extracted.hoaDocumentDeadline = calc;
-  }
-
-  // CRITICAL: Parse the survey day count directly from debugParagraph6C using
-  // regex, same reasoning as the optionDays fix below. Paragraph 6C has THREE
-  // parallel checkbox options with three different day-count blanks — asking
-  // the model to both identify which is checked AND do date arithmetic in one
-  // JSON field is exactly the failure mode that made optionDays unreliable.
-  // The prompt now asks it only to preserve verbatim text with checkbox marks
-  // ("[X] (1) Within 15 days..."); this finds whichever option is actually
-  // marked and computes the deadline deterministically. Found 2026-08-05
-  // auditing a real scan where survey and appraisal deadlines both came back
-  // null despite the contract clearly stating both (option (1), 15 days).
-  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
-    const match = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)\s*Within\s+(\d+)\s+days after the Effective Date/i);
-    if (match) {
-      const surveyDays = parseInt(match[1], 10);
-      if (Number.isFinite(surveyDays) && surveyDays >= 1 && surveyDays <= 90) {
-        const calc = addDays(extracted.contractEffectiveDate, surveyDays);
-        if (calc) extracted.surveyDeadline = calc;
-      }
-    }
-  }
-
-  // CRITICAL: Derive surveyPayer deterministically from debugParagraph6C —
-  // same "deterministic backstop beats asking the model to both identify
-  // AND paraphrase in one JSON field" reasoning as surveyDeadline directly
-  // above. Rather than asking the model to interpret WHO pays (a judgment
-  // call that varies by which of the three ¶6.C checkbox options is
-  // checked — Buyer obtains at Buyer's expense / Seller furnishes existing
-  // survey / Seller obtains new survey at Seller's expense), this slices
-  // out the VERBATIM text of whichever option is actually checked, so the
-  // answer is a direct quote from the real document, not a paraphrase that
-  // could invent or drop a nuance. Built 2026-08-13 — Heath asked "who pays
-  // for the survey on Wild Cherry" and Dossie had no way to answer it even
-  // though this exact text was already being captured and thrown away.
-  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
-    const checkedBlock = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)[^[]*/i);
-    if (checkedBlock) {
-      const payerText = checkedBlock[0]
-        .replace(/^\[X\]\s*/i, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (payerText) {
-        extracted.surveyPayer = payerText;
-      }
-    }
-  }
-
-  // CRITICAL: Derive sellerProvidesSurvey deterministically from the SAME
-  // debugParagraph6C checked-option match used for surveyPayer directly
-  // above — one regex read, two projections of the same fact, so they can
-  // never disagree with each other. TRUE only when option (1) is the one
-  // marked ("Seller shall furnish to Buyer... Seller's existing survey...
-  // and a... T-47 Affidavit"); options (2) and (3) both mean the seller
-  // does NOT furnish the existing survey (buyer obtains a new one, or
-  // seller obtains a NEW one — neither is "furnish the existing survey").
-  //
-  // Found 2026-09-21 on 23 Nopalito: Dossie correctly TOLD Heath "seller to
-  // furnish existing survey + T-47" (reading it straight off
-  // debugParagraph6C/surveyPayer), but transactions.seller_provides_survey
-  // was false — because nothing anywhere in either repo has ever written to
-  // that column. It has a DB-level default of false and was never wired
-  // into an extraction path, so it silently read as "buyer provides" on
-  // every contract ever scanned, election (1) or not. See
-  // api/_lib/contract-term-persistence.js's treatFalseAsBlank handling for
-  // why this column's false default gets special Rule-1 treatment.
-  {
-    const checkedOption = parseCheckedOption(extracted.debugParagraph6C);
-    if (checkedOption) {
-      extracted.sellerProvidesSurvey = checkedOption === '1';
-    }
-  }
+  // Financing/appraisal/HOA/survey deadlines, survey payer, and
+  // sellerProvidesSurvey are ALL derived deterministically here — see
+  // applyDeterministicDeadlineOverrides() above for why (23 Nopalito wrong
+  // survey_deadline root cause) and scripts/regression-scan-contract-day-count-deadlines.js
+  // for the tests that pin this behavior.
+  applyDeterministicDeadlineOverrides(extracted);
 
   // Readable one-line summary of which addenda are actually attached to
   // THIS contract (as opposed to the raw addenda.has* booleans, which are
@@ -2083,3 +2114,4 @@ module.exports.runFullScan = runFullScan;
 module.exports.identifyDocument = identifyDocument;
 module.exports.auditCompliance = auditCompliance;
 module.exports.DOCUMENT_LABELS = DOCUMENT_LABELS;
+module.exports.applyDeterministicDeadlineOverrides = applyDeterministicDeadlineOverrides;
