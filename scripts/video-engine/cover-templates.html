@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<!--
+  cover-templates.html — the four Dossie cover layouts, rendered by gen-cover.js.
+
+  Rendered through Chromium (Playwright) exactly like scripts/video-cards/anatomy-figure.html:
+  there is no PIL and the static ffmpeg has no drawtext, so all typography is HTML/CSS.
+
+  HARD RULES baked into this file (docs/DOSSIE-CREATIVE-DIRECTOR-STANDARD.md):
+    §9  never invent product capabilities -> there is no synthetic "UI" in here. The
+        screenshot slot renders whatever real PNG is handed to it, or renders nothing.
+    §16 authenticity over polish -> the face slot only ever shows a real frame of Heath.
+        There is no illustrated/stock/AI person anywhere in this template.
+    §14 brand feel -> tokens below are verbatim CLAUDE.md §4. Fonts are the two local
+        families in public/fonts; nothing loads over the network.
+
+  Every icon is drawn as inline SVG strokes. No stock imagery, ever.
+
+  gen-cover.js substitutes the CONFIG placeholder below with one JSON blob and the page builds itself.
+  It sets window.__ready = true only after fonts are loaded AND the headline has been
+  shrink-to-fit, so the screenshot can never catch a mid-reflow frame.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family:'CG';  src:url('../../public/fonts/CormorantGaramond-Bold.ttf')     format('truetype'); font-weight:700; }
+@font-face { font-family:'CG';  src:url('../../public/fonts/CormorantGaramond-SemiBold.ttf') format('truetype'); font-weight:600; }
+@font-face { font-family:'PJS'; src:url('../../public/fonts/PlusJakartaSans-Bold.ttf')       format('truetype'); font-weight:700; }
+@font-face { font-family:'PJS'; src:url('../../public/fonts/PlusJakartaSans-Regular.ttf')    format('truetype'); font-weight:400; }
+
+:root{
+  /* CLAUDE.md §4 — verbatim */
+  --blush:#F5E6E0; --blush-deep:#D4A0A0; --sage:#8BA888;
+  --gold:#C9A96E;  --navy:#1A1A2E;       --coral:#E8836B;
+
+  --bg1:var(--blush); --bg2:#EBD8D0;
+  --ink:var(--navy); --ink-soft:rgba(26,26,46,.62);
+  --accent:var(--coral); --accent-ink:#FFF6F2;
+  --edge:rgba(26,26,46,.12);
+}
+.theme-navy{
+  --bg1:#171728; --bg2:#22223c;
+  --ink:var(--blush); --ink-soft:rgba(245,230,224,.66);
+  --accent:var(--coral); --accent-ink:#1A1A2E;
+  --edge:rgba(245,230,224,.16);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg1)}
+body{
+  font-family:'PJS',system-ui,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+
+#stage{position:relative;width:100%;height:100%;overflow:hidden;
+  background:
+    radial-gradient(120% 70% at 80% 0%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 55%),
+    linear-gradient(168deg, var(--bg1) 0%, var(--bg2) 100%);
+}
+.theme-navy #stage{
+  background:
+    radial-gradient(110% 60% at 78% 4%, rgba(232,131,107,.22) 0%, rgba(232,131,107,0) 58%),
+    linear-gradient(168deg, var(--bg1) 0%, var(--bg2) 100%);
+}
+
+/* A faint blueprint grid: motion-free texture so a flat colour field doesn't read
+   as a stock template. Deliberately near-invisible at thumbnail size. */
+#stage::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--edge) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--edge) 1px,transparent 1px);
+  background-size:90px 90px;opacity:.30;
+}
+
+/* ---------------------------------------------------------------- layout box */
+#frame{position:absolute;display:flex;flex-direction:column;z-index:4}
+/* top:300 is deliberate — Instagram centre-crops a 9:16 cover to 4:5 on the
+   profile grid, and 4:5 of 1920 starts at y=285. Anything above that line is
+   gone in the grid. Render with --guides to see both crop boxes. */
+.fmt-story #frame{left:64px;right:64px;top:300px;bottom:250px}
+.fmt-yt    #frame{left:64px;right:64px;top:56px; bottom:120px}
+
+/* ------------------------------------------------------------------- kicker  */
+#kicker{
+  font-weight:700;letter-spacing:.20em;text-transform:uppercase;
+  color:var(--accent);display:flex;align-items:center;gap:20px;flex:0 0 auto;
+}
+.fmt-story #kicker{font-size:36px;margin-bottom:30px}
+.fmt-yt    #kicker{font-size:22px;margin-bottom:18px}
+#kicker .rule{height:4px;flex:1;background:var(--accent);opacity:.45;border-radius:2px}
+#kicker:empty{display:none}
+
+/* ----------------------------------------------------------------- headline  */
+#hl-box{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;align-items:flex-start}
+.align-center #hl-box{align-items:center}
+#headline{
+  width:100%;
+  font-weight:700;line-height:1.02;letter-spacing:-.022em;
+  text-transform:uppercase;text-wrap:balance;
+}
+/* A <mark> paints its background over the font's full content box (~1.26em for
+   Plus Jakarta Sans), so a tight line-height makes the block eat the line above.
+   Headlines that carry a highlight get a looser leading; the auto-fit just picks
+   a slightly smaller size to compensate. */
+#headline.has-mark{line-height:1.30}
+#headline.serif.has-mark{line-height:1.22}
+#headline.serif{font-family:'CG',Georgia,serif;letter-spacing:-.005em;line-height:.96;text-transform:none}
+#headline mark{
+  background:var(--accent);color:var(--accent-ink);
+  padding:0 .16em;margin:0 -.04em;border-radius:10px;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  display:inline;
+}
+.theme-blush #headline mark{box-shadow:0 10px 30px rgba(232,131,107,.35)}
+
+/* ------------------------------------------------------------------- subline */
+#sub{
+  font-family:'PJS';font-weight:400;color:var(--ink-soft);
+  line-height:1.34;flex:0 0 auto;
+}
+.fmt-story #sub{font-size:38px;margin-top:34px;max-width:78%}
+.fmt-yt    #sub{font-size:24px;margin-top:20px;max-width:84%}
+#sub:empty{display:none}
+
+/* ------------------------------------------------------------- the real face */
+/* The footage we have is not a clean cut-out (no green screen, and there is no
+   local matting model on this box — see gen-cover.js header). So the photo is
+   framed as a deliberate, soft-edged panel rather than faked into a silhouette.
+   object-fit:cover + a caller-supplied object-position keeps the face un-stretched. */
+.face{position:absolute;overflow:hidden;z-index:2}
+.face img{width:100%;height:100%;object-fit:cover;display:block}
+
+.face-bleed{                     /* (a)/(c): big panel bleeding off the bottom-right */
+  right:0;bottom:0;border-top-left-radius:200px;
+  box-shadow:-40px -40px 120px rgba(26,26,46,.18);
+}
+.face-round{border-radius:50%;border:10px solid var(--accent);
+  box-shadow:0 30px 70px rgba(26,26,46,.28);}
+.face-card{border-radius:44px;box-shadow:0 34px 90px rgba(26,26,46,.30);
+  border:8px solid rgba(255,255,255,.65);}
+.theme-navy .face-card{border-color:rgba(245,230,224,.22)}
+
+/* ------------------------------------------------- real product screenshot   */
+/* Renders ONLY a real PNG the caller passed in. Nothing is drawn to look like
+   Dossie UI (Creative Director Standard §9). If no file, the slot is removed. */
+.shot{position:absolute;z-index:3;border-radius:22px;overflow:hidden;
+  box-shadow:0 40px 110px rgba(26,26,46,.38);
+  border:1px solid rgba(26,26,46,.14);background:#fff;}
+.shot .bar{height:42px;background:#EFE7E3;display:flex;align-items:center;gap:10px;padding:0 18px}
+.theme-navy .shot .bar{background:#2A2A44}
+.shot .bar i{width:13px;height:13px;border-radius:50%;background:var(--blush-deep);display:block}
+.shot .bar i:nth-child(2){background:var(--gold)}
+.shot .bar i:nth-child(3){background:var(--sage)}
+.shot img{width:100%;display:block}
+
+/* ------------------------------------------------------- pain-point icons    */
+/* All six are hand-drawn SVG strokes. No icon font, no stock art. */
+#icons{position:absolute;display:grid;gap:22px;z-index:4}
+.fmt-story #icons{grid-template-columns:repeat(3,1fr)}
+.fmt-yt    #icons{grid-template-columns:repeat(3,1fr);gap:14px}
+.chip{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:26px 10px 22px;border-radius:28px;
+  background:rgba(255,255,255,.58);border:2px solid var(--edge);
+  backdrop-filter:blur(2px);
+}
+.theme-navy .chip{background:rgba(245,230,224,.10)}
+.chip svg{width:74px;height:74px;stroke:var(--accent);stroke-width:2.6;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;}
+.chip span{font-weight:700;font-size:25px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink);text-align:center;line-height:1.1}
+.fmt-yt .chip{padding:14px 6px 12px;gap:7px;border-radius:18px}
+.fmt-yt .chip svg{width:44px;height:44px}
+.fmt-yt .chip span{font-size:15px}
+
+/* ------------------------------------------------------------- brand + CTA   */
+#brandbar{position:absolute;display:flex;align-items:center;gap:22px;z-index:6}
+.fmt-story #brandbar{left:64px;bottom:86px}
+.fmt-yt    #brandbar{left:64px;bottom:34px}
+#brandbar img{height:76px;width:76px;object-fit:contain;
+  border-radius:22px;background:rgba(255,255,255,.72);padding:8px}
+.theme-navy #brandbar img{background:rgba(245,230,224,.10)}
+.fmt-yt #brandbar img{height:48px;width:48px;border-radius:14px;padding:5px}
+#brandbar .wm{font-family:'CG',Georgia,serif;font-weight:700;letter-spacing:.01em;color:var(--ink)}
+.fmt-story #brandbar .wm{font-size:52px}
+.fmt-yt    #brandbar .wm{font-size:32px}
+#brandbar .tag{font-size:23px;font-weight:400;color:var(--ink-soft);letter-spacing:.02em}
+.fmt-yt #brandbar .tag{font-size:15px}
+
+#cta{position:absolute;z-index:6;display:flex;align-items:center;gap:16px;
+  font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent-ink);background:var(--accent);
+  border-radius:999px;box-shadow:0 18px 44px rgba(232,131,107,.45);}
+.fmt-story #cta{right:64px;bottom:86px;font-size:31px;padding:22px 38px}
+.fmt-yt    #cta{right:64px;bottom:34px;font-size:19px;padding:13px 24px}
+#cta svg{width:1.1em;height:1.1em;stroke:currentColor;stroke-width:3;fill:none;
+  stroke-linecap:round;stroke-linejoin:round}
+#cta.off{display:none}
+
+/* ------------------------------------------------------------- crop guides   */
+/* --guides only. Instagram centre-crops a 9:16 cover to 4:5 on the profile grid
+   and to 1:1 in some surfaces, so anything load-bearing has to survive both. */
+#guides{position:absolute;inset:0;z-index:99;pointer-events:none;display:none}
+.showguides #guides{display:block}
+#guides div{position:absolute;left:0;right:0;border:3px dashed rgba(232,0,0,.65)}
+#guides .lab{position:absolute;left:14px;font:700 26px 'PJS';color:#c00;border:0}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="frame">
+    <div id="kicker"></div>
+    <div id="hl-box"><h1 id="headline"></h1></div>
+    <div id="sub"></div>
+  </div>
+  <div id="guides"></div>
+</div>
+
+<script>
+const CFG = {{CONFIG_JSON}};
+
+/* ---- the six real pain points from Heath's own opening line ---------------
+   "Inspections, appraisals, financing, title, earnest money, deadlines,
+    documents, emails, text messages" — Media/finished-videos/
+    dossie_trial_01.transcript.txt. Labels below are drawn from that list plus
+    the two workflow words he uses elsewhere; nothing invented.                */
+const ICONS = {
+  showings:   '<path d="M14 54h36V22l-18-12-18 12z"/><path d="M28 54V38h8v16"/><circle cx="44" cy="30" r="3"/>',
+  emails:     '<rect x="10" y="18" width="44" height="30" rx="4"/><path d="M10 22l22 16 22-16"/>',
+  inspections:'<rect x="16" y="12" width="32" height="42" rx="4"/><path d="M26 12h12v7H26z"/><path d="M24 30h9M24 39h14"/><circle cx="42" cy="32" r="7"/><path d="M47 37l6 6"/>',
+  deadlines:  '<circle cx="32" cy="34" r="20"/><path d="M32 22v13l9 6"/><path d="M22 10l-8 6M42 10l8 6"/>',
+  clients:    '<circle cx="24" cy="24" r="8"/><path d="M10 50c0-8 6-14 14-14s14 6 14 14"/><path d="M42 20a7 7 0 110 14"/><path d="M44 50c0-7-3-11-7-13"/>',
+  listings:   '<path d="M12 28L32 12l20 16"/><path d="M18 26v24h28V26"/><path d="M28 50V36h8v14"/>',
+  documents:  '<path d="M20 10h16l10 10v34H20z"/><path d="M36 10v10h10"/><path d="M26 32h14M26 40h14"/>',
+  texts:      '<path d="M12 18h40v26H30l-12 10v-10h-6z"/><path d="M22 28h20M22 35h12"/>',
+  title:      '<path d="M32 10l20 8v14c0 12-8 20-20 24-12-4-20-12-20-24V18z"/><path d="M24 32l6 6 12-12"/>',
+  money:      '<circle cx="32" cy="32" r="20"/><path d="M32 20v24"/><path d="M39 26c-2-3-14-4-14 2s14 3 14 8-12 5-14 2"/>'
+};
+
+/* Chip keys are short for the CLI; these are what a reader actually sees. */
+const LABELS = {
+  showings:'Showings', emails:'Emails', inspections:'Inspections',
+  deadlines:'Deadlines', clients:'Clients', listings:'Listings',
+  documents:'Documents', texts:'Text messages', title:'Title', money:'Earnest money'
+};
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* Wrap the highlighted phrase in <mark>. Case-insensitive, first match only, and
+   silently a no-op when the phrase isn't actually in the headline — a cover must
+   never fail to render just because the caller fat-fingered the keyword. */
+function markUp(text, phrase){
+  const t = esc(text);
+  if (!phrase) return t;
+  const p = esc(phrase);
+  const i = t.toLowerCase().indexOf(p.toLowerCase());
+  if (i < 0) return t;
+  return t.slice(0,i) + '<mark>' + t.slice(i, i+p.length) + '</mark>' + t.slice(i+p.length);
+}
+
+const story = CFG.format === 'story';
+document.body.className = 'theme-' + CFG.theme + ' fmt-' + (story ? 'story' : 'yt') +
+  ' tpl-' + CFG.template + (CFG.align === 'center' ? ' align-center' : '');
+if (CFG.guides) document.body.classList.add('showguides');
+
+document.getElementById('kicker').innerHTML =
+  CFG.kicker ? esc(CFG.kicker) + '<span class="rule"></span>' : '';
+const h1El = document.getElementById('headline');
+h1El.innerHTML = markUp(CFG.headline || '', CFG.highlight);
+if (h1El.querySelector('mark')) h1El.classList.add('has-mark');
+document.getElementById('sub').textContent = CFG.sub || '';
+if (CFG.headlineFont === 'serif') document.getElementById('headline').classList.add('serif');
+
+const stage = document.getElementById('stage');
+const frame = document.getElementById('frame');
+
+function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
+
+/* ---- face ---------------------------------------------------------------- */
+function addFace(cls, style){
+  if (!CFG.photo) return null;
+  const f = el('<div class="face ' + cls + '"><img src="' + CFG.photo + '"></div>');
+  Object.assign(f.style, style);
+  f.querySelector('img').style.objectPosition = CFG.photoPos || '50% 32%';
+  stage.appendChild(f);
+  return f;
+}
+
+/* ---- real screenshot ------------------------------------------------------ */
+function addShot(style){
+  if (!CFG.shot) return null;
+  const s = el('<div class="shot"><div class="bar"><i></i><i></i><i></i></div>' +
+               '<img src="' + CFG.shot + '"></div>');
+  Object.assign(s.style, style);
+  stage.appendChild(s);
+  return s;
+}
+
+/* ---- icon cluster --------------------------------------------------------- */
+function addIcons(keys, style){
+  const g = el('<div id="icons"></div>');
+  keys.forEach(k => {
+    const svg = ICONS[k] || ICONS.documents;
+    g.appendChild(el('<div class="chip"><svg viewBox="0 0 64 64">' + svg +
+                     '</svg><span>' + esc(LABELS[k] || k) + '</span></div>'));
+  });
+  Object.assign(g.style, style);
+  stage.appendChild(g);
+  return g;
+}
+
+/* ---- brand lockup + CTA --------------------------------------------------- */
+function addBrand(){
+  const b = el('<div id="brandbar">' +
+    (CFG.logo ? '<img src="' + CFG.logo + '">' : '') +
+    '<div><div class="wm">' + esc(CFG.brand || 'Dossie') + '</div>' +
+    (CFG.tagline ? '<div class="tag">' + esc(CFG.tagline) + '</div>' : '') +
+    '</div></div>');
+  stage.appendChild(b);
+  if (CFG.cta){
+    stage.appendChild(el('<div id="cta">' + esc(CFG.cta) +
+      '<svg viewBox="0 0 24 24"><path d="M5 12h13"/><path d="M12 6l6 6-6 6"/></svg></div>'));
+  }
+}
+
+/* ======================= the four layouts ================================== */
+const H = story ? 1920 : 720;
+const W = story ? 1080 : 1280;
+
+function tplFaceHeadline(){
+  if (story){
+    frame.style.bottom = '900px';                       // headline owns the top half
+    addFace('face-bleed', {width:'650px', height:'1010px', borderTopLeftRadius:'220px'});
+  } else {
+    frame.style.right = '600px';
+    addFace('face-card', {right:'56px', top:'56px', width:'500px', height:'608px'});
+  }
+  addBrand();
+}
+
+function tplFaceShot(){
+  if (story){
+    frame.style.bottom = '1080px';
+    addShot({left:'70px', right:'70px', top:'900px'});
+    addFace('face-round', {left:'64px', bottom:'250px', width:'360px', height:'360px'});
+  } else {
+    frame.style.right = '660px';
+    addShot({right:'48px', top:'96px', width:'600px'});
+    addFace('face-round', {right:'560px', bottom:'60px', width:'220px', height:'220px'});
+  }
+  addBrand();
+}
+
+function tplFaceIcons(){
+  const keys = (CFG.icons && CFG.icons.length ? CFG.icons
+              : ['showings','emails','inspections','deadlines','clients','listings']);
+  if (story){
+    frame.style.bottom = '1230px';
+    addIcons(keys, {left:'64px', right:'64px', top:'740px'});
+    addFace('face-bleed', {width:'700px', height:'720px', borderTopLeftRadius:'200px'});
+  } else {
+    frame.style.right = '520px';
+    frame.style.bottom = '340px';
+    addIcons(keys, {left:'64px', width:'660px', bottom:'110px'});  // clears the brand lockup
+    addFace('face-card', {right:'56px', top:'80px', width:'420px', height:'560px'});
+  }
+  addBrand();
+}
+
+function tplTextHero(){
+  if (story){
+    frame.style.bottom = '560px';                       // headline is the whole hook
+    addFace('face-round', {right:'70px', bottom:'210px', width:'300px', height:'300px'});
+  } else {
+    frame.style.right = '330px';
+    addFace('face-round', {right:'64px', bottom:'120px', width:'230px', height:'230px'});
+  }
+  addBrand();
+}
+
+({'face-headline':tplFaceHeadline,
+  'face-shot':tplFaceShot,
+  'face-icons':tplFaceIcons,
+  'text-hero':tplTextHero}[CFG.template] || tplFaceHeadline)();
+
+/* ---- safe zones ----------------------------------------------------------- */
+/* docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md §3:
+     IG/FB Reels — keep everything inside the centre 1080x1350 block, which is what
+       survives the 9:16 / 4:5 / 3:4 crops. That is the default geometry above
+       (#frame starts at y=300; 4:5 of 1920 starts at 285).
+     TikTok    — its own chrome eats top ~200px, bottom ~334-484px, right ~140px,
+       left ~44px. --safe tiktok pulls the frame, the brand lockup and the CTA
+       clear of all four. It costs vertical room, so the headline auto-fits smaller. */
+if (story && CFG.safe === 'tiktok'){
+  frame.style.left = '80px';
+  frame.style.right = '150px';
+  const cur = parseInt(frame.style.bottom || '250', 10);
+  frame.style.bottom = Math.max(cur, 520) + 'px';
+  const bb = document.getElementById('brandbar');
+  if (bb){ bb.style.bottom = '520px'; bb.style.left = '80px'; }
+  const ct = document.getElementById('cta');
+  if (ct){ ct.style.bottom = '520px'; ct.style.right = '150px'; }
+}
+
+/* ---- crop guides ---------------------------------------------------------- */
+if (CFG.guides && story){
+  const g = document.getElementById('guides');
+  [[ '4:5 grid crop', (H - W*5/4)/2, W*5/4 ],
+   [ '1:1 crop',      (H - W)/2,     W    ]].forEach(([lab,top,h],i)=>{
+    const d=document.createElement('div');
+    d.style.top=top+'px'; d.style.height=h+'px';
+    d.style.borderColor = i? 'rgba(0,80,255,.6)':'rgba(232,0,0,.65)';
+    g.appendChild(d);
+    const l=document.createElement('div'); l.className='lab'; l.textContent=lab;
+    l.style.top=(top+8)+'px'; l.style.color=i?'#04f':'#c00'; g.appendChild(l);
+  });
+}
+
+/* ---- shrink-to-fit -------------------------------------------------------- */
+/* Headlines come from real transcripts, so length is not under our control. Rather
+   than clip or overflow, binary-search the largest size that fits the box. */
+function fitHeadline(){
+  const box = document.getElementById('hl-box');
+  const h1  = document.getElementById('headline');
+  let lo = story ? 40 : 26, hi = CFG.maxFont || (story ? 160 : 92), best = lo;
+  for (let i = 0; i < 22; i++){
+    const mid = (lo + hi) / 2;
+    h1.style.fontSize = mid + 'px';
+    if (h1.scrollHeight <= box.clientHeight){
+      best = mid; lo = mid;
+    } else { hi = mid; }
+    if (hi - lo < 0.5) break;
+  }
+  h1.style.fontSize = best + 'px';
+  return best;
+}
+
+(async () => {
+  await document.fonts.ready;
+  // Wait for every <img> so nothing screenshots half-decoded.
+  await Promise.all([...document.images].map(im =>
+    im.complete ? Promise.resolve() : new Promise(r => { im.onload = im.onerror = r; })));
+  const size = fitHeadline();
+  window.__fontSize = size;
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
