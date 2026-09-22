@@ -51,6 +51,13 @@ const {
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { resolveBlankTemplatePdf } = require('./_lib/resolve-blank-template-pdf');
+// 2026-09-22 CARTER — narrows "send the t47" to just that document instead
+// of every document on the dossier. No notarization gate here: this tool
+// emails a plain attachment (never DocuSeal e-signature), so mailing a T-47
+// for the seller to print and take to a notary is a legitimate use — the
+// notarization block belongs only to the real e-sign path
+// (api/esign-create.js, api/esign-packet-send.js).
+const { narrowDocumentsByDescription } = require('./_lib/document-narrowing');
 const {
   ROLE_DEFS,
   resolveRoleRecipients,
@@ -377,6 +384,7 @@ module.exports = async function handler(req, res) {
     const mode = String(body.mode || 'preview').toLowerCase() === 'send' ? 'send' : 'preview';
     const dryRun = body.dry_run === true || body.dryRun === true;
     const note = sanitizeString(body.note || '', { maxLength: 800 });
+    const documentDescription = sanitizeString(body.document_description || body.documentDescription || '', { maxLength: 200 });
 
     // Default preserves the original behaviour of this endpoint exactly:
     // no recipient named => brokerage compliance.
@@ -475,7 +483,38 @@ module.exports = async function handler(req, res) {
       const text = await docsResp.text().catch(() => '');
       throw new Error(`documents fetch failed (${docsResp.status}): ${text.slice(0, 200)}`);
     }
-    const documents = await docsResp.json();
+    let documents = await docsResp.json();
+
+    // Narrow to the one document the agent named, when they named one.
+    // 2026-09-22 — this endpoint used to attach EVERY document on the
+    // dossier no matter what was asked for ("send the t47" built a
+    // 10-document packet titled "<address> — documents"). A description
+    // that matches nothing is a reason to ASK, never to fall back to
+    // sending everything — see memory: silent-failure-is-the-enemy.
+    if (documentDescription) {
+      const narrowing = narrowDocumentsByDescription(documents, documentDescription);
+      if (narrowing.narrowed) {
+        if (!narrowing.matched.length) {
+          const names = (documents || []).slice(0, 8).map((d) => d.file_name);
+          return res.status(200).json({
+            ok: false,
+            needs_clarification: true,
+            error: `I'm not sure which document you mean by "${documentDescription}" — on file: ${names.join(', ')}. Which one?`,
+            available_documents: names,
+          });
+        }
+        if (narrowing.matched.length > 1) {
+          const names = narrowing.matched.map((d) => d.file_name);
+          return res.status(200).json({
+            ok: false,
+            needs_clarification: true,
+            error: `That could be a few things — ${names.join(', ')}. Which one did you mean?`,
+            available_documents: names,
+          });
+        }
+        documents = narrowing.matched;
+      }
+    }
 
     // ----- Optional net sheet -----
     // Built here rather than passed in as finished HTML so the disclaimer and
@@ -525,10 +564,20 @@ module.exports = async function handler(req, res) {
       );
     }
 
+    // A single narrowed document gets named in the subject line rather than
+    // the generic "— documents" — the agent asked for ONE thing, the email
+    // should say what it is, not read like a full closing packet.
+    const singleDocLabel = (documentDescription && documents.length === 1 && !netSheetEst)
+      ? (documents[0].document_type
+        ? String(documents[0].document_type).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+        : documents[0].file_name)
+      : null;
     const subject = sanitizeString(body.subject || '', { maxLength: 300 })
       || (recipientRole === 'compliance'
         ? `Closing packet — ${tx.property_address || 'Dossie deal'}`
-        : `${tx.property_address || 'Your transaction'} — documents${netSheetEst ? ' and estimated net sheet' : ''}`);
+        : singleDocLabel
+          ? `${tx.property_address || 'Your transaction'} — ${singleDocLabel}`
+          : `${tx.property_address || 'Your transaction'} — documents${netSheetEst ? ' and estimated net sheet' : ''}`);
 
     // ------------------------------------------------------------------
     // PREVIEW: resolve and describe, send nothing.

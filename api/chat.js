@@ -485,9 +485,14 @@ const TOOLS = [
   {
     name: 'send_packet_to_party',
     description:
-      'Assemble the documents on a dossier (optionally with a net sheet) and PREPARE an email to a named party on the deal. Use whenever ' +
+      'Assemble document(s) on a dossier (optionally with a net sheet) and PREPARE an email to a named party on the deal. Use whenever ' +
       'the agent says anything like: send it to the sellers, send the documents to the title company, email that to the lender, ' +
-      'send the packet to the other agent, put the documents together and send them. ' +
+      'send the packet to the other agent, put the documents together and send them, send the T-47 to the sellers to fill out, ' +
+      'email them the survey affidavit. ' +
+      'If the agent named ONE specific document ("the t47", "the HOA addendum", "the amendment"), pass it in document_description — ' +
+      'only that document goes out. If they asked for "the documents"/"the packet"/"everything", omit document_description and every ' +
+      'document on the dossier goes out. Attaching every document when one was asked for is a real incident (2026-09-22) — never omit ' +
+      'document_description when the agent named something specific. ' +
       'This NEVER sends on its own — it shows the agent exactly who it would go to, the subject, and every attachment, and the agent ' +
       'must confirm before anything leaves. ' +
       'You address a party by ROLE, never by typing an email address: the recipient is resolved from the deal record. ' +
@@ -508,6 +513,10 @@ const TOOLS = [
         include_net_sheet: { type: 'boolean', description: 'Attach an estimated net sheet built from the dossier. Use when the agent asks for a net sheet to go out with the documents.' },
         note: { type: 'string', description: "A short line from the agent to open the email, in their voice. Omit if they didn't give one." },
         subject: { type: 'string', description: 'Optional subject override. Omit to use a sensible default.' },
+        document_description: {
+          type: 'string',
+          description: 'Words the agent used to name ONE specific document — e.g. "the t47", "the HOA addendum", "the survey affidavit". Omit entirely when the agent asked for "the documents"/"everything"/"the packet" — every document on the dossier goes out. Never guess a description the agent did not say; an unset value means all documents.',
+        },
       },
       required: ['deal_identifier', 'recipient_role'],
     },
