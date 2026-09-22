@@ -53,6 +53,7 @@ const {
   issueConfirmationToken,
   verifyConfirmationToken,
 } = require('./_lib/packet-recipients');
+const { findNotarizationRequirement, notarizationRefusalMessage } = require('./_lib/notarization-required-forms');
 const esignCreateHandler = require('./esign-create');
 // Real field counts, not a separate estimate — the exact same
 // buildPacketDocEntry() call the actual send makes. See that function's own
@@ -255,6 +256,18 @@ module.exports = async function handler(req, res) {
     }
 
     const docs = await loadOwnedDocuments(documentIds, userId);
+
+    // Flagged BEFORE a packet is ever built or previewed — a document that
+    // legally requires a notary (e.g. the T-47 affidavit) must never reach
+    // a confirmation card promising it's "ready to send." Same list
+    // api/esign-create.js checks again at actual send time as the hard
+    // backstop; this is the earlier, friendlier refusal for the chat/preview
+    // path. See api/_lib/notarization-required-forms.js.
+    const notaryHit = docs.find((d) => findNotarizationRequirement(d));
+    if (notaryHit) {
+      throw new ValidationError(notarizationRefusalMessage(notaryHit), 422);
+    }
+
     const transactionId = docs[0].transaction_id;
     const tx = await loadTransaction(transactionId, userId);
     const profile = await loadProfile(userId);
