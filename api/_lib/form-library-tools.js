@@ -11,6 +11,16 @@
 // calls attachFormTemplate(), the exact function api/form-templates.js's own
 // POST action:'attach' HTTP handler uses — one attach code path, not two.
 //
+// MEMBER FORMS FALLBACK (2026-09-21): attach_form_to_deal also checks the
+// calling member's own member_form_templates (Settings -> My Standard
+// Documents / Documents tab -> My Forms) when the Form Library has nothing
+// matching. This is the exact gap Heath hit — he asked Dossie for his KW
+// City View CMA Acknowledgement, she said it wasn't something she could do,
+// because at the time there was nowhere for a member's own form to live.
+// Now there is; the resolution order is Form Library first, then the
+// member's stored forms, and only if BOTH come back empty does she say so
+// and point at the add path (see chat.js's FORM LIBRARY prompt section).
+//
 // THE 6-FORM GAP (2026-09-21): CDA, IABS, PID, TAR 2003, Groundwater Notice,
 // and Property Affidavit are real, active form_templates rows with no PDF
 // asset behind them at all (no entry in resolve-blank-template-pdf.js's
@@ -44,7 +54,7 @@ const FORM_LIBRARY_TOOLS = [
   {
     name: 'attach_form_to_deal',
     description:
-      'Attach a blank form from the Form Library to a dossier as a new document, ready to fill. Use when the agent says anything like: attach the [form] to this file, add the HOA addendum, pull in the lead paint addendum, get me the [TREC number] form on this deal. Use list_form_library first if you are not sure of the exact form name.',
+      'Attach a form to a dossier as a new document. Checks the Form Library first (a blank TREC/TAR form, ready to fill), then falls back to the agent\'s own stored forms under My Standard Documents / My Forms (their brokerage\'s own CMA Acknowledgement, hold-harmless, etc. — already a real file, attached ready to send). Use when the agent says anything like: attach the [form] to this file, add the HOA addendum, pull in the lead paint addendum, get me the [TREC number] form on this deal, send me my CMA Acknowledgement, attach our brokerage disclosure. Use list_form_library first if you are not sure of the exact Form Library name.',
     input_schema: {
       type: 'object',
       properties: {
@@ -93,6 +103,47 @@ async function loadAttachableForms(search) {
       .filter(Boolean).some((v) => String(v).toLowerCase().includes(needle)));
 }
 
+// The member's own stored forms (member_form_templates) that actually have a
+// file behind them — a label-only row carried over from the old
+// localStorage flow (storage_path null) is not attachable, same rule the
+// client's Documents tab and Settings list use.
+async function loadMemberForms(userId, search) {
+  const uid = encodeURIComponent(userId);
+  const res = await supa(
+    `member_form_templates?user_id=eq.${uid}&storage_path=not.is.null&select=id,label,description,file_name,file_type,storage_path`
+  );
+  if (!res.ok) throw new Error(`member_form_templates fetch failed: ${res.status}`);
+  const rows = await res.json();
+  const needle = String(search || '').trim().toLowerCase();
+  return (Array.isArray(rows) ? rows : [])
+    .filter((r) => !needle || [r.label, r.description, r.file_name]
+      .filter(Boolean).some((v) => String(v).toLowerCase().includes(needle)));
+}
+
+// Copies a member's stored form (same storage_path, no re-upload) onto the
+// dossier as a real document row — the same insert api/insert-document-row.js
+// and the client's handleAttachStandardDoc perform, reimplemented here so the
+// chat tool doesn't have to make an HTTP call to itself. tx is already
+// ownership-checked by resolveOwnedTransaction before this is called.
+async function attachMemberForm(userId, memberForm, transactionId) {
+  const docRow = {
+    user_id: userId,
+    transaction_id: transactionId,
+    file_name: memberForm.file_name || `${memberForm.label}.pdf`,
+    file_type: memberForm.file_type || 'application/pdf',
+    document_type: 'other',
+    storage_path: memberForm.storage_path,
+  };
+  const insertRes = await supa('documents', { method: 'POST', body: JSON.stringify(docRow) });
+  if (!insertRes.ok) {
+    const text = await insertRes.text().catch(() => '');
+    throw new Error(`documents insert failed (${insertRes.status}): ${text.slice(0, 300)}`);
+  }
+  const inserted = await insertRes.json();
+  const newDoc = Array.isArray(inserted) ? inserted[0] : inserted;
+  return newDoc && newDoc.id ? newDoc.id : null;
+}
+
 async function executeFormLibraryTool(name, input, { userId }) {
   if (!userId) throw new FormLibrarySecurityError('form-library tool called without a verified user id');
   if (input && (input.user_id || input.userId)) {
@@ -131,17 +182,51 @@ async function executeFormLibraryTool(name, input, { userId }) {
     console.error('[form-library-tools] attach lookup failed:', err.message);
     return { ok: false, error: 'could not search the form library' };
   }
-  if (!forms.length) {
-    return { ok: false, error: `I don't have a form matching "${formName}" that I can attach today.` };
-  }
-  const chosen = forms[0];
 
+  if (forms.length) {
+    const chosen = forms[0];
+    try {
+      const { documentId } = await attachFormTemplate(userId, chosen.id, tx.id);
+      return {
+        ok: true,
+        source: 'form_library',
+        document_id: documentId,
+        form_name: chosen.name,
+        transaction_id: tx.id,
+        property_address: tx.property_address || null,
+      };
+    } catch (err) {
+      console.error('[form-library-tools] attach failed:', err.message);
+      return { ok: false, error: 'could not attach that form' };
+    }
+  }
+
+  // Not in the Form Library — fall back to the member's own stored forms
+  // (My Standard Documents / My Forms) before giving up. See header comment.
+  let memberForms;
   try {
-    const { documentId } = await attachFormTemplate(userId, chosen.id, tx.id);
+    memberForms = await loadMemberForms(userId, formName);
+  } catch (err) {
+    console.error('[form-library-tools] member forms lookup failed:', err.message);
+    memberForms = [];
+  }
+
+  if (!memberForms.length) {
+    return {
+      ok: false,
+      not_found: true,
+      error: `I don't have a form matching "${formName}" in the Form Library, and you don't have one saved under My Forms either. You can add your own copy under Documents → My Forms (or Settings → My Standard Documents) — once it's there I can attach and send it on any dossier.`,
+    };
+  }
+
+  const chosenMemberForm = memberForms[0];
+  try {
+    const documentId = await attachMemberForm(userId, chosenMemberForm, tx.id);
     return {
       ok: true,
+      source: 'member_form',
       document_id: documentId,
-      form_name: chosen.name,
+      form_name: chosenMemberForm.label,
       transaction_id: tx.id,
       property_address: tx.property_address || null,
     };
