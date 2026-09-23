@@ -108,12 +108,32 @@ async function produce(cfg, outPath) {
 
   log(`target ${outSec}s @ ${fps}fps = ${wantFrames} frames; speed ${speed}x consumes ${srcWindowSec.toFixed(2)}s of source`);
 
+  // ------------------------------------------------------------- 0. PRE-CUT
+  // When a cutlist is supplied, trim+concat BOTH streams first, with
+  // render-cutlist.js, in one filter_complex pass from identical timestamps.
+  // Everything downstream then treats the result as one continuous take —
+  // which is what keeps picture and sound locked: the two streams are never
+  // edited separately, so a splice cannot introduce lip-sync drift.
+  let srcForPipeline = cfg.src;
+  if (cfg.cutlist && fs.existsSync(cfg.cutlist)) {
+    const trimmed = p('precut.mp4');
+    if (!fs.existsSync(trimmed)) {
+      const cl = JSON.parse(fs.readFileSync(cfg.cutlist, 'utf8'));
+      log(`pre-cut: ${cl.keepSegments.length} keep segments, ${cl.stats.keptSeconds}s of source`);
+      sh('node', [path.join(__dirname, 'render-cutlist.js'),
+        '--src', cfg.src, '--cutlist', cfg.cutlist, '--out', trimmed,
+        '--scale', cfg.precutScale || '1216:2160', '--preset', 'veryfast',
+        '--fps', String(cfg.srcFps != null ? +cfg.srcFps : 60)], { stdio: 'inherit' });
+    } else log('pre-cut: reusing existing precut.mp4');
+    srcForPipeline = trimmed;
+  }
+
   // ---------------------------------------------------------------- 1. AUDIO
   // The dead-channel fold is NOT optional on this rig: the DJI lav feeds the
   // LEFT channel only and the right is digital silence, so `-ac 1` averages
   // the voice with nothing and throws away 6 dB.
   const AD = require('./audio-diagnose.js');
-  const diag = AD.diagnose(cfg.src);
+  const diag = AD.diagnose(srcForPipeline);
   const fold = diag.filters.channelFixMono || 'pan=mono|c0=c0';
   log(`audio: ${diag.channels.deadChannels.length ? `dead channel ${diag.channels.deadChannels.join(',')} — folding with ${fold}` : 'both channels live'}`);
   if (diag.clipping.clipping) {
@@ -121,7 +141,7 @@ async function produce(cfg, outPath) {
   }
 
   const rawWav = p('raw.wav');
-  ff(['-i', cfg.src, '-vn', '-af', fold, '-ac', '1', '-ar', '44100', rawWav]);
+  ff(['-i', srcForPipeline, '-vn', '-af', fold, '-ac', '1', '-ar', '44100', rawWav]);
 
   // Audio Isolation on the FULL take (>= 4.6 s), then A/B. Never per-clip.
   let voiceWav = rawWav;
@@ -197,7 +217,7 @@ async function produce(cfg, outPath) {
     `setpts=PTS/${speed}`,
   ].filter(Boolean).join(',');
   log(`frames: -t ${srcWindowSec.toFixed(3)} -vf ${vfFrames} -r ${fps}`);
-  ff(['-i', cfg.src, '-t', String(srcWindowSec), '-vf', vfFrames, '-r', String(fps), '-fps_mode', 'cfr',
+  ff(['-i', srcForPipeline, '-t', String(srcWindowSec), '-vf', vfFrames, '-r', String(fps), '-fps_mode', 'cfr',
     '-frames:v', String(wantFrames), path.join(framesDir, 'f%05d.png')]);
   const gotFrames = fs.readdirSync(framesDir).filter(f => /\.png$/.test(f)).length;
   log(`frames extracted: ${gotFrames} (want ${wantFrames})`);
@@ -311,6 +331,10 @@ async function produce(cfg, outPath) {
   const capsPath = p('caps.ass');
   const capRes = CAPS.build({
     transcript,
+    // The cutlist IS passed here on purpose. captions-proven's remap turns
+    // SOURCE word times into POST-CUT, POST-SPEED times — which is exactly
+    // what the pre-cut + atempo media needs. (The media is cut; the
+    // transcript still isn't.)
     cutlist: cfg.cutlist && fs.existsSync(cfg.cutlist) ? cutlist : null,
     mode: cfg.captionMode === 'thought' ? 'thought' : 'fragment',
     speed,
