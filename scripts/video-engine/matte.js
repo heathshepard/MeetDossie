@@ -4,15 +4,49 @@
  *
  * Reads a PNG frame sequence, runs RVM's recurrent matting model frame by
  * frame (carrying r1..r4 hidden state forward for temporal stability), and
- * writes:
- *   - <out>/alpha/f###.png        - per-frame alpha matte (grayscale)
- *   - <out>/fgr/f###.png          - per-frame clean foreground (RGB)
- *   - <out>/comp-blurbg/f###.png  - composited over a blurred/darkened copy of the SAME frame
- *   - <out>/comp-workspace/f###.png - composited over a workspace backdrop image
+ * writes one of two output shapes.
+ *
+ * ===================================================================
+ * --mode rgba  (DEFAULT, 5.7 fps)  vs  --mode full  (legacy, 0.65 fps)
+ * ===================================================================
+ * `full` writes THREE files per frame — alpha, fgr, and a comp-blurbg
+ * composite (plus comp-workspace when a backdrop is given). Measured at
+ * **0.65 fps**: a 2717-frame take took ~70 minutes.
+ *
+ * `rgba` writes ONE RGBA PNG per frame at `compressionLevel: 1`, into a
+ * single `rgba/` subdir. Measured at **5.7 fps** — the same take in ~10
+ * minutes. It is an 8.8x speedup for identical matting, because the model
+ * pass was never the bottleneck: the PNG encodes were.
+ *
+ * Three things make up that difference, all of them I/O, none of them quality:
+ *   1. One file per frame instead of three-to-four.
+ *   2. compressionLevel 1 instead of sharp's default 6. These are scratch
+ *      frames that get decoded by ffmpeg minutes later and deleted; spending
+ *      CPU to make them smaller on disk is pure waste.
+ *   3. No blur/modulate/resize round trip per frame. The blurred background
+ *      composite was being rebuilt from disk for every single frame.
+ *
+ * `full` is kept behind the flag because refine-composite.js consumes
+ * alpha/ and fgr/ separately.
+ *
+ * ===================================================================
+ * STAGE FRAMES ON THE NATIVE LINUX FILESYSTEM, NOT /mnt/c
+ * ===================================================================
+ * The WSL/NTFS boundary was roughly HALF the cost of this pass. Thousands of
+ * small PNG writes through the 9p mount is the worst possible access pattern
+ * for it. This module now refuses to write its output under /mnt/ unless
+ * --allowSlowFs is passed, because the failure is invisible — it just takes
+ * all night and nobody knows why.
+ *
+ * INPUT WIDTH: 640px is sufficient. RVM's mobilenetv3 variant downsamples to
+ * ~512px on the long edge internally regardless (see autoDownsampleRatio), so
+ * feeding it 1080 or 2160 wide frames costs decode and PNG time for detail
+ * the model never sees. The alpha is upscaled at composite time.
  *
  * Usage:
  *   node scripts/video-engine/matte.js --frames <dir of input PNGs> --out <output dir> \
- *     [--backdrop <path to backdrop jpg/png>] [--model models/rvm_mobilenetv3_fp32.onnx]
+ *     [--mode rgba|full] [--backdrop <path>] [--model models/rvm_mobilenetv3_fp32.onnx] \
+ *     [--allowSlowFs]
  *
  * Model: RobustVideoMatting mobilenetv3 fp32, downloaded from the official
  * GitHub release (https://github.com/PeterL1n/RobustVideoMatting). CPU-only —
@@ -91,7 +125,22 @@ async function main() {
     process.exit(1);
   }
 
-  for (const sub of ['alpha', 'fgr', 'comp-blurbg', 'comp-workspace']) {
+  // --mode rgba (default) is the fast path: ONE RGBA PNG per frame.
+  const mode = args.mode === 'full' ? 'full' : 'rgba';
+
+  // Staging frames on /mnt/c was ~half the wall-clock cost of this pass.
+  // Fail loudly rather than run all night for no reason.
+  if (path.resolve(outDir).startsWith('/mnt/') && !args.allowSlowFs) {
+    console.error(
+      `matte.js: --out is on the Windows mount (${outDir}).\n` +
+      `  Thousands of small PNG writes across the WSL/NTFS 9p boundary was measured as roughly\n` +
+      `  HALF the total cost of this pass. Stage frames under /tmp (native ext4) and copy the\n` +
+      `  finished video out at the end. Pass --allowSlowFs to override.`);
+    process.exit(1);
+  }
+
+  const subs = mode === 'rgba' ? ['rgba'] : ['alpha', 'fgr', 'comp-blurbg', 'comp-workspace'];
+  for (const sub of subs) {
     fs.mkdirSync(path.join(outDir, sub), { recursive: true });
   }
 
@@ -116,6 +165,7 @@ async function main() {
 
   const perFrameMs = [];
   let W = 0, H = 0;
+  const wallT0 = Date.now();
 
   for (let i = 0; i < files.length; i++) {
     const inPath = path.join(framesDir, files[i]);
@@ -134,8 +184,10 @@ async function main() {
     r1i = results.r1o; r2i = results.r2o; r3i = results.r3o; r4i = results.r4o;
 
     const alphaName = files[i];
-    await tensorToPng(results.pha, w, h, 1, path.join(outDir, 'alpha', alphaName));
-    await tensorToPng(results.fgr, w, h, 3, path.join(outDir, 'fgr', alphaName));
+    if (mode === 'full') {
+      await tensorToPng(results.pha, w, h, 1, path.join(outDir, 'alpha', alphaName));
+      await tensorToPng(results.fgr, w, h, 3, path.join(outDir, 'fgr', alphaName));
+    }
 
     // Build the foreground-with-alpha RGBA buffer directly from tensors —
     // skips a PNG encode/decode round trip through disk per frame.
@@ -148,6 +200,16 @@ async function main() {
       rgba[p * 4 + 2] = Math.max(0, Math.min(255, Math.round(fgrData[2 * plane + p] * 255)));
       rgba[p * 4 + 3] = Math.max(0, Math.min(255, Math.round(phaData[p] * 255)));
     }
+    if (mode === 'rgba') {
+      // THE FAST PATH. compressionLevel 1, one file, straight from the raw
+      // buffer — no intermediate PNG encode/decode, no per-frame disk reads.
+      await sharp(rgba, { raw: { width: w, height: h, channels: 4 } })
+        .png({ compressionLevel: 1 })
+        .toFile(path.join(outDir, 'rgba', alphaName));
+      process.stdout.write(`frame ${i + 1}/${files.length} — ${dt}ms\r`);
+      continue;
+    }
+
     const fgWithAlpha = await sharp(rgba, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
 
     // Composite (a): blurred/darkened version of the SAME source frame.
@@ -174,8 +236,10 @@ async function main() {
   console.log('');
 
   const avgMs = perFrameMs.reduce((a, b) => a + b, 0) / perFrameMs.length;
+  const wallSec = (Date.now() - wallT0) / 1000;
   const report = {
     model: modelPath,
+    mode,
     frames: files.length,
     frameSize: `${W}x${H}`,
     gpu: false,
@@ -184,7 +248,16 @@ async function main() {
     avgSecPerFrame: +(avgMs / 1000).toFixed(3),
     minMs: Math.min(...perFrameMs),
     maxMs: Math.max(...perFrameMs),
+    // The number that actually matters. avgMsPerFrame only times the model
+    // call; the 0.65 -> 5.7 fps difference was entirely in what happens
+    // around it, so timing the model alone hid the whole problem.
+    wallClockSec: +wallSec.toFixed(1),
+    fps: +(files.length / wallSec).toFixed(2),
+    outputFs: path.resolve(outDir).startsWith('/mnt/') ? 'WINDOWS-MOUNT (slow)' : 'native',
   };
+  if (W > 900) {
+    console.warn(`NOTE: input frames are ${W}px wide. RVM downsamples to ~512px internally regardless — 640px input gives the same matte for less decode and PNG time.`);
+  }
   fs.writeFileSync(path.join(outDir, 'matte-report.json'), JSON.stringify(report, null, 2));
   console.log('Report:', report);
 }

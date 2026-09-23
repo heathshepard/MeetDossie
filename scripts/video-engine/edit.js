@@ -343,10 +343,45 @@ async function main() {
   // 4. Face-tracked auto-frame crop.
   const trimmedMeta = ffprobeJson(p('trimmed.mp4'), 'format=duration:stream=width,height,r_frame_rate');
   const fps = trimmedMeta.streams[0].r_frame_rate.split('/').reduce((a, b) => a / b);
-  stage('frames', fileKey(p('trimmed.mp4')), [p('frames')], () => {
+
+  // ---------------------------------------------------------------------
+  // SPEED-UP (brief.speed, e.g. 1.08). READ sync-guard.js BEFORE TOUCHING.
+  //
+  // The picture speed-up is applied EXACTLY ONCE, HERE, by resampling the
+  // extracted frame sequence: `setpts=PTS/speed` retimes and `-r fps` then
+  // resamples to that same fps, so the FRAME COUNT drops by `speed` and the
+  // frames are played back at the SOURCE fps.
+  //
+  // Doing it here rather than at the end is also why the matte pass gets
+  // cheaper: 2717 frames instead of 2934.
+  //
+  // DO NOT also raise the output framerate. That was the 2026-09-22 bug:
+  // 1.08 in setpts AND 1.08 via framerate gave 1.166x picture against 1.08x
+  // audio, and his body finished ~18 s before his voice. The matching audio
+  // atempo is applied once, in the final mix (search "SPEED: audio side").
+  // assertFrameSync below fails the render if the two ever disagree.
+  // ---------------------------------------------------------------------
+  const speed = brief.speed != null ? +brief.speed : 1;
+  if (!(speed >= 0.5 && speed <= 2.0)) throw new Error(`brief.speed ${speed} is outside the sane 0.5-2.0 range`);
+  const SYNC = require('./sync-guard.js');
+  const fpsR = Math.round(fps);
+
+  stage('frames', fileKey(p('trimmed.mp4')) + `speed:${speed}`, [p('frames')], () => {
     fs.rmSync(p('frames'), { recursive: true, force: true });
     fs.mkdirSync(p('frames'), { recursive: true });
-    run('ffmpeg', ['-y', '-i', p('trimmed.mp4'), p('frames/f%05d.png'), '-hide_banner', '-loglevel', 'error']);
+    const speedArgs = speed !== 1
+      ? ['-vf', `setpts=PTS/${speed}`, '-r', String(fpsR), '-fps_mode', 'cfr']
+      : [];
+    run('ffmpeg', ['-y', '-i', p('trimmed.mp4'), ...speedArgs, p('frames/f%05d.png'), '-hide_banner', '-loglevel', 'error']);
+    if (speed !== 1) {
+      const got = fs.readdirSync(p('frames')).filter(f => /\.png$/.test(f)).length;
+      const srcSec = parseFloat(trimmedMeta.format.duration);
+      const want = SYNC.expectedFrameCount(srcSec, fpsR, speed);
+      console.log(`[edit] speed ${speed}x — extracted ${got} frames (expected ~${want}); they play at ${fpsR} fps, NOT ${fpsR}*${speed}.`);
+      if (Math.abs(got - want) > Math.max(3, want * 0.01)) {
+        throw new Error(`speed-up frame count is ${got}, expected ~${want} for ${srcSec.toFixed(3)}s at ${fpsR}fps / ${speed}x. The picture and the audio will not line up.`);
+      }
+    }
   });
   // 4b. SHOT PLAN — the picture's edit. See the file header and shot-plan.js.
   //     Cuts come from the transcript's sentence/clause boundaries, so they
@@ -441,25 +476,59 @@ async function main() {
     else if (backdrop === 'workspace') { backdrop = p('workspace-backdrop.png'); if (!fs.existsSync(backdrop)) node('gen-workspace-backdrop.js', [backdrop]); }
     else if (!fs.existsSync(backdrop)) throw new Error(`backdrop not found: ${backdrop}`);
     // The model pass is the expensive part; its alpha/fgr only depend on the cropped frames.
-    stage('matte', dirKey(videoFramesDir), [p('matte/alpha'), p('matte/fgr')], () => {
+    // refine-composite.js reads alpha/ and fgr/ SEPARATELY, so this path needs
+    // matte.js --mode full. The one-RGBA-file-per-frame fast path (5.7 fps vs
+    // 0.65) is for callers that composite the cutout themselves — see
+    // matte.js's header. brief.matteFast opts into it and skips refinement.
+    const matteFast = !!brief.matteFast;
+    const matteOuts = matteFast ? [p('matte/rgba')] : [p('matte/alpha'), p('matte/fgr')];
+    stage('matte', dirKey(videoFramesDir) + `mode:${matteFast ? 'rgba' : 'full'}`, matteOuts, () => {
       fs.rmSync(p('matte'), { recursive: true, force: true });
-      node('matte.js', ['--frames', videoFramesDir, '--out', p('matte'), '--backdrop', backdrop]);
+      const mArgs = ['--frames', videoFramesDir, '--out', p('matte'), '--mode', matteFast ? 'rgba' : 'full'];
+      if (!matteFast) mArgs.push('--backdrop', backdrop);
+      // edit.js workdirs routinely sit on /mnt/c; matte.js refuses that by
+      // default because it roughly doubles the wall clock. Honour the
+      // existing workdir rather than silently relocating the user's files,
+      // but say what it is costing.
+      if (path.resolve(p('matte')).startsWith('/mnt/')) {
+        console.warn('[edit] matte output is on the Windows mount — this pass will run roughly 2x slower. Use --workdir under /tmp for the fast path.');
+        mArgs.push('--allowSlowFs');
+      }
+      node('matte.js', mArgs);
     });
+    if (matteFast) {
+      videoFramesDir = p('matte/rgba');
+    } else {
     stage('refined', dirKey(p('matte/alpha')) + fileKey(backdrop) + pick('matteErode', 'matteFeather'), [p('matte/refined')], () => {
       fs.rmSync(p('matte/refined'), { recursive: true, force: true });
       node('refine-composite.js', ['--alpha', p('matte/alpha'), '--fgr', p('matte/fgr'), '--backdrop', backdrop, '--out', p('matte/refined'),
         '--erode', String(brief.matteErode != null ? brief.matteErode : 2), '--feather', String(brief.matteFeather != null ? brief.matteFeather : 2)]);
     });
-    videoFramesDir = p('matte/refined');
+      videoFramesDir = p('matte/refined');
+    }
   }
 
   // 6. Reassemble cropped(+matted) frames with the trimmed audio.
-  stage('reassembled', dirKey(videoFramesDir) + fileKey(p('trimmed.mp4')), [p('reassembled.mp4')], () => {
-    run('ffmpeg', ['-y', '-framerate', String(Math.round(fps)), '-i', path.join(videoFramesDir, 'f%05d.png'),
-      '-i', p('trimmed.mp4'), '-map', '0:v', '-map', '1:a',
+  //    SPEED: audio side. The picture speed-up already happened in stage 4 by
+  //    dropping frames; the audio gets its single matching atempo here, so
+  //    both streams are sped up exactly once each and the mux is the moment
+  //    they must agree. assertFrameSync right after checks that they do.
+  stage('reassembled', dirKey(videoFramesDir) + fileKey(p('trimmed.mp4')) + `speed:${speed}`, [p('reassembled.mp4')], () => {
+    const aArgs = speed !== 1 ? ['-filter:a', `atempo=${speed}`] : [];
+    run('ffmpeg', ['-y', '-framerate', String(fpsR), '-i', path.join(videoFramesDir, 'f%05d.png'),
+      '-i', p('trimmed.mp4'), '-map', '0:v', '-map', '1:a', ...aArgs,
       '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+      '-r', String(fpsR),
       '-c:a', 'aac', '-shortest', p('reassembled.mp4'), '-hide_banner', '-loglevel', 'error']);
   });
+
+  // THE SYNC GATE. Non-negotiable: a render that reaches here out of sync is
+  // the exact defect that shipped on 2026-09-22 and looked fine to every
+  // other check in this file.
+  {
+    const sy = SYNC.assertRenderedSync(p('reassembled.mp4'), { label: 'reassembled' });
+    console.log(`[edit] A/V sync OK after reassemble — picture ${sy.pictureSec.toFixed(3)}s vs audio ${sy.audioSec.toFixed(3)}s (${sy.driftMs >= 0 ? '+' : ''}${sy.driftMs}ms)`);
+  }
 
   // 7. Captions (ASS, burned in via libass — no drawtext in this ffmpeg build).
   //    --cropPath makes the vertical placement face-aware; --brief is the
@@ -507,7 +576,7 @@ async function main() {
   const endHoldSec = brief.endHoldSec != null ? +brief.endHoldSec : 0;
   const useCard = brief.ending === 'card';
   if (endHoldSec > 0 || useCard) {
-    const fpsR = Math.round(fps);
+    // fpsR is declared once at the speed-up stage; reuse it (a shadowed copy here would let the two diverge silently).
     const enc = ['-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p', '-r', String(fpsR), '-c:a', 'aac', '-ar', '48000', '-ac', '2'];
     const held = p('main-held.mp4');
     const vf = endHoldSec > 0 ? `tpad=stop_mode=clone:stop_duration=${endHoldSec}` : 'null';
@@ -634,6 +703,11 @@ Dialogue: 0,0:00:00.00,0:00:${String(Math.floor(cardSec)).padStart(2, '0')}.${St
   const comp = brief.compressorRatio;
   if (comp === 'light') voiceSteps.push('acompressor=threshold=0.15:ratio=2:attack=20:release=250:makeup=1.2');
   else if (comp === 'normal') voiceSteps.push('acompressor=threshold=0.1:ratio=3:attack=15:release=200:makeup=1.5');
+  // 'proven' is the exact compressor from the hand-built 60 s cut: a faster
+  // attack (5 ms vs 15) and a shorter release (120 ms vs 200) than 'normal'.
+  // On a lav clipped to a shirt, that catches consonant transients without
+  // pumping on the breaths between phrases.
+  else if (comp === 'proven') voiceSteps.push('acompressor=threshold=-18dB:ratio=3:attack=5:release=120');
   const voiceChainStr = voiceSteps.length ? voiceSteps.join(',') : 'anull';
   const loudTarget = brief.loudnessTarget != null ? +brief.loudnessTarget : -16;
   // ffmpeg's loudnorm runs its internal analysis at 192 kHz and, left alone,
@@ -654,6 +728,14 @@ Dialogue: 0,0:00:00.00,0:00:${String(Math.floor(cardSec)).padStart(2, '0')}.${St
       '-vf', vf, '-af', `${voiceChainStr},${loudnorm}`,
       '-c:v', 'libx264', '-crf', '19', '-preset', 'medium', '-pix_fmt', 'yuv420p',
       ...AUDIO_OUT, '-movflags', '+faststart', finalOut, '-hide_banner', '-loglevel', 'error']);
+  }
+
+  // 9b. FINAL SYNC GATE. The reassemble-time check cannot see anything the
+  //     ending hold, the end card, the caption burn or the music mix did to
+  //     the two streams. This one reads the delivered file.
+  {
+    const sy = SYNC.assertRenderedSync(finalOut, { label: path.basename(finalOut) });
+    console.log(`[edit] FINAL A/V sync OK — picture ${sy.pictureSec.toFixed(3)}s vs audio ${sy.audioSec.toFixed(3)}s (${sy.driftMs >= 0 ? '+' : ''}${sy.driftMs}ms, ${sy.frameCount} frames @ ${sy.outputFps}fps)`);
   }
 
   // 10. Quality gate.

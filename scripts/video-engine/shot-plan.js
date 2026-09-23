@@ -284,14 +284,88 @@ function buildShotPlan(transcript, cutlist, opts) {
   };
 }
 
+/* ===========================================================================
+ * PROVEN SIZE/POSITION LOOKS — ported from the hand-built 60 s cut
+ * (Downloads/dossie_water_60s_v4.mp4, scratchpad sw2.txt / sx2.txt).
+ *
+ * The zoom model above describes a CROP of a full-frame talking head. The
+ * shipped cut is a different composite: he is a matted CUTOUT laid over a
+ * scrolling contract, so a "shot" is a WIDTH and an X, bottom-aligned. The
+ * two models coexist — `looks` is only used when the renderer is compositing
+ * a cutout, and it is what produces the sw/sx expressions ffmpeg consumes.
+ *
+ * Measured working values:
+ *   minimum segment                       2.3 s
+ *   cut on gap > 0.42 s OR sentence end
+ *   looks, as (width, x) bottom-aligned   (470,560) (860,70) (640,360) (740,190)
+ *   forced look during doc emphasis       (430,600)
+ *   y                                     always H - h
+ *
+ * WHY THE FORCED SMALL LOOK MATTERS: during a document-emphasis window the
+ * evidence IS the shot. An 860-wide cutout covers the clause he is talking
+ * about. Forcing (430,600) keeps him bottom-right and small so the circled
+ * paragraph stays visible — §3, the visual has to carry the claim.
+ * =========================================================================== */
+const PROVEN_LOOKS = {
+  minShotSec: 2.3,
+  gapSec: 0.42,
+  looks: [[470, 560], [860, 70], [640, 360], [740, 190]],
+  emphasisLook: [430, 600],
+};
+
+/**
+ * assignLooks — attach a (w, x) look to each shot and build the ffmpeg
+ * `between(t,a,b)*V` sum expressions for width and x.
+ *
+ * @param shots             from buildShotPlan
+ * @param emphasisWindows   [{startSec, endSec}] — doc-emphasis windows that
+ *                          force the small look
+ * @returns { shots, swExpr, sxExpr }
+ */
+function assignLooks(shots, {
+  looks = PROVEN_LOOKS.looks,
+  emphasisLook = PROVEN_LOOKS.emphasisLook,
+  emphasisWindows = [],
+} = {}) {
+  const overlaps = (s) => emphasisWindows.some(w => s.startSec < w.endSec && s.endSec > w.startSec);
+  let i = 0;
+  const out = shots.map((s) => {
+    let w, x, forced = false;
+    if (overlaps(s)) {
+      [w, x] = emphasisLook; forced = true;
+    } else {
+      [w, x] = looks[i % looks.length]; i++;
+    }
+    return { ...s, look: { w, x, y: 'H-h', forcedByEmphasis: forced } };
+  });
+
+  const terms = (pick) => out.map(s =>
+    `between(t,${s.startSec.toFixed(2)},${s.endSec.toFixed(2)})*${pick(s)}`
+  ).join('+');
+
+  // max(minWidth, ...) mirrors sw2.txt: `between` returns 0 outside its
+  // window, so on the exact boundary instant every term can be 0 and the
+  // width would collapse to 0 for one frame. The floor prevents that.
+  const minW = Math.min(...out.map(s => s.look.w));
+  return {
+    shots: out,
+    swExpr: `max(${minW},${terms(s => s.look.w)})`,
+    sxExpr: `(${terms(s => s.look.x)})`,
+  };
+}
+
 function main() {
   const args = parseArgs();
   if (!args.transcript || !args.cutlist || !args.out) {
-    console.error('Usage: shot-plan.js --transcript <json> --cutlist <json> --out <json> [--minShotSec 1.8] [--maxShotSec 5.0] [--baseZoom 1.05] [--punchFactor 1.18]');
+    console.error('Usage: shot-plan.js --transcript <json> --cutlist <json> --out <json> [--minShotSec 1.8] [--maxShotSec 5.0] [--baseZoom 1.05] [--punchFactor 1.18] [--looks proven] [--emphasisWindows <json>]');
     process.exit(1);
   }
+  const provenLooks = args.looks === 'proven';
   const opts = {
-    minShotSec: parseFloat(args.minShotSec || '1.8'),
+    // --looks proven also adopts the proven cut discipline: 2.3s minimum
+    // segment and a 0.42s gap threshold. Those numbers travel together with
+    // the looks; a 1.8s minimum with an 860-wide cutout reads frantic.
+    minShotSec: parseFloat(args.minShotSec || (provenLooks ? String(PROVEN_LOOKS.minShotSec) : '1.8')),
     maxShotSec: parseFloat(args.maxShotSec || '5.0'),
     baseZoom: parseFloat(args.baseZoom || '1.05'),
     punchFactor: parseFloat(args.punchFactor || '1.18'),
@@ -303,11 +377,21 @@ function main() {
     // Same padding discipline cutlist.js uses (Heath's note 1).
     padAfterWordEnd: parseFloat(args.minPadAfterWordEnd || '0.20'),
     padBeforeOnset: parseFloat(args.minPadBeforeOnset || '0.15'),
-    minGapSec: parseFloat(args.minGapSec || '0.22'),
+    minGapSec: parseFloat(args.minGapSec || (provenLooks ? String(PROVEN_LOOKS.gapSec) : '0.22')),
   };
   const transcript = JSON.parse(fs.readFileSync(args.transcript, 'utf8'));
   const cutlist = JSON.parse(fs.readFileSync(args.cutlist, 'utf8'));
   const plan = buildShotPlan(transcript, cutlist, opts);
+
+  if (provenLooks) {
+    const emphasisWindows = args.emphasisWindows && args.emphasisWindows !== true
+      ? JSON.parse(args.emphasisWindows) : [];
+    const looked = assignLooks(plan.shots, { emphasisWindows });
+    plan.shots = looked.shots;
+    plan.looks = { swExpr: looked.swExpr, sxExpr: looked.sxExpr, emphasisWindows, model: 'cutout-bottom-aligned' };
+    console.log(`[shot-plan] proven looks: ${plan.shots.length} shots, ${plan.shots.filter(s => s.look.forcedByEmphasis).length} forced small by doc emphasis`);
+  }
+
   fs.writeFileSync(args.out, JSON.stringify(plan, null, 2));
   console.log(JSON.stringify(plan.stats, null, 2));
   for (const s of plan.shots) {
@@ -315,5 +399,5 @@ function main() {
   }
 }
 
-module.exports = { buildShotPlan, makeSourceToPost, toSentences, collectCandidates };
+module.exports = { buildShotPlan, makeSourceToPost, toSentences, collectCandidates, assignLooks, PROVEN_LOOKS };
 if (require.main === module) main();
