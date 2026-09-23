@@ -163,7 +163,18 @@ async function produce(cfg, outPath) {
         const isoMp3 = p('isolated.mp3');
         log('isolation: one call on the full take...');
         await AC.isolateAudio(process.env.ELEVENLABS_API_KEY, rawWav, isoMp3);
-        const words = JSON.parse(fs.readFileSync(cfg.transcript, 'utf8')).words.filter(w => w.type === 'word');
+        // The A/B metrics are measured INSIDE speech, so they need word
+        // timings that match THIS audio. After a pre-cut the audio is on the
+        // post-cut timeline while the transcript is still on the source one —
+        // passing raw source timings made boxiness/HF degenerate to 0 and the
+        // A/B silently meaningless (visible in run4/run5: "boxiness 0 -> 0").
+        let words = JSON.parse(fs.readFileSync(cfg.transcript, 'utf8')).words.filter(w => w.type === 'word');
+        if (cfg.cutlist && fs.existsSync(cfg.cutlist)) {
+          const cl = JSON.parse(fs.readFileSync(cfg.cutlist, 'utf8'));
+          const remap = CAPS.makeRemap(cl.keepSegments, 1);   // speed not yet applied here
+          words = CAPS.keptWords(words, cl.keepSegments)
+            .map(w => ({ ...w, start: remap(w.start), end: remap(w.end) }));
+        }
         const before = { boxiness: A.boxiness(rawWav, words), hf: A.deliveryChain(rawWav, words).hfBalanceDb };
         const after = { boxiness: A.boxiness(isoMp3, words), hf: A.deliveryChain(isoMp3, words).hfBalanceDb };
         isoReport.metrics = { before, after };
