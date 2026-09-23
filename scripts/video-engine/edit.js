@@ -96,16 +96,12 @@ function dirKey(d) {
 function esc(p) { return p.replace(/\\/g, '/').replace(/:/g, '\\:'); }
 
 function loadEnvLocal() {
-  const envPath = path.join(ROOT, '.env.local');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m && !process.env[m[1]]) {
-      let val = m[2].trim();
-      if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
-      process.env[m[1]] = val;
-    }
-  }
+  // Delegates to env-local.js, which also finds the MAIN worktree's
+  // .env.local. The previous inline version looked only at ROOT/.env.local;
+  // that file is gitignored so it does not exist in any git worktree, and
+  // agents run in worktrees — so ELEVENLABS_API_KEY silently never loaded and
+  // Audio Isolation silently never ran. See env-local.js's header.
+  return require('./env-local.js').load(null, { quiet: true });
 }
 
 /**
