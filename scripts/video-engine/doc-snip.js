@@ -177,16 +177,28 @@ function compositeOnClip(opts) {
     `[1:v]format=rgba,fade=t=in:st=${at}:d=${fadeSec}:alpha=1,fade=t=out:st=${(end - fadeSec).toFixed(3)}:d=${fadeSec}:alpha=1,setpts=PTS-STARTPTS[cardv];` +
     `[bg][cardv]overlay=(W-w)/2:${y}:enable='${win}'[v]`;
 
+  // BOUND THE OUTPUT WITH -t. The card is a `-loop 1` still, i.e. an INFINITE
+  // input, and overlay's default eof_action=repeat keeps producing frames for
+  // as long as the secondary does. `-shortest` does not save you here when
+  // the main input has no audio stream to be "shortest" against: the first
+  // run of this produced a 481 MB file for a 60 s clip and was still growing
+  // when it was killed. The clip's own probed duration is the bound.
+  const dur = parseFloat(
+    execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', input])
+      .toString().trim());
+  if (!(dur > 0)) throw new Error(`doc-snip: could not read a duration from ${input}`);
+
   execFileSync('ffmpeg', [
     '-y', '-i', input,
     '-loop', '1', '-framerate', String(fps), '-i', card,
     '-filter_complex', fc,
     '-map', '[v]', '-map', '0:a?',
-    '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-    '-r', String(fps), '-c:a', 'copy', '-shortest',
+    '-c:v', 'libx264', '-crf', '20', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+    '-r', String(fps), '-c:a', 'copy',
+    '-t', String(dur),
     out, '-hide_banner', '-loglevel', 'error',
-  ], { maxBuffer: 1 << 28 });
-  return { out, at, holdSec, y };
+  ], { maxBuffer: 1 << 28, timeout: 20 * 60 * 1000 });
+  return { out, at, holdSec, y, dur };
 }
 
 function main() {

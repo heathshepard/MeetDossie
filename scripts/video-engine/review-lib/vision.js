@@ -16,16 +16,10 @@ const fs = require('fs');
 const path = require('path');
 
 function loadEnvLocal() {
-  const envPath = path.join(__dirname, '..', '..', '..', '.env.local');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m && !process.env[m[1]]) {
-      let v = m[2].trim().replace(/\r$/, '');
-      if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-      process.env[m[1]] = v;
-    }
-  }
+  // See env-local.js: the old inline version resolved .env.local relative to
+  // the repo root, which does not exist in a git worktree — so the key
+  // silently never loaded and this took its fallback path instead.
+  return require('../env-local.js').load(null, { quiet: true });
 }
 loadEnvLocal();
 
