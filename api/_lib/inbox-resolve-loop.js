@@ -48,42 +48,68 @@ async function runInboxResolveLoop({
   let inboxCalls = 0;
 
   while (inboxCalls < MAX_INBOX_TOOL_CALLS) {
-    const toolUse = (response.content || []).find((b) => b.type === 'tool_use');
-    if (!toolUse || !INBOX_TOOL_NAMES.has(toolUse.name)) return response;
-
-    inboxCalls += 1;
-
-    let toolResult;
-    try {
-      // userId is passed as its own argument. It is deliberately NOT merged
-      // into toolUse.input — see the header of api/_lib/inbox-tools.js.
-      toolResult = await executeInboxTool(toolUse.name, toolUse.input || {}, { userId });
-    } catch (err) {
-      if (err instanceof InboxSecurityError) {
-        // An identity-shaped parameter reached a tool call. Refuse the whole
-        // turn rather than re-prompting — a retry would just teach the model
-        // to rephrase the same attempt.
-        console.error('[chat:inbox] refusing turn:', err.message);
-        return {
-          content: [{
-            type: 'tool_use',
-            name: 'answer_question',
-            input: { response: 'I ran into a problem reading your inbox just then. Try asking me again.' },
-          }],
-        };
-      }
-      throw err;
-    }
+    // tool_choice: 'auto' lets the model return more than one tool_use block
+    // per turn (e.g. two search_inbox calls in parallel). Every tool_use
+    // block must get a matching tool_result in the next message or the
+    // following createMessage call is rejected by the API outright — see the
+    // identical, and live, defect this was generalized into at
+    // server-tool-resolve-loop.js (2026-09-24 incident). This loop is not
+    // currently wired into api/chat.js (superseded), but is fixed the same
+    // way since it is still exported and tested.
+    const allToolUses = (response.content || []).filter((b) => b.type === 'tool_use');
+    const inboxToolUses = allToolUses.filter((b) => INBOX_TOOL_NAMES.has(b.name));
+    if (inboxToolUses.length === 0) return response;
 
     conversation.push({ role: 'assistant', content: response.content });
-    conversation.push({
-      role: 'user',
-      content: [{
-        type: 'tool_result',
-        tool_use_id: toolUse.id,
-        content: JSON.stringify(toolResult),
-      }],
-    });
+
+    const resultBlocks = [];
+    let refused = false;
+
+    for (const toolUse of allToolUses) {
+      if (!INBOX_TOOL_NAMES.has(toolUse.name)) {
+        resultBlocks.push({
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: JSON.stringify({ ok: false, deferred: true, reason: 'other tool calls in this turn are still resolving — reissue this call on its own once you have their results' }),
+        });
+        continue;
+      }
+
+      let toolResult;
+      try {
+        // userId is passed as its own argument. It is deliberately NOT merged
+        // into toolUse.input — see the header of api/_lib/inbox-tools.js.
+        toolResult = await executeInboxTool(toolUse.name, toolUse.input || {}, { userId });
+      } catch (err) {
+        if (err instanceof InboxSecurityError) {
+          // An identity-shaped parameter reached a tool call. Refuse the
+          // whole turn rather than re-prompting — a retry would just teach
+          // the model to rephrase the same attempt.
+          console.error('[chat:inbox] refusing turn:', err.message);
+          resultBlocks.push({ type: 'tool_result', tool_use_id: toolUse.id, content: JSON.stringify({ ok: false, error: 'refused' }), is_error: true });
+          refused = true;
+          break;
+        }
+        console.error('[chat:inbox] tool error, appending error result:', toolUse.name, err && err.message);
+        resultBlocks.push({ type: 'tool_result', tool_use_id: toolUse.id, content: JSON.stringify({ ok: false, error: (err && err.message) || 'tool_failed' }), is_error: true });
+        continue;
+      }
+
+      inboxCalls += 1;
+      resultBlocks.push({ type: 'tool_result', tool_use_id: toolUse.id, content: JSON.stringify(toolResult) });
+    }
+
+    if (refused) {
+      return {
+        content: [{
+          type: 'tool_use',
+          name: 'answer_question',
+          input: { response: 'I ran into a problem reading your inbox just then. Try asking me again.' },
+        }],
+      };
+    }
+
+    conversation.push({ role: 'user', content: resultBlocks });
 
     const isLastAllowed = inboxCalls >= MAX_INBOX_TOOL_CALLS;
     response = await createMessage({

@@ -1463,6 +1463,20 @@ export default async function handler(req, res) {
       });
     }
 
+    // Anthropic upstream 400 (invalid_request_error) — most commonly a
+    // malformed message array. This is deterministic: the exact same
+    // request will fail the exact same way every time, so "try again" is
+    // actively misleading advice (2026-09-24 incident — a resolve-loop bug
+    // left an orphaned tool_use, and every retry of the identical message
+    // hit the identical 400). Steer toward the one thing that actually
+    // changes the outcome: asking differently, not resending verbatim.
+    if (error && error.status === 400) {
+      return res.status(500).json({
+        ok: false,
+        error: "That one didn't go through cleanly. Try asking for it a different way — for example, one document at a time — rather than resending the same message; it'll hit the same snag again."
+      });
+    }
+
     // Generic sanitized response — never leak SDK stack traces or upstream
     // API messages.
     return res.status(500).json({
