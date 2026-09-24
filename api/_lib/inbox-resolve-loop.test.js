@@ -128,17 +128,45 @@ test('an attempted identity override collapses the turn, it does not retry', asy
   assert.ok(!JSON.stringify(out).includes('someone-else'));
 });
 
-test('a non-security tool failure still propagates rather than being swallowed', async () => {
-  await assert.rejects(
-    () => runInboxResolveLoop({
-      anthropicArgs: baseArgs(),
-      firstResponse: { content: [toolUse('search_inbox', { query: 'x' })] },
-      userId: USER,
-      createMessage: async () => ({ content: [] }),
-      executeInboxTool: async () => { throw new Error('upstream_exploded'); },
-    }),
-    /upstream_exploded/,
-  );
+test('a non-security tool failure is appended as an error tool_result, not thrown — the member keeps the turn', async () => {
+  let seenResult = null;
+  const out = await runInboxResolveLoop({
+    anthropicArgs: baseArgs(),
+    firstResponse: { content: [toolUse('search_inbox', { query: 'x' })] },
+    userId: USER,
+    createMessage: async (args) => {
+      const lastMsg = args.messages[args.messages.length - 1];
+      seenResult = lastMsg.content[0];
+      return { content: [toolUse('answer_question', { response: 'hit a snag searching' })] };
+    },
+    executeInboxTool: async () => { throw new Error('upstream_exploded'); },
+  });
+  assert.equal(seenResult.type, 'tool_result');
+  assert.equal(seenResult.is_error, true);
+  assert.match(seenResult.content, /upstream_exploded/);
+  assert.equal(out.content[0].name, 'answer_question');
+});
+
+test('two parallel search_inbox tool_use blocks in one turn BOTH get a tool_result', async () => {
+  let seenBlocks = null;
+  const out = await runInboxResolveLoop({
+    anthropicArgs: baseArgs(),
+    firstResponse: {
+      content: [
+        toolUse('search_inbox', { query: 'seller 1' }, 'tu-1'),
+        toolUse('search_inbox', { query: 'seller 2' }, 'tu-2'),
+      ],
+    },
+    userId: USER,
+    createMessage: async (args) => {
+      seenBlocks = args.messages[args.messages.length - 1].content;
+      return { content: [toolUse('answer_question', { response: 'done' })] };
+    },
+    executeInboxTool: async () => ({ ok: true, results: [] }),
+  });
+  assert.equal(seenBlocks.length, 2);
+  assert.deepEqual(seenBlocks.map((b) => b.tool_use_id), ['tu-1', 'tu-2']);
+  assert.equal(out.content[0].name, 'answer_question');
 });
 
 test('a not_connected result still reaches the model as a tool_result', async () => {
