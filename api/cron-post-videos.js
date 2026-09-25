@@ -580,18 +580,52 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
-  const summary = { queued_for_review: [], posted: [], skipped: [] };
-
-  // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
-  const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
-    '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
-  );
-
-  if (!approvedOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
+  // --- Manual debug scoping (Atlas 2026-09-25) --------------------------
+  // Approved manual-trigger pattern per CLAUDE.md §15: debug params gated
+  // behind the existing `Bearer ${CRON_SECRET}` check. NEVER honored on a
+  // real Vercel cron invocation — a scheduled run always behaves exactly as
+  // it did before this block existed.
+  //
+  //   ?video_id=<video_library.id>  restrict the publish pass to one row
+  //   ?platform=<platform>          restrict that row to ONE platform
+  //   ?publish_now=1                publish immediately instead of booking
+  //                                 the platform's next posting_schedule
+  //                                 slot. The is_active and max_per_day
+  //                                 gates still apply — this only collapses
+  //                                 "schedule for 14:00" into "publish now",
+  //                                 which is the ONLY way to get Zernio to
+  //                                 return a synchronous platformPostUrl
+  //                                 (scheduled posts return an id and
+  //                                 nothing else, so a scheduled post can
+  //                                 never be proven live in the same run).
+  const dbg = (!isVercelCron && isManualAuth) ? (req.query || {}) : {};
+  const onlyVideoId = dbg.video_id ? String(dbg.video_id) : null;
+  const onlyPlatform = dbg.platform ? String(dbg.platform).toLowerCase() : null;
+  const forcePublishNow = String(dbg.publish_now || '') === '1';
+  if (onlyVideoId || onlyPlatform || forcePublishNow) {
+    console.log(`[cron-post-videos] MANUAL DEBUG SCOPE video_id=${onlyVideoId || '-'} platform=${onlyPlatform || '-'} publish_now=${forcePublishNow}`);
   }
 
-  const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+  const summary = { queued_for_review: [], posted: [], skipped: [] };
+  if (onlyVideoId || onlyPlatform || forcePublishNow) {
+    summary.manual_scope = { video_id: onlyVideoId, platform: onlyPlatform, publish_now: forcePublishNow };
+  }
+
+  // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
+  // Skipped entirely under a manual ?video_id= scope: a targeted one-row
+  // publish must not also fire a batch of review notifications at Heath.
+  let approvedVideos = [];
+  if (!onlyVideoId) {
+    const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
+      '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
+    );
+
+    if (!approvedOk) {
+      return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
+    }
+
+    approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+  }
 
   // Read the batching capability ONCE for the whole pass. Fail closed to the
   // old per-item send: if the flag can't be read we do not risk a video
@@ -633,7 +667,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // next run (or picked up sooner once cap room frees up).
   const CANDIDATE_BATCH_SIZE = 20;
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
+    `/rest/v1/video_library?status=eq.heath_approved${onlyVideoId ? `&id=eq.${encodeURIComponent(onlyVideoId)}` : ''}&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
   );
 
   if (!heathApprovedOk) {
@@ -721,10 +755,20 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         }
 
         const owner = candidate.target_owner || 'dossie';
-        const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
+        let requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
           : await defaultPlatformsFor(owner);
+        // Manual ?platform= narrows to one of the row's OWN platforms. It can
+        // never add a platform the row wasn't already configured for.
+        if (onlyPlatform) {
+          requested = requested.filter((p) => String(p).toLowerCase() === onlyPlatform);
+        }
         const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
+        // ?publish_now=1 collapses a booked slot into an immediate publish.
+        // The is_active / max_per_day gates above already ran and still bind.
+        if (forcePublishNow) {
+          for (const t of resolved.targets) t.scheduledFor = null;
+        }
 
         if (resolved.targets.length === 0) {
           console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
@@ -827,7 +871,11 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   }
 
   // --- STEP 3: Post any video_approved skits to Zernio ---
-  const skitPostResult = await postApprovedSkits();
+  // Skipped under a manual scope — a targeted one-row run must not also
+  // publish an unrelated skit as a side effect.
+  const skitPostResult = (onlyVideoId || onlyPlatform)
+    ? { posted: [], skipped: [], scoped_out: true }
+    : await postApprovedSkits();
   summary.skit_posted = skitPostResult.posted;
 
   // --- STEP 4: Alert if approved videos have sat unposted for 48h+ ---
