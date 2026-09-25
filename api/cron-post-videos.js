@@ -445,7 +445,17 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
   // YouTube requires a title in platformSpecificData.
   // Use topic as title (max 100 chars), fall back to first line of caption.
   if (platform === 'youtube') {
-    const rawTitle = topic || caption.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
+    // Title source (Atlas 2026-09-25). This used to be `topic || firstLine`,
+    // which was fine while video_library.topic held a human sentence
+    // ("Every TREC deadline, cited to the paragraph"). The 2026-09-17 feature
+    // -demo ingestion writes an internal SLUG there instead
+    // ("dossie-d1-cap6-977d5507"), and that slug shipped as the public title
+    // of a real YouTube video. Prefer the caption's first line whenever the
+    // topic looks like a slug — no spaces, or the id-with-hash shape.
+    const looksLikeSlug = !!topic && (!/\s/.test(topic) || /^[a-z0-9]+(-[a-z0-9]+)+$/i.test(topic));
+    const firstCaptionLine = caption.split('\n').map((l) => l.trim()).find(Boolean) || '';
+    const rawTitle = (looksLikeSlug ? (firstCaptionLine || topic) : (topic || firstCaptionLine))
+      || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),
       title: rawTitle.replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
@@ -543,7 +553,14 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     // real URL usually only shows up later via GET /posts/:id, which
     // cron-verify-zernio-deliveries.js polls). Never invented — only used
     // if actually present in this exact response.
+    // Verified live 2026-09-25 (Atlas): on a publishNow call Zernio returns
+    // the real permalink at data.post.platforms[0].platformPostUrl. None of
+    // the paths below it were ever populated, so every synchronous publish
+    // recorded platform_url=null and looked unproven even when Zernio had
+    // handed us a working URL in the same response. platformPostUrl first.
     const platformUrl =
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?.platformPostUrl) ||
+      (Array.isArray(data?.platforms) && data.platforms[0]?.platformPostUrl) ||
       data?.url ||
       data?.platform_url ||
       data?.post?.url ||
