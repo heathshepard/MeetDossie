@@ -700,7 +700,14 @@ async function main() {
     }
   }
 
-  const warmTouchMode = process.argv.includes('--warm-touch');
+  // ARGV MISMATCH FIX (Atlas, 2026-09-25). The scheduled call passes
+  // --warm-touch-only, which this line checked for as --warm-touch, so
+  // warmTouchMode was false; the guard below then skipped the search pass too.
+  // Net effect: the script did nothing 96 times a day and reported
+  // "liked 0, commented 0" -- structurally impossible to be anything else.
+  // --warm-touch-only implies --warm-touch: "only warm touch", not "no warm touch".
+  const warmTouchMode = process.argv.includes('--warm-touch')
+    || process.argv.includes('--warm-touch-only');
   let totalLiked = 0;
   let totalCommented = 0;
   let warmResult = null;
@@ -740,7 +747,21 @@ async function main() {
   if (postApprovedCount > 0) parts.push(`posted: ${postApprovedCount} approved`);
   const summary = parts.join(' | ');
   console.log(`[linkedin-engager] ${summary}`);
-  await sendTelegram(summary);
+
+  // ZERO-OUTCOME SUPPRESSION (Atlas, 2026-09-25). This send fired 96x/day
+  // saying "liked 0, commented 0" and, being the loudest thing in the channel,
+  // helped bury the real "LinkedIn login required" alert next to it. A run that
+  // accomplished nothing is not news worth pushing -- it is a data point, and
+  // it now belongs to the outcome monitor (outcome_expectations key
+  // linkedin_personal_weekly), which tracks the OUTCOME over a period instead
+  // of narrating every tick. Still logged to stdout either way.
+  const didSomething = totalLiked > 0 || totalCommented > 0 || postApprovedCount > 0
+    || (warmResult && warmResult.engaged > 0);
+  if (didSomething) {
+    await sendTelegram(summary);
+  } else {
+    console.log('[linkedin-engager] zero outcome — Telegram summary suppressed (outcome monitor owns this signal)');
+  }
 }
 
 main().catch(err => {

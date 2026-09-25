@@ -385,6 +385,13 @@
       "maxDuration": 10,
       "includeFiles": "SESSION-DIARY.md"
     },
+    "api/admin-migrate-outcome-monitor.js": {
+      "maxDuration": 60,
+      "includeFiles": "supabase/migrations/20260925_outcome_monitor.sql"
+    },
+    "api/cron-outcome-monitor.js": {
+      "maxDuration": 60
+    },
     "api/{cron-dispatch-daily-0800,cron-dispatch-daily-1500,cron-dispatch-every30,cron-dispatch-every5,cron-dispatch-hourly}.js": {
       "maxDuration": 70
     },
