@@ -146,6 +146,34 @@ const TIKTOK_RANGE = [21, 34];
 const IG_LOOP_RANGE = [7, 15];
 const HARD_MAX_RUNTIME_S = 45;
 
+// The LONG vertical lane (Atlas 2026-09-25 — the dual-cut production process,
+// scripts/video-engine/variants.js).
+//
+// One recording now produces two cuts from the same master. Both are 9:16
+// 1080x1920 — aspect ratio is NOT the variable, length is:
+//
+//   CORE only        ~30s  -> tiktok, instagram          (the 'vertical' lane)
+//   CORE + OPTIONAL  ~50-60s -> youtube, facebook, linkedin
+//
+// The long cut had nowhere to be graded before this. Passing
+// orientation='vertical' capped it at HARD_MAX_RUNTIME_S=45 and failed every
+// 50-60s cut; passing platforms ['youtube','facebook','linkedin'] classified
+// it HORIZONTAL (see HORIZONTAL_PLATFORMS below) and demanded a 16:9 frame
+// this pipeline deliberately does not produce for it.
+//
+// 90s is the binding real ceiling across the three surfaces, not a guess:
+// Facebook Reels caps at 90s, YouTube Shorts at 3 minutes, LinkedIn native
+// video far longer. The floor is 40s because below that the core-only cut is
+// the correct product and a "long" cut that short means the CORE/OPTIONAL
+// tagging produced two near-identical videos — a script-time defect worth
+// failing on.
+//
+// This lane is EXPLICIT-ONLY: no platform array maps to it. Existing callers
+// (queue-finished-videos.py, cron-post-videos.js, the regression fixtures)
+// never pass it, so none of them change shape.
+const VERTICAL_LONG_RUNTIME_RANGE = [40, 90];
+const VERTICAL_LONG_HARD_MAX_RUNTIME_S = 90;
+
 // The exact sample point the 9 rejected Rust videos were frozen through
 // (playbook §6: "frame 0 and frame 1.5s are pixel-identical in every video
 // checked").
@@ -253,7 +281,8 @@ const ASPECT_RATIO_TOLERANCE_HORIZONTAL = 0.02;
  *   mixing vertical and horizontal platforms) — fail-closed, never guessed.
  */
 function classifyOrientation(explicitOrientation, platforms) {
-  if (explicitOrientation === 'vertical' || explicitOrientation === 'horizontal') {
+  if (explicitOrientation === 'vertical' || explicitOrientation === 'horizontal'
+    || explicitOrientation === 'vertical_long') {
     return explicitOrientation;
   }
   const list = Array.isArray(platforms) ? platforms.map((p) => String(p).toLowerCase()) : [];
@@ -653,8 +682,10 @@ Respond with JSON only, no markdown fences:
  * @param {string[]} [opts.platforms] - the video_library row's real platforms
  *   array (preferred way to select vertical vs horizontal rules — see
  *   classifyOrientation()).
- * @param {'vertical'|'horizontal'} [opts.orientation] - explicit override,
- *   only when platforms isn't available.
+ * @param {'vertical'|'horizontal'|'vertical_long'} [opts.orientation] - explicit
+ *   override, only when platforms isn't available. 'vertical_long' is the
+ *   EXPLICIT-ONLY long 9:16 lane (see VERTICAL_LONG_RUNTIME_RANGE) — no
+ *   platforms array maps to it.
  * @returns {Promise<{pass: boolean, rules: object, failedRules: string[], detail: object}>}
  */
 async function checkVideoQuality(opts = {}) {
@@ -733,14 +764,26 @@ async function checkVideoQuality(opts = {}) {
       return finalize();
     }
   }
-  const isVertical = orientation === 'vertical';
+  // Both vertical lanes are graded against the SAME frame rules (9:16,
+  // full-bleed, top-aligned captions). Only the runtime window differs.
+  const isVerticalLong = orientation === 'vertical_long';
+  const isVertical = orientation === 'vertical' || isVerticalLong;
 
   // 1. Runtime.
   let duration = null;
   try {
     duration = await ffprobeDuration(localVideo);
     detail.duration_seconds = Math.round(duration * 10) / 10;
-    if (isVertical) {
+    if (isVerticalLong) {
+      const pass = duration >= VERTICAL_LONG_RUNTIME_RANGE[0]
+        && duration <= VERTICAL_LONG_HARD_MAX_RUNTIME_S;
+      addRule('runtime_in_platform_range', {
+        pass,
+        note: pass
+          ? `${detail.duration_seconds}s fits the long vertical window (${VERTICAL_LONG_RUNTIME_RANGE.join('-')}s — YouTube Shorts / Facebook Reels / LinkedIn)`
+          : `${detail.duration_seconds}s is outside the long vertical window (${VERTICAL_LONG_RUNTIME_RANGE.join('-')}s, hard ceiling ${VERTICAL_LONG_HARD_MAX_RUNTIME_S}s = Facebook Reels' cap). ${duration < VERTICAL_LONG_RUNTIME_RANGE[0] ? 'Under the floor means CORE+OPTIONAL is barely longer than CORE — the script tagging, not the edit, is what needs fixing.' : 'Over the ceiling means Facebook Reels will refuse it.'}`,
+      });
+    } else if (isVertical) {
       const inTikTok = duration >= TIKTOK_RANGE[0] && duration <= TIKTOK_RANGE[1];
       const inIgLoop = duration >= IG_LOOP_RANGE[0] && duration <= IG_LOOP_RANGE[1];
       const pass = duration <= HARD_MAX_RUNTIME_S && (inTikTok || inIgLoop);

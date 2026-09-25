@@ -29,6 +29,7 @@
 require('./_lib/telegram-gate').install('cron-generate-posts');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { clampForTwitter, estimatePublisherGrowth } = require('./_lib/twitter-length.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -893,7 +894,7 @@ const HASHTAG_RULES = {
   youtube:   { min: 3, max: 5 },
 };
 
-function validateAndFixCaption(caption, platform) {
+function validateAndFixCaption(caption, platform, opts = {}) {
   let text = String(caption || '');
 
   // 1. Strip all hashtags from Facebook posts
@@ -926,6 +927,38 @@ function validateAndFixCaption(caption, platform) {
     if (count < rules.min) {
       console.warn(`[cron-generate-posts] [format] instagram post has ${count} hashtags (min ${rules.min})`);
     }
+  }
+
+  // 4a. TWITTER — clamp against the string that will actually be SENT.
+  //
+  // Four consecutive Twitter deliveries failed 2026-09-22 / 09-24 x2 / 09-25:
+  // "Tweet text is too long (306 / 310 / 312 characters). Twitter's limit is
+  // 280." Every stored caption was 222-279 raw characters, so the generic
+  // `text.length > limit` check below passed all four.
+  //
+  // What it could not see is that cron-publish-approved.js's buildPostBody()
+  // grows the caption after generation: tagOutboundLinks() bolts ~120
+  // characters of UTM parameters onto the CTA link and the hashtag line gets
+  // appended. A 264-char caption ships at 372. Measuring the caption instead
+  // of the body is why the failures were invisible here.
+  //
+  // So twitter is clamped with estimatePublisherGrowth() reserved, and with
+  // Twitter's own weighted counting (a URL is 23, whatever its length — see
+  // api/_lib/twitter-length.js for why BOTH counters have to clear 280). The
+  // CTA link is held out of the trim: it is the point of the post.
+  if (platform === 'twitter') {
+    const reserve = estimatePublisherGrowth(text, {
+      platform: 'twitter',
+      brand: opts.brand || 'dossie',
+      format: opts.format || 'video',
+      hashtags: opts.hashtags || [],
+    });
+    const clamped = clampForTwitter(text, { reserve });
+    if (clamped.changed) {
+      console.warn(`[cron-generate-posts] [format] twitter caption ${clamped.before} + ${reserve} publisher growth = ${clamped.before + reserve} > 280 — clamped to ${clamped.after} (+${reserve} = ${clamped.after + reserve})${clamped.keptTrailingUrl ? ', CTA link preserved' : ''}`);
+      text = clamped.text;
+    }
+    return text;
   }
 
   // 4. Enforce character limits — truncate at last space before limit, append '...'
@@ -1726,7 +1759,7 @@ function classifyCTA(ctaText) {
     // ─── Format validation (Improvement 3) ────────────────────────────────
     // Enforce caption length limits + hashtag rules before insert.
     // Mutates caption in-place; non-fatal — never blocks the insert.
-    caption = validateAndFixCaption(caption, platform);
+    caption = validateAndFixCaption(caption, platform, { hashtags, format, brand: 'dossie' });
 
     let zernioAccountId = null;
     try { zernioAccountId = await lookupZernioAccountId(platform); } catch (_e) { zernioAccountId = null; }

@@ -38,6 +38,9 @@ require('./_lib/telegram-gate').install('cron-publish-approved');
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const {
+  effectiveLength, clampForTwitter, assertTwitterFits,
+} = require('./_lib/twitter-length.js');
 const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 const { tagOutboundLinks } = require('./_lib/content-tag.js');
@@ -155,10 +158,19 @@ async function sendFailureAlert(post, errorMsg) {
   await sendTelegramNotification(lines.join('\n'), [retryButton]);
 }
 
+// LENGTH IS MEASURED WITH effectiveLength(), NOT .length (Atlas 2026-09-25).
+//
+// Two counters have to clear 280 and they disagree: Twitter counts a URL as
+// 23 whatever its length, Zernio's pre-flight counts raw characters. The four
+// "Tweet text is too long (306/310/312)" rejections on 09-22, 09-24 x2 and
+// 09-25 were all Zernio's raw counter reading a body whose CTA link had
+// ~120 characters of UTM parameters attached by buildPostBody(). Measuring
+// with .length alone is what let every one of them through.
+// See api/_lib/twitter-length.js.
 function splitForTwitter(body) {
   const text = String(body || '').trim();
   if (!text) return [];
-  if (text.length <= TWITTER_LIMIT) return [text];
+  if (effectiveLength(text) <= TWITTER_LIMIT) return [text];
 
   // 1. Paragraph split, drop bare-numbering markers ("1/", "2/", etc.).
   let paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
@@ -167,16 +179,44 @@ function splitForTwitter(body) {
   // 2. Any paragraph longer than HARD_LIMIT splits on sentence boundaries.
   const splitLong = [];
   for (const para of paragraphs) {
-    if (para.length <= TWITTER_HARD_LIMIT) { splitLong.push(para); continue; }
-    const sentences = para.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [para];
+    if (effectiveLength(para) <= TWITTER_HARD_LIMIT) { splitLong.push(para); continue; }
+
+    // MASK URLS BEFORE THE SENTENCE SPLIT (Atlas 2026-09-25).
+    //
+    // The sentence regex below breaks on every '.', and buildPostBody()'s
+    // tagged links are FULL OF dots:
+    //
+    //   meetdossie.com/signup?...&utm_content=dossie.twitter.video.a1b2c3d4.20260925
+    //
+    // Split naively, that one link becomes five "sentences", which then get
+    // merged, reordered and partly dropped by steps 3 and 4 — the thread
+    // ships with a mangled or missing CTA link. It is a separate defect from
+    // the length one and it destroys the only clickable thing in the post.
+    // Masking each URL to a dot-free token keeps it atomic through the split.
+    const urlStore = [];
+    const masked = para.replace(
+      /\b(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s<>"')\]]*)?/gi,
+      (u) => { urlStore.push(u); return ` URL${urlStore.length - 1} `; },
+    );
+    const unmask = (s) => s.replace(/ URL(\d+) /g, (_, i) => urlStore[Number(i)]);
+
+    const sentences = (masked.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [masked]).map(unmask);
     let cur = '';
     for (const raw of sentences) {
       const s = raw.trim();
       if (!s) continue;
       const cand = cur ? cur + ' ' + s : s;
-      if (cand.length <= TWITTER_HARD_LIMIT) { cur = cand; continue; }
+      if (effectiveLength(cand) <= TWITTER_HARD_LIMIT) { cur = cand; continue; }
       if (cur) splitLong.push(cur);
-      cur = s;
+      // THE BUG: `s` was pushed on the next iteration without ever being
+      // re-measured, so a SINGLE sentence longer than the limit shipped
+      // whole. The sentence carrying the UTM-tagged CTA link is exactly that
+      // sentence — that is the 306/310/312. Clamp it here; a sentence that
+      // cannot fit gets trimmed on a word boundary with its link intact
+      // rather than rejected by the platform.
+      cur = effectiveLength(s) <= TWITTER_HARD_LIMIT
+        ? s
+        : clampForTwitter(s, { limit: TWITTER_HARD_LIMIT }).text;
     }
     if (cur) splitLong.push(cur);
   }
@@ -197,7 +237,7 @@ function splitForTwitter(body) {
       }
       if (i + 1 < paragraphs.length) {
         const fwd = cur + ' ' + paragraphs[i + 1];
-        if (fwd.length <= TWITTER_HARD_LIMIT) {
+        if (effectiveLength(fwd) <= TWITTER_HARD_LIMIT) {
           paragraphs[i + 1] = fwd;
           continue;
         }
@@ -213,7 +253,7 @@ function splitForTwitter(body) {
     let bestIdx = -1;
     let bestSum = Infinity;
     for (let i = 0; i < paragraphs.length - 1; i++) {
-      const sum = paragraphs[i].length + 1 + paragraphs[i + 1].length;
+      const sum = effectiveLength(`${paragraphs[i]} ${paragraphs[i + 1]}`);
       if (sum <= TWITTER_HARD_LIMIT && sum < bestSum) {
         bestSum = sum;
         bestIdx = i;
@@ -230,13 +270,26 @@ function splitForTwitter(body) {
     paragraphs = paragraphs.slice(0, TWITTER_MAX_CHUNKS);
   }
 
-  // Return chunks as-is — no thread numbering
-  for (const c of paragraphs) {
-    if (c.length > TWITTER_LIMIT) {
-      console.warn(`[twitter-split] WARN chunk exceeds ${TWITTER_LIMIT}: ${c.length} chars — ${c.slice(0, 60)}…`);
-    }
+  // FINAL GUARANTEE — no chunk leaves this function over the limit.
+  //
+  // This used to be a console.warn and nothing else, which is precisely how
+  // four rejections stacked up with nobody noticing (see
+  // feedback_silent-failure-is-the-enemy). A warning that does not change the
+  // outcome is not a check.
+  const out = paragraphs.map((c) => {
+    if (effectiveLength(c) <= TWITTER_LIMIT) return c;
+    const fixed = clampForTwitter(c, { limit: TWITTER_LIMIT });
+    console.warn(`[twitter-split] chunk was ${fixed.before} (limit ${TWITTER_LIMIT}) — clamped to ${fixed.after}${fixed.keptTrailingUrl ? ', CTA link preserved' : ''}`);
+    return fixed.text;
+  });
+
+  const check = assertTwitterFits(out);
+  if (!check.ok) {
+    // Unreachable after the clamp above; if it ever fires the clamp itself is
+    // broken and that must surface as an error, never as a silent send.
+    throw new Error(`[twitter-split] chunks still over ${TWITTER_LIMIT} after clamping: ${JSON.stringify(check.over)}`);
   }
-  return paragraphs;
+  return out;
 }
 
 // Map a media URL to the Zernio docs' mediaItems entry shape.
@@ -1309,3 +1362,10 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: e.message });
   }
 };
+
+// Exported for scripts/regression-twitter-length.js — the four 2026-09-22/24/25
+// "Tweet text is too long" rejections are locked by a test that calls this
+// directly. A pure function that decides what gets sent should be testable
+// without standing up the whole handler.
+module.exports.splitForTwitter = splitForTwitter;
+module.exports.buildPostBody = buildPostBody;

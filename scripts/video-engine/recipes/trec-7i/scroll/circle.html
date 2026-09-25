@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0}html,body{width:1080px;height:1920px;background:transparent}
+svg{position:absolute;inset:0}
+</style></head><body>
+<svg width="1080" height="1920" viewBox="0 0 1080 1920">
+ <ellipse id="e" cx="530" cy="1330" rx="495" ry="265"
+   fill="none" stroke="#E8433C" stroke-width="13" stroke-linecap="round"
+   transform="rotate(-1.5 530 1330)"
+   stroke-dasharray="2450" stroke-dashoffset="2450"/>
+</svg>
+<script>
+ const P = new URLSearchParams(location.search);
+ const t = parseFloat(P.get('p') || '0');
+ document.getElementById('e').setAttribute('stroke-dashoffset', String(2450 * (1 - t)));
+</script>
+</body></html>
