@@ -51,10 +51,19 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// How far back to look for posts carrying comments. Wide on purpose: a comment
-// can land on a 6-month-old post and it still must not go unseen. The API's
-// own filter is on POST creation time, not comment time.
-const LOOKBACK_DAYS = 180;
+// How far back to look for posts carrying comments.
+//
+// Deliberately 3 years, not 30 days. The API's `since` filters on POST
+// creation time, NOT comment time, so a narrow window does not mean "recent
+// comments" -- it means "comments on recent posts", and a comment landing
+// today on a two-year-old post would never be seen. Proven on the first live
+// run: at 180 days this returned 7 of the 13 posts that actually carry
+// comments; the 6 it dropped were older posts on Heath's realtor accounts.
+//
+// The cost of the wide window is one extra page or two, because the filter is
+// on posts-with-comments, not on all posts. Cheap enough that narrowing it
+// would be trading a correctness guarantee for nothing.
+const LOOKBACK_DAYS = 1095;
 const MAX_POSTS_PER_TICK = 40;
 const REQUEST_BUDGET = 150;
 
