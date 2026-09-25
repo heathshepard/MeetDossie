@@ -28,16 +28,24 @@ rem 'facebook_group_post' 5/day budget (1 per target group), 18-24 min
 rem varied spacing, shares Step 5's circuit breaker (one FB profile). Exits
 rem in ~2s without Chrome when nothing is approved, the spacing gap hasn't
 rem elapsed, or the pipeline is halted.
-rem Step 7 (added 2026-09-09, Carter — Bug 3, docs/POSTING-ENGINE-PLAN-2026-09-09.md):
-rem post Heath-APPROVED linkedin_personal posts (his own voice) — at most
-rem ONE per calendar day (linkedinDailyCapReached() in linkedin-engager.js),
-rem cooperative DossieBot profile unlock shared with Steps 1-6 above (waits
-rem for FB steps to release the profile rather than colliding with them).
-rem 18 posts were sitting approved with zero scheduled trigger anywhere
-rem before this. Verified live 2026-09-09 (--dry-run): the DossieBot profile
-rem (C:\Users\Heath\DossieBot, env PLAYWRIGHT_PROFILE_DIR) IS logged into
-rem LinkedIn — logged_in:true, landed on /feed/, not /login. Exits in ~2s
-rem without Chrome when the daily cap is already met or nothing is approved.
+rem Step 7 — REMOVED 2026-09-25 (Atlas). LinkedIn no longer runs on this
+rem 15/30-minute chain at all. It moved to its own task on a jittered,
+rem few-times-a-day schedule: scripts\run-linkedin-social.cmd, registered by
+rem scripts\register-session-keepalive-tasks.ps1 as "Dossie LinkedIn Social".
+rem
+rem WHY. linkedin-engager.js launches Chrome UNCONDITIONALLY, before it checks
+rem whether there is anything to publish. One approved post that could never
+rem publish (heath-linkedin-2026-09-15) therefore made every tick look like
+rem real work, so this chain opened Chrome and loaded linkedin.com/feed/ 96
+rem times a day, on an exact quarter-hour, from one IP — every one of them
+rem bouncing to /login. scripts\linkedin-post-approved.log records the loop
+rem verbatim. That access pattern is what gets a session invalidated, and the
+rem channel's cap is ONE post per calendar day, so 95 of those 96 runs could
+rem never have accomplished anything even with a live session.
+rem
+rem Two independent fixes now apply: this cadence move, and a cookie-level
+rem circuit breaker in linkedin-engager.js (scripts\_lib\session-guard.js)
+rem that returns before launching Chrome when the profile is logged out.
 rem 2026-09-16 (Atlas): self-locates via %~dp0 instead of a hardcoded
 rem C:\Users\Heath\Projects\MeetDossie literal, so this exact tracked file
 rem works unmodified whether launched from the dev tree or the separate
@@ -49,7 +57,8 @@ node scripts\fb-group-commenter.js --tc-reply-queue >> scripts\tc-reply-queue.lo
 node scripts\fb-comment-hunt-daily.js >> scripts\comment-hunt.log 2>&1
 node scripts\fb-comment-opp-poster.js >> scripts\comment-opp-poster.log 2>&1
 node scripts\fb-group5-post-queue.js >> scripts\group5-post-queue.log 2>&1
-node scripts\linkedin-engager.js --post-approved --warm-touch-only >> scripts\linkedin-post-approved.log 2>&1
+rem (Step 7 LinkedIn invocation deliberately absent — see the block above.
+rem  It now lives in scripts\run-linkedin-social.cmd on its own jittered task.)
 rem Step 8 (added 2026-09-14, Sage): post Heath-APPROVED listing-group posts
 rem (group_posts pipeline='listing-groups') -- at most ONE per tick,
 rem 'facebook_group_post_listing' 3/day budget, 30-40 min varied spacing,

@@ -634,6 +634,44 @@ async function main() {
     process.exit(1);
   }
 
+  // ── CIRCUIT BREAKER (added 2026-09-25, Atlas) ──────────────────────────────
+  // Offline cookie read, ~15ms, no network and no Chrome. If the profile is
+  // logged out we stop HERE instead of launching a browser.
+  //
+  // This is the fix for the actual root cause of the 9-day outage. Because one
+  // approved post (heath-linkedin-2026-09-15) could never publish,
+  // postApprovedLinkedIn() found "work" on every single tick, so this script
+  // launched Chrome and hit linkedin.com/feed/ every 15 minutes -- 96 times a
+  // day, on an exact metronome, from one IP -- and every one of those bounced
+  // to /login. scripts/linkedin-post-approved.log records the loop verbatim.
+  //
+  // Retrying a dead session on a fixed timer does not recover it. It is the
+  // most automation-shaped signal we emit, it is emitted hardest exactly when
+  // the session is already gone, and it makes the NEXT session likelier to be
+  // invalidated too. Skipping costs nothing: there is no version of this run
+  // that could have succeeded.
+  if (!dryRun) {
+    const { ensureSession } = require('./_lib/session-guard');
+    const gate = ensureSession('linkedin_personal', 'linkedin-engager');
+    if (!gate.proceed) {
+      // Loud, but deduped by the existing alert path -- a dead channel must
+      // still alarm (feedback_silent-failure-is-the-enemy), it just must not
+      // alarm 96 times a day.
+      try {
+        await alertPublishFailure(
+          'linkedin_login_required',
+          'LinkedIn session is logged out — the DossieBot profile has no li_at cookie.\n\n'
+          + 'Approved linkedin_personal posts are waiting and will publish on their own once you log in.\n'
+          + `Fix (about 1 minute): open Chrome on ${gate.profile_dir}, sign in to LinkedIn, close the window.\n\n`
+          + 'Nothing will attempt an automated login — that is deliberate.',
+        );
+      } catch (e) {
+        console.error('[linkedin-engager] gate-alert failed:', e.message);
+      }
+      return;
+    }
+  }
+
   const seenIds = dryRun ? new Set() : loadSeen();
   const { chromium } = require('playwright-extra');
   const stealth = require('puppeteer-extra-plugin-stealth')();

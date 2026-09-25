@@ -71,38 +71,18 @@ function winHome() {
 
 // The channels the marketing pipelines actually depend on, and the cookie that
 // proves each one is logged in.
-const CHANNELS = [
-  {
-    channel: 'facebook_groups',
-    label: 'Facebook (DossieBot-Sage profile) — group posting + comment replies',
-    profile_dir: path.join(winHome(), 'AppData', 'Local', 'DossieBot-Sage'),
-    cookie_path: ['Default', 'Network', 'Cookies'],
-    host_match: 'facebook.com',
-    required: ['c_user', 'xs'],
-    live_url: 'https://www.facebook.com/me',
-    live_ok: (url) => !/login|checkpoint/i.test(url),
-  },
-  {
-    channel: 'linkedin_personal',
-    label: 'LinkedIn (DossieBot-Sage profile) — personal-profile posting + engagement',
-    profile_dir: path.join(winHome(), 'AppData', 'Local', 'DossieBot-Sage'),
-    cookie_path: ['Default', 'Network', 'Cookies'],
-    host_match: 'linkedin.com',
-    required: ['li_at'],
-    live_url: 'https://www.linkedin.com/feed/',
-    live_ok: (url) => !/login|authwall/i.test(url),
-  },
-  {
-    channel: 'instagram_engagement',
-    label: 'Instagram (DossieBot-Sage profile) — engagement only; posting is Zernio',
-    profile_dir: path.join(winHome(), 'AppData', 'Local', 'DossieBot-Sage'),
-    cookie_path: ['Default', 'Network', 'Cookies'],
-    host_match: 'instagram.com',
-    required: ['sessionid'],
-    live_url: 'https://www.instagram.com/',
-    live_ok: (url) => !/accounts\/login/i.test(url),
-  },
-];
+//
+// CORRECTED 2026-09-25 (Atlas): this list used to be declared inline here and
+// asserted that ALL THREE channels live in the DossieBot-Sage profile. Two of
+// them do not. linkedin-engager.js and instagram-engager.js both resolve
+// PLAYWRIGHT_PROFILE_DIR (= C:\Users\Heath\DossieBot), and verified live today
+// that directory holds the 9 linkedin.com cookies while the Sage profile holds
+// zero. The probe was reading the wrong cookie database for linkedin_personal
+// and instagram_engagement, so its verdict for those two was unrelated to the
+// profile the pipelines actually use. The mapping now comes from
+// scripts/_lib/session-profiles.js, which the pipelines' own resolution logic
+// is mirrored into, so the probe cannot disagree with what it is probing.
+const CHANNELS = require('./_lib/session-profiles').channels();
 
 // The legacy local state file, folded in so a probe that already knows the
 // answer is not thrown away. It is corroborating evidence, never the only
@@ -112,7 +92,7 @@ const KEEPALIVE_STATE = path.join(__dirname, 'sessions', 'keepalive-state.json')
 // ─── Cookie DB probe (read-only, never launches Chrome) ──────────────────────
 
 function probeCookieDb(ch) {
-  const dbPath = path.join(ch.profile_dir, ...ch.cookie_path);
+  const dbPath = require('./_lib/session-profiles').cookieDbPath(ch.profile_dir, ch.profile_name);
   if (!fs.existsSync(dbPath)) {
     return { probe_kind: 'cookie_db', logged_in: null, present_cookies: [],
              detail: { error: 'cookie database not found', path: dbPath } };
@@ -188,7 +168,11 @@ async function probeLive(ch) {
 
   let ctx;
   try {
-    ctx = await chromium.launchPersistentContext(ch.profile_dir, { headless: true, args: ['--no-sandbox'] });
+    ctx = await chromium.launchPersistentContext(ch.profile_dir, {
+      headless: true,
+      args: ['--no-sandbox', `--profile-directory=${ch.profile_name || 'Default'}`],
+      channel: 'chrome',
+    });
     const page = await ctx.newPage();
     await page.goto(ch.live_url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(2500);
@@ -294,9 +278,32 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  const r = await upsert(payload);
-  console.log(`\n[credential-health] upsert ${r.ok ? 'ok' : `FAILED (${r.status}) ${r.text.slice(0, 200)}`}`);
-  if (!r.ok) process.exitCode = 1;
+
+  // Written one row at a time through the shared writer so this script and
+  // session-keepalive-gentle.js classify status, accumulate consecutive_failures
+  // and preserve last_touch_at by exactly the same rules. Two writers with two
+  // sets of semantics on one table is how the next silent drift would start.
+  const { writeHealth } = require('./_lib/credential-health-writer');
+  let failures = 0;
+  for (const r of payload) {
+    const res = await writeHealth({
+      channel: r.channel,
+      profile_dir: r.profile_dir,
+      probe_kind: r.probe_kind,
+      logged_in: r.logged_in,
+      required_cookies: r.required_cookies,
+      present_cookies: r.present_cookies,
+      earliest_expiry: r.earliest_expiry,
+      days_to_expiry: r.days_to_expiry,
+      // A --live run really does load the page, so it counts as a touch.
+      touched: LIVE && r.probe_kind === 'live_action',
+      soft_walled: false,
+      detail: r.detail,
+    });
+    if (!res.ok) failures++;
+  }
+  console.log(`\n[credential-health] wrote ${payload.length - failures}/${payload.length} rows`);
+  if (failures) process.exitCode = 1;
 }
 
 if (require.main === module) {

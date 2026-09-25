@@ -289,7 +289,8 @@ const REGISTRY = {
     run: request_local_job,
     side_effect: 'internal_state',
     handles: ['credential_missing', 'credential_unknown', 'credential_expiring',
-              'credential_probe_stale', 'dead_local_runner', 'selector_mismatch'],
+              'credential_soft_walled', 'credential_probe_stale', 'dead_local_runner',
+              'selector_mismatch'],
     describes: 'Enqueues a repair task onto agent_queue for the local poller -- only if pc_heartbeats proves the machine is alive, otherwise refuses so the gap escalates instead.',
   },
 };

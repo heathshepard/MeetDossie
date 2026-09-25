@@ -406,6 +406,26 @@ from jsonb_to_recordset($seed$
     "human_fix_minutes": 5,
     "cost_unit": "hours blind on auth",
     "notes": "A stale probe is itself the finding. The old design kept this state in a local JSON file, so a probe that stopped running left nothing behind to go stale."
+  },
+  {
+    "key": "credential_channels_logged_in",
+    "pipeline": "credentials",
+    "label": "All 3 browser channels are logged in",
+    "source_table": "credential_health",
+    "source_filters": { "logged_in": "eq.true" },
+    "time_column": null,
+    "window_hours": 24,
+    "min_count": 3,
+    "classifiers": [],
+    "remediations": [],
+    "remediation_mode": "off",
+    "severity": "critical",
+    "grace_hours": 6,
+    "human_only": true,
+    "human_fix": "Open Chrome on the profile named in the credential_health row and sign in by hand, then close the window. LinkedIn + Instagram live in C:\\Users\\Heath\\DossieBot; Facebook lives in C:\\Users\\Heath\\AppData\\Local\\DossieBot-Sage. Nothing automates this on purpose -- an automated Facebook login trips a checkpoint and risks the real account.",
+    "human_fix_minutes": 3,
+    "cost_unit": "dead channels",
+    "notes": "Added 2026-09-25 (Atlas). credential_probe_fresh only proves the PROBE is alive; it counts rows regardless of what they say, so all three channels could be logged out with the expectation fully satisfied -- which is exactly the state on the day it was written. This one measures the ANSWER rather than the reporting. Expected to be a GAP (0/3) until Heath logs in manually; that is the monitor working, not a bug."
   }
 ]
 $seed$::jsonb) as t(
