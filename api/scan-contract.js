@@ -135,7 +135,7 @@ const DOCUMENT_LABELS = {
 };
 
 const COMPLIANCE_PROMPTS = {
-  // 2026-09-21 — 23 Nopalito: Dossie told Heath "TREC 20-17" in chat about a
+  // 2026-09-21 — 14 Sablewood: Dossie told Heath "TREC 20-17" in chat about a
   // document that is actually a TREC 20-19. This prompt is where that
   // number came from — it told the MODEL the document's name was literally
   // "TREC 20-17" (the internal document_type slug, which per the comment
@@ -383,7 +383,7 @@ Extract these fields:
 - brokerage_name
 - commission_rate
 
-For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "104 Wild Cherry Lane" not "104 Wild Cherry Ln, Lot 7, Cherry Ridge, 2.236 acres".
+For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "88 Amberwood Lane" not "88 Amberwood Ln, Lot 7, Cherry Ridge, 2.236 acres".
 
 REQUIRED signatures:
 - Seller signature and date
@@ -571,7 +571,7 @@ Read that sentence for EVERY block before assigning a single field. The seller's
 
 Within each 20-19 block the labels are: "(Broker Firm)" on the first line -> brokerage; "Associate's Name:" -> the agent; "Associate's Email:" -> their email; "Associate's Phone No.:" -> their phone. IGNORE "Licensed Supervisor of Associate" and "Phone No. of Licensed Supervisor" — that is the broker who supervises the agent, NOT the agent, and NOT the person to contact about the deal. IGNORE "Team Name" and every "License No." field.
 
-IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Stephen D. Foster & Associates, 2141 NW Military Hwy # 101 San Antonio TX 78213  Phone: 2107893727  Fax:  Nopalito" followed by "Clyde Johnson   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Stephen D. Foster & Associates" while the actual buyer's broker firm on the form is "Pure Home River". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
+IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Halstead Foster & Associates, 900 Example Pkwy # 100 San Antonio TX 78200  Phone: 2105550182  Fax:  Sablewood" followed by "Dale Whitaker   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Halstead Foster & Associates" while the actual buyer's broker firm on the form is "Riverbend Realty". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
 
 Inside each block, the fields are typically laid out as:
 - "Broker/Firm Name" or just "Broker" → buyerBrokerage / listingBrokerage
@@ -854,8 +854,8 @@ function safeParseJson(text) {
 
 // 2026-08-22 — Structured buyer2Name/seller2Name, captured at scan time.
 // TREC contracts print multi-person parties as one combined string on the
-// signature line ("Chelsea Linton, Thomas Linton" or "Kathleen Champie and
-// Clark Champie"). buyerName/sellerName stay as that combined string
+// signature line ("Chelsea Hale, Gregory Hale" or "Margaret Kendrick and
+// Arthur Kendrick"). buyerName/sellerName stay as that combined string
 // (unchanged — emailTemplates.js, net-sheet.js, download-zip.js, chat.js and
 // the PDF fill pipeline all read it as one display string and must keep
 // working), but Dossie's actual party model caps at two people per side
@@ -1372,7 +1372,7 @@ async function scanContract(pdfBase64) {
   // CRITICAL: Parse earnestMoney and optionFee dollar amounts directly from
   // the debugParagraph5A/5B verbatim text using regex, same reasoning as the
   // optionDays/surveyDeadline backstops above. Found 2026-08-06 auditing a
-  // real executed contract (Wild Cherry, GF 70378) — document identification
+  // real executed contract (Amberwood, GF 70378) — document identification
   // and the compliance audit both succeeded, but Claude's own earnestMoney/
   // optionFee JSON fields came back null even though both dollar amounts
   // were plainly filled in on the form, silently skipping the auto-checklist
@@ -1540,7 +1540,7 @@ async function scanContract(pdfBase64) {
   // gate (dossie-app.jsx handleUploadDocument) then silently drops the
   // correct backstop value and leaves the dossier field blank or at its
   // prior default — this is the exact "0 days" / blank Key Dates bug Heath
-  // found live on the Pfeiffers Gate dossier. Same fix pattern as
+  // found live on the Harrow Lane dossier. Same fix pattern as
   // possessionDate/earnestMoneyReceiptDate immediately above, applied to
   // every field a backstop can touch.
   if (typeof extracted.optionDays === 'number') confidence.optionDays = 1.0;

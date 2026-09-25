@@ -25,9 +25,9 @@
 // EXECUTION STATE COMES FROM esign_events, NOT FROM documents.signature_status
 // ---------------------------------------------------------------------------
 // `documents.signature_status` reads 'none' on all 357 live rows — including
-// document 7d669016-…, "executed-TREC 20-19 Contract - 23 Nopalito.pdf", whose
-// esign_events row says verification_verdict='signed', signed by Jennifer Whyte
-// and Barry Whyte on 2026-09-20. Trusting that column would route every
+// document 7d669016-…, "executed-TREC 20-19 Contract - 14 Sablewood.pdf", whose
+// esign_events row says verification_verdict='signed', signed by Catherine Thorne
+// and Marcus Thorne on 2026-09-20. Trusting that column would route every
 // executed instrument down the "just edit it" path, which is the one thing this
 // whole flow exists to prevent.
 //

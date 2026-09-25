@@ -123,11 +123,11 @@ function headerMap(headers) {
 // The previous single regex made the display-name group both OPTIONAL and
 // LAZY, with no requirement that an angle bracket follow it. On a bare
 // address it therefore matched the shortest possible "name" and handed the
-// rest to the address group: "bwhyte@hotmail.com" parsed as
-// {name:'b', email:'whyte@hotmail.com'}, silently dropping the first
+// rest to the address group: "mthorne@mail.example" parsed as
+// {name:'b', email:'thorne@mail.example'}, silently dropping the first
 // character of every address sent without a display name. Confirmed against
 // the real mailbox 2026-09-20 on a message addressed to bare
-// `bwhyte@hotmail.com`. That corrupted `from_email` in the inbox tools and
+// `mthorne@mail.example`. That corrupted `from_email` in the inbox tools and
 // broke sender matching in the three watcher crons for the same senders.
 function parseFromHeader(fromHeader) {
   const raw = String(fromHeader || '').trim();

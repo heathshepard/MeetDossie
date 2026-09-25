@@ -237,7 +237,7 @@ async function main() {
     resetMocks();
     handlers.push({
       match: (url) => url.includes('user_integrations') && url.includes('google_email=not.is.null'),
-      respond: () => jsonResponse(200, [{ access_token: 'g-at', refresh_token: 'g-rt', google_email: 'agent@gmail.com' }]),
+      respond: () => jsonResponse(200, [{ access_token: 'g-at', refresh_token: 'g-rt', google_email: 'agent@mail.example' }]),
     });
     handlers.push({
       match: (url) => url.includes('user_integrations') && url.includes('oauth_provider=eq.microsoft_graph'),
@@ -245,7 +245,7 @@ async function main() {
     });
     const mailGoogle = await makeMailClient({ userId: 'user-1' });
     check('dispatcher picks google when only Google connected', !!mailGoogle && mailGoogle.provider === 'google', mailGoogle);
-    check('dispatcher surfaces the connected email (google)', !!mailGoogle && mailGoogle.email === 'agent@gmail.com', mailGoogle);
+    check('dispatcher surfaces the connected email (google)', !!mailGoogle && mailGoogle.email === 'agent@mail.example', mailGoogle);
 
     resetMocks();
     handlers.push({
@@ -268,7 +268,7 @@ async function main() {
     resetMocks();
     handlers.push({
       match: (url) => url.includes('user_integrations') && url.includes('google_email=not.is.null'),
-      respond: () => jsonResponse(200, [{ access_token: 'g-at', refresh_token: 'g-rt', google_email: 'agent@gmail.com' }]),
+      respond: () => jsonResponse(200, [{ access_token: 'g-at', refresh_token: 'g-rt', google_email: 'agent@mail.example' }]),
     });
     handlers.push({
       match: (url) => url.includes('user_integrations') && url.includes('oauth_provider=eq.microsoft_graph'),

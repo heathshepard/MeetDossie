@@ -412,7 +412,7 @@ const TOOLS = [
   },
   {
     name: 'send_wire_fraud_warning',
-    // 2026-09-21 — 23 Nopalito: this description used to say "to the buyer,"
+    // 2026-09-21 — 14 Sablewood: this description used to say "to the buyer,"
     // and Dossie refused to send it to a seller as a result — confidently,
     // plausibly, and wrong. TAR/TXR 2517 is titled "Buyers and Sellers
     // Beware" with a [ ] Seller [ ] Buyer checkbox pair; sellers receive
@@ -695,8 +695,8 @@ const TOOLS = [
   //
   // Two tools because the flow has two member-facing moments, and they must
   // stay separate: raising a mismatch, and answering one. Dossie may never do
-  // the second on the member's behalf — she has no way to know whether "Jenny"
-  // and "Jennifer" are one person.
+  // the second on the member's behalf — she has no way to know whether "Cathy"
+  // and "Catherine" are one person.
   // -------------------------------------------------------------------------
   {
     name: 'review_inconsistencies',
@@ -711,7 +711,7 @@ const TOOLS = [
   },
   {
     name: 'resolve_inconsistency',
-    description: 'Record which of two disagreeing values the agent says is correct, and get back what has to happen next. Use ONLY after a mismatch has been raised (by review_inconsistencies or by the deal view) and the agent has answered which value is right — e.g. "the dossier is right", "go with the contract", "those are the same person", "Jenny is her nickname, Jennifer is her legal name", "neither, it is actually X". The remedy is computed server-side from where the wrong value lives: a dossier field gets corrected, an unsigned document gets redrafted, and an EXECUTED document requires an amendment signed by all parties. Never guess the choice; if the agent has not clearly said which value is correct, use answer_question to ask.',
+    description: 'Record which of two disagreeing values the agent says is correct, and get back what has to happen next. Use ONLY after a mismatch has been raised (by review_inconsistencies or by the deal view) and the agent has answered which value is right — e.g. "the dossier is right", "go with the contract", "those are the same person", "Cathy is her nickname, Catherine is her legal name", "neither, it is actually X". The remedy is computed server-side from where the wrong value lives: a dossier field gets corrected, an unsigned document gets redrafted, and an EXECUTED document requires an amendment signed by all parties. Never guess the choice; if the agent has not clearly said which value is correct, use answer_question to ask.',
     input_schema: {
       type: 'object',
       properties: {
@@ -846,7 +846,7 @@ EXECUTION RULES:
 
 AMENDMENT & STAGE SAFETY RULES:
 - CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-10), not a silent dossier edit.
-- CRITICAL: when a document and the dossier disagree, you do NOT get to decide which one is right. Report both values and both sources and ask. You cannot tell whether "Jenny Whyte" and "Jennifer Whyte" are one woman with a nickname or two different people, and guessing wrong either leaves a defective signed contract standing or invents an amendment nobody needs. Never "reconcile", "correct" or "fix" a mismatch on your own initiative, and never say which value looks more likely.
+- CRITICAL: when a document and the dossier disagree, you do NOT get to decide which one is right. Report both values and both sources and ask. You cannot tell whether "Cathy Thorne" and "Catherine Thorne" are one woman with a nickname or two different people, and guessing wrong either leaves a defective signed contract standing or invents an amendment nobody needs. Never "reconcile", "correct" or "fix" a mismatch on your own initiative, and never say which value looks more likely.
 - After the agent answers, resolve_inconsistency works out the remedy and tells you what it is. Do not pre-announce the remedy yourself — whether it is a one-line dossier edit or an amendment signed by all parties depends on whether the wrong value is sitting on an executed document, which the tool checks and you have not.
 - CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, initiate_termination, or send_for_signature on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
 - When the agent says "ratified yesterday" or "executed on [date]", BOTH advance_stage (to under-contract) AND update_deal_field contract_effective_date are required — the dates must align.
@@ -887,7 +887,7 @@ READING THE AGENT'S INBOX (search_inbox, read_email, find_contact_email, import_
 - These run immediately and hand you their results before you answer, so chain them in one turn: search_inbox to find the message, read_email to open the right one, import_email_attachments to file its documents into the dossier and pull the contract terms. Do not narrate the steps out loud and do not ask permission between them — the agent asked you to handle it.
 - Use them whenever the agent refers to something you have not seen: "we received an offer on X", "did the lender send the pre-approval", "check my email", "the buyer's agent sent something over". Never answer "I can't see your email" without calling search_inbox first — you may well be connected.
 - Always give search_inbox something specific (the street name, a party name, or the sender). If the first search finds nothing, widen the days window a LOT before concluding nothing arrived — the default is only 14 days and the maximum is 730. Correspondence on a listing routinely runs a year back.
-- "What's X's email address", "get me the Whytes' addresses", "who do I have for the buyer's agent" = find_contact_email, NOT search_inbox. It also reads the recipients of mail the agent SENT, which is where most client addresses actually live — plenty of clients never email first, so a search of received mail alone will wrongly come back empty. Give it the surname alone, singular ("Whyte", not "the Whytes"). It returns addresses only, never message text.
+- "What's X's email address", "get me the Thornes' addresses", "who do I have for the buyer's agent" = find_contact_email, NOT search_inbox. It also reads the recipients of mail the agent SENT, which is where most client addresses actually live — plenty of clients never email first, so a search of received mail alone will wrongly come back empty. Give it the surname alone, singular ("Thorne", not "the Thornes"). It returns addresses only, never message text.
 - Search results and contact results carry a direction of "sent" or "received". Read it. A message the agent SENT asking for a document is not that document arriving — never report the agent's own outbound mail as something that came in.
 - If several messages share a subject, read the MOST RECENT first and check whether it supersedes an earlier one. A revised offer replaces the original — say so explicitly rather than describing both as live.
 - Never describe an attachment from its filename. A filename is not evidence of what is inside. Call import_email_attachments and speak from what came back.
@@ -1306,7 +1306,7 @@ async function handleActionMode({ message, deals, messages, userId, openTransact
 
 // Action mode can now make up to MAX_INBOX_TOOL_CALLS server-side round trips
 // inside one request, so the default function timeout is no longer enough.
-// Measured against the real 7-PDF Nopalito offer packet on 2026-09-19:
+// Measured against the real 7-PDF Sablewood offer packet on 2026-09-19:
 // import_email_attachments alone (download 7 files, identify each, extract the
 // contract) took 32.7s, on top of search + read + the model turns between
 // them. 120s leaves real headroom; inbox-tools.js also enforces its own

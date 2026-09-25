@@ -17,11 +17,11 @@
  *   "fields": { "Street Address and City": "507 Ridge Blf    San Antonio", "date 5": "October 9" },
  *   "checks": ["3 The date in Paragraph 9 of the contract is changed to"],
  *   "signers": [
- *     { "role": "Buyer 1", "name": "Kanika Jain",   "email": "strkanjain@gmail.com",   "sig": [36,168,260,32] },
- *     { "role": "Buyer 2", "name": "Ketan Thakkar", "email": "ketanhthakkar@gmail.com", "sig": [35,125,262,32] }
+ *     { "role": "Buyer 1", "name": "Nadia Kapoor",   "email": "nkapoor@mail.example",   "sig": [36,168,260,32] },
+ *     { "role": "Buyer 2", "name": "Rohan Desai", "email": "rohandesai@mail.example", "sig": [35,125,262,32] }
  *   ],
  *   "subject": "507 Ridge Blf - Amendment",
- *   "body": "Hey Kanika and Ketan,\n\n...\n\nPlease sign here: {{submitter.link}}\n\nThanks,\nHeath",
+ *   "body": "Hey Nadia and Rohan,\n\n...\n\nPlease sign here: {{submitter.link}}\n\nThanks,\nHeath",
  *
  *   // Optional, both for the Dossie write-back only — neither affects the send.
  *   "transaction_id": "<dossier uuid>",   // REQUIRED for the signed PDF + completion

@@ -11,7 +11,7 @@
 // reasoned about.
 //
 // The fixtures at the bottom are REAL shapes pulled from the live Supabase
-// project on 2026-09-20 (104 Wild Cherry Ln, 23 Nopalito, 930 Alamo Heights
+// project on 2026-09-20 (88 Amberwood Ln, 14 Sablewood, 930 Alamo Heights
 // Blvd), with addresses kept and bodies truncated. Replaying them is what
 // turned up the day-one flood the baseline gate now prevents.
 
@@ -175,15 +175,15 @@ test('the flag gates delivery only — ranking still runs, so a dry run previews
 // REPLAY AGAINST REAL DEAL DATA (live Supabase rows, 2026-09-20)
 // ---------------------------------------------------------------------------
 
-// 104 Wild Cherry Ln — transaction 42a11919, stage 'financing', five filed
+// 88 Amberwood Ln — transaction 42a11919, stage 'financing', five filed
 // party replies, every one of them read:false. Verbatim shapes from notes_log.
 const WILD_CHERRY = {
   id: '42a11919-ba8b-44fa-9b04-ed13563ab888',
-  user_id: '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6',
-  property_address: '104 Wild Cherry Ln',
+  user_id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+  property_address: '88 Amberwood Ln',
   status: 'active',
   stage: 'financing',
-  seller_email: 'tomlintontx@gmail.com',
+  seller_email: 'ghaletx@mail.example',
   updated_at: '2026-09-17T21:40:09Z',
   closing_date: '2026-09-30',
   notes_log: [
@@ -192,23 +192,23 @@ const WILD_CHERRY = {
       createdAt: '2026-09-01T14:49:20.000Z', gmailMessageId: '1a05d726033ce2db',
       text: 'Heather Mutz has sent disclosure documents from zipForm for the transaction.' },
     { id: 'email-1a045e038c9850e6', read: false, source: 'email', subject: 'Re: 8/27/2026 - well shock by buyer',
-      fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+      fromName: 'Greg Hale', fromEmail: 'ghaletx@mail.example',
       createdAt: '2026-08-28T00:58:26.000Z', gmailMessageId: '1a045e038c9850e6',
-      text: 'Seller Tom Linton is documenting that the home inspector performed an unsolicited well shock treatment...' },
-    { id: 'email-1a025f363f090b4b', read: false, source: 'email', subject: 'Re: GF 70378 / 104 Wild Cherry Lane',
-      fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+      text: 'Seller Greg Hale is documenting that the home inspector performed an unsolicited well shock treatment...' },
+    { id: 'email-1a025f363f090b4b', read: false, source: 'email', subject: 'Re: GF 70378 / 88 Amberwood Lane',
+      fromName: 'Greg Hale', fromEmail: 'ghaletx@mail.example',
       createdAt: '2026-08-21T20:11:28.000Z', gmailMessageId: '1a025f363f090b4b',
       text: 'Tom is questioning whether the seller needs to provide the current mortgage payoff information now...' },
   ],
 };
 
-// 23 Nopalito — transaction 952e0d82. A live $1,295,000 listing with
+// 14 Sablewood — transaction 952e0d82. A live $1,295,000 listing with
 // parties = {}, every counterparty email NULL, no seller's disclosure, and
 // untouched since 2026-08-09. This is the deal from the brief.
-const NOPALITO = {
-  id: '952e0d82-c453-4137-87b4-1ed46e738eb3',
-  user_id: '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6',
-  property_address: '23 Nopalito',
+const SABLEWOOD = {
+  id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+  user_id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+  property_address: '14 Sablewood',
   status: 'active',
   stage: 'active-listing',
   sale_price: 1295000,
@@ -238,11 +238,11 @@ const STALE_DEAL = {
   notes_log: [],
 };
 
-test('REAL DATA: 23 Nopalito is reported as unwatchable, with the reason', () => {
-  const { observations } = observeDeal({ deal: NOPALITO, todayYmd: TODAY, nowMs: NOW });
+test('REAL DATA: 14 Sablewood is reported as unwatchable, with the reason', () => {
+  const { observations } = observeDeal({ deal: SABLEWOOD, todayYmd: TODAY, nowMs: NOW });
   const blind = observations.find((o) => o.kind === 'missing_contacts');
   assert.ok(blind, 'a deal with no counterparty addresses must report that it cannot be watched');
-  assert.match(blind.headline, /can't watch 23 Nopalito/);
+  assert.match(blind.headline, /can't watch 14 Sablewood/);
 
   // Per-deal it is recorded but NOT announced — nine blind deals are one
   // problem, not nine notifications. The member-level roll-up is what speaks.
@@ -251,7 +251,7 @@ test('REAL DATA: 23 Nopalito is reported as unwatchable, with the reason', () =>
   const rolled = rollUpMissingContacts(observations);
   const rollup = rolled.find((o) => o.kind === 'missing_contacts' && o.consequence === 'high');
   assert.ok(rollup, 'the member-level roll-up is the thing that speaks');
-  assert.match(rollup.headline, /can't watch 23 Nopalito/);
+  assert.match(rollup.headline, /can't watch 14 Sablewood/);
   assert.strictEqual(rollup.exemptFromDormancy, true,
     'a deal that is invisible can never look "recently updated" — the dormancy gate must not suppress its own cause');
 
@@ -266,20 +266,20 @@ test('the roll-up names the most consequential deal first, by stage then by pric
   });
   const obs = [];
   for (const d of [
-    mk('23 Nopalito', 'active-listing', 1295000),
+    mk('14 Sablewood', 'active-listing', 1295000),
     mk('130 Senisa Dr', 'active-listing', 389000),
     mk('9 Small Lead', 'pre-contract', 200000),
   ]) obs.push(...observeDeal({ deal: d, todayYmd: TODAY, nowMs: NOW }).observations);
 
   const rollup = rollUpMissingContacts(obs).find((o) => o.consequence === 'high');
   assert.match(rollup.headline, /3 of your deals/);
-  assert.match(rollup.detail, /23 Nopalito/, 'the $1.295M listing must be the one named, not a smaller one at the same stage');
+  assert.match(rollup.detail, /14 Sablewood/, 'the $1.295M listing must be the one named, not a smaller one at the same stage');
   assert.match(rollup.detail, /\$1,295,000/);
 });
 
 test('REAL DATA: the day-one flood is prevented — baseline run is silent across all three deals', () => {
   const all = [];
-  for (const deal of [WILD_CHERRY, NOPALITO, STALE_DEAL]) {
+  for (const deal of [WILD_CHERRY, SABLEWOOD, STALE_DEAL]) {
     all.push(...observeDeal({ deal, todayYmd: TODAY, nowMs: NOW }).observations);
   }
   assert.ok(all.length > 0, 'there ARE facts here — the point is that none are announced on day one');
@@ -316,7 +316,7 @@ test('REAL DATA: a NEW reply on a live file, arriving after baseline, does speak
   fresh.notes_log.unshift({
     id: 'email-newreply001', read: false, source: 'email',
     subject: 'Re: tax exemptions at closing',
-    fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+    fromName: 'Greg Hale', fromEmail: 'ghaletx@mail.example',
     createdAt: '2026-09-19T15:02:00.000Z', gmailMessageId: 'newreply001',
     text: 'Confirming the homestead and over-65 exemptions were never transferred, so the buyer should expect the higher assessed amount at closing.',
   });
@@ -326,7 +326,7 @@ test('REAL DATA: a NEW reply on a live file, arriving after baseline, does speak
 
   assert.strictEqual(r.spoken.length, 1, 'exactly the one new fact');
   const msg = composeNotification(r.spoken);
-  assert.match(msg, /Tom Linton replied on 104 Wild Cherry Ln/);
+  assert.match(msg, /Greg Hale replied on 88 Amberwood Ln/);
   assert.match(msg, /I have not contacted anyone/, 'the notify-not-act contract must be visible in the message');
 });
 

@@ -9,7 +9,7 @@
 // template, which meant Preview + Download in the Interactive Editor
 // showed empty forms. See .tmp/dossie-sign-2026-07-13-BLOCKED/.
 //
-// 2026-08-19 BROKERAGE — fourth-pass root-cause fix session (Kanika/Ketan
+// 2026-08-19 BROKERAGE — fourth-pass root-cause fix session (Nadia/Rohan
 // three-property offer set: Old Homestead / Low Oak / Royal Crescent).
 // Every checkbox mapping in this file was independently re-verified from
 // scratch against the LIVE blank asset (.tmp/brokerage-work/blank-resale-
@@ -186,7 +186,7 @@ async function fillTrec2019(pdfDoc, fv) {
   // Email(s) (page 8) -- two real buyer emails joined with "; " measured
   // ~222pt at the field's own 10pt default, ~42pt past its declared 180pt
   // maxWidth, and ran straight into the Seller's "Email(s):" label with no
-  // gap ("...ketanhthakkar@gmail.comEmail(s):"). Found via
+  // gap ("...rohandesai@mail.exampleEmail(s):"). Found via
   // .tmp/ridgebluff-offer -- see build-offer.js's manual per-build
   // workaround, which this generic fix replaces.
   //

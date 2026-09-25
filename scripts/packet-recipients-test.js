@@ -3,19 +3,19 @@ const P = require('../api/_lib/packet-recipients');
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; } else { fail++; console.log('FAIL:', m); } };
 
-// A listing-side deal: Heath represents the sellers; the Bryans are the buyers.
+// A listing-side deal: Heath represents the sellers; the Corlisses are the buyers.
 const listing = {
   role: 'listing', transaction_type: 'seller_listing',
-  seller_name: 'Linton', seller_email: 'seller@example.com',
-  seller2_name: 'Linton Two', seller2_email: 'seller2@example.com',
-  buyer_name: 'Christopher Bryan', buyer_email: 'chris.bryan@example.com',
-  buyer2_name: 'Monica Bryan', buyer2_email: 'monica.bryan@example.com',
-  other_agent_name: 'Craig Browning', other_agent_email_addr: 'craig@example.com',
+  seller_name: 'Hale', seller_email: 'seller@example.com',
+  seller2_name: 'Hale Two', seller2_email: 'seller2@example.com',
+  buyer_name: 'Nathan Corliss', buyer_email: 'nathan.corliss@example.com',
+  buyer2_name: 'Priya Corliss', buyer2_email: 'priya.corliss@example.com',
+  other_agent_name: 'Dana Reed', other_agent_email_addr: 'dana.reed@example.com',
   title_officer_name: 'Title Officer', title_officer_email: 'title@example.com',
 };
 const buyerSide = {
   role: 'buyer', transaction_type: 'buyer_purchase',
-  buyer_name: 'Kanika', buyer_email: 'kanika@example.com',
+  buyer_name: 'Nadia', buyer_email: 'nadia@example.com',
   seller_name: 'Other Seller', seller_email: 'otherseller@example.com',
   listing_agent_name: 'LA', listing_agent_email_addr: 'la@example.com',
 };
@@ -37,11 +37,11 @@ ok(!r3.ok, 'buyer side CANNOT email the seller');
 ok(r3.blocked === 'opposing_principal', 'buyer-side block reason');
 
 // --- hand-typed address cannot smuggle the opposing principal through ---
-const g1 = P.assertNotOpposingPrincipal({ tx: listing, email: 'chris.bryan@example.com' });
+const g1 = P.assertNotOpposingPrincipal({ tx: listing, email: 'nathan.corliss@example.com' });
 ok(!g1.ok, 'typed buyer address refused on a listing');
-const g2 = P.assertNotOpposingPrincipal({ tx: listing, email: 'MONICA.BRYAN@EXAMPLE.COM' });
+const g2 = P.assertNotOpposingPrincipal({ tx: listing, email: 'PRIYA.CORLISS@EXAMPLE.COM' });
 ok(!g2.ok, 'case-insensitive match still refused');
-const g3 = P.assertNotOpposingPrincipal({ tx: listing, email: 'craig@example.com' });
+const g3 = P.assertNotOpposingPrincipal({ tx: listing, email: 'dana.reed@example.com' });
 ok(g3.ok, "cooperating agent's own address is allowed");
 const g4 = P.assertNotOpposingPrincipal({ tx: buyerSide, email: 'otherseller@example.com' });
 ok(!g4.ok, 'typed seller address refused on a purchase');
