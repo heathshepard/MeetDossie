@@ -53,7 +53,19 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const client = new Client({ connectionString: conn, ssl: { rejectUnauthorized: false } });
+  // Supabase presents a cert chain Node does not trust by default, and pg
+  // (>=8.11) lets an `sslmode` in the connection string win over the `ssl`
+  // option — so a bare { rejectUnauthorized: false } still fails with
+  // "self-signed certificate in certificate chain". Strip sslmode from the
+  // URL so the explicit ssl option is the only thing in play.
+  let cleanConn = conn;
+  try {
+    const u = new URL(conn);
+    u.searchParams.delete('sslmode');
+    cleanConn = u.toString();
+  } catch { /* not URL-parseable: fall back to the raw string */ }
+
+  const client = new Client({ connectionString: cleanConn, ssl: { rejectUnauthorized: false } });
   const applied = [];
   try {
     await client.connect();
