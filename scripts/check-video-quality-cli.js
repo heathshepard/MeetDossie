@@ -52,8 +52,13 @@
 //                      Omit only for pre-2026-09-17 callers that want the
 //                      old vertical-only default; a real ingestion caller
 //                      should always pass this.
-//   --orientation <o>  explicit 'vertical'|'horizontal' override, only when
-//                      --platforms isn't available.
+//   --orientation <o>  explicit 'vertical' | 'horizontal' | 'vertical_long'
+//                      override, only when --platforms isn't available.
+//                      'vertical_long' is the 9:16 LONG lane (40-90s) that
+//                      the dual-cut producer uses for the CORE+OPTIONAL cut
+//                      going to YouTube Shorts / Facebook / LinkedIn. It is
+//                      explicit-only: passing those platform names instead
+//                      would classify the row HORIZONTAL and demand 16:9.
 //   --pretty           ALSO write a human-readable rule table to stderr.
 //   --json-only        suppress the stderr table (default when not a TTY).
 
