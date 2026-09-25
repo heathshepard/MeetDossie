@@ -137,6 +137,40 @@ async function notifyTelegram(text) {
   } catch { /* notification is best-effort, never fails the retraction */ }
 }
 
+// ─── GROUND TRUTH, NOT THE PLATFORM'S WORD ────────────────────────────────
+// Verify from OUTSIDE, unauthenticated, whether a post is still publicly
+// viewable. A retraction that only trusts the API's success flag is exactly
+// the silent-failure pattern that has bitten this codebase before — and the
+// inverse bites too: on the first real run Zernio answered 400 "Video not
+// found on YouTube. It may have been deleted." for a video that was already
+// private, i.e. already successfully retracted. Reporting that as "still
+// live" would have sent someone chasing a problem that did not exist.
+//
+// YouTube's oEmbed endpoint returns 200 + JSON for a public video and
+// 401/403/404 for private/deleted/unlisted — no auth, no API key, no quota.
+// Returns true (public), false (not public), or null (could not determine).
+async function isPubliclyViewable(platform, url) {
+  if (!url) return null;
+  try {
+    if (platform === 'youtube') {
+      const r = await fetch(
+        `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+        { redirect: 'manual' },
+      );
+      if (r.status === 200) return true;
+      if ([401, 403, 404].includes(r.status)) return false;
+      return null;
+    }
+    // Generic fallback for platforms without a cheap oEmbed-style probe.
+    const r = await fetch(url, { method: 'GET', redirect: 'manual' });
+    if (r.status === 200) return true;
+    if ([401, 403, 404, 410].includes(r.status)) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Pull the per-platform delivery records off a video_library row.
 function deliveriesOf(row) {
   const d = row && row.zernio_deliveries;
@@ -350,7 +384,32 @@ module.exports = async function handler(req, res) {
 
   const results = [];
   for (const t of targets) {
-    results.push(await retractOne({ ...t, hardDelete }));
+    const r = await retractOne({ ...t, hardDelete });
+
+    // Independently confirm from outside whether the post is still publicly
+    // viewable, and let that OVERRIDE the API's own claim in both
+    // directions: a "success" that left the post up is a failure, and a
+    // reported failure on a post that is already down is a success.
+    const publiclyViewable = await isPubliclyViewable(r.platform, r.platform_url);
+    r.public_check = publiclyViewable === null ? 'indeterminate'
+      : publiclyViewable ? 'still_publicly_viewable' : 'not_publicly_viewable';
+
+    if (publiclyViewable === false) {
+      if (!r.ok) {
+        r.ok = true;
+        r.note = `${r.note || ''} Verified down by unauthenticated check despite the API reporting an error (${r.error || r.zernio_status || 'unknown'}) — the post is not publicly viewable.`.trim();
+      }
+      r.still_live = false;
+      delete r.manual_steps;
+    } else if (publiclyViewable === true) {
+      r.ok = false;
+      r.still_live = true;
+      r.note = `${r.note || ''} WARNING: the API reported success but the post is STILL PUBLICLY VIEWABLE.`.trim();
+      if (!r.manual_steps) {
+        r.manual_steps = [`Open the ${r.platform} account and remove/hide the post manually: ${r.platform_url || '(url unknown)'}`];
+      }
+    }
+    results.push(r);
   }
 
   const allOk = results.every((r) => r.ok);
