@@ -1,5 +1,35 @@
 'use strict';
 
+// ============================================================================
+// SUPERSEDED 2026-09-25 (Atlas) -- do not wire anything new to this file.
+//
+//   Use instead:  scripts/session-keepalive-gentle.js
+//   State lives in: Supabase credential_health (NOT a local JSON file)
+//
+// Two things about this implementation caused the 9-day Facebook + LinkedIn
+// outage rather than preventing it:
+//
+//  1. IT WROTE ITS STATE TO A LOCAL FILE (scripts/sessions/keepalive-state.json).
+//     When its scheduled task stopped running, nothing wrote the file, so
+//     nothing went stale, so nothing looked wrong. Silence was
+//     indistinguishable from health. The replacement writes a database row,
+//     which inverts the default: a row that stops updating trips the
+//     `credential_probe_fresh` expectation on its own.
+//
+//  2. ITS TASKS WERE NEVER REGISTERED AT ALL. The four tasks
+//     register-session-keepalive-tasks.ps1 used to create did not exist in
+//     Windows Task Scheduler, and credential_health had zero rows. The
+//     keep-alive everyone believed was running had never run once.
+//
+// Separately, the fixed 02:30-every-3-days cadence here is the machine-shaped
+// access pattern that gets sessions invalidated in the first place. The
+// replacement touches 3x/day inside daytime windows with three independent
+// layers of jitter.
+//
+// Left in place only because instagram/linkedin/reddit/twitter-session-keepalive.js
+// still require() it. None of those are scheduled any more.
+// ============================================================================
+
 // scripts/_lib/session-keepalive.js
 //
 // Shared keep-alive runner for IG / LinkedIn / Reddit / Twitter (and any

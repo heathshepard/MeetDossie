@@ -121,14 +121,39 @@ async function credential_missing(exp) {
       },
     };
   }
-  // Logged in but the cookie is about to lapse -- warn BEFORE it breaks.
-  if (row.days_to_expiry !== null && row.days_to_expiry !== undefined && Number(row.days_to_expiry) < 7) {
-    return { cause: 'credential_expiring', confidence: 'medium',
-             detail: { channel, days_to_expiry: Number(row.days_to_expiry), earliest_expiry: row.earliest_expiry } };
+  // ── DEGRADING SIGNALS ──────────────────────────────────────────────────────
+  // Everything below here fires while the channel is still WORKING. The point
+  // is to land a warning during the window where a 60-second manual login
+  // prevents an outage, instead of only reporting the outage afterwards.
+
+  // Soft-wall: the session cookie is present and the URL looks logged in, but
+  // the authenticated-only element never rendered. Written by the keep-alive's
+  // live touch (scripts/session-keepalive-gentle.js). This is the shape a
+  // server-side invalidation takes BEFORE the cookie itself disappears -- a
+  // cookie-only probe cannot see it, because an invalidated cookie is
+  // byte-identical to a good one.
+  if (row.detail && row.detail.soft_walled === true) {
+    return { cause: 'credential_soft_walled', confidence: 'medium',
+             detail: { channel, note: 'cookie present and URL looks authenticated, but the logged-in surface did not render -- likely server-side invalidation or a checkpoint',
+                       landing_url: row.detail.landing_url || null, last_healthy_at: row.last_healthy_at } };
   }
+
+  // Cookie about to lapse -- warn BEFORE it breaks. Raised 7 -> 14 days on
+  // 2026-09-25 to match EXPIRY_WARN_DAYS in scripts/_lib/session-guard.js, so
+  // the classifier and the probe cannot disagree about what "expiring" means.
+  if (row.days_to_expiry !== null && row.days_to_expiry !== undefined && Number(row.days_to_expiry) < 14) {
+    return { cause: 'credential_expiring', confidence: 'medium',
+             detail: { channel, days_to_expiry: Number(row.days_to_expiry), earliest_expiry: row.earliest_expiry,
+                       note: 'still working; log in again at any convenient moment to refresh it' } };
+  }
+
+  // The probe itself went quiet. THIS is the check that would have caught the
+  // 9-day outage: the local state file stopped being written and nothing
+  // noticed, because an absent file raises nothing. An absent ROW is loud.
   if (ageH !== null && ageH > 72) {
     return { cause: 'credential_probe_stale', confidence: 'medium',
-             detail: { channel, probe_age_hours: Math.round(ageH * 10) / 10 } };
+             detail: { channel, probe_age_hours: Math.round(ageH * 10) / 10,
+                       note: 'the credential probe has not reported -- its scheduled task may have been removed or the PC has been off' } };
   }
   return null;
 }
