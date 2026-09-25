@@ -110,6 +110,32 @@ async function countRows(query) {
 // ─── Query construction ──────────────────────────────────────────────────────
 
 /**
+ * Which column the count query projects.
+ *
+ * BUGFIX 2026-09-25 (Atlas): this was hardcoded to `id`, which is an
+ * ASSUMPTION about every table the expectation set can ever name.
+ * credential_health's primary key is `channel` and it has no id column at all,
+ * so PostgREST answered credential_probe_fresh with HTTP 400 on every run from
+ * the hour it shipped. An expectation that can only ever error is worse than no
+ * expectation: it looks like coverage.
+ *
+ * The projection is not what the query is FOR -- a HEAD with Prefer:
+ * count=exact is answered by count(*) and Range: 0-0 keeps the body empty, so
+ * the column named here never affects the number. It only has to be a column
+ * that exists. So: an explicitly declared count_column, else the time_column
+ * the expectation already depends on (and already validates), else `*`, which
+ * no table can lack. Nothing here guesses a name.
+ */
+function countProjection(exp) {
+  if (exp.count_column) {
+    if (!IDENT_RE.test(exp.count_column)) throw new Error(`invalid count_column: ${exp.count_column}`);
+    return exp.count_column;
+  }
+  if (exp.time_column && IDENT_RE.test(exp.time_column)) return exp.time_column;
+  return '*';
+}
+
+/**
  * Turn a stored expectation into a validated PostgREST query string.
  * Throws on anything that does not look like a plain identifier or an
  * allowlisted operator -- fail closed, never build a half-trusted query.
@@ -118,7 +144,7 @@ function buildQuery(exp, { nowMs = Date.now() } = {}) {
   if (!IDENT_RE.test(exp.source_table)) {
     throw new Error(`invalid source_table: ${exp.source_table}`);
   }
-  const parts = ['select=id'];
+  const parts = [`select=${countProjection(exp)}`];
 
   const filters = exp.source_filters || {};
   for (const [col, expr] of Object.entries(filters)) {
@@ -237,6 +263,6 @@ async function measure(exp, opts = {}) {
 }
 
 module.exports = {
-  sb, countRows, buildQuery, isInverted, windowMode, loadExpectations, measure,
-  lastProducedAt, validColumn, ALLOWED_OPS, IDENT_RE, JSON_PATH_RE,
+  sb, countRows, buildQuery, countProjection, isInverted, windowMode, loadExpectations,
+  measure, lastProducedAt, validColumn, ALLOWED_OPS, IDENT_RE, JSON_PATH_RE,
 };

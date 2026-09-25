@@ -18,8 +18,10 @@
 const assert = require('assert');
 
 const {
-  buildQuery, isInverted, windowMode, validColumn, ALLOWED_OPS,
+  buildQuery, countProjection, isInverted, windowMode, validColumn, ALLOWED_OPS,
 } = require('../api/_lib/outcome-expectations.js');
+const telegramGate = require('../api/_lib/telegram-gate.js');
+const { classifyDelivery } = require('../api/_lib/outcome-monitor.js');
 const esc = require('../api/_lib/outcome-escalation.js');
 const { extractItemCount, withOutcome } = require('../api/_lib/cron-telemetry.js');
 const { REGISTRY, allowedByMode } = require('../api/_lib/outcome-remediation.js');
@@ -31,6 +33,10 @@ function t(name, fn) {
   try { fn(); passed += 1; console.log(`  ok  ${name}`); }
   catch (e) { console.error(`  FAIL ${name}\n       ${e.message}`); process.exitCode = 1; }
 }
+async function ta(name, fn) {
+  try { await fn(); passed += 1; console.log(`  ok  ${name}`); }
+  catch (e) { console.error(`  FAIL ${name}\n       ${e.message}`); process.exitCode = 1; }
+}
 
 console.log('\nquery construction');
 
@@ -39,7 +45,40 @@ t('builds a recent-window count query', () => {
     source_table: 'group_posts', source_filters: { status: 'eq.posted' },
     time_column: 'posted_at', window_hours: 24, min_count: 1,
   }, { nowMs: NOW });
-  assert.strictEqual(q, 'group_posts?select=id&status=eq.posted&posted_at=gte.2026-09-24T12:00:00.000Z');
+  assert.strictEqual(q, 'group_posts?select=posted_at&status=eq.posted&posted_at=gte.2026-09-24T12:00:00.000Z');
+});
+
+t('the count projection never ASSUMES an id column', () => {
+  // Regression for the shipped defect: `select=id` was hardcoded, and
+  // credential_health's primary key is `channel` with no id column at all, so
+  // PostgREST answered credential_probe_fresh with HTTP 400 on every run.
+  const credentialProbe = {
+    source_table: 'credential_health', source_filters: {},
+    time_column: 'last_probe_at', window_hours: 48, min_count: 1,
+  };
+  assert.strictEqual(countProjection(credentialProbe), 'last_probe_at');
+  assert.ok(!buildQuery(credentialProbe, { nowMs: NOW }).includes('select=id'),
+    'must not project a column the table may not have');
+  // No time column and nothing declared: '*' exists on every table.
+  assert.strictEqual(countProjection({ source_table: 'x', source_filters: {} }), '*');
+  // An explicit override wins, and is validated like any other identifier.
+  assert.strictEqual(countProjection({ count_column: 'channel', time_column: 'last_probe_at' }), 'channel');
+  assert.throws(() => countProjection({ count_column: 'id&select=*' }), /invalid count_column/);
+});
+
+t('no seeded expectation projects a column its table may lack', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const sql = fs.readFileSync(
+    path.join(__dirname, '..', 'supabase', 'migrations', '20260925_outcome_monitor.sql'), 'utf8');
+  const seed = JSON.parse(sql.match(/jsonb_to_recordset\(\$seed\$([\s\S]*?)\$seed\$::jsonb/)[1]);
+  for (const e of seed) {
+    const proj = countProjection(e);
+    // Either the expectation's own time_column, its declared count_column, or
+    // '*' — never a name nobody checked.
+    assert.ok(proj === '*' || proj === e.time_column || proj === e.count_column,
+      `${e.key} projects "${proj}", which is not a column it declares`);
+  }
 });
 
 t('older_than flips the comparison', () => {
@@ -238,4 +277,118 @@ t('every classifier named in the seed exists', () => {
   }
 });
 
-console.log(`\n${passed} assertion group(s) passed${process.exitCode ? ' — WITH FAILURES' : ''}\n`);
+// ─────────────────────────────────────────────────────────────────────────────
+// ESCALATION DELIVERY ACCOUNTING
+//
+// The defect most likely to silently regress, and the one this whole system
+// exists to prevent: recording an escalation as delivered when the telegram
+// gate ate it. Shipped in 017aa8cf — markEscalated() ran at message-FORMAT
+// time, before any send, and nothing checked wasSuppressed() on the gate's
+// fake HTTP 200. A suppressed alert therefore stamped last_escalated_at and
+// the ladder went quiet for 24h on a message Heath never received.
+//
+// These run against the REAL gate (its actual fake-200 response object), not a
+// hand-written imitation, so a change to the gate's suppression contract fails
+// here instead of silently reopening the hole.
+// ─────────────────────────────────────────────────────────────────────────────
+async function deliveryTests() {
+  console.log('\nescalation delivery accounting');
+
+  // Force the gate closed for this process regardless of local env, then take
+  // the response it genuinely produces for a suppressed sendMessage.
+  process.env.TELEGRAM_CRON_NOTIFICATIONS = 'off';
+  telegramGate.install('regression-not-on-allowlist');
+  const suppressedBody = await (await fetch(
+    'https://api.telegram.org/bot123:FAKE/sendMessage',
+    { method: 'POST', body: JSON.stringify({ chat_id: 1, text: 'regression probe' }) }
+  )).json();
+
+  await ta('the gate\'s suppression really does look like success', async () => {
+    // If this ever stops being true the defect is impossible — but it IS true,
+    // which is why res.ok was never enough.
+    assert.strictEqual(suppressedBody.ok, true);
+    assert.strictEqual(suppressedBody.suppressed, true);
+    assert.strictEqual(telegramGate.wasSuppressed(suppressedBody), true);
+    assert.strictEqual(telegramGate.isAllowed('regression-not-on-allowlist'), false);
+  });
+
+  await ta('a gate-suppressed send is classified suppressed, never sent', async () => {
+    const d = classifyDelivery({ ok: true, status: 200, body: suppressedBody });
+    assert.strictEqual(d.state, 'suppressed', 'the fake 200 must not read as a delivery');
+  });
+
+  await ta('a real send is classified sent; an error is classified failed', async () => {
+    assert.strictEqual(classifyDelivery({
+      ok: true, status: 200, body: { ok: true, result: { message_id: 4817 } },
+    }).state, 'sent');
+    assert.strictEqual(classifyDelivery({ ok: false, status: 429, body: { ok: false, description: 'Too Many Requests' } }).state, 'failed');
+    assert.strictEqual(classifyDelivery({ error: 'socket hang up' }).state, 'failed');
+    // ok:true with no message_id is not evidence of anything.
+    assert.strictEqual(classifyDelivery({ ok: true, status: 200, body: { ok: true, result: {} } }).state, 'failed');
+    // Nothing at all is failed, never sent — fail closed.
+    assert.strictEqual(classifyDelivery({}).state, 'failed');
+  });
+
+  await ta('THE DEFECT: a suppressed send leaves the incident un-escalated and still due', async () => {
+    const exp = { grace_hours: 0 };
+    const incident = {
+      id: 1, opened_at: new Date(Date.now() - 200 * 3600 * 1000).toISOString(),
+      escalation_level: 3, escalation_count: 0, last_escalated_at: null,
+      suppressed_escalations: 0, failed_escalations: 0,
+    };
+    // It is due right now.
+    assert.strictEqual(esc.shouldEscalate(exp, incident, { isNew: true }).escalate, true);
+
+    const patch = esc.escalationPatch(incident, classifyDelivery({ ok: true, status: 200, body: suppressedBody }));
+    // The ladder must not move one inch.
+    assert.ok(!('last_escalated_at' in patch), 'suppressed must NOT stamp last_escalated_at');
+    assert.ok(!('escalation_count' in patch), 'suppressed must NOT advance escalation_count');
+    assert.strictEqual(patch.suppressed_escalations, 1);
+    assert.strictEqual(patch.last_delivery_state, 'suppressed');
+
+    // And after applying it, the incident is STILL due — it speaks again on the
+    // next run, and the moment the gate opens.
+    const after = { ...incident, ...patch };
+    assert.strictEqual(esc.shouldEscalate(exp, after, { isNew: false }).escalate, true,
+      'a suppressed escalation must stay due, not cool off for 24h');
+  });
+
+  await ta('a failed send is also still due, and is distinguishable from suppressed', async () => {
+    const incident = { id: 2, opened_at: new Date().toISOString(), escalation_level: 0,
+                       escalation_count: 0, last_escalated_at: null, failed_escalations: 0 };
+    const patch = esc.escalationPatch(incident, { state: 'failed', detail: 'telegram http 429' });
+    assert.strictEqual(patch.last_delivery_state, 'failed');
+    assert.strictEqual(patch.failed_escalations, 1);
+    assert.ok(!('last_escalated_at' in patch));
+    assert.strictEqual(esc.shouldEscalate({ grace_hours: 0 }, { ...incident, ...patch }, {}).escalate, true);
+  });
+
+  await ta('a CONFIRMED send still works the ladder normally — not spam, not silence', async () => {
+    const exp = { grace_hours: 0 };
+    const incident = { id: 3, opened_at: new Date(Date.now() - 200 * 3600 * 1000).toISOString(),
+                       escalation_level: 3, escalation_count: 7, last_escalated_at: null };
+    const patch = esc.escalationPatch(incident, classifyDelivery({
+      ok: true, status: 200, body: { ok: true, result: { message_id: 991 } },
+    }));
+    assert.strictEqual(patch.last_delivery_state, 'sent');
+    assert.strictEqual(patch.escalation_count, 8);
+    assert.ok(patch.last_escalated_at, 'a confirmed send MUST stamp last_escalated_at');
+
+    const after = { ...incident, ...patch };
+    // Level 3 -> 3h interval. Held immediately after...
+    assert.strictEqual(esc.shouldEscalate(exp, after, {}).escalate, false);
+    // ...and due again 3h later. The ladder still gets louder, never quieter.
+    after.last_escalated_at = new Date(Date.now() - 3.1 * 3600 * 1000).toISOString();
+    assert.strictEqual(esc.shouldEscalate(exp, after, {}).escalate, true);
+  });
+
+  await ta('markEscalated is gone — no stamping without evidence', async () => {
+    assert.strictEqual(typeof esc.markEscalated, 'undefined',
+      'markEscalated() stamped the ladder before any send; it must not come back');
+    assert.strictEqual(typeof esc.recordEscalationOutcome, 'function');
+  });
+}
+
+deliveryTests().then(() => {
+  console.log(`\n${passed} assertion group(s) passed${process.exitCode ? ' — WITH FAILURES' : ''}\n`);
+});

@@ -416,3 +416,56 @@ $seed$::jsonb) as t(
   human_fix_minutes integer, cost_unit text, notes text
 )
 on conflict (key) do nothing;
+
+-- ============================================================================
+-- AMENDMENT 2026-09-25 (Atlas) — ESCALATION DELIVERY ACCOUNTING
+--
+-- The first cut of api/_lib/outcome-monitor.js called markEscalated() the
+-- moment the alert TEXT was formatted — before the cron had attempted a send,
+-- and with nothing checking telegramGate.wasSuppressed() on the gate's fake
+-- HTTP 200. An incident could therefore carry last_escalated_at for a message
+-- Heath never received, and the shrinking-resend ladder would then stay silent
+-- for 24h because it believed it had already spoken.
+--
+-- That is the exact failure this monitor exists to catch — recording an action
+-- as done without verifying it happened. Same shape as the 2026-08-17
+-- cron-video-approval incident: five videos marked pending_approval off a
+-- suppressed send, invisible for three weeks.
+--
+-- Three delivery states are now recorded distinctly, and only 'sent' advances
+-- the ladder (api/_lib/outcome-escalation.js, escalationPatch):
+--   sent       -> last_escalated_at + escalation_count++   (the only "spoke to Heath")
+--   suppressed -> suppressed_escalations++, last_escalated_at UNTOUCHED, so the
+--                 incident stays due and fires the moment the gate opens
+--   failed     -> failed_escalations++, same "still due" treatment
+--
+-- Idempotent, like everything else in this file.
+-- ============================================================================
+alter table outcome_incidents
+  add column if not exists last_delivery_state   text,
+  add column if not exists last_delivery_at      timestamptz,
+  add column if not exists last_delivery_detail  text,
+  add column if not exists suppressed_escalations integer not null default 0,
+  add column if not exists failed_escalations     integer not null default 0;
+
+do $$ begin
+  alter table outcome_incidents add constraint outcome_incidents_delivery_state_chk
+    check (last_delivery_state is null or last_delivery_state in ('sent','suppressed','failed'));
+exception when duplicate_object then null; end $$;
+
+comment on column outcome_incidents.last_delivery_state is
+  'What ACTUALLY happened to the last escalation message: sent | suppressed (telegram-gate ate it) | failed. Only ''sent'' sets last_escalated_at. Distinguishing these is the difference between "quiet because healthy" and "quiet because muted".';
+comment on column outcome_incidents.last_escalated_at is
+  'Timestamp of the last CONFIRMED delivery to Heath — never set for a suppressed or failed send. The resend ladder measures from here, so a swallowed alert leaves the incident due rather than cooling it off for 24h.';
+
+-- The credential probe has never once run: scripts/register-session-keepalive-tasks.ps1
+-- has not been executed on Heath's PC (verified 2026-09-25 — none of its five
+-- tasks exist in Windows Task Scheduler), so credential_health has zero rows
+-- and this expectation cannot be met until it is. Point the fix text at the
+-- one command that actually resolves it rather than at a task to "confirm".
+update outcome_expectations
+   set human_fix = 'The local credential probe has NEVER reported — its scheduled task was never created. From an elevated PowerShell in C:\Users\Heath\Projects\MeetDossie run: powershell -ExecutionPolicy Bypass -File scripts\register-session-keepalive-tasks.ps1 (registers 5 tasks incl. "Dossie Credential Health Probe", daily 03:10). Then: Start-ScheduledTask -TaskName ''Dossie Credential Health Probe''.',
+       human_fix_minutes = 3,
+       notes = 'A stale probe is itself the finding. Verified 2026-09-25: credential_health has 0 rows and none of the register-session-keepalive-tasks.ps1 tasks exist in Task Scheduler, so this measures 0 by design until Heath runs that script once.',
+       updated_at = now()
+ where key = 'credential_probe_fresh';

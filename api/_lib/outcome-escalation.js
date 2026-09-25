@@ -133,14 +133,79 @@ async function resolveIncidents(expectationKey, resolution) {
   return data;
 }
 
-async function markEscalated(incident) {
-  await sb(`outcome_incidents?id=eq.${incident.id}`, {
+// ─── Delivery accounting ─────────────────────────────────────────────────────
+//
+// BUGFIX 2026-09-25 (Atlas). The function that lived here was markEscalated(),
+// and outcome-monitor.js called it the moment the alert TEXT was formatted --
+// before the cron had tried to send anything, and with nothing anywhere that
+// checked telegramGate.wasSuppressed() on the gate's fake 200. So an incident
+// could be stamped last_escalated_at + escalation_count++ for a message Heath
+// never received, and the shrinking-resend ladder would then dutifully hold its
+// tongue for 24h because it "already told him".
+//
+// That is precisely the failure this monitor exists to catch -- recording an
+// action as done without verifying it happened. It is the 2026-08-17 shape
+// exactly: cron-video-approval marked five videos pending_approval off a
+// suppressed send and they sat invisible for three weeks.
+//
+// So the ladder now advances on EVIDENCE, and on nothing else:
+//   sent        -> last_escalated_at + escalation_count. The only state that
+//                  counts as having spoken to Heath, and the only one that
+//                  starts a resend interval.
+//   suppressed  -> the gate ate it. suppressed_escalations++ and NOTHING else.
+//                  last_escalated_at is untouched, so shouldEscalate() returns
+//                  "escalate" again on the very next run and the incident
+//                  speaks the instant the gate opens.
+//   failed      -> the API refused or the fetch threw. failed_escalations++,
+//                  same "still due" treatment as suppressed.
+// last_delivery_state / _at / _detail keep the three distinguishable on the row
+// afterwards, which is the difference between "quiet because healthy" and
+// "quiet because muted".
+
+const DELIVERY_STATES = ['sent', 'suppressed', 'failed'];
+
+/**
+ * The patch a given delivery outcome earns. PURE -- no I/O -- so the rule
+ * "a suppressed send must not advance the ladder" is directly testable
+ * (scripts/regression-outcome-monitor.js).
+ * @param {object} incident
+ * @param {{state:string, detail?:string}} delivery
+ */
+function escalationPatch(incident, delivery) {
+  // Unknown/missing state is treated as FAILED, never as sent. Fail closed:
+  // the cost of a duplicate alert is noise, the cost of a swallowed one is the
+  // three-week outage this whole system was built after.
+  const state = delivery && DELIVERY_STATES.includes(delivery.state) ? delivery.state : 'failed';
+  const now = new Date().toISOString();
+  const patch = {
+    last_delivery_state: state,
+    last_delivery_at: now,
+    last_delivery_detail: delivery && delivery.detail ? String(delivery.detail).slice(0, 300) : null,
+  };
+  if (state === 'sent') {
+    patch.last_escalated_at = now;
+    patch.escalation_count = (incident.escalation_count || 0) + 1;
+  } else if (state === 'suppressed') {
+    patch.suppressed_escalations = (incident.suppressed_escalations || 0) + 1;
+  } else {
+    patch.failed_escalations = (incident.failed_escalations || 0) + 1;
+  }
+  return patch;
+}
+
+/**
+ * Write that outcome to the incident row. Returns whether the WRITE landed --
+ * a monitor that cannot record its own state must say so rather than assume.
+ */
+async function recordEscalationOutcome(incident, delivery) {
+  if (!incident || !incident.id) return { ok: false, state: null, reason: 'no incident row' };
+  const patch = escalationPatch(incident, delivery);
+  const r = await sb(`outcome_incidents?id=eq.${incident.id}`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      last_escalated_at: new Date().toISOString(),
-      escalation_count: (incident.escalation_count || 0) + 1,
-    }),
+    body: JSON.stringify(patch),
   });
+  return { ok: !!r.ok, status: r.status, state: patch.last_delivery_state,
+           error: r.ok ? null : String(JSON.stringify(r.data)).slice(0, 200) };
 }
 
 // ─── The decision ────────────────────────────────────────────────────────────
@@ -153,6 +218,12 @@ async function markEscalated(incident) {
  *         elapsed -- and the interval only ever gets shorter.
  * grace_hours lets a short, expected gap stay quiet, but it applies to the
  * incident's AGE, never to whether we are allowed to mention it at all.
+ *
+ * Note what `!incident.last_escalated_at` buys, now that only a CONFIRMED send
+ * sets it: an incident whose alert was eaten by the telegram gate still has a
+ * null last_escalated_at, so it stays due on every subsequent run and speaks
+ * the moment the gate opens. Suppression delays the message; it can never
+ * cancel it.
  */
 function shouldEscalate(exp, incident, { isNew = false, outageHours = null } = {}) {
   // Age is the TRUE outage age where the system of record can supply one
@@ -229,6 +300,7 @@ function formatRecovery(exp, incidents) {
 
 module.exports = {
   RESEND_HOURS, LEVEL_UP_AFTER_HOURS, levelForAge, resendIntervalHours, incidentAgeHours,
-  findOpenIncident, openIncident, touchIncident, resolveIncidents, markEscalated,
+  findOpenIncident, openIncident, touchIncident, resolveIncidents,
+  DELIVERY_STATES, escalationPatch, recordEscalationOutcome,
   shouldEscalate, formatEscalation, formatRecovery, humanDuration,
 };

@@ -36,23 +36,52 @@ require('./_lib/telegram-gate').install('cron-outcome-monitor');
 // on cron-job.org with a Bearer CRON_SECRET header like the other overflow
 // jobs.
 //
+// TELEGRAM: this job is deliberately NOT in telegram-gate's ALWAYS_ALLOW set,
+// so with TELEGRAM_CRON_NOTIFICATIONS off every alert it raises is suppressed
+// and Heath hears nothing. That is the intended state while the expectation
+// set beds in. What changed on 2026-09-25 is that the monitor now KNOWS it was
+// suppressed instead of recording the message as delivered: the incident stays
+// un-escalated and due, and speaks the moment the gate opens. Response fields
+// telegram_delivery + telegram_gate_allows report the real state.
+//
 // Owner: Atlas, 2026-09-25
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
-const { runAll } = require('./_lib/outcome-monitor.js');
+const { runAll, classifyDelivery, settleEscalations } = require('./_lib/outcome-monitor.js');
+const { isAllowed } = require('./_lib/telegram-gate.js');
 
+const JOB_NAME = 'cron-outcome-monitor';
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+/**
+ * Send, and return WHICH OF THREE THINGS happened — never a bare boolean.
+ *
+ * The telegram gate answers a suppressed send with a well-formed HTTP 200
+ * whose json.ok is true (api/_lib/telegram-gate.js, fakeTelegramOk), so
+ * `res.ok` alone cannot tell "Heath read it" from "the gate ate it".
+ * classifyDelivery() reads the gate's explicit suppressed marker first.
+ * Everything downstream keys off that state, and only 'sent' is allowed to
+ * advance the escalation ladder.
+ */
 async function sendTelegram(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return { ok: false, reason: 'telegram not configured' };
-  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
-  });
-  return { ok: res.ok, status: res.status };
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return { state: 'failed', detail: 'telegram not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID missing)' };
+  }
+  let res;
+  let body = null;
+  try {
+    res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
+    });
+    body = await res.json().catch(() => null);
+  } catch (e) {
+    return classifyDelivery({ error: `telegram fetch failed: ${e.message}` });
+  }
+  return classifyDelivery({ ok: res.ok, status: res.status, body });
 }
 
 module.exports = withTelemetry('cron-outcome-monitor', async function handler(req, res) {
@@ -74,9 +103,14 @@ module.exports = withTelemetry('cron-outcome-monitor', async function handler(re
   // Recoveries first -- a loud alert followed by silence reads as "still
   // broken", so a fix always gets its own line.
   const messages = [...summary.recoveries, ...summary.alerts];
-  let telegram = { ok: false, reason: 'nothing to say' };
+  let delivery = { state: 'skipped', detail: 'nothing to say' };
+  let settled = null;
   if (messages.length && !dryRun) {
-    telegram = await sendTelegram(messages.join('\n\n---\n\n').slice(0, 3900));
+    delivery = await sendTelegram(messages.join('\n\n---\n\n').slice(0, 3900));
+    // Settle the ladder against the REAL outcome. A suppressed or failed send
+    // leaves every incident un-escalated and still due, so it speaks again on
+    // the next run instead of going quiet for 24h on a message nobody got.
+    settled = await settleEscalations(summary, delivery);
   }
 
   // items is what makes this cron's OWN telemetry honest: the number of
@@ -89,9 +123,18 @@ module.exports = withTelemetry('cron-outcome-monitor', async function handler(re
     remediated: summary.remediated,
     gaps: summary.gaps,
     errors: summary.errors,
+    // alerts RAISED vs escalations actually DELIVERED. They are different
+    // numbers whenever the gate is closed, and conflating them is the defect.
     escalated: summary.alerts.length,
+    escalations_confirmed: settled && delivery.state === 'sent' ? settled.incidents : 0,
+    escalation_write_failures: settled ? settled.write_failures : 0,
     recovered: summary.recoveries.length,
-    telegram_sent: !!telegram.ok,
+    telegram_delivery: delivery.state,        // sent | suppressed | failed | skipped
+    telegram_sent: delivery.state === 'sent',
+    telegram_detail: delivery.detail || undefined,
+    // The gate's own verdict, computed without sending anything — so a dry run
+    // can answer "would Heath actually hear this?" truthfully.
+    telegram_gate_allows: isAllowed(JOB_NAME),
     dry_run: !!dryRun,
     preview: dryRun ? messages : undefined,
     results: summary.results.map((r) => ({
@@ -100,7 +143,8 @@ module.exports = withTelemetry('cron-outcome-monitor', async function handler(re
       remediation: r.remediation && r.remediation.runs
         ? r.remediation.runs.map((x) => `${x.remediation}:${x.attempted ? (x.ok ? 'ok' : 'fail') : 'skip'}`)
         : undefined,
-      escalated: !!r.alert,
+      alert_raised: !!r.alert,
+      alert_delivery: r.alert ? delivery.state : undefined,
     })),
   });
 });
