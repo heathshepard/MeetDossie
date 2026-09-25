@@ -628,6 +628,26 @@
     {
       "path": "/api/cron-dispatch-daily-0900",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-comment-monitor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron-comment-reply-draft",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron-post-comment-replies",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron-sync-video-automations",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron-sync-comment-dm-leads",
+      "schedule": "5 * * * *"
     }
   ]
 }

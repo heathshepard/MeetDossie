@@ -449,6 +449,54 @@ module.exports = async function handler(req, res) {
     rowUpdate = { ok: r.ok, status: r.status, error: r.ok ? null : r.data };
   }
 
+  // ─── TEAR DOWN THE COMMENT-TO-DM AUTOMATION ───────────────────────────────
+  // A retracted video must not leave an automation behind DMing strangers an
+  // asset for content that is gone. The 4-hourly reconciler
+  // (api/cron-sync-video-automations.js) would catch this on its own, but up
+  // to 4 hours of orphaned DMs about a pulled video is exactly the kind of gap
+  // that only looks small until it happens. Retract the automation in the same
+  // breath as the post.
+  //
+  // Best effort by design: a failure here must never make the RETRACTION
+  // itself report failure, because the post coming down is the thing that
+  // matters. It is reported in the response either way, never swallowed.
+  let automationTeardown = null;
+  if (row && !dryRun) {
+    try {
+      const { deleteAutomation } = require('./_lib/zernio-comments.js');
+      const led = await sb(
+        `/rest/v1/video_comment_automations?video_library_id=eq.${encodeURIComponent(row.id)}`
+        + '&status=neq.retired&select=id,keyword,zernio_automation_id',
+      );
+      const ledRows = Array.isArray(led.data) ? led.data : [];
+      const done = [];
+      for (const a of ledRows) {
+        let delOk = true;
+        if (a.zernio_automation_id) {
+          const d = await deleteAutomation({ automationId: a.zernio_automation_id });
+          delOk = d.ok;
+        }
+        await sb(`/rest/v1/video_comment_automations?id=eq.${a.id}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({
+            status: 'retired',
+            retired_at: new Date().toISOString(),
+            retire_reason: `post_retracted: ${reason || 'no reason given'}`,
+            zernio_automation_id: delOk ? null : a.zernio_automation_id,
+            last_error: delOk ? null : 'zernio delete failed; automation may still be live',
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        done.push({ keyword: a.keyword, deleted_at_zernio: delOk });
+      }
+      automationTeardown = { count: done.length, automations: done };
+    } catch (err) {
+      // A missing table (migration not applied) lands here too.
+      automationTeardown = { error: String(err.message).slice(0, 200) };
+    }
+  }
+
   await notifyTelegram(
     [
       `RETRACTED: ${row ? row.id : targets[0].platform}`,
@@ -463,6 +511,7 @@ module.exports = async function handler(req, res) {
     row_id: row ? row.id : null,
     status_set_to: row ? RETRACTED_STATUS : null,
     excluded_from_republish: !!(rowUpdate && rowUpdate.ok),
+    comment_automations_retired: automationTeardown,
     audit_columns_missing: auditColumnsMissing || undefined,
     audit_columns_hint: auditColumnsMissing
       ? 'Run POST /api/admin-migrate-video-retraction to add the retraction audit columns; status was still moved.'
