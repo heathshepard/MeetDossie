@@ -109,7 +109,8 @@ const STATEMENTS = [
   `ALTER TABLE public.video_library
      ADD COLUMN IF NOT EXISTS dm_keyword   text,
      ADD COLUMN IF NOT EXISTS dm_asset_url text,
-     ADD COLUMN IF NOT EXISTS dm_message   text`,
+     ADD COLUMN IF NOT EXISTS dm_message   text,
+     ADD COLUMN IF NOT EXISTS dm_target_posts jsonb`,
 
   `CREATE UNIQUE INDEX IF NOT EXISTS video_library_dm_keyword_uniq
      ON public.video_library (lower(dm_keyword)) WHERE dm_keyword IS NOT NULL`,
@@ -227,7 +228,7 @@ module.exports = async function handler(req, res) {
     const vcols = await client.query(
       `SELECT column_name FROM information_schema.columns
         WHERE table_schema='public' AND table_name='video_library'
-          AND column_name IN ('dm_keyword','dm_asset_url','dm_message')
+          AND column_name IN ('dm_keyword','dm_asset_url','dm_message','dm_target_posts')
         ORDER BY column_name`,
     );
     const flags = await client.query(

@@ -183,6 +183,19 @@ alter table video_library add column if not exists dm_keyword text;
 alter table video_library add column if not exists dm_asset_url text;
 alter table video_library add column if not exists dm_message text;
 
+-- ESCAPE HATCH, not a chore. The automatic path resolves a post through
+-- zernio_deliveries[].zernio_post_id -> GET /v1/posts/{id} -> platformPostId.
+-- Two pieces of bookkeeping currently do not populate that: social_posts
+-- .zernio_post_id is NULL on every recent posted row (the same broken column
+-- that made the old comment monitor scan zero posts for 79 days), and
+-- zernio_deliveries only started being written on 2026-09-25. Neither is this
+-- migration's bug to fix, and neither may make the first real keyword
+-- impossible to arm. So a target can be stated outright:
+--   [{"platform":"instagram","platformPostId":"...","accountId":"...","profileId":"..."}]
+-- Set once by scripts/sync-video-comment-automations.js --post. New videos
+-- resolve on their own and never need it.
+alter table video_library add column if not exists dm_target_posts jsonb;
+
 -- Same permanent-attribution rule at the declaration site, so a collision is
 -- caught when someone TYPES the duplicate keyword, not later at arm time.
 create unique index if not exists video_library_dm_keyword_uniq

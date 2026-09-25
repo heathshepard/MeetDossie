@@ -20,11 +20,14 @@
 //       Scope to one video.
 //
 //   node scripts/sync-video-comment-automations.js --declare <video_id> \
-//        --keyword TREC --asset <public-url> [--message "..."]
+//        --keyword TREC --asset <public-url> [--message "..."] \
+//        [--post instagram:<platformPostId> [--account <id|username>]]
 //       Declare the keyword ON the video record. This is the ONLY thing a
 //       human does. Refuses a keyword already claimed by another video rather
 //       than overwriting, because a recycled keyword makes every lead it ever
 //       produced unattributable.
+//       --post is an escape hatch for a post the automatic resolver cannot
+//       see (no zernio_deliveries recorded). New videos never need it.
 //
 //   node scripts/sync-video-comment-automations.js --list
 //       Current ledger + leads captured per keyword.
@@ -116,10 +119,49 @@ async function declareKeyword() {
     if (!reach.ok) console.log('  The keyword can be declared now, but it will NOT arm until this URL resolves.');
   }
 
+  // --post <instagram|facebook>:<platformPostId>
+  // Escape hatch for a post the automatic resolver cannot see (see
+  // explicitTargets() in api/_lib/video-comment-automations.js). The accountId
+  // and profileId are looked up from GET /v1/accounts rather than typed, so a
+  // wrong id cannot be entered by hand.
+  let targetPosts = null;
+  const post = arg('--post');
+  if (post) {
+    const [plat, platformPostId] = String(post).split(':');
+    if (!plat || !platformPostId) {
+      console.error('--post must be <instagram|facebook>:<platformPostId>');
+      process.exit(1);
+    }
+    const accRes = await fetch('https://zernio.com/api/v1/accounts', {
+      headers: { Authorization: `Bearer ${process.env.ZERNIO_API_KEY}` },
+    });
+    const accJson = await accRes.json().catch(() => ({}));
+    const matches = (accJson.accounts || []).filter((a) => a.platform === plat);
+    if (matches.length === 0) {
+      console.error(`No connected ${plat} account.`);
+      process.exit(1);
+    }
+    const owner = arg('--account');
+    const acct = owner ? matches.find((a) => a._id === owner || a.username === owner) : (matches.length === 1 ? matches[0] : null);
+    if (!acct) {
+      console.error(`Several ${plat} accounts connected. Re-run with --account <id|username>:`);
+      for (const a of matches) console.error(`  ${a._id}  ${a.username}`);
+      process.exit(1);
+    }
+    targetPosts = [{
+      platform: plat,
+      platformPostId,
+      accountId: acct._id,
+      profileId: typeof acct.profileId === 'object' ? acct.profileId._id : acct.profileId,
+    }];
+    console.log(`target: ${plat} post ${platformPostId} on @${acct.username}`);
+  }
+
   const patch = {
     dm_keyword: keyword,
     ...(asset ? { dm_asset_url: asset } : {}),
     ...(message ? { dm_message: message } : {}),
+    ...(targetPosts ? { dm_target_posts: targetPosts } : {}),
   };
   const r = await sb(`video_library?id=eq.${encodeURIComponent(videoId)}`, {
     method: 'PATCH',

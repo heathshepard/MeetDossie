@@ -98,13 +98,45 @@ async function readFlag(sb, key) {
 }
 
 /**
- * Resolve a Zernio post id to its per-platform post ids and account ids.
+ * Turn an explicit target declaration into the same shape resolvePostTargets
+ * returns, WITHOUT a Zernio post record.
  *
- * VERIFIED 2026-09-25 against the live API: GET /v1/posts/{id} returns
- * platforms[] with platformPostId, platformPostUrl, status, and an expanded
- * accountId object. This is the join between our video records and the
- * platform ids an automation needs; there is no other source for it.
+ * WHY THIS ESCAPE HATCH EXISTS. The automatic path needs
+ * video_library.zernio_deliveries[].zernio_post_id, and two separate pieces of
+ * bookkeeping are currently not writing it:
+ *   - social_posts.zernio_post_id is NULL on every recent posted row, even
+ *     ones verified live on the platform. (This is the same broken column that
+ *     made the old comment monitor scan zero posts for 79 days. Ingestion no
+ *     longer depends on it; arming still would.)
+ *   - zernio_deliveries only started being recorded on 2026-09-25, so anything
+ *     published before that has an empty array.
+ * Neither is this module's bug to fix, but neither can be allowed to make the
+ * first real keyword impossible to arm either.
+ *
+ * So a target can be stated outright: video_library.dm_target_posts =
+ *   [{ "platform": "instagram", "platformPostId": "...", "accountId": "...", "profileId": "..." }]
+ * Set once, by the CLI, for a post the automatic path cannot see. New videos
+ * going forward resolve on their own and never need this.
  */
+function explicitTargets(video) {
+  const raw = video && video.dm_target_posts;
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const t of raw) {
+    if (!t || !DM_AUTOMATION_PLATFORMS.has(t.platform)) continue;
+    if (!t.platformPostId || !t.accountId || !t.profileId) continue;
+    out.push({
+      platform: t.platform,
+      accountId: String(t.accountId),
+      profileId: String(t.profileId),
+      platformPostId: String(t.platformPostId),
+      platformPostUrl: t.platformPostUrl || null,
+      source: 'explicit',
+    });
+  }
+  return out;
+}
+
 async function resolvePostTargets({ zernioPostId, budget }) {
   const r = await zernio(`/posts/${encodeURIComponent(zernioPostId)}`, {}, budget);
   if (!r.ok) return { ok: false, error: `posts_lookup_${r.status}: ${r.error}`, targets: [] };
@@ -190,7 +222,7 @@ async function syncVideoAutomations({
   // ── Declared state ──────────────────────────────────────────────────────
   const vq = onlyVideoId
     ? `video_library?id=eq.${encodeURIComponent(onlyVideoId)}&select=*`
-    : 'video_library?dm_keyword=not.is.null&select=id,status,topic,caption,dm_keyword,dm_asset_url,dm_message,zernio_deliveries,retracted_at,posted_date';
+    : 'video_library?dm_keyword=not.is.null&select=id,status,topic,caption,dm_keyword,dm_asset_url,dm_message,dm_target_posts,zernio_deliveries,retracted_at,posted_date';
   const videosR = await sb(vq);
   if (!videosR.ok) return { error: `video_library read failed ${videosR.status}`, plan, applied, collisions, errors };
   const videos = (Array.isArray(videosR.data) ? videosR.data : []).filter((v) => v.dm_keyword);
@@ -274,7 +306,8 @@ async function syncVideoAutomations({
     // ── Arm path. Resolve where this video actually lives.
     const deliveries = Array.isArray(video.zernio_deliveries) ? video.zernio_deliveries : [];
     const zernioPostIds = [...new Set(deliveries.map((d) => d && d.zernio_post_id).filter(Boolean))];
-    if (zernioPostIds.length === 0) {
+    const stated = explicitTargets(video);
+    if (zernioPostIds.length === 0 && stated.length === 0) {
       plan.push({ video: video.id, keyword, action: 'skip', reason: 'no_zernio_delivery_recorded' });
       continue;
     }
@@ -285,11 +318,15 @@ async function syncVideoAutomations({
       continue;
     }
 
-    const targets = [];
+    const targets = [...stated];
     for (const zid of zernioPostIds) {
       const r = await resolvePostTargets({ zernioPostId: zid, budget });
       if (!r.ok) { errors.push({ video: video.id, stage: 'resolve', error: r.error }); continue; }
-      targets.push(...r.targets);
+      for (const t of r.targets) {
+        // An explicit declaration wins over a resolved one for the same
+        // account, so a stated target is never quietly shadowed.
+        if (!targets.some((x) => x.accountId === t.accountId)) targets.push(t);
+      }
     }
     if (targets.length === 0) {
       // Not an error. Comment-to-DM exists on Instagram and Facebook only, so
@@ -442,6 +479,7 @@ async function syncVideoAutomations({
 
 module.exports = {
   FLAG_CREATE,
+  explicitTargets,
   FLAG_LIVE,
   NAME_PREFIX,
   PUBLISHED_STATUSES,
