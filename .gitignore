@@ -288,3 +288,8 @@ scripts/.audit-*
 scripts/config/heath-voice-clone.json
 scripts/config/heath-voice-clone-test-sample.mp3
 scripts/config/heath-voice-clone-*.mp3
+
+# video-engine model weights — fetched by scripts/video-engine/download-models.sh
+scripts/video-engine/models/
+models/
+node_modules

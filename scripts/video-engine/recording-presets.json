@@ -1,0 +1,167 @@
+{
+  "$schema": "./recording-presets.schema.md",
+  "version": 1,
+  "$comment": [
+    "Named RECORDING PRESETS — one per physical place Heath shoots from.",
+    "",
+    "WHY THIS FILE EXISTS. A preset is a measured, human-verified answer to",
+    "'given this room, this camera distance and this furniture, what part of",
+    "the sensor is the actual picture?'. That answer does not change between",
+    "takes as long as he stands in the same spot, so it belongs in config",
+    "with its derivation recorded — not as a constant inside a function where",
+    "nobody can see what it was measured against or when it stops being true.",
+    "",
+    "A preset is a BASELINE FOR THE FACE TRACKER, NOT A RIGID CROP.",
+    "face-track-crop.js uses baselineCrop to answer two questions — how tight",
+    "is the shot (zoom) and where does the subject sit inside it (faceAnchor.",
+    "withinCrop) — and then MOVES that window to follow the face. A preset",
+    "applied as a static crop will amputate him: he drifts laterally during a",
+    "take and a raised hand leaves the baseline rect entirely in the last",
+    "seconds of the 2026-09-22 source.",
+    "",
+    "ROTATION CAVEAT. All coordinates are in DISPLAY space — the frame AFTER",
+    "the container's rotation metadata has been applied. Phone footage is",
+    "commonly stored 3840x2160 landscape with a -90 display matrix and",
+    "presents as 2160x3840 portrait. ffmpeg/ffprobe apply that matrix by",
+    "default on decode, so these numbers match what you get from a plain",
+    "`ffmpeg -i src -frames:v 1 out.png`. They do NOT match the raw stored",
+    "width/height reported by `ffprobe -show_streams`. Always compare against",
+    "displayWidth/displayHeight, never stream width/height.",
+    "",
+    "RESOLUTION INDEPENDENCE. baselineCrop is absolute pixels for the source",
+    "it was derived against; baselineCropNormalized is the same rect as",
+    "fractions of the display frame. The engine works at an intermediate",
+    "resolution (edit.js caps the long edge at 2880, so 2160x3840 becomes",
+    "1620x2880), so ONLY the normalized form is ever applied. The absolute",
+    "pixels are kept so the derivation stays auditable."
+  ],
+  "presets": {
+    "kitchen-island": {
+      "label": "Kitchen island — standing behind the counter, phone on the far side",
+      "description": [
+        "Heath shoots from across a kitchen island he cannot move, so the",
+        "camera sits further back than a normal talking-head distance. Raw",
+        "frame: he is small in frame, the counter/placemat/cutting board eat",
+        "the bottom third, and there is far too much headroom (ceiling and",
+        "light fixture). This preset punches in 1.61x to recover a normal",
+        "shot: counter gone, eyes on the upper third, hands still in frame",
+        "during gestures."
+      ],
+      "derivation": {
+        "date": "2026-09-22",
+        "derivedBy": "Atlas",
+        "derivedFrom": "/mnt/c/Users/Heath/Downloads/20260922_124214.mp4",
+        "sourceDisplayWidth": 2160,
+        "sourceDisplayHeight": 3840,
+        "sourceStoredWidth": 3840,
+        "sourceStoredHeight": 2160,
+        "sourceRotation": -90,
+        "sourceCodec": "hevc",
+        "sourceFps": 59.94,
+        "method": [
+          "Crop rect chosen by eye against the raw frame, then verified on a",
+          "13-frame contact sheet sampled every ~2 s across the full 27.3 s",
+          "take and looked at directly — not inferred from face-box math.",
+          "Face positions across the same 13 frames were then measured with",
+          "the engine's own RFB-320 detector to record faceAnchor."
+        ],
+        "verifiedBy": "13-frame contact sheet, visually checked 2026-09-22",
+        "equivalentFfmpegFilter": "crop=1342:2386:566:532,scale=1080:1920"
+      },
+      "baselineCrop": { "x": 566, "y": 532, "w": 1342, "h": 2386 },
+      "baselineCropNormalized": {
+        "x": 0.262037,
+        "y": 0.138542,
+        "w": 0.621296,
+        "h": 0.621354
+      },
+      "baselineZoom": 1.6095,
+      "$baselineZoomComment": "displayHeight / baselineCrop.h = 3840 / 2386. This is the WIDE shot — the verified framing — not a maximum.",
+      "faceAnchor": {
+        "$comment": [
+          "Where the face sat when the crop was derived, measured with the",
+          "engine's own detector across 11 non-transient frames (t=2..22 s;",
+          "t=0 and t=26 excluded as lean-in outliers). withinCrop is the",
+          "tracking target: face-track-crop.js keeps the face at this",
+          "position inside the crop window, which reproduces the verified",
+          "baseline exactly when he is at his home position and follows him",
+          "when he is not."
+        ],
+        "sourceCxFrac": 0.523148,
+        "sourceCyFrac": 0.365104,
+        "faceHeightFrac": 0.123177,
+        "withinCrop": { "x": 0.4203, "y": 0.3646 },
+        "measuredSpread": {
+          "cxFracMin": 0.494,
+          "cxFracMax": 0.575,
+          "cyFracMin": 0.335,
+          "cyFracMax": 0.373,
+          "faceHeightFracMin": 0.1165,
+          "faceHeightFracMax": 0.1876
+        }
+      },
+      "tracking": {
+        "$comment": [
+          "A preset is a home framing, not a lock. gainX/gainY scale how much",
+          "of the face's excursion from its home position the crop follows.",
+          "gainX is high because lateral drift is real movement — he shifts",
+          "left around the middle of the take. gainY is lower because most",
+          "vertical face motion is head bob, and a frame that bobs with his",
+          "head reads as a handheld wobble. maxExcursionFrac caps how far the",
+          "window may travel from home as a fraction of the crop size, so one",
+          "bad detection cannot fling the frame across the room."
+        ],
+        "gainX": 0.75,
+        "gainY": 0.5,
+        "maxExcursionFracX": 0.18,
+        "maxExcursionFracY": 0.12,
+        "smooth": 0.14
+      },
+      "shotRange": {
+        "$comment": [
+          "What shot-plan.js should derive its wide/punch range from. wide IS",
+          "the verified baseline; punch is tighter. Absolute values, already",
+          "relative to baselineZoom — they are NOT the engine's generic",
+          "defaults, which top out at punchZoomMax 1.6 and would clamp this",
+          "preset's own baseline of 1.6095 back down, silently undoing it."
+        ],
+        "wideZoom": 1.6095,
+        "punchFactor": 1.16,
+        "punchZoomMax": 1.95,
+        "maxScaleRatio": 1.25
+      },
+      "autoDetect": {
+        "$comment": [
+          "Signature of 'shot from across the island': a portrait 9:16 frame",
+          "in which the face is SMALL (he is far away) and HIGH (the counter",
+          "occupies the bottom). Both bounds are wide relative to the",
+          "measured spread and are still cleanly disjoint from the previous",
+          "arm's-length source (22054.mp4, the trial_06/07 take), which",
+          "measures faceHeightFrac 0.342-0.433 and faceCyFrac 0.503-0.581.",
+          "Margin on faceHeightFrac is 0.24 vs 0.342; on faceCyFrac 0.45 vs",
+          "0.503. Detection is a match on BOTH, on a majority of sampled",
+          "frames, or it does not fire."
+        ],
+        "aspect": { "min": 0.54, "max": 0.58 },
+        "minDisplayHeight": 1920,
+        "requirePortrait": true,
+        "faceHeightFrac": { "min": 0.07, "max": 0.24 },
+        "faceCyFrac": { "min": 0.26, "max": 0.45 },
+        "faceCxFrac": { "min": 0.38, "max": 0.68 },
+        "minFrameAgreementFrac": 0.6,
+        "minFaceScore": 0.9
+      },
+      "notes": [
+        "BASELINE, NOT A RIGID CROP — see the top-level $comment. Applied",
+        "statically this rect clips his raised hand in the final seconds.",
+        "The island cannot be moved, so the camera distance is fixed; if he",
+        "ever shoots from a different side of it, re-derive rather than nudge.",
+        "Audio from this setup is a single DJI lav into ONE input — expect a",
+        "dead right channel. See audio-lib/channel-check.js.",
+        "Re-derive if: he changes where he stands, the phone moves, or the",
+        "camera's focal length / crop factor changes (different phone, or",
+        "the same phone on a different lens)."
+      ]
+    }
+  }
+}

@@ -589,6 +589,7 @@ Topic depth lives here. Read before working in that area — don't carry the who
 | File | Use when |
 |---|---|
 | `docs/CUSTOMERS.md` | Working with any named customer, MRR math, onboarding history, Brittney context. Update on every onboard/cancel. |
+| **`docs/VIDEO-PRODUCTION-RECIPE.md`** | **Before producing any talking-head / document-explainer video.** The proven end-to-end build of `dossie_water_FINAL_V8.mp4` (the TREC ¶7.I cut, 2026-09-24) — every parameter measured on real output: multi-take sentence selection via `logprob`, matte, document scroll, circle annotation, caption style line, shot plan, audio + music levels, hook/CTA cards. Working files in `scripts/video-engine/recipes/trec-7i/`. Read `docs/DOSSIE-CREATIVE-DIRECTOR-STANDARD.md` first — that is the rubric, this is the build. |
 | `docs/VIDEO-RULES.md` | Screen recording naming, video pipeline rules, content calendar, voiceover rules, posting schedule, media folder layout. |
 | `docs/PIPELINE.md` | Social posting crons, content rules (third-person, ASCII, field caps), social accounts + Zernio account IDs. |
 | `docs/GOLD-HISTORY.md` | Recovering from broken state — find a known-good GOLD tag to check out. |
