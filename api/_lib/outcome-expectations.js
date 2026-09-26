@@ -165,7 +165,7 @@ function buildQuery(exp, { nowMs = Date.now() } = {}) {
 
   if (exp.time_column) {
     if (!IDENT_RE.test(exp.time_column)) throw new Error(`invalid time_column: ${exp.time_column}`);
-    const cutoff = new Date(nowMs - Number(exp.window_hours || 24) * 3600 * 1000).toISOString();
+    const cutoff = new Date(nowMs - windowHours(exp) * 3600 * 1000).toISOString();
     // Window direction is DECLARED, never inferred. Two genuinely different
     // questions share this shape and guessing between them is how a check ends
     // up silently asking the wrong one:
@@ -181,6 +181,21 @@ function buildQuery(exp, { nowMs = Date.now() } = {}) {
 
 function windowMode(exp) {
   return exp.window_mode === 'older_than' ? 'older_than' : 'recent';
+}
+
+// BUGFIX (Atlas 2026-09-25): `exp.window_hours || 24` treats a DECLARED
+// window_hours=0 (a real, meaningful value — "older_than" with 0 means
+// "anything at all in the past", used by e.g. video_scheduled_not_posted's
+// scheduled_for-has-passed check) as falsy and silently substitutes 24,
+// giving that expectation a full day of unintended slack it was never
+// configured to have. Caught live: outcome-monitor-verify.js reported
+// video_orphan_files_stale as MET with window_hours temporarily set to 0 for
+// a test, when the raw PostgREST count for the same cutoff was 15, not 0.
+// 24 remains the correct default for an ABSENT window_hours (null/undefined
+// — every expectation that predates this field, or a future INSERT that
+// omits it).
+function windowHours(exp) {
+  return exp.window_hours === null || exp.window_hours === undefined ? 24 : Number(exp.window_hours);
 }
 
 /** min_count = 0 means "this set must stay EMPTY" (a backlog assertion). */
@@ -251,7 +266,7 @@ async function measure(exp, opts = {}) {
   // that as a 0-hour-old problem would park it in its own grace period forever.
   const outageHours = met ? null
     : last ? (Date.now() - new Date(last).getTime()) / 3600000
-    : (inverted ? null : Number(exp.window_hours || 24));
+    : (inverted ? null : windowHours(exp));
   return {
     key: exp.key, expected: Number(exp.min_count), actual: r.count,
     met, inverted, query, error: null,
@@ -263,6 +278,6 @@ async function measure(exp, opts = {}) {
 }
 
 module.exports = {
-  sb, countRows, buildQuery, countProjection, isInverted, windowMode, loadExpectations,
+  sb, countRows, buildQuery, countProjection, isInverted, windowMode, windowHours, loadExpectations,
   measure, lastProducedAt, validColumn, ALLOWED_OPS, IDENT_RE, JSON_PATH_RE,
 };

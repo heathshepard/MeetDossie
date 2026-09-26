@@ -66,11 +66,49 @@ except ImportError:  # pragma: no cover — Python < 3.9 fallback, shouldn't hap
     ZoneInfo = None
 
 # ── Load env files ────────────────────────────────────────────────────────────
+#
+# WORKTREE FIX (Atlas 2026-09-25): .env.local is gitignored, so it only ever
+# exists in the MAIN checkout — every git worktree under .claude/worktrees/
+# has no copy. This script used to look ONLY at REPO/.env.local (REPO =
+# this file's own location's parent), which resolves to the WORKTREE root
+# when an agent runs it there, and just silently errors "SUPABASE_URL and
+# SUPABASE_SERVICE_ROLE_KEY are required" — the exact same silent-failure
+# class scripts/video-engine/env-local.js was already built to fix for the
+# Node scripts (see that file's header: it's the reason Audio Isolation
+# never fired for months). This mirrors that resolution order for Python:
+# walk up from this file, then fall back to the main worktree's root via
+# `git rev-parse --git-common-dir`.
+
+def _env_candidates() -> list:
+    here = Path(__file__).resolve().parent
+    out = []
+    d = here
+    for _ in range(8):
+        out.append(d / ".env.local")
+        if d.parent == d:
+            break
+        d = d.parent
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=str(here), capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+        if common:
+            out.append(Path(common).parent / ".env.local")
+    except Exception:
+        pass  # not a repo, or no git — fine, the walk-up above already covers a normal checkout
+    return out
+
 
 def load_env_file(path: Path):
     if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
+        return False
+    # Strip a UTF-8 BOM -- with it, the FIRST variable's name comes out as
+    # "﻿FOO" and that one var is silently missing while every other one
+    # loads, which reads exactly like a rotated key (env-local-bom-breaks-
+    # first-var.md).
+    text = path.read_text(encoding="utf-8").lstrip("﻿")
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -78,10 +116,18 @@ def load_env_file(path: Path):
         k = k.strip()
         v = v.strip().strip('"').strip("'")
         os.environ.setdefault(k, v)
+    return True
 
 REPO = Path(__file__).parent.parent
 load_env_file(REPO / ".env.production.local")
-load_env_file(REPO / ".env.local")
+_loaded = False
+for _candidate in _env_candidates():
+    if load_env_file(_candidate):
+        _loaded = True
+        break
+if not _loaded:
+    print("  WARN: no .env.local found (searched the main worktree root too) -- "
+          "anything keyed off an env var will now take its fallback path.")
 
 # SUPABASE_URL is intentionally empty in .env.local (Vercel-managed).
 # Fall back to NEXT_PUBLIC_SUPABASE_URL which has the real value locally.
