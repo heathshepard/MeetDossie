@@ -111,7 +111,7 @@ async function main() {
   if (!libOk) { console.error('ERROR: failed to read video_library ids'); process.exit(1); }
   const registeredIds = new Set((libRows || []).map((r) => r.id));
 
-  const { ok: orphanOk, data: existingOrphans } = await sb('local_video_orphans?select=id,path');
+  const { ok: orphanOk, data: existingOrphans } = await sb('local_video_orphans?select=id,path,target_owner');
   if (!orphanOk) { console.error('ERROR: failed to read local_video_orphans'); process.exit(1); }
   const existingOrphanIds = new Set((existingOrphans || []).map((r) => r.id));
 
@@ -133,8 +133,28 @@ async function main() {
   // "resolved" and deleted the tracking row for a video that was STILL
   // unregistered. That is the exact silent-failure class this whole system
   // exists to prevent, just moved one layer down.
+  //
+  // BUG #2 (Atlas 2026-09-26, caught running the same script from Windows-
+  // native node against rows written by a WSL node invocation): `row.path`
+  // is an ABSOLUTE path captured at write time from THAT run's __dirname —
+  // `/mnt/c/Users/Heath/...` under WSL, `C:\Users\Heath\...` under native
+  // Windows node for the identical file. This script is meant to run
+  // unattended via Windows Task Scheduler (see header) while videos also get
+  // registered from Claude Code's WSL session — a guaranteed environment
+  // mismatch. Trusting the stored string meant fs.existsSync(row.path)
+  // returned false for every WSL-written row checked from Windows (or vice
+  // versa) and this "self-heal" silently deleted the tracking row for a
+  // file that was STILL sitting there unregistered — the exact failure mode
+  // BUG #1 above already named, one layer up. Fix: never trust the stored
+  // path for existence — recompute it from THIS run's own WATCH_DIRS (which
+  // already resolves correctly in whichever environment is currently
+  // running) using the row's id (stem) + target_owner, and check that.
+  const expectedPathFor = (row) => {
+    const watch = WATCH_DIRS.find((w) => w.owner === row.target_owner) || WATCH_DIRS[0];
+    return path.join(watch.dir, `${row.id}.mp4`);
+  };
   const toClear = (existingOrphans || [])
-    .filter((row) => registeredIds.has(row.id) || !fs.existsSync(row.path))
+    .filter((row) => registeredIds.has(row.id) || !fs.existsSync(expectedPathFor(row)))
     .map((row) => row.id);
 
   console.log(`New orphan(s) to track: ${newOrphans.map((f) => f.stem).join(', ') || 'none'}`);
