@@ -73,6 +73,7 @@ const {
   blockingMessage: electionBlockingMessage,
   formCodeForFormType,
 } = require('./_lib/contract-election-gate');
+const { verifySigningPageLive } = require('./_lib/docuseal-signing-verify');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1456,6 +1457,60 @@ async function docusealDeleteTemplate(templateId) {
   }
 }
 
+// Best-effort cleanup — mirrors docusealDeleteTemplate's pattern exactly.
+// Called only when assertSigningLinkIsLiveOrThrow is about to refuse a send
+// (sandbox mode or a dead link), so a submission that will never reach
+// anyone doesn't sit in the DocuSeal dashboard looking "sent." Never allowed
+// to affect the refusal itself — the caller always throws regardless of
+// whether this succeeds.
+async function docusealArchiveSubmission(submissionId) {
+  if (!submissionId) return;
+  try {
+    const r = await fetch(`${DOCUSEAL_BASE}/submissions/${submissionId}`, {
+      method: 'DELETE',
+      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.warn(`[esign-create] Archive failed for submission ${submissionId} (${r.status}): ${text.slice(0, 200)}`);
+    } else {
+      console.log(`[esign-create] Archived submission ${submissionId} after a failed production-mode check.`);
+    }
+  } catch (err) {
+    console.warn(`[esign-create] Archive threw for submission ${submissionId}:`, err && err.message);
+  }
+}
+
+// Real, rendered-page proof the account is in Production and the link a
+// recipient would receive is genuinely signable — not a guess from an env
+// var, not a status code. Built 2026-09-26 after DocuSeal's Developer
+// Sandbox mode silently broke a live packet: every API call along this
+// file's send paths returned success, and the ONLY place that said
+// otherwise was the rendered signing page itself.
+//
+// Called immediately after a submission is created, on ALL THREE creation
+// paths in this file (send_for_acknowledgment, the multi-document packet
+// path, and the single-document template/PDF path) — BEFORE any signing
+// email goes out and BEFORE the caller is ever told the send succeeded.
+// Checks the first signer with a signingUrl; sandbox mode is an
+// account-level property, not a per-signer one, and multi-signer order on
+// this account is concurrent (verified live), not sequential, so the first
+// signer's page is exactly as real as anyone else's.
+//
+// Fails CLOSED: if the check itself cannot be completed (browser crash,
+// network timeout), that is treated exactly like a confirmed sandbox hit —
+// an unproven send is not safe to report as done. On any refusal, the
+// just-created submission is best-effort archived so it doesn't dangle.
+async function assertSigningLinkIsLiveOrThrow(signerRows, { submissionId, verify = verifySigningPageLive } = {}) {
+  const target = (signerRows || []).find((s) => s && s.signingUrl);
+  if (!target) return; // DocuSeal gave no signing URL for anyone to check — not this gate's failure mode.
+  const result = await verify(target.signingUrl);
+  if (!result.ok) {
+    docusealArchiveSubmission(submissionId).catch(() => {});
+    throw new ValidationError(result.message, 502);
+  }
+}
+
 async function docusealCreateFromTemplate({ templateId, signers, message, prefillData, extraSubmitter }) {
   // Creates a submission from a pre-built DocuSeal template (fields already placed).
   // extraSubmitter (optional): a pre-completed submitter to prepend BEFORE the
@@ -1931,6 +1986,12 @@ module.exports = async function handler(req, res) {
         message: ackMessage,
       });
 
+      // Real, rendered-page proof this is genuinely sendable — see the
+      // function's own header comment. Refuses (throws) before any email
+      // goes out if the account is in DocuSeal Sandbox mode or the link is
+      // dead.
+      await assertSigningLinkIsLiveOrThrow(signerRows, { submissionId });
+
       const txId = transactionId || doc.transaction_id || null;
       const tx = txId ? await getTransactionRow(txId, userId) : null;
       const propertyAddress = tx ? (tx.property_address || '') : '';
@@ -2150,6 +2211,12 @@ module.exports = async function handler(req, res) {
           uuid: sub.uuid || null,
         };
       });
+
+      // Real, rendered-page proof this is genuinely sendable — see the
+      // function's own header comment. Refuses (throws) before any email
+      // goes out if the account is in DocuSeal Sandbox mode or the link is
+      // dead.
+      await assertSigningLinkIsLiveOrThrow(packetSignerRows, { submissionId: packetSubmissionId });
 
       // ONE Dossie-branded email per external signer for the whole packet.
       await Promise.all(
@@ -2514,6 +2581,12 @@ module.exports = async function handler(req, res) {
       };
     });
 
+    // Real, rendered-page proof this is genuinely sendable — see the
+    // function's own header comment. Refuses (throws) before any email
+    // goes out if the account is in DocuSeal Sandbox mode or the link is
+    // dead.
+    await assertSigningLinkIsLiveOrThrow(signerRows, { submissionId });
+
     // Send Dossie-branded signing emails via Resend.
     // Fire-and-forget per signer — a single email failure must not abort the submission.
     // Skip the agent signer (agentSignerEmail) — only external signers get notified here.
@@ -2624,5 +2697,8 @@ module.exports.__testing = {
   docusealCreateFromPacket,
   sha256Hex,
   MAX_PACKET_DOCUMENTS,
+  // Sandbox/dead-link send gate (2026-09-26)
+  assertSigningLinkIsLiveOrThrow,
+  docusealArchiveSubmission,
 };
 

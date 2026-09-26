@@ -399,6 +399,9 @@
     },
     "api/{cron-dispatch-daily-0900,cron-dispatch-every6h}.js": {
       "maxDuration": 130
+    },
+    "api/{esign-create,esign-packet-send}.js": {
+      "maxDuration": 60
     }
   },
   "crons": [
