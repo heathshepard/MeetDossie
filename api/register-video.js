@@ -12,65 +12,23 @@ const ANTHROPIC_API_KEY    = process.env.ANTHROPIC_API_KEY;
 const CRON_SECRET          = process.env.CRON_SECRET;
 const STUDIO_PASSWORD      = process.env.STUDIO_PASSWORD;
 
-async function generateCaption(stem) {
-  const fallback = 'Your transactions, handled. meetdossie.com/signup';
+// Auto-scheduling (Atlas 2026-09-25 — "videos also get scheduled when they
+// are made"). See api/_lib/video-schedule.js file header.
+const { pickScheduledFor } = require('./_lib/video-schedule.js');
+// Caption generation, extracted 2026-09-25 into a shared lib so this and
+// scripts/register-local-video.js (the CLI registration path) don't fork it.
+const { generateCaption } = require('./_lib/video-caption.js');
 
-  if (!ANTHROPIC_API_KEY) {
-    console.log('[register-video] No ANTHROPIC_API_KEY — using fallback caption');
-    return fallback;
-  }
-
-  const prompt =
-    `Generate a 1-2 sentence social media caption for a Dossie video. ` +
-    `Topic: ${stem}. ` +
-    `Brand: warm AI transaction coordinator for Texas real estate agents. ` +
-    `End with: meetdossie.com/signup. Max 150 chars. Plain ASCII only.`;
-
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key':         ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'Content-Type':      'application/json',
-      },
-      body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        messages:   [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!resp.ok) {
-      console.warn('[register-video] Anthropic error', resp.status, '— using fallback');
-      return fallback;
-    }
-
-    const data  = await resp.json();
-    // Sonnet 5 extended thinking prepends `thinking` block; iterate all text blocks.
-    let caption = ((data?.content || [])
-      .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
-      .map((b) => b.text)
-      .join('')
-      .trim());
-
-    // Enforce 150 char limit
-    if (caption.length > 150) {
-      const url = 'meetdossie.com/signup';
-      if (!caption.includes(url)) {
-        caption = caption.slice(0, 120) + '... ' + url;
-      } else {
-        caption = caption.slice(0, 150);
-      }
-    }
-
-    console.log(`[register-video] Caption (${caption.length} chars): ${caption}`);
-    return caption;
-  } catch (err) {
-    console.warn('[register-video] Caption generation threw:', err && err.message, '— using fallback');
-    return fallback;
-  }
+async function restGet(query) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` },
+  });
+  const text = await res.text();
+  let data = null;
+  if (text) { try { data = JSON.parse(text); } catch { data = null; } }
+  return { ok: res.ok, data };
 }
+
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -102,6 +60,16 @@ module.exports = async function handler(req, res) {
   // Generate caption
   const caption = await generateCaption(stem);
 
+  // Auto-schedule (no explicit time was ever a param on this endpoint, so
+  // this always runs unless it genuinely finds nothing in the next 14 days,
+  // in which case scheduled_for stays NULL — the pre-existing behavior).
+  let scheduledFor = null;
+  try {
+    scheduledFor = await pickScheduledFor({ platforms, owner: 'dossie', restGet });
+  } catch (err) {
+    console.warn('[register-video] pickScheduledFor threw, leaving scheduled_for null:', err && err.message);
+  }
+
   // Upsert into video_library
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -114,6 +82,7 @@ module.exports = async function handler(req, res) {
     caption,
     supabase_url:  publicUrl,
     produced_date: today,
+    scheduled_for: scheduledFor,
   };
 
   try {
@@ -137,8 +106,8 @@ module.exports = async function handler(req, res) {
       return res.status(502).json({ ok: false, error: `DB upsert failed: ${resp.status}` });
     }
 
-    console.log(`[register-video] Upserted video_library: id=${stem}`);
-    return res.status(200).json({ ok: true, id: stem });
+    console.log(`[register-video] Upserted video_library: id=${stem} scheduled_for=${scheduledFor || '(none — no free slot / no schedule)'}`);
+    return res.status(200).json({ ok: true, id: stem, scheduled_for: scheduledFor });
   } catch (err) {
     console.error('[register-video] fetch error:', err && err.message);
     return res.status(502).json({ ok: false, error: 'Failed to reach Supabase' });

@@ -66,6 +66,12 @@ const path = require('path');
 
 require('./env-local.js').load(null, { quiet: true });
 
+// Auto-scheduling (Atlas 2026-09-25 — see api/_lib/video-schedule.js file
+// header). Same module api/register-video.js and scripts/register-local-
+// video.js use, so all three registration paths agree on what "the next
+// free slot" means.
+const { pickScheduledFor } = require('../../api/_lib/video-schedule.js');
+
 const BUCKET_VIDEO = 'videos';
 const BUCKET_COVER = 'social-cards';
 const VIDEO_PREFIX = 'video-library';
@@ -169,12 +175,17 @@ async function resolveScheduledTargets(platforms, owner) {
  * @param {string} o.owner
  * @param {object} o.gateResult  the full JSON from check-video-quality-cli.js
  * @param {boolean} o.approve    write heath_approved instead of approved
+ * @param {string} [o.scheduledFor] explicit ISO time; when omitted this
+ *   calls pickScheduledFor() itself (Atlas 2026-09-25) — the whole point of
+ *   this script's name ("queue"), a video that gets produced also gets
+ *   scheduled, not just inserted with no opinion about when it posts.
  * @param {boolean} o.dryRun
  */
 async function queueVariant(o) {
   const {
     videoPath, coverPath, id, topic, caption, platforms,
     owner = 'dossie', gateResult, approve = false, dryRun = false, extraDetail = {},
+    scheduledFor: explicitScheduledFor = undefined,
   } = o;
 
   // ---- refuse to queue anything the gate did not pass -------------------
@@ -200,6 +211,21 @@ async function queueVariant(o) {
 
   const scheduledTargets = dryRun ? [] : await resolveScheduledTargets(platforms, owner);
 
+  // scheduled_for: explicit override wins; otherwise pick the next open
+  // posting_schedule slot ourselves. A failure here must never block
+  // queueing the video — worst case scheduled_for stays NULL, which is
+  // exactly the pre-2026-09-25 behavior (immediately eligible, oldest-first).
+  let scheduledFor = explicitScheduledFor || null;
+  if (!scheduledFor && !dryRun) {
+    try {
+      // video-schedule.js's restGet contract takes the path AFTER /rest/v1/;
+      // this file's own sb() wants the full /rest/v1/... path — bridge the two.
+      scheduledFor = await pickScheduledFor({ platforms, owner, excludeId: id, restGet: (q) => sb(`/rest/v1/${q}`) });
+    } catch (err) {
+      console.warn(`[queue-variant] pickScheduledFor threw, leaving scheduled_for null: ${err.message}`);
+    }
+  }
+
   const row = {
     id,
     type: 'screen_recording',
@@ -209,6 +235,7 @@ async function queueVariant(o) {
     target_owner: owner,
     produced_date: new Date().toISOString().slice(0, 10),
     status,
+    scheduled_for: scheduledFor,
     quality_status: 'passed',
     quality_failed_rules: [],
     quality_checked_at: new Date().toISOString(),
@@ -265,6 +292,7 @@ async function main() {
     owner: arg('--owner', 'dossie'),
     gateResult: gateFile ? JSON.parse(fs.readFileSync(gateFile, 'utf8')) : null,
     approve: process.argv.includes('--approve'),
+    scheduledFor: arg('--scheduled-for'),
     dryRun: process.argv.includes('--dry-run'),
   });
   console.log(JSON.stringify(out, null, 2));

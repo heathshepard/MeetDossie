@@ -40,6 +40,10 @@
 // then sends Heath the Telegram approve card and only posts after his tap.
 // --dry-run prints the row and uploads nothing.
 //
+// The row also gets a real `scheduled_for` (Atlas 2026-09-25, via
+// queueVariant() -> api/_lib/video-schedule.js) so it doesn't just wait
+// oldest-first once approved — see queue-variant.js's own header.
+//
 // USAGE
 //   node scripts/video-engine/produce-variants.js --spec spec.json [--dry-run]
 //   node scripts/video-engine/produce-variants.js --spec spec.json --only core
