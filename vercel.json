@@ -389,6 +389,10 @@
       "maxDuration": 60,
       "includeFiles": "supabase/migrations/20260925_outcome_monitor.sql"
     },
+    "api/admin-migrate-video-scheduling.js": {
+      "maxDuration": 60,
+      "includeFiles": "supabase/migrations/20260925_video_scheduling_and_orphan_alarm.sql"
+    },
     "api/cron-outcome-monitor.js": {
       "maxDuration": 60
     },

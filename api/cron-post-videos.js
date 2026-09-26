@@ -9,6 +9,14 @@
 //   - Otherwise the Zernio call targets the platform's next slot today
 //     (scheduledFor); if every slot has already passed, it publishes now.
 //
+// ROW-LEVEL scheduled_for GATE (Atlas 2026-09-25): separate from the
+// per-platform gate above. video_library.scheduled_for is a coarse "don't
+// even consider this row yet" cutoff set at REGISTRATION time (see
+// api/_lib/video-schedule.js) — Step 2's query below only selects
+// heath_approved rows whose scheduled_for is NULL or already <= now. NULL
+// (every pre-2026-09-25 row) is unconditionally eligible, so the existing
+// queue's behavior is unchanged.
+//
 // REVIEW GATE FLOW (added 2026-05-27):
 //   1. Videos with status='approved' are sent to Heath via Telegram for review.
 //      Status is set to 'pending_heath_review' — they do NOT auto-post.
@@ -682,9 +690,18 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // oldest rows and post the first one that has at least one platform with
   // cap room today. Rows skipped this pass are untouched and re-considered
   // next run (or picked up sooner once cap room frees up).
+  // scheduled_for gate (Atlas 2026-09-25): a row with a future scheduled_for
+  // is not due yet and must not be treated as "oldest" just because nothing
+  // else is ready. NULL scheduled_for (every pre-2026-09-25 row, and any new
+  // row a registration path couldn't find a slot for) is unconditionally
+  // eligible — this `or` clause is additive, it never excludes a NULL row.
+  // Ordering puts NULL rows first (nullsfirst), sorted by created_at exactly
+  // as before, so the existing queue's behavior is untouched; due scheduled
+  // rows sort among themselves by scheduled_for.
   const CANDIDATE_BATCH_SIZE = 20;
+  const nowIso = encodeURIComponent(new Date().toISOString());
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.heath_approved${onlyVideoId ? `&id=eq.${encodeURIComponent(onlyVideoId)}` : ''}&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
+    `/rest/v1/video_library?status=eq.heath_approved${onlyVideoId ? `&id=eq.${encodeURIComponent(onlyVideoId)}` : ''}&or=(scheduled_for.is.null,scheduled_for.lte.${nowIso})&order=scheduled_for.asc.nullsfirst,created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
   );
 
   if (!heathApprovedOk) {

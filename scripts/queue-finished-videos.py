@@ -60,6 +60,10 @@ import urllib.error
 import urllib.parse
 import datetime
 from pathlib import Path
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:  # pragma: no cover — Python < 3.9 fallback, shouldn't happen here
+    ZoneInfo = None
 
 # ── Load env files ────────────────────────────────────────────────────────────
 
@@ -593,6 +597,98 @@ def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[
         return None
 
 
+# ── Auto-scheduling (Atlas 2026-09-25) ────────────────────────────────────────
+# Mirrors api/_lib/video-schedule.js's pickScheduledFor() -- see that file's
+# header for the full rationale. This is the Python half; the two runtimes
+# can't share a module, so this is a deliberate duplicate of the SAME
+# algorithm, not an independent design. Change one, change both.
+
+SCHEDULE_TERMINAL_STATUSES = {"posted", "rejected", "retracted", "quality_hold"}
+SCHEDULE_LOOKAHEAD_DAYS = 14
+DEFAULT_SCHEDULE_TZ = "America/Chicago"
+
+
+def assign_next_slot(platforms: list, owner: str, exclude_id: str | None = None) -> str | None:
+    """
+    Returns an ISO8601 UTC timestamp for the next open posting_schedule slot
+    for platforms[0] (the anchor platform), or None if nothing was found in
+    the lookahead window / the query failed -- callers must treat None as
+    "leave scheduled_for NULL", never as an error to surface.
+    """
+    if not platforms:
+        return None
+    anchor = platforms[0]
+
+    sched_result = supabase_request(
+        "GET",
+        f"/rest/v1/posting_schedule?platform=eq.{urllib.parse.quote(anchor)}"
+        f"&select=platform,day_of_week,time_slots,timezone,is_active,owner",
+    )
+    if not sched_result["ok"]:
+        return None
+    schedule_rows = sched_result.get("data") or []
+    if not schedule_rows:
+        return None
+
+    occupied = set()
+    occ_result = supabase_request(
+        "GET",
+        "/rest/v1/video_library?scheduled_for=not.is.null&select=id,scheduled_for,platforms,status",
+    )
+    if occ_result["ok"]:
+        for row in occ_result.get("data") or []:
+            if row.get("id") == exclude_id:
+                continue
+            if row.get("status") in SCHEDULE_TERMINAL_STATUSES:
+                continue
+            plats = row.get("platforms") or []
+            if anchor not in plats:
+                continue
+            sf = row.get("scheduled_for")
+            if not sf:
+                continue
+            try:
+                dt = datetime.datetime.fromisoformat(sf.replace("Z", "+00:00")).astimezone(datetime.timezone.utc)
+                occupied.add(dt.strftime("%Y-%m-%dT%H:%M"))
+            except Exception:
+                continue
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    for day_offset in range(SCHEDULE_LOOKAHEAD_DAYS):
+        candidate_day = now + datetime.timedelta(days=day_offset)
+        dow = candidate_day.isoweekday() % 7  # Mon=1..Sun=7 -> Sun=0..Sat=6, matches cron-post-videos.js
+        row = next(
+            (r for r in schedule_rows
+             if r.get("day_of_week") == dow and (r.get("owner") == owner or r.get("owner") is None) and r.get("is_active") is not False),
+            None,
+        )
+        if not row:
+            continue
+        tz_name = row.get("timezone") or DEFAULT_SCHEDULE_TZ
+        try:
+            tz = ZoneInfo(tz_name) if ZoneInfo else None
+        except Exception:
+            tz = None
+        if tz is None:
+            continue
+        day_in_tz = candidate_day.astimezone(tz)
+        for slot in sorted(row.get("time_slots") or []):
+            try:
+                parts = str(slot).split(":")
+                h, m = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+            except Exception:
+                continue
+            candidate = day_in_tz.replace(hour=h, minute=m, second=0, microsecond=0)
+            if candidate <= now.astimezone(tz):
+                continue
+            candidate_utc = candidate.astimezone(datetime.timezone.utc)
+            key = candidate_utc.strftime("%Y-%m-%dT%H:%M")
+            if key in occupied:
+                continue
+            return candidate_utc.isoformat().replace("+00:00", "Z")
+    return None
+
+
 def upsert_video_library(row: dict) -> bool:
     """Upsert a row into video_library. Returns True on success."""
     result = supabase_request(
@@ -791,6 +887,12 @@ def main():
         # cron-post-videos.js's own defense-in-depth gate (which cannot
         # re-run ffmpeg on Vercel, see api/_lib/verify-video-quality.js) has
         # nothing to accidentally queue for review or post.
+        # Auto-schedule (Atlas 2026-09-25) -- only meaningful on a quality
+        # pass; a quality_hold row isn't going anywhere until a human clears
+        # it, so scheduling it would just be a stale timestamp by the time it
+        # ships. See assign_next_slot() above / api/_lib/video-schedule.js.
+        scheduled_for = assign_next_slot(info["platforms"], info["target_owner"], exclude_id=stem) if quality_passed else None
+
         row = {
             "id": stem,
             "topic": info["topic"],
@@ -800,6 +902,7 @@ def main():
             "caption": caption,
             "supabase_url": public_url,
             "cover_url": cover_url,
+            "scheduled_for": scheduled_for,
             "quality_status": quality_status_value,
             "quality_failed_rules": failed_rules,
             "quality_detail": gate_result,
