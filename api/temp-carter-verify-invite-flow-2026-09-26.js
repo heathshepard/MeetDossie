@@ -106,6 +106,18 @@ module.exports = async function handler(req, res) {
 
     const unknown = await invites.lookupInvite(invites.generateRawToken());
     check('unknown token refused', unknown.ok === false && unknown.reason === 'unknown', unknown.reason);
+
+    // Real Resend send, real production template — proves delivery, not just
+    // the token mechanics above. Sent to Heath's own address only (never a
+    // customer), which is also the standing bcc on every real invite email.
+    const emailed = await invites.sendInviteEmail({
+      to: 'heath@meetdossie.com',
+      fullName: 'Carter Verification',
+      actionUrl: inv.url,
+      expiresAt: inv.expiresAt,
+      subject: '[Carter verify 2026-09-26] durable invite send test — safe to ignore',
+    });
+    check('Resend accepted a real send of the invite template', emailed.ok === true, emailed.error || emailed.id);
   } catch (err) {
     check('unhandled error', false, err && err.message);
   } finally {
