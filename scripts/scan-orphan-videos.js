@@ -117,11 +117,25 @@ async function main() {
 
   const stillOrphaned = onDisk.filter((f) => !registeredIds.has(f.stem));
   const newOrphans = stillOrphaned.filter((f) => !existingOrphanIds.has(f.stem));
-  const stillOrphanedIds = new Set(stillOrphaned.map((f) => f.stem));
 
-  // Self-heal: any tracked orphan that is now registered, OR whose file is
-  // gone from disk entirely, is removed. Never left to rot as a stale row.
-  const toClear = [...existingOrphanIds].filter((id) => !stillOrphanedIds.has(id));
+  // Self-heal: clear a tracked orphan ONLY on real resolution — registered,
+  // or its file is genuinely gone from disk. Checked directly against the
+  // row's own stored `path` via fs.existsSync, NOT against this run's
+  // grace-filtered `onDisk` list.
+  //
+  // BUG (Atlas 2026-09-26, caught live registering the p22 TREC video): the
+  // original version cleared anything absent from `stillOrphaned`, and
+  // `stillOrphaned` is built from `onDisk`, which EXCLUDES a file re-written
+  // in the last ORPHAN_GRACE_MINUTES (mtime too fresh, "might still be
+  // writing"). A re-render that refreshes mtime — exactly what happened when
+  // p22's hook was fixed and the file re-rendered — made the file
+  // temporarily invisible to this scan, which this logic then read as
+  // "resolved" and deleted the tracking row for a video that was STILL
+  // unregistered. That is the exact silent-failure class this whole system
+  // exists to prevent, just moved one layer down.
+  const toClear = (existingOrphans || [])
+    .filter((row) => registeredIds.has(row.id) || !fs.existsSync(row.path))
+    .map((row) => row.id);
 
   console.log(`New orphan(s) to track: ${newOrphans.map((f) => f.stem).join(', ') || 'none'}`);
   console.log(`Orphan(s) to clear (registered or gone from disk): ${toClear.join(', ') || 'none'}`);
@@ -153,7 +167,8 @@ async function main() {
   // Touch last_checked_at on everything still open, so a human looking at the
   // table can tell the scanner is alive vs. simply not running.
   if (stillOrphaned.length) {
-    await sb(`local_video_orphans?id=in.(${[...stillOrphanedIds].map(encodeURIComponent).join(',')})`, {
+    const stillOrphanedIds = stillOrphaned.map((f) => f.stem);
+    await sb(`local_video_orphans?id=in.(${stillOrphanedIds.map(encodeURIComponent).join(',')})`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ last_checked_at: new Date().toISOString() }),

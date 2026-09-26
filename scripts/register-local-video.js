@@ -33,8 +33,26 @@
 //     --platforms tiktok,instagram,facebook \
 //     [--cover path/to/cover.png]   # default: extract frame 0 via ffmpeg
 //     [--owner dossie]              # default: dossie
+//     [--orientation vertical]      # default: inferred from the file's own
+//                                   # pixel dimensions via ffprobe (height >
+//                                   # width -> vertical). See ORIENTATION below.
+//     [--scheduled-for <iso>]       # default: auto-pick the next open
+//                                   # posting_schedule slot (queueVariant.js)
 //     [--approve]                   # write heath_approved instead of approved
 //     [--dry-run]                   # gate + print, upload/insert nothing
+//
+// ORIENTATION (Atlas 2026-09-26, Cole relay): classifyOrientation() in
+// api/_lib/verify-video-quality.js checks an EXPLICIT orientation argument
+// before it ever looks at the platforms array — it only infers from
+// platforms, and only rejects a mixed vertical+horizontal array, when
+// nothing was declared. Facebook is in HORIZONTAL_PLATFORMS because FB feed
+// video is 16:9, but FB Reels is 9:16 — one platform, two surfaces, so a
+// genuinely vertical (1080x1920) file targeting
+// [facebook, instagram, tiktok, youtube] as ONE row is legitimate and must
+// declare orientation='vertical' rather than be inferred from the platform
+// names. This does NOT touch VERTICAL_PLATFORMS / HORIZONTAL_PLATFORMS —
+// those still gate the platforms-only inference path for every caller that
+// doesn't pass an explicit orientation.
 //
 // Caption: --caption / --caption-file, or omitted entirely to fall back to
 // the same Claude Haiku generator api/register-video.js uses
@@ -71,15 +89,37 @@ function extractCoverFrame(videoPath) {
   return tmp;
 }
 
-function runQualityGate(videoPath, coverPath, platforms) {
+function runQualityGate(videoPath, coverPath, platforms, orientation) {
   const cmd = ['--video', videoPath, '--cover', coverPath];
   if (platforms && platforms.length) cmd.push('--platforms', platforms.join(','));
+  // Explicit orientation wins over platforms inference inside
+  // classifyOrientation() — safe to pass both. See file header ORIENTATION note.
+  if (orientation) cmd.push('--orientation', orientation);
   const result = require('child_process').spawnSync('node', [GATE_CLI, ...cmd], { encoding: 'utf8' });
   const lines = (result.stdout || '').trim().split('\n').filter(Boolean);
   if (!lines.length) {
     throw new Error(`quality gate produced no output (exit ${result.status}). stderr: ${(result.stderr || '').slice(0, 500)}`);
   }
   return JSON.parse(lines[lines.length - 1]);
+}
+
+/**
+ * Detect vertical vs horizontal from the file's OWN pixel dimensions via
+ * ffprobe — never guessed from filename or platform list. Used only when the
+ * caller doesn't pass --orientation explicitly, so this never has to be
+ * remembered by hand (Cole relay, 2026-09-26).
+ */
+function detectOrientationFromPixels(videoPath) {
+  const out = execFileSync('ffprobe', [
+    '-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height',
+    '-of', 'csv=s=x:p=0', videoPath,
+  ], { encoding: 'utf8' }).trim();
+  const [w, h] = out.split('x').map(Number);
+  if (!w || !h) throw new Error(`ffprobe returned no readable dimensions for ${videoPath}: "${out}"`);
+  const orientation = h > w ? 'vertical' : 'horizontal';
+  console.log(`[register-local-video] ffprobe dimensions ${w}x${h} -> orientation=${orientation}`);
+  return orientation;
 }
 
 async function main() {
@@ -94,10 +134,20 @@ async function main() {
   const owner = arg('--owner', 'dossie');
   const dryRun = process.argv.includes('--dry-run');
   const approve = process.argv.includes('--approve');
+  const scheduledFor = arg('--scheduled-for');
 
   if (!platforms.length) {
     console.error('FAILED: --platforms is required (comma-separated, e.g. tiktok,instagram,facebook)');
     process.exit(1);
+  }
+
+  let orientation = arg('--orientation');
+  if (orientation && orientation !== 'vertical' && orientation !== 'horizontal' && orientation !== 'vertical_long') {
+    console.error(`FAILED: --orientation must be vertical | horizontal | vertical_long, got: ${orientation}`);
+    process.exit(1);
+  }
+  if (!orientation) {
+    orientation = detectOrientationFromPixels(videoPath);
   }
 
   let coverPath = arg('--cover');
@@ -108,8 +158,8 @@ async function main() {
     coverIsTemp = true;
   }
 
-  console.log(`[register-local-video] running quality gate for ${platforms.join(',')}...`);
-  const gateResult = runQualityGate(videoPath, coverPath, platforms);
+  console.log(`[register-local-video] running quality gate for ${platforms.join(',')} (orientation=${orientation})...`);
+  const gateResult = runQualityGate(videoPath, coverPath, platforms, orientation);
   console.log(`[register-local-video] gate result: pass=${gateResult.pass} failedRules=${(gateResult.failedRules || []).join(',') || 'none'}`);
 
   const captionFile = arg('--caption-file');
@@ -122,8 +172,8 @@ async function main() {
   try {
     const out = await queueVariant({
       videoPath, coverPath, id, topic, caption, platforms, owner,
-      gateResult, approve, dryRun,
-      extraDetail: { registered_by: 'scripts/register-local-video.js' },
+      gateResult, approve, dryRun, scheduledFor,
+      extraDetail: { registered_by: 'scripts/register-local-video.js', orientation },
     });
     console.log(JSON.stringify(out, null, 2));
     if (!gateResult.pass) process.exit(1); // queueVariant would have already thrown, but be explicit
