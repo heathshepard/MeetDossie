@@ -69,8 +69,35 @@
 //                                 legible text — exactly what Heath's
 //                                 scroll-stopping-hook rule asks for) is
 //                                 never treated as a dead opening.
-//   - captions_present            burned-in captions legible across 3
-//                                 sample points through the runtime.
+//   - captions_present            burned-in captions legible AND CHANGING
+//                                 across 5 speech-timed sample pairs
+//                                 (>= 4/5 required). Rewritten 2026-09-26
+//                                 (Cole relay) after dossie_trec_p22_
+//                                 district_notice.mp4 was held on this rule
+//                                 despite using the IDENTICAL caption
+//                                 pipeline as dossie_trec_p8_disclosure.mp4,
+//                                 which passed — a gate reliability defect,
+//                                 not a content one. Two fixes: (1) sample
+//                                 times are no longer arbitrary fractions of
+//                                 runtime (25/50/75%, which could land inside
+//                                 the hook window, a CTA card, or a ~20ms gap
+//                                 between caption events) — they now come
+//                                 from real word timestamps when a
+//                                 `{stem}.transcript.json` sidecar exists
+//                                 (scripts/video-engine/transcribe.js's own
+//                                 output), always at least 1.5s after the
+//                                 hook clears and before any CTA card;
+//                                 falling back to fixed 25/40/55/70/85%
+//                                 fractions (never before 3.5s) only when no
+//                                 sidecar is present. (2) the vision prompt
+//                                 no longer rejects on font/box style — a
+//                                 short, boxed, word-synced caption chunk IS
+//                                 what synced captions look like in this
+//                                 format. Each sample pairs with a frame 1s
+//                                 later; the discriminator is whether the
+//                                 text CHANGES between them — static text
+//                                 across the pair means a title card, not a
+//                                 caption, regardless of font weight.
 //
 // IMPORTANT — Vercel cannot run ffmpeg (see api/cron-render-videos.js's own
 // note: "Vercel serverless cannot run ffmpeg"). checkVideoQuality() is
@@ -184,7 +211,97 @@ const MOTION_SAMPLE_T = 1.5;
 const MOTION_SSIM_FAIL_THRESHOLD = 0.999;
 
 const HOOK_CLEAR_SAMPLE_T = 3.0;
-const CAPTION_SAMPLE_FRACTIONS = [0.25, 0.5, 0.75];
+
+// ── captions_present sampling (rewritten 2026-09-26 — see file header) ──────
+// Fallback fractions ONLY — used when no word-timestamp sidecar exists.
+// 5 points, deliberately never landing in the hook window (see
+// CAPTION_MIN_START_S below) or past CAPTION_END_MARGIN_FRACTION of runtime.
+const CAPTION_SAMPLE_FRACTIONS = [0.25, 0.40, 0.55, 0.70, 0.85];
+// Absolute floor regardless of source: never sample inside the first 3.5s —
+// that's the hook card's window (hook_visible_frame0/hook_cleared_by_3s).
+const CAPTION_MIN_START_S = 3.5;
+// "At least 1.5s after the hook window ends" — HOOK_CLEAR_SAMPLE_T (3.0) is
+// this pipeline's own definition of when the hook has cleared.
+const CAPTION_HOOK_CLEAR_MARGIN_S = 1.5;
+// Stay before any CTA card — this pipeline puts the CTA in the final stretch
+// of runtime, so cap sampling at this fraction rather than guess a fixed
+// second count that would be wrong for a 20s clip and a 90s one alike.
+const CAPTION_END_MARGIN_FRACTION = 0.90;
+// The changed-text discriminator's companion offset: does the caption differ
+// 1s later? A static title card never changes; a 3-word word-synced chunk
+// almost always has moved on by then.
+const CAPTION_PAIR_GAP_S = 1.0;
+// >= 4 of 5 pairs must show a legible, CHANGING caption. Not 5/5 — a synced
+// chunk occasionally spans slightly more than 1s, so one pair coincidentally
+// landing inside the same chunk is tolerated; systemic staticness is not.
+const CAPTION_MIN_PASS = 4;
+
+/**
+ * Word-level timestamps for a video, from the SAME sidecar
+ * scripts/video-engine/transcribe.js already writes
+ * (`{stem}.transcript.json`, ElevenLabs scribe_v1 shape: {words:[{text,
+ * start,end,type}]}) — never re-transcribed here. Only checked next to a
+ * LOCAL video path; a downloaded/remote video has no local sibling to check,
+ * which is fine — pickCaptionSampleTimes() falls back cleanly.
+ * @returns {Array<{start:number,end:number}>|null}
+ */
+function loadWordTimestampsSidecar(originalVideoPath) {
+  if (!originalVideoPath) return null;
+  try {
+    const p = originalVideoPath.replace(/\.[^./\\]+$/, '') + '.transcript.json';
+    if (!fs.existsSync(p)) return null;
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const words = (data.words || [])
+      .filter((w) => w && w.type === 'word' && Number.isFinite(w.start) && Number.isFinite(w.end))
+      .map((w) => ({ start: w.start, end: w.end }))
+      .sort((a, b) => a.start - b.start);
+    return words.length ? words : null;
+  } catch {
+    return null; // malformed/unreadable sidecar — treat as absent, never throw
+  }
+}
+
+/**
+ * Picks 5 sample times for captions_present. Prefers real word timestamps
+ * (known speech times) inside the safe window; falls back to fixed fractions
+ * of runtime, also clamped to the safe window, when no sidecar is usable.
+ * @returns {{times:number[], source:string, windowStart:number, windowEnd:number}}
+ */
+function pickCaptionSampleTimes(duration, words) {
+  const windowStart = Math.max(CAPTION_MIN_START_S, HOOK_CLEAR_SAMPLE_T + CAPTION_HOOK_CLEAR_MARGIN_S);
+  const windowEnd = Math.max(windowStart + 0.5, duration * CAPTION_END_MARGIN_FRACTION);
+
+  if (words && words.length) {
+    const eligible = words.filter((w) => w.start >= windowStart && w.end <= windowEnd);
+    if (eligible.length >= 5) {
+      const times = [];
+      for (let i = 0; i < 5; i++) {
+        const idx = Math.min(eligible.length - 1, Math.round((i / 4) * (eligible.length - 1)));
+        const w = eligible[idx];
+        times.push((w.start + w.end) / 2);
+      }
+      return { times, source: 'word_timestamps', windowStart, windowEnd };
+    }
+  }
+
+  const times = CAPTION_SAMPLE_FRACTIONS.map((f) => Math.min(windowEnd, Math.max(windowStart, duration * f)));
+  return { times, source: 'fallback_fractions', windowStart, windowEnd };
+}
+
+/**
+ * The companion time for the changed-text discriminator: 1s later, unless
+ * that would leave the safe window, in which case 1s earlier (still clamped
+ * inside the window). Always at least ~0.3s from `t` so a real transition has
+ * a chance to show — if the window is too narrow even for that, returns null
+ * and the caller skips the "changed" half of that pair's judgement.
+ */
+function pickCaptionPairCompanion(t, windowStart, windowEnd) {
+  const forward = t + CAPTION_PAIR_GAP_S;
+  if (forward <= windowEnd) return forward;
+  const backward = t - CAPTION_PAIR_GAP_S;
+  if (backward >= windowStart) return backward;
+  return null;
+}
 
 // ── Full-bleed framing rules (added 2026-09-16 after the stage-checklist incident) ──
 //
@@ -502,10 +619,28 @@ const VISION_FRAME_ATTEMPTS = [
 // largest call) stays comfortably under MAX_VISION_REQUEST_BYTES below.
 const MAX_VISION_FRAME_BASE64 = 900_000;
 
-async function compressFrameForVision(localPngPath) {
+// Smaller ladder + tighter per-frame budget for calls that send MANY frames
+// in one request (captions_present sends 10 — 5 pairs — since 2026-09-26).
+// A caption bar is a few words of large bold text; it doesn't need
+// VISION_FRAME_ATTEMPTS' full-detail sizes to stay legible. Budget: 10
+// frames x 300,000 base64 chars = 3,000,000, leaving ~500,000 of
+// MAX_VISION_REQUEST_BYTES headroom for the prompt + JSON overhead — found
+// live 2026-09-26 when the default 900,000/frame budget produced a real
+// "vision request too large (4,910,231 bytes, budget 3,500,000)" failure on
+// dossie_trec_p8_disclosure.mp4's 10-frame captions_present call.
+const VISION_FRAME_ATTEMPTS_MANY = [
+  { width: 480, q: 7 },
+  { width: 360, q: 8 },
+  { width: 240, q: 10 },
+];
+const MAX_VISION_FRAME_BASE64_MANY = 300_000;
+
+async function compressFrameForVision(localPngPath, opts = {}) {
+  const attempts = opts.attempts || VISION_FRAME_ATTEMPTS;
+  const budget = opts.maxBase64 || MAX_VISION_FRAME_BASE64;
   const outPath = `${localPngPath}.vision.jpg`;
   let lastErr = null;
-  for (const { width, q } of VISION_FRAME_ATTEMPTS) {
+  for (const { width, q } of attempts) {
     try {
       await execFileAsync('ffmpeg', [
         '-y', '-i', localPngPath,
@@ -515,10 +650,10 @@ async function compressFrameForVision(localPngPath) {
       ]);
       const buf = await fs.promises.readFile(outPath);
       const base64 = buf.toString('base64');
-      if (base64.length <= MAX_VISION_FRAME_BASE64) {
+      if (base64.length <= budget) {
         return { base64, mimeType: 'image/jpeg' };
       }
-      lastErr = new Error(`compressed frame still ${base64.length} base64 chars at width=${width}/q=${q} (budget ${MAX_VISION_FRAME_BASE64})`);
+      lastErr = new Error(`compressed frame still ${base64.length} base64 chars at width=${width}/q=${q} (budget ${budget})`);
     } catch (err) {
       lastErr = err;
     } finally {
@@ -659,12 +794,22 @@ Is real, readable application UI clearly visible in this frame — legible text,
 Respond with JSON only, no markdown fences:
 {"legible": true or false, "reason": "one sentence"}`;
 
-const CAPTIONS_PRESENT_PROMPT = `These are 3 frames sampled across a short-form video's runtime (roughly 25%, 50%, and 75% of the way through), in that order.
+// Rewritten 2026-09-26 (Cole relay — see file header for the p22 defect this
+// closes). The discriminator is CHANGE, not appearance: a short, boxed,
+// word-synced caption chunk (2-4 words, bold, top- or bottom-aligned) IS what
+// synced captions look like in this pipeline's format — do not reject it for
+// looking like a "title card". A real title card and a real caption can look
+// nearly identical in a single frame; the only reliable tell is whether the
+// text is the SAME 1 second later. Static across the pair = a card. Changed
+// = a caption.
+const CAPTIONS_PRESENT_PROMPT = `You are shown 5 PAIRS of frames (10 images total, in order: pair 1 frame A, pair 1 frame B, pair 2 frame A, pair 2 frame B, ...). Within each pair, frame A and frame B are about 1 second apart in the same video.
 
-For EACH frame, is there a legible burned-in caption/subtitle (word-level or line-level on-screen text synced to speech, NOT a title card, NOT a logo/watermark) visible on screen?
+For EACH pair, answer two questions:
+1. caption_present: is there a legible burned-in caption bar/box (any number of words, synced to speech) visible in frame A? A short 2-4 word bold boxed caption chunk counts as a caption — do NOT reject it for being short, bold, or boxed. Only reject if there is genuinely no on-screen text, or the only text is a logo/watermark/permanent UI chrome that never changes across the whole video.
+2. text_changed: does the caption TEXT in frame B differ from the caption text in frame A? (Different words, or one has text and the other doesn't.) This is the real discriminator: a static title card shows IDENTICAL text a second later; a genuine synced caption has usually moved to the next word or phrase.
 
 Respond with JSON only, no markdown fences:
-{"frames_with_captions": <integer count 0-3>, "reason": "one sentence"}`;
+{"pairs": [{"caption_present": true or false, "text_changed": true or false}, ... exactly 5 entries, one per pair, in order], "reason": "one sentence summary"}`;
 
 // ── Main check ────────────────────────────────────────────────────────────
 
@@ -1034,29 +1179,53 @@ async function checkVideoQuality(opts = {}) {
       addRule('opening_not_login_or_empty', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
     }
 
-    // Captions present across the runtime.
+    // Captions present AND changing, sampled at known-safe speech times.
+    // See file header + pickCaptionSampleTimes()/pickCaptionPairCompanion()
+    // for the 2026-09-26 rewrite (Cole relay, p22 gate-reliability defect).
     try {
       if (!duration) throw new Error('duration unknown — cannot sample runtime');
-      const framePaths = [];
-      for (const frac of CAPTION_SAMPLE_FRACTIONS) {
-        const t = Math.max(0.1, Math.min(duration - 0.1, duration * frac));
-        const fp = path.join(tmpDir, `qgate-cap-${Math.round(frac * 100)}-${process.pid}-${Date.now()}.png`);
-        cleanupFns.push(async () => fs.promises.unlink(fp).catch(() => {}));
-        // eslint-disable-next-line no-await-in-loop
-        await extractFrame(localVideo, t, fp);
-        framePaths.push(fp);
+      const words = loadWordTimestampsSidecar(opts.videoPath);
+      const { times, source, windowStart, windowEnd } = pickCaptionSampleTimes(duration, words);
+
+      const pairs = []; // { tA, tB|null }
+      for (const t of times) {
+        const tA = Math.max(0.1, Math.min(duration - 0.1, t));
+        const companion = pickCaptionPairCompanion(tA, windowStart, windowEnd);
+        const tB = companion === null ? null : Math.max(0.1, Math.min(duration - 0.1, companion));
+        pairs.push({ tA, tB });
       }
+
       const images = [];
-      for (const fp of framePaths) {
+      for (let i = 0; i < pairs.length; i++) {
+        const { tA, tB } = pairs[i];
+        const fpA = path.join(tmpDir, `qgate-cap-${i}a-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(fpA).catch(() => {}));
         // eslint-disable-next-line no-await-in-loop
-        images.push(await compressFrameForVision(fp));
+        await extractFrame(localVideo, tA, fpA);
+        // eslint-disable-next-line no-await-in-loop
+        images.push(await compressFrameForVision(fpA, { attempts: VISION_FRAME_ATTEMPTS_MANY, maxBase64: MAX_VISION_FRAME_BASE64_MANY }));
+
+        // No safe companion time (a very short clip) — reuse frame A as
+        // frame B so the model still gets a pair; text_changed will
+        // correctly read false (same frame), which is the honest answer
+        // when we couldn't actually sample 1s away.
+        const bTime = tB === null ? tA : tB;
+        const fpB = path.join(tmpDir, `qgate-cap-${i}b-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(fpB).catch(() => {}));
+        // eslint-disable-next-line no-await-in-loop
+        await extractFrame(localVideo, bTime, fpB);
+        // eslint-disable-next-line no-await-in-loop
+        images.push(await compressFrameForVision(fpB, { attempts: VISION_FRAME_ATTEMPTS_MANY, maxBase64: MAX_VISION_FRAME_BASE64_MANY }));
       }
+
       const result = await callVisionModel(images, CAPTIONS_PRESENT_PROMPT);
-      const count = Number(result.frames_with_captions) || 0;
+      const resultPairs = Array.isArray(result.pairs) ? result.pairs : [];
+      const passCount = resultPairs.filter((p) => p && p.caption_present === true && p.text_changed === true).length;
+      const presentCount = resultPairs.filter((p) => p && p.caption_present === true).length;
       addRule('captions_present', {
-        pass: count >= 2, // majority of the 3 sample points
+        pass: passCount >= CAPTION_MIN_PASS,
         blocking: isVertical,
-        note: `${count}/3 sampled frames showed captions — ${result.reason || ''}${isVertical ? '' : ' (advisory only on the horizontal lane — this pipeline does not burn captions into the desktop cut)'}`,
+        note: `${passCount}/5 pairs showed a legible, CHANGING caption (${presentCount}/5 had any legible caption) — sample source: ${source} — ${result.reason || ''}${isVertical ? '' : ' (advisory only on the horizontal lane — this pipeline does not burn captions into the desktop cut)'}`,
       });
     } catch (err) {
       addRule('captions_present', { pass: false, blocking: isVertical, note: `vision check failed (fail-closed): ${err.message}` });
