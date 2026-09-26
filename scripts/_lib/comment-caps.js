@@ -98,7 +98,26 @@
 // still comfortably under the pre-shadowban volume that caused the June
 // incident, but it has not been run and observed yet -- watch real results
 // for 2 clean weeks before considering raising either cap.
+// ZERNIO API REPLY BUDGET 2026-09-25 (Atlas, for the API-based inbound comment
+// engine -- api/cron-post-comment-replies.js -- PENDING HEATH'S MERGE SIGN-OFF,
+// which is the explicit approval this header requires).
+//
+// This is a DIFFERENT and much lower-risk action class than every key above,
+// and it gets its own budget for exactly that reason:
+//   - It is a REPLY to someone who commented on OUR OWN post, not an
+//     unsolicited comment on a stranger's post.
+//   - It goes through the official Meta/LinkedIn Graph APIs via Zernio, on
+//     Pages/brand accounts, with a platform-issued token. It is not automated
+//     keystrokes on Heath's personal profile, which is the thing that got
+//     shadowbanned in June and the thing every cap above is protecting.
+//   - A business Page replying to its own commenters is the single most
+//     ordinary action on the platform.
+// It is still capped, because an unbounded reply loop on a viral post is a
+// spam pattern regardless of how legitimate each individual reply is, and
+// because every reply is Heath-approved and he is the real bottleneck anyway.
+// 20/day, 5-min floor. Ramp only on his explicit call.
 const PLATFORM_DAILY_CAPS = Object.freeze({
+  zernio_comment_reply: 20, // API replies to inbound comments on our own posts
   facebook: 15,       // initiated comments (human-pasted; see split note above)
   facebook_auto: 8,   // automated initiated comments (daily hunt; see note above)
   facebook_reply: 10, // automated threaded replies to replies-to-Heath
@@ -110,7 +129,11 @@ const PLATFORM_DAILY_CAPS = Object.freeze({
   twitter: 5,
 });
 
-const TOTAL_DAILY_CAP = 57; // sum of the above; hard ceiling across all platforms
+// Sum of the above; hard ceiling across all platforms. Raised 57 -> 77 on
+// 2026-09-25 by exactly the 20 added for zernio_comment_reply, so the new
+// budget is ADDITIVE and cannot silently starve any existing pipeline out of
+// the shared total (canComment() checks the total before the per-platform key).
+const TOTAL_DAILY_CAP = 77;
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -121,6 +144,7 @@ const PER_AUTHOR_COOLDOWN_DAYS = 7;  // don't comment on the same author twice w
 // platform. Bursts get spread. Prior 8/15-min gaps let 6 FB comments fire
 // inside 60 min — bot-pattern to any moderation system.
 const MIN_GAP_MINUTES = Object.freeze({
+  zernio_comment_reply: 5, // official-API reply on our own post; a Page answering its own commenters back to back is normal, but 5 min still stops a burst
   facebook: 45,
   facebook_auto: 45, // FLOOR only — fb-comment-opp-poster.js adds 0-15 min random jitter per run so spacing is 45-60, varied, never metronomic
 
