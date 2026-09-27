@@ -33,7 +33,7 @@
 
 const Stripe = require('stripe');
 const { captureServerEvent } = require('./_lib/posthog');
-const { FOUNDING_PRICE_ID, PRICE_TIERS, tierForPriceId } = require('./_lib/pricing-tiers');
+const { PRICE_TIERS, tierForPriceId } = require('./_lib/pricing-tiers');
 const { mapStripeSubscriptionStatus } = require('./_lib/subscription-status-map');
 const accountInvites = require('./_lib/account-invites');
 
@@ -481,13 +481,25 @@ const BRAND_MUTED = '#9CA8B4';
 // suppressed the welcome email rather than breaking the flow.
 const BRAND_BORDER = '#E8E2DA';
 
-function welcomeEmailHtml(fullName) {
+function welcomeEmailHtml(fullName, plan) {
   const name = (fullName || '').trim().split(' ')[0] || 'there';
+  // BUG FIX 2026-09-26: this direct-invoice path used to be reachable ONLY
+  // for founding-tier invoices, so this copy was safely hardcoded founding-
+  // flavored. Now that handleInvoicePaid is widened to any recognized price
+  // (a Solo/Team invoice safety net), a Solo/Team customer must NOT receive
+  // an email falsely telling them they're a "founding member" locked at
+  // "$29/mo forever" — that's not a cosmetic bug, it's a wrong claim about
+  // their bill. Same plan-aware branching pattern as complete-onboarding.js's
+  // welcomeEmailHtml.
+  const isFounding = plan === 'founding';
+  const introLine = isFounding
+    ? "You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else."
+    : "Your Dossie subscription is active — you're all set.";
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">${name},</h1>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Heath here — founder of Dossie, and a licensed Texas REALTOR myself.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${introLine}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I want to ask one specific thing in the next 60 seconds: open Dossie, pull up any deal you're working — even a closed one from last month — and drop the contract in.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">She reads it, pulls every TREC deadline with the paragraph it came from, and you'll see your option period, financing contingency, and closing date sitting on the page in clean order. That's the moment most agents text me back saying "okay, I see what this is now."</p>
   <div style="margin: 28px 0; text-align: center;">
@@ -505,11 +517,13 @@ function welcomeEmailHtml(fullName) {
     <li><strong>Compliance Vault</strong> — your brokerage's required docs organized in one place.</li>
   </ol>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Reply to this email any time. I read every one personally, usually within the hour.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${isFounding
+    ? "AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up."
+    : "AI is hitting transaction coordination fast. My take: don't fight it, be part of it — glad you're in."}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
-  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
+  ${isFounding ? `<hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
+  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>` : ''}
 </div>`;
 }
 
@@ -876,11 +890,18 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
     return;
   }
 
-  // Filter: only handle founding-tier invoices. Other line items pass through.
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID.
+  // This is the direct-invoice safety net (Heath emails a hosted-invoice link
+  // manually, bypassing website checkout) — this system has a documented
+  // history of webhook-gap recoveries (docs/INCIDENT-LOG.md), so a Solo/Team
+  // customer whose checkout.session.completed was somehow missed had NO net
+  // to catch them here at all. Widened to any recognized price; unrecognized
+  // (add-on) prices still skip.
   const lineItem = invoice?.lines?.data?.[0];
   const priceId = lineItem?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] invoice.paid skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+  const { tier: resolvedTier, recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] invoice.paid skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'invoice=', invoice.id);
     return;
   }
 
@@ -955,7 +976,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           stripe_price_id: priceId,
-          plan: 'founding',
+          plan: resolvedTier,
           status: 'active',
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
@@ -1000,7 +1021,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           stripe_price_id: priceId,
-          plan: 'founding',
+          plan: resolvedTier,
           status: 'active',
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
@@ -1035,9 +1056,9 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
       id: userId,
       email: customerEmail,
       full_name: customerName || '',
-      plan: 'founding',
+      plan: resolvedTier,
       subscription_status: 'active',
-      subscription_tier: 'founding',
+      subscription_tier: resolvedTier,
       stripe_customer_id: stripeCustomerId,
     });
   } catch (err) {
@@ -1051,7 +1072,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: priceId,
-      plan: 'founding',
+      plan: resolvedTier,
       status: 'active',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
@@ -1065,7 +1086,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
     await sendEmail({
       to: customerEmail,
       subject: 'Welcome to Dossie — let\'s get you set up',
-      html: welcomeEmailHtml(customerName),
+      html: welcomeEmailHtml(customerName, resolvedTier),
     });
   } catch (err) {
     console.error('[stripe-webhook] welcome email failed in invoice.paid:', err && err.message);
@@ -1372,30 +1393,24 @@ async function handleInvoicePaymentFailed(stripe, invoice, eventId) {
     ? invoice.customer
     : (invoice.customer && invoice.customer.id) || null;
 
-  // Only handle founding-tier invoices
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID
+  // — the exact gap in memory `no-dunning-process-failed-payments` (DB says
+  // active while Stripe says past_due). This is the one that actually costs
+  // money: a Solo/Team card fails (including the very first post-trial
+  // charge, which fires as this same event), Stripe stops collecting, and
+  // our subscriptions row silently kept claiming 'active' forever because
+  // nothing ever wrote 'past_due' for a non-founding price. Widened to any
+  // recognized price; unrecognized (add-on) prices still skip.
   const lineItem = invoice?.lines?.data?.[0];
   const priceId = lineItem?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] invoice.payment_failed skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+  const { recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] invoice.payment_failed skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'invoice=', invoice.id);
     return;
   }
 
-  // Mark subscription as past_due
-  if (stripeSubscriptionId) {
-    try {
-      const encoded = encodeURIComponent(stripeSubscriptionId);
-      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'past_due' }),
-      });
-      console.log('[stripe-webhook] invoice.payment_failed: marked subscription past_due. sub=', stripeSubscriptionId);
-    } catch (err) {
-      console.error('[stripe-webhook] invoice.payment_failed subscription patch failed:', err && err.message);
-    }
-  }
-
-  // Resolve customer email and notify Heath
+  // Resolve customer email early — needed for both the profiles mirror below
+  // and the existing Telegram alert.
   let customerEmail = null;
   let customerName = '';
   if (invoice.customer_email) {
@@ -1409,6 +1424,31 @@ async function handleInvoicePaymentFailed(stripe, invoice, eventId) {
       }
     } catch (err) {
       console.warn('[stripe-webhook] customers.retrieve failed in invoice.payment_failed:', err && err.message);
+    }
+  }
+
+  // Mark subscription as past_due — and mirror onto profiles.subscription_status
+  // too (same reasoning as handleSubscriptionUpdated: this is the field a
+  // trial-converted-then-failed customer's DB record was silently NOT getting
+  // updated on before this fix).
+  if (stripeSubscriptionId) {
+    try {
+      const encoded = encodeURIComponent(stripeSubscriptionId);
+      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'past_due' }),
+      });
+      console.log('[stripe-webhook] invoice.payment_failed: marked subscription past_due. sub=', stripeSubscriptionId);
+    } catch (err) {
+      console.error('[stripe-webhook] invoice.payment_failed subscription patch failed:', err && err.message);
+    }
+    if (customerEmail) {
+      try {
+        await updateProfileByEmail(customerEmail, { subscription_status: 'past_due' });
+      } catch (err) {
+        console.warn('[stripe-webhook] invoice.payment_failed: profiles.subscription_status mirror failed (non-fatal):', err && err.message);
+      }
     }
   }
 

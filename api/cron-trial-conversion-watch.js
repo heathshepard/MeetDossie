@@ -1,5 +1,5 @@
 // Vercel Serverless Function: /api/cron-trial-conversion-watch
-// Surfaces two free-trial failure modes to Heath via Telegram — never emails
+// Surfaces three payment failure modes to Heath via Telegram — never emails
 // a customer. Same shape as cron-pierce-activation.js on purpose (Cole's
 // instruction, free-trial rollout 2026-09-26): fingerprint + dedup so a
 // static picture goes quiet, Monday heartbeat so silence still means
@@ -16,14 +16,25 @@
 //   watch. (feedback_silent-failure-is-the-enemy: every pipeline needs an
 //   alarm built in the same change that ships it.)
 //
+//   Widened 2026-09-26 (Cole review) to also cover the pre-existing dunning
+//   gap: memory no-dunning-process-failed-payments records our DB saying
+//   'active' while Stripe says past_due, for ANY plan, not just trial
+//   signups — api/stripe-webhook.js's handleInvoicePaymentFailed was
+//   founding-tier-only until this same change, so Solo/Team payment failures
+//   never even reached subscriptions.status at all. Reusing this cron's
+//   existing Telegram/dedup machinery for that general case rather than
+//   building a second alarm.
+//
 // LOGIC
-//   1. TRIAL ENDED WITHOUT CONVERTING: subscriptions where trial_end is in
-//      the past and status is anything other than 'active' — covers the
-//      normal "card declined at trial end" case (past_due/cancelled/unpaid)
-//      AND the "should have converted days ago but Stripe status never
-//      synced" case (still shows 'trialing' after trial_end has passed,
-//      which would itself be a webhook bug worth knowing about).
-//   2. TRIALING + ZERO SESSIONS AFTER 48H: subscriptions still 'trialing'
+//   1. PAST DUE (any plan, trial or not): subscriptions currently
+//      status='past_due'. This is the one that actually costs money — a
+//      card failed, Stripe stopped collecting, and until this same change
+//      nothing wrote or watched that transition for Solo/Team at all.
+//   2. TRIAL ENDED WITHOUT CONVERTING (excludes past_due, covered by #1
+//      above): trial_end in the past and status is 'cancelled', 'unpaid', or
+//      still 'trialing' days after it should have converted (the last case
+//      would itself be a webhook-sync bug worth knowing about).
+//   3. TRIALING + ZERO SESSIONS AFTER 48H: subscriptions still 'trialing'
 //      whose profile has never held an auth session, past
 //      TRIAL_STUCK_HOURS (default 48). This is the trial-specific twin of
 //      cron-account-invite-autoresend (which now also includes 'trialing' in
@@ -87,8 +98,8 @@ async function sendTelegram(text) {
   return { ok: res.ok && data?.ok === true };
 }
 
-function fingerprint(failedIds, stuckIds) {
-  return `failed:${[...failedIds].sort().join(',')}|stuck:${[...stuckIds].sort().join(',')}`;
+function fingerprint(pastDueIds, failedIds, stuckIds) {
+  return `pastdue:${[...pastDueIds].sort().join(',')}|failed:${[...failedIds].sort().join(',')}|stuck:${[...stuckIds].sort().join(',')}`;
 }
 
 async function lastFingerprint() {
@@ -141,16 +152,31 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
   try {
     const nowIso = new Date().toISOString();
 
-    // 1. Trials that ended without landing on 'active'.
+    // 1. PAST DUE — any plan, trial or not. The general dunning gap (memory
+    // no-dunning-process-failed-payments): a card failed, Stripe stopped
+    // collecting, and until api/stripe-webhook.js's handleInvoicePaymentFailed
+    // was widened off founding-only (2026-09-26) this transition never even
+    // reached subscriptions.status for Solo/Team. Money-losing by definition
+    // — this is the one Cole flagged as costing money, not just a UX gap.
+    const { ok: pastDueOk, data: pastDueRows } = await supaJson(
+      'subscriptions?select=user_id,plan,status,current_period_end&status=eq.past_due&limit=200'
+    );
+    if (!pastDueOk || !Array.isArray(pastDueRows)) {
+      console.error('[cron-trial-conversion-watch] past-due fetch failed');
+      return res.status(500).json({ ok: false, error: 'Failed to fetch past_due subscriptions' });
+    }
+
+    // 2. Trials that ended without landing on 'active' — excludes past_due
+    // (bucket 1 above already covers it) so nobody is double-listed.
     const { ok: failedOk, data: failedRows } = await supaJson(
-      `subscriptions?select=user_id,plan,status,trial_end&trial_end=lt.${encodeURIComponent(nowIso)}&status=neq.active&limit=200`
+      `subscriptions?select=user_id,plan,status,trial_end&trial_end=lt.${encodeURIComponent(nowIso)}&status=not.in.(active,past_due)&limit=200`
     );
     if (!failedOk || !Array.isArray(failedRows)) {
       console.error('[cron-trial-conversion-watch] failed-trials fetch failed');
       return res.status(500).json({ ok: false, error: 'Failed to fetch trial-ended subscriptions' });
     }
 
-    // 2. Still-trialing subscriptions, checked against auth sessions for the
+    // 3. Still-trialing subscriptions, checked against auth sessions for the
     // zero-login-after-48h case.
     const { ok: trialingOk, data: trialingRows } = await supaJson(
       'subscriptions?select=user_id,plan,status,trial_start&status=eq.trialing&limit=200'
@@ -161,6 +187,7 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
     }
 
     const allUserIds = [...new Set([
+      ...pastDueRows.map((r) => r.user_id),
       ...failedRows.map((r) => r.user_id),
       ...trialingRows.map((r) => r.user_id),
     ].filter(Boolean))];
@@ -186,6 +213,17 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
         profilesById = new Map(profiles.map((p) => [p.id, p]));
       }
     }
+
+    const pastDueSubs = pastDueRows.map((r) => {
+      const p = profilesById.get(r.user_id) || {};
+      return {
+        userId: r.user_id,
+        name: p.full_name || p.email || 'Unknown',
+        email: p.email || '',
+        plan: r.plan,
+        currentPeriodEnd: r.current_period_end,
+      };
+    });
 
     const failedTrials = failedRows.map((r) => {
       const p = profilesById.get(r.user_id) || {};
@@ -218,10 +256,17 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
     }
 
     let message;
-    if (failedTrials.length === 0 && stuckTrials.length === 0) {
-      message = 'Trial conversion watch\nAll trials on track — no failed conversions, nobody stuck without a login.';
+    if (pastDueSubs.length === 0 && failedTrials.length === 0 && stuckTrials.length === 0) {
+      message = 'Trial conversion watch\nAll accounts on track — no past_due, no failed conversions, nobody stuck without a login.';
     } else {
       const lines = ['Trial conversion watch\n'];
+      if (pastDueSubs.length > 0) {
+        lines.push(`PAST DUE — card failed, Stripe stopped collecting (${pastDueSubs.length}):`);
+        for (const t of pastDueSubs) {
+          lines.push(`- ${t.name} (${t.email}) - ${t.plan}, period ended ${t.currentPeriodEnd}`);
+        }
+        lines.push('');
+      }
       if (failedTrials.length > 0) {
         lines.push(`TRIAL ENDED WITHOUT CONVERTING (${failedTrials.length}):`);
         for (const t of failedTrials) {
@@ -239,27 +284,29 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
       message = lines.join('\n');
     }
 
-    console.log('[cron-trial-conversion-watch] failed:', failedTrials.length, '| stuck:', stuckTrials.length);
+    console.log('[cron-trial-conversion-watch] past_due:', pastDueSubs.length, '| failed:', failedTrials.length, '| stuck:', stuckTrials.length);
 
+    const pastDueIds = new Set(pastDueSubs.map((t) => t.userId));
     const failedIds = new Set(failedTrials.map((t) => t.userId));
     const stuckIds = new Set(stuckTrials.map((t) => t.userId));
-    const fp = fingerprint(failedIds, stuckIds);
+    const fp = fingerprint(pastDueIds, failedIds, stuckIds);
     const prevFp = await lastFingerprint();
     const isMonday = new Date().getUTCDay() === 1;
     const changed = prevFp === null || prevFp !== fp;
-    const shouldNotify = changed || isMonday || failedTrials.length > 0;
+    const shouldNotify = changed || isMonday || pastDueSubs.length > 0 || failedTrials.length > 0;
 
     let tgResult = { ok: false };
     if (shouldNotify) {
-      const suffix = (changed || failedTrials.length > 0) ? '' : '\n(weekly heartbeat - unchanged since last report)';
+      const suffix = (changed || pastDueSubs.length > 0 || failedTrials.length > 0) ? '' : '\n(weekly heartbeat - unchanged since last report)';
       tgResult = await sendTelegram(message + suffix);
     } else {
       console.log('[cron-trial-conversion-watch] unchanged since last run and not Monday — no Telegram sent.');
     }
 
-    const summary = `${failedTrials.length} trial(s) ended without converting, ${stuckTrials.length} trialing with zero sessions >${TRIAL_STUCK_HOURS}h`;
+    const summary = `${pastDueSubs.length} past_due, ${failedTrials.length} trial(s) ended without converting, ${stuckTrials.length} trialing with zero sessions >${TRIAL_STUCK_HOURS}h`;
     await logActivityEvent(summary, {
       fingerprint: fp,
+      past_due_count: pastDueSubs.length,
       failed_count: failedTrials.length,
       stuck_count: stuckTrials.length,
       notified: shouldNotify,
@@ -268,6 +315,7 @@ module.exports = withTelemetry('cron-trial-conversion-watch', async function han
     return res.status(200).json({
       ok: true,
       ran_at: new Date().toISOString(),
+      past_due_subs: pastDueSubs,
       failed_trials: failedTrials,
       stuck_trials: stuckTrials,
       notified: shouldNotify,
