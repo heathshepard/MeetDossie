@@ -359,13 +359,25 @@ const SIDE_TO_SEMANTIC_ROLES = {
 // field object is finalized for DocuSeal — never trust/propagate a
 // caller- or map-supplied `required` value, so a future field-building path
 // cannot reintroduce this by omission. Per the incident review: the only
-// defensible required widgets are the signature and its paired date; radio
-// groups, checkboxes, initials, and free text must always render optional
-// (confirmed empirically safe live on DocuSeal template 6075043 — 159
-// optional radios + 9 optional checkboxes render with nothing pre-selected
-// and never block submission).
+// defensible required widgets are the signature, its paired date, and the
+// signer's own per-page initials; radio groups, checkboxes, and free text
+// (any field where the answer is a substantive election a seller might
+// truthfully need to leave blank) must always render optional (confirmed
+// empirically safe live on DocuSeal template 6075043 — 159 optional radios
+// + 9 optional checkboxes render with nothing pre-selected and never block
+// submission).
+//
+// 2026-09-27 CORRECTION — the first pass of this fix (a4d3ab7c) also swept
+// initials into the optional bucket. That was wrong: initials are not a
+// substantive answer a seller could legitimately need to leave blank — TREC
+// expects them on every page — and the sellers-disclosure role map (see
+// scripts/esign-role-maps/sellers-disclosure.json) had never actually wired
+// any initials fields in the first place, so a corrected Seller's Disclosure
+// went out with zero initials anywhere. Initials now render required, same
+// as signature/date; the Barry Whyte gate (checkboxes/radios/free-text
+// answers) is unaffected.
 function dsFieldRequired(type) {
-  return type === 'signature' || type === 'date';
+  return type === 'signature' || type === 'date' || type === 'initials';
 }
 
 // Build the per-signer field map for a mapped form and ENFORCE the packet

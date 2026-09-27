@@ -67,6 +67,12 @@ const EXPECTED_FORMS = [
 // Pages that print an "Initialed for identification..." footer, verified by
 // RENDERING every page of every form and reading it (2026-09-08). If a form
 // revision adds/removes a footer, regenerate the role map and update this.
+// Plain array = printed "Initialed for identification by Buyer ___ and
+// Seller ___" footer, all 4 principal roles. { pages, roles } = a narrower
+// requirement — e.g. sellers-disclosure has NO printed initials line at all
+// (verified by render, TREC 55-1 vs. TXR-1406) and NO buyer content on
+// pages 1-3, so only seller1/seller2 carry Dossie-added initials widgets
+// there (2026-09-27, Barry Whyte page-2-blank incident review).
 const EXPECTED_INITIALS_PAGES = {
   'financing-addendum': [1],
   'backup-contract': [1],
@@ -75,6 +81,7 @@ const EXPECTED_INITIALS_PAGES = {
   'sellers-temp-lease': [1],
   'seller-financing': [1],
   'unimproved-property': [1, 2, 3, 4, 5, 6, 7],
+  'sellers-disclosure': { pages: [1, 2, 3], roles: ['seller1', 'seller2'] },
 };
 
 const MAPS_PATH = path.join(REPO, 'api', '_assets', 'esign-field-maps.json');
@@ -127,9 +134,11 @@ check('3. structural geometry: one signature per principal, coords/pages in boun
 });
 
 check('4. per-page initials coverage matches the printed footers', () => {
-  for (const [slug, pages] of Object.entries(EXPECTED_INITIALS_PAGES)) {
+  for (const [slug, spec] of Object.entries(EXPECTED_INITIALS_PAGES)) {
     const entry = maps.forms[slug];
-    for (const r of ['buyer1', 'buyer2', 'seller1', 'seller2']) {
+    const pages = Array.isArray(spec) ? spec : spec.pages;
+    const roles = Array.isArray(spec) ? ['buyer1', 'buyer2', 'seller1', 'seller2'] : spec.roles;
+    for (const r of roles) {
       const iniPages = (entry.roles[r] || []).filter((f) => f.type === 'initials').map((f) => f.areas[0].page);
       for (const p of pages) {
         assert(iniPages.includes(p), `${slug}/${r}: no initials widget on page ${p} (printed footer verified by render)`);
@@ -229,13 +238,22 @@ check('7. build script --check: committed output is current', () => {
 // an omitted `required` key is `true`. This check fails if that ever
 // recurs — in the source JSON maps (static) or in what the server actually
 // builds for DocuSeal (runtime, the part that matters).
-check('8. no non-signature/date field is ever required:true (Barry Whyte gate)', () => {
+//
+// 2026-09-27 CORRECTION — initials moved from the "always optional" bucket
+// to "always required" alongside signature/date (a Seller's Disclosure
+// correction went out with zero initials because the first pass of this
+// gate swept them in with checkboxes/radios/free-text by mistake). The gate
+// below reflects that: required := signature | date | initials. Checkboxes,
+// radios, and free-text answers are still always optional — that's the part
+// of the Barry Whyte fix this correction does NOT touch.
+check('8. only signature/date/initials are ever required:true (Barry Whyte gate)', () => {
   // (a) the combined DocuSeal signing-widget map — every entry must already
-  // be honest about the policy: signature/date true, everything else false.
+  // be honest about the policy: signature/date/initials true, everything
+  // else (checkbox/radio/free-text answers) false.
   for (const [formSlug, entry] of Object.entries(maps.forms)) {
     for (const [role, fields] of Object.entries(entry.roles)) {
       for (const f of fields) {
-        const expected = f.type === 'signature' || f.type === 'date';
+        const expected = f.type === 'signature' || f.type === 'date' || f.type === 'initials';
         assert(f.required === expected,
           `esign-field-maps.json: ${formSlug}.${role}.${f.name} (type=${f.type}) has required=${f.required}, expected ${expected}`);
       }
@@ -269,7 +287,7 @@ check('8. no non-signature/date field is ever required:true (Barry Whyte gate)',
     const { fieldMap } = T.buildMappedFieldMap(entry, runtimeSigners);
     for (const [role, fields] of Object.entries(fieldMap)) {
       for (const f of fields) {
-        const expected = f.type === 'signature' || f.type === 'date';
+        const expected = f.type === 'signature' || f.type === 'date' || f.type === 'initials';
         assert(f.required === expected,
           `buildMappedFieldMap(${formSlug}).${role}.${f.name} (type=${f.type}) required=${f.required}, expected ${expected}`);
       }

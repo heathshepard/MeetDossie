@@ -157,17 +157,20 @@ function convertForm(slug, roleMap, assetModule, blankPdfSha256, problems) {
       name: f.field_key,
       title: `${titleForRole(f.role)} ${dsType === 'signature' ? 'Signature' : dsType === 'initials' ? `Initials P${f.page}` : 'Date'}`,
       type: dsType,
-      // 2026-09-26 CARTER — Barry Whyte incident review: the only defensible
-      // required DocuSeal widgets are a signature and its paired date.
-      // Initials are NOT in that list (confirmed live on template 6075043 —
-      // 12 optional initials never blocked completion) — an agent chases a
-      // missing initial the same way they'd chase a missing signature, but
-      // nothing should be able to HARD-BLOCK a signer over one. Every
-      // consumer of this map (api/esign-create.js) also recomputes
-      // `required` from `type` at send time and ignores this value, so this
-      // flag is documentation of intent, not the enforcement point — but it
-      // must stay honest.
-      required: dsType === 'signature' || dsType === 'date',
+      // 2026-09-27 CORRECTION (was 2026-09-26 Barry Whyte incident review) —
+      // the first pass put initials in the optional bucket alongside
+      // checkboxes/radios/free-text. That was wrong: initials aren't a
+      // substantive answer a seller could legitimately need to leave blank,
+      // and this form's role map had never wired any initials fields at all
+      // (defect found reviewing the completed PDF 2026-09-27 — zero initials
+      // anywhere). Required DocuSeal widgets are signature, date, AND
+      // initials; checkboxes/radios/free-text stay optional (that part of
+      // the Barry Whyte fix is unchanged). Every consumer of this map
+      // (api/esign-create.js's dsFieldRequired) also recomputes `required`
+      // from `type` at send time and ignores this value, so this flag is
+      // documentation of intent, not the enforcement point — but it must
+      // stay honest.
+      required: dsType === 'signature' || dsType === 'date' || dsType === 'initials',
       ...(dsType === 'date' ? { preferences: { format: 'MM/DD/YYYY' } } : {}),
       areas: [{
         x: +(f.x_pct / 100).toFixed(6),

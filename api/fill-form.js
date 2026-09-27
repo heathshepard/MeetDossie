@@ -2451,7 +2451,16 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 //   subform[4] = Page 5 (signature page)
 //
 // KEY FIELDS (all auto-wired from transaction or field_values):
-//   TextField1[0..6] = property address (repeated on each page header)
+//   TextField1[0] = page 1 header property address
+//   TextField1[1] = page 2 header property address
+//   TextField1[2] = page 3 header property address
+//   TextField1[7] = page 4 header property address (2026-09-27 fix — this was
+//     previously left unwritten while [3..6] were wrongly stuffed with the
+//     address; see PROPERTY ADDRESS block below)
+//   TextField1[3..6] = page 4 Seller1/Seller2/Purchaser1/Purchaser2 DATE boxes
+//     next to the printed signature lines — left blank here; DocuSeal's own
+//     date widget renders there at signing time (scripts/esign-role-maps/
+//     sellers-disclosure.json), this fill pass must not touch them.
 //   CheckBox1[0] = seller_occupied (Yes)
 //   CheckBox2[0] = seller_not_occupied (No)
 //   TextField2[0] = year_built (seller estimate)
@@ -2461,8 +2470,8 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 //   TextField3[31] = seller_notes (general notes, maxLen=255)
 //   TextField3[32] = seller_notes_2 (additional notes)
 //   TextField3[34] = year_built_field (5-char year in question section)
-//   TextField4[0] = seller_name_1 (first seller, page 1)
-//   TextField4[1] = seller_name_2 (second seller, page 1)
+//   TextField4[0] = roof_type, TextField4[1] = roof_age (page 1 "Roof Type /
+//     Age" blanks — NOT seller names; see the 2026-08-19 note below)
 //   TextField5[0..28] = explanation text boxes
 //     -> pass as sdn_explanations: ['text for box 0', 'text for box 1', ...]
 //     -> or as individual sdn_explain_N keys
@@ -2471,21 +2480,31 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 //   CheckBox5[n] = section Unknown checkboxes
 //   CheckBox6[n] = Section 15 Yes
 //   CheckBox7[n] = Section 15 No
-//   TextField1[3..7] = signature page fields (seller names, dates, agent notes)
 // ---------------------------------------------------------------------------
 async function fillSellersDisclosure(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
-  // PROPERTY ADDRESS — all page headers
+  // PROPERTY ADDRESS — all 4 page headers ("Concerning the Property at ___").
+  // 2026-09-27 CARTER — regression fix (Barry Whyte page-2-blank incident):
+  // this used to write `addr` into TextField1[3..6], which are NOT the page 4
+  // header — verified live via pdf-lib widget rects, those 4 are the tiny
+  // Seller/Purchaser DATE boxes at the bottom signature block (confirmed
+  // against a rendered page 4: rects sit directly under "Signature of
+  // Seller ... Date" / "Signature of Purchaser ... Date"). The real page 4
+  // header field is TextField1[7] (same width/row-position as the page
+  // 1-3 header fields, confirmed by widget rect), which this function never
+  // wrote to — so the header was blank on every page whenever `addr` was
+  // empty, AND page 4's header was blank even when it wasn't, while the
+  // address text was instead getting silently stuffed into the signature
+  // date boxes. Fixed: [0]/[1]/[2]/[7] are the 4 real headers; [3..6] are
+  // left alone (DocuSeal's own date widgets render there at signing time —
+  // see scripts/esign-role-maps/sellers-disclosure.json).
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   if (addr) {
     safeSetText(form, 'form1[0].#subform[0].TextField1[0]', addr);
     safeSetText(form, 'form1[0].#subform[1].TextField1[1]', addr);
     safeSetText(form, 'form1[0].#subform[2].TextField1[2]', addr);
-    safeSetText(form, 'form1[0].#subform[4].TextField1[3]', addr);
-    safeSetText(form, 'form1[0].#subform[4].TextField1[4]', addr);
-    safeSetText(form, 'form1[0].#subform[4].TextField1[5]', addr);
-    safeSetText(form, 'form1[0].#subform[4].TextField1[6]', addr);
+    safeSetText(form, 'form1[0].#subform[4].TextField1[7]', addr);
   }
 
   // SELLER OCCUPANCY
@@ -2593,11 +2612,17 @@ async function fillSellersDisclosure(pdfDoc, fv) {
   if (fv.sdn_s2_cb4_7 === true) safeCheck(form, 'form1[0].#subform[2].CheckBox4[7]');
   if (fv.sdn_s2_field158 === true) safeCheck(form, 'form1[0].#subform[2].#field[158]');
 
-  // SIGNATURE PAGE NOTES
+  // PAGE 4 §9 "if yes, explain" lines (was mislabeled "SIGNATURE PAGE NOTES";
+  // these are the 3 explanation blanks under question 9, confirmed by widget
+  // rect against the rendered page 4).
   safeSetText(form, 'form1[0].#subform[4].TextField5[26]', fv.sdn_sig_notes_1 || '');
   safeSetText(form, 'form1[0].#subform[4].TextField5[27]', fv.sdn_sig_notes_2 || '');
   safeSetText(form, 'form1[0].#subform[4].TextField5[28]', fv.sdn_sig_notes_3 || '');
-  safeSetText(form, 'form1[0].#subform[4].TextField1[7]', fv.sdn_agent_notes || '');
+  // NOTE: fv.sdn_agent_notes previously wrote here too (TextField1[7]) — that
+  // field is the page 4 property-address header (see PROPERTY ADDRESS above);
+  // there is no separate "agent notes" blank on this form, so sdn_agent_notes
+  // has no target and is intentionally dropped rather than clobbering the
+  // header again.
 
   return pdfDoc;
 }
