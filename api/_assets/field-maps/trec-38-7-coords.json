@@ -16,7 +16,7 @@
       "width": 510,
       "height": 14,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "Above '(Street Address and City)' label at y=128"
     },
     "seller_name": {
@@ -26,7 +26,7 @@
       "width": 450,
       "height": 14,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "Wrap line 2 of 'BETWEEN THE UNDERSIGNED BUYER AND ___ (SELLER)' -- line 1 (baseline y=628.7) ends at 'AND', line 2 (baseline y=610.0) is blank from left margin to '(SELLER)' label at x=507.7. Previous y=160 landed between the two lines, overlapping 'BETWEEN THE UNDERSIGNED BUYER AND'."
     },
     "buyer_name": {
@@ -36,8 +36,8 @@
       "width": 190,
       "height": 14,
       "font_size": 11,
-      "required": true,
-      "notes": "Buyer signature line 1 (left) \u2014 'Buyer' label at y=663 below"
+      "required": false,
+      "notes": "Buyer signature line 1 (left) — 'Buyer' label at y=663 below"
     },
     "buyer_name_2": {
       "page": 1,
@@ -47,7 +47,7 @@
       "height": 14,
       "font_size": 11,
       "required": false,
-      "notes": "Buyer signature line 2 (right) \u2014 second buyer if joint"
+      "notes": "Buyer signature line 2 (right) — second buyer if joint"
     },
     "contract_effective_date": {
       "page": 1,
@@ -57,7 +57,7 @@
       "height": 14,
       "font_size": 11,
       "required": false,
-      "notes": "Date line under signature 1 \u2014 'Date' label at (270.9, 663.2)"
+      "notes": "Date line under signature 1 — 'Date' label at (270.9, 663.2)"
     },
     "termination_notice_date": {
       "page": 1,
@@ -66,8 +66,8 @@
       "width": 110,
       "height": 14,
       "font_size": 11,
-      "required": true,
-      "notes": "Date line under signature 2 \u2014 'Date' label at (526.5, 663.2)"
+      "required": false,
+      "notes": "Date line under signature 2 — 'Date' label at (526.5, 663.2)"
     },
     "termination_checkbox_option_period": {
       "page": 1,
@@ -149,7 +149,7 @@
       "height": 70,
       "font_size": 10,
       "required": false,
-      "notes": "Free-text reason if (8) Other checked \u2014 6 blank lines"
+      "notes": "Free-text reason if (8) Other checked — 6 blank lines"
     }
   },
   "field_count": 15

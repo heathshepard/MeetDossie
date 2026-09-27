@@ -16,7 +16,7 @@
       "width": 275,
       "height": 12,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "End of '1.PARTIES: ... are ___' line (y=81) after 'are' word at x=276"
     },
     "buyer_name": {
@@ -26,7 +26,7 @@
       "width": 245,
       "height": 12,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "On '(Seller) and ___ (Buyer)' line (y=91), between 'and' end x=119 and '(Buyer)' at x=374"
     },
     "lot_number": {
@@ -36,7 +36,7 @@
       "width": 80,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Inline after 'Lot' anchor (124-140) before ',Block' at x=224"
     },
     "block_number": {
@@ -46,7 +46,7 @@
       "width": 58,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Inline after 'Block' anchor (228-255) before ',' at x=318"
     },
     "addition_name": {
@@ -56,7 +56,7 @@
       "width": 168,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Inline after 'City of' (ends x=141) before ',County of' at x=313"
     },
     "county": {
@@ -66,7 +66,7 @@
       "width": 102,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Inline after 'County of' (ends x=366) before 'Texas,' at x=474"
     },
     "property_address": {
@@ -76,7 +76,7 @@
       "width": 370,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Above/before '(address/zip code)' label at (423, 134)"
     },
     "cash_portion": {
@@ -87,7 +87,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "A. Cash portion \u2014 fill right of '$' at (437.5, 207.6)"
+      "notes": "A. Cash portion — fill right of '$' at (437.5, 207.6)"
     },
     "financing_amount": {
       "page": 1,
@@ -97,7 +97,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "B. Sum of financing \u2014 fill right of '$' at (437.5, 250.6)"
+      "notes": "B. Sum of financing — fill right of '$' at (437.5, 250.6)"
     },
     "sales_price": {
       "page": 1,
@@ -106,8 +106,8 @@
       "width": 110,
       "height": 12,
       "font_size": 10,
-      "required": true,
-      "notes": "C. Sales Price (Sum A+B) \u2014 fill right of '$' at (437.5, 262.8)"
+      "required": false,
+      "notes": "C. Sales Price (Sum A+B) — fill right of '$' at (437.5, 262.8)"
     },
     "escrow_agent": {
       "page": 1,
@@ -136,8 +136,8 @@
       "width": 90,
       "height": 12,
       "font_size": 10,
-      "required": true,
-      "notes": "Right of '$' at (383.8, 455.3) \u2014 earnest money amount"
+      "required": false,
+      "notes": "Right of '$' at (383.8, 455.3) — earnest money amount"
     },
     "option_fee": {
       "page": 1,
@@ -147,7 +147,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Right of '$' at (133.8, 466.1) \u2014 option fee amount"
+      "notes": "Right of '$' at (133.8, 466.1) — option fee amount"
     },
     "additional_earnest_money": {
       "page": 1,
@@ -186,7 +186,7 @@
       "width": 125,
       "height": 14,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "PARA 9A blank -- anchored on 'The closing of the sale will be on or before' (ends x=289.0, baseline y=387.7) through ', 20' (starts x=423.3), same baseline y=387.7. Previous coords pointed at a bare 'Closing Date' hit on page 2 body prose, not this blank."
     },
     "buyer_address": {
@@ -197,7 +197,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Buyer's notice address block \u2014 top of notice section"
+      "notes": "Buyer's notice address block — top of notice section"
     },
     "seller_address": {
       "page": 7,
@@ -217,7 +217,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Effective Date blank \u2014 anchor at (467.1, 207.3)"
+      "notes": "Effective Date blank — anchor at (467.1, 207.3)"
     },
     "seller_signature": {
       "page": 9,
@@ -324,7 +324,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 1 \u2014 anchor at (52.9, 132.1)"
+      "notes": "Escrow Agent receipt date 1 — anchor at (52.9, 132.1)"
     },
     "escrow_receipt_date_2": {
       "page": 11,
@@ -334,7 +334,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 2 \u2014 anchor at (52.7, 215.0)"
+      "notes": "Escrow Agent receipt date 2 — anchor at (52.7, 215.0)"
     },
     "escrow_receipt_date_3": {
       "page": 11,
@@ -344,7 +344,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 3 \u2014 anchor at (52.7, 350.3)"
+      "notes": "Escrow Agent receipt date 3 — anchor at (52.7, 350.3)"
     },
     "escrow_receipt_date_4": {
       "page": 11,
@@ -354,7 +354,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 4 \u2014 anchor at (52.7, 485.6)"
+      "notes": "Escrow Agent receipt date 4 — anchor at (52.7, 485.6)"
     }
   },
   "field_count": 35

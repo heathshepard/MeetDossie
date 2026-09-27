@@ -221,6 +221,86 @@ check('7. build script --check: committed output is current', () => {
   execFileSync(process.execPath, [path.join(REPO, 'scripts', 'build-esign-field-maps.js'), '--check'], { stdio: 'pipe' });
 });
 
+// 2026-09-26 CARTER — Barry Whyte incident (see esign-create.js's
+// dsFieldRequired comment for the full writeup). A DocuSeal packet forced a
+// seller to affirmatively check floodplain/occupied/tax-exemption boxes he
+// could not truthfully answer, because every non-signature/date field lost
+// its `required` flag on the way to DocuSeal and DocuSeal's own default for
+// an omitted `required` key is `true`. This check fails if that ever
+// recurs — in the source JSON maps (static) or in what the server actually
+// builds for DocuSeal (runtime, the part that matters).
+check('8. no non-signature/date field is ever required:true (Barry Whyte gate)', () => {
+  // (a) the combined DocuSeal signing-widget map — every entry must already
+  // be honest about the policy: signature/date true, everything else false.
+  for (const [formSlug, entry] of Object.entries(maps.forms)) {
+    for (const [role, fields] of Object.entries(entry.roles)) {
+      for (const f of fields) {
+        const expected = f.type === 'signature' || f.type === 'date';
+        assert(f.required === expected,
+          `esign-field-maps.json: ${formSlug}.${role}.${f.name} (type=${f.type}) has required=${f.required}, expected ${expected}`);
+      }
+    }
+  }
+
+  // (b) the flat (0-AcroForm) coordinate maps — same policy. These fields
+  // are dead code today (flat-pdf-filler.js never reads `.required`) but a
+  // future feature could wire them up, and they must not carry the landmine.
+  const flatMapDir = path.join(REPO, 'api', '_assets', 'field-maps');
+  for (const file of fs.readdirSync(flatMapDir).filter((f) => f.endsWith('.json'))) {
+    const map = JSON.parse(fs.readFileSync(path.join(flatMapDir, file), 'utf8'));
+    for (const [name, f] of Object.entries(map.fields)) {
+      const isSignatureOrDate = /_signature(_date)?$/.test(name);
+      const expected = isSignatureOrDate;
+      assert(!!f.required === expected,
+        `${file}: field "${name}" has required=${!!f.required}, expected ${expected} (signature/date fields only)`);
+    }
+  }
+
+  // (c) RUNTIME — what buildMappedFieldMap actually hands to DocuSeal for
+  // every one of the 23 mapped forms. This is the path that matters; (a)
+  // above only proves the source JSON is honest, not that the server
+  // preserves it end-to-end.
+  const runtimeSigners = [
+    { name: 'B1', email: 'delivered@resend.dev', role: 'Buyer' },
+    { name: 'S1', email: 'delivered@resend.dev', role: 'Seller' },
+  ];
+  for (const formSlug of EXPECTED_FORMS) {
+    const entry = maps.forms[formSlug];
+    const { fieldMap } = T.buildMappedFieldMap(entry, runtimeSigners);
+    for (const [role, fields] of Object.entries(fieldMap)) {
+      for (const f of fields) {
+        const expected = f.type === 'signature' || f.type === 'date';
+        assert(f.required === expected,
+          `buildMappedFieldMap(${formSlug}).${role}.${f.name} (type=${f.type}) required=${f.required}, expected ${expected}`);
+      }
+    }
+  }
+
+  // (d) RUNTIME — the unmapped/caller-placed branch (buildPacketDocEntry's
+  // `else`), the exact path an uploaded, hand-placed Seller's Disclosure
+  // correction rides. A caller-placed checkbox/text field must come out
+  // required:false even though the caller never set `required` at all
+  // (mirrors the real frontend, which has no `required` concept) — proves
+  // the server computes it centrally rather than trusting/omitting it.
+  const unmappedDoc = { id: 'doc-unmapped-test', document_type: 'upload', form_type: null, file_name: 'Uploaded.pdf' };
+  const callerFields = [
+    { documentId: 'doc-unmapped-test', name: 'Floodplain Yes', type: 'checkbox', signerRole: 'Seller', areas: [{ x: 0.1, y: 0.1, w: 0.05, h: 0.02, page: 1 }] },
+    { documentId: 'doc-unmapped-test', name: 'Occupied Text', type: 'text', signerRole: 'Seller', areas: [{ x: 0.1, y: 0.2, w: 0.3, h: 0.02, page: 1 }] },
+    { documentId: 'doc-unmapped-test', name: 'Seller Signature', type: 'signature', signerRole: 'Seller', areas: [{ x: 0.1, y: 0.9, w: 0.3, h: 0.03, page: 4 }] },
+    { documentId: 'doc-unmapped-test', name: 'Seller Date', type: 'date', signerRole: 'Seller', areas: [{ x: 0.5, y: 0.9, w: 0.15, h: 0.03, page: 4 }] },
+  ];
+  const { fields: flat } = T.buildPacketDocEntry({
+    doc: unmappedDoc, docIndex: 0, packetSize: 1, allSigners: runtimeSigners, callerFields,
+  });
+  for (const f of flat) {
+    const expected = f.type === 'signature' || f.type === 'date';
+    assert(f.required === expected,
+      `buildPacketDocEntry (unmapped/caller-placed) field "${f.name}" (type=${f.type}) required=${f.required}, expected ${expected}`);
+  }
+  assert(flat.some((f) => f.type === 'checkbox' && f.required === false),
+    'caller-placed checkbox must come out required:false — this is the exact Barry Whyte failure mode');
+});
+
 if (failures) {
   console.error(`\n${failures} check(s) FAILED`);
   process.exit(1);

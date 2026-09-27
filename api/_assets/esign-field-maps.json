@@ -120,7 +120,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -155,7 +155,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -190,7 +190,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -225,7 +225,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -265,7 +265,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.391258,
@@ -295,7 +295,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -315,7 +315,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.337279,
@@ -345,7 +345,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -365,7 +365,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.589324,
@@ -395,7 +395,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -415,7 +415,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.535345,
@@ -445,7 +445,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -485,7 +485,7 @@
       "name": "seller1_initials_as_landlord_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.363725,
@@ -515,7 +515,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -535,7 +535,7 @@
       "name": "buyer1_initials_as_tenant_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.548851,
@@ -565,7 +565,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -600,7 +600,7 @@
       "name": "seller2_initials_as_landlord_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.405566,
@@ -615,7 +615,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -650,7 +650,7 @@
       "name": "buyer2_initials_as_tenant_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.591763,
@@ -665,7 +665,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -819,7 +819,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -854,7 +854,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -889,7 +889,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -924,7 +924,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -964,7 +964,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.335686,
@@ -994,7 +994,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1014,7 +1014,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.387647,
@@ -1044,7 +1044,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1064,7 +1064,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.532157,
@@ -1094,7 +1094,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1114,7 +1114,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.593529,
@@ -1144,7 +1144,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1199,7 +1199,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1234,7 +1234,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1269,7 +1269,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1304,7 +1304,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1447,7 +1447,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1482,7 +1482,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1517,7 +1517,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1552,7 +1552,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1607,7 +1607,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1642,7 +1642,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1677,7 +1677,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1712,7 +1712,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1752,7 +1752,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1787,7 +1787,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1822,7 +1822,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1857,7 +1857,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1912,7 +1912,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1947,7 +1947,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -1982,7 +1982,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2017,7 +2017,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2052,7 +2052,7 @@
       "name": "seller_broker_date",
       "title": "Listing Agent Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2087,7 +2087,7 @@
       "name": "buyer_broker_date",
       "title": "Buyer's Agent Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2144,7 +2144,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.336502,
@@ -2174,7 +2174,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2194,7 +2194,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.562173,
@@ -2224,7 +2224,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2259,7 +2259,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.411149,
@@ -2274,7 +2274,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2309,7 +2309,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.616465,
@@ -2324,7 +2324,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2379,7 +2379,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2414,7 +2414,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2449,7 +2449,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2484,7 +2484,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2524,7 +2524,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2559,7 +2559,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2594,7 +2594,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2629,7 +2629,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2699,7 +2699,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2734,7 +2734,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2769,7 +2769,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2804,7 +2804,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2859,7 +2859,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2894,7 +2894,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2929,7 +2929,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -2964,7 +2964,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3004,7 +3004,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.3357,
@@ -3034,7 +3034,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3054,7 +3054,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.4019,
@@ -3084,7 +3084,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3104,7 +3104,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.5612,
@@ -3134,7 +3134,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3154,7 +3154,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.6139,
@@ -3184,7 +3184,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3239,7 +3239,7 @@
       "name": "seller1_signature_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3274,7 +3274,7 @@
       "name": "seller2_signature_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3294,7 +3294,7 @@
       "name": "buyer1_receipt_signature_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3329,7 +3329,7 @@
       "name": "buyer2_receipt_signature_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3384,7 +3384,7 @@
       "name": "buyer1_initials_as_landlord_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.363725,
@@ -3414,7 +3414,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3434,7 +3434,7 @@
       "name": "seller1_initials_as_tenant_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.559384,
@@ -3464,7 +3464,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3499,7 +3499,7 @@
       "name": "seller2_initials_as_tenant_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.607791,
@@ -3514,7 +3514,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3549,7 +3549,7 @@
       "name": "buyer2_initials_as_landlord_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.411225,
@@ -3564,7 +3564,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3628,7 +3628,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3663,7 +3663,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3737,7 +3737,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.345186,
@@ -3752,7 +3752,7 @@
       "name": "buyer1_initials_p2",
       "title": "Buyer 1 Initials P2",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.344314,
@@ -3767,7 +3767,7 @@
       "name": "buyer1_initials_p3",
       "title": "Buyer 1 Initials P3",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.344314,
@@ -3782,7 +3782,7 @@
       "name": "buyer1_initials_p4",
       "title": "Buyer 1 Initials P4",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.344314,
@@ -3797,7 +3797,7 @@
       "name": "buyer1_initials_p5",
       "title": "Buyer 1 Initials P5",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.344314,
@@ -3812,7 +3812,7 @@
       "name": "buyer1_initials_p6",
       "title": "Buyer 1 Initials P6",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.344314,
@@ -3827,7 +3827,7 @@
       "name": "buyer1_initials_p7",
       "title": "Buyer 1 Initials P7",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.34965,
@@ -3857,7 +3857,7 @@
       "name": "buyer1_date",
       "title": "Buyer 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -3877,7 +3877,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3892,7 +3892,7 @@
       "name": "buyer2_initials_p2",
       "title": "Buyer 2 Initials P2",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3907,7 +3907,7 @@
       "name": "buyer2_initials_p3",
       "title": "Buyer 2 Initials P3",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3922,7 +3922,7 @@
       "name": "buyer2_initials_p4",
       "title": "Buyer 2 Initials P4",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3937,7 +3937,7 @@
       "name": "buyer2_initials_p5",
       "title": "Buyer 2 Initials P5",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3952,7 +3952,7 @@
       "name": "buyer2_initials_p6",
       "title": "Buyer 2 Initials P6",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.413333,
@@ -3967,7 +3967,7 @@
       "name": "buyer2_initials_p7",
       "title": "Buyer 2 Initials P7",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.41867,
@@ -3997,7 +3997,7 @@
       "name": "buyer2_date",
       "title": "Buyer 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -4017,7 +4017,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4032,7 +4032,7 @@
       "name": "seller1_initials_p2",
       "title": "Seller 1 Initials P2",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4047,7 +4047,7 @@
       "name": "seller1_initials_p3",
       "title": "Seller 1 Initials P3",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4062,7 +4062,7 @@
       "name": "seller1_initials_p4",
       "title": "Seller 1 Initials P4",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4077,7 +4077,7 @@
       "name": "seller1_initials_p5",
       "title": "Seller 1 Initials P5",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4092,7 +4092,7 @@
       "name": "seller1_initials_p6",
       "title": "Seller 1 Initials P6",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.566275,
@@ -4107,7 +4107,7 @@
       "name": "seller1_initials_p7",
       "title": "Seller 1 Initials P7",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.571611,
@@ -4137,7 +4137,7 @@
       "name": "seller1_date",
       "title": "Seller 1 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -4157,7 +4157,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4172,7 +4172,7 @@
       "name": "seller2_initials_p2",
       "title": "Seller 2 Initials P2",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4187,7 +4187,7 @@
       "name": "seller2_initials_p3",
       "title": "Seller 2 Initials P3",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4202,7 +4202,7 @@
       "name": "seller2_initials_p4",
       "title": "Seller 2 Initials P4",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4217,7 +4217,7 @@
       "name": "seller2_initials_p5",
       "title": "Seller 2 Initials P5",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4232,7 +4232,7 @@
       "name": "seller2_initials_p6",
       "title": "Seller 2 Initials P6",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.647059,
@@ -4247,7 +4247,7 @@
       "name": "seller2_initials_p7",
       "title": "Seller 2 Initials P7",
       "type": "initials",
-      "required": true,
+      "required": false,
       "areas": [
        {
         "x": 0.652395,
@@ -4277,7 +4277,7 @@
       "name": "seller2_date",
       "title": "Seller 2 Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -4297,7 +4297,7 @@
       "name": "option_fee_receipt_date",
       "title": "Escrow Agent Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },
@@ -4315,7 +4315,7 @@
       "name": "contract_receipt_date",
       "title": "Escrow Agent Date",
       "type": "date",
-      "required": false,
+      "required": true,
       "preferences": {
        "format": "MM/DD/YYYY"
       },

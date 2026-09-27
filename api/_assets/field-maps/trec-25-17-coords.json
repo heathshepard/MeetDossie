@@ -16,7 +16,7 @@
       "width": 290,
       "height": 12,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "End of '1.PARTIES: ... are ___' line (y=69) after 'are' at x=272"
     },
     "buyer_name": {
@@ -26,7 +26,7 @@
       "width": 295,
       "height": 12,
       "font_size": 11,
-      "required": true,
+      "required": false,
       "notes": "On '(Seller) and ___ (Buyer)' line (y=79), between 'and' end x=116 and '(Buyer)' at x=419.8"
     },
     "county": {
@@ -36,7 +36,7 @@
       "width": 190,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "End of 'A. LAND: ... in the County (or Counties) of ___' line at y=121"
     },
     "property_description": {
@@ -46,7 +46,7 @@
       "width": 510,
       "height": 70,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Multi-line legal description block under 'described as follows:'"
     },
     "acreage": {
@@ -57,7 +57,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Acreage value \u2014 just left of 'acres' word at (117.3, 606.4)"
+      "notes": "Acreage value — just left of 'acres' word at (117.3, 606.4)"
     },
     "cash_portion": {
       "page": 1,
@@ -67,7 +67,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "A. Cash portion \u2014 right of '$' at (420.7, 523.1)"
+      "notes": "A. Cash portion — right of '$' at (420.7, 523.1)"
     },
     "financing_amount": {
       "page": 1,
@@ -77,7 +77,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "B. Sum of financing \u2014 right of '$' at (420.7, 565.0)"
+      "notes": "B. Sum of financing — right of '$' at (420.7, 565.0)"
     },
     "sales_price": {
       "page": 1,
@@ -86,8 +86,8 @@
       "width": 110,
       "height": 12,
       "font_size": 10,
-      "required": true,
-      "notes": "C. Sales Price (Sum A+B) \u2014 right of '$' at (420.7, 576.2)"
+      "required": false,
+      "notes": "C. Sales Price (Sum A+B) — right of '$' at (420.7, 576.2)"
     },
     "acreage_adjustment": {
       "page": 1,
@@ -97,7 +97,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Excess acreage adjustment \u2014 right of '$' at (459.2, 615.9)"
+      "notes": "Excess acreage adjustment — right of '$' at (459.2, 615.9)"
     },
     "survey_days": {
       "page": 1,
@@ -136,7 +136,7 @@
       "width": 90,
       "height": 12,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "Right of '$' at (386.8, 306.8)"
     },
     "option_fee": {
@@ -167,7 +167,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Before 'days after' at (118.1, 480.6) \u2014 option period"
+      "notes": "Before 'days after' at (118.1, 480.6) — option period"
     },
     "closing_date": {
       "page": 6,
@@ -176,7 +176,7 @@
       "width": 98,
       "height": 14,
       "font_size": 10,
-      "required": true,
+      "required": false,
       "notes": "PARA 9A blank -- this form prints the blank as literal underscores inline in the sentence 'The closing of the sale will be on or before ___________________, 20_____, or within 7 days' (baseline y=490.6). Anchored proportionally on the underscore run between 'before ' and ', 20'. Previous coords pointed at a bare 'Closing Date' hit on page 3 body prose, not this blank."
     },
     "reservations_oil_gas": {
@@ -237,7 +237,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Effective Date \u2014 anchor at (464.9, 205.3)"
+      "notes": "Effective Date — anchor at (464.9, 205.3)"
     },
     "seller_signature": {
       "page": 10,
@@ -337,7 +337,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 1 \u2014 anchor at (52.1, 128.3)"
+      "notes": "Escrow Agent receipt date 1 — anchor at (52.1, 128.3)"
     },
     "escrow_receipt_date_2": {
       "page": 12,
@@ -347,7 +347,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 2 \u2014 anchor at (52.1, 204.0)"
+      "notes": "Escrow Agent receipt date 2 — anchor at (52.1, 204.0)"
     },
     "escrow_receipt_date_3": {
       "page": 12,
@@ -357,7 +357,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 3 \u2014 anchor at (52.1, 319.7)"
+      "notes": "Escrow Agent receipt date 3 — anchor at (52.1, 319.7)"
     },
     "escrow_receipt_date_4": {
       "page": 12,
@@ -367,7 +367,7 @@
       "height": 12,
       "font_size": 10,
       "required": false,
-      "notes": "Escrow Agent receipt date 4 \u2014 anchor at (52.1, 450.5)"
+      "notes": "Escrow Agent receipt date 4 — anchor at (52.1, 450.5)"
     }
   },
   "field_count": 37
