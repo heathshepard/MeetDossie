@@ -16,6 +16,7 @@
 //   - /api/cron-render-skits
 //   - /api/cron-morning-ops-digest
 //   - /api/cron-pierce-activation   (added 2026-09-18)
+//   - /api/cron-account-invite-autoresend   (added 2026-09-26)
 //
 // cron-pierce-activation was never registered ANYWHERE before 2026-09-18 — its
 // own header claimed an external cron-job.org trigger that does not exist, so
@@ -25,6 +26,15 @@
 // schedule is "0 13 * * *", which is exactly this dispatcher's, so it joins the
 // group rather than consuming another of vercel.json's 100 cron slots.
 // It notifies Heath on Telegram only and never emails a customer.
+//
+// cron-account-invite-autoresend is the follow-through on that same forensics
+// doc: it auto re-issues a durable 30-day invite (api/_lib/account-invites.js)
+// to any paying customer who has never held a session, once they are past
+// ACCOUNT_INVITE_AUTORESEND_HOURS (default 48h). Ships inert
+// (ACCOUNT_INVITE_AUTORESEND_MODE default 'report' — counts candidates, emails
+// nobody) until Heath flips the mode to 'send', same pattern as
+// cron-activation-drip's ACTIVATION_DRIP_BACKFILL_MODE. Same cadence as
+// cron-pierce-activation on purpose — it watches the same population.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -39,6 +49,7 @@ const HANDLERS = [
   { name: 'cron-render-skits', mod: require('./cron-render-skits.js') },
   { name: 'cron-morning-ops-digest', mod: require('./cron-morning-ops-digest.js') },
   { name: 'cron-pierce-activation', mod: require('./cron-pierce-activation.js') },
+  { name: 'cron-account-invite-autoresend', mod: require('./cron-account-invite-autoresend.js') },
 ];
 
 module.exports = async function handler(req, res) {
