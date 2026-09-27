@@ -166,9 +166,14 @@ module.exports = withTelemetry('cron-pierce-activation', async function handler(
       return res.status(500).json({ ok: false, error: 'Failed to fetch profiles' });
     }
 
-    // 2. Get active subscriptions to isolate paying customers
+    // 2. Get active + trialing subscriptions to isolate paying customers.
+    // 2026-09-26: widened from status=eq.active — a trial (TRIAL_DAYS,
+    // api/create-checkout-session.js) is a real, card-holding customer for up
+    // to 14 days before ever reaching 'active'. Excluding 'trialing' here
+    // would mean this job's inactivity check silently stops watching every
+    // trial signup for its entire trial window.
     const { ok: sOk, data: subs } = await supaJson(
-      'subscriptions?select=user_id,plan,status&status=eq.active&limit=200'
+      'subscriptions?select=user_id,plan,status&status=in.(active,trialing)&limit=200'
     );
     const activeSubUserIds = new Set(
       (sOk && Array.isArray(subs) ? subs : []).map(s => s.user_id)

@@ -108,6 +108,7 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
 .plans-error.is-visible { display: block; }
 .or-divider { text-align: center; color: var(--text-light); font-size: 13px; margin: 0 0 24px; }
 .plan-value { font-size: 12px; font-weight: 600; color: var(--sage-deep); margin-bottom: 12px; line-height: 1.4; }
+.trial-fineprint { text-align: center; font-size: 12px; color: var(--text-light); margin: 14px 0 0; }
 </style>
 </head>
 <body>
@@ -139,18 +140,19 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
       <div class="plan-tile">
         <div class="plan-name">Solo</div>
         <div class="plan-price" data-plan-price="solo">$149<span>/mo</span></div>
-        <div class="plan-note" data-plan-note="solo">Unlimited active files, one agent.</div>
+        <div class="plan-note" data-plan-note="solo">14 days free, then unlimited active files, one agent.</div>
         <div class="plan-value" data-plan-value="solo"></div>
-        <button type="button" class="plan-cta" data-plan="solo">Get Solo</button>
+        <button type="button" class="plan-cta" data-plan="solo">Start 14 days free</button>
       </div>
       <div class="plan-tile">
         <div class="plan-name">Team</div>
         <div class="plan-price" data-plan-price="team">$349<span>/mo</span></div>
-        <div class="plan-note" data-plan-note="team">3 seats included, up to 8 at $79.99/seat.</div>
+        <div class="plan-note" data-plan-note="team">14 days free, then 3 seats included, up to 8 at $79.99/seat.</div>
         <div class="plan-value" data-plan-value="team"></div>
-        <button type="button" class="plan-cta" data-plan="team">Get Team</button>
+        <button type="button" class="plan-cta" data-plan="team">Start 14 days free</button>
       </div>
     </div>
+    <p class="trial-fineprint">14-day free trial on both plans. Card required to start; cancel any time before it ends and you won't be charged.</p>
     <div class="plans-error" id="plans-error"></div>
   </div>
 
@@ -264,8 +266,8 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
     team: { monthly: "$349", monthlySuffix: "/mo", annual: "$296.65", annualSuffix: "/mo billed annually ($3,559.80/yr)" }
   };
   var NOTES = {
-    solo: "Unlimited active files, one agent.",
-    team: "3 seats included, up to 8 at $79.99/seat."
+    solo: "14 days free, then unlimited active files, one agent.",
+    team: "14 days free, then 3 seats included, up to 8 at $79.99/seat."
   };
   // Measured against the commonly cited freelance TC rate of $400 a file —
   // same comparison Dossie already uses on the homepage. Monthly: less than
