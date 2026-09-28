@@ -363,8 +363,24 @@ const SIDE_TO_SEMANTIC_ROLES = {
 // (confirmed empirically safe live on DocuSeal template 6075043 — 159
 // optional radios + 9 optional checkboxes render with nothing pre-selected
 // and never block submission).
-function dsFieldRequired(type) {
-  return type === 'signature' || type === 'date';
+//
+// 2026-09-28 CARTER — TREC 9-17 Unimproved Property Contract mapping. Heath's
+// rule ("all initials are required" on contracts) applies to a party-owned
+// signing widget (initials), NOT to the checkbox/radio legal elections the
+// Barry Whyte incident was about — those stay baked into the PDF by the fill
+// engine and never reach DocuSeal on a mapped form (Mode A). Per-form
+// allowlist rather than flipping the global default for `type==='initials'`,
+// because a blanket flip is exactly the failure class the incident review
+// flagged — this must be a reviewed, named decision per form, same pattern as
+// ACKNOWLEDGED_UNKNOWN in build-esign-field-maps.js. Add a form_type here only
+// after confirming (via the rendered form) that its initials lines are a real
+// signing requirement, not a courtesy line.
+const INITIALS_REQUIRED_FORMS = new Set(['unimproved-property']);
+
+function dsFieldRequired(type, formType) {
+  if (type === 'signature' || type === 'date') return true;
+  if (type === 'initials' && formType && INITIALS_REQUIRED_FORMS.has(formType)) return true;
+  return false;
 }
 
 // Build the per-signer field map for a mapped form and ENFORCE the packet
@@ -405,7 +421,7 @@ function buildMappedFieldMap(formEntry, signers) {
       fieldMap[roleName] = formEntry.roles[semantic].map((f) => ({
         name: `${roleName} ${f.title.replace(/^(Buyer|Seller) \d+ /, '')}`,
         type: f.type,
-        required: dsFieldRequired(f.type),
+        required: dsFieldRequired(f.type, formEntry.form_type),
         ...(f.preferences ? { preferences: f.preferences } : {}),
         areas: f.areas,
       }));
@@ -423,7 +439,7 @@ function buildMappedFieldMap(formEntry, signers) {
         fieldMap[roleName] = formEntry.roles[agentSemantic].map((f) => ({
           name: `${roleName} ${f.type === 'signature' ? 'Signature' : 'Date'}`,
           type: f.type,
-          required: dsFieldRequired(f.type),
+          required: dsFieldRequired(f.type, formEntry.form_type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: f.areas,
         }));
@@ -638,7 +654,7 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
           name: `${prefix}${f.name}`,
           type: f.type,
           role,
-          required: dsFieldRequired(f.type),
+          required: dsFieldRequired(f.type, formEntry.form_type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         });
@@ -1177,7 +1193,7 @@ async function generateSignedUrl(storagePath, expiresIn = 300) {
   return `${SUPABASE_URL}/storage/v1${p}`;
 }
 
-async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, fileName, signers, message, fields, fieldMap }) {
+async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, fileName, signers, message, fields, fieldMap, formType }) {
   // TODO: Replace stub with real call once DOCUSEAL_API_KEY is added to Vercel.
   if (!DOCUSEAL_API_KEY) {
     console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub submission.');
@@ -1238,7 +1254,7 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
           name: f.name,
           type: f.type,
           role,
-          required: dsFieldRequired(f.type),
+          required: dsFieldRequired(f.type, formType),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         };
         if (f.preferences && typeof f.preferences === 'object') {
@@ -2473,6 +2489,7 @@ module.exports = async function handler(req, res) {
       }
 
       let autoFieldMap = null;
+      let autoFieldMapFormType = null;
       if (!fields && doc.document_type === 'resale_contract') {
         // 2026-09-08 CARTER — resale converged onto the generalized
         // assignment + gate (see resaleFormEntry). buildMappedFieldMap
@@ -2486,6 +2503,7 @@ module.exports = async function handler(req, res) {
         const formEntry = resaleFormEntry();
         const built = buildMappedFieldMap(formEntry, allSigners); // throws 422 on any violation
         autoFieldMap = built.fieldMap;
+        autoFieldMapFormType = formEntry.form_type;
         console.log(`[esign-create] resale_contract (TREC 20-19) mapped widgets: ${built.summary.join('; ')}`);
         // Log actual widget coordinates for APV verification.
         for (const [role, roleFields] of Object.entries(autoFieldMap)) {
@@ -2506,6 +2524,7 @@ module.exports = async function handler(req, res) {
         if (formEntry) {
           const built = buildMappedFieldMap(formEntry, allSigners); // throws 422 on any violation
           autoFieldMap = built.fieldMap;
+          autoFieldMapFormType = formEntry.form_type;
           console.log(`[esign-create] ${formEntry.form_type} (TREC ${formEntry.trec_no || '?'}) mapped widgets: ${built.summary.join('; ')}`);
           for (const [role, roleFields] of Object.entries(autoFieldMap)) {
             for (const f of roleFields) {
@@ -2525,6 +2544,7 @@ module.exports = async function handler(req, res) {
         message,
         fields,
         fieldMap: autoFieldMap,
+        formType: autoFieldMapFormType,
       });
     }
 
