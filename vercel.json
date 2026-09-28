@@ -494,10 +494,6 @@
       "schedule": "10 */6 * * *"
     },
     {
-      "path": "/api/cron-agent-queue-dispatch",
-      "schedule": "*/2 * * * *"
-    },
-    {
       "path": "/api/cron-inbox-scan",
       "schedule": "7 * * * *"
     },
