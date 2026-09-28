@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Read and send from Heath's KW mailbox (heath.shepard@kw.com) through the Gmail API.
+Read and send from one of Heath's connected mailboxes through the Gmail API.
+Defaults to heath.shepard@kw.com; pass --account to use a different
+connected address (e.g. heath.shepard@gmail.com) explicitly — the mailbox
+used is NEVER implicit/guessed.
 
 Uses the OAuth refresh token stored in user_integrations by
 api/google-oauth-callback.js. Refreshes the access token automatically, so this
@@ -15,6 +18,10 @@ keeps working without another consent click.
     python3 scripts/kw-mail.py send --to a@x.com --subject "Re: Hi" --body "text" \
         --reply-to <gmailMessageId>   # threads correctly: pulls In-Reply-To,
                                        # References, and threadId from that message
+
+    # Any command against the gmail.com mailbox instead of kw.com:
+    python3 scripts/kw-mail.py --account heath.shepard@gmail.com profile
+    # or: MAIL_ACCOUNT=heath.shepard@gmail.com python3 scripts/kw-mail.py profile
 
 Needs SR_KEY (Supabase service role) in the environment. Client id/secret are
 pulled from Vercel if GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET aren't already set.
@@ -37,7 +44,13 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 SUPA = (os.environ.get('SUPABASE_URL') or 'https://pgwoitbdiyubjugwufhk.supabase.co').rstrip('/')
-ACCOUNT = 'heath.shepard@kw.com'
+
+# Which mailbox this run talks to. Explicit, never guessed: defaults to KW,
+# overridable via MAIL_ACCOUNT env var or --account <email> (main() below,
+# extracted from argv before the module-level default below is ever read by
+# a command). This is the ONLY place ACCOUNT is decided.
+DEFAULT_ACCOUNT = 'heath.shepard@kw.com'
+ACCOUNT = os.environ.get('MAIL_ACCOUNT') or DEFAULT_ACCOUNT
 
 # Row-pick filter shared by both reads below. The table is unique on
 # (user_id, oauth_provider), NOT on google_email — a re-consent can leave
@@ -328,8 +341,24 @@ def opt(argv, name, default=None):
     return default
 
 
+def extract_account(argv):
+    """Pull a leading/anywhere `--account <email>` out of argv, explicit and
+    required-if-present (never a guess). Returns (remaining_argv, email_or_None)."""
+    if '--account' not in argv:
+        return argv, None
+    i = argv.index('--account')
+    if i + 1 >= len(argv):
+        sys.exit('usage: --account requires a value, e.g. --account heath.shepard@gmail.com')
+    value = argv[i + 1]
+    remaining = argv[:i] + argv[i + 2:]
+    return remaining, value
+
+
 def main():
-    argv = sys.argv[1:]
+    global ACCOUNT
+    argv, account_override = extract_account(sys.argv[1:])
+    if account_override:
+        ACCOUNT = account_override
     if not argv:
         sys.exit(__doc__)
     cmd = argv[0]
