@@ -293,3 +293,9 @@ scripts/config/heath-voice-clone-*.mp3
 scripts/video-engine/models/
 models/
 node_modules
+
+# Guard-hook runtime state (heartbeats, JSONL shadow-mode logs, per-session
+# send-retry history) — operational output, not source. Regenerated on first
+# hook firing in any checkout/worktree.
+.claude/hooks/logs/
+.claude/hooks/state/
