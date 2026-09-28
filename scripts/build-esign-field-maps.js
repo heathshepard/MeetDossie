@@ -50,6 +50,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const REPO = path.resolve(__dirname, '..');
+const { dsFieldRequired } = require(path.join(REPO, 'api', '_lib', 'esign-field-required-policy'));
 const ROLE_MAP_DIR = path.join(REPO, 'scripts', 'esign-role-maps');
 const OUT_FILE = path.join(REPO, 'api', '_assets', 'esign-field-maps.json');
 
@@ -157,7 +158,18 @@ function convertForm(slug, roleMap, assetModule, blankPdfSha256, problems) {
       name: f.field_key,
       title: `${titleForRole(f.role)} ${dsType === 'signature' ? 'Signature' : dsType === 'initials' ? `Initials P${f.page}` : 'Date'}`,
       type: dsType,
-      required: dsType !== 'date', // dates auto-fill on sign; sig/initials mandatory
+      // 2026-09-26 CARTER — Barry Whyte incident review: the only defensible
+      // required DocuSeal widgets are a signature and its paired date.
+      // Initials are NOT required by default (confirmed live on template
+      // 6075043 — 12 optional initials never blocked completion) EXCEPT on a
+      // form named in INITIALS_REQUIRED_FORMS (2026-09-28: unimproved-property,
+      // per Heath — "all initials are required" on contracts). Shared with
+      // api/esign-create.js's dsFieldRequired() via
+      // api/_lib/esign-field-required-policy.js so the two can't drift.
+      // esign-create.js also recomputes `required` from `type` (+ formType)
+      // at send time and ignores this value, so this flag is documentation
+      // of intent, not the enforcement point — but it must stay honest.
+      required: dsFieldRequired(dsType, slug),
       ...(dsType === 'date' ? { preferences: { format: 'MM/DD/YYYY' } } : {}),
       areas: [{
         x: +(f.x_pct / 100).toFixed(6),

@@ -371,17 +371,11 @@ const SIDE_TO_SEMANTIC_ROLES = {
 // engine and never reach DocuSeal on a mapped form (Mode A). Per-form
 // allowlist rather than flipping the global default for `type==='initials'`,
 // because a blanket flip is exactly the failure class the incident review
-// flagged — this must be a reviewed, named decision per form, same pattern as
-// ACKNOWLEDGED_UNKNOWN in build-esign-field-maps.js. Add a form_type here only
-// after confirming (via the rendered form) that its initials lines are a real
-// signing requirement, not a courtesy line.
-const INITIALS_REQUIRED_FORMS = new Set(['unimproved-property']);
-
-function dsFieldRequired(type, formType) {
-  if (type === 'signature' || type === 'date') return true;
-  if (type === 'initials' && formType && INITIALS_REQUIRED_FORMS.has(formType)) return true;
-  return false;
-}
+// flagged. Lives in api/_lib/esign-field-required-policy.js — the SAME
+// module scripts/build-esign-field-maps.js and the regression suite's Barry
+// Whyte gate import, so the runtime and the committed static JSON can never
+// drift apart.
+const { INITIALS_REQUIRED_FORMS, dsFieldRequired } = require('./_lib/esign-field-required-policy');
 
 // Build the per-signer field map for a mapped form and ENFORCE the packet
 // completeness rules from the e-sign playbook: every principal signer gets
@@ -2678,5 +2672,10 @@ module.exports.__testing = {
   docusealCreateFromPacket,
   sha256Hex,
   MAX_PACKET_DOCUMENTS,
+  // Per-form initials-required allowlist (2026-09-28) — single source of
+  // truth for both dsFieldRequired() and regression-esign-field-maps.js's
+  // Barry Whyte gate, so the two can never drift apart.
+  INITIALS_REQUIRED_FORMS,
+  dsFieldRequired,
 };
 
