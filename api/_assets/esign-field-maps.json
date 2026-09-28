@@ -3737,7 +3737,7 @@
       "name": "buyer1_initials_p1",
       "title": "Buyer 1 Initials P1",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.345186,
@@ -3752,7 +3752,7 @@
       "name": "buyer1_initials_p2",
       "title": "Buyer 1 Initials P2",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.344314,
@@ -3767,7 +3767,7 @@
       "name": "buyer1_initials_p3",
       "title": "Buyer 1 Initials P3",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.344314,
@@ -3782,7 +3782,7 @@
       "name": "buyer1_initials_p4",
       "title": "Buyer 1 Initials P4",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.344314,
@@ -3797,7 +3797,7 @@
       "name": "buyer1_initials_p5",
       "title": "Buyer 1 Initials P5",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.344314,
@@ -3812,7 +3812,7 @@
       "name": "buyer1_initials_p6",
       "title": "Buyer 1 Initials P6",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.344314,
@@ -3827,7 +3827,7 @@
       "name": "buyer1_initials_p7",
       "title": "Buyer 1 Initials P7",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.34965,
@@ -3877,7 +3877,7 @@
       "name": "buyer2_initials_p1",
       "title": "Buyer 2 Initials P1",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3892,7 +3892,7 @@
       "name": "buyer2_initials_p2",
       "title": "Buyer 2 Initials P2",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3907,7 +3907,7 @@
       "name": "buyer2_initials_p3",
       "title": "Buyer 2 Initials P3",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3922,7 +3922,7 @@
       "name": "buyer2_initials_p4",
       "title": "Buyer 2 Initials P4",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3937,7 +3937,7 @@
       "name": "buyer2_initials_p5",
       "title": "Buyer 2 Initials P5",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3952,7 +3952,7 @@
       "name": "buyer2_initials_p6",
       "title": "Buyer 2 Initials P6",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.413333,
@@ -3967,7 +3967,7 @@
       "name": "buyer2_initials_p7",
       "title": "Buyer 2 Initials P7",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.41867,
@@ -4017,7 +4017,7 @@
       "name": "seller1_initials_p1",
       "title": "Seller 1 Initials P1",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4032,7 +4032,7 @@
       "name": "seller1_initials_p2",
       "title": "Seller 1 Initials P2",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4047,7 +4047,7 @@
       "name": "seller1_initials_p3",
       "title": "Seller 1 Initials P3",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4062,7 +4062,7 @@
       "name": "seller1_initials_p4",
       "title": "Seller 1 Initials P4",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4077,7 +4077,7 @@
       "name": "seller1_initials_p5",
       "title": "Seller 1 Initials P5",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4092,7 +4092,7 @@
       "name": "seller1_initials_p6",
       "title": "Seller 1 Initials P6",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.566275,
@@ -4107,7 +4107,7 @@
       "name": "seller1_initials_p7",
       "title": "Seller 1 Initials P7",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.571611,
@@ -4157,7 +4157,7 @@
       "name": "seller2_initials_p1",
       "title": "Seller 2 Initials P1",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4172,7 +4172,7 @@
       "name": "seller2_initials_p2",
       "title": "Seller 2 Initials P2",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4187,7 +4187,7 @@
       "name": "seller2_initials_p3",
       "title": "Seller 2 Initials P3",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4202,7 +4202,7 @@
       "name": "seller2_initials_p4",
       "title": "Seller 2 Initials P4",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4217,7 +4217,7 @@
       "name": "seller2_initials_p5",
       "title": "Seller 2 Initials P5",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4232,7 +4232,7 @@
       "name": "seller2_initials_p6",
       "title": "Seller 2 Initials P6",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.647059,
@@ -4247,7 +4247,7 @@
       "name": "seller2_initials_p7",
       "title": "Seller 2 Initials P7",
       "type": "initials",
-      "required": false,
+      "required": true,
       "areas": [
        {
         "x": 0.652395,

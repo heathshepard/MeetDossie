@@ -229,13 +229,26 @@ check('7. build script --check: committed output is current', () => {
 // an omitted `required` key is `true`. This check fails if that ever
 // recurs — in the source JSON maps (static) or in what the server actually
 // builds for DocuSeal (runtime, the part that matters).
+//
+// 2026-09-28 CARTER — TREC 9-17 exception. Heath's rule ("all initials are
+// required" on contracts) makes `initials` required on unimproved-property
+// specifically — a reviewed, named, per-form decision via
+// dsFieldRequired's INITIALS_REQUIRED_FORMS allowlist (imported below as the
+// single source of truth so this gate and the runtime helper can't drift
+// apart). This does NOT reopen the Barry Whyte hole: that incident was about
+// checkbox/radio LEGAL ELECTIONS silently losing `required`; initials are a
+// party-owned signing widget, exactly like the signature next to them, never
+// a checkbox/radio/free-text election field on a mapped (Mode A) form.
 check('8. no non-signature/date field is ever required:true (Barry Whyte gate)', () => {
+  assert(T.dsFieldRequired && T.INITIALS_REQUIRED_FORMS,
+    'esign-create.js must export dsFieldRequired + INITIALS_REQUIRED_FORMS (api/_lib/esign-field-required-policy.js) for this gate to check the real policy instead of re-deriving its own copy');
   // (a) the combined DocuSeal signing-widget map — every entry must already
-  // be honest about the policy: signature/date true, everything else false.
+  // be honest about the policy: signature/date true (plus initials on a
+  // reviewed, named form in INITIALS_REQUIRED_FORMS), everything else false.
   for (const [formSlug, entry] of Object.entries(maps.forms)) {
     for (const [role, fields] of Object.entries(entry.roles)) {
       for (const f of fields) {
-        const expected = f.type === 'signature' || f.type === 'date';
+        const expected = T.dsFieldRequired(f.type, formSlug);
         assert(f.required === expected,
           `esign-field-maps.json: ${formSlug}.${role}.${f.name} (type=${f.type}) has required=${f.required}, expected ${expected}`);
       }
@@ -269,7 +282,7 @@ check('8. no non-signature/date field is ever required:true (Barry Whyte gate)',
     const { fieldMap } = T.buildMappedFieldMap(entry, runtimeSigners);
     for (const [role, fields] of Object.entries(fieldMap)) {
       for (const f of fields) {
-        const expected = f.type === 'signature' || f.type === 'date';
+        const expected = T.dsFieldRequired(f.type, formSlug);
         assert(f.required === expected,
           `buildMappedFieldMap(${formSlug}).${role}.${f.name} (type=${f.type}) required=${f.required}, expected ${expected}`);
       }
@@ -299,6 +312,25 @@ check('8. no non-signature/date field is ever required:true (Barry Whyte gate)',
   }
   assert(flat.some((f) => f.type === 'checkbox' && f.required === false),
     'caller-placed checkbox must come out required:false — this is the exact Barry Whyte failure mode');
+
+  // (e) POSITIVE proof the per-form exception is actually live, not just
+  // permitted by a looser assertion above (a gate that only ever asserts
+  // `false` can't tell "the override works" from "the override was never
+  // wired up"). unimproved-property's initials must be required=true; a
+  // form NOT in the allowlist (any other of the 23) must stay false.
+  const uip = maps.forms['unimproved-property'];
+  assert(uip, 'unimproved-property must be a mapped form for this positive-proof check to mean anything');
+  const uipInitials = Object.values(uip.roles).flat().filter((f) => f.type === 'initials');
+  assert(uipInitials.length > 0, 'unimproved-property must have at least one initials widget to prove the override against');
+  assert(uipInitials.every((f) => f.required === true),
+    'unimproved-property: every initials widget must be required=true (Heath: "all initials are required" on contracts)');
+  const otherFormWithInitials = Object.entries(maps.forms)
+    .find(([slug, e]) => slug !== 'unimproved-property' && Object.values(e.roles).flat().some((f) => f.type === 'initials'));
+  if (otherFormWithInitials) {
+    const [slug, e] = otherFormWithInitials;
+    const stillOptional = Object.values(e.roles).flat().filter((f) => f.type === 'initials').every((f) => f.required === false);
+    assert(stillOptional, `${slug}: initials must remain required=false — the override must be per-form, not global`);
+  }
 });
 
 if (failures) {
