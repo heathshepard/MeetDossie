@@ -56,6 +56,15 @@
 //      history), OR a Heath-approved comment sat unposted >24h. This is the
 //      exact 2026-09-15 -> 2026-09-17 gap: a GLOBAL halt held for 2 days
 //      with nobody told.
+//  10. (2026-09-28) Google OAuth refresh token for Gmail/Calendar. SELF-
+//      HEALS first (api/_lib/google-refresh-ladder.js walks every stored
+//      credential newest->oldest, retries transient failures, persists a
+//      working token, prunes confirmed-dead rows) and only reaches THIS
+//      alarm if every stored credential is confirmed invalid_grant, the
+//      check itself can't run (missing env var / can't reach Supabase), or
+//      no row exists at all — see api/_lib/google-token-health.js. Closes
+//      the incident where the token died 3x, 7 days apart, and nothing
+//      said so until Heath asked.
 //
 // Dedup: api/_lib/silence-alarm.js's alert_state table — each ALARM
 // condition alerts once per ~20h regardless of how often this cron runs.
