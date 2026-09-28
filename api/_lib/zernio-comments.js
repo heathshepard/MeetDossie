@@ -332,6 +332,47 @@ async function hideComment({ postId, commentId, accountId, budget = null }) {
   );
 }
 
+/**
+ * Send a direct message to a commenter OUTSIDE the comment-automation flow —
+ * the touch 2/3 follow-up send (api/_lib/comment-dm-followups.js).
+ *
+ * ── UNVERIFIED. DO NOT RELY ON THIS WITHOUT PROBING IT FIRST. ──────────────
+ * Every other write in this file was hit with a real key before shipping
+ * (see the VERIFIED/DOCS ONLY table at the top). This one was NOT, because
+ * there is nothing safe to probe: Zernio's only confirmed messaging surface
+ * is the automatic single private-reply baked into a comment-automation
+ * (createAutomation's dmMessage) — GET /v1/comment-automations and
+ * GET /v1/inbox/comments are the full verified surface, and neither reads
+ * nor writes an arbitrary DM/conversation. There is no dry-run for "send a
+ * message to a real person" that doesn't message a real person.
+ *
+ * This function POSTs to the shape Zernio's own inbox/comments write path
+ * uses (`/v1/inbox/{resource}/{id}` with the target in the body) applied to
+ * a plausible messages resource — an educated guess, not a confirmed
+ * endpoint. api/_lib/comment-dm-followups.js refuses to call this unless
+ * COMMENT_DM_FOLLOWUP_SEND_ENDPOINT_VERIFIED=true is ALSO set (on top of
+ * the report/send mode switch) specifically so flipping the mode switch
+ * alone can never fire an unverified network call at a real lead. Before
+ * setting that flag: hit this against one test conversation you control and
+ * confirm the message actually lands, then flip it.
+ */
+async function sendDirectMessage({ accountId, conversationId, recipientPlatformId, message, idempotencyKey, budget = null }) {
+  const headers = {};
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+  const body = { accountId, message };
+  if (conversationId) body.conversationId = conversationId;
+  if (recipientPlatformId) body.recipientId = recipientPlatformId;
+
+  const r = await zernio('/inbox/messages', { method: 'POST', headers, body: JSON.stringify(body) }, budget);
+  return {
+    ok: r.ok,
+    status: r.status,
+    error: r.error,
+    verified: false,
+    messageId: (r.data && r.data.data && r.data.data.messageId) || null,
+  };
+}
+
 // ─── COMMENT-TO-DM AUTOMATIONS ────────────────────────────────────────────────
 
 async function listAutomations({ profileId = null, budget = null } = {}) {
@@ -492,6 +533,7 @@ module.exports = {
   getPostComments,
   getCommentReplies,
   replyToComment,
+  sendDirectMessage,
   hideComment,
   listAutomations,
   getAutomation,

@@ -16,11 +16,15 @@
 // decodes exactly like a post link, and any future attribution work that
 // joins on content_tag picks these up for free with zero special-casing.
 //
-// SOURCE TABLES (the two places a group-comment conversation lives before
-// it might move to 1:1 — see supabase/migrations/20260917d_ops_policy.sql
-// for the dm_link_tag column added to both):
-//   - tc_discovery_responses  (TC-discovery campaign comment threads)
-//   - comment_opportunities   (daily comment-opportunity engagement)
+// SOURCE TABLES (the places a 1:1 DM conversation lives, each with its own
+// dm_link_tag column):
+//   - tc_discovery_responses  (TC-discovery campaign comment threads) —
+//     supabase/migrations/20260917d_ops_policy.sql
+//   - comment_opportunities   (daily comment-opportunity engagement) —
+//     supabase/migrations/20260917d_ops_policy.sql
+//   - comment_dm_leads        (comment-to-DM keyword leads, touch 2/3 offer
+//     link — Carter, 2026-09-28) —
+//     supabase/migrations/20260928_comment_dm_followup_sequence.sql
 //
 // IDEMPOTENT BY DESIGN: getOrCreateDmLink() checks the row's dm_link_tag
 // first. If already set, it returns the EXISTING tag/link — tapping "DM
@@ -34,6 +38,10 @@ const { buildContentTag, parseContentTag } = require('./content-tag.js');
 const SOURCE_TABLES = {
   tc_discovery_responses: { platformDefault: 'facebook' },
   comment_opportunities: { platformDefault: 'facebook' },
+  // Comment-to-DM leads are Instagram/Facebook only (video_comment_automations
+  // .platform check) — caller always passes the lead's real platform anyway,
+  // this is just the fallback.
+  comment_dm_leads: { platformDefault: 'instagram' },
 };
 
 const DEFAULT_BASE_URL = 'https://meetdossie.com';

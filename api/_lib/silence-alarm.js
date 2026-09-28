@@ -95,6 +95,13 @@ const NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS = 3;
 // Telegram notice sent at the moment it happened.
 const REPLY_UNVERIFIED_STALE_HOURS = 24;
 
+// Comment-DM follow-up sequence (api/_lib/comment-dm-followups.js) —
+// needs_manual leads and failed sends sitting unattended. 24h matches the
+// other same-day-visibility thresholds above; a needs_manual lead is
+// already a policy-correct dead end (no legal auto-send exists), so the
+// alarm's only job is making sure Heath actually sees it, not urgency.
+const COMMENT_DM_FOLLOWUP_NEEDS_MANUAL_STALE_HOURS = 24;
+
 // Comment-opportunity pipeline (scripts/fb-comment-hunt-daily.js ->
 // api/cron-comment-opp-approval.js -> scripts/fb-comment-opp-poster.js) gone
 // silent (Carter, 2026-09-17): a GLOBAL halt sat from 2026-09-15 to
@@ -638,6 +645,53 @@ async function checkUnverifiedRepliesStuck(staleHours = REPLY_UNVERIFIED_STALE_H
   return results;
 }
 
+// 8c. Comment-DM follow-up sequence (api/_lib/comment-dm-followups.js,
+// api/cron-comment-dm-followups.js) — leads sitting at needs_manual, i.e.
+// touch 2/3 is due but Meta's 24h reply window was never open, so nothing
+// could legally be auto-sent and it's been routed to Heath for his own
+// personal follow-up in the app instead. Real coverage today is mostly THIS
+// branch (see comment-dm-followups.js header on why reply-detection is
+// manual-only) — surfacing it is the actual point, not an edge case.
+async function checkCommentDmFollowupsNeedsManual(staleHours = COMMENT_DM_FOLLOWUP_NEEDS_MANUAL_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const rows = await supabaseFetch(
+    `/rest/v1/comment_dm_leads?needs_manual=eq.true&needs_manual_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,commenter_name,keyword,needs_manual_reason,needs_manual_at&order=needs_manual_at.asc&limit=25',
+  );
+  if (!rows.ok || !Array.isArray(rows.data) || rows.data.length === 0) return [];
+  const oldest = rows.data[0];
+  return [{
+    key: 'comment_dm_followup:needs_manual',
+    count: rows.data.length,
+    oldest,
+    message: `${rows.data.length} comment-DM lead(s) waiting on Heath's own personal follow-up (oldest: ${oldest.commenter_name || 'unknown'}, keyword '${oldest.keyword || '?'}', flagged ${oldest.needs_manual_at} — ${oldest.needs_manual_reason || 'no reply recorded'}). No auto-message was sent — check the Instagram/Facebook inbox and reply yourself, or run api/admin-mark-dm-lead-replied.js if they already did.`,
+  }];
+}
+
+// 8d. Comment-DM follow-up sends that actually FAILED (touch2_status or
+// touch3_status = 'failed') — distinct from needs_manual: this is a real
+// error (Zernio call rejected, dm-link mint failed, or an unverified-
+// endpoint block if COMMENT_DM_FOLLOWUP_SEND_ENDPOINT_VERIFIED was flipped
+// on prematurely), not a policy-correct no-window skip.
+async function checkCommentDmFollowupSendsFailing(staleHours = COMMENT_DM_FOLLOWUP_NEEDS_MANUAL_STALE_HOURS) {
+  const cutoff = hoursAgoIso(staleHours);
+  const rows = await supabaseFetch(
+    '/rest/v1/comment_dm_leads?or=(touch2_status.eq.failed,touch3_status.eq.failed)'
+    + `&last_followup_attempt_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,commenter_name,touch2_status,touch2_error,touch3_status,touch3_error,last_followup_attempt_at'
+    + '&order=last_followup_attempt_at.asc&limit=25',
+  );
+  if (!rows.ok || !Array.isArray(rows.data) || rows.data.length === 0) return [];
+  const oldest = rows.data[0];
+  const err = oldest.touch2_status === 'failed' ? oldest.touch2_error : oldest.touch3_error;
+  return [{
+    key: 'comment_dm_followup:send_failed',
+    count: rows.data.length,
+    oldest,
+    message: `${rows.data.length} comment-DM follow-up send(s) failed outright (oldest: ${oldest.commenter_name || 'unknown'}, ${err || 'no error recorded'}). Not auto-retried — check api/cron-comment-dm-followups.js.`,
+  }];
+}
+
 // 8. Static vercel.json scan — schedules effectively disabled by syntax
 // (fixed dom+month = fires ~once/year, the exact 2026-07 shutdown trick) or
 // pointing at a handler file that no longer exists. See api/_lib/cron-
@@ -948,7 +1002,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentDmNeedsManual, commentDmSendsFailing, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -960,6 +1014,8 @@ async function runAllChecks(opts = {}) {
     checkCommentsAwaitingReplyStale(opts.commentReplyStaleHours),
     checkNewCommentsNeverNotifiedStale(opts.newCommentNeverNotifiedStaleHours),
     checkUnverifiedRepliesStuck(opts.replyUnverifiedStaleHours),
+    checkCommentDmFollowupsNeedsManual(opts.commentDmFollowupNeedsManualStaleHours),
+    checkCommentDmFollowupSendsFailing(opts.commentDmFollowupNeedsManualStaleHours),
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkGroupPostingSilence(opts.groupPostingSilenceHours),
@@ -968,7 +1024,7 @@ async function runAllChecks(opts = {}) {
     checkCronSanity(opts.cronSanityScanOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentDmNeedsManual, ...commentDmSendsFailing, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -1299,6 +1355,7 @@ module.exports = {
   COMMENT_REPLY_STALE_HOURS,
   NEW_COMMENT_NEVER_NOTIFIED_STALE_HOURS,
   REPLY_UNVERIFIED_STALE_HOURS,
+  COMMENT_DM_FOLLOWUP_NEEDS_MANUAL_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
@@ -1317,6 +1374,8 @@ module.exports = {
   checkCommentsAwaitingReplyStale,
   checkNewCommentsNeverNotifiedStale,
   checkUnverifiedRepliesStuck,
+  checkCommentDmFollowupsNeedsManual,
+  checkCommentDmFollowupSendsFailing,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
   checkGroupPostingSilence,
