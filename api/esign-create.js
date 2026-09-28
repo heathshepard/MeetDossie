@@ -340,6 +340,33 @@ const SIDE_TO_SEMANTIC_ROLES = {
   seller: ['seller1', 'seller2'],
 };
 
+// 2026-09-26 CARTER — Barry Whyte incident. A DocuSeal packet went out with
+// every non-signature field (23 checkbox/radio elections on a Seller's
+// Disclosure correction, incl. floodplain / occupied / tax-exemption groups)
+// silently forced `required: true`. Root cause: every place in this file that
+// assembled a DocuSeal `fields` payload (buildMappedFieldMap's per-role
+// output, docusealCreateFromPdf's `built` object, buildPacketDocEntry's
+// `flat` entries, sendForAcknowledgment's buyer fields) DROPPED the
+// `required` key entirely before the field reached DocuSeal. DocuSeal's own
+// default when `required` is absent is `true` (confirmed live 2026-09-26,
+// probe against a real /templates/pdf call: a field explicitly sourced from
+// a map entry marked `required: false` came back `required: true` once the
+// key was omitted) — a signer then cannot submit without checking every box,
+// including ones that are legally not true for them.
+//
+// Fix: compute `required` centrally, from `type` alone, at every point a
+// field object is finalized for DocuSeal — never trust/propagate a
+// caller- or map-supplied `required` value, so a future field-building path
+// cannot reintroduce this by omission. Per the incident review: the only
+// defensible required widgets are the signature and its paired date; radio
+// groups, checkboxes, initials, and free text must always render optional
+// (confirmed empirically safe live on DocuSeal template 6075043 — 159
+// optional radios + 9 optional checkboxes render with nothing pre-selected
+// and never block submission).
+function dsFieldRequired(type) {
+  return type === 'signature' || type === 'date';
+}
+
 // Build the per-signer field map for a mapped form and ENFORCE the packet
 // completeness rules from the e-sign playbook: every principal signer gets
 // their form's full widget set (signature + every initials line), each
@@ -378,6 +405,7 @@ function buildMappedFieldMap(formEntry, signers) {
       fieldMap[roleName] = formEntry.roles[semantic].map((f) => ({
         name: `${roleName} ${f.title.replace(/^(Buyer|Seller) \d+ /, '')}`,
         type: f.type,
+        required: dsFieldRequired(f.type),
         ...(f.preferences ? { preferences: f.preferences } : {}),
         areas: f.areas,
       }));
@@ -395,6 +423,7 @@ function buildMappedFieldMap(formEntry, signers) {
         fieldMap[roleName] = formEntry.roles[agentSemantic].map((f) => ({
           name: `${roleName} ${f.type === 'signature' ? 'Signature' : 'Date'}`,
           type: f.type,
+          required: dsFieldRequired(f.type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: f.areas,
         }));
@@ -609,6 +638,7 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
           name: `${prefix}${f.name}`,
           type: f.type,
           role,
+          required: dsFieldRequired(f.type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         });
@@ -624,6 +654,7 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
         name: `${prefix}${f.name}`,
         type: f.type,
         role: f.signerRole,
+        required: dsFieldRequired(f.type),
         ...(f.preferences && typeof f.preferences === 'object' ? { preferences: f.preferences } : {}),
         areas: f.areas.map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
       });
@@ -1207,6 +1238,7 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
           name: f.name,
           type: f.type,
           role,
+          required: dsFieldRequired(f.type),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         };
         if (f.preferences && typeof f.preferences === 'object') {
@@ -1216,8 +1248,8 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
       }
     } else {
       // Default: a signature + date field per submitter, DocuSeal auto-places them.
-      allFields.push({ name: `${role} Signature`, type: 'signature', role });
-      allFields.push({ name: `${role} Date`, type: 'date', role });
+      allFields.push({ name: `${role} Signature`, type: 'signature', role, required: dsFieldRequired('signature') });
+      allFields.push({ name: `${role} Date`, type: 'date', role, required: dsFieldRequired('date') });
     }
   }
 
@@ -1707,11 +1739,13 @@ async function sendForAcknowledgment({ doc, userId, transactionId, formType, buy
       {
         name: 'Buyer Signature',
         type: 'signature',
+        required: dsFieldRequired('signature'),
         areas: [{ page: 3, x: 0.07, y: sigY, w: 0.25, h: 0.04 }],
       },
       {
         name: 'Buyer Date',
         type: 'date',
+        required: dsFieldRequired('date'),
         areas: [{ page: 3, x: 0.73, y: dateY, w: 0.18, h: 0.03 }],
       },
     ];
