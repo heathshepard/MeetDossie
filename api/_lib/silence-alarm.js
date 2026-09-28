@@ -35,6 +35,9 @@ const { ALWAYS_ALLOW: TELEGRAM_GATE_ALWAYS_ALLOW } = require('./telegram-gate.js
 // "untriaged customer ticket" condition applies the SAME not-a-customer rule
 // as the triage cron itself, rather than a second copy that can drift.
 const { isInternalSender } = require('./support-ticket-classify.js');
+// Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
+// api/_lib/google-token-health.js header for the incident this closes.
+const { checkGoogleTokenHealth } = require('./google-token-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1016,9 +1019,9 @@ async function markFired(key, reason, metadata) {
 async function runAllChecks(opts = {}) {
   // Positional destructuring — this list must stay in the SAME ORDER as the
   // Promise.all below, or a detector's results are silently attributed to the
-  // wrong condition. dealWatch and telegramGateSuppressed were added by two
-  // separate changes on 2026-09-20; both are present.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed] = await Promise.all([
+  // wrong condition. dealWatch, telegramGateSuppressed, and googleToken were
+  // added by separate changes (2026-09-20, 2026-09-28); all are present.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1037,9 +1040,10 @@ async function runAllChecks(opts = {}) {
     checkDealWatchSilence(opts.dealWatchCronStaleHours, opts.dealWatchNoDecisionsDays),
     checkCronSanity(opts.cronSanityScanOpts),
     checkTelegramGateSuppressionSilence(opts.telegramSuppressionLookbackDays, opts.telegramSuppressionMinCount, opts.telegramSuppressionMinSpanDays),
+    checkGoogleTokenHealth(opts.googleTokenOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken];
   const fired = [];
   const suppressed = [];
 
