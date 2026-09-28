@@ -34,9 +34,22 @@ async function sb(path, init = {}) {
 // refresh_token=not.is.null: re-consent stragglers can leave a dead row for
 // the same user (unique key is user_id+oauth_provider) — never hand back a
 // row that can't be refreshed when a usable one exists.
-async function loadGoogleTokensForUser(userId) {
+//
+// ACCOUNT SELECTION: this is a per-USER lookup, not per-account — it's built
+// for the Email Integration add-on where one customer connects exactly one
+// mailbox. It does NOT filter by google_email, so a user_id that ends up
+// with more than one Google row (e.g. a customer reconnects a different
+// address without disconnecting the old one first) gets whichever row was
+// updated most recently, silently. Pass `email` explicitly whenever the
+// caller knows which mailbox it wants — never rely on the implicit
+// most-recent pick for a user known to have more than one connected
+// account. Heath's own tooling (scripts/kw-mail.py, api/gmail-refresh.js,
+// scripts/preflight-check.js) does NOT go through this function — it always
+// filters by google_email directly.
+async function loadGoogleTokensForUser(userId, email) {
+  const emailFilter = email ? `&google_email=eq.${encodeURIComponent(email)}` : '&google_email=not.is.null';
   const { ok, data } = await sb(
-    `user_integrations?select=id,access_token,refresh_token,expires_at,google_email&user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
+    `user_integrations?select=id,access_token,refresh_token,expires_at,google_email&user_id=eq.${encodeURIComponent(userId)}${emailFilter}&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
   );
   if (!ok || !Array.isArray(data) || !data.length) return null;
   return data[0];

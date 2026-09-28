@@ -132,6 +132,17 @@ export default async function handler(req, res) {
   }
   const state = randomBytes(32).toString('base64url');
 
+  // Optional ?login_hint=<email> so Google preselects the RIGHT account
+  // instead of whichever one the browser is already signed into — Heath has
+  // two Google accounts on this client now (kw.com + gmail.com), and picking
+  // the wrong one at the consent screen writes to the wrong mailbox. Basic
+  // shape validation only (this becomes part of a redirect URL, not a DB
+  // write) — reject anything that isn't a plausible bare email address.
+  let loginHint = (req.query.login_hint || '').toString().trim().slice(0, 254);
+  if (loginHint && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginHint)) {
+    loginHint = '';
+  }
+
   try {
     await sbInsert('oauth_states', {
       state,
@@ -154,6 +165,7 @@ export default async function handler(req, res) {
     include_granted_scopes: 'true',
     state,
   });
+  if (loginHint) params.set('login_hint', loginHint);
 
   const consentUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 

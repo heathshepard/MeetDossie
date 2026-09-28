@@ -270,11 +270,47 @@ export default async function handler(req, res) {
 
   // 5. Upsert into user_integrations, under whichever provider this flow was
   // started for (stateRow.provider — e.g. 'google_calendar', 'google_youtube').
+  //
+  // MULTI-ACCOUNT GUARD (2026-09-28): the table is UNIQUE(user_id,
+  // oauth_provider) — ONE row per provider per user. Heath connecting a
+  // SECOND Google address (heath.shepard@gmail.com) on the same client as
+  // his first (heath.shepard@kw.com, both via 'google_calendar' — the
+  // internal client) would upsert-on-conflict straight over the existing
+  // row and silently swap which mailbox kw-mail.py / gmail-refresh.js /
+  // jarvis-calendar.js resolve to. Before writing, check whether a row
+  // already exists for (user_id, provider) under a DIFFERENT google_email —
+  // if so, park the new account under a distinct provider key
+  // (`${provider}__${googleEmail}`) instead of overwriting it. Readers that
+  // filter by google_email explicitly (kw-mail.py, gmail-refresh.js,
+  // preflight-check.js) find it either way; readers that key on the bare
+  // provider name (jarvis-calendar.js) keep resolving to the ORIGINAL
+  // account untouched. Same-account re-consent (the common case — a weekly
+  // Testing-mode refresh_token expiry) still upserts the same row, zero
+  // behavior change.
   const provider = stateRow.provider || 'google_calendar';
+  let targetProvider = provider;
+  try {
+    const existingRows = await sbGet(
+      `user_integrations?select=id,google_email&user_id=eq.${encodeURIComponent(stateRow.user_id)}`
+      + `&oauth_provider=eq.${encodeURIComponent(provider)}&limit=1`
+    );
+    const existing = existingRows && existingRows[0];
+    if (existing && existing.google_email && googleEmail && existing.google_email !== googleEmail) {
+      targetProvider = `${provider}__${googleEmail}`;
+      console.warn(
+        `[oauth-callback] second Google account detected for provider=${provider} ` +
+        `(existing=${existing.google_email}, new=${googleEmail}) — writing to distinct row ` +
+        `oauth_provider=${targetProvider} instead of overwriting`
+      );
+    }
+  } catch (err) {
+    console.error('[oauth-callback] existing-row lookup failed (proceeding as first-consent):', err.message);
+  }
+
   try {
     await sbUpsert('user_integrations', {
       user_id: stateRow.user_id,
-      oauth_provider: provider,
+      oauth_provider: targetProvider,
       access_token: accessToken,
       refresh_token: refreshToken,
       scopes,

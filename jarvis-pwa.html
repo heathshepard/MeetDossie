@@ -9410,7 +9410,15 @@
       setTimeout(() => el.remove(), 4000);
     }
 
-    async function connectGoogleCalendar() {
+    // loginHint (optional): preselects a Google account on the consent screen
+    // instead of letting Google default to whichever one the browser is
+    // already signed into — needed once Heath has more than one Google
+    // account connected (kw.com + gmail.com) so re-consent doesn't land on
+    // the wrong one by accident. Callback-side (api/google-oauth-callback.js)
+    // detects a second address on the same provider and stores it under a
+    // distinct row instead of overwriting the first, so this is safe to fire
+    // for either account.
+    async function connectGoogleCalendar(loginHint) {
       const btn = document.getElementById('cal-connect-btn');
       if (btn) { btn.disabled = true; btn.textContent = 'Redirecting...'; }
       try {
@@ -9422,7 +9430,9 @@
         // the customer-facing /api/google-oauth-init 2026-09-01
         // (SV-ENG-OAUTH-SPLIT). Do not point this back at google-oauth-init;
         // that client no longer requests calendar.readonly.
-        const res = await fetch(`${API_BASE}/api/google-internal-oauth-init?redirect_after=/myjarvis&format=json`, {
+        let initUrl = `${API_BASE}/api/google-internal-oauth-init?redirect_after=/myjarvis&format=json`;
+        if (loginHint) initUrl += `&login_hint=${encodeURIComponent(loginHint)}`;
+        const res = await fetch(initUrl, {
           headers: { Authorization: authHeader, Accept: 'application/json' },
         });
         if (!res.ok) {
@@ -9444,6 +9454,31 @@
         showCalToast('Network error starting Google sign-in.', true);
         if (btn) { btn.disabled = false; btn.textContent = 'Connect Google Calendar'; }
       }
+    }
+
+    // One-click second-account connect: meetdossie.com/myjarvis?connect_google=<email>
+    // auto-fires the same consent flow with that address as login_hint, as soon
+    // as the page (and Heath's already-persisted Supabase session) are ready.
+    // No separate button to find, no instructions to follow.
+    function handleConnectGoogleQueryParam() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const email = params.get('connect_google');
+        if (!email) return;
+        params.delete('connect_google');
+        const qs = params.toString();
+        const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+        window.history.replaceState({}, '', newUrl);
+        showCalToast(`Connecting ${email}…`);
+        setTimeout(() => { connectGoogleCalendar(email); }, 600);
+      } catch (err) {
+        console.warn('[cal-connect] connect_google query handling failed', err);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', handleConnectGoogleQueryParam);
+    } else {
+      handleConnectGoogleQueryParam();
     }
 
     // On page load: check ?connected=google_calendar and clear from URL.
