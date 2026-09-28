@@ -25,9 +25,19 @@ CREATOMATE_TEMPLATE_ID = 791117d0-665c-4cd0-ba5f-a767f8921f9b
 FAL_KEY
 DEMO_PASSWORD = <DEMO_PASSWORD in Vercel env>
 DEMO2_PASSWORD = <DEMO2_PASSWORD in Vercel env>
+KW_MAIL_APP_PASSWORD
 ```
 
-17 distinct env var names. `TELEGRAM_CHAT_ID`, `CREATOMATE_TEMPLATE_ID`, `DEMO_PASSWORD`, `DEMO2_PASSWORD` are non-secret config values shown here for reference.
+18 distinct env var names. `TELEGRAM_CHAT_ID`, `CREATOMATE_TEMPLATE_ID`, `DEMO_PASSWORD`, `DEMO2_PASSWORD` are non-secret config values shown here for reference.
+
+`KW_MAIL_APP_PASSWORD` — Google App Password for heath.shepard@kw.com (Google
+Workspace), added 2026-09-28. Primary credential for `scripts/kw-mail.py`
+(IMAP read + SMTP send), replacing the OAuth-refresh-token path as the
+default — that path broke 3 times in 3 weeks and is now the fallback only.
+Lives in `.env.local` and as a Vercel Sensitive var. Google displays it with
+spaces; the script strips them before use. Never print/log/commit the value.
+A second account (heath.shepard@gmail.com) uses `GMAIL_APP_PASSWORD` under
+the same scheme — not yet set as of 2026-09-28.
 
 ---
 

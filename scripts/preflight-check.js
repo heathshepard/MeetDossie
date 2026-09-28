@@ -22,9 +22,21 @@
 // moment you depend on them. Five seconds here beats hours there.
 //
 // CHECKS
-//   gmail-send      user_integrations.scopes contains gmail.send (+ token not
-//                   expired). Does NOT send mail — scope inspection only.
-//   gmail-read      python3 scripts/kw-mail.py profile returns a real profile.
+//   gmail-send      REAL SMTP AUTH LOGIN against smtp.gmail.com using
+//                   KW_MAIL_APP_PASSWORD (the primary send path as of
+//                   2026-09-28) — genuinely authenticates, sends nothing.
+//                   OK only comes from that real auth succeeding. If the app
+//                   password is missing/rejected this falls back to
+//                   inspecting user_integrations.scopes for gmail.send (the
+//                   OLD check) — but that fallback is capped at WARN, never
+//                   OK, because scope presence was exactly the thing that
+//                   lied on 2026-08-13 (gmail.send scope had never been
+//                   granted and nothing caught it for the integration's
+//                   entire life). A green gmail-send now always means a
+//                   verified credential actually authenticated somewhere.
+//   gmail-read      python3 scripts/kw-mail.py profile returns a real profile
+//                   (IMAP app-password primary, OAuth Gmail API fallback —
+//                   the detail line reports which one actually answered).
 //   connectmls      Saved browser state has connectMLS auth cookies, unexpired.
 //   zipform         Saved browser state has zipForm auth cookies, unexpired.
 //   supabase        Service-role key from .env.local can actually query.
@@ -110,18 +122,94 @@ async function checkSupabase() {
   return { status: 'OK', detail: 'service role key valid, query returned' };
 }
 
+// Minimal SMTP AUTH LOGIN probe over raw TLS — stdlib only (Node's `tls`),
+// no nodemailer dependency. Authenticates for real and immediately closes;
+// never issues MAIL FROM/RCPT TO/DATA, so nothing is ever sent. This is the
+// genuine send-capability proof that the old scope-inspection check never
+// was.
+function smtpAppPasswordProbe(account, password, timeoutMs) {
+  const tls = require('tls');
+  return new Promise((resolve) => {
+    let buf = '';
+    let step = 0; // 0=greeting 1=EHLO 2=AUTH LOGIN 3=username 4=password/result
+    let settled = false;
+    let socket;
+    const timer = setTimeout(() => finish({ ok: false, error: `timed out after ${timeoutMs}ms` }), timeoutMs).unref();
+    function finish(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { socket.end(); } catch (_) {}
+      resolve(result);
+    }
+    try {
+      socket = tls.connect({ host: 'smtp.gmail.com', port: 465, servername: 'smtp.gmail.com', timeout: timeoutMs });
+    } catch (e) {
+      return finish({ ok: false, error: e.message });
+    }
+    socket.setEncoding('utf8');
+    socket.on('error', (e) => finish({ ok: false, error: e.message }));
+    socket.on('timeout', () => finish({ ok: false, error: 'socket timeout' }));
+    socket.on('data', (chunk) => {
+      buf += chunk;
+      const lines = buf.split('\r\n').filter(Boolean);
+      const last = lines[lines.length - 1] || '';
+      if (!/^\d{3} /.test(last)) return; // multi-line response still incoming
+      const code = last.slice(0, 3);
+      buf = '';
+      if (step === 0) {
+        if (code !== '220') return finish({ ok: false, error: `bad greeting: ${last}` });
+        step = 1;
+        socket.write('EHLO localhost\r\n');
+      } else if (step === 1) {
+        if (code !== '250') return finish({ ok: false, error: `EHLO failed: ${last}` });
+        step = 2;
+        socket.write('AUTH LOGIN\r\n');
+      } else if (step === 2) {
+        if (code !== '334') return finish({ ok: false, error: `AUTH LOGIN not offered: ${last}` });
+        step = 3;
+        socket.write(Buffer.from(account).toString('base64') + '\r\n');
+      } else if (step === 3) {
+        if (code !== '334') return finish({ ok: false, error: `username rejected: ${last}` });
+        step = 4;
+        socket.write(Buffer.from(password).toString('base64') + '\r\n');
+      } else if (step === 4) {
+        if (code === '235') return finish({ ok: true });
+        return finish({ ok: false, error: `auth rejected: ${last}` });
+      }
+    });
+  });
+}
+
 async function checkGmailSend() {
-  // Same deterministic row pick as kw-mail.py / api/gmail-refresh.js: the
-  // table is unique on (user_id, oauth_provider), not google_email, so an
-  // unordered limit=1 could inspect a stale duplicate row's scopes instead of
-  // the row sends will actually use.
+  const pwRaw = ENV.KW_MAIL_APP_PASSWORD || process.env.KW_MAIL_APP_PASSWORD;
+  let appPwNote;
+  if (pwRaw) {
+    const pw = pwRaw.replace(/ /g, '');
+    const probe = await smtpAppPasswordProbe(KW_ACCOUNT, pw, Math.max(TIMEOUT_MS - 8000, 8000));
+    if (probe.ok) {
+      return {
+        status: 'OK',
+        detail: `SMTP AUTH LOGIN verified via KW_MAIL_APP_PASSWORD (real login, nothing sent) — primary send path is live`,
+      };
+    }
+    appPwNote = `KW_MAIL_APP_PASSWORD present but REJECTED (${probe.error}) — checking OAuth fallback scopes: `;
+  } else {
+    appPwNote = 'KW_MAIL_APP_PASSWORD not set — checking OAuth fallback scopes: ';
+  }
+
+  // Fallback: the old scope-inspection check. Same deterministic row pick as
+  // kw-mail.py / api/gmail-refresh.js: the table is unique on
+  // (user_id, oauth_provider), not google_email, so an unordered limit=1
+  // could inspect a stale duplicate row's scopes instead of the row sends
+  // will actually use.
   const r = await sbFetch(
     `user_integrations?select=scopes,expires_at,google_email&google_email=eq.${encodeURIComponent(KW_ACCOUNT)}`
     + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`
   );
-  if (!r.ok) return { status: 'FAIL', error: `HTTP ${r.status}` };
+  if (!r.ok) return { status: 'FAIL', error: appPwNote + `HTTP ${r.status}` };
   const rows = await r.json();
-  if (!rows.length) return { status: 'FAIL', error: `no user_integrations row for ${KW_ACCOUNT}` };
+  if (!rows.length) return { status: 'FAIL', error: appPwNote + `no user_integrations row for ${KW_ACCOUNT}` };
 
   const row = rows[0];
   // scopes is stored as a single space-delimited STRING, not an array.
@@ -136,14 +224,23 @@ async function checkGmailSend() {
   if (missing.length) {
     return {
       status: 'FAIL',
-      error: `missing scope(s): ${missing.join(', ')} — sending will fail silently. Re-run OAuth consent.`,
+      error: appPwNote + `missing scope(s): ${missing.join(', ')} — sending is dead on BOTH paths. Set KW_MAIL_APP_PASSWORD or re-run OAuth consent.`,
     };
   }
+  // Deliberately capped at WARN, never OK, even when everything here looks
+  // right — scope presence is not a real send test and was exactly what lied
+  // silently for this integration's whole life until 2026-08-13. Fix the app
+  // password to get a genuine OK.
   if (expired) {
-    // kw-mail.py auto-refreshes, so this is a warning, not a hard fail.
-    return { status: 'WARN', detail: `gmail.send granted, but access token expired ${-minsLeft}m ago (auto-refresh on next use)` };
+    return {
+      status: 'WARN',
+      detail: appPwNote + `gmail.send scope present, token expired ${-minsLeft}m ago — UNVERIFIED, scope-only (not a real send test)`,
+    };
   }
-  return { status: 'OK', detail: `gmail.send + gmail.compose granted, token valid ${minsLeft}m` };
+  return {
+    status: 'WARN',
+    detail: appPwNote + `gmail.send + gmail.compose scopes present, token valid ${minsLeft}m — UNVERIFIED, scope-only (not a real send test)`,
+  };
 }
 
 // Python only exists in WSL here — there is no Windows-side install, and on
@@ -164,14 +261,14 @@ function pythonInvocation(scriptPath, scriptArgs) {
   return {
     cmd: 'wsl.exe',
     argv: ['-d', 'Ubuntu', '--', 'python3', wslPath, ...scriptArgs],
-    extraEnv: { WSLENV: [process.env.WSLENV, 'SR_KEY/u', 'CRON_SECRET/u'].filter(Boolean).join(':') },
+    extraEnv: { WSLENV: [process.env.WSLENV, 'SR_KEY/u', 'CRON_SECRET/u', 'KW_MAIL_APP_PASSWORD/u'].filter(Boolean).join(':') },
   };
 }
 
 function checkGmailRead() {
   return new Promise((resolve) => {
     const key = ENV.SUPABASE_SERVICE_ROLE_KEY;
-    if (!key) return resolve({ status: 'FAIL', error: 'SUPABASE_SERVICE_ROLE_KEY missing (kw-mail.py needs SR_KEY)' });
+    if (!key) return resolve({ status: 'FAIL', error: 'SUPABASE_SERVICE_ROLE_KEY missing (kw-mail.py OAuth fallback needs SR_KEY)' });
     const inv = pythonInvocation(path.join(REPO, 'scripts', 'kw-mail.py'), ['profile']);
     execFile(
       inv.cmd,
@@ -182,18 +279,30 @@ function checkGmailRead() {
         env: {
           ...process.env,
           SR_KEY: key,
+          ...(ENV.KW_MAIL_APP_PASSWORD ? { KW_MAIL_APP_PASSWORD: ENV.KW_MAIL_APP_PASSWORD } : {}),
           ...(ENV.CRON_SECRET && !process.env.CRON_SECRET ? { CRON_SECRET: ENV.CRON_SECRET } : {}),
           ...inv.extraEnv,
         },
       },
       (err, stdout, stderr) => {
         const out = String(stdout || '').trim();
+        const errOut = String(stderr || '').trim();
         if (err) {
-          const msg = String(stderr || err.message).trim().split('\n').pop();
+          const msg = (errOut || err.message).trim().split('\n').pop();
           return resolve({ status: 'FAIL', error: msg.slice(0, 160) });
         }
         if (!/messages/.test(out)) return resolve({ status: 'FAIL', error: `unexpected output: ${out.slice(0, 120)}` });
-        return resolve({ status: 'OK', detail: out.split('\n').pop().slice(0, 90) });
+        const lastLine = out.split('\n').pop().slice(0, 95);
+        // kw-mail.py's own output says which path actually answered — surface
+        // it here instead of re-deriving it, so this can never drift from
+        // what the script actually did.
+        const fallbackReason = (errOut.match(/^\[app-password IMAP failed \((.+?)\)/) || [])[1];
+        const via = /\(IMAP app-password\)/.test(out)
+          ? 'KW_MAIL_APP_PASSWORD (IMAP, primary)'
+          : /\(OAuth Gmail API\)/.test(out)
+            ? `OAuth (fallback${fallbackReason ? ' — ' + fallbackReason.slice(0, 80) : ''})`
+            : 'unknown';
+        return resolve({ status: 'OK', detail: `${lastLine}  [via ${via}]` });
       }
     );
   });
