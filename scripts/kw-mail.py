@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
-Read and send from Heath's KW mailbox (heath.shepard@kw.com) through the Gmail API.
+Read and send from Heath's KW mailbox (heath.shepard@kw.com).
 
-Uses the OAuth refresh token stored in user_integrations by
-api/google-oauth-callback.js. Refreshes the access token automatically, so this
-keeps working without another consent click.
+PRIMARY path: IMAP (read) + SMTP (send) using a Google App Password
+(KW_MAIL_APP_PASSWORD). FALLBACK path: the OAuth-refresh-token Gmail API
+path (unchanged from before). App password missing/rejected -> automatic
+fallback to OAuth, with a one-line notice on stderr saying so. Never fails
+closed when a working credential exists. This removes the OAuth-refresh-
+token single point of failure that broke Heath's email 3 times in 3 weeks
+(2026-09).
 
     python3 scripts/kw-mail.py profile
     python3 scripts/kw-mail.py search "in:sent to:heather" --limit 15
@@ -13,24 +17,41 @@ keeps working without another consent click.
     python3 scripts/kw-mail.py send --to a@x.com,b@y.com --subject "Hi" \
         --body "text" --attach /path/one.pdf --attach /path/two.pdf
     python3 scripts/kw-mail.py send --to a@x.com --subject "Re: Hi" --body "text" \
-        --reply-to <gmailMessageId>   # threads correctly: pulls In-Reply-To,
-                                       # References, and threadId from that message
+        --reply-to <messageId>   # threads correctly: pulls In-Reply-To,
+                                   # References (and threadId on OAuth) from
+                                   # the message being replied to
 
-Needs SR_KEY (Supabase service role) in the environment. Client id/secret are
-pulled from Vercel if GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET aren't already set.
-Sending needs the gmail.compose OAuth scope on the stored token (already
-granted as of 2026-08-05 — covers users.messages.send, not just drafts).
+Message IDs are consistent across BOTH paths: IMAP search/read print the same
+hex id the Gmail API would (Gmail's IMAP X-GM-MSGID extension value, decimal,
+converted to hex) — so a --reply-to id from a `search` run under one path
+works if a later `send` falls back to the other.
+
+App password env var: KW_MAIL_APP_PASSWORD (see APP_PASSWORD_ENV below).
+
+Every send (either path) is logged to scripts/logs/kw-mail-send-log.jsonl —
+timestamp, account, transport, to/cc, subject. Never the body, never a
+credential. That file is gitignored (see .gitignore: bare `logs` pattern).
+
+OAuth fallback needs SR_KEY (Supabase service role) in the environment.
+Client id/secret are pulled from Vercel if GOOGLE_CLIENT_ID /
+GOOGLE_CLIENT_SECRET aren't already set. OAuth sending needs the
+gmail.compose scope on the stored token (granted as of 2026-08-05).
 """
 
 import base64
+import imaplib
 import json
 import mimetypes
 import os
 import re
+import smtplib
 import sys
 import urllib.parse
 import urllib.request
 import urllib.error
+from datetime import datetime, timezone
+from email import policy as email_policy
+from email.parser import BytesParser
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -38,6 +59,22 @@ from email import encoders
 
 SUPA = (os.environ.get('SUPABASE_URL') or 'https://pgwoitbdiyubjugwufhk.supabase.co').rstrip('/')
 ACCOUNT = 'heath.shepard@kw.com'
+
+# Per-account app-password env var name. Adding a new mailbox = add one line
+# here + set the env var; nothing else in this file changes. Never let the
+# target mailbox be implicit: an account with no entry here always falls to
+# OAuth rather than silently reusing another account's password.
+APP_PASSWORD_ENV = {
+    'heath.shepard@kw.com': 'KW_MAIL_APP_PASSWORD',
+    'heath.shepard@gmail.com': 'GMAIL_APP_PASSWORD',
+}
+
+IMAP_HOST = 'imap.gmail.com'
+IMAP_PORT = 993
+SMTP_HOST = 'smtp.gmail.com'
+SMTP_PORT = 465
+
+SEND_LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs', 'kw-mail-send-log.jsonl')
 
 # Row-pick filter shared by both reads below. The table is unique on
 # (user_id, oauth_provider), NOT on google_email — a re-consent can leave
@@ -65,6 +102,337 @@ ROW_PICK = '&refresh_token=not.is.null&order=updated_at.desc&limit=1'
 # for the token on every call.
 _state = {}
 
+
+class MailAuthError(Exception):
+    """App password missing or rejected. Callers catch this (and other
+    connect/protocol errors) to trigger the OAuth fallback for read-only
+    commands, or to fall back BEFORE anything is transmitted for send."""
+
+
+# ----------------------------------------------------------------- app pw --
+
+def app_password():
+    """Return (env_var_name, stripped_password_or_None) for ACCOUNT. Google
+    displays app passwords with spaces for readability; strip them before
+    use. Never print/log the value anywhere, including error messages."""
+    var_name = APP_PASSWORD_ENV.get(ACCOUNT)
+    if not var_name:
+        return None, None
+    val = os.environ.get(var_name)
+    if not val:
+        return var_name, None
+    return var_name, val.replace(' ', '')
+
+
+def imap_connect():
+    var_name, pw = app_password()
+    if not pw:
+        raise MailAuthError(
+            (var_name + ' not set') if var_name else ('no app-password env var mapped for ' + ACCOUNT)
+        )
+    M = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, timeout=20)
+    try:
+        M.login(ACCOUNT, pw)
+    except imaplib.IMAP4.error as e:
+        raise MailAuthError('IMAP login rejected for ' + ACCOUNT + ' via ' + var_name + ': ' + str(e))
+    return M
+
+
+def _imap_quit(M):
+    try:
+        M.logout()
+    except Exception:
+        pass
+
+
+def imap_select_all_mail(M, readonly=True):
+    """Try Gmail's virtual All Mail folder first (matches the OAuth path's
+    default un-scoped search across the whole mailbox); INBOX if that folder
+    name isn't available under this account's label settings."""
+    for name in ('"[Gmail]/All Mail"', 'INBOX'):
+        typ, data = M.select(name, readonly=readonly)
+        if typ == 'OK':
+            return name, (int(data[0]) if data and data[0] else 0)
+    raise RuntimeError('could not SELECT any mailbox folder')
+
+
+# Gmail's IMAP X-GM-MSGID extension returns the SAME message identifier the
+# Gmail API uses, just decimal instead of hex. Converting between the two
+# means a message id from a `search`/`read` under either path (IMAP or
+# OAuth) works as a --reply-to target under either path.
+def gmail_id_to_msgid(gmail_id_hex):
+    return int(gmail_id_hex, 16)
+
+
+def msgid_to_gmail_id(msgid_int):
+    return format(msgid_int, 'x')
+
+
+_GM_MSGID_RE = re.compile(rb'X-GM-MSGID (\d+)')
+
+
+def _extract_text(parsed):
+    """Walk a parsed email.message.EmailMessage for text/plain, falling back
+    to stripped HTML — same preference order as the OAuth body_of() below."""
+    plain, html = [], []
+
+    def collect(part):
+        if part.get_content_disposition() == 'attachment':
+            return
+        ctype = part.get_content_type()
+        if ctype not in ('text/plain', 'text/html'):
+            return
+        try:
+            payload = part.get_content()
+        except Exception:
+            return
+        if not isinstance(payload, str):
+            return
+        (plain if ctype == 'text/plain' else html).append(payload)
+
+    if parsed.is_multipart():
+        for part in parsed.walk():
+            if not part.is_multipart():
+                collect(part)
+    else:
+        collect(parsed)
+
+    if plain:
+        return '\n'.join(plain)
+    if html:
+        text = '\n'.join(html)
+        text = re.sub('<[^>]+>', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+    return ''
+
+
+def cmd_profile_imap():
+    M = imap_connect()
+    try:
+        label, total = imap_select_all_mail(M)
+        print(ACCOUNT + ' — ' + str(total) + ' messages in ' + label + '  (IMAP app-password)')
+    finally:
+        _imap_quit(M)
+
+
+def cmd_search_imap(q, limit=20):
+    M = imap_connect()
+    try:
+        label, _ = imap_select_all_mail(M)
+        safe_q = q.replace('\\', '\\\\').replace('"', '\\"')
+        typ, data = M.uid('search', None, 'X-GM-RAW', '"' + safe_q + '"')
+        if typ != 'OK':
+            raise RuntimeError('IMAP X-GM-RAW search failed: ' + str(data))
+        all_uids = data[0].split() if data and data[0] else []
+        uids = list(reversed(all_uids))[: limit or len(all_uids)]
+        print('query "' + q + '" -> ' + str(len(uids)) + ' of ' + str(len(all_uids)) + '  (IMAP app-password, ' + label + ')')
+        for uid in uids:
+            typ, msgdata = M.uid(
+                'fetch', uid, '(X-GM-MSGID BODY.PEEK[HEADER.FIELDS (SUBJECT FROM TO DATE)])'
+            )
+            raw_headers = b''
+            gm_msgid = None
+            for part in msgdata or []:
+                if isinstance(part, tuple):
+                    raw_headers += part[1] or b''
+                    m = _GM_MSGID_RE.search(part[0] or b'')
+                    if m:
+                        gm_msgid = m.group(1)
+                elif isinstance(part, (bytes, bytearray)):
+                    m = _GM_MSGID_RE.search(part)
+                    if m:
+                        gm_msgid = m.group(1)
+            parsed = BytesParser(policy=email_policy.default).parsebytes(raw_headers)
+            gid = msgid_to_gmail_id(int(gm_msgid)) if gm_msgid else '?'
+            print(gid + '  ' + str(parsed.get('Date', ''))[:24])
+            print('    from: ' + str(parsed.get('From', ''))[:60])
+            print('    to  : ' + str(parsed.get('To', ''))[:60])
+            print('    subj: ' + str(parsed.get('Subject', ''))[:70])
+    finally:
+        _imap_quit(M)
+
+
+def _fetch_full_message(M, uid):
+    typ, msgdata = M.uid('fetch', uid, '(BODY.PEEK[])')
+    if typ != 'OK':
+        raise RuntimeError('IMAP FETCH failed for uid ' + (uid.decode() if isinstance(uid, bytes) else str(uid)))
+    raw = b''
+    for part in msgdata or []:
+        if isinstance(part, tuple):
+            raw += part[1] or b''
+    return BytesParser(policy=email_policy.default).parsebytes(raw)
+
+
+def cmd_read_imap(mid):
+    M = imap_connect()
+    try:
+        label, _ = imap_select_all_mail(M)
+        msgid_int = gmail_id_to_msgid(mid)
+        typ, data = M.uid('search', None, 'X-GM-MSGID', str(msgid_int))
+        if typ != 'OK' or not data or not data[0]:
+            raise RuntimeError('message ' + mid + ' not found via IMAP (' + label + ')')
+        uid = data[0].split()[0]
+        parsed = _fetch_full_message(M, uid)
+        print('From: ' + str(parsed.get('From', '')))
+        print('To: ' + str(parsed.get('To', '')))
+        print('Date: ' + str(parsed.get('Date', '')))
+        print('Subject: ' + str(parsed.get('Subject', '')))
+        print('-' * 60)
+        print(_extract_text(parsed)[:15000])
+    finally:
+        _imap_quit(M)
+
+
+def cmd_voice_imap(limit=40):
+    """Dump his own sent prose, quoted replies stripped, for style analysis."""
+    M = imap_connect()
+    try:
+        imap_select_all_mail(M)
+        typ, data = M.uid('search', None, 'X-GM-RAW', '"in:sent -in:chats"')
+        if typ != 'OK':
+            raise RuntimeError('IMAP X-GM-RAW search failed: ' + str(data))
+        all_uids = data[0].split() if data and data[0] else []
+        uids = list(reversed(all_uids))[: limit or len(all_uids)]
+        for uid in uids:
+            parsed = _fetch_full_message(M, uid)
+            body = _extract_text(parsed)
+            body = re.split(r'\nOn .{5,80} wrote:|\n-{2,} ?Forwarded message|\n_{5,}', body)[0]
+            body = re.sub(r'\n{3,}', '\n\n', body).strip()
+            print('=== to ' + str(parsed.get('To', ''))[:45] + ' | ' + str(parsed.get('Subject', ''))[:55] + ' ===')
+            print(body[:900])
+            print()
+    finally:
+        _imap_quit(M)
+
+
+def resolve_reply_headers_imap(reply_to_message_id):
+    """IMAP equivalent of resolve_reply_headers() below: looks the target
+    message up via X-GM-MSGID and returns (Message-ID, References) so the
+    new message threads correctly, per RFC 2822."""
+    M = imap_connect()
+    try:
+        label, _ = imap_select_all_mail(M)
+        msgid_int = gmail_id_to_msgid(reply_to_message_id)
+        typ, data = M.uid('search', None, 'X-GM-MSGID', str(msgid_int))
+        if typ != 'OK' or not data or not data[0]:
+            raise RuntimeError('reply-to message ' + reply_to_message_id + ' not found via IMAP (' + label + ')')
+        uid = data[0].split()[0]
+        typ, msgdata = M.uid('fetch', uid, '(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID REFERENCES)])')
+        raw = b''
+        for part in msgdata or []:
+            if isinstance(part, tuple):
+                raw += part[1] or b''
+        parsed = BytesParser(policy=email_policy.default).parsebytes(raw)
+        msg_id = str(parsed.get('Message-ID', '') or '')
+        prior_refs = str(parsed.get('References', '') or '')
+        refs = (prior_refs + ' ' + msg_id).strip() if prior_refs else msg_id
+        return msg_id, refs
+    finally:
+        _imap_quit(M)
+
+
+# ------------------------------------------------------------- shared MIME --
+
+def build_email_message(to, subject, body, attachments=None, cc=None, in_reply_to=None, references=None):
+    """Used by BOTH the SMTP and the OAuth send paths so attachment/threading
+    handling is identical regardless of transport."""
+    msg = MIMEMultipart()
+    msg['To'] = to
+    msg['From'] = ACCOUNT
+    if cc:
+        msg['Cc'] = cc
+    msg['Subject'] = subject
+    if in_reply_to:
+        msg['In-Reply-To'] = in_reply_to
+    if references:
+        msg['References'] = references
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    for path in attachments or []:
+        ctype, _ = mimetypes.guess_type(path)
+        maintype, subtype = (ctype or 'application/octet-stream').split('/', 1)
+        with open(path, 'rb') as fh:
+            part = MIMEBase(maintype, subtype)
+            part.set_payload(fh.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
+        msg.attach(part)
+
+    return msg
+
+
+def log_send(transport, to, cc, subject):
+    """Append-only audit line: who/what/when. NEVER the body, NEVER a
+    credential. Failure to write the log never blocks or unwinds a send that
+    already happened — it's an audit trail, not a gate."""
+    try:
+        os.makedirs(os.path.dirname(SEND_LOG_PATH), exist_ok=True)
+        entry = {
+            'ts': datetime.now(timezone.utc).isoformat(),
+            'account': ACCOUNT,
+            'transport': transport,
+            'to': to,
+            'cc': cc or '',
+            'subject': subject,
+        }
+        with open(SEND_LOG_PATH, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry) + '\n')
+    except Exception as e:
+        print('[warn: send succeeded but audit log write failed: ' + str(e)[:150] + ']', file=sys.stderr)
+
+
+# --------------------------------------------------------------- SMTP send --
+
+def cmd_send_smtp(to, subject, body, attachments=None, cc=None, reply_to_message_id=None):
+    """Primary send path. Falls back to OAuth ONLY for failures before
+    anything is transmitted (missing/rejected app password, can't connect,
+    can't resolve reply headers). Once smtp.sendmail() is actually called,
+    any failure is reported as-is and NEVER silently retried on the OAuth
+    path — an ambiguous send must never become a double-send."""
+    var_name, pw = app_password()
+    if not pw:
+        print(
+            '[app-password unavailable ('
+            + (var_name + ' not set' if var_name else 'no mapping for ' + ACCOUNT)
+            + ') — falling back to OAuth send, nothing was sent]',
+            file=sys.stderr,
+        )
+        return cmd_send_oauth(to, subject, body, attachments, cc, reply_to_message_id)
+
+    try:
+        in_reply_to = references = None
+        if reply_to_message_id:
+            in_reply_to, references = resolve_reply_headers_imap(reply_to_message_id)
+        msg = build_email_message(to, subject, body, attachments, cc, in_reply_to, references)
+        server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20)
+        server.login(ACCOUNT, pw)
+    except Exception as e:
+        print(
+            '[app-password SMTP prep/auth failed (' + str(e)[:200] + ') — falling back to OAuth send, nothing was sent]',
+            file=sys.stderr,
+        )
+        return cmd_send_oauth(to, subject, body, attachments, cc, reply_to_message_id)
+
+    try:
+        recipients = [a.strip() for a in to.split(',') if a.strip()]
+        if cc:
+            recipients += [a.strip() for a in cc.split(',') if a.strip()]
+        server.sendmail(ACCOUNT, recipients, msg.as_bytes())
+        server.quit()
+    except Exception as e:
+        sys.exit(
+            'SMTP send failed AFTER authenticating — may have partially transmitted, NOT retrying '
+            'automatically (never retry an unverified send). Check the mailbox Sent folder before '
+            're-attempting. Error: ' + str(e)[:300]
+        )
+
+    log_send('smtp-app-password', to, cc, subject)
+    print('sent via SMTP app-password: to=' + to + (' cc=' + cc if cc else '') + '  subject="' + subject + '"')
+
+
+# ------------------------------------------------------- OAuth (fallback) --
 
 def sb(path, method=None, body=None):
     """Minimal Supabase REST helper — stdlib only, no requests dependency."""
@@ -221,7 +589,7 @@ def body_of(msg):
     return msg.get('snippet', '')
 
 
-def cmd_profile():
+def cmd_profile_oauth():
     data = g('profile')
     print(
         data.get('emailAddress', '')
@@ -229,14 +597,14 @@ def cmd_profile():
         + str(data.get('messagesTotal'))
         + ' messages, '
         + str(data.get('threadsTotal'))
-        + ' threads'
+        + ' threads  (OAuth Gmail API)'
     )
 
 
-def cmd_search(q, limit=20):
+def cmd_search_oauth(q, limit=20):
     data = g('messages', q=q, maxResults=limit)
     msgs = data.get('messages') or []
-    print('query "' + q + '" -> ' + str(len(msgs)) + ' of ~' + str(data.get('resultSizeEstimate')))
+    print('query "' + q + '" -> ' + str(len(msgs)) + ' of ~' + str(data.get('resultSizeEstimate')) + '  (OAuth Gmail API)')
     for m in msgs:
         detail = g(
             'messages/' + m['id'],
@@ -251,7 +619,7 @@ def cmd_search(q, limit=20):
         print('    ' + (detail.get('snippet') or '')[:150])
 
 
-def cmd_read(mid):
+def cmd_read_oauth(mid):
     msg = g('messages/' + mid, format='full')
     h = headers_of(msg)
     print('From: ' + h.get('from', ''))
@@ -262,7 +630,7 @@ def cmd_read(mid):
     print(body_of(msg)[:15000])
 
 
-def cmd_voice(limit=40):
+def cmd_voice_oauth(limit=40):
     """Dump his own sent prose, quoted replies stripped, for style analysis."""
     data = g('messages', q='in:sent -in:chats', maxResults=limit)
     for m in data.get('messages') or []:
@@ -297,41 +665,66 @@ def km_get_for_reply(mid):
     )
 
 
-def cmd_send(to, subject, body, attachments=None, cc=None, reply_to_message_id=None):
-    msg = MIMEMultipart()
-    msg['To'] = to
-    msg['From'] = ACCOUNT
-    if cc:
-        msg['Cc'] = cc
-    msg['Subject'] = subject
-
+def cmd_send_oauth(to, subject, body, attachments=None, cc=None, reply_to_message_id=None):
     thread_id = None
+    in_reply_to = references = None
     if reply_to_message_id:
         in_reply_to, references, thread_id = resolve_reply_headers(reply_to_message_id)
-        if in_reply_to:
-            msg['In-Reply-To'] = in_reply_to
-        if references:
-            msg['References'] = references
 
-    msg.attach(MIMEText(body, 'plain'))
-
-    for path in attachments or []:
-        ctype, _ = mimetypes.guess_type(path)
-        maintype, subtype = (ctype or 'application/octet-stream').split('/', 1)
-        with open(path, 'rb') as fh:
-            part = MIMEBase(maintype, subtype)
-            part.set_payload(fh.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(path))
-        msg.attach(part)
+    msg = build_email_message(to, subject, body, attachments, cc, in_reply_to, references)
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode('ascii')
     payload = {'raw': raw}
     if thread_id:
         payload['threadId'] = thread_id
     result = g_post('messages/send', json.dumps(payload).encode(), 'application/json')
-    print('sent: id=' + result.get('id', '') + ' threadId=' + result.get('threadId', ''))
+    log_send('oauth-gmail-api', to, cc, subject)
+    print('sent via OAuth Gmail API: id=' + result.get('id', '') + ' threadId=' + result.get('threadId', ''))
 
+
+# --------------------------------------------------- top-level dispatchers --
+# These are what main() calls. Read commands fall back to OAuth on ANY
+# app-password failure (safe — reads have no side effects). cmd_send has its
+# own fallback logic above cmd_send_smtp, tighter for the reasons documented
+# there.
+
+def cmd_profile():
+    try:
+        return cmd_profile_imap()
+    except Exception as e:
+        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        return cmd_profile_oauth()
+
+
+def cmd_search(q, limit=20):
+    try:
+        return cmd_search_imap(q, limit)
+    except Exception as e:
+        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        return cmd_search_oauth(q, limit)
+
+
+def cmd_read(mid):
+    try:
+        return cmd_read_imap(mid)
+    except Exception as e:
+        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        return cmd_read_oauth(mid)
+
+
+def cmd_voice(limit=40):
+    try:
+        return cmd_voice_imap(limit)
+    except Exception as e:
+        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        return cmd_voice_oauth(limit)
+
+
+def cmd_send(to, subject, body, attachments=None, cc=None, reply_to_message_id=None):
+    return cmd_send_smtp(to, subject, body, attachments, cc, reply_to_message_id)
+
+
+# --------------------------------------------------------------------- cli --
 
 def opt(argv, name, default=None):
     if name in argv:
