@@ -8,7 +8,16 @@
 //     Idempotent: skips re-provisioning if auth user already exists; recurring
 //     invoices only refresh period dates. Logs payment to stripe_payment_log.
 //   - invoice.payment_failed → mark subscription status as 'past_due', log event.
-//   - customer.subscription.updated → sync status, period dates, cancel_at_period_end.
+//   - customer.subscription.created → safety-net pending_onboarding row (any
+//     recognized price: founding/solo/team, not just founding).
+//   - customer.subscription.updated → sync status (incl. 'trialing' as its own
+//     status, not folded into 'active'), period dates, trial_start/trial_end,
+//     cancel_at_period_end. Mirrors onto profiles.subscription_status too.
+//     Skips the write entirely while a row is still 'pending_onboarding' —
+//     that transition belongs to /api/complete-onboarding only.
+//   - customer.subscription.trial_will_end → short first-person email from
+//     heath@meetdossie.com, 3 days before a trial converts. Requires this
+//     event added to the endpoint's subscribed events in Stripe Dashboard.
 //   - customer.subscription.deleted → mark profile subscription_status = 'cancelled'.
 // All events are deduplicated via stripe_webhook_events table (event.id).
 // Returns 200 on success, 400 on signature failure.
@@ -24,7 +33,8 @@
 
 const Stripe = require('stripe');
 const { captureServerEvent } = require('./_lib/posthog');
-const { FOUNDING_PRICE_ID, PRICE_TIERS } = require('./_lib/pricing-tiers');
+const { PRICE_TIERS, tierForPriceId } = require('./_lib/pricing-tiers');
+const { mapStripeSubscriptionStatus } = require('./_lib/subscription-status-map');
 const accountInvites = require('./_lib/account-invites');
 
 // Stripe requires the raw request body for signature verification, so disable
@@ -471,13 +481,25 @@ const BRAND_MUTED = '#9CA8B4';
 // suppressed the welcome email rather than breaking the flow.
 const BRAND_BORDER = '#E8E2DA';
 
-function welcomeEmailHtml(fullName) {
+function welcomeEmailHtml(fullName, plan) {
   const name = (fullName || '').trim().split(' ')[0] || 'there';
+  // BUG FIX 2026-09-26: this direct-invoice path used to be reachable ONLY
+  // for founding-tier invoices, so this copy was safely hardcoded founding-
+  // flavored. Now that handleInvoicePaid is widened to any recognized price
+  // (a Solo/Team invoice safety net), a Solo/Team customer must NOT receive
+  // an email falsely telling them they're a "founding member" locked at
+  // "$29/mo forever" — that's not a cosmetic bug, it's a wrong claim about
+  // their bill. Same plan-aware branching pattern as complete-onboarding.js's
+  // welcomeEmailHtml.
+  const isFounding = plan === 'founding';
+  const introLine = isFounding
+    ? "You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else."
+    : "Your Dossie subscription is active — you're all set.";
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #A48531; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1.15; margin: 0 0 24px; color: ${BRAND_NAVY};">${name},</h1>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Heath here — founder of Dossie, and a licensed Texas REALTOR myself.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">You're officially a founding member. Your $29/mo is locked forever, no matter what we do with pricing for everyone else.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${introLine}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">I want to ask one specific thing in the next 60 seconds: open Dossie, pull up any deal you're working — even a closed one from last month — and drop the contract in.</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">She reads it, pulls every TREC deadline with the paragraph it came from, and you'll see your option period, financing contingency, and closing date sitting on the page in clean order. That's the moment most agents text me back saying "okay, I see what this is now."</p>
   <div style="margin: 28px 0; text-align: center;">
@@ -495,11 +517,13 @@ function welcomeEmailHtml(fullName) {
     <li><strong>Compliance Vault</strong> — your brokerage's required docs organized in one place.</li>
   </ol>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">Reply to this email any time. I read every one personally, usually within the hour.</p>
-  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up.</p>
+  <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 18px;">${isFounding
+    ? "AI is hitting transaction coordination fast. My take: don't fight it, be part of it. You made that call early — and the founding price locks you in before everyone else catches up."
+    : "AI is hitting transaction coordination fast. My take: don't fight it, be part of it — glad you're in."}</p>
   <p style="font-size: 16px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 4px;">Heath</p>
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.6; margin: 0 0 18px;">heath@meetdossie.com<br>Licensed Texas REALTOR | Founder, Dossie</p>
-  <hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
-  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>
+  ${isFounding ? `<hr style="border: none; border-top: 1px solid ${BRAND_BORDER}; margin: 24px 0;">
+  <p style="font-size: 14px; color: ${BRAND_MUTED}; line-height: 1.6; margin: 0;"><strong>P.S.</strong> — Once you're in the app, join the Founding Files Facebook group. It's where I share what's shipping next and where founding members vote on what to build: <a href="https://www.facebook.com/share/g/1P2QL9T42t/" style="color: ${BRAND_CORAL}; text-decoration: none;">facebook.com/share/g/1P2QL9T42t/</a></p>` : ''}
 </div>`;
 }
 
@@ -635,6 +659,8 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   let currentPeriodEnd = null;
   let priceId = null;
   let amountCents = null;
+  let trialStart = null;
+  let trialEnd = null;
   if (stripeSubscriptionId) {
     try {
       const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -646,11 +672,24 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       }
       priceId = sub?.items?.data?.[0]?.price?.id || null;
       amountCents = sub?.items?.data?.[0]?.price?.unit_amount ?? null;
+      // trial_start/trial_end are only present on a subscription that was
+      // actually created with a trial (api/create-checkout-session.js's
+      // TRIAL_DAYS). Persisted so the trial-conversion alarm cron
+      // (api/cron-trial-conversion-watch.js) can find them without a second
+      // Stripe round-trip.
+      if (sub && sub.trial_start) trialStart = new Date(sub.trial_start * 1000).toISOString();
+      if (sub && sub.trial_end) trialEnd = new Date(sub.trial_end * 1000).toISOString();
     } catch (err) {
       console.warn('[stripe-webhook] subscriptions.retrieve failed:', err && err.message);
     }
   }
   const tier = (priceId && PRICE_TIERS[priceId]) || 'founding';
+  // A brand-new trialing subscription must land as 'trialing', not
+  // 'pending_onboarding' overwritten to 'active' later some other way — see
+  // the pending_onboarding write below, which intentionally still waits for
+  // the onboarding form regardless of trial/active, and complete-onboarding.js
+  // (fixed 2026-09-26) which now reads the REAL Stripe status instead of
+  // hardcoding 'active'.
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('[stripe-webhook] Supabase not configured — skipping persistence.');
@@ -702,6 +741,8 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       status: 'pending_onboarding',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
+      ...(trialStart ? { trial_start: trialStart } : {}),
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
       // Only set when this checkout actually carried a signal — upsertSubscription
       // also PATCHes existing rows on resubscribe, and unconditionally sending
       // `first_touch: null` there would silently erase a prior attribution.
@@ -849,11 +890,18 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
     return;
   }
 
-  // Filter: only handle founding-tier invoices. Other line items pass through.
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID.
+  // This is the direct-invoice safety net (Heath emails a hosted-invoice link
+  // manually, bypassing website checkout) — this system has a documented
+  // history of webhook-gap recoveries (docs/INCIDENT-LOG.md), so a Solo/Team
+  // customer whose checkout.session.completed was somehow missed had NO net
+  // to catch them here at all. Widened to any recognized price; unrecognized
+  // (add-on) prices still skip.
   const lineItem = invoice?.lines?.data?.[0];
   const priceId = lineItem?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] invoice.paid skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+  const { tier: resolvedTier, recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] invoice.paid skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'invoice=', invoice.id);
     return;
   }
 
@@ -928,7 +976,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           stripe_price_id: priceId,
-          plan: 'founding',
+          plan: resolvedTier,
           status: 'active',
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
@@ -973,7 +1021,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
           stripe_customer_id: stripeCustomerId,
           stripe_subscription_id: stripeSubscriptionId,
           stripe_price_id: priceId,
-          plan: 'founding',
+          plan: resolvedTier,
           status: 'active',
           current_period_start: currentPeriodStart,
           current_period_end: currentPeriodEnd,
@@ -1008,9 +1056,9 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
       id: userId,
       email: customerEmail,
       full_name: customerName || '',
-      plan: 'founding',
+      plan: resolvedTier,
       subscription_status: 'active',
-      subscription_tier: 'founding',
+      subscription_tier: resolvedTier,
       stripe_customer_id: stripeCustomerId,
     });
   } catch (err) {
@@ -1024,7 +1072,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: priceId,
-      plan: 'founding',
+      plan: resolvedTier,
       status: 'active',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
@@ -1038,7 +1086,7 @@ async function handleInvoicePaid(stripe, invoice, eventId) {
     await sendEmail({
       to: customerEmail,
       subject: 'Welcome to Dossie — let\'s get you set up',
-      html: welcomeEmailHtml(customerName),
+      html: welcomeEmailHtml(customerName, resolvedTier),
     });
   } catch (err) {
     console.error('[stripe-webhook] welcome email failed in invoice.paid:', err && err.message);
@@ -1128,10 +1176,18 @@ async function handleSubscriptionCreated(stripe, subscription) {
     ? subscription.customer
     : (subscription.customer && subscription.customer.id) || null;
 
-  // Only handle founding-tier subscriptions.
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID,
+  // so a brand-new Solo/Team subscription firing customer.subscription.created
+  // (which happens on every trial signup, before checkout.session.completed's
+  // async subscription.retrieve is guaranteed to have landed) was silently
+  // dropped. Widened to any RECOGNIZED price (founding/solo/team via
+  // tierForPriceId) — still skips true unknowns (e.g. the Email
+  // Integration / Compliance Vault add-on prices, which have their own
+  // dedicated handlers and must never get a base-plan row here).
   const priceId = subscription?.items?.data?.[0]?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] subscription.created skipped — not founding tier. priceId=', priceId, 'sub=', stripeSubscriptionId);
+  const { tier: resolvedTier, recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] subscription.created skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'sub=', stripeSubscriptionId);
     return;
   }
 
@@ -1196,6 +1252,10 @@ async function handleSubscriptionCreated(stripe, subscription) {
     ? new Date(subscription.current_period_start * 1000).toISOString() : null;
   const currentPeriodEnd = subscription.current_period_end
     ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+  const trialStart = subscription.trial_start
+    ? new Date(subscription.trial_start * 1000).toISOString() : null;
+  const trialEnd = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000).toISOString() : null;
 
   try {
     await upsertSubscription({
@@ -1203,12 +1263,18 @@ async function handleSubscriptionCreated(stripe, subscription) {
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: priceId,
-      plan: 'founding',
+      plan: resolvedTier,
+      // Still 'pending_onboarding' regardless of trialing/active — this is a
+      // safety net for when checkout.session.completed didn't fire; the row
+      // only becomes real once the customer submits the onboarding form
+      // (complete-onboarding.js), same as the primary path.
       status: 'pending_onboarding',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
+      ...(trialStart ? { trial_start: trialStart } : {}),
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
     });
-    console.log('[stripe-webhook] subscription.created: safety-net subscription row created for', customerEmail);
+    console.log('[stripe-webhook] subscription.created: safety-net subscription row created for', customerEmail, 'plan=', resolvedTier, 'stripe_status=', subscription.status);
   } catch (err) {
     console.error('[stripe-webhook] subscription.created: upsert failed:', err && err.message);
   }
@@ -1327,30 +1393,24 @@ async function handleInvoicePaymentFailed(stripe, invoice, eventId) {
     ? invoice.customer
     : (invoice.customer && invoice.customer.id) || null;
 
-  // Only handle founding-tier invoices
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID
+  // — the exact gap in memory `no-dunning-process-failed-payments` (DB says
+  // active while Stripe says past_due). This is the one that actually costs
+  // money: a Solo/Team card fails (including the very first post-trial
+  // charge, which fires as this same event), Stripe stops collecting, and
+  // our subscriptions row silently kept claiming 'active' forever because
+  // nothing ever wrote 'past_due' for a non-founding price. Widened to any
+  // recognized price; unrecognized (add-on) prices still skip.
   const lineItem = invoice?.lines?.data?.[0];
   const priceId = lineItem?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] invoice.payment_failed skipped — not founding tier. priceId=', priceId, 'invoice=', invoice.id);
+  const { recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] invoice.payment_failed skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'invoice=', invoice.id);
     return;
   }
 
-  // Mark subscription as past_due
-  if (stripeSubscriptionId) {
-    try {
-      const encoded = encodeURIComponent(stripeSubscriptionId);
-      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ status: 'past_due' }),
-      });
-      console.log('[stripe-webhook] invoice.payment_failed: marked subscription past_due. sub=', stripeSubscriptionId);
-    } catch (err) {
-      console.error('[stripe-webhook] invoice.payment_failed subscription patch failed:', err && err.message);
-    }
-  }
-
-  // Resolve customer email and notify Heath
+  // Resolve customer email early — needed for both the profiles mirror below
+  // and the existing Telegram alert.
   let customerEmail = null;
   let customerName = '';
   if (invoice.customer_email) {
@@ -1364,6 +1424,31 @@ async function handleInvoicePaymentFailed(stripe, invoice, eventId) {
       }
     } catch (err) {
       console.warn('[stripe-webhook] customers.retrieve failed in invoice.payment_failed:', err && err.message);
+    }
+  }
+
+  // Mark subscription as past_due — and mirror onto profiles.subscription_status
+  // too (same reasoning as handleSubscriptionUpdated: this is the field a
+  // trial-converted-then-failed customer's DB record was silently NOT getting
+  // updated on before this fix).
+  if (stripeSubscriptionId) {
+    try {
+      const encoded = encodeURIComponent(stripeSubscriptionId);
+      await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encoded}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'past_due' }),
+      });
+      console.log('[stripe-webhook] invoice.payment_failed: marked subscription past_due. sub=', stripeSubscriptionId);
+    } catch (err) {
+      console.error('[stripe-webhook] invoice.payment_failed subscription patch failed:', err && err.message);
+    }
+    if (customerEmail) {
+      try {
+        await updateProfileByEmail(customerEmail, { subscription_status: 'past_due' });
+      } catch (err) {
+        console.warn('[stripe-webhook] invoice.payment_failed: profiles.subscription_status mirror failed (non-fatal):', err && err.message);
+      }
     }
   }
 
@@ -1400,10 +1485,16 @@ async function handleSubscriptionUpdated(stripe, subscription, eventId) {
     ? subscription.customer
     : (subscription.customer && subscription.customer.id) || null;
 
-  // Only handle founding-tier subscriptions
+  // BUG FIX 2026-09-26: this used to hard-skip anything but FOUNDING_PRICE_ID,
+  // so Solo/Team never got their trialing->active / trialing->past_due /
+  // trialing->canceled transitions synced to our DB at all — every trial
+  // subscription's status.updated events were silently dropped. Widened to
+  // any recognized price; unrecognized (add-on) prices still skip, those
+  // have their own dedicated handlers.
   const priceId = subscription?.items?.data?.[0]?.price?.id || null;
-  if (priceId !== FOUNDING_PRICE_ID) {
-    console.log('[stripe-webhook] subscription.updated skipped — not founding tier. priceId=', priceId, 'sub=', stripeSubscriptionId);
+  const { recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] subscription.updated skipped — unrecognized price (add-on or unknown). priceId=', priceId, 'sub=', stripeSubscriptionId);
     return;
   }
 
@@ -1411,36 +1502,56 @@ async function handleSubscriptionUpdated(stripe, subscription, eventId) {
     ? new Date(subscription.current_period_start * 1000).toISOString() : null;
   const currentPeriodEnd = subscription.current_period_end
     ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+  const trialStart = subscription.trial_start
+    ? new Date(subscription.trial_start * 1000).toISOString() : null;
+  const trialEnd = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000).toISOString() : null;
 
-  // Map Stripe status to our status
-  let statusToSet = subscription.status; // 'active', 'past_due', 'unpaid', 'canceled'
-  if (subscription.status === 'active') {
-    statusToSet = 'active';
-  } else if (subscription.status === 'past_due') {
-    statusToSet = 'past_due';
-  } else if (subscription.status === 'canceled') {
-    statusToSet = 'cancelled';
-  } else if (subscription.status === 'unpaid') {
-    statusToSet = 'past_due'; // Treat unpaid as past_due
+  // Map Stripe status to our status. 'trialing' is a first-class status here
+  // (not folded into 'active') — the customer already has full access via
+  // complete-onboarding.js regardless, but subscriptions.status='trialing' is
+  // what lets cron-account-invite-autoresend and cron-pierce-activation know
+  // they're a live customer worth watching, and cron-trial-conversion-watch
+  // knows a trial that later lands on 'past_due'/'cancelled' failed to convert.
+  const statusToSet = mapStripeSubscriptionStatus(subscription.status);
+
+  // Do not let this webhook race complete-onboarding.js: a row still sitting
+  // at 'pending_onboarding' means the customer hasn't submitted the
+  // onboarding form yet (no real profile, no credential sent) — that
+  // transition to trialing/active is owned exclusively by
+  // complete-onboarding.js. Trial timestamps are harmless metadata and are
+  // still written either way so the conversion-watch alarm has them early.
+  let existingStatus = null;
+  try {
+    const encodedForRead = encodeURIComponent(stripeSubscriptionId);
+    const existingRows = await supabaseFetch(`/rest/v1/subscriptions?stripe_subscription_id=eq.${encodedForRead}&select=status,user_id&limit=1`);
+    existingStatus = Array.isArray(existingRows) && existingRows[0] ? existingRows[0].status : null;
+  } catch (err) {
+    console.warn('[stripe-webhook] subscription.updated: existing-row read failed (proceeding with status patch anyway):', err && err.message);
   }
+  const skipStatusOverwrite = existingStatus === 'pending_onboarding';
 
   // BUG FIX 2026-07-04: Also mirror canceled_at when Stripe reports cancellation,
   // and clear it when the sub goes back to active (Stripe UI reactivation flow).
   const patchBody = {
-    status: statusToSet,
     current_period_start: currentPeriodStart,
     current_period_end: currentPeriodEnd,
     cancel_at_period_end: subscription.cancel_at_period_end || false,
+    ...(trialStart ? { trial_start: trialStart } : {}),
+    ...(trialEnd ? { trial_end: trialEnd } : {}),
   };
-  if (statusToSet === 'cancelled') {
-    patchBody.canceled_at = subscription.canceled_at
-      ? new Date(subscription.canceled_at * 1000).toISOString()
-      : (subscription.ended_at
-          ? new Date(subscription.ended_at * 1000).toISOString()
-          : new Date().toISOString());
-  } else if (statusToSet === 'active') {
-    // Reactivation — clear the cancellation timestamp.
-    patchBody.canceled_at = null;
+  if (!skipStatusOverwrite) {
+    patchBody.status = statusToSet;
+    if (statusToSet === 'cancelled') {
+      patchBody.canceled_at = subscription.canceled_at
+        ? new Date(subscription.canceled_at * 1000).toISOString()
+        : (subscription.ended_at
+            ? new Date(subscription.ended_at * 1000).toISOString()
+            : new Date().toISOString());
+    } else if (statusToSet === 'active') {
+      // Reactivation — clear the cancellation timestamp.
+      patchBody.canceled_at = null;
+    }
   }
 
   try {
@@ -1450,9 +1561,120 @@ async function handleSubscriptionUpdated(stripe, subscription, eventId) {
       headers: { Prefer: 'return=minimal' },
       body: JSON.stringify(patchBody),
     });
-    console.log('[stripe-webhook] subscription.updated: synced subscription. sub=', stripeSubscriptionId, 'status=', statusToSet);
+    console.log('[stripe-webhook] subscription.updated: synced subscription. sub=', stripeSubscriptionId,
+      'status=', skipStatusOverwrite ? `skipped (still pending_onboarding)` : statusToSet);
   } catch (err) {
     console.error('[stripe-webhook] subscription.updated patch failed:', err && err.message);
+    return;
+  }
+
+  // Mirror onto profiles.subscription_status too — best-effort, never fatal.
+  // Skipped for the same pending_onboarding reason above (no real profile
+  // row exists yet for that user to update).
+  if (!skipStatusOverwrite && ['active', 'trialing', 'past_due', 'cancelled'].includes(statusToSet)) {
+    try {
+      let customerEmail = null;
+      if (stripeCustomerId) {
+        const customer = await stripe.customers.retrieve(stripeCustomerId);
+        if (customer && !customer.deleted && customer.email) {
+          customerEmail = String(customer.email).toLowerCase();
+        }
+      }
+      if (customerEmail) {
+        await updateProfileByEmail(customerEmail, { subscription_status: statusToSet });
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] subscription.updated: profiles.subscription_status mirror failed (non-fatal):', err && err.message);
+    }
+  }
+}
+
+// Handle customer.subscription.trial_will_end — Stripe fires this 3 days
+// before a trial converts to a paid charge. Short, first-person, from Heath
+// directly (heath-email-voice-profile: 1-3 sentences, "Hey X," / "Thanks,
+// Heath" — not the "Dossie <dossie@...>" marketing voice used elsewhere in
+// this file). Requires 'customer.subscription.trial_will_end' to be added to
+// the webhook endpoint's subscribed events in the Stripe Dashboard — it is
+// NOT one of the events already configured there as of 2026-09-26.
+async function handleTrialWillEnd(stripe, subscription) {
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!RESEND_KEY) {
+    console.warn('[stripe-webhook] trial_will_end: RESEND_API_KEY not set — skipping email.');
+    return;
+  }
+
+  const priceId = subscription?.items?.data?.[0]?.price?.id || null;
+  const { recognized } = tierForPriceId(priceId);
+  if (!recognized) {
+    console.log('[stripe-webhook] trial_will_end skipped — unrecognized price. priceId=', priceId);
+    return;
+  }
+
+  const stripeCustomerId = typeof subscription.customer === 'string'
+    ? subscription.customer
+    : (subscription.customer && subscription.customer.id) || null;
+
+  let customerEmail = null;
+  let customerName = '';
+  if (stripeCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      if (customer && !customer.deleted) {
+        customerEmail = customer.email ? String(customer.email).toLowerCase() : null;
+        customerName = toTitleCase(customer.name || '');
+      }
+    } catch (err) {
+      console.warn('[stripe-webhook] trial_will_end: customers.retrieve failed:', err && err.message);
+    }
+  }
+  if (!customerEmail) {
+    console.warn('[stripe-webhook] trial_will_end: no customer email resolved — cannot send. sub=', subscription.id);
+    return;
+  }
+
+  const firstName = (customerName || '').trim().split(' ')[0] || 'there';
+  const item = subscription?.items?.data?.[0];
+  const unitAmount = item?.price?.unit_amount;
+  const interval = item?.price?.recurring?.interval || 'month';
+  const amountStr = typeof unitAmount === 'number'
+    ? `$${(unitAmount / 100).toFixed(2)}/${interval === 'year' ? 'yr' : 'mo'}`
+    : 'your plan rate';
+  const trialEndMs = subscription.trial_end ? subscription.trial_end * 1000 : null;
+  const daysLeft = trialEndMs
+    ? Math.max(1, Math.round((trialEndMs - Date.now()) / (24 * 60 * 60 * 1000)))
+    : 3;
+  const dayWord = daysLeft === 1 ? 'day' : 'days';
+
+  const subject = `Your Dossie trial ends in ${daysLeft} ${dayWord}`;
+  const html = `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #1A1A2E;">
+  <p style="font-size: 16px; line-height: 1.6;">Hey ${firstName},</p>
+  <p style="font-size: 16px; line-height: 1.6;">Your free trial wraps up in ${daysLeft} ${dayWord} — after that we'll bill your card ${amountStr}. If Dossie's been useful, there's nothing to do. If not, cancel any time from Settings before then and you won't be charged.</p>
+  <p style="font-size: 16px; line-height: 1.6;">Thanks,<br>Heath</p>
+</div>`;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Heath <heath@meetdossie.com>',
+        to: [customerEmail],
+        subject,
+        html,
+        bcc: ['heath@meetdossie.com'],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('[stripe-webhook] trial_will_end email send failed', res.status, text.slice(0, 300));
+    } else {
+      console.log('[stripe-webhook] trial_will_end email sent to', customerEmail, 'days_left=', daysLeft);
+    }
+  } catch (err) {
+    console.error('[stripe-webhook] trial_will_end email threw:', err && err.message);
   }
 }
 
@@ -1642,6 +1864,8 @@ module.exports = async function handler(req, res) {
       await handleSubscriptionCreated(stripe, event.data.object);
     } else if (event.type === 'customer.subscription.updated') {
       await handleSubscriptionUpdated(stripe, event.data.object, event.id);
+    } else if (event.type === 'customer.subscription.trial_will_end') {
+      await handleTrialWillEnd(stripe, event.data.object);
     } else if (event.type === 'customer.subscription.deleted') {
       await handleAddonSubscriptionDeleted(event.data.object);
       await handleComplianceVaultSubscriptionDeleted(event.data.object);

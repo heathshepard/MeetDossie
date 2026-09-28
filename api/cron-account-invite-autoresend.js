@@ -127,7 +127,13 @@ module.exports = withTelemetry(SELF_NAME, async function handler(req, res) {
   };
 
   try {
-    const { ok: subOk, data: subs } = await supaJson('subscriptions?select=user_id&status=eq.active');
+    // 2026-09-26: widened from status=eq.active to also include 'trialing' —
+    // the free-trial rollout (api/create-checkout-session.js's TRIAL_DAYS)
+    // means a card-holding, billing-real customer now legitimately sits in
+    // 'trialing' for up to 14 days before ever going 'active'. Excluding
+    // them here would have silently stopped watching every trial signup for
+    // exactly the window this job exists to cover.
+    const { ok: subOk, data: subs } = await supaJson('subscriptions?select=user_id&status=in.(active,trialing)');
     if (!subOk || !Array.isArray(subs)) throw new Error('subscriptions_fetch_failed');
     const payingIds = [...new Set(subs.map((s) => s.user_id).filter(Boolean))];
     if (payingIds.length === 0) {
