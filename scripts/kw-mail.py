@@ -57,6 +57,58 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def load_env_local():
+    """Load MeetDossie/.env.local into os.environ, without clobbering
+    anything already exported by the caller's shell.
+
+    This script used to only see vars a human had `export`ed by hand — a
+    var written to .env.local (the one place every other credential in this
+    repo lives) was invisible to it, so KW_MAIL_APP_PASSWORD silently fell
+    back to OAuth on EVERY run even though the password was sitting right
+    there in .env.local. preflight-check.js reads .env.local through its
+    own loader and was papering over exactly this gap by injecting the
+    value into kw-mail.py's subprocess env — which meant preflight and this
+    script could (and did) disagree about which credential path was really
+    configured. This loader makes the script self-sufficient so both
+    resolve the same way.
+
+    `utf-8-sig` strips a leading UTF-8 BOM automatically if present — a BOM
+    in this file has silently corrupted the first key before (see
+    MEMORY.md: env-local-bom-breaks-first-var). Values may be quoted,
+    unquoted, or contain internal spaces (Google displays app passwords as
+    4 space-separated groups); quotes are stripped here. Internal spaces
+    are left intact — this is a generic .env parser, not a
+    KW_MAIL_APP_PASSWORD special case. Callers that need a space-free
+    credential strip it themselves (see app_password() below).
+    """
+    env_path = os.path.join(REPO_ROOT, '.env.local')
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, 'r', encoding='utf-8-sig', errors='replace') as f:
+            raw = f.read()
+    except OSError:
+        return
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        k, v = line.split('=', 1)
+        k = k.strip()
+        v = v.strip()
+        if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
+            v = v[1:-1]
+        if not k:
+            continue
+        # Real shell-exported env always wins over .env.local.
+        os.environ.setdefault(k, v)
+
+
+load_env_local()
+
 SUPA = (os.environ.get('SUPABASE_URL') or 'https://pgwoitbdiyubjugwufhk.supabase.co').rstrip('/')
 ACCOUNT = 'heath.shepard@kw.com'
 
@@ -104,38 +156,75 @@ _state = {}
 
 
 class MailAuthError(Exception):
-    """App password missing or rejected. Callers catch this (and other
-    connect/protocol errors) to trigger the OAuth fallback for read-only
-    commands, or to fall back BEFORE anything is transmitted for send."""
+    """App password missing/unreadable or rejected by Google. Callers catch
+    this (and other connect/protocol errors) to trigger the OAuth fallback
+    for read-only commands, or to fall back BEFORE anything is transmitted
+    for send.
+
+    `kind` distinguishes two very different failures so the fallback notice
+    can be loud about the right one:
+      'config'     — var not set / env.local unreadable. A wiring bug: the
+                     password exists somewhere but this run can't see it.
+                     Should be loud.
+      'credential' — Google itself rejected the password. Not a wiring
+                     issue — this run has the credential and it doesn't
+                     work. Should be LOUDER — regenerate it.
+    A plain connect/network error carries kind=None (unclassified)."""
+
+    def __init__(self, message, kind=None):
+        super().__init__(message)
+        self.kind = kind
 
 
 # ----------------------------------------------------------------- app pw --
 
 def app_password():
     """Return (env_var_name, stripped_password_or_None) for ACCOUNT. Google
-    displays app passwords with spaces for readability; strip them before
-    use. Never print/log the value anywhere, including error messages."""
+    displays app passwords with spaces for readability; strip ALL whitespace
+    before use — Google accepts the password with or without spaces, but
+    only if what's sent is consistent. Never print/log the value anywhere,
+    including error messages."""
     var_name = APP_PASSWORD_ENV.get(ACCOUNT)
     if not var_name:
         return None, None
     val = os.environ.get(var_name)
     if not val:
         return var_name, None
-    return var_name, val.replace(' ', '')
+    return var_name, re.sub(r'\s+', '', val)
 
 
 def imap_connect():
     var_name, pw = app_password()
     if not pw:
         raise MailAuthError(
-            (var_name + ' not set') if var_name else ('no app-password env var mapped for ' + ACCOUNT)
+            (var_name + ' not set/unreadable') if var_name else ('no app-password env var mapped for ' + ACCOUNT),
+            kind='config',
         )
     M = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, timeout=20)
     try:
         M.login(ACCOUNT, pw)
     except imaplib.IMAP4.error as e:
-        raise MailAuthError('IMAP login rejected for ' + ACCOUNT + ' via ' + var_name + ': ' + str(e))
+        raise MailAuthError(
+            'IMAP login rejected for ' + ACCOUNT + ' via ' + var_name + ': ' + str(e),
+            kind='credential',
+        )
     return M
+
+
+def fallback_notice(context, e):
+    """Build the one-line stderr notice printed right before falling back
+    to OAuth. Deliberately differentiated by severity so a config bug (the
+    password exists but this run can't see it — quiet, easy to miss) never
+    reads the same as Google actually rejecting the credential (loud —
+    means the app password needs to be regenerated)."""
+    kind = getattr(e, 'kind', None)
+    if kind == 'config':
+        label = 'CONFIG'
+    elif kind == 'credential' or isinstance(e, smtplib.SMTPAuthenticationError):
+        label = 'CREDENTIAL REJECTED BY GOOGLE'
+    else:
+        label = 'CONNECTION'
+    return '[' + label + ': app-password ' + context + ' (' + str(e)[:180] + ') — falling back to OAuth]'
 
 
 def _imap_quit(M):
@@ -393,12 +482,11 @@ def cmd_send_smtp(to, subject, body, attachments=None, cc=None, reply_to_message
     path — an ambiguous send must never become a double-send."""
     var_name, pw = app_password()
     if not pw:
-        print(
-            '[app-password unavailable ('
-            + (var_name + ' not set' if var_name else 'no mapping for ' + ACCOUNT)
-            + ') — falling back to OAuth send, nothing was sent]',
-            file=sys.stderr,
+        missing = MailAuthError(
+            (var_name + ' not set/unreadable') if var_name else ('no mapping for ' + ACCOUNT),
+            kind='config',
         )
+        print(fallback_notice('unavailable', missing)[:-1] + ', nothing was sent]', file=sys.stderr)
         return cmd_send_oauth(to, subject, body, attachments, cc, reply_to_message_id)
 
     try:
@@ -409,10 +497,7 @@ def cmd_send_smtp(to, subject, body, attachments=None, cc=None, reply_to_message
         server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20)
         server.login(ACCOUNT, pw)
     except Exception as e:
-        print(
-            '[app-password SMTP prep/auth failed (' + str(e)[:200] + ') — falling back to OAuth send, nothing was sent]',
-            file=sys.stderr,
-        )
+        print(fallback_notice('SMTP prep/auth failed', e)[:-1] + ', nothing was sent]', file=sys.stderr)
         return cmd_send_oauth(to, subject, body, attachments, cc, reply_to_message_id)
 
     try:
@@ -692,7 +777,7 @@ def cmd_profile():
     try:
         return cmd_profile_imap()
     except Exception as e:
-        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        print(fallback_notice('IMAP failed', e), file=sys.stderr)
         return cmd_profile_oauth()
 
 
@@ -700,7 +785,7 @@ def cmd_search(q, limit=20):
     try:
         return cmd_search_imap(q, limit)
     except Exception as e:
-        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        print(fallback_notice('IMAP failed', e), file=sys.stderr)
         return cmd_search_oauth(q, limit)
 
 
@@ -708,7 +793,7 @@ def cmd_read(mid):
     try:
         return cmd_read_imap(mid)
     except Exception as e:
-        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        print(fallback_notice('IMAP failed', e), file=sys.stderr)
         return cmd_read_oauth(mid)
 
 
@@ -716,7 +801,7 @@ def cmd_voice(limit=40):
     try:
         return cmd_voice_imap(limit)
     except Exception as e:
-        print('[app-password IMAP failed (' + str(e)[:180] + ') — falling back to OAuth]', file=sys.stderr)
+        print(fallback_notice('IMAP failed', e), file=sys.stderr)
         return cmd_voice_oauth(limit)
 
 

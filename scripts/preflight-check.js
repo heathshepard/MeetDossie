@@ -261,7 +261,7 @@ function pythonInvocation(scriptPath, scriptArgs) {
   return {
     cmd: 'wsl.exe',
     argv: ['-d', 'Ubuntu', '--', 'python3', wslPath, ...scriptArgs],
-    extraEnv: { WSLENV: [process.env.WSLENV, 'SR_KEY/u', 'CRON_SECRET/u', 'KW_MAIL_APP_PASSWORD/u'].filter(Boolean).join(':') },
+    extraEnv: { WSLENV: [process.env.WSLENV, 'SR_KEY/u', 'CRON_SECRET/u'].filter(Boolean).join(':') },
   };
 }
 
@@ -270,6 +270,15 @@ function checkGmailRead() {
     const key = ENV.SUPABASE_SERVICE_ROLE_KEY;
     if (!key) return resolve({ status: 'FAIL', error: 'SUPABASE_SERVICE_ROLE_KEY missing (kw-mail.py OAuth fallback needs SR_KEY)' });
     const inv = pythonInvocation(path.join(REPO, 'scripts', 'kw-mail.py'), ['profile']);
+    // Deliberately do NOT inject KW_MAIL_APP_PASSWORD here. kw-mail.py now
+    // loads .env.local itself (2026-09-28 fix) — injecting the credential
+    // from THIS script's own .env.local parse would let the two loaders
+    // diverge silently again, exactly the false-green bug that hid the
+    // original silent-OAuth-fallback defect: this check reported OK because
+    // preflight force-fed the password into the child, while a bare
+    // `python3 scripts/kw-mail.py profile` (no injection) fell back to
+    // OAuth every time. Both paths must resolve the credential the SAME
+    // way — through kw-mail.py's own loader — or this check is lying.
     execFile(
       inv.cmd,
       inv.argv,
@@ -279,7 +288,6 @@ function checkGmailRead() {
         env: {
           ...process.env,
           SR_KEY: key,
-          ...(ENV.KW_MAIL_APP_PASSWORD ? { KW_MAIL_APP_PASSWORD: ENV.KW_MAIL_APP_PASSWORD } : {}),
           ...(ENV.CRON_SECRET && !process.env.CRON_SECRET ? { CRON_SECRET: ENV.CRON_SECRET } : {}),
           ...inv.extraEnv,
         },
@@ -295,13 +303,36 @@ function checkGmailRead() {
         const lastLine = out.split('\n').pop().slice(0, 95);
         // kw-mail.py's own output says which path actually answered — surface
         // it here instead of re-deriving it, so this can never drift from
-        // what the script actually did.
-        const fallbackReason = (errOut.match(/^\[app-password IMAP failed \((.+?)\)/) || [])[1];
-        const via = /\(IMAP app-password\)/.test(out)
+        // what the script actually did. Format as of the 2026-09-28 loud-
+        // fallback fix: "[LABEL: app-password <context> (<reason>) — falling
+        // back to OAuth]" where LABEL is CONFIG / CREDENTIAL REJECTED BY
+        // GOOGLE / CONNECTION.
+        const fallbackMatch = errOut.match(/^\[([A-Z ]+): app-password (?:IMAP failed|unavailable|SMTP prep\/auth failed) \((.+?)\)/);
+        const fallbackLabel = fallbackMatch && fallbackMatch[1];
+        const fallbackReason = fallbackMatch && fallbackMatch[2];
+        const usedAppPassword = /\(IMAP app-password\)/.test(out);
+        const usedOAuth = /\(OAuth Gmail API\)/.test(out);
+        const via = usedAppPassword
           ? 'KW_MAIL_APP_PASSWORD (IMAP, primary)'
-          : /\(OAuth Gmail API\)/.test(out)
-            ? `OAuth (fallback${fallbackReason ? ' — ' + fallbackReason.slice(0, 80) : ''})`
+          : usedOAuth
+            ? `OAuth (fallback${fallbackReason ? ' — ' + fallbackLabel + ': ' + fallbackReason.slice(0, 70) : ''})`
             : 'unknown';
+
+        // "Configured but unused": preflight's OWN .env.local read (ENV,
+        // parsed independently above) sees a value, but the script that
+        // actually answered used OAuth instead. That divergence is exactly
+        // the failure class this check exists to catch — it must never
+        // read OK just because *some* credential worked.
+        if (usedOAuth && ENV.KW_MAIL_APP_PASSWORD) {
+          const severity = fallbackLabel && fallbackLabel.includes('CREDENTIAL') ? 'FAIL' : 'WARN';
+          return resolve({
+            status: severity,
+            error:
+              `KW_MAIL_APP_PASSWORD is set in .env.local but kw-mail.py used OAuth instead`
+              + (fallbackLabel ? ` [${fallbackLabel}: ${fallbackReason ? fallbackReason.slice(0, 90) : 'no detail'}]` : '')
+              + ` — app-password path is configured-but-unused.`,
+          });
+        }
         return resolve({ status: 'OK', detail: `${lastLine}  [via ${via}]` });
       }
     );
