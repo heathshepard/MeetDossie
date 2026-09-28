@@ -34,6 +34,9 @@ const { computeGoalProgress } = require('./social-goals-progress.js');
 // "untriaged customer ticket" condition applies the SAME not-a-customer rule
 // as the triage cron itself, rather than a second copy that can drift.
 const { isInternalSender } = require('./support-ticket-classify.js');
+// Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
+// api/_lib/google-token-health.js header for the incident this closes.
+const { checkGoogleTokenHealth } = require('./google-token-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -948,7 +951,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -966,9 +969,10 @@ async function runAllChecks(opts = {}) {
     checkSupportTriageSilence(opts.supportTriageCronStaleHours, opts.supportTriageUntriagedHours),
     checkDealWatchSilence(opts.dealWatchCronStaleHours, opts.dealWatchNoDecisionsDays),
     checkCronSanity(opts.cronSanityScanOpts),
+    checkGoogleTokenHealth(opts.googleTokenOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken];
   const fired = [];
   const suppressed = [];
 
