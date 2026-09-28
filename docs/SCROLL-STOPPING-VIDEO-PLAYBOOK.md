@@ -54,9 +54,22 @@ A static slide, however well-written, only ever clears layer 2 of 3.
 
 ### 1.2 Covers / thumbnails per platform
 
-- **IG Reels cover:** 1080×1920 canvas, but only the **center ~1080×1350 px block survives every
-  crop** the cover gets shown in (9:16 in Reels tab, 4:5 in main feed, 3:4 on profile grid). Keep
-  text/face dead-center, 3-5 words max.
+- **IG Reels cover:** 1080×1920 canvas. The 1080×1350/4:5 figure below (and in most blog posts
+  on this) is for the main *feed* card, not the *profile grid* — and the profile grid is what
+  actually burned us (Sage, 2026-09-28: `dossie_trec_p12b_contribution`/`dossie_trec_p8_disclosure`
+  thumbnails on @heathshepardrealtor read "YOUR BUYER STILL OWES YOU." / "HOUSE? THAT'S A
+  DISCLOSURE" — the opening line above each was sliced off). **Measured directly against a live
+  published reel** (instagram.com/reel/Dd2CTI_D-VE/, via the public oEmbed endpoint's
+  `thumbnail_resources`): the profile-grid thumbnail is a genuine **1:1 square, full width**,
+  server-cropped with `stp=c0.248.640.640a` off a 640x1136 base render. Scaled to our 1080x1920
+  canvas (x1.6875), the surviving band is **y=418 to y=1498** -- i.e. almost exactly the *center
+  1080x1080 square*, not 1080x1350. Keep all headline text (tag + h1 + slab) inside that band;
+  `scripts/video-engine/recipes/trec-7i/cover/cover924-centered.html` is the corrected template
+  (`.col` positioned `top:420px; height:1080px; justify-content:center` instead of the original's
+  fixed `padding-top:92px`, which let a 2-3 line headline run past y=420 unprotected). Don't touch
+  the in-video hook card (`hook.html`) for this -- a Reel viewer sees the full 9:16 frame, so its
+  frame-0 placement is already correct; this fix is for the separate profile-grid thumbnail asset
+  only. Feed-card safe zone (secondary, still worth respecting): center ~1080x1350.
   [Instagram Reel Cover Size 2026 — JW Toolbox](https://www.jwtoolbox.com/blog/instagram-reel-cover-size-cheat-sheet-2026)
   [socialk.it Reel Size 2026](https://socialk.it/en/sizes/instagram-reel-size)
 - **TikTok cover:** same 1080×1920 canvas. TikTok's own UI reserves the **top ~130-200px** (tabs/

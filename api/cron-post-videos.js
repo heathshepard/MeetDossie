@@ -514,6 +514,36 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     };
   }
 
+  // Custom cover/thumbnail (Sage 2026-09-28 — cover_url was generated for
+  // every video and uploaded to Storage but never sent to Zernio, so every
+  // Reel/post shipped with an auto-picked video frame instead of the
+  // designed cover. Verified per platform against Zernio's own docs
+  // (docs.zernio.com, 2026-09-28) plus a live dryRun probe for TikTok
+  // (200 OK, canPublish:true with video_cover_image_url set):
+  //   Instagram: platformSpecificData.instagramThumbnail (alias reelCover),
+  //     custom image always wins over thumbOffset. Recommended 1080x1920 —
+  //     matches our rendered cover exactly.
+  //   TikTok: platformSpecificData.video_cover_image_url, overrides
+  //     video_cover_timestamp_ms. Confirmed accepted via dryRun probe.
+  //   YouTube: docs state "custom thumbnails work on videos only, not
+  //     Shorts" — every video this pipeline posts is a vertical Short
+  //     (1080x1920, <=~30s), so there is no field to set; frame 0 is the
+  //     cover and that's fine because the hook card is burned into frame 0.
+  //   Facebook: no thumbnail/cover field documented anywhere for Reels
+  //     (`contentType: 'reel'`) — not wired, nothing to wire it to.
+  if (opts.coverUrl && platform === 'instagram') {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      instagramThumbnail: opts.coverUrl,
+    };
+  }
+  if (opts.coverUrl && platform === 'tiktok') {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      video_cover_image_url: opts.coverUrl,
+    };
+  }
+
   const payload = {
     content: caption,
     mediaItems: [{ url: videoUrl, type: 'video' }],
@@ -886,7 +916,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           for (const t of targets) {
             const result = await postToZernio(
               t.platform, video.supabase_url, caption, video.topic,
-              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true }, owner,
+              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true, coverUrl: video.cover_url || null }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
             deliveryEntries.push(buildDeliveryEntry({
