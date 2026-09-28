@@ -136,6 +136,29 @@ const CAPABILITIES = {
       'no_promise_in_copy',
     ],
   },
+  video_auto_approve: {
+    // Seeded DISABLED by supabase/migrations/20260928_video_auto_approve.sql
+    // (video_library.status: 'approved' -> 'heath_approved' with no Heath
+    // tap). Heath, 2026-09-28, after two finished videos sat unposted a
+    // full day because the Telegram approval card was never seen: "Auto-
+    // approve videos that pass the quality gate... the human tap adds
+    // delay, not safety."
+    //
+    // The row must ALREADY be quality_status='passed' with zero failed
+    // rules (api/_lib/verify-video-quality.js) before this capability is
+    // ever consulted — api/cron-post-videos.js's STEP 1 loop calls
+    // gateVideoQuality() first and skips the row entirely on failure, same
+    // as before this existed. What THIS capability adds on top is the two
+    // exception classes quality_status alone does not cover: an unverified
+    // TREC/contract claim in the caption, and the first run of a new
+    // format (video_library.type). Either one holds the row for Heath via
+    // the EXISTING batched-approval brief (api/cron-silence-alarm.js,
+    // DECISION_SOURCES) no matter what this flag says.
+    flagKey: 'video_auto_approve_live',
+    defaultEnabled: false,
+    description: 'Advance a video straight from approved to heath_approved with no Telegram tap, once it has already passed the quality gate cleanly and carries no TREC claim / is not a first-of-format run.',
+    gates: ['quality_status_passed', 'no_unverified_trec_claim', 'not_first_of_format'],
+  },
   deal_watch_notify: {
     // Seeded DISABLED by 20260920_deal_watch.sql. The only switch between
     // api/cron-deal-watch.js and a notification on the member's phone.

@@ -116,6 +116,25 @@
 // spam pattern regardless of how legitimate each individual reply is, and
 // because every reply is Heath-approved and he is the real bottleneck anyway.
 // 20/day, 5-min floor. Ramp only on his explicit call.
+// OUTBOUND ACCOUNT-COMMENT BUDGET 2026-09-28 (Atlas, for the new "comment on
+// larger Texas RE accounts/pages" pipeline -- scripts/outbound-account-
+// commenter.js -- PENDING HEATH's merge sign-off, which is the explicit
+// approval this header requires).
+//
+// A DIFFERENT action class from facebook_auto (the daily group-comment
+// hunt): the target is a PAGE Heath is not a member of and has no standing
+// relationship with, so it carries the highest false-positive-as-spam risk
+// of anything in this file. Heath's own instruction (2026-09-28) sets the
+// ceiling directly: "Hard cap 3/day. Meta's spam policy flags high-frequency
+// repetitive commenting." Kept intentionally low and separate from every
+// other key so it can never eat another pipeline's budget or vice versa.
+//   outbound_account_comment = automated comments on curated larger-account
+//                    posts (comment_target_accounts -> scripts/outbound-
+//                    account-commenter.js). Ceiling 3/day, 90-min floor
+//                    (wider than facebook_auto's 45 -- these are strangers'
+//                    pages, not groups Heath already has standing in).
+//                    Ships in report-mode (drafts only) behind
+//                    ops_flags.outbound_account_comments_live, default OFF.
 const PLATFORM_DAILY_CAPS = Object.freeze({
   zernio_comment_reply: 20, // API replies to inbound comments on our own posts
   facebook: 15,       // initiated comments (human-pasted; see split note above)
@@ -123,6 +142,7 @@ const PLATFORM_DAILY_CAPS = Object.freeze({
   facebook_reply: 10, // automated threaded replies to replies-to-Heath
   facebook_group_post: 5, // automated ORIGINATED group posts (daily 5-group pipeline; see note above)
   facebook_group_post_listing: 3, // automated ORIGINATED group posts (listing-marketing rotation; see note above)
+  outbound_account_comment: 3, // automated comments on curated larger-account posts; see note above
   instagram: 5,
   linkedin: 3,
   reddit: 3,
@@ -130,10 +150,12 @@ const PLATFORM_DAILY_CAPS = Object.freeze({
 });
 
 // Sum of the above; hard ceiling across all platforms. Raised 57 -> 77 on
-// 2026-09-25 by exactly the 20 added for zernio_comment_reply, so the new
-// budget is ADDITIVE and cannot silently starve any existing pipeline out of
-// the shared total (canComment() checks the total before the per-platform key).
-const TOTAL_DAILY_CAP = 77;
+// 2026-09-25 by exactly the 20 added for zernio_comment_reply, then 77 -> 80
+// on 2026-09-28 by exactly the 3 added for outbound_account_comment, so
+// each addition is ADDITIVE and cannot silently starve any existing
+// pipeline out of the shared total (canComment() checks the total before
+// the per-platform key).
+const TOTAL_DAILY_CAP = 80;
 
 const PER_THREAD_CAP = 1;            // 1 comment per thread / post
 const PER_THREAD_CAP_IF_MENTIONED = 2; // 2 if the thread @-mentions Dossie/Heath
@@ -151,6 +173,7 @@ const MIN_GAP_MINUTES = Object.freeze({
   facebook_reply: 30, // replying promptly to a reply-to-you reads as normal human behavior
   facebook_group_post: 18, // FLOOR only — fb-group5-post-queue.js adds 0-6 min random jitter per run so spacing is 18-24, varied, never exactly 20:00 (Heath, 2026-09-09: "do the posts like 20 minutes apart")
   facebook_group_post_listing: 30, // FLOOR only — fb-listing-group-post-queue.js adds 0-10 min random jitter per run so spacing is 30-40, varied. Wider floor than facebook_group_post since it's the same profile posting both.
+  outbound_account_comment: 90, // FLOOR — 3/day fits inside a normal waking day at 90-min-plus spacing without ever looking scheduled; scripts/outbound-account-commenter.js adds its own jitter on top.
   instagram: 20,
   twitter: 45,
   linkedin: 90,

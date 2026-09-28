@@ -8,15 +8,25 @@
 // it just routes the row to the pre-existing manual Approve/Edit/Skip flow
 // (api/cron-tc-reply-approval.js), same as an escalated risk classification.
 //
-// Five gates, all fail-closed (a check we can't confidently pass = fail):
+// Seven gates, all fail-closed (a check we can't confidently pass = fail):
 //   1. no pricing figures
 //   2. no war story outside the verified allowlist (heath-verified-war-stories.md)
 //   3. no Dossie capability claim not in docs/DOSSIE-VERIFIED-CAPABILITIES.md
 //   4. no AI-tell opener (reuses api/_lib/heath-voice-guard.js — Rule 1: scan
 //      before build, don't reinvent the existing voice check)
 //   5. length in Heath's normal range
+//   6. no unverified TREC/contract factual claim — added 2026-09-28 for the
+//      auto-post comment engine (atlas/comment-autonomy-0928). A drafted
+//      reply has no path to check a claim against the actual form text at
+//      draft time, so ANY reference to a TREC paragraph/clause, a specific
+//      deadline number, or a contract-mechanics assertion fails this gate
+//      unconditionally and routes to Heath — never posted on a guess.
+//   7. no named real client or live-listing address — added 2026-09-28,
+//      same change. Belt-and-suspenders alongside the model risk
+//      classifier's 'specific_client' category: a street-address-shaped
+//      token in a draft is refused even if the classifier missed it.
 //
-// Owner: Carter, 2026-09-16
+// Owner: Carter, 2026-09-16. Gates 6-7: Atlas, 2026-09-28.
 
 const voiceGuard = require('../../api/_lib/heath-voice-guard.js');
 
@@ -111,6 +121,36 @@ function checkLengthGate(text) {
   return { ok: true };
 }
 
+// ── Gate 6: unverified TREC/contract factual claim ─────────────────────────
+// No draft-time mechanism exists to check a specific TREC paragraph/clause
+// claim against the real form text (that requires the verified-render
+// pipeline docs/DOSSIE-CREATIVE-DIRECTOR-STANDARD.md video work uses, not
+// available inside a comment-reply draft). So any claim shaped like one
+// fails this gate every time, unconditionally — never "probably fine".
+const TREC_CLAIM_RE = /\bTREC\b.{0,40}\b(?:paragraph|para\.?|section|clause|form)\b|¶\s?\d|\bparagraph\s?\d+[A-Za-z]?\b|\b\d+[- ]day\s+(?:option|deadline|period)\b|\boption\s?period\b.{0,25}\b\d+\s?days?\b|\b\d+\s?days?\b.{0,25}\boption\s?period\b|\bwithin\s+\d+\s+days\b|\bearnest\s+money\b.{0,25}\b\d+\s?days?\b/i;
+
+function checkTrecClaimGate(text) {
+  if (TREC_CLAIM_RE.test(text)) {
+    return { ok: false, code: 'unverified_trec_claim', detail: 'draft asserts a specific TREC paragraph/clause/deadline fact, not checked against the form' };
+  }
+  return { ok: true };
+}
+
+// ── Gate 7: named real client or live-listing address ──────────────────────
+// Belt-and-suspenders alongside the model classifier's 'specific_client'
+// category (scripts/_lib/auto-reply-risk-classifier.js) — a deterministic
+// catch for a street-address-shaped token the model missed. Simple US
+// street-address pattern: a leading number followed by 1-4 words and a
+// common street suffix.
+const ADDRESS_RE = /\b\d{1,6}\s+([A-Za-z]+\s?){1,4}(?:st|street|ave|avenue|rd|road|dr|drive|ln|lane|blvd|boulevard|ct|court|way|cir|circle|pl|place|trail|trl)\b/i;
+
+function checkClientOrAddressGate(text) {
+  if (ADDRESS_RE.test(text)) {
+    return { ok: false, code: 'possible_address_or_client_reference', detail: 'draft contains what looks like a street address — never confirm a real listing/client in an auto-post' };
+  }
+  return { ok: true };
+}
+
 /**
  * checkContentGates(draftText)
  * @param {string} draftText
@@ -138,6 +178,12 @@ function checkContentGates(draftText) {
   const lengthCheck = checkLengthGate(text);
   if (!lengthCheck.ok) failures.push({ code: lengthCheck.code, detail: lengthCheck.detail });
 
+  const trecCheck = checkTrecClaimGate(text);
+  if (!trecCheck.ok) failures.push({ code: trecCheck.code, detail: trecCheck.detail });
+
+  const addressCheck = checkClientOrAddressGate(text);
+  if (!addressCheck.ok) failures.push({ code: addressCheck.code, detail: addressCheck.detail });
+
   return { pass: failures.length === 0, failures };
 }
 
@@ -146,6 +192,8 @@ module.exports = {
   VERIFIED_STORY_FINGERPRINTS,
   KNOWN_FABRICATED_STORY_PHRASES,
   FORBIDDEN_CAPABILITY_CLAIMS,
+  TREC_CLAIM_RE,
+  ADDRESS_RE,
   MIN_LEN,
   MAX_LEN,
   MAX_SENTENCES,

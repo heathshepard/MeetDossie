@@ -60,6 +60,12 @@ const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-deliv
 // Fails CLOSED to the old per-item send if the flag can't be read — a
 // notification Heath never sees is worse than one too many.
 const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
+// Auto-approve, 2026-09-28 (Heath: "auto-approve videos that pass the
+// quality gate... the human tap adds delay, not safety, and today it cost
+// a day"). Reuses the SAME TREC-claim gate the comment-reply engine uses
+// (scripts/_lib/auto-reply-content-gates.js gate 6) against the video's
+// caption — the only checkable "script" text video_library actually has.
+const { checkContentGates } = require('../scripts/_lib/auto-reply-content-gates.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -350,6 +356,72 @@ async function sendTelegramMessage(text, extra = {}) {
     console.error('[cron-post-videos] Telegram send failed:', err && err.message);
     return null;
   }
+}
+
+// ─── AUTO-APPROVE, 2026-09-28 ────────────────────────────────────────────────
+// Heath: "Auto-approve videos that pass the quality gate... the gate already
+// grades hook-at-frame-0, captions, runtime, orientation and sync — the
+// human tap adds delay, not safety, and today it cost a day" (two finished
+// videos sat unposted 2026-09-28 because the Telegram card was never seen).
+//
+// By the time a row reaches this point in STEP 1 it has ALREADY passed
+// gateVideoQuality() (quality_status='passed', zero failed rules) — that
+// check happens before this is ever called, see the STEP 1 loop below. So
+// "clears the quality gate" is already guaranteed; what this function adds
+// is the two exception classes Heath named that quality_status alone does
+// NOT cover:
+//   - an unverified TREC/contract factual claim in the caption (reuses
+//     scripts/_lib/auto-reply-content-gates.js gate 6 — same gate, same
+//     regex, same reasoning as the comment-reply engine).
+//   - the first run of a new format (video_library.type is the closest
+//     thing this schema has to a "format" id — no dedicated format/recipe
+//     column exists). "First" = no prior row of the same type has ever
+//     reached heath_approved or posted.
+// Gated behind ops_flags.video_auto_approve_live, default OFF — report
+// mode logs what WOULD auto-advance without touching status.
+const VIDEO_AUTO_APPROVE_FLAG = 'video_auto_approve_live';
+
+// Reads via api/_lib/ops-policy.js's checkCapability('video_auto_approve')
+// -- same fail-closed-to-disabled contract every other autonomous
+// capability in this codebase uses, and the same audit trail
+// (logAutonomousAction) records both a real firing and a blocked attempt.
+async function videoAutoApproveEnabled() {
+  try {
+    const check = await checkCapability('video_auto_approve');
+    return check && check.allowed === true;
+  } catch {
+    return false; // fail closed
+  }
+}
+
+/** No prior row of this video's `type` has ever gone out — the first run of
+ * a new format always holds for Heath, auto-approve flag or not. */
+async function isFirstOfFormat(video) {
+  const type = video && video.type;
+  if (!type) return true; // no type recorded at all — can't prove it's NOT the first; fail toward holding.
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/video_library?type=eq.${encodeURIComponent(type)}&status=in.(heath_approved,posted)&id=neq.${encodeURIComponent(video.id)}&select=id&limit=1`,
+  );
+  if (!ok) return true; // can't prove otherwise — fail toward holding, never toward auto-posting.
+  return !Array.isArray(data) || data.length === 0;
+}
+
+/**
+ * @returns {Promise<{ eligible: boolean, reasons: string[] }>} reasons is
+ *   empty when eligible=true; when eligible=false it names every exception
+ *   that held it, so the report-mode log and the ops_action_log entry both
+ *   say WHY, never just "no".
+ */
+async function checkAutoApproveEligible(video) {
+  const reasons = [];
+
+  const trecCheck = checkContentGates(String(video.caption || ''));
+  const trecFailure = (trecCheck.failures || []).find((f) => f.code === 'unverified_trec_claim');
+  if (trecFailure) reasons.push(`unverified TREC/contract claim in caption: ${trecFailure.detail}`);
+
+  if (await isFirstOfFormat(video)) reasons.push(`first run of format '${video.type || '(no type set)'}'`);
+
+  return { eligible: reasons.length === 0, reasons };
 }
 
 // Send a video for Heath's review with inline Approve/Reject buttons.
@@ -664,6 +736,11 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   }
   summary.batched_into_brief = batched;
 
+  const autoApproveLive = await videoAutoApproveEnabled();
+  summary.auto_approve_live = autoApproveLive;
+  summary.auto_approved = [];
+  summary.would_auto_approve = []; // populated even when the flag is off — report mode
+
   for (const video of approvedVideos) {
     if (!video.supabase_url) {
       const warn = `Video ${video.id} is approved but supabase_url is null — run scripts/upload-video.py first`;
@@ -677,6 +754,42 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
       summary.skipped.push({ id: video.id, reason: 'quality gate blocked (see quality_hold alert)' });
       continue;
     }
+
+    // Quality gate already passed (qualityOk === true) at this point. Check
+    // the two remaining exception classes before ever auto-advancing.
+    const { eligible, reasons } = await checkAutoApproveEligible(video);
+
+    if (eligible) {
+      summary.would_auto_approve.push(video.id);
+      if (autoApproveLive) {
+        const patch = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.approved`,
+          { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ status: 'heath_approved' }) },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        if (won) {
+          await logAutonomousAction({
+            capability: 'video_auto_approve',
+            decision: 'autonomous',
+            action: `auto-approved video ${video.id} — quality gate passed, no TREC claim, not a first-of-format run`,
+            firedBy: 'cron-post-videos',
+            gatesPassed: ['quality_status_passed', 'no_unverified_trec_claim', 'not_first_of_format'],
+            refTable: 'video_library',
+            refId: video.id,
+          }).catch(() => {});
+          summary.auto_approved.push(video.id);
+          console.log(`[cron-post-videos] AUTO-APPROVED ${video.id} — no Telegram tap needed`);
+          continue; // skip sendForHeathReview entirely — nothing to review, it's already heath_approved
+        }
+        // Someone else claimed/changed the row between the SELECT and this
+        // PATCH — fall through to the normal review path rather than error.
+      } else {
+        console.log(`[cron-post-videos] would auto-approve ${video.id} (report mode — ${VIDEO_AUTO_APPROVE_FLAG} is off)`);
+      }
+    } else {
+      console.log(`[cron-post-videos] ${video.id} held from auto-approve: ${reasons.join('; ')}`);
+    }
+
     await sendForHeathReview(video, { batched });
     summary.queued_for_review.push(video.id);
   }
