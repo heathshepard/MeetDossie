@@ -15,34 +15,6 @@
 //   - /api/cron-pipeline-health
 //   - /api/cron-render-skits
 //   - /api/cron-morning-ops-digest
-//   - /api/cron-pierce-activation   (added 2026-09-18)
-//   - /api/cron-account-invite-autoresend   (added 2026-09-26)
-//   - /api/cron-trial-conversion-watch   (added 2026-09-26)
-//
-// cron-pierce-activation was never registered ANYWHERE before 2026-09-18 — its
-// own header claimed an external cron-job.org trigger that does not exist, so
-// nothing ever invoked it. It is the job that flags paying customers who cannot
-// or do not sign in, and its absence is why five of eight went unnoticed for
-// four months (docs/ACTIVATION-FORENSICS-2026-09-18.md). Its documented
-// schedule is "0 13 * * *", which is exactly this dispatcher's, so it joins the
-// group rather than consuming another of vercel.json's 100 cron slots.
-// It notifies Heath on Telegram only and never emails a customer.
-//
-// cron-account-invite-autoresend is the follow-through on that same forensics
-// doc: it auto re-issues a durable 30-day invite (api/_lib/account-invites.js)
-// to any paying customer who has never held a session, once they are past
-// ACCOUNT_INVITE_AUTORESEND_HOURS (default 48h). Ships inert
-// (ACCOUNT_INVITE_AUTORESEND_MODE default 'report' — counts candidates, emails
-// nobody) until Heath flips the mode to 'send', same pattern as
-// cron-activation-drip's ACTIVATION_DRIP_BACKFILL_MODE. Same cadence as
-// cron-pierce-activation on purpose — it watches the same population.
-//
-// cron-trial-conversion-watch is the free-trial rollout's alarm (2026-09-26,
-// api/create-checkout-session.js's TRIAL_DAYS): Telegram-only, same
-// fingerprint/dedup shape as cron-pierce-activation, watching for (a) a trial
-// that ended without converting to 'active' and (b) a trialing subscription
-// with zero auth sessions past TRIAL_STUCK_HOURS (default 48h). Same cadence
-// as Pierce on purpose — same underlying population, same reason it matters.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -56,9 +28,6 @@ const HANDLERS = [
   { name: 'cron-pipeline-health', mod: require('./cron-pipeline-health.js') },
   { name: 'cron-render-skits', mod: require('./cron-render-skits.js') },
   { name: 'cron-morning-ops-digest', mod: require('./cron-morning-ops-digest.js') },
-  { name: 'cron-pierce-activation', mod: require('./cron-pierce-activation.js') },
-  { name: 'cron-account-invite-autoresend', mod: require('./cron-account-invite-autoresend.js') },
-  { name: 'cron-trial-conversion-watch', mod: require('./cron-trial-conversion-watch.js') },
 ];
 
 module.exports = async function handler(req, res) {

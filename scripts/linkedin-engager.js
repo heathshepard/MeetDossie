@@ -634,44 +634,6 @@ async function main() {
     process.exit(1);
   }
 
-  // ── CIRCUIT BREAKER (added 2026-09-25, Atlas) ──────────────────────────────
-  // Offline cookie read, ~15ms, no network and no Chrome. If the profile is
-  // logged out we stop HERE instead of launching a browser.
-  //
-  // This is the fix for the actual root cause of the 9-day outage. Because one
-  // approved post (heath-linkedin-2026-09-15) could never publish,
-  // postApprovedLinkedIn() found "work" on every single tick, so this script
-  // launched Chrome and hit linkedin.com/feed/ every 15 minutes -- 96 times a
-  // day, on an exact metronome, from one IP -- and every one of those bounced
-  // to /login. scripts/linkedin-post-approved.log records the loop verbatim.
-  //
-  // Retrying a dead session on a fixed timer does not recover it. It is the
-  // most automation-shaped signal we emit, it is emitted hardest exactly when
-  // the session is already gone, and it makes the NEXT session likelier to be
-  // invalidated too. Skipping costs nothing: there is no version of this run
-  // that could have succeeded.
-  if (!dryRun) {
-    const { ensureSession } = require('./_lib/session-guard');
-    const gate = ensureSession('linkedin_personal', 'linkedin-engager');
-    if (!gate.proceed) {
-      // Loud, but deduped by the existing alert path -- a dead channel must
-      // still alarm (feedback_silent-failure-is-the-enemy), it just must not
-      // alarm 96 times a day.
-      try {
-        await alertPublishFailure(
-          'linkedin_login_required',
-          'LinkedIn session is logged out — the DossieBot profile has no li_at cookie.\n\n'
-          + 'Approved linkedin_personal posts are waiting and will publish on their own once you log in.\n'
-          + `Fix (about 1 minute): open Chrome on ${gate.profile_dir}, sign in to LinkedIn, close the window.\n\n`
-          + 'Nothing will attempt an automated login — that is deliberate.',
-        );
-      } catch (e) {
-        console.error('[linkedin-engager] gate-alert failed:', e.message);
-      }
-      return;
-    }
-  }
-
   const seenIds = dryRun ? new Set() : loadSeen();
   const { chromium } = require('playwright-extra');
   const stealth = require('puppeteer-extra-plugin-stealth')();
@@ -738,14 +700,7 @@ async function main() {
     }
   }
 
-  // ARGV MISMATCH FIX (Atlas, 2026-09-25). The scheduled call passes
-  // --warm-touch-only, which this line checked for as --warm-touch, so
-  // warmTouchMode was false; the guard below then skipped the search pass too.
-  // Net effect: the script did nothing 96 times a day and reported
-  // "liked 0, commented 0" -- structurally impossible to be anything else.
-  // --warm-touch-only implies --warm-touch: "only warm touch", not "no warm touch".
-  const warmTouchMode = process.argv.includes('--warm-touch')
-    || process.argv.includes('--warm-touch-only');
+  const warmTouchMode = process.argv.includes('--warm-touch');
   let totalLiked = 0;
   let totalCommented = 0;
   let warmResult = null;
@@ -785,21 +740,7 @@ async function main() {
   if (postApprovedCount > 0) parts.push(`posted: ${postApprovedCount} approved`);
   const summary = parts.join(' | ');
   console.log(`[linkedin-engager] ${summary}`);
-
-  // ZERO-OUTCOME SUPPRESSION (Atlas, 2026-09-25). This send fired 96x/day
-  // saying "liked 0, commented 0" and, being the loudest thing in the channel,
-  // helped bury the real "LinkedIn login required" alert next to it. A run that
-  // accomplished nothing is not news worth pushing -- it is a data point, and
-  // it now belongs to the outcome monitor (outcome_expectations key
-  // linkedin_personal_weekly), which tracks the OUTCOME over a period instead
-  // of narrating every tick. Still logged to stdout either way.
-  const didSomething = totalLiked > 0 || totalCommented > 0 || postApprovedCount > 0
-    || (warmResult && warmResult.engaged > 0);
-  if (didSomething) {
-    await sendTelegram(summary);
-  } else {
-    console.log('[linkedin-engager] zero outcome — Telegram summary suppressed (outcome monitor owns this signal)');
-  }
+  await sendTelegram(summary);
 }
 
 main().catch(err => {

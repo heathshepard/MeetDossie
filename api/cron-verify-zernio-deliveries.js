@@ -138,10 +138,7 @@ async function verifyVideoLibraryDeliveries() {
     let rowChanged = false;
 
     for (const entry of toCheck) {
-      // Pass the platform: a Zernio post fans out to several platforms and
-      // this array tracks delivery per platform, so "did it publish" must be
-      // answered for THIS platform, not for whichever entry Zernio lists first.
-      const result = await checkZernioDeliveryStatus(entry.zernio_post_id, ZERNIO_API_KEY, entry.platform);
+      const result = await checkZernioDeliveryStatus(entry.zernio_post_id, ZERNIO_API_KEY);
 
       if (result.ok && result.is_live) {
         const proof_level = proofLevelFor({ isLive: true, platformUrl: result.platform_url });

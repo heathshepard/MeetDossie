@@ -45,19 +45,6 @@ ACCOUNT = 'heath.shepard@kw.com'
 # whichever row came back first (live failure 2026-08-29: kept selecting a
 # revoked row, every send died with invalid_grant). Require a refresh token
 # and take the most recently updated row.
-#
-# This is only ever a "best guess at a cached token to try first" — it is
-# NOT where the multi-row self-heal lives. If the row this picks turns out
-# to be dead (401 -> refresh() below -> POST /api/gmail-refresh), the
-# SERVER SIDE now walks EVERY row for this email newest->oldest and only
-# gives up once all of them confirm invalid_grant (api/_lib/google-refresh-
-# ladder.js, added 2026-09-28 after the newest-row-only version of this
-# exact ROW_PICK pattern missed 2 chances to recover on 2026-09-28 — 3 rows
-# existed, dated 9/12/9/19/9/26, and only the newest was ever tried). A
-# successful server-side recovery bumps the winning row's updated_at and
-# nulls refresh_token on confirmed-dead rows, so the NEXT time this exact
-# ROW_PICK query runs it naturally lands on the row that actually works —
-# no change needed here.
 ROW_PICK = '&refresh_token=not.is.null&order=updated_at.desc&limit=1'
 
 # In-process cache so a single CLI invocation that fires many Gmail calls

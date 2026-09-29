@@ -1,9 +1,5 @@
 // Vercel Serverless Function: /api/cron-post-videos
-// Dispatched every 15 minutes via api/cron-dispatch-every15.js (moved off
-// the once-daily 13:30 UTC / 8:30am CT slot 2026-09-28 — that cadence let a
-// Heath Telegram approval sit up to ~21h before it could post). No-ops
-// unless a row is status='heath_approved' AND scheduled_for<=now(); daily
-// caps still apply every run (see Step 2 below and getPostCountsToday()).
+// Runs at 13:30 UTC (8:30am CT) daily — see vercel.json "30 13 * * *".
 //
 // SCHEDULE + CAP GATING (Carter 2026-09-07 — FEATURE-VIDEO-DAILY-PLAN §3):
 //   Every platform posts through the live `posting_schedule` table:
@@ -12,14 +8,6 @@
 //     posted today, America/Chicago day)                 → platform skipped.
 //   - Otherwise the Zernio call targets the platform's next slot today
 //     (scheduledFor); if every slot has already passed, it publishes now.
-//
-// ROW-LEVEL scheduled_for GATE (Atlas 2026-09-25): separate from the
-// per-platform gate above. video_library.scheduled_for is a coarse "don't
-// even consider this row yet" cutoff set at REGISTRATION time (see
-// api/_lib/video-schedule.js) — Step 2's query below only selects
-// heath_approved rows whose scheduled_for is NULL or already <= now. NULL
-// (every pre-2026-09-25 row) is unconditionally eligible, so the existing
-// queue's behavior is unchanged.
 //
 // REVIEW GATE FLOW (added 2026-05-27):
 //   1. Videos with status='approved' are sent to Heath via Telegram for review.
@@ -32,7 +20,7 @@
 // via the /api/video-review-callback endpoint (see bottom of this file — separate handler).
 //
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
-// Schedule: */15 * * * * via api/cron-dispatch-every15.js (see top-of-file note).
+// Schedule: vercel.json — "30 11 * * *"
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -457,17 +445,7 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
   // YouTube requires a title in platformSpecificData.
   // Use topic as title (max 100 chars), fall back to first line of caption.
   if (platform === 'youtube') {
-    // Title source (Atlas 2026-09-25). This used to be `topic || firstLine`,
-    // which was fine while video_library.topic held a human sentence
-    // ("Every TREC deadline, cited to the paragraph"). The 2026-09-17 feature
-    // -demo ingestion writes an internal SLUG there instead
-    // ("dossie-d1-cap6-977d5507"), and that slug shipped as the public title
-    // of a real YouTube video. Prefer the caption's first line whenever the
-    // topic looks like a slug — no spaces, or the id-with-hash shape.
-    const looksLikeSlug = !!topic && (!/\s/.test(topic) || /^[a-z0-9]+(-[a-z0-9]+)+$/i.test(topic));
-    const firstCaptionLine = caption.split('\n').map((l) => l.trim()).find(Boolean) || '';
-    const rawTitle = (looksLikeSlug ? (firstCaptionLine || topic) : (topic || firstCaptionLine))
-      || 'Dossie - AI Transaction Coordinator for Texas Agents';
+    const rawTitle = topic || caption.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),
       title: rawTitle.replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
@@ -565,14 +543,7 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     // real URL usually only shows up later via GET /posts/:id, which
     // cron-verify-zernio-deliveries.js polls). Never invented — only used
     // if actually present in this exact response.
-    // Verified live 2026-09-25 (Atlas): on a publishNow call Zernio returns
-    // the real permalink at data.post.platforms[0].platformPostUrl. None of
-    // the paths below it were ever populated, so every synchronous publish
-    // recorded platform_url=null and looked unproven even when Zernio had
-    // handed us a working URL in the same response. platformPostUrl first.
     const platformUrl =
-      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?.platformPostUrl) ||
-      (Array.isArray(data?.platforms) && data.platforms[0]?.platformPostUrl) ||
       data?.url ||
       data?.platform_url ||
       data?.post?.url ||
@@ -609,52 +580,18 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
-  // --- Manual debug scoping (Atlas 2026-09-25) --------------------------
-  // Approved manual-trigger pattern per CLAUDE.md §15: debug params gated
-  // behind the existing `Bearer ${CRON_SECRET}` check. NEVER honored on a
-  // real Vercel cron invocation — a scheduled run always behaves exactly as
-  // it did before this block existed.
-  //
-  //   ?video_id=<video_library.id>  restrict the publish pass to one row
-  //   ?platform=<platform>          restrict that row to ONE platform
-  //   ?publish_now=1                publish immediately instead of booking
-  //                                 the platform's next posting_schedule
-  //                                 slot. The is_active and max_per_day
-  //                                 gates still apply — this only collapses
-  //                                 "schedule for 14:00" into "publish now",
-  //                                 which is the ONLY way to get Zernio to
-  //                                 return a synchronous platformPostUrl
-  //                                 (scheduled posts return an id and
-  //                                 nothing else, so a scheduled post can
-  //                                 never be proven live in the same run).
-  const dbg = (!isVercelCron && isManualAuth) ? (req.query || {}) : {};
-  const onlyVideoId = dbg.video_id ? String(dbg.video_id) : null;
-  const onlyPlatform = dbg.platform ? String(dbg.platform).toLowerCase() : null;
-  const forcePublishNow = String(dbg.publish_now || '') === '1';
-  if (onlyVideoId || onlyPlatform || forcePublishNow) {
-    console.log(`[cron-post-videos] MANUAL DEBUG SCOPE video_id=${onlyVideoId || '-'} platform=${onlyPlatform || '-'} publish_now=${forcePublishNow}`);
-  }
-
   const summary = { queued_for_review: [], posted: [], skipped: [] };
-  if (onlyVideoId || onlyPlatform || forcePublishNow) {
-    summary.manual_scope = { video_id: onlyVideoId, platform: onlyPlatform, publish_now: forcePublishNow };
-  }
 
   // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
-  // Skipped entirely under a manual ?video_id= scope: a targeted one-row
-  // publish must not also fire a batch of review notifications at Heath.
-  let approvedVideos = [];
-  if (!onlyVideoId) {
-    const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
-      '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
-    );
+  const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
+  );
 
-    if (!approvedOk) {
-      return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
-    }
-
-    approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+  if (!approvedOk) {
+    return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
   }
+
+  const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
 
   // Read the batching capability ONCE for the whole pass. Fail closed to the
   // old per-item send: if the flag can't be read we do not risk a video
@@ -694,54 +631,16 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // oldest rows and post the first one that has at least one platform with
   // cap room today. Rows skipped this pass are untouched and re-considered
   // next run (or picked up sooner once cap room frees up).
-  // scheduled_for gate (Atlas 2026-09-25): a row with a future scheduled_for
-  // is not due yet and must not be treated as "oldest" just because nothing
-  // else is ready. NULL scheduled_for (every pre-2026-09-25 row, and any new
-  // row a registration path couldn't find a slot for) is unconditionally
-  // eligible. Ordering puts NULL rows first (nullsfirst), sorted by
-  // created_at exactly as before, so the existing queue's behavior is
-  // untouched; due scheduled rows sort among themselves by scheduled_for.
-  //
-  // VISIBILITY FIX (Atlas 2026-09-28): the scheduled_for cutoff used to be
-  // applied AS A SQL WHERE CLAUSE (`or=(scheduled_for.is.null,scheduled_for.
-  // lte.now)`), which means a not-yet-due row never entered the `candidates`
-  // array at all — it was excluded before a single line of this file's skip
-  // logging ever ran. That's exactly what made dossie_trec_p8_disclosure-
-  // heath's skip on 2026-09-28 invisible across two consecutive invocations
-  // (no console line, no summary.skipped entry): it had a real future
-  // scheduled_for from auto-scheduling at registration (video-schedule.js
-  // pickScheduledFor), the SQL filter dropped it from the result set before
-  // this function ever saw its id, and it only "reappeared" once wall-clock
-  // time carried its scheduled_for into the past — nothing else changed
-  // between the invocations, which is why it looked like nothing happened.
-  // Fix: pull the due/not-due split into JS so every row this cron even
-  // glances at gets a trace. The SQL query now only filters on status (and
-  // the manual ?video_id= scope); scheduled_for is evaluated per-row below,
-  // and any not-yet-due row gets an explicit summary.skipped entry instead
-  // of silently vanishing from the result set.
   const CANDIDATE_BATCH_SIZE = 20;
-  // Fetch enough rows past CANDIDATE_BATCH_SIZE to also capture the
-  // near-future not-yet-due rows worth logging (nullsfirst/created_at
-  // ordering puts due rows first, so this is generous, not exact).
-  const FETCH_LIMIT = CANDIDATE_BATCH_SIZE * 2;
-  const now = new Date();
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.heath_approved${onlyVideoId ? `&id=eq.${encodeURIComponent(onlyVideoId)}` : ''}&order=scheduled_for.asc.nullsfirst,created_at.asc&limit=${FETCH_LIMIT}`,
+    `/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
   );
 
   if (!heathApprovedOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query heath_approved videos' });
   }
 
-  const fetchedRows = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
-  const isDue = (row) => !row.scheduled_for || new Date(row.scheduled_for) <= now;
-  const candidates = fetchedRows.filter(isDue).slice(0, CANDIDATE_BATCH_SIZE);
-  const notYetDue = fetchedRows.filter((row) => !isDue(row));
-  for (const row of notYetDue) {
-    const minutesOut = Math.round((new Date(row.scheduled_for) - now) / 60000);
-    console.log(`[cron-post-videos] Video ${row.id}: not yet due — scheduled_for=${row.scheduled_for} (${minutesOut}m from now), leaving heath_approved`);
-    summary.skipped.push({ id: row.id, reason: `not yet due (scheduled_for=${row.scheduled_for}, ${minutesOut}m from now)` });
-  }
+  const candidates = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
 
   let libraryOk = true;
   let videoResults = [];
@@ -822,20 +721,10 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         }
 
         const owner = candidate.target_owner || 'dossie';
-        let requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
+        const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
           : await defaultPlatformsFor(owner);
-        // Manual ?platform= narrows to one of the row's OWN platforms. It can
-        // never add a platform the row wasn't already configured for.
-        if (onlyPlatform) {
-          requested = requested.filter((p) => String(p).toLowerCase() === onlyPlatform);
-        }
         const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
-        // ?publish_now=1 collapses a booked slot into an immediate publish.
-        // The is_active / max_per_day gates above already ran and still bind.
-        if (forcePublishNow) {
-          for (const t of resolved.targets) t.scheduledFor = null;
-        }
 
         if (resolved.targets.length === 0) {
           console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
@@ -867,15 +756,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         );
 
         if (!lockOk) {
-          // Same visibility fix as the scheduled_for gate above: this used
-          // to log a console.error and set libraryOk=false with no
-          // summary.skipped entry — a row that lost the race (WHERE
-          // status=eq.heath_approved matched zero rows because a concurrent
-          // invocation already flipped it to 'posting') vanished from the
-          // response with no trace of why. Now every failed lock leaves an
-          // explicit reason.
-          console.error(`[cron-post-videos] Failed to acquire posting lock on ${video.id} — status likely changed from heath_approved by a concurrent run`);
-          summary.skipped.push({ id: video.id, reason: 'posting lock not acquired — status changed before claim (likely concurrent invocation)' });
+          console.error('[cron-post-videos] Failed to acquire posting lock');
           libraryOk = false;
         } else {
           platformsAttempted = targets.map((t) => t.platform);
@@ -946,11 +827,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   }
 
   // --- STEP 3: Post any video_approved skits to Zernio ---
-  // Skipped under a manual scope — a targeted one-row run must not also
-  // publish an unrelated skit as a side effect.
-  const skitPostResult = (onlyVideoId || onlyPlatform)
-    ? { posted: [], skipped: [], scoped_out: true }
-    : await postApprovedSkits();
+  const skitPostResult = await postApprovedSkits();
   summary.skit_posted = skitPostResult.posted;
 
   // --- STEP 4: Alert if approved videos have sat unposted for 48h+ ---

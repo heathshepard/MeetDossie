@@ -27,13 +27,6 @@ const {
 const { prefillDocuSealTemplate, DOCUSEAL_TEMPLATES } = require('./_assets/docuseal-prefill');
 const { auditFilledDocument, buildFieldAuditAsk } = require('./_lib/pre-send-field-audit');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
-const { extractBase64 } = require('./_lib/base64-asset.js');
-const {
-  evaluateElections,
-  summarize: summarizeElections,
-  blockingMessage: electionBlockingMessage,
-  formCodeForFormType,
-} = require('./_lib/contract-election-gate');
 const { fillFlatPdfFromMapStrict } = require('./_assets/flat-pdf-filler.js');
 
 // 2026-08-31 CARTER — coordinate field-maps for the four flat (0-AcroForm-
@@ -3990,12 +3983,8 @@ async function fillForm(formType, fieldValues) {
 
   // Legacy pdf-lib forms
   const raw = config.getBase64();
-  // Assets may export a raw base64 string OR { base64Pdf: '...' } — single
-  // source of truth in api/_lib/base64-asset.js (2026-09-21).
-  const base64 = extractBase64(raw);
-  if (!base64) {
-    throw new Error(`Failed to load PDF for ${formType}: base64 asset resolved to an unrecognized shape.`);
-  }
+  // Assets may export a raw base64 string OR { base64Pdf: '...' }
+  const base64 = (raw && typeof raw === 'object' && raw.base64Pdf) ? raw.base64Pdf : raw;
   const pdfBytes = Buffer.from(base64, 'base64');
 
   let pdfDoc;
@@ -4364,56 +4353,6 @@ module.exports = async function handler(req, res) {
     });
 
     // ----------------------------------------------------------------------
-    // ELECTION GATE — every "check one box only" paragraph on this form.
-    //
-    // This runs on mergedFields, which is the exact object handed to the
-    // renderer, so what the gate judges is what lands on the page. It is NOT
-    // opt-in: the strict-validation pipeline below only runs when a caller
-    // passes strict_validate, which is precisely how a contract reaches a
-    // signature through a path that checks nothing.
-    //
-    // 29046 Pfeiffers Gate executed 2026-09-09 with paragraph 7D blank. It was
-    // flagged in a report and executed anyway. A note in a report is not a
-    // gate — this is the gate.
-    //
-    // Blocking is deliberately narrow: only elections the form genuinely
-    // requires AND the member can actually fix. See contract-election-rules.json.
-    // ----------------------------------------------------------------------
-    let electionReport = null;
-    const electionFormCode = formCodeForFormType(resolvedFormType);
-    if (electionFormCode) {
-      electionReport = evaluateElections({
-        formCode: electionFormCode,
-        fieldValues: mergedFields,
-      });
-      console.log('[fill-form][elections]', resolvedFormType, summarizeElections(electionReport));
-      if (electionReport.warnings.length) {
-        console.warn('[fill-form][elections] warnings:',
-          JSON.stringify(electionReport.warnings.map((w) => w.message)));
-      }
-      if (electionReport.unreachable.length) {
-        console.warn('[fill-form][elections] unreachable controls:',
-          JSON.stringify(electionReport.unreachable.map((u) => u.message)));
-      }
-      if (!electionReport.pass) {
-        console.error('[fill-form] BLOCKED — required election blank/ambiguous on %s for tx %s: %s',
-          resolvedFormType, transactionId,
-          JSON.stringify(electionReport.blocking.map((b) => b.message)));
-        return res.status(422).json({
-          ok: false,
-          blocked: true,
-          error: electionBlockingMessage(electionReport),
-          elections: {
-            form: electionReport.formName,
-            blocking: electionReport.blocking,
-            warnings: electionReport.warnings,
-            unreachable: electionReport.unreachable,
-          },
-        });
-      }
-    }
-
-    // ----------------------------------------------------------------------
     // TREC 20-18 strict validation pipeline (opt-in via body.strict_validate)
     // Heath's hand-built Layer 3 lives at scripts/trec-20-18-field-rules.json
     // + scripts/trec-validator.js. Pipeline at api/_lib/trec-20-18-pipeline.js
@@ -4576,17 +4515,11 @@ module.exports = async function handler(req, res) {
 
     // If this is a wire fraud warning, insert a delivery tracking row.
     if (resolvedFormType === 'wire-fraud-warning' && docRow && docRow.id) {
-      // buyer_name/buyer_email are the table's generic recipient name/email
-      // columns (TAR/TXR 2517 is buyer AND seller facing — see
-      // 20260921_wire_fraud_deliveries_recipient_role.sql); every caller of
-      // this fill-form path today only ever passes buyer fields, so
-      // recipient_role defaults 'buyer' unless the caller says otherwise.
       const wfdPayload = {
         transaction_id: transactionId,
         user_id: userId,
         document_id: docRow.id,
         delivered_at: new Date().toISOString(),
-        recipient_role: mergedFields.recipient_role || 'buyer',
         buyer_name: mergedFields.buyer_name || null,
         buyer_email: mergedFields.buyer_email || null,
       };

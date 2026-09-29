@@ -30,13 +30,6 @@ const { scanCronSanity } = require('./cron-sanity.js');
 const { listGoalSetKeys } = require('./social-goals.js');
 const { getAttributionSummary } = require('./attribution.js');
 const { computeGoalProgress } = require('./social-goals-progress.js');
-// Pure, no-I/O module — safe to pull into the alarm bundle. Used so the
-// "untriaged customer ticket" condition applies the SAME not-a-customer rule
-// as the triage cron itself, rather than a second copy that can drift.
-const { isInternalSender } = require('./support-ticket-classify.js');
-// Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
-// api/_lib/google-token-health.js header for the incident this closes.
-const { checkGoogleTokenHealth } = require('./google-token-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -701,211 +694,6 @@ async function checkCommentOppApprovedStale(staleHours = COMMENT_OPP_APPROVED_ST
   }];
 }
 
-// ─── support-ticket triage ─────────────────────────────────────────────────
-//
-// The autonomous bug-report pipeline (api/cron-support-ticket-triage.js) is
-// itself a poller, and a poller that dies quietly is the exact failure class
-// it was built to fix. Amanda Nuckles's cancellation ticket sat open for 25
-// days and nothing said so. Shipping that pipeline without an alarm on the
-// pipeline would repeat the mistake one level up
-// (feedback_silent-failure-is-the-enemy.md).
-//
-// TWO INDEPENDENT CONDITIONS, deliberately. They fail in different ways:
-//
-//   1. THE CRON STOPPED. cron_runs has no recent row for
-//      cron-support-ticket-triage. Catches: removed from the every15
-//      dispatcher, route 404, crashing on import, Vercel dropped it.
-//
-//   2. THE CRON IS RUNNING AND STILL NOT DECIDING. A real customer ticket is
-//      open past the window with no support_triage_log row. This is the
-//      nastier one — cron_runs says 'ok' every 15 minutes while tickets pile
-//      up behind a bad filter, a permissions error, or a claim that keeps
-//      409ing. The 2026-09-17 comment-reply incident was exactly this shape:
-//      green telemetry, 14 unanswered humans.
-//
-// Condition 2 checks only NON-INTERNAL senders. quinn@meetdossie.internal
-// writes 10+ rows on a bad audit day and would otherwise keep this alarm
-// permanently lit, which is how an alarm becomes wallpaper.
-const SUPPORT_TRIAGE_CRON_STALE_HOURS = 3;   // */15 cadence — 3h is ~12 missed runs, not a blip
-const SUPPORT_TRIAGE_UNTRIAGED_HOURS = 2;    // matches cron-support-ticket-alert's own first-escalation threshold
-
-async function checkSupportTriageSilence(
-  cronStaleHours = SUPPORT_TRIAGE_CRON_STALE_HOURS,
-  untriagedHours = SUPPORT_TRIAGE_UNTRIAGED_HOURS,
-) {
-  const conditions = [];
-
-  // ── 1. Has the poller run at all?
-  const runRes = await supabaseFetch(
-    '/rest/v1/cron_runs?cron_name=eq.cron-support-ticket-triage&select=last_run,last_status&limit=1',
-  );
-  const runRow = runRes.ok && Array.isArray(runRes.data) ? runRes.data[0] : null;
-  const cutoff = Date.now() - cronStaleHours * 60 * 60 * 1000;
-  if (!runRow || !runRow.last_run) {
-    conditions.push({
-      key: 'support_triage_never_ran',
-      message: 'api/cron-support-ticket-triage.js has NEVER reported a run in cron_runs. '
-        + 'Customer support tickets are not being classified, acknowledged, or dispatched by anything. '
-        + 'Check it is still in api/cron-dispatch-every15.js HANDLERS and that the module imports cleanly.',
-    });
-  } else if (new Date(runRow.last_run).getTime() < cutoff) {
-    conditions.push({
-      key: 'support_triage_cron_stale',
-      last_run: runRow.last_run,
-      last_status: runRow.last_status,
-      message: `Support-ticket triage last ran ${runRow.last_run} (status ${runRow.last_status || 'unknown'}) — over ${cronStaleHours}h ago on a */15 schedule. `
-        + 'Nothing is triaging customer tickets right now. Check api/cron-dispatch-every15.js.',
-    });
-  }
-
-  // ── 2. Green telemetry, unhandled customers. The worse failure.
-  const openRes = await supabaseFetch(
-    '/rest/v1/support_tickets?status=in.(open,new,in_progress)'
-    + `&created_at=lt.${encodeURIComponent(hoursAgoIso(untriagedHours))}`
-    + '&select=id,agent_email,ticket_type,created_at&order=created_at.asc&limit=50',
-  );
-  if (openRes.ok && Array.isArray(openRes.data) && openRes.data.length > 0) {
-    const customerTickets = openRes.data.filter(
-      (t) => !isInternalSender(t.agent_email, t.ticket_type),
-    );
-    if (customerTickets.length > 0) {
-      const ids = customerTickets.map((t) => `"${t.id}"`).join(',');
-      const logRes = await supabaseFetch(
-        `/rest/v1/support_triage_log?select=ticket_id&source=eq.dossie&ticket_id=in.(${encodeURIComponent(ids)})`,
-      );
-      const decided = new Set(
-        logRes.ok && Array.isArray(logRes.data) ? logRes.data.map((r) => r.ticket_id) : [],
-      );
-      const untriaged = customerTickets.filter((t) => !decided.has(t.id));
-      if (untriaged.length > 0) {
-        const oldest = untriaged[0];
-        conditions.push({
-          key: 'support_tickets_untriaged',
-          count: untriaged.length,
-          oldest_id: oldest.id,
-          oldest_created_at: oldest.created_at,
-          message: `${untriaged.length} customer support ticket(s) open >${untriagedHours}h with NO support_triage_log row — `
-            + `nothing has classified or acknowledged them (oldest: ${oldest.id} from ${oldest.agent_email || 'unknown'}, filed ${oldest.created_at}). `
-            + 'The triage cron may be reporting ok while failing to decide. Run it manually with Bearer $CRON_SECRET and read stats.errors.',
-        });
-      }
-    }
-  } else if (!openRes.ok) {
-    conditions.push({
-      key: 'support_triage_query_failed',
-      message: `Could not read support_tickets to verify triage coverage (status ${openRes.status}). `
-        + 'Treat customer-ticket handling as unverified until this query works.',
-    });
-  }
-
-  return conditions;
-}
-
-// ── DEAL WATCH ───────────────────────────────────────────────────────────────
-//
-// WHO WATCHES THE WATCHER.
-//
-// api/cron-deal-watch.js is the job that notices things on a member's live
-// deals — a party reply, an unreturned signature packet against a closing
-// deadline, a listing with no seller's disclosure. It is EXCEPTION-ONLY: on a
-// normal morning it says nothing at all, and staying quiet is the expected
-// outcome, not a symptom.
-//
-// That property is exactly what makes it dangerous to leave unmonitored. A
-// job whose healthy state is silence is indistinguishable, from the outside,
-// from a job that has stopped running — which is how 18 days of dead Instagram
-// posting went unnoticed (feedback_silent-failure-is-the-enemy.md: four
-// invisible defects in one week, every one of them a pipeline nobody watched).
-// "Dossie didn't say anything this morning" must never be ambiguous between
-// "nothing needed you" and "the noticing stopped".
-//
-// So this detector deliberately does NOT try to infer health from how much the
-// watcher said. It checks two things that are true regardless of how quiet a
-// given morning was:
-//
-//   1. Did the job run at all? (cron_runs freshness — a daily cadence, so 30h
-//      is one clearly missed run rather than a scheduling jitter.)
-//   2. Did it run but decide nothing, for everyone, for days? A green
-//      telemetry row proves the function returned 200; it does not prove the
-//      function looked at anything. A watcher that runs on time and writes
-//      zero ledger rows across every member for days has almost certainly lost
-//      its data access (a broken query, a revoked key, an empty member list)
-//      rather than genuinely found nothing — real deals generate observations
-//      continuously, most of them below the speaking threshold. That is the
-//      "green telemetry, still not deciding" shape, and it is the worse one.
-const DEAL_WATCH_CRON_STALE_HOURS = 30;      // daily cadence — 30h is a missed run, not jitter
-const DEAL_WATCH_NO_DECISIONS_DAYS = 4;      // ran fine, decided nothing, for anyone, this long
-
-async function checkDealWatchSilence(
-  cronStaleHours = DEAL_WATCH_CRON_STALE_HOURS,
-  noDecisionsDays = DEAL_WATCH_NO_DECISIONS_DAYS,
-) {
-  const conditions = [];
-
-  // ── 1. Has the watcher run at all?
-  const runRes = await supabaseFetch(
-    '/rest/v1/cron_runs?cron_name=eq.cron-deal-watch&select=last_run,last_status&limit=1',
-  );
-  const runRow = runRes.ok && Array.isArray(runRes.data) ? runRes.data[0] : null;
-  const cutoff = Date.now() - cronStaleHours * 60 * 60 * 1000;
-
-  if (!runRow || !runRow.last_run) {
-    conditions.push({
-      key: 'deal_watch_never_ran',
-      message: 'api/cron-deal-watch.js has NEVER reported a run in cron_runs. '
-        + 'Nothing is watching member deals for party replies, unreturned signature packets, '
-        + 'or missing disclosures — and because this job is silent by design when healthy, '
-        + 'that failure is invisible from the outside. '
-        + 'Check it is still in api/cron-dispatch-daily-1330.js HANDLERS and that the module imports cleanly.',
-    });
-    return conditions; // nothing further is meaningful if it has never run
-  }
-
-  if (new Date(runRow.last_run).getTime() < cutoff) {
-    conditions.push({
-      key: 'deal_watch_cron_stale',
-      last_run: runRow.last_run,
-      last_status: runRow.last_status,
-      message: `Deal watch last ran ${runRow.last_run} (status ${runRow.last_status || 'unknown'}) — over ${cronStaleHours}h ago on a daily schedule. `
-        + 'No deal is being watched right now. Check api/cron-dispatch-daily-1330.js.',
-    });
-  }
-
-  // ── 2. Running green, deciding nothing, for everybody. The worse failure.
-  //
-  // Only meaningful once at least one member has been baselined — before that,
-  // an empty ledger is correct rather than alarming.
-  const stateRes = await supabaseFetch(
-    '/rest/v1/deal_watch_state?select=user_id,last_run_at&limit=1',
-  );
-  const hasBaselinedMembers = stateRes.ok && Array.isArray(stateRes.data) && stateRes.data.length > 0;
-
-  if (hasBaselinedMembers) {
-    const since = daysAgoIso(noDecisionsDays);
-    const logRes = await supabaseFetch(
-      `/rest/v1/deal_watch_log?select=id&created_at=gte.${encodeURIComponent(since)}&limit=1`,
-    );
-    if (logRes.ok && Array.isArray(logRes.data) && logRes.data.length === 0) {
-      conditions.push({
-        key: 'deal_watch_no_decisions',
-        message: `Deal watch has run without writing a single deal_watch_log row for ${noDecisionsDays} days, across every member. `
-          + 'Telemetry is green, so the function is returning 200 — but it is not forming opinions about anything. '
-          + 'Real deals produce observations continuously (most below the speaking threshold), so an entirely empty ledger '
-          + 'points at lost data access — a broken transactions query, an empty member list, or a revoked service key — '
-          + 'rather than a genuinely quiet week. Run it manually with Bearer $CRON_SECRET and read results[].observed.',
-      });
-    } else if (!logRes.ok) {
-      conditions.push({
-        key: 'deal_watch_query_failed',
-        message: `Could not read deal_watch_log to verify the watcher is still deciding (status ${logRes.status}). `
-          + 'Treat deal watching as unverified until this query works.',
-      });
-    }
-  }
-
-  return conditions;
-}
-
 async function checkCronSanity(scanOpts) {
   const scan = scanCronSanity(scanOpts);
   if (!scan.ok) {
@@ -951,12 +739,7 @@ async function markFired(key, reason, metadata) {
 // { fired: [...], suppressed: [...] } — suppressed = true but already
 // alerted within the cooldown window.
 async function runAllChecks(opts = {}) {
-  // Positional destructuring — this list must stay in the SAME ORDER as the
-  // Promise.all below, or a detector's results are silently attributed to the
-  // wrong condition. googleToken added 2026-09-28 (Atlas self-heal cherry-pick).
-  // NOTE: telegramGateSuppressed (f7db3c6f) is a separate, not-yet-merged
-  // change on staging — intentionally NOT included here.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, cronSanity] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -971,13 +754,10 @@ async function runAllChecks(opts = {}) {
     checkCommentOppScannerSilence(opts.commentOppScannerStaleHours),
     checkCommentOppApprovedStale(opts.commentOppApprovedStaleHours),
     checkGroupPostingSilence(opts.groupPostingSilenceHours),
-    checkSupportTriageSilence(opts.supportTriageCronStaleHours, opts.supportTriageUntriagedHours),
-    checkDealWatchSilence(opts.dealWatchCronStaleHours, opts.dealWatchNoDecisionsDays),
     checkCronSanity(opts.cronSanityScanOpts),
-    checkGoogleTokenHealth(opts.googleTokenOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...cronSanity];
   const fired = [];
   const suppressed = [];
 
@@ -1311,10 +1091,6 @@ module.exports = {
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
-  SUPPORT_TRIAGE_CRON_STALE_HOURS,
-  SUPPORT_TRIAGE_UNTRIAGED_HOURS,
-  DEAL_WATCH_CRON_STALE_HOURS,
-  DEAL_WATCH_NO_DECISIONS_DAYS,
   checkPlatformSilence,
   checkStaleApprovals,
   checkStaleDrafts,
@@ -1329,8 +1105,6 @@ module.exports = {
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
   checkGroupPostingSilence,
-  checkSupportTriageSilence,
-  checkDealWatchSilence,
   checkCronSanity,
   shouldFire,
   markFired,

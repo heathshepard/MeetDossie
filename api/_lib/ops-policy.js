@@ -104,67 +104,6 @@ const CAPABILITIES = {
     description: 'Fold routine (non-time-sensitive) per-item approval pings into the one daily morning brief instead of firing individually.',
     gates: [],
   },
-  ack_support_ticket: {
-    // Seeded DISABLED by 20260918_support_ticket_triage.sql. This is the ONLY
-    // switch between api/cron-support-ticket-triage.js and a real customer
-    // inbox.
-    //
-    // WHY THIS ISN'T contact_real_client (ALWAYS_HEATH): that key covers a
-    // message Heath INITIATES to a client, lead, or the other side of a deal
-    // — a judgement call with deal consequences. This is strictly narrower:
-    // a receipt, to a paying Dossie customer who just wrote in to Heath
-    // unprompted, confirming his software received what they sent and
-    // promising nothing. Heath granted standing authority for exactly that
-    // act after ticket 503a1d1b (Amanda Nuckles, 2026-08-24) sat unanswered
-    // until she cancelled.
-    //
-    // WHAT IT CAN NEVER COVER: a cancellation, a billing dispute, an unhappy
-    // customer, or anything legal. Those are
-    // pricing_demo_complaint_conversation below — ALWAYS_HEATH, no flag, no
-    // path. The classifier routes them there BEFORE this capability is ever
-    // consulted.
-    flagKey: 'ack_support_ticket',
-    defaultEnabled: false,
-    description: 'Send a one-time receipt acknowledgement to a customer who filed an in-app support ticket. Acknowledges only — no timeline, no promise, no claim of a fix.',
-    gates: [
-      'not_internal_sender',
-      'not_escalation_class',
-      'within_backfill_age_window',
-      'idempotent_unique_ticket',
-      'suppression_list',
-      'rate_caps_and_flood_guard',
-      'no_promise_in_copy',
-    ],
-  },
-  deal_watch_notify: {
-    // Seeded DISABLED by 20260920_deal_watch.sql. The only switch between
-    // api/cron-deal-watch.js and a notification on the member's phone.
-    //
-    // WHY THIS ISN'T contact_real_client (ALWAYS_HEATH): nothing here reaches
-    // a client, a lead, or the other side of a deal. The watcher's entire
-    // outbound surface is one message to THE MEMBER, about THE MEMBER'S OWN
-    // deals — the software telling its owner what it noticed. Chasing the
-    // other agent, emailing the seller, or filing anything remains outside
-    // this capability entirely; drafting a nudge for the member to approve is
-    // in scope, sending it is not.
-    //
-    // The gates below are the anti-fatigue contract, and they are what makes
-    // this safe to turn on at all. A watcher that speaks daily is trained out
-    // inside a week and is then worse than nothing, because it looks like
-    // coverage. See api/_lib/deal-watch-policy.js.
-    flagKey: 'deal_watch_notify',
-    defaultEnabled: false,
-    description: 'Send the member an unprompted notification about their own live deals — a party reply, an unreturned signature packet against a closing deadline, a listing missing its seller\'s disclosure. Notify-only; never contacts anyone but the member.',
-    gates: [
-      'member_baselined_on_a_previous_run',
-      'fact_new_since_baseline',
-      'idempotent_unique_fact_key',
-      'consequence_at_or_above_high',
-      'deal_not_dormant',
-      'per_run_speaking_cap',
-      'channel_owned_by_that_member',
-    ],
-  },
 };
 
 // ALWAYS HEATH. No flagKey — there is nothing to read. checkCapability()

@@ -4,7 +4,6 @@
 
 const { PDFDocument } = require('pdf-lib');
 const path = require('path');
-const { extractBase64 } = require('../api/_lib/base64-asset.js');
 
 const ASSETS = [
   { key: 'resale-contract',        file: 'trec-resale-base64.js' },
@@ -35,7 +34,7 @@ async function inspect(key, file) {
     return;
   }
 
-  const pdfBytes = Buffer.from(extractBase64(base64) || '', 'base64');
+  const pdfBytes = Buffer.from(base64, 'base64');
   let pdfDoc;
   try {
     pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });

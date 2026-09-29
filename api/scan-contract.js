@@ -12,7 +12,6 @@ const {
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
 const { addCalendarDaysYMD, rollForwardYMD } = require('./_lib/business-calendar.js');
-const { parseCheckedOption } = require('./_lib/checkbox-election.js');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -59,28 +58,12 @@ Document types and their KEY IDENTIFIERS:
 - "closing-disclosure": Title says "CLOSING DISCLOSURE". Three-page federal form showing final loan terms and closing costs.
 - "wire-instructions": Shows bank routing number, account number for wire transfer of funds.
 - "cma": Comparative Market Analysis showing comparable property sales.
-- "trec-non-realty-addendum": Title says "NON-REALTY ITEMS ADDENDUM". TREC No. 51-0. Lists personal property items (e.g. a hot tub, playset, above-ground pool, furniture) being included in or excluded from the sale, separate from Paragraph 2's fixtures.
-- "trec-sale-other-property-addendum": Title says "ADDENDUM FOR SALE OF OTHER PROPERTY BY BUYER". Contract is contingent on the buyer selling a different property first.
-- "trec-backup-contract-addendum": Title says "ADDENDUM FOR 'BACK-UP' CONTRACT". TREC No. 11-9. Makes this contract contingent on the termination of a prior contract on the same property.
-- "trec-seller-financing-addendum": Title says "ADDENDUM FOR SELLER FINANCING". Seller is extending credit directly to the buyer instead of (or alongside) a third-party lender.
-- "trec-short-sale-addendum": Title says "SHORT SALE ADDENDUM". Contract is contingent on the seller's lender agreeing to accept less than the outstanding mortgage balance.
-- "trec-environmental-addendum": Title mentions an environmental assessment, threatened or endangered species, or similar environmental contingency.
-- "trec-oil-gas-minerals-addendum": Title says "ADDENDUM REGARDING RESERVATION OF OIL, GAS AND OTHER MINERALS" or similar — reserves or conveys mineral rights.
-- "trec-loan-assumption-addendum": Title says "ADDENDUM FOR ASSUMPTION OF FINANCING" or "LOAN ASSUMPTION" — buyer is assuming the seller's existing loan.
-- "trec-coastal-area-addendum": Title says "ADDENDUM FOR PROPERTY LOCATED SEAWARD OF THE GULF INTRACOASTAL WATERWAY" or a general Coastal Area Property notice.
-- "trec-propane-gas-addendum": Title says "ADDENDUM FOR PROPERTY SUBJECT TO MANDATORY MEMBERSHIP IN A PROPANE GAS SYSTEM SERVICE AREA" or mentions a propane gas system service area.
-- "trec-hydrostatic-testing-addendum": Title says "ADDENDUM FOR AUTHORIZING HYDROSTATIC TESTING" — authorizes a water-pressure test of plumbing/septic lines.
-- "trec-unimproved-property-addendum": Title says "ADDENDUM FOR SALE OF UNIMPROVED PROPERTY" or similar, TREC No. 9 series — property has no residence on it (land, a lot).
-- "trec-termination-notice": Title says "NOTICE OF BUYER'S TERMINATION OF CONTRACT" or "TERMINATION OF CONTRACT". TREC No. 38-x. States a contract is being terminated and, if applicable, who gets the earnest money.
-- "amendment": Title says "AMENDMENT TO CONTRACT" (TREC No. 39-x, sometimes "AMENDMENT" alone). MODIFIES a term of an ALREADY-SIGNED contract — most commonly extending the option period, changing the closing date, or changing the sales price. Has fields for "Paragraph __ is amended to..." or similarly-worded blanks the parties fill in, plus buyer/seller signature lines. This is a GENERAL-PURPOSE modification form, not a specific-contingency addendum.
 - "other": Anything that does not clearly match the above.
 
 CRITICAL DISAMBIGUATION RULES:
 1. trec-sellers-disclosure vs trec-lead-paint: If the form mentions foundation, roof, plumbing, electrical — it is trec-sellers-disclosure. If the form ONLY discusses lead paint hazards and has federal law language — it is trec-lead-paint.
 2. trec-buyer-representation vs trec-listing-agreement: Buyer representation protects the buyer. Listing agreement gives agent the right to sell the property.
-3. trec-hoa-addendum vs "hoa-docs": trec-hoa-addendum is the ONE-PAGE contract addendum form itself (a checkbox/signature form). "hoa-docs" is the multi-page PACKAGE of the association's actual bylaws, financials, and resale certificate.
-4. "amendment" vs the "trec-*-addendum" types: an addendum is attached AT SIGNING to add a specific contingency or disclosure that becomes part of the original contract. An amendment CHANGES a term of a contract that was ALREADY signed and is now in effect — most often the option period end date, the closing date, or the sales price. If the document's own language is "amends," "extends," or "changes" a paragraph of an existing contract rather than adding a new contingency, it is "amendment."
-5. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
+3. If confidence is below 0.85, set documentType to "other" and explain in reasoning.`;
 
 const DOCUMENT_LABELS = {
   'trec-20-17': 'TREC One to Four Family Residential Contract',
@@ -102,50 +85,11 @@ const DOCUMENT_LABELS = {
   'closing-disclosure': 'Closing Disclosure',
   'wire-instructions': 'Wire Instructions',
   'cma': 'Comparative Market Analysis',
-  // 2026-09-21 — Heath hit "Non-Realty Items Addendum.pdf" rendering as bare
-  // "Document" under Other: it had no slug at all, so identifyDocument (see
-  // IDENTIFY_PROMPT) could only ever return "other" for it. Added the rest
-  // of the addenda catalog Dossie already knows how to SERVE blank (see
-  // api/_lib/resolve-blank-template-pdf.js's FORM_TEMPLATE_B64 /
-  // SHORT_NAME_TO_FORM_TYPE) but could not previously RECOGNIZE in an
-  // uploaded copy — same root cause, evidently not a one-off.
-  'trec-non-realty-addendum': 'Non-Realty Items Addendum',
-  'trec-sale-other-property-addendum': 'Addendum for Sale of Other Property by Buyer',
-  'trec-backup-contract-addendum': "Back-Up Contract Addendum",
-  'trec-seller-financing-addendum': 'Seller Financing Addendum',
-  'trec-short-sale-addendum': 'Short Sale Addendum',
-  'trec-environmental-addendum': 'Environmental Assessment Addendum',
-  'trec-oil-gas-minerals-addendum': 'Oil, Gas & Minerals Addendum',
-  'trec-loan-assumption-addendum': 'Loan Assumption Addendum',
-  'trec-coastal-area-addendum': 'Coastal Area Property Addendum',
-  'trec-propane-gas-addendum': 'Propane Gas System Addendum',
-  'trec-hydrostatic-testing-addendum': 'Hydrostatic Testing Addendum',
-  'trec-unimproved-property-addendum': 'Unimproved Property Addendum',
-  'trec-termination-notice': 'Notice of Termination',
-  // 2026-09-21 — reuses the SAME literal draft-amendment.js and
-  // DOCUMENT_TYPE_META (dossie-app.jsx) already use for a
-  // Dossie-generated amendment, rather than a new "trec-amendment" slug —
-  // one canonical value, not two competing ones the UI only recognizes one
-  // of. Added after the 507 Ridge Blf finding: 6 real amendment documents
-  // all landed on "other" at 0.95-0.98 confidence, because this type simply
-  // didn't exist in the classifier's enum — a confidently correct "not any
-  // of the above," not a low-confidence miss.
-  'amendment': 'Amendment',
   'other': 'Document',
 };
 
 const COMPLIANCE_PROMPTS = {
-  // 2026-09-21 — 14 Sablewood: Dossie told Heath "TREC 20-17" in chat about a
-  // document that is actually a TREC 20-19. This prompt is where that
-  // number came from — it told the MODEL the document's name was literally
-  // "TREC 20-17" (the internal document_type slug, which per the comment
-  // above is deliberately generic across every revision), and the model's
-  // own free-text documentDescription output inherited that. The document's
-  // real revision has exactly one legitimate source: the file's own name
-  // (CONTRACT_REVISION_RE / contractDocumentMeta() in dossie-app.jsx,
-  // already the source for the document tiles). Nothing else — including
-  // this prompt — states a specific revision number.
-  'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract for compliance.
+  'trec-20-17': `You are an expert Texas real estate transaction coordinator auditing a TREC One to Four Family Residential Contract (TREC 20-17) for compliance.
 
 IMPORTANT — ELECTRONIC SIGNATURES:
 This contract may have been signed via DocuSign or other electronic signature platforms. Electronic signatures are legally valid under ESIGN and UETA. When checking for signatures and initials, look for:
@@ -383,7 +327,7 @@ Extract these fields:
 - brokerage_name
 - commission_rate
 
-For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "88 Amberwood Lane" not "88 Amberwood Ln, Lot 7, Cherry Ridge, 2.236 acres".
+For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "104 Wild Cherry Lane" not "104 Wild Cherry Ln, Lot 7, Cherry Ridge, 2.236 acres".
 
 REQUIRED signatures:
 - Seller signature and date
@@ -562,17 +506,6 @@ Do NOT confuse the two blocks.
 Additional aliases to recognize for the BUYER'S block: "Buyer's Agent", "Buyer's Broker", "Cooperating Broker", "Selling Broker" (because the buyer's agent "sells" the home to the buyer — this is NOT the listing side).
 Additional aliases to recognize for the LISTING block: "Listing Agent", "Seller's Broker", "Seller's Representative".
 
-TREC 20-19 LAYS THIS PAGE OUT DIFFERENTLY — DO NOT USE POSITION:
-On form 20-19 the page is titled "BROKER CONTACT INFORMATION (Print name(s) only. Do not sign)" and the two blocks are stacked VERTICALLY, not side by side. There is no left/right to go by. Each block is identified ONLY by the sentence on its first line:
-- "... (Broker Firm) represents Seller only as Seller's agent"  -> this is the LISTING side -> listingAgent / listingAgentEmail / listingAgentPhone / listingBrokerage
-- "... (Broker Firm) represents Buyer only as Buyer's agent"    -> this is the BUYER side   -> buyerAgent / buyerAgentEmail / buyerAgentPhone / buyerBrokerage
-- "... (Broker Firm) represents Seller and Buyer as an intermediary" -> the INTERMEDIARY block. On a normal two-broker deal this block is entirely blank. NEVER take values from it unless the other two blocks are empty.
-Read that sentence for EVERY block before assigning a single field. The seller's block usually comes first, but do not rely on order — rely on the sentence.
-
-Within each 20-19 block the labels are: "(Broker Firm)" on the first line -> brokerage; "Associate's Name:" -> the agent; "Associate's Email:" -> their email; "Associate's Phone No.:" -> their phone. IGNORE "Licensed Supervisor of Associate" and "Phone No. of Licensed Supervisor" — that is the broker who supervises the agent, NOT the agent, and NOT the person to contact about the deal. IGNORE "Team Name" and every "License No." field.
-
-IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Halstead Foster & Associates, 900 Example Pkwy # 100 San Antonio TX 78200  Phone: 2105550182  Fax:  Sablewood" followed by "Dale Whitaker   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Halstead Foster & Associates" while the actual buyer's broker firm on the form is "Riverbend Realty". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
-
 Inside each block, the fields are typically laid out as:
 - "Broker/Firm Name" or just "Broker" → buyerBrokerage / listingBrokerage
 - "Associate" or "Licensed Supervisor" or "Listing Associate" → buyerAgent / listingAgent (this is the human agent's name, NOT the firm)
@@ -624,20 +557,6 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "debugContractReceiptDate": string | null,   // DEBUG ONLY: verbatim handwritten Date from the neighboring CONTRACT RECEIPT box, used only to cross-check a hard-to-read earnestMoneyReceiptDate. Null if that box's date is blank.
     "buyerAgent": string | null,                 // buyer's associate/agent name from broker info block
     "listingAgent": string | null,               // listing associate/agent name from broker info block
-    // PARAGRAPH 21 "NOTICES" — the two contact blocks the parties nominate for
-    // formal notice. Laid out as two columns headed "To Buyer at:" (left) and
-    // "To Seller at:" (right), each with Address / Phone(s) / E-mail(s), and
-    // BELOW them a second pair headed "To Buyer's agent at:" and "To Seller's
-    // agent at:" with their own Address / Phone / Email.
-    // Take buyerNotice*/sellerNotice* from the UPPER pair only (the principals).
-    // The LOWER pair is the two agents and belongs in buyerAgentEmail /
-    // listingAgentEmail — do not mix them up, and do not copy an agent's
-    // address into a principal's field when the principal's blank is empty.
-    // Either column may legitimately be blank; return null, never a guess.
-    "buyerNoticeEmail": string | null,           // ¶21 "To Buyer at:" E-mail(s)
-    "buyerNoticePhone": string | null,           // ¶21 "To Buyer at:" Phone(s)
-    "sellerNoticeEmail": string | null,          // ¶21 "To Seller at:" E-mail(s)
-    "sellerNoticePhone": string | null,          // ¶21 "To Seller at:" Phone(s)
     "parties": {
       "buyerAgentEmail": string | null,
       "buyerAgentPhone": string | null,
@@ -705,7 +624,6 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     },
     "paragraph13Prorations": string | null,             // free-text note ONLY if prorations are non-standard/customized, else null
     "surveyPayer": string | null,                       // DO NOT FILL — computed deterministically server-side from debugParagraph6C after extraction, same as surveyDeadline. Always return null here.
-    "sellerProvidesSurvey": boolean | null,              // DO NOT FILL — computed deterministically server-side from debugParagraph6C (true only if checkbox option (1) is marked). Always return null here.
     "paragraph23TerminationOption": {
       "optionDays": number | null,                      // mirror of top-level optionDays
       "optionFee": number | null,                       // mirror of top-level optionFee
@@ -854,8 +772,8 @@ function safeParseJson(text) {
 
 // 2026-08-22 — Structured buyer2Name/seller2Name, captured at scan time.
 // TREC contracts print multi-person parties as one combined string on the
-// signature line ("Chelsea Hale, Gregory Hale" or "Margaret Kendrick and
-// Arthur Kendrick"). buyerName/sellerName stay as that combined string
+// signature line ("Chelsea Linton, Thomas Linton" or "Kathleen Champie and
+// Clark Champie"). buyerName/sellerName stay as that combined string
 // (unchanged — emailTemplates.js, net-sheet.js, download-zip.js, chat.js and
 // the PDF fill pipeline all read it as one display string and must keep
 // working), but Dossie's actual party model caps at two people per side
@@ -913,169 +831,6 @@ function buildDeadlineChain(extracted) {
   return items;
 }
 
-// CRITICAL — pure, testable, and the ONLY place any *_deadline field derived
-// from a per-contract "within N days after the Effective Date" blank gets
-// its final value. Extracted out of scanContract() 2026-09-22 so this logic
-// can be unit-tested against a fixed `extracted` object without an
-// Anthropic API call (see scripts/regression-scan-contract-day-count-deadlines.js).
-//
-// Root cause this replaces: 23 Nopalito (952e0d82-c453-4137-87b4-1ed46e738eb3)
-// shipped survey_deadline = 2026-09-24 to Heath's sellers when the executed
-// contract's checked ¶6C(1) box plainly reads "Within 14 days after the
-// Effective Date" (effective 2026-09-20 -> correct deadline 2026-10-04, not
-// 2026-09-24 — off by 10 days / wrongly matching a 4-day read). The
-// deterministic regex backstop for surveyDeadline (and the equivalent ones
-// for financingDays/loanApprovalDeadline, appraisalDeadline,
-// hoaDocumentDeadline) only ever OVERRODE the model's own top-level guess
-// when the regex found a match against the verbatim debug-paragraph text;
-// when it did not match — malformed/incomplete debug text, an unusual
-// checkbox rendering, an OCR gap — the code silently kept whatever the
-// model itself guessed for the finished date. The prompt for that field
-// says outright "this is a secondary check only... getting this exactly
-// right yourself is not critical" — i.e. the system already knew that guess
-// was unreliable, yet still shipped it as a silent, confident, WRONG date
-// with no null-fallback and no audit trail. A wrong deadline is a money
-// error, not a display error — same reasoning as "unknown is never zero" on
-// the net sheet: an unknown deadline must read as unknown, never as a
-// confident wrong date.
-//
-// Fix: every field below is now ALWAYS derived from ONLY the deterministic
-// day-count parse of the verbatim debug paragraph — never from the model's
-// own free-text date guess. If the debug paragraph exists but no day count
-// can be verified in it, the field is forced to null (unknown) even if the
-// model had already guessed something. If the debug paragraph was never
-// captured at all (e.g. no addendum attached), the field is left as the
-// model returned it (should already be null per the extraction prompt).
-// Every derived field also gets a matching `<field>Days` sibling so the
-// source day count — not just the finished date — is recoverable for a
-// human to check the arithmetic (persisted via transactions.contract_extraction,
-// see supabase/migrations/20260813_contract_extraction_persistence.sql).
-function applyDeterministicDeadlineOverrides(extracted) {
-  if (!extracted || typeof extracted !== 'object') return extracted;
-
-  const addDays = (isoDate, days) => {
-    if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
-    const t = new Date(isoDate);
-    if (Number.isNaN(t.getTime())) return null;
-    t.setUTCDate(t.getUTCDate() + days);
-    return t.toISOString().slice(0, 10);
-  };
-
-  // Parses a "within N days after the Effective Date" style sentence.
-  // Returns { days, deadline, found: true } only when a day count 1-90 is
-  // actually present in the text — never invents or defaults a count.
-  const deriveDaysDeadline = (debugText, dayPattern, { minDays = 1, maxDays = 90 } = {}) => {
-    if (!debugText || typeof debugText !== 'string') return { days: null, deadline: null, found: false };
-    const match = debugText.match(dayPattern);
-    if (!match) return { days: null, deadline: null, found: false };
-    const days = parseInt(match[1], 10);
-    if (!Number.isFinite(days) || days < minDays || days > maxDays) return { days: null, deadline: null, found: false };
-    return { days, deadline: addDays(extracted.contractEffectiveDate, days), found: true };
-  };
-
-  const warnMismatch = (fieldLabel, modelGuess, deterministicValue) => {
-    if (modelGuess && deterministicValue && modelGuess !== deterministicValue) {
-      console.warn(`[scan-contract] ${fieldLabel} mismatch — model guessed ${modelGuess}, deterministic parse says ${deterministicValue}. Using the deterministic value.`);
-    } else if (modelGuess && !deterministicValue) {
-      console.warn(`[scan-contract] ${fieldLabel}: model guessed ${modelGuess} but the day count could not be verified deterministically from the debug paragraph — reporting unknown instead of a possibly-wrong date.`);
-    }
-  };
-
-  // --- Financing (Third Party Financing Addendum -> financingDays -> loanApprovalDeadline)
-  {
-    const r = deriveDaysDeadline(extracted.debugThirdPartyFinancing, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
-    if (r.found) {
-      warnMismatch('loanApprovalDeadline', extracted.loanApprovalDeadline, r.deadline);
-      extracted.financingDays = r.days;
-      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.thirdPartyFinancingDays = r.days;
-      extracted.loanApprovalDeadline = r.deadline;
-    } else if (extracted.debugThirdPartyFinancing) {
-      // Addendum is attached (we have its debug text) but the day count
-      // could not be verified — never fall back to an unverified guess.
-      warnMismatch('loanApprovalDeadline', extracted.loanApprovalDeadline, null);
-      extracted.financingDays = null;
-      extracted.loanApprovalDeadline = null;
-    }
-    // else: no addendum attached at all — leave as the model returned
-    // (should already be null per the extraction prompt).
-  }
-
-  // --- Appraisal (Appraisal Right-to-Terminate Addendum)
-  {
-    const r = deriveDaysDeadline(extracted.debugAppraisalAddendum, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
-    if (r.found) {
-      warnMismatch('appraisalDeadline', extracted.appraisalDeadline, r.deadline);
-      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.appraisalTerminationDays = r.days;
-      extracted.appraisalDeadline = r.deadline;
-    } else if (extracted.debugAppraisalAddendum) {
-      warnMismatch('appraisalDeadline', extracted.appraisalDeadline, null);
-      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.appraisalTerminationDays = null;
-      extracted.appraisalDeadline = null;
-    }
-  }
-
-  // --- HOA documents (HOA Addendum)
-  {
-    const r = deriveDaysDeadline(extracted.debugHoaAddendum, /within\s+[_\s]*(\d+)[_\s]*\s+days/i);
-    if (r.found) {
-      warnMismatch('hoaDocumentDeadline', extracted.hoaDocumentDeadline, r.deadline);
-      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.hoaDocumentDeadlineDays = r.days;
-      extracted.hoaDocumentDeadline = r.deadline;
-    } else if (extracted.debugHoaAddendum) {
-      warnMismatch('hoaDocumentDeadline', extracted.hoaDocumentDeadline, null);
-      if (extracted.addenda && typeof extracted.addenda === 'object') extracted.addenda.hoaDocumentDeadlineDays = null;
-      extracted.hoaDocumentDeadline = null;
-    }
-  }
-
-  // --- Survey (¶6.C — three mutually exclusive checkbox options, all three
-  // sharing the same "within N days after the Effective Date" deadline
-  // shape, so one pattern covers whichever option is actually checked).
-  // WHO pays (surveyPayer / sellerProvidesSurvey) is a separate, already
-  // deterministic derivation below and is unaffected by this block.
-  {
-    const r = deriveDaysDeadline(
-      extracted.debugParagraph6C,
-      /\[X\]\s*\(\d\)\s*Within\s+(\d+)\s+days after the Effective Date/i,
-    );
-    if (r.found) {
-      warnMismatch('surveyDeadline', extracted.surveyDeadline, r.deadline);
-      extracted.surveyDeadline = r.deadline;
-      extracted.surveyDeadlineDays = r.days;
-    } else {
-      // No verifiable day count for the checked ¶6.C option — this covers
-      // an unchecked/blank contract, a malformed debug paragraph, AND the
-      // case that shipped wrong on 23 Nopalito. Never keep whatever the
-      // model's own top-level surveyDeadline guess was; force unknown.
-      warnMismatch('surveyDeadline', extracted.surveyDeadline, null);
-      extracted.surveyDeadline = null;
-      extracted.surveyDeadlineDays = null;
-    }
-  }
-
-  // --- Survey payer / who furnishes the existing survey — deterministic
-  // from the SAME debugParagraph6C checked-option match, one regex read,
-  // two projections of the same fact so they can never disagree.
-  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
-    const checkedBlock = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)[^[]*/i);
-    if (checkedBlock) {
-      const payerText = checkedBlock[0]
-        .replace(/^\[X\]\s*/i, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (payerText) {
-        extracted.surveyPayer = payerText;
-      }
-    }
-    const checkedOption = parseCheckedOption(extracted.debugParagraph6C);
-    if (checkedOption) {
-      extracted.sellerProvidesSurvey = checkedOption === '1';
-    }
-  }
-
-  return extracted;
-}
-
 function emptyResult(warning) {
   return {
     extracted: {
@@ -1121,16 +876,11 @@ function emptyResult(warning) {
       fundsDeliveryRolled: false,
       deadlineChain: [],
       earnestMoneyReceiptDate: null,
-      optionFeeReceiptDate: null,
       debugEarnestMoneyReceiptBlock: null,
       debugOptionFeeReceiptDate: null,
       debugContractReceiptDate: null,
       buyerAgent: null,
       listingAgent: null,
-      buyerNoticeEmail: null,
-      buyerNoticePhone: null,
-      sellerNoticeEmail: null,
-      sellerNoticePhone: null,
       parties: {
         buyerAgentEmail: null,
         buyerAgentPhone: null,
@@ -1196,7 +946,6 @@ function emptyResult(warning) {
       },
       paragraph13Prorations: null,
       surveyPayer: null,
-      sellerProvidesSurvey: null,
       addendaSummary: [],
       paragraph23TerminationOption: {
         optionDays: null,
@@ -1325,12 +1074,119 @@ async function scanContract(pdfBase64) {
     extracted.buyer2Name = buyerParts[1] || null;
     extracted.seller2Name = sellerParts[1] || null;
   }
-  // Financing/appraisal/HOA/survey deadlines, survey payer, and
-  // sellerProvidesSurvey are ALL derived deterministically here — see
-  // applyDeterministicDeadlineOverrides() above for why (23 Nopalito wrong
-  // survey_deadline root cause) and scripts/regression-scan-contract-day-count-deadlines.js
-  // for the tests that pin this behavior.
-  applyDeterministicDeadlineOverrides(extracted);
+  const addDays = (isoDate, days) => {
+    if (!isoDate || typeof days !== 'number' || !Number.isFinite(days)) return null;
+    const t = new Date(isoDate);
+    if (Number.isNaN(t.getTime())) return null;
+    t.setUTCDate(t.getUTCDate() + days);
+    return t.toISOString().slice(0, 10);
+  };
+  // CRITICAL: Parse the addenda day counts (financing/appraisal/HOA) directly
+  // from their verbatim debug sentences via regex, same reasoning and same
+  // pattern as optionDays/surveyDeadline elsewhere in this file — asking the
+  // model to both find AND transcribe a day count in one JSON number field is
+  // exactly the failure mode that made those unreliable (confirmed via a live
+  // scan 2026-09-10: financingDays/appraisalTerminationDays/
+  // hoaDocumentDeadlineDays all came back null on a real contract that
+  // plainly states 21 days for all three, while the verbatim debug sentence
+  // was available to parse deterministically). Must run BEFORE the
+  // loanApprovalDeadline/appraisalDeadline/hoaDocumentDeadline computations
+  // directly below, which depend on these day counts.
+  const parseDaysSentence = (s) => {
+    if (typeof s !== 'string') return null;
+    const m = s.match(/within\s+[_\s]*(\d+)[_\s]*\s+days/i);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    return (Number.isFinite(n) && n >= 1 && n <= 90) ? n : null;
+  };
+  if (!extracted.financingDays) {
+    const days = parseDaysSentence(extracted.debugThirdPartyFinancing);
+    if (days) {
+      extracted.financingDays = days;
+      extracted.addenda.thirdPartyFinancingDays = days;
+    }
+  }
+  if (typeof extracted.addenda.appraisalTerminationDays !== 'number') {
+    const days = parseDaysSentence(extracted.debugAppraisalAddendum);
+    if (days) extracted.addenda.appraisalTerminationDays = days;
+  }
+  if (typeof extracted.addenda.hoaDocumentDeadlineDays !== 'number') {
+    const days = parseDaysSentence(extracted.debugHoaAddendum);
+    if (days) extracted.addenda.hoaDocumentDeadlineDays = days;
+  }
+
+  if (!extracted.loanApprovalDeadline) {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.financingDays);
+    if (calc) extracted.loanApprovalDeadline = calc;
+  }
+  // appraisalDeadline: the TREC 49-1 addendum never states a literal calendar
+  // date — it's always "within N days after the Effective Date" (paragraph
+  // (3), the common case) — so requiring an explicit date meant this field
+  // was null on every real appraisal-termination addendum ever scanned. The
+  // day count itself (addenda.appraisalTerminationDays) IS reliably
+  // extracted; this was purely a missing post-processing step, same shape as
+  // loanApprovalDeadline just above. Found 2026-08-05 auditing a real scan.
+  if (!extracted.appraisalDeadline && extracted.addenda && typeof extracted.addenda.appraisalTerminationDays === 'number') {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.appraisalTerminationDays);
+    if (calc) extracted.appraisalDeadline = calc;
+  }
+
+  // hoaDocumentDeadline — same shape/reasoning as appraisalDeadline directly
+  // above: the HOA Addendum states a day count ("Seller shall deliver ...
+  // within N days after the Effective Date"), never a literal calendar date,
+  // so asking the model for a finished date left this null on every real
+  // HOA-addendum scan. addenda.hoaDocumentDeadlineDays is the reliably
+  // extracted day count; compute the date deterministically from it.
+  if (!extracted.hoaDocumentDeadline && extracted.addenda && typeof extracted.addenda.hoaDocumentDeadlineDays === 'number') {
+    const calc = addDays(extracted.contractEffectiveDate, extracted.addenda.hoaDocumentDeadlineDays);
+    if (calc) extracted.hoaDocumentDeadline = calc;
+  }
+
+  // CRITICAL: Parse the survey day count directly from debugParagraph6C using
+  // regex, same reasoning as the optionDays fix below. Paragraph 6C has THREE
+  // parallel checkbox options with three different day-count blanks — asking
+  // the model to both identify which is checked AND do date arithmetic in one
+  // JSON field is exactly the failure mode that made optionDays unreliable.
+  // The prompt now asks it only to preserve verbatim text with checkbox marks
+  // ("[X] (1) Within 15 days..."); this finds whichever option is actually
+  // marked and computes the deadline deterministically. Found 2026-08-05
+  // auditing a real scan where survey and appraisal deadlines both came back
+  // null despite the contract clearly stating both (option (1), 15 days).
+  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
+    const match = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)\s*Within\s+(\d+)\s+days after the Effective Date/i);
+    if (match) {
+      const surveyDays = parseInt(match[1], 10);
+      if (Number.isFinite(surveyDays) && surveyDays >= 1 && surveyDays <= 90) {
+        const calc = addDays(extracted.contractEffectiveDate, surveyDays);
+        if (calc) extracted.surveyDeadline = calc;
+      }
+    }
+  }
+
+  // CRITICAL: Derive surveyPayer deterministically from debugParagraph6C —
+  // same "deterministic backstop beats asking the model to both identify
+  // AND paraphrase in one JSON field" reasoning as surveyDeadline directly
+  // above. Rather than asking the model to interpret WHO pays (a judgment
+  // call that varies by which of the three ¶6.C checkbox options is
+  // checked — Buyer obtains at Buyer's expense / Seller furnishes existing
+  // survey / Seller obtains new survey at Seller's expense), this slices
+  // out the VERBATIM text of whichever option is actually checked, so the
+  // answer is a direct quote from the real document, not a paraphrase that
+  // could invent or drop a nuance. Built 2026-08-13 — Heath asked "who pays
+  // for the survey on Wild Cherry" and Dossie had no way to answer it even
+  // though this exact text was already being captured and thrown away.
+  if (extracted.debugParagraph6C && typeof extracted.debugParagraph6C === 'string') {
+    const checkedBlock = extracted.debugParagraph6C.match(/\[X\]\s*\(\d\)[^[]*/i);
+    if (checkedBlock) {
+      const payerText = checkedBlock[0]
+        .replace(/^\[X\]\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (payerText) {
+        extracted.surveyPayer = payerText;
+      }
+    }
+  }
 
   // Readable one-line summary of which addenda are actually attached to
   // THIS contract (as opposed to the raw addenda.has* booleans, which are
@@ -1372,7 +1228,7 @@ async function scanContract(pdfBase64) {
   // CRITICAL: Parse earnestMoney and optionFee dollar amounts directly from
   // the debugParagraph5A/5B verbatim text using regex, same reasoning as the
   // optionDays/surveyDeadline backstops above. Found 2026-08-06 auditing a
-  // real executed contract (Amberwood, GF 70378) — document identification
+  // real executed contract (Wild Cherry, GF 70378) — document identification
   // and the compliance audit both succeeded, but Claude's own earnestMoney/
   // optionFee JSON fields came back null even though both dollar amounts
   // were plainly filled in on the form, silently skipping the auto-checklist
@@ -1484,16 +1340,6 @@ async function scanContract(pdfBase64) {
     earnestMoneyReceiptDateOverridden = true;
   }
 
-  // 2026-09-17: promote the OPTION FEE RECEIPT box's date to a real field.
-  // It was already being read here (as debugOptionFeeReceiptDate) purely to
-  // cross-check earnestMoneyReceiptDate, then discarded. It is the escrow
-  // agent's own acknowledgment that the option fee arrived — the only honest
-  // basis for suppressing the ¶5.A option-fee delivery reminder, and the
-  // automatic source for transactions.option_fee_confirmed_at, exactly as
-  // earnestMoneyReceiptDate is for earnest_money_confirmed_at. Without it,
-  // "confirmed receipt" for the option fee could only ever be set by hand.
-  extracted.optionFeeReceiptDate = optionFeeReceiptDate || null;
-
   const confidence = (parsed.confidence && typeof parsed.confidence === 'object') ? parsed.confidence : {};
 
   // buyer2Name/seller2Name are derived deterministically from buyerName/
@@ -1517,15 +1363,6 @@ async function scanContract(pdfBase64) {
   if (earnestMoneyReceiptDateOverridden) {
     confidence.earnestMoneyReceiptDate = Math.max(0.8, typeof confidence.earnestMoneyReceiptDate === 'number' ? confidence.earnestMoneyReceiptDate : 0);
   }
-  // optionFeeReceiptDate is a deterministic parse of the model's verbatim read
-  // of the OPTION FEE RECEIPT box, so it inherits that read's confidence and
-  // otherwise gets the same 0.8 floor as the two-box consensus above.
-  if (extracted.optionFeeReceiptDate) {
-    confidence.optionFeeReceiptDate = Math.max(
-      0.8,
-      typeof confidence.debugOptionFeeReceiptDate === 'number' ? confidence.debugOptionFeeReceiptDate : 0,
-    );
-  }
 
   // CRITICAL FIX 2026-09-10 — every deterministic backstop above
   // (optionDays/earnestMoney/optionFee regex parses, surveyDeadline/
@@ -1540,7 +1377,7 @@ async function scanContract(pdfBase64) {
   // gate (dossie-app.jsx handleUploadDocument) then silently drops the
   // correct backstop value and leaves the dossier field blank or at its
   // prior default — this is the exact "0 days" / blank Key Dates bug Heath
-  // found live on the Harrow Lane dossier. Same fix pattern as
+  // found live on the Pfeiffers Gate dossier. Same fix pattern as
   // possessionDate/earnestMoneyReceiptDate immediately above, applied to
   // every field a backstop can touch.
   if (typeof extracted.optionDays === 'number') confidence.optionDays = 1.0;
@@ -1965,84 +1802,9 @@ async function handler(req, res) {
       }
     }
 
-    // --- Persist the PEOPLE this scan just read. -----------------------------
-    //
-    // Until 2026-09-20 nothing did. The browser's document-upload path took
-    // `extracted` and wrote agent contacts into the `parties` jsonb ONLY —
-    // mapAppTransactionToDb never writes other_agent_email_addr or
-    // listing_agent_email_addr at all — while api/_lib/packet-recipients.js
-    // resolved recipients exclusively from those flat columns. The result was
-    // a deal that carried the buyer's agent's address and still answered "I
-    // don't have an email address for the buyer's agent."
-    //
-    // This runs server-side off the transactionId the client already sends,
-    // so it needs no bundle change, and it applies the same rules to the
-    // browser path that import_email_attachments gets: validation, provenance,
-    // never overwriting a member-typed value, and never making the other
-    // side's client a send target.
-    //
-    // Non-fatal by construction. A contact-write problem must never turn a
-    // successful scan into a failed one — the member asked to scan a document
-    // and the scan worked.
-    let contacts = null;
-    if (userId && transactionId && result.extracted
-        && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const { persistContactsFromScan } = require('./_lib/contact-persistence-store');
-        const sb = async (p, init = {}) => {
-          const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/${p}`, {
-            ...init,
-            headers: {
-              apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-              Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-              'Content-Type': 'application/json',
-              ...(init.headers || {}),
-            },
-          });
-          const t = await r.text().catch(() => '');
-          let d = null;
-          try { d = t ? JSON.parse(t) : null; } catch (_) { d = null; }
-          return { ok: r.ok, status: r.status, data: d };
-        };
-
-        // The member's own address, used to catch a reversed broker block.
-        let profile = null;
-        const profResp = await sb(`profiles?id=eq.${encodeURIComponent(userId)}&select=email,full_name&limit=1`);
-        if (profResp.ok && Array.isArray(profResp.data) && profResp.data.length) profile = profResp.data[0];
-
-        const persisted = await persistContactsFromScan(sb, {
-          userId,
-          transactionId,
-          extracted: result.extracted,
-          source: {
-            documentId,
-            fileName: typeof fileName === 'string' ? fileName : null,
-            documentLabel: result.documentLabel || null,
-            scanId: `scan-${Date.now()}`,
-          },
-          profile,
-        });
-
-        if (persisted.plan) {
-          contacts = {
-            filled: persisted.plan.filled.map((f) => ({ field: f.column, value: f.value })),
-            conflicts: persisted.plan.conflicts,
-            blocked: persisted.plan.blocked.map((b) => ({ party: b.party, kind: b.kind, reason: b.reason })),
-            written: persisted.written,
-          };
-        }
-      } catch (contactErr) {
-        console.error('[scan-contract] contact persistence error:', contactErr && contactErr.message);
-      }
-    }
-
     return res.status(200).json({
       ok: true,
       documentId,
-      // What was written to the deal record off this document, so the UI can
-      // show the member which people were saved and — importantly — which
-      // parsed values disagreed with something they had already entered.
-      contacts,
       documentType: result.documentType,
       documentLabel: result.documentLabel,
       documentTypeConfidence: result.documentTypeConfidence,
@@ -2114,4 +1876,3 @@ module.exports.runFullScan = runFullScan;
 module.exports.identifyDocument = identifyDocument;
 module.exports.auditCompliance = auditCompliance;
 module.exports.DOCUMENT_LABELS = DOCUMENT_LABELS;
-module.exports.applyDeterministicDeadlineOverrides = applyDeterministicDeadlineOverrides;

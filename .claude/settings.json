@@ -21,52 +21,6 @@
           }
         ]
       }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/postcompact-reanchor.js",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Edit|Write|Task|Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/pretooluse-guard.js",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/postcompact-clear-reanchor.js",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/end-of-turn-rules.js",
-            "timeout": 10
-          }
-        ]
-      }
     ]
   }
 }

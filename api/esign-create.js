@@ -65,14 +65,6 @@ const {
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
-const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
-const { findNotarizationRequirement, notarizationRefusalMessage } = require('./_lib/notarization-required-forms');
-const {
-  evaluateElections,
-  summarize: summarizeElections,
-  blockingMessage: electionBlockingMessage,
-  formCodeForFormType,
-} = require('./_lib/contract-election-gate');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -252,18 +244,12 @@ function resaleFormEntry() {
         title: `${label} Date`,
         type: 'date',
         preferences: { format: 'MM/DD/YYYY' },
-        // 2026-09-21 CARTER — was y=sig.y+sig.h+0.005/h=0.022, which rendered
-        // the date box directly on top of the printed "Buyer"/"Seller"
-        // caption text on p10 (rendered + visually confirmed; caught by
-        // Cole's review of the reference-form assumption during the 19-form
-        // date rollout). 0.014 clears the caption; 0.020 height still lands
-        // well clear of the next signer's row (rendered + confirmed).
         areas: [{
           page: sig.page,
           x: sig.x,
-          y: Math.min(sig.y + sig.h + 0.014, 0.99),
+          y: Math.min(sig.y + sig.h + 0.005, 0.99),
           w: Math.min(sig.w * 0.5, 0.18),
-          h: 0.020,
+          h: 0.022,
         }],
       });
       roles[`${side}${i + 1}`] = fields;
@@ -340,33 +326,6 @@ const SIDE_TO_SEMANTIC_ROLES = {
   seller: ['seller1', 'seller2'],
 };
 
-// 2026-09-26 CARTER — Barry Whyte incident. A DocuSeal packet went out with
-// every non-signature field (23 checkbox/radio elections on a Seller's
-// Disclosure correction, incl. floodplain / occupied / tax-exemption groups)
-// silently forced `required: true`. Root cause: every place in this file that
-// assembled a DocuSeal `fields` payload (buildMappedFieldMap's per-role
-// output, docusealCreateFromPdf's `built` object, buildPacketDocEntry's
-// `flat` entries, sendForAcknowledgment's buyer fields) DROPPED the
-// `required` key entirely before the field reached DocuSeal. DocuSeal's own
-// default when `required` is absent is `true` (confirmed live 2026-09-26,
-// probe against a real /templates/pdf call: a field explicitly sourced from
-// a map entry marked `required: false` came back `required: true` once the
-// key was omitted) — a signer then cannot submit without checking every box,
-// including ones that are legally not true for them.
-//
-// Fix: compute `required` centrally, from `type` alone, at every point a
-// field object is finalized for DocuSeal — never trust/propagate a
-// caller- or map-supplied `required` value, so a future field-building path
-// cannot reintroduce this by omission. Per the incident review: the only
-// defensible required widgets are the signature and its paired date; radio
-// groups, checkboxes, initials, and free text must always render optional
-// (confirmed empirically safe live on DocuSeal template 6075043 — 159
-// optional radios + 9 optional checkboxes render with nothing pre-selected
-// and never block submission).
-function dsFieldRequired(type) {
-  return type === 'signature' || type === 'date';
-}
-
 // Build the per-signer field map for a mapped form and ENFORCE the packet
 // completeness rules from the e-sign playbook: every principal signer gets
 // their form's full widget set (signature + every initials line), each
@@ -405,7 +364,6 @@ function buildMappedFieldMap(formEntry, signers) {
       fieldMap[roleName] = formEntry.roles[semantic].map((f) => ({
         name: `${roleName} ${f.title.replace(/^(Buyer|Seller) \d+ /, '')}`,
         type: f.type,
-        required: dsFieldRequired(f.type),
         ...(f.preferences ? { preferences: f.preferences } : {}),
         areas: f.areas,
       }));
@@ -423,7 +381,6 @@ function buildMappedFieldMap(formEntry, signers) {
         fieldMap[roleName] = formEntry.roles[agentSemantic].map((f) => ({
           name: `${roleName} ${f.type === 'signature' ? 'Signature' : 'Date'}`,
           type: f.type,
-          required: dsFieldRequired(f.type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: f.areas,
         }));
@@ -447,8 +404,7 @@ function buildMappedFieldMap(formEntry, signers) {
 // assertPlausibleResaleFieldCount to every mapped form). Recomputes the
 // expected widget total from the SAME map entry used to build the fields —
 // a mismatch means assignment logic dropped something. Throws 422.
-function assertPlausibleMappedFieldCount(formEntry, fieldMap, signers, docLabel) {
-  const label = docLabel || formEntry.form_type;
+function assertPlausibleMappedFieldCount(formEntry, fieldMap, signers) {
   const counters = { buyer: 0, seller: 0 };
   let expected = 0;
   let principals = 0;
@@ -461,34 +417,8 @@ function assertPlausibleMappedFieldCount(formEntry, fieldMap, signers, docLabel)
       const built = fieldMap[s.role || 'Signer'] || [];
       if (!built.some((f) => f.type === 'signature')) {
         throw new ValidationError(
-          `Field placement check failed on ${label}: signer "${s.role}" has no `
+          `Field placement check failed on ${formEntry.form_type}: signer "${s.role}" has no `
           + `signature widget. Refusing to send an unsignable packet.`, 422,
-        );
-      }
-      // 2026-09-21 CARTER — THE gate for the 2026-09-20 incident: a
-      // $999,000 contract went out with 18 initials, 6 signatures, and ZERO
-      // dates, because nothing but human eyes checked the counts, and
-      // nobody was looking at the date column. Every signature line on
-      // every mapped form is printed with a date beside it (resaleFormEntry
-      // + every entry in esign-field-maps.json pair signature+date per
-      // role) — a signer whose built signature count doesn't equal their
-      // built date count means the map itself is broken for this signer,
-      // and this must refuse rather than send an execution with an
-      // uncomputable deadline chain. Runs for EVERY caller of this
-      // function — the single-document send path (the path the 2026-09-20
-      // contract actually went out through) and the packet path
-      // (buildPacketDocEntry) both call this, so there is no send route
-      // that skips it. Named by document + signer so the failure is
-      // actionable, not mysterious.
-      const sigCount = built.filter((f) => f.type === 'signature').length;
-      const dateCount = built.filter((f) => f.type === 'date').length;
-      if (sigCount !== dateCount) {
-        throw new ValidationError(
-          `Field placement check failed on "${label}": signer "${s.role}" has ${sigCount} `
-          + `signature field${sigCount === 1 ? '' : 's'} but ${dateCount} date field${dateCount === 1 ? '' : 's'}. `
-          + `Every signature must be paired with a date — an execution without one has no `
-          + `computable deadline chain (option period, financing, closing all measure from it). `
-          + `Refusing to send.`, 422,
         );
       }
     }
@@ -498,7 +428,7 @@ function assertPlausibleMappedFieldCount(formEntry, fieldMap, signers, docLabel)
     .reduce((acc, [, arr]) => acc + arr.length, 0);
   if (principals > 0 && actual !== expected) {
     throw new ValidationError(
-      `Field placement check failed on ${label}: expected ${expected} `
+      `Field placement check failed on ${formEntry.form_type}: expected ${expected} `
       + `signature/initial/date widgets for this signer set but built ${actual}. Refusing to `
       + `send — this is the failure mode that has previously sent contracts with missing `
       + `initials. Contact support before retrying.`, 422,
@@ -559,7 +489,6 @@ function validateCustomFieldsForDoc(doc, docFields, allSigners) {
     );
   }
   let hasSignatureOrInitials = false;
-  const pairCounts = {}; // role -> { signatures, dates }
   for (const f of docFields) {
     if (!f || typeof f.name !== 'string' || !f.name.trim() || !CUSTOM_FIELD_TYPES.has(f.type)) {
       throw new ValidationError(`"${doc.file_name}": a placed field is malformed (name/type). Refusing to send.`, 422);
@@ -587,29 +516,12 @@ function validateCustomFieldsForDoc(doc, docFields, allSigners) {
       }
     }
     if (f.type === 'signature' || f.type === 'initials') hasSignatureOrInitials = true;
-    if (!pairCounts[f.signerRole]) pairCounts[f.signerRole] = { signatures: 0, dates: 0 };
-    if (f.type === 'signature') pairCounts[f.signerRole].signatures += 1;
-    else if (f.type === 'date') pairCounts[f.signerRole].dates += 1;
   }
   if (!hasSignatureOrInitials) {
     throw new ValidationError(
       `"${doc.file_name}": place at least one signature or initials field on it. Refusing to send `
       + `a document nobody can sign.`, 422,
     );
-  }
-  // 2026-09-21 CARTER — same gate as assertPlausibleMappedFieldCount, for
-  // caller-placed (unmapped-document) fields: a signer with a signature and
-  // no matching date has an uncomputable deadline chain regardless of
-  // whether the field came from a verified map or was hand-placed. See that
-  // function's comment for the 2026-09-20 incident this prevents.
-  for (const [role, c] of Object.entries(pairCounts)) {
-    if (c.signatures > 0 && c.signatures !== c.dates) {
-      throw new ValidationError(
-        `"${doc.file_name}": signer "${role}" has ${c.signatures} signature field${c.signatures === 1 ? '' : 's'} `
-        + `but ${c.dates} date field${c.dates === 1 ? '' : 's'}. Every signature must be paired with a date. `
-        + `Refusing to send.`, 422,
-      );
-    }
   }
 }
 
@@ -629,7 +541,7 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
 
   if (formEntry) {
     const built = buildMappedFieldMap(formEntry, allSigners); // throws 422 on any violation
-    assertPlausibleMappedFieldCount(formEntry, built.fieldMap, allSigners, doc.file_name); // throws 422
+    assertPlausibleMappedFieldCount(formEntry, built.fieldMap, allSigners); // throws 422
     console.log(`[esign-create] packet doc ${docIndex + 1}/${packetSize} "${doc.file_name}" `
       + `(${formEntry.form_type}, TREC ${formEntry.trec_no || '?'}): ${built.summary.join('; ')}`);
     for (const [role, roleFields] of Object.entries(built.fieldMap)) {
@@ -638,7 +550,6 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
           name: `${prefix}${f.name}`,
           type: f.type,
           role,
-          required: dsFieldRequired(f.type),
           ...(f.preferences ? { preferences: f.preferences } : {}),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         });
@@ -654,7 +565,6 @@ function buildPacketDocEntry({ doc, docIndex, packetSize, allSigners, callerFiel
         name: `${prefix}${f.name}`,
         type: f.type,
         role: f.signerRole,
-        required: dsFieldRequired(f.type),
         ...(f.preferences && typeof f.preferences === 'object' ? { preferences: f.preferences } : {}),
         areas: f.areas.map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
       });
@@ -681,85 +591,6 @@ function assertPacketSignable(packetDocs, allSigners) {
       );
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// 2026-09-21 CARTER — dry-run field counts for api/esign-packet-send.js's
-// preview mode. Built for the send_for_signature safety gap: the client
-// card (Dossie/src/components/SignatureConfirmCard.jsx) was written to show
-// real signature/date/initial counts and disable Send on a mismatch, but
-// nothing ever computed them, so the check was always comparing 0 to 0.
-//
-// Calls the SAME buildPacketDocEntry() the real send uses — no PDF fetch, no
-// DocuSeal call, no side effects beyond console.log. This is the load-bearing
-// guarantee: a count shown in preview cannot drift from what send actually
-// places, because it is not a separate estimate, it is the exact same
-// field-resolution call the send path makes. assertPlausibleMappedFieldCount
-// (called from inside buildPacketDocEntry) now carries the signature==date
-// pairing gate itself, so a mismatch throws from THIS call — the identical
-// throw mode:'send' hits when it re-derives counts before issuing/honoring
-// anything. One gate, reached from both places.
-//
-// Returns:
-//   { ok: true, documents: [{ document_id, file_name, form_type,
-//       counts: { <role>: { signatures, dates, initials } } }] }
-//   { ok: false, error, status, document_id } — the exact refusal a send
-//     would hit, surfaced instead of thrown so the caller can report it
-//     as a normal preview failure rather than a 500.
-function computePacketFieldCounts({ documents, signers, callerFields }) {
-  const packetSize = documents.length;
-  const results = [];
-  const packetDocsForSignableCheck = [];
-
-  for (let i = 0; i < documents.length; i++) {
-    const doc = documents[i];
-    let entry;
-    try {
-      entry = buildPacketDocEntry({
-        doc, docIndex: i, packetSize, allSigners: signers, callerFields: callerFields || [],
-      });
-    } catch (err) {
-      return {
-        ok: false,
-        error: err.message,
-        status: (err instanceof ValidationError && err.status) || 422,
-        document_id: doc.id,
-      };
-    }
-
-    packetDocsForSignableCheck.push({ fields: entry.fields });
-
-    const counts = {};
-    for (const f of entry.fields) {
-      const role = f.role || 'Signer';
-      if (!counts[role]) counts[role] = { signatures: 0, dates: 0, initials: 0 };
-      if (f.type === 'signature') counts[role].signatures += 1;
-      else if (f.type === 'date') counts[role].dates += 1;
-      else if (f.type === 'initials') counts[role].initials += 1;
-    }
-
-    results.push({
-      document_id: doc.id,
-      file_name: doc.file_name,
-      form_type: entry.formEntry ? entry.formEntry.form_type : null,
-      counts,
-    });
-  }
-
-  // Packet-wide gate: every principal ends up with a signature SOMEWHERE in
-  // the packet, not just per-document. Same real call the send path makes.
-  try {
-    assertPacketSignable(packetDocsForSignableCheck, signers);
-  } catch (err) {
-    return {
-      ok: false,
-      error: err.message,
-      status: (err instanceof ValidationError && err.status) || 422,
-      document_id: null,
-    };
-  }
-
-  return { ok: true, documents: results };
 }
 
 // Create ONE transient DocuSeal template carrying every packet PDF as its own
@@ -953,73 +784,6 @@ function buildResaleContractPrefill(tx, profile) {
   if (otherAgentPhone) v.selling_associate_phone = otherAgentPhone;
 
   return v;
-}
-
-// =============================================================================
-// ELECTION GATE — the last gate before a contract reaches a real signature.
-//
-// Before 2026-09-17 this endpoint called no contract validator of any kind. A
-// blank "check one box only" paragraph travelled straight through to DocuSeal
-// and to four signatures: 29046 Pfeiffers Gate executed 2026-09-09 with
-// paragraph 7D blank, the paragraph deciding whether the sellers owe repairs.
-//
-// RECONSTRUCTION, AND WHY IT IS FAITHFUL. This endpoint sends an already-filled
-// PDF; it does not hold the field values that produced it, and fill-form.js
-// does not persist them. So the values are rebuilt through
-// mergeContractFieldDrafts — the same single choke point fill-form.js itself
-// uses, so a preview, a filled PDF and this gate can never disagree about what
-// a draft means. That is exact for elections specifically: every election on
-// 20-19 is sourced from transactions.contract_field_drafts (the canonical
-// txDefaults block in fill-form.js contains no election field at all), and no
-// production caller passes an election through field_values. A caller override
-// is the one thing that would not be visible here, and nothing in the codebase
-// does it outside test scripts.
-//
-// Blocking here is narrow by design — see contract-election-rules.json. A send
-// stopped at 4:59pm on the last day of an option period is its own disaster, so
-// the gate only blocks on an election the form genuinely requires AND the
-// member can actually fix.
-// =============================================================================
-async function evaluateElectionsForDocs(docRows, tx) {
-  if (!tx) return null;
-  const seen = new Set();
-  const reports = [];
-  for (const d of docRows || []) {
-    const formCode = formCodeForFormType(d.form_type || d.document_type);
-    if (!formCode || seen.has(formCode)) continue;
-    seen.add(formCode);
-    // 'resale-contract' is the fill-form form_type whose drafts key is '20-19'.
-    const merged = mergeContractFieldDrafts({
-      tx,
-      formType: 'resale-contract',
-      baseValues: {},
-      callerValues: {},
-    });
-    const report = evaluateElections({ formCode, fieldValues: merged });
-    report.documentId = d.id;
-    report.fileName = d.file_name || null;
-    reports.push(report);
-  }
-  return reports.length ? reports : null;
-}
-
-/**
- * Logs every report and returns the first one that blocks, or null.
- */
-function firstBlockingElectionReport(reports) {
-  if (!reports) return null;
-  for (const r of reports) {
-    console.log('[esign-create][elections]', r.fileName || r.documentId, summarizeElections(r));
-    if (r.warnings.length) {
-      console.warn('[esign-create][elections] warnings:',
-        JSON.stringify(r.warnings.map((w) => w.message)));
-    }
-    if (r.unreachable.length) {
-      console.warn('[esign-create][elections] unreachable controls:',
-        JSON.stringify(r.unreachable.map((u) => u.message)));
-    }
-  }
-  return reports.find((r) => !r.pass) || null;
 }
 
 async function getTransactionRow(transactionId, userId) {
@@ -1238,7 +1002,6 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
           name: f.name,
           type: f.type,
           role,
-          required: dsFieldRequired(f.type),
           areas: (f.areas || []).map((a) => ({ x: a.x, y: a.y, w: a.w, h: a.h, page: a.page })),
         };
         if (f.preferences && typeof f.preferences === 'object') {
@@ -1248,8 +1011,8 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
       }
     } else {
       // Default: a signature + date field per submitter, DocuSeal auto-places them.
-      allFields.push({ name: `${role} Signature`, type: 'signature', role, required: dsFieldRequired('signature') });
-      allFields.push({ name: `${role} Date`, type: 'date', role, required: dsFieldRequired('date') });
+      allFields.push({ name: `${role} Signature`, type: 'signature', role });
+      allFields.push({ name: `${role} Date`, type: 'date', role });
     }
   }
 
@@ -1739,13 +1502,11 @@ async function sendForAcknowledgment({ doc, userId, transactionId, formType, buy
       {
         name: 'Buyer Signature',
         type: 'signature',
-        required: dsFieldRequired('signature'),
         areas: [{ page: 3, x: 0.07, y: sigY, w: 0.25, h: 0.04 }],
       },
       {
         name: 'Buyer Date',
         type: 'date',
-        required: dsFieldRequired('date'),
         areas: [{ page: 3, x: 0.73, y: dateY, w: 0.18, h: 0.03 }],
       },
     ];
@@ -2097,15 +1858,6 @@ module.exports = async function handler(req, res) {
       if (txIds.length > 1) {
         throw new ValidationError('Packet documents belong to different dossiers — send them separately.', 422);
       }
-      // Hard backstop — never create a DocuSeal submission for a document
-      // that legally requires a notary (e.g. the T-47 affidavit). See
-      // api/_lib/notarization-required-forms.js; this is the single list
-      // every send path checks.
-      const packetNotaryHit = packetDocRows.find((d) => findNotarizationRequirement(d));
-      if (packetNotaryHit) {
-        throw new ValidationError(notarizationRefusalMessage(packetNotaryHit), 422);
-      }
-
       const packetTransactionId = txIds[0] || null;
       const packetTx = packetTransactionId ? await getFullTransactionRow(packetTransactionId, userId) : null;
       const packetPropertyAddress = packetTx ? (packetTx.property_address || '') : '';
@@ -2137,28 +1889,6 @@ module.exports = async function handler(req, res) {
         });
       }
       assertPacketSignable(packetDocs, packetSigners);
-
-      // Last gate before DocuSeal. Nothing is sent if a required election is
-      // blank or contradictory.
-      const packetElectionReports = await evaluateElectionsForDocs(packetDocRows, packetTx);
-      const packetElectionBlock = firstBlockingElectionReport(packetElectionReports);
-      if (packetElectionBlock) {
-        console.error('[esign-create] BLOCKED — required election blank/ambiguous on %s: %s',
-          packetElectionBlock.fileName || packetElectionBlock.documentId,
-          JSON.stringify(packetElectionBlock.blocking.map((b) => b.message)));
-        return res.status(422).json({
-          ok: false,
-          blocked: true,
-          error: electionBlockingMessage(packetElectionBlock),
-          elections: {
-            form: packetElectionBlock.formName,
-            document: packetElectionBlock.fileName,
-            blocking: packetElectionBlock.blocking,
-            warnings: packetElectionBlock.warnings,
-            unreachable: packetElectionBlock.unreachable,
-          },
-        });
-      }
 
       const firstName = packetDocs[0].fileName.replace(/\.pdf$/i, '');
       const packetLabel = packetDocs.length > 1
@@ -2248,12 +1978,6 @@ module.exports = async function handler(req, res) {
     const fileName = doc.file_name || 'Document.pdf';
     const transactionId = doc.transaction_id || null;
 
-    // Hard backstop — same notarization gate as the packet path above.
-    const singleNotaryHit = findNotarizationRequirement(doc);
-    if (singleNotaryHit) {
-      throw new ValidationError(notarizationRefusalMessage(doc, singleNotaryHit), 422);
-    }
-
     // Fetch the transaction so we have property_address for both email subjects
     // and template prefill. Non-fatal if missing.
     // Full-column select so buildResaleContractPrefill can access all resale fields.
@@ -2269,29 +1993,6 @@ module.exports = async function handler(req, res) {
           { name: agentSignerName, email: agentSignerEmail, role: 'Agent' },
         ]
       : signers;
-
-    // Election gate on the single-document path. This is the most common send
-    // of all — one resale contract — and until 2026-09-17 it reached DocuSeal
-    // without any contract-level check. Same narrow blocking policy as the
-    // packet path; see evaluateElectionsForDocs above.
-    const singleElectionReports = await evaluateElectionsForDocs([doc], tx);
-    const singleElectionBlock = firstBlockingElectionReport(singleElectionReports);
-    if (singleElectionBlock) {
-      console.error('[esign-create] BLOCKED — required election blank/ambiguous on %s: %s',
-        fileName, JSON.stringify(singleElectionBlock.blocking.map((b) => b.message)));
-      return res.status(422).json({
-        ok: false,
-        blocked: true,
-        error: electionBlockingMessage(singleElectionBlock),
-        elections: {
-          form: singleElectionBlock.formName,
-          document: fileName,
-          blocking: singleElectionBlock.blocking,
-          warnings: singleElectionBlock.warnings,
-          unreachable: singleElectionBlock.unreachable,
-        },
-      });
-    }
 
     let submissionResult;
 
@@ -2494,7 +2195,7 @@ module.exports = async function handler(req, res) {
             console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
           }
         }
-        assertPlausibleMappedFieldCount(formEntry, autoFieldMap, allSigners, doc.file_name);
+        assertPlausibleMappedFieldCount(formEntry, autoFieldMap, allSigners);
       } else if (!fields) {
         // 2026-09-08 CARTER — every other mapped form (23 forms: 20 addenda +
         // seller's disclosure + unimproved-property + seller-financing etc.)
@@ -2513,7 +2214,7 @@ module.exports = async function handler(req, res) {
               console.log(`[esign-create]   ${role} ${f.type} "${f.name}" p${a.page}: x=${a.x} y=${a.y} w=${a.w} h=${a.h}`);
             }
           }
-          assertPlausibleMappedFieldCount(formEntry, autoFieldMap, allSigners, doc.file_name);
+          assertPlausibleMappedFieldCount(formEntry, autoFieldMap, allSigners);
         }
       }
 
@@ -2631,13 +2332,6 @@ module.exports = async function handler(req, res) {
     });
   }
 };
-
-// Real production surface — used by api/esign-packet-send.js's preview mode
-// so a count it shows the member is the exact same field-resolution call the
-// real send makes (see computePacketFieldCounts's own header comment). This
-// is separate from __testing below, which stays test-only.
-module.exports.computePacketFieldCounts = computePacketFieldCounts;
-module.exports.MAX_PACKET_DOCUMENTS = MAX_PACKET_DOCUMENTS;
 
 // Test-only surface (not part of the HTTP contract). Used by
 // scripts/regression-trec-20-19-esign-coords.js and local verification

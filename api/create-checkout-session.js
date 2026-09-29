@@ -18,19 +18,11 @@
 //   STRIPE_SECRET_KEY — Stripe secret API key (live mode in production)
 //   STRIPE_PRICE_SOLO_MONTHLY / STRIPE_PRICE_SOLO_ANNUAL
 //   STRIPE_PRICE_TEAM_MONTHLY / STRIPE_PRICE_TEAM_ANNUAL
-//   TRIAL_DAYS         — free trial length in days (default 14; 0 disables the
-//                         trial and restores pre-2026-09-26 charge-today behavior)
-//   TRIAL_REQUIRE_CARD — 'true' (default) collects a card up front (recommended:
-//                         5 of 8 existing customers never logged in even once —
-//                         docs/ACTIVATION-FORENSICS-2026-09-18.md — a no-card
-//                         trial would only make that worse). 'false' sets
-//                         payment_method_collection: 'if_required'.
 
 const Stripe = require('stripe');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { checkRateLimit, RateLimitError, clientIpFromReq } = require('./_middleware/rateLimit');
 const { CHECKOUT_PRICE_IDS } = require('./_lib/pricing-tiers');
-const { resolveTrialDays, resolveTrialRequireCard, buildTrialSessionFields } = require('./_lib/trial-config');
 
 const SUCCESS_URL = 'https://meetdossie.com/welcome.html?session_id={CHECKOUT_SESSION_ID}';
 const CANCEL_URL = 'https://meetdossie.com/signup.html';
@@ -38,18 +30,6 @@ const CANCEL_URL = 'https://meetdossie.com/signup.html';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VALID_PLANS = new Set(['solo', 'team']);
 const VALID_PERIODS = new Set(['monthly', 'annual']);
-
-// Free trial config — flip via Vercel env, no deploy required.
-//   TRIAL_DAYS (default 14) — set to 0 to disable the trial entirely and
-//     restore pre-2026-09-26 behavior exactly (card charged immediately).
-//   TRIAL_REQUIRE_CARD (default true) — Heath's explicit call: 5 of 8 existing
-//     paying customers never logged in even once (docs/ACTIVATION-FORENSICS-
-//     2026-09-18.md). A no-card trial produces a graveyard of accounts that
-//     never activate; card-up-front + trial lets Stripe convert automatically
-//     and only serious prospects start. false switches Checkout's
-//     payment_method_collection to 'if_required' (no card asked for up front).
-const TRIAL_DAYS = resolveTrialDays();
-const TRIAL_REQUIRE_CARD = resolveTrialRequireCard();
 
 // Stripe metadata values are capped at 500 chars each — trims defensively so
 // a malformed/huge client payload never fails session creation outright.
@@ -146,8 +126,6 @@ module.exports = async function handler(req, res) {
     const lastTouchJson = safeTouchJson(body.last_touch);
     if (firstTouchJson) sessionMetadata.first_touch = firstTouchJson;
     if (lastTouchJson) sessionMetadata.last_touch = lastTouchJson;
-    const trialFields = buildTrialSessionFields({ trialDays: TRIAL_DAYS, requireCard: TRIAL_REQUIRE_CARD });
-
     const sessionParams = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
@@ -156,8 +134,7 @@ module.exports = async function handler(req, res) {
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       metadata: sessionMetadata,
-      subscription_data: { metadata: sessionMetadata, ...trialFields.subscriptionData },
-      ...trialFields.topLevel,
+      subscription_data: { metadata: sessionMetadata },
     };
     if (customerEmail) {
       sessionParams.customer_email = customerEmail;

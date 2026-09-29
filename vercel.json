@@ -385,17 +385,6 @@
       "maxDuration": 10,
       "includeFiles": "SESSION-DIARY.md"
     },
-    "api/admin-migrate-outcome-monitor.js": {
-      "maxDuration": 60,
-      "includeFiles": "supabase/migrations/20260925_outcome_monitor.sql"
-    },
-    "api/admin-migrate-video-scheduling.js": {
-      "maxDuration": 60,
-      "includeFiles": "supabase/migrations/20260925_video_scheduling_and_orphan_alarm.sql"
-    },
-    "api/cron-outcome-monitor.js": {
-      "maxDuration": 60
-    },
     "api/{cron-dispatch-daily-0800,cron-dispatch-daily-1500,cron-dispatch-every30,cron-dispatch-every5,cron-dispatch-hourly}.js": {
       "maxDuration": 70
     },
@@ -446,10 +435,6 @@
       "schedule": "20 13 * * *"
     },
     {
-      "path": "/api/cron-option-timing-risk",
-      "schedule": "25 13 * * *"
-    },
-    {
       "path": "/api/cron-newsletter-draft-reminder",
       "schedule": "0 21 * * 4"
     },
@@ -492,6 +477,10 @@
     {
       "path": "/api/cron-fanout-builds-to-agent-queues",
       "schedule": "10 */6 * * *"
+    },
+    {
+      "path": "/api/cron-agent-queue-dispatch",
+      "schedule": "*/2 * * * *"
     },
     {
       "path": "/api/cron-inbox-scan",
@@ -628,26 +617,6 @@
     {
       "path": "/api/cron-dispatch-daily-0900",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron-comment-monitor",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron-comment-reply-draft",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron-post-comment-replies",
-      "schedule": "*/20 * * * *"
-    },
-    {
-      "path": "/api/cron-sync-video-automations",
-      "schedule": "0 */4 * * *"
-    },
-    {
-      "path": "/api/cron-sync-comment-dm-leads",
-      "schedule": "5 * * * *"
     }
   ]
 }
