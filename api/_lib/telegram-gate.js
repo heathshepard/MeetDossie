@@ -49,6 +49,33 @@
 //   var value to suppress those too (total silence).
 //
 // Owner: Atlas, 2026-08-16.
+//
+// BUGFIX 2026-09-17 (Carter) — MULTIPLEXED DISPATCHER JOB-NAME COLLISION.
+// api/_lib/cron-multiplex.js (Atlas, 2026-09-16) fans out N sub-jobs from ONE
+// dispatcher route IN-PROCESS (e.g. api/cron-dispatch-every30.js requires 9
+// job modules, each calling `telegramGate.install(<its own name>)` at module
+// top level). install() used to bind the gate PERMANENTLY to whichever job
+// name called it FIRST (`_installedFor`, now removed) — every later
+// install() call from a sibling module in the same require chain was a
+// silent no-op, so ALL 9 jobs' Telegram sends were gated under the FIRST
+// job's name for the lifetime of the process. Found via
+// tc_discovery_responses: cron-tc-reply-approval (in ALWAYS_ALLOW) reported
+// 'ok' on every run, drafted replies correctly, but every send came back
+// wasSuppressed()=true and nothing ever left reply_status='new' — because
+// cron-publish-approved (first in cron-dispatch-every30's HANDLERS array,
+// NOT in ALWAYS_ALLOW) had locked the gate to its own name.
+//
+// FIX: AsyncLocalStorage-scoped job context. Each dispatcher invocation runs
+// every sub-handler inside `runWithJobContext(jobName, fn)` (see
+// cron-multiplex.js's runGroup); gatedFetch reads the ACTIVE job name from
+// that per-call-stack context, not a module-level variable — correct even
+// when multiple handlers run concurrently via Promise.all. A route invoked
+// directly (not through a dispatcher, no context set) falls back to the
+// name passed to the first install() call, preserving old single-job
+// behavior exactly.
+
+const { AsyncLocalStorage } = require('async_hooks');
+const jobContext = new AsyncLocalStorage();
 
 // Jobs that stay audible even when the switch is off, because they are
 // exception-only alerts (they send nothing on a healthy system) rather than
@@ -70,6 +97,10 @@ const ALWAYS_ALLOW = new Set([
                              // approval is required before anything can post back. Interactive approval plumbing,
                              // not digest noise. A swallowed message here silently kills the whole reply loop (the
                              // exact failure mode that hid five finished videos for three weeks) — Carter, 2026-09-08.
+  'cron-auto-reply-veto-check', // auto-reply-with-veto resolver + 60-min SLA alert (supabase/migrations/
+                             // 20260916_auto_reply_veto.sql). A swallowed veto-resolution confirmation or SLA
+                             // breach alert here is the exact failure mode Heath is trying to avoid by having
+                             // this feature at all — Carter, 2026-09-16.
   'cron-comment-opp-approval', // daily comment-opportunity Approve/Edit/Skip loop (comment_opportunities).
                                // Same class as cron-tc-reply-approval: interactive approval plumbing, capped at
                                // 12 sends/day, silent when the hunt finds nothing. A swallowed send here stalls
@@ -78,16 +109,39 @@ const ALWAYS_ALLOW = new Set([
                                // Same class as cron-comment-opp-approval: interactive approval plumbing, exactly
                                // 5 sends/day (one per target group). A swallowed send here means a whole day's
                                // group post for that group never gets approved — Carter, 2026-09-09.
+  'cron-verify-zernio-deliveries', // */30 — sends nothing on a healthy pipeline; only alerts on a confirmed
+                               // Zernio delivery failure, a 30%+ 24h failure-rate crisis, or a video_library
+                               // post that's gone unconfirmed past the stale window (Pipeline B, added
+                               // 2026-09-17). Gating this is the exact silent-failure class the alert exists
+                               // to close — a video marked 'posted' that never actually delivered must not
+                               // depend on TELEGRAM_CRON_NOTIFICATIONS being set — Carter, 2026-09-17.
   'cron-retry-unsent-approvals', // */30 — bounded retry for group_posts drafts whose approval card never
                                   // reached Heath (daily5 + listing-groups pipelines). Gating THIS job would
                                   // defeat its entire purpose (delivering an approval Heath already missed once)
                                   // and its final-failure alert is exactly the outage signal this floor exists
                                   // for — Carter, 2026-09-12.
-  'cron-silence-alarm', // daily — sends NOTHING on a healthy pipeline; only alerts when a platform has gone
-                        // dark, approvals are stuck, drafts never reached Telegram, or a status is
-                        // accumulating rows without moving. This is the exact class of alert the 2026-09-12
-                        // Instagram/TikTok silence (18 days unnoticed) proves must never be gateable —
-                        // Carter, 2026-09-12.
+  'cron-silence-alarm', // daily. Originally: sends NOTHING on a healthy pipeline, only alerts when a
+                        // platform has gone dark, approvals are stuck, drafts never reached Telegram, or
+                        // a status is accumulating rows without moving — the exact class of alert the
+                        // 2026-09-12 Instagram/TikTok silence (18 days unnoticed) proves must never be
+                        // gateable. EXTENDED 2026-09-16 into a daily morning heartbeat (posted-last-24h,
+                        // scheduled-next-7d, stuck items, comments awaiting reply, cron sanity) that now
+                        // sends EVERY run, healthy or not — Heath's explicit ask, "consistent posting" top
+                        // priority. Stays on this list either way: a digest he asked to always see is not
+                        // the noise this gate exists to quiet — Carter, 2026-09-12 / 2026-09-16.
+  'cron-regression-suite', // daily 09:00 UTC. Qualifies for this floor ONLY because its alert policy was
+                           // rewritten at the same time (api/_lib/regression-alert-policy.js, 2026-09-17,
+                           // backlog B3): it no longer pushes on RED unconditionally, it pushes when the
+                           // FAILURE SET CHANGES — a PASS→FAIL regression, a FAIL→PASS recovery, a new
+                           // failing test, or a return to green — plus one still-broken reminder per week.
+                           // That makes it exception-only, which is the bar this list documents.
+                           // Un-gating it WITHOUT that policy change would have been worse than leaving it
+                           // gated: the suite has been RED with an identical 6-test failure set every day
+                           // since 2026-07-12, so it would have sent the same message every morning until
+                           // Heath tuned it out. What it was doing instead: a genuine regression on
+                           // cron.cron-deadline-reminders (2026-09-10) was swallowed here and nobody knew.
+                           // A regression detector nobody hears is the silent-failure class this whole
+                           // system exists to close — feedback_silent-failure-is-the-enemy.md.
 ]);
 
 // Bot API methods that are reads / interactive plumbing, never unsolicited noise.
@@ -188,7 +242,11 @@ function fakeTelegramOk(method) {
   };
 }
 
-let _installedFor = null;
+// Name captured by the FIRST install() call in this process — the correct
+// (and only) name for a standalone route invocation. Only used as a
+// fallback when no per-call jobContext is active (see runWithJobContext).
+let _fallbackName = null;
+let _fetchWrapped = false;
 
 /**
  * Gate scheduled Telegram sends for this function instance.
@@ -197,50 +255,75 @@ let _installedFor = null;
  */
 function install(jobName) {
   const name = String(jobName || 'unknown-cron');
+  if (_fallbackName === null) _fallbackName = name;
 
-  // Idempotent: repeated requires in the same lambda must not stack wrappers.
-  if (_installedFor === name) return { jobName: name, muted: !isAllowed(name) };
-  if (_installedFor !== null) return { jobName: name, muted: !isAllowed(name) };
-  _installedFor = name;
-
-  const original = globalThis.fetch;
-  if (typeof original !== 'function') return { jobName: name, muted: !isAllowed(name) };
-
-  globalThis.fetch = function gatedFetch(input, init) {
-    let url = '';
-    try {
-      url = typeof input === 'string' ? input : (input && input.url) || '';
-    } catch (_) {
-      url = '';
-    }
-
-    if (url.includes('api.telegram.org')) {
-      const method = methodOf(url);
-      const isSend = method && !READ_ONLY_METHODS.has(method);
-      if (isSend && !isAllowed(name)) {
-        // WARN-level and self-describing: a suppressed notification must leave
-        // a trace someone can find later. The 2026-08-17 video_library incident
-        // cost three weeks because suppression was silent-and-invisible.
-        let preview = '';
+  // Idempotent: the global fetch wrap itself only needs to happen once per
+  // process — every install() call after the first just registers a
+  // (possibly different) fallback candidate, which we don't overwrite; the
+  // REAL per-call resolution happens in gatedFetch via jobContext.
+  if (!_fetchWrapped) {
+    const original = globalThis.fetch;
+    if (typeof original === 'function') {
+      globalThis.fetch = function gatedFetch(input, init) {
+        let url = '';
         try {
-          const parsed = init && init.body ? JSON.parse(init.body) : null;
-          const text = parsed && (parsed.text || parsed.caption);
-          if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
-          if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
-        } catch (_) { /* body not JSON — no preview */ }
-        console.warn(
-          `[telegram-gate] SUPPRESSED ${method} from ${name} — NOT delivered ` +
-          `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
-          preview
-        );
-        return Promise.resolve(fakeTelegramOk(method));
-      }
+          url = typeof input === 'string' ? input : (input && input.url) || '';
+        } catch (_) {
+          url = '';
+        }
+
+        if (url.includes('api.telegram.org')) {
+          // Resolve the ACTIVE job for THIS call, not whichever job happened
+          // to call install() first. Set by runWithJobContext() around each
+          // sub-handler invocation in cron-multiplex.js; absent for a
+          // standalone (non-multiplexed) route, where the single install()
+          // call's own name is correct.
+          const activeName = jobContext.getStore() || _fallbackName;
+          const method = methodOf(url);
+          const isSend = method && !READ_ONLY_METHODS.has(method);
+          if (isSend && !isAllowed(activeName)) {
+            // WARN-level and self-describing: a suppressed notification must leave
+            // a trace someone can find later. The 2026-08-17 video_library incident
+            // cost three weeks because suppression was silent-and-invisible.
+            let preview = '';
+            try {
+              const parsed = init && init.body ? JSON.parse(init.body) : null;
+              const text = parsed && (parsed.text || parsed.caption);
+              if (text) preview = ` text="${String(text).replace(/\s+/g, ' ').slice(0, 120)}"`;
+              if (parsed && parsed.chat_id) preview += ` chat_id=${parsed.chat_id}`;
+            } catch (_) { /* body not JSON — no preview */ }
+            console.warn(
+              `[telegram-gate] SUPPRESSED ${method} from ${activeName} — NOT delivered ` +
+              `(TELEGRAM_CRON_NOTIFICATIONS=${process.env.TELEGRAM_CRON_NOTIFICATIONS || 'unset'}).` +
+              preview
+            );
+            return Promise.resolve(fakeTelegramOk(method));
+          }
+        }
+
+        return original.call(this, input, init);
+      };
+      _fetchWrapped = true;
     }
+  }
 
-    return original.call(this, input, init);
-  };
+  return { jobName: name, muted: !isAllowed(jobContext.getStore() || name) };
+}
 
-  return { jobName: name, muted: !isAllowed(name) };
+/**
+ * Run `fn` with `jobName` bound as the ACTIVE job for any Telegram sends it
+ * (or anything it awaits) makes, regardless of which job's install() call
+ * happened to wrap fetch first. Used by cron-multiplex.js's runGroup so each
+ * multiplexed sub-handler is gated under its OWN name, including when
+ * several run concurrently via Promise.all — AsyncLocalStorage keeps each
+ * call's context isolated per async execution chain.
+ * @template T
+ * @param {string} jobName
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
+function runWithJobContext(jobName, fn) {
+  return jobContext.run(String(jobName || 'unknown-cron'), fn);
 }
 
 // Did the gate eat this send? Accepts either the parsed Telegram JSON body or
@@ -253,4 +336,4 @@ function wasSuppressed(x) {
   return false;
 }
 
-module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode };
+module.exports = { install, isAllowed, wasSuppressed, ALWAYS_ALLOW, parseMode, runWithJobContext };

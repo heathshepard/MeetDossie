@@ -25,6 +25,11 @@
 //       tags?: ["...", ...],
 //       privacyStatus?: "private" | "unlisted" | "public",  // default "private"
 //       category_id?: "22"
+//       contains_synthetic_media?: true  // AI-disclosure (2026-09-16): pass
+//         true for any upload using Heath's cloned voice (or any other
+//         realistic AI-generated voice/face) — sets YouTube Data API v3's
+//         status.containsSyntheticMedia. See heath-voice-clone-usage-scope.md
+//         and the matching gate in api/cron-post-videos.js postToZernio().
 //     }
 //
 // Behavior:
@@ -121,6 +126,7 @@ module.exports = async function handler(req, res) {
       tags: body.tags,
       categoryId: body.category_id,
       privacyStatus,
+      containsSyntheticMedia: body.contains_synthetic_media === true,
     });
     return res.status(200).json({ ok: true, video_id: result.videoId, url: result.url, privacy_status: privacyStatus });
   } catch (err) {

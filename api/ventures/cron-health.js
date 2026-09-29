@@ -67,7 +67,14 @@ const KNOWN_CRONS = [
   { name: 'cron-content-brief',         schedule: '0 14 * * 1-5',   expectedMinutes: 1440, label: 'Content Brief (weekdays 2PM UTC)' },
   { name: 'cron-analytics-sync',        schedule: '0 2 * * 0',      expectedMinutes: 10080, label: 'Analytics Sync (weekly Sun 2AM UTC)' },
   { name: 'cron-video-approval',        schedule: '0 10 * * *',     expectedMinutes: 1440, label: 'Video Approval (daily 10AM UTC)' },
-  { name: 'cron-post-videos',           schedule: '0 13 * * *',     expectedMinutes: 1440, label: 'Post Videos (daily 1PM UTC)' },
+  // Schedule corrected 2026-09-28 (Atlas): this job was moved off its own
+  // vercel.json entry into the cron-dispatch-daily-1330 group on 2026-09-16
+  // (see api/cron-dispatch-daily-1330.js) when the crons-array schema cap
+  // was hit — its real firing time is 13:30 UTC, not 13:00. The stale entry
+  // here didn't break health/error detection (1440min expected * 1.5 =
+  // plenty of slack for a 30min offset) but it silently fed the /ventures
+  // dashboard's "Next: ..." countdown the wrong time.
+  { name: 'cron-post-videos',           schedule: '30 13 * * *',    expectedMinutes: 1440, label: 'Post Videos (daily 1:30PM UTC)' },
   { name: 'cron-verify-posts',          schedule: '45 * * * *',     expectedMinutes: 60,   label: 'Verify Posts (hourly :45)' },
   { name: 'cron-generate-skit',         schedule: '0 11 * * 2,5',   expectedMinutes: 4320, label: 'Generate Skit (Tue+Fri 11AM UTC)' },
   { name: 'alert-health',               schedule: '*/5 * * * *',    expectedMinutes: 5,    label: 'Alert Health (every 5min)' },
@@ -86,18 +93,18 @@ export default async function handler(req, res) {
   try {
     // Fetch latest run per cron_name from cron_runs
     const r = await supa(
-      'cron_runs?select=cron_name,last_run,last_status&order=last_run.desc.nullslast&limit=200'
+      'cron_runs?select=cron_name,last_run,last_status,last_meta&order=last_run.desc.nullslast&limit=200'
     );
     let runRows = [];
     if (r.ok) {
       runRows = await r.json();
     }
 
-    // Build a map: cron_name -> { last_run, last_status }
+    // Build a map: cron_name -> { last_run, last_status, last_meta }
     const runMap = {};
     for (const row of runRows) {
       if (!runMap[row.cron_name]) {
-        runMap[row.cron_name] = { lastRun: row.last_run, lastStatus: row.last_status };
+        runMap[row.cron_name] = { lastRun: row.last_run, lastStatus: row.last_status, lastMeta: row.last_meta || null };
       }
     }
 
@@ -106,6 +113,14 @@ export default async function handler(req, res) {
       const runData = runMap[c.name] || null;
       const lastRun = runData?.lastRun ? new Date(runData.lastRun) : null;
       const lastStatus = runData?.lastStatus || null;
+      // Skip visibility (Atlas 2026-09-28): a run that returns 200 having
+      // skipped every candidate (every platform capped, no heath_approved
+      // rows, schedule fail-closed) looks IDENTICAL to a run that posted —
+      // both are last_status='ok'. summary_counts (written by
+      // withTelemetry's summarizeCounts()) is the only place that
+      // distinction survives past the console log. Passed through as-is;
+      // undefined for crons that don't emit a `summary` block.
+      const summaryCounts = runData?.lastMeta?.summary_counts || null;
 
       // Determine health color based on recency vs expected frequency
       let health = 'unknown'; // grey — no data yet
@@ -132,6 +147,7 @@ export default async function handler(req, res) {
         lastRun: lastRun ? lastRun.toISOString() : null,
         lastStatus,
         health,
+        summaryCounts,
       };
     });
 

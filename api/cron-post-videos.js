@@ -20,7 +20,13 @@
 // via the /api/video-review-callback endpoint (see bottom of this file — separate handler).
 //
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json — "30 11 * * *"
+// Schedule: fires via api/cron-dispatch-daily-1330.js ("30 13 * * *" in
+// vercel.json) — moved off its own standalone entry 2026-09-16 when the
+// crons-array schema cap was hit. This comment previously said
+// "30 11 * * *", stale since before that move and contradicting the file
+// header above; corrected 2026-09-28 (Atlas) — see api/ventures/cron-health.js
+// KNOWN_CRONS, which had the same stale schedule feeding the /ventures
+// dashboard's "next run" countdown.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -28,6 +34,30 @@ require('./_lib/telegram-gate').install('cron-post-videos');
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { DateTime } = require('luxon');
+// Video quality gate (Heath's standing rule 2026-09-15 —
+// feedback_every-video-needs-scroll-stopping-hook.md /
+// docs/SCROLL-STOPPING-VIDEO-PLAYBOOK.md). Vercel cannot run ffmpeg, so this
+// checks the quality_status/quality_failed_rules already recorded on the row
+// by scripts/queue-finished-videos.py's ingestion-time gate — see
+// api/_lib/verify-video-quality.js's file header for why. Blocking: any row
+// that isn't quality_status='passed' is held here, never queued for review
+// or posted.
+const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-quality.js');
+// Pipeline B delivery-verification tracking (Carter 2026-09-17 — closes the
+// gap where a video_library post's per-platform Zernio result was logged
+// and thrown away, leaving nothing for cron-verify-zernio-deliveries.js to
+// later confirm. See api/_lib/video-delivery-verify.js file header.
+const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
+// Routine-approval batching (Heath, 2026-09-17: "batched into the morning
+// brief rather than pinging per item"). Same capability and same mechanism
+// api/cron-comment-opp-approval.js already uses: when 'batch_routine_approvals'
+// is on, the row is advanced to pending_heath_review WITHOUT an individual
+// Telegram card, and api/_lib/silence-alarm.js's pickTopDecisions() carries its
+// Approve/Reject buttons inside the one daily brief instead (video_library is a
+// DECISION_SOURCES entry there, reusing this file's exact callback_data).
+// Fails CLOSED to the old per-item send if the flag can't be read — a
+// notification Heath never sees is worse than one too many.
+const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,7 +79,17 @@ const ZERNIO_ACCOUNTS = {
   facebook:  '69f253c3985e734bf3d8f9bc',
   twitter:   '69f255c6985e734bf3d90ba1',
   linkedin:  '69fccd7392b3d8e85f8f12be',
-  youtube:   process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null,
+  // Dossie's own YouTube channel (@meetdossie, UCLtSlBEakQh-ClTVd_KGhWA).
+  // Was `process.env.ZERNIO_YOUTUBE_ACCOUNT_ID || null` — that env var was
+  // NEVER set in Vercel, so this resolved to null and every YouTube target
+  // failed account resolution silently. That is the whole reason YouTube has
+  // never published a single post despite the channel being connected to
+  // Zernio since 2026-05-29 with the youtube.upload scope granted.
+  // Hardcoded now for the same reason every other platform here is: a Zernio
+  // account id is not a secret, and an unset env var must not be able to
+  // silently disable a whole platform. The zernio_accounts table lookup in
+  // resolveZernioAccountId() still takes precedence over this map.
+  youtube:   '6a19ef442b2567671a6aa273',
 };
 
 // Default: post video to all connected platforms unless overridden by video.platforms row.
@@ -65,8 +105,34 @@ const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linked
 // videos.py always sets one explicitly, so this is a legacy-row fallback).
 const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram'];
 
-function defaultPlatformsFor(owner) {
-  return owner === 'heath-realtor' ? REALTOR_DEFAULT_PLATFORMS : DEFAULT_PLATFORMS;
+// Default platforms for a video whose row shipped with an empty/missing
+// `platforms` array — a legacy-row fallback (queue-finished-videos.py
+// always sets one explicitly today, for every owner including rust).
+//
+// DB-DRIVEN (Carter 2026-09-16 — RUST-OWNER-WIRING). Previously this was an
+// if/else on owner literal ('heath-realtor' ? REALTOR_DEFAULT_PLATFORMS :
+// DEFAULT_PLATFORMS) — every new owner needed a source change here just to
+// get a sane fallback. Now it asks zernio_accounts directly: whatever
+// platforms are actively connected for this owner IS the default list, so
+// adding a brand is a zernio_accounts INSERT, never a code edit. The two
+// hardcoded constants above are kept ONLY as a fail-safe for 'dossie' and
+// 'heath-realtor' if the DB read itself fails (matches their pre-existing
+// behavior exactly) — a brand-new owner with no DB row and a failed lookup
+// gets an empty list (skip that video's default-platform resolution
+// entirely) rather than silently spraying it across every platform.
+async function defaultPlatformsFor(owner) {
+  try {
+    const { data, ok } = await supabaseFetch(
+      `/rest/v1/zernio_accounts?owner=eq.${encodeURIComponent(owner)}&is_active=eq.true&select=platform`,
+    );
+    if (ok && Array.isArray(data) && data.length > 0) {
+      return [...new Set(data.map((r) => r.platform))];
+    }
+  } catch (_) { /* fall through to the legacy fail-safe below */ }
+  if (owner === 'heath-realtor') return REALTOR_DEFAULT_PLATFORMS;
+  if (owner === 'dossie' || !owner) return DEFAULT_PLATFORMS;
+  console.warn(`[cron-post-videos] defaultPlatformsFor(${owner}): no active zernio_accounts rows and no legacy fail-safe — returning []`);
+  return [];
 }
 
 // All posting_schedule rows use America/Chicago; day boundaries and slot
@@ -75,42 +141,73 @@ const DEFAULT_TZ = 'America/Chicago';
 
 // Load today's posting_schedule rows (ACTIVE AND INACTIVE — inactive rows
 // must be visible so the caller can skip those platforms, not fall through
-// to "no schedule" ambiguity). Returns Map platform -> row.
+// to "no schedule" ambiguity). Returns Map platform -> { shared: row|null,
+// owners: Map<owner, row> }.
+//
+// OWNER-SCOPED (Carter 2026-09-16 — RUST-OWNER-WIRING /
+// 20260916d_rust_owner_wiring.sql). posting_schedule was never owner-scoped
+// — every owner posting to a platform shared the exact same slots/cap/
+// is_active row. That's fine while every owner agrees a platform should be
+// on or off, and breaks the moment they don't: Twitter/X is deliberately
+// INACTIVE for Dossie (all 7 day rows) but Rust's connected @Ruststrength
+// account needs it active. `owner` is now nullable on this table — NULL
+// rows are shared (apply to any owner with no override), a non-null owner
+// value overrides the shared row for that owner ONLY, on that exact
+// platform+day. gatePlatform() below prefers the owner-specific row.
 async function loadTodaySchedule() {
   const { data, ok } = await supabaseFetch(
-    '/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day',
+    '/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day,owner',
   );
   if (!ok || !Array.isArray(data)) return null; // null = query failed (fail closed upstream)
   const byPlatform = new Map();
   for (const row of data) {
     const dow = DateTime.now().setZone(row.timezone || DEFAULT_TZ).weekday % 7; // luxon: Mon=1..Sun=7 → Sun=0..Sat=6
-    if (row.day_of_week === dow) byPlatform.set(row.platform, row);
+    if (row.day_of_week !== dow) continue;
+    let entry = byPlatform.get(row.platform);
+    if (!entry) {
+      entry = { shared: null, owners: new Map() };
+      byPlatform.set(row.platform, entry);
+    }
+    if (row.owner) entry.owners.set(row.owner, row);
+    else entry.shared = row;
   }
   return byPlatform;
 }
 
-// Count today's posts per platform (video + text), today = America/Chicago
-// day. Counts social_posts in posted/publishing state plus video_library
-// rows posted today (each such row counts 1 against every platform in its
-// platforms array). Returns Map platform -> count, or null on query failure.
+// Count today's posts per (owner, platform) pair (video + text), today =
+// America/Chicago day. Counts social_posts in posted/publishing state plus
+// video_library rows posted today (each such row counts 1 against every
+// platform in its platforms array). Returns Map "owner::platform" -> count,
+// or null on query failure.
+//
+// Owner-scoped (Carter 2026-09-15 — mirrors cron-publish-approved.js's
+// countPostedToday(platform, tz, owner), Atlas 2026-08-18). Previously this
+// counted every owner's posts into ONE shared bucket per platform, so
+// Dossie's own facebook/instagram posts exhausted the SAME daily cap
+// Heath's realtor Page needs — a realtor listing video got silently
+// blocked behind Dossie's own posts and had to be manually cap-raised.
+// target_owner defaults to 'dossie' on both tables (see
+// 20260817_social_posts_target_owner.sql / 20260910_video_library_target_owner.sql)
+// so a legacy/null row still counts correctly.
 async function getPostCountsToday() {
   const now = DateTime.now().setZone(DEFAULT_TZ);
   const startIso = encodeURIComponent(now.startOf('day').toUTC().toISO());
 
   const { data: socialRows, ok: socialOk } = await supabaseFetch(
-    `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform`,
+    `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform,target_owner`,
   );
   const { data: videoRows, ok: videoOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms`,
+    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms,target_owner`,
   );
   if (!socialOk || !videoOk) return null;
 
   const counts = new Map();
-  const bump = (p) => counts.set(p, (counts.get(p) || 0) + 1);
-  if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.platform));
+  const key = (owner, platform) => `${owner || 'dossie'}::${platform}`;
+  const bump = (owner, p) => counts.set(key(owner, p), (counts.get(key(owner, p)) || 0) + 1);
+  if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.target_owner, r.platform));
   if (Array.isArray(videoRows)) {
     videoRows.forEach((r) => {
-      if (Array.isArray(r.platforms)) r.platforms.forEach(bump);
+      if (Array.isArray(r.platforms)) r.platforms.forEach((p) => bump(r.target_owner, p));
     });
   }
   return counts;
@@ -121,8 +218,12 @@ async function getPostCountsToday() {
 // scheduledFor = next slot later today in the schedule tz; null = every slot
 // already passed, publish immediately (slot-passed == due, matching
 // cron-publish-approved semantics).
-function gatePlatform(platform, scheduleByPlatform, counts) {
-  const row = scheduleByPlatform.get(platform);
+// owner scopes both the schedule row (an owner-specific posting_schedule
+// override takes precedence over the shared one — see loadTodaySchedule())
+// and the daily-cap count (see getPostCountsToday).
+function gatePlatform(platform, scheduleByPlatform, counts, owner = 'dossie') {
+  const entry = scheduleByPlatform.get(platform);
+  const row = entry && (entry.owners.get(owner) || entry.shared);
   if (!row) {
     return { post: false, reason: 'no posting_schedule row for today' };
   }
@@ -130,9 +231,9 @@ function gatePlatform(platform, scheduleByPlatform, counts) {
     return { post: false, reason: 'posting_schedule row is INACTIVE' };
   }
   const cap = row.max_per_day;
-  const already = counts.get(platform) || 0;
+  const already = counts.get(`${owner}::${platform}`) || 0;
   if (cap != null && already >= cap) {
-    return { post: false, reason: `daily cap reached (${already}/${cap})` };
+    return { post: false, reason: `daily cap reached for owner=${owner} (${already}/${cap})` };
   }
 
   const tz = row.timezone || DEFAULT_TZ;
@@ -149,11 +250,11 @@ function gatePlatform(platform, scheduleByPlatform, counts) {
 }
 
 // Split a video's platform list into postable targets and skips, with logs.
-function resolvePlatformTargets(label, platforms, scheduleByPlatform, counts) {
+function resolvePlatformTargets(label, platforms, scheduleByPlatform, counts, owner = 'dossie') {
   const targets = []; // { platform, scheduledFor }
   const skipped = []; // { platform, reason }
   for (const platform of platforms) {
-    const gate = gatePlatform(platform, scheduleByPlatform, counts);
+    const gate = gatePlatform(platform, scheduleByPlatform, counts, owner);
     if (gate.post) {
       console.log(`[cron-post-videos] ${label}: ${platform} → ${gate.scheduledFor ? `scheduled for ${gate.scheduledFor}` : 'publish now (all slots passed)'}`);
       targets.push({ platform, scheduledFor: gate.scheduledFor });
@@ -251,7 +352,14 @@ async function sendTelegramMessage(text, extra = {}) {
 
 // Send a video for Heath's review with inline Approve/Reject buttons.
 // Sets status='pending_heath_review' first to prevent double-sends.
-async function sendForHeathReview(video) {
+//
+// `batched` = the 'batch_routine_approvals' capability is on. In that mode the
+// status advance still happens (so the row is queued and nothing re-queues it),
+// but NO individual Telegram card is sent — the morning brief picks the row up
+// from pending_heath_review and renders these exact buttons. This is the whole
+// difference between "one video a day" being a useful habit and being a daily
+// interruption per item.
+async function sendForHeathReview(video, { batched = false } = {}) {
   // Mark as pending_heath_review so next cron run doesn't re-queue it
   await supabaseFetch(
     `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
@@ -262,10 +370,24 @@ async function sendForHeathReview(video) {
     },
   );
 
+  if (batched) {
+    console.log(`[cron-post-videos] ${video.id} queued for the morning brief (batched, no individual ping)`);
+    await logAutonomousAction({
+      capability: 'batch_routine_approvals',
+      decision: 'autonomous',
+      action: 'folded a video approval into the morning brief instead of an individual ping',
+      firedBy: 'cron-post-videos',
+      gatesPassed: ['quality_status_passed', 'supabase_url_present'],
+      refTable: 'video_library',
+      refId: video.id,
+    }).catch(() => {});
+    return;
+  }
+
   const owner = video.target_owner || 'dossie';
   const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
     ? video.platforms
-    : defaultPlatformsFor(owner);
+    : await defaultPlatformsFor(owner);
 
   const text = [
     `Video ready for review: ${video.topic || video.id}${owner === 'heath-realtor' ? ' [REALTOR]' : ''}`,
@@ -293,6 +415,19 @@ async function sendForHeathReview(video) {
 // AND Facebook Page independently per owner (GAP 4, Carter 2026-09-10).
 // A heath-realtor call NEVER falls back to a dossie account — see
 // resolveZernioAccountId().
+// NOTE (Carter 2026-09-17 — Quinn QA follow-up on RUST-OWNER-WIRING): the
+// clone-voice AI disclosure flags below used to be gated on
+// owner==='heath-realtor' — a proxy, not a fact. Rust now posts through this
+// exact pipeline (target_owner='rust', see 20260916d_rust_owner_wiring.sql),
+// and Heath's cloned voice is approved for realtor AND Rust content
+// (heath-voice-clone-usage-scope.md), so an owner-literal check would ship a
+// clone-voiced Rust video to YouTube/TikTok with no disclosure the moment
+// Rust connects one of those accounts. The flag is now read straight off
+// the video row (opts.usesClonedVoice, sourced from
+// video_library.uses_cloned_voice — 20260917b_ai_disclosure_content_
+// property.sql) — a property of the content, set by whichever pipeline
+// actually knows which voice rendered the audio, not derived from who
+// posted it.
 async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner = 'dossie') {
   const accountId = await resolveZernioAccountId(platform, owner);
   if (!accountId) {
@@ -320,6 +455,46 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),
       title: rawTitle.replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
+  }
+
+  // AI-disclosure label (Carter, 2026-09-16; fixed to read off content
+  // 2026-09-17) — YouTube and TikTok both require disclosure of realistic
+  // AI-generated/synthetic voice or face. heath-voice-clone-usage-scope.md:
+  // Heath's ElevenLabs clone (i41TA0Q36AUrp4axERi3) is approved for realtor
+  // listing AND Rust content, NEVER for Dossie (Dossie always speaks as
+  // Luna). Rust posts through THIS pipeline now (target_owner='rust', see
+  // 20260916d_rust_owner_wiring.sql) — so the old owner==='heath-realtor'
+  // proxy would silently ship a clone-voiced Rust video with no disclosure.
+  // opts.usesClonedVoice is sourced by the caller from
+  // video_library.uses_cloned_voice, a fact the content pipeline records at
+  // ingestion time (scripts/queue-finished-videos.py) — never inferred from
+  // who posted it.
+  // Field names verified against Zernio's own API docs (docs.zernio.com,
+  // 2026-09-16) and Google's YouTube Data API v3 reference:
+  //   YouTube: status.containsSyntheticMedia (realistic Altered/Synthetic content)
+  //   TikTok:  tiktokSettings.video_made_with_ai (Business-app video posts only)
+  const usesHeathClonedVoice = opts.usesClonedVoice === true;
+  if (usesHeathClonedVoice && platform === 'youtube') {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      containsSyntheticMedia: true,
+    };
+  }
+  if (usesHeathClonedVoice && platform === 'tiktok') {
+    // NOTE: TikTok's other required tiktokSettings fields (privacy_level,
+    // allow_comment, allow_duet, allow_stitch, content_preview_confirmed,
+    // express_consent_given) are not sent anywhere in this file today — a
+    // pre-existing gap, not introduced here. TikTok isn't connected for
+    // owner='heath-realtor' yet either (docs/PIPELINE.md), so this has no
+    // live effect until both are fixed. Flagging, not fixing here — out of
+    // this change's scope.
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      tiktokSettings: {
+        ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+        video_made_with_ai: true,
+      },
     };
   }
 
@@ -369,13 +544,26 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
       (Array.isArray(data?.data?.posts) && data.data.posts[0]?.id) ||
       (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?._id) ||
       null;
+    // Record a platform URL immediately IF the accept-time response happens
+    // to carry one (Carter 2026-09-17 — most Zernio responses don't; the
+    // real URL usually only shows up later via GET /posts/:id, which
+    // cron-verify-zernio-deliveries.js polls). Never invented — only used
+    // if actually present in this exact response.
+    const platformUrl =
+      data?.url ||
+      data?.platform_url ||
+      data?.post?.url ||
+      data?.data?.url ||
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?.url) ||
+      (Array.isArray(data?.posts) && data.posts[0]?.url) ||
+      null;
     if (!zernioPostId) {
       // A 2xx with no post id usually means Zernio silently rejected the
       // post (validation failure on their side). Don't report clean success.
       console.warn(`[cron-post-videos] Zernio ${platform}: 2xx but NO post id in response — treating as unverified. Body: ${text.slice(0, 500)}`);
-      return { ok: true, data, zernio_post_id: null, unverified: true };
+      return { ok: true, data, zernio_post_id: null, unverified: true, platform_url: platformUrl };
     }
-    return { ok: true, data, zernio_post_id: zernioPostId };
+    return { ok: true, data, zernio_post_id: zernioPostId, platform_url: platformUrl };
   } catch (err) {
     return { ok: false, error: `Zernio exception: ${err && err.message}` };
   }
@@ -411,6 +599,18 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
 
   const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
 
+  // Read the batching capability ONCE for the whole pass. Fail closed to the
+  // old per-item send: if the flag can't be read we do not risk a video
+  // sitting in a brief that never renders it.
+  let batched = false;
+  try {
+    const cap = await checkCapability('batch_routine_approvals');
+    batched = cap && cap.allowed === true;
+  } catch (err) {
+    console.warn('[cron-post-videos] batch_routine_approvals unreadable, sending individually:', err && err.message);
+  }
+  summary.batched_into_brief = batched;
+
   for (const video of approvedVideos) {
     if (!video.supabase_url) {
       const warn = `Video ${video.id} is approved but supabase_url is null — run scripts/upload-video.py first`;
@@ -419,139 +619,213 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
       summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
       continue;
     }
-    await sendForHeathReview(video);
+    const qualityOk = await gateVideoQuality(video);
+    if (!qualityOk) {
+      summary.skipped.push({ id: video.id, reason: 'quality gate blocked (see quality_hold alert)' });
+      continue;
+    }
+    await sendForHeathReview(video, { batched });
     summary.queued_for_review.push(video.id);
   }
 
   // --- STEP 2: Post any 'heath_approved' videos to Zernio ---
+  // Fetch a BATCH, not just the single oldest row (Carter 2026-09-15 fix).
+  // Previously this pulled limit=1 — when the oldest row's platforms were
+  // all at their daily cap, it sat back at 'heath_approved' and every newer
+  // row behind it was silently blocked, forever, since the same oldest row
+  // gets re-selected on every run. Now we scan up to CANDIDATE_BATCH_SIZE
+  // oldest rows and post the first one that has at least one platform with
+  // cap room today. Rows skipped this pass are untouched and re-considered
+  // next run (or picked up sooner once cap room frees up).
+  const CANDIDATE_BATCH_SIZE = 20;
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    '/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=1',
+    `/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
   );
 
   if (!heathApprovedOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query heath_approved videos' });
   }
 
-  const video = Array.isArray(heathApprovedRows) && heathApprovedRows.length > 0
-    ? heathApprovedRows[0]
-    : null;
+  const candidates = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
 
   let libraryOk = true;
   let videoResults = [];
   let videoId = null;
   let platformsAttempted = [];
 
-  if (!video) {
+  if (candidates.length === 0) {
     console.log('[cron-post-videos] No heath_approved videos — nothing to post');
   } else {
-    videoId = video.id;
-    const owner = video.target_owner || 'dossie';
-    console.log(`[cron-post-videos] Posting heath_approved video: ${video.id} (owner: ${owner})`);
+    // Schedule + cap gate (2026-09-07). Fail CLOSED: if we can't read the
+    // schedule or today's counts, we cannot prove ANY post is within cap,
+    // so nothing posts this run (all candidate rows stay heath_approved).
+    // Loaded once for the whole batch scan — every candidate is evaluated
+    // against the same schedule/counts snapshot.
+    const scheduleByPlatform = await loadTodaySchedule();
+    const counts = scheduleByPlatform ? await getPostCountsToday() : null;
 
-    if (!video.supabase_url) {
-      const warn = `Video ${video.id} is heath_approved but supabase_url is null`;
-      console.warn(`[cron-post-videos] ${warn}`);
-      await sendTelegramMessage(`Video pipeline: ${warn}`);
-      summary.skipped.push({ id: video.id, reason: 'no supabase_url' });
+    if (!scheduleByPlatform || !counts) {
+      console.error('[cron-post-videos] posting_schedule / post-count query failed — failing closed, not posting');
+      libraryOk = false;
+      summary.skipped.push({ reason: 'schedule/cap query failed — fail closed', candidates: candidates.length });
     } else {
-      const captionCheck = (video.caption || '').trim().toLowerCase();
-      if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
-        const warn = `Video ${video.id} has an invalid caption ("${(video.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
-        console.warn(`[cron-post-videos] ${warn}`);
-        await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
-        await supabaseFetch(
-          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
-        );
-        summary.skipped.push({ id: video.id, reason: 'invalid caption' });
-      } else {
-        // Schedule + cap gate (2026-09-07). Fail CLOSED: if we can't read
-        // the schedule or today's counts, we cannot prove a post is within
-        // cap, so nothing posts this run (row stays heath_approved).
-        const scheduleByPlatform = await loadTodaySchedule();
-        const counts = scheduleByPlatform ? await getPostCountsToday() : null;
+      // Scan candidates oldest-first for the first one with eligible platform
+      // room. Rows with a hard blocker (no supabase_url, invalid caption)
+      // are resolved immediately (warned/failed) and skipped, same as
+      // before, but scanning continues to the next candidate instead of
+      // stopping the whole run.
+      let video = null;
+      let targets = [];
+      let platformSkips = [];
 
-        if (!scheduleByPlatform || !counts) {
-          console.error('[cron-post-videos] posting_schedule / post-count query failed — failing closed, not posting');
-          libraryOk = false;
-          summary.skipped.push({ id: video.id, reason: 'schedule/cap query failed — fail closed' });
-        } else {
-          const requested = (Array.isArray(video.platforms) && video.platforms.length > 0)
-            ? video.platforms
-            : defaultPlatformsFor(owner);
-          const { targets, skipped: platformSkips } = resolvePlatformTargets(
-            `video ${video.id}`, requested, scheduleByPlatform, counts,
+      for (const candidate of candidates) {
+        if (!candidate.supabase_url) {
+          const warn = `Video ${candidate.id} is heath_approved but supabase_url is null`;
+          console.warn(`[cron-post-videos] ${warn}`);
+          await sendTelegramMessage(`Video pipeline: ${warn}`);
+          summary.skipped.push({ id: candidate.id, reason: 'no supabase_url' });
+          continue;
+        }
+
+        const captionCheck = (candidate.caption || '').trim().toLowerCase();
+        if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+          const warn = `Video ${candidate.id} has an invalid caption ("${(candidate.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
+          console.warn(`[cron-post-videos] ${warn}`);
+          await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+          await supabaseFetch(
+            `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
+            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
           );
-          summary.platform_skips = platformSkips;
+          summary.skipped.push({ id: candidate.id, reason: 'invalid caption' });
+          continue;
+        }
 
-          if (targets.length === 0) {
-            console.log(`[cron-post-videos] Video ${video.id}: no platform eligible today — leaving heath_approved for a later run`);
-            summary.skipped.push({ id: video.id, reason: 'no eligible platform today', platform_skips: platformSkips });
-          } else {
-            const { ok: lockOk } = await supabaseFetch(
-              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
+        // Rust content rule (Heath, 2026-09-16 — RUST-OWNER-WIRING, see
+        // memory rust-app-store-submission-state.md): no store link / "download
+        // now" language while iOS/Android aren't both live yet. The CTA is
+        // always the waitlist at rustfitness.app. Caught here so a caption
+        // slipping past generation still can't ship a broken/premature CTA.
+        if ((candidate.target_owner || 'dossie') === 'rust') {
+          const rustCta = captionCheck;
+          if (/\b(download( it)? now|get it on|app store|google play|available now on)\b/.test(rustCta)) {
+            const warn = `Video ${candidate.id} (owner=rust) caption references a store/download CTA before iOS/Android are live: "${(candidate.caption || '').slice(0, 80)}"`;
+            console.warn(`[cron-post-videos] ${warn}`);
+            await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
+              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+            );
+            summary.skipped.push({ id: candidate.id, reason: 'rust store-link CTA before launch' });
+            continue;
+          }
+        }
+
+        const qualityOk = await gateVideoQuality(candidate);
+        if (!qualityOk) {
+          summary.skipped.push({ id: candidate.id, reason: 'quality gate blocked at publish (see quality_hold alert)' });
+          continue;
+        }
+
+        const owner = candidate.target_owner || 'dossie';
+        const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
+          ? candidate.platforms
+          : await defaultPlatformsFor(owner);
+        const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
+
+        if (resolved.targets.length === 0) {
+          console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
+          summary.skipped.push({ id: candidate.id, reason: 'no eligible platform today', platform_skips: resolved.skipped });
+          continue;
+        }
+
+        video = candidate;
+        targets = resolved.targets;
+        platformSkips = resolved.skipped;
+        break;
+      }
+
+      if (!video) {
+        console.log(`[cron-post-videos] No candidate among ${candidates.length} heath_approved rows has an eligible platform today`);
+      } else {
+        videoId = video.id;
+        const owner = video.target_owner || 'dossie';
+        console.log(`[cron-post-videos] Posting heath_approved video: ${video.id} (owner: ${owner})`);
+        summary.platform_skips = platformSkips;
+
+        const { ok: lockOk } = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}&status=eq.heath_approved`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({ status: 'posting' }),
+          },
+        );
+
+        if (!lockOk) {
+          console.error('[cron-post-videos] Failed to acquire posting lock');
+          libraryOk = false;
+        } else {
+          platformsAttempted = targets.map((t) => t.platform);
+          const caption = video.caption || '';
+
+          const nowIso = new Date().toISOString();
+          const deliveryEntries = [];
+          for (const t of targets) {
+            const result = await postToZernio(
+              t.platform, video.supabase_url, caption, video.topic,
+              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true }, owner,
+            );
+            videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
+            deliveryEntries.push(buildDeliveryEntry({
+              platform: t.platform,
+              scheduledFor: t.scheduledFor,
+              postResult: result,
+              nowIso,
+            }));
+            if (!result.ok) {
+              libraryOk = false;
+              console.error(`[cron-post-videos] Failed on ${t.platform}:`, result.error);
+            } else {
+              console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
+            }
+          }
+          // Persist per-platform delivery state so cron-verify-zernio-deliveries.js
+          // can confirm actual delivery later — previously this was logged
+          // and discarded, the exact gap this fix closes.
+          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, deliveryEntries);
+
+          if (libraryOk) {
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
-                headers: { Prefer: 'return=representation' },
-                body: JSON.stringify({ status: 'posting' }),
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
               },
             );
-
-            if (!lockOk) {
-              console.error('[cron-post-videos] Failed to acquire posting lock');
-              libraryOk = false;
-            } else {
-              platformsAttempted = targets.map((t) => t.platform);
-              const caption = video.caption || '';
-
-              for (const t of targets) {
-                const result = await postToZernio(
-                  t.platform, video.supabase_url, caption, video.topic,
-                  { scheduledFor: t.scheduledFor }, owner,
-                );
-                videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
-                if (!result.ok) {
-                  libraryOk = false;
-                  console.error(`[cron-post-videos] Failed on ${t.platform}:`, result.error);
-                } else {
-                  console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
-                }
-              }
-
-              if (libraryOk) {
-                await supabaseFetch(
-                  `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-                  {
-                    method: 'PATCH',
-                    headers: { Prefer: 'return=minimal' },
-                    body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString() }),
-                  },
-                );
-                const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
-                const msgLines = [
-                  `Video posted: ${video.id}`,
-                  `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
-                ];
-                if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
-                if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
-                msgLines.push(caption.slice(0, 100));
-                await sendTelegramMessage(msgLines.join('\n'));
-                console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
-                summary.posted.push(video.id);
-              } else {
-                const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
-                await supabaseFetch(
-                  `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
-                  {
-                    method: 'PATCH',
-                    headers: { Prefer: 'return=minimal' },
-                    body: JSON.stringify({ status: 'failed', posted_date: null }),
-                  },
-                );
-                await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
-                console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
-              }
-            }
+            const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
+            const msgLines = [
+              `Video posted: ${video.id}`,
+              `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
+            ];
+            if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
+            if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
+            msgLines.push(caption.slice(0, 100));
+            await sendTelegramMessage(msgLines.join('\n'));
+            console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+            summary.posted.push(video.id);
+          } else {
+            const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+            await supabaseFetch(
+              `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+              {
+                method: 'PATCH',
+                headers: { Prefer: 'return=minimal' },
+                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries }),
+              },
+            );
+            await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
+            console.error(`[cron-post-videos] Video ${video.id} failed:`, errorSummary);
           }
         }
       }
@@ -562,6 +836,14 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   const skitPostResult = await postApprovedSkits();
   summary.skit_posted = skitPostResult.posted;
 
+  // --- STEP 4: Alert if approved videos have sat unposted for 48h+ ---
+  // Silent-failure guard: without this, the batch-scan fix in STEP 2 can
+  // still leave a video capped-out on every one of its platforms for days
+  // and nobody would know until Heath noticed the gap himself. video_library
+  // has no approved_at column, so created_at is the best available proxy
+  // for "how long has this been sitting."
+  summary.stale_approved = await alertStaleApprovedVideos();
+
   return res.status(200).json({
     ok: libraryOk,
     video_id: videoId,
@@ -570,6 +852,30 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     summary,
   });
 });
+
+// video_library rows stuck at 'heath_approved' (or still 'approved',
+// awaiting Heath's review tap) past 48h mean the video pipeline is backed
+// up — either every platform is capped out day after day, or a review
+// message never got tapped. Reuses the same sendTelegramMessage helper as
+// the rest of this cron; runs every invocation (daily), so this is at most
+// one extra message/day while the condition persists — acceptable given
+// there's no separate alert-dedup table for this cron today.
+async function alertStaleApprovedVideos() {
+  const cutoffIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(approved,heath_approved)&created_at=lt.${encodeURIComponent(cutoffIso)}&select=id,status,topic,created_at&order=created_at.asc`,
+  );
+  if (!ok || !Array.isArray(data) || data.length === 0) return { count: 0 };
+
+  const lines = [
+    `Video pipeline alert: ${data.length} video(s) approved but unposted for 48h+`,
+    ...data.slice(0, 10).map((v) => `- ${v.id} (${v.status}, since ${v.created_at})`),
+    data.length > 10 ? `...and ${data.length - 10} more` : null,
+  ].filter(Boolean);
+  console.warn(`[cron-post-videos] STALE ALERT: ${data.length} approved video(s) unposted 48h+`);
+  await sendTelegramMessage(lines.join('\n'));
+  return { count: data.length, ids: data.map((v) => v.id) };
+}
 
 // --- Skit video posting handler ---
 // Called from this same cron run to post video_approved skits to Zernio.
@@ -620,8 +926,10 @@ async function postApprovedSkits() {
     console.error(`[cron-post-videos] Skit ${skitId}: schedule/cap query failed — failing closed, not posting`);
     return { posted: [], skipped: [skitId] };
   }
+  // Skits are always Dossie's own content (SKIT_PLATFORMS never carries a
+  // target_owner) — explicit 'dossie' here, not relying on the default.
   const { targets, skipped: platformSkips } = resolvePlatformTargets(
-    `skit ${skitId}`, SKIT_PLATFORMS, scheduleByPlatform, counts,
+    `skit ${skitId}`, SKIT_PLATFORMS, scheduleByPlatform, counts, 'dossie',
   );
   if (targets.length === 0) {
     console.log(`[cron-post-videos] Skit ${skitId}: no platform eligible today (${platformSkips.map((s) => `${s.platform}: ${s.reason}`).join('; ')}) — leaving video_approved for a later run`);

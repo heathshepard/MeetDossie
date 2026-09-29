@@ -83,6 +83,24 @@ const SUPABASE_VOICEOVERS_PREFIX =
 
 const MOBILE_PLATFORMS = new Set(['instagram', 'tiktok']);
 
+// Retired 2026-09-09 (docs/POSTING-ENGINE-PLAN-2026-09-09.md item 2): the
+// per-post Creatomate render path for instagram/tiktok is dead. Both
+// platforms are carried by Pipeline B now (video_library ->
+// cron-post-videos.js — docs/PIPELINE.md). cron-generate-posts.js was fixed
+// 2026-09-15 to stop generating instagram/tiktok rows at all, but this cron
+// still excludes them defensively at both the query and the per-row level
+// so any legacy row (pre-2026-09-09, video_required=true) never gets a real
+// render attempt against a vendor path that's been retired for this
+// platform pair — never re-add without wiring a live video source first.
+//
+// 'youtube' added 2026-09-16 (Carter) for the same reason: it hit the
+// identical dead-Creatomate path (only dormant because posting_schedule.
+// is_active was false, until 78c1c876 flipped it live for Pipeline B and
+// silently re-armed this cron for youtube too). youtube is now generated
+// exclusively via Pipeline B (scripts/queue-finished-videos.py) — see
+// GENERATION_DISABLED_PLATFORMS in cron-generate-posts.js.
+const SKIP_RENDER_PLATFORMS = new Set(['instagram', 'tiktok', 'youtube']);
+
 // How many posts to render in one Vercel invocation. Creatomate renders take
 // ~30-60s each; 3 posts = ~3 min, safely under the 90s maxDuration.
 // Remaining posts render on the next scheduled run (or a self-heal pass).
@@ -105,6 +123,31 @@ async function supabaseFetch(path, init = {}) {
   let data = null;
   if (text) { try { data = JSON.parse(text); } catch { data = null; } }
   return { ok: res.ok, status: res.status, data };
+}
+
+// Retry wrapper for the one supabaseFetch call this cron cannot route around
+// (the initial posts query — if it fails there's no queue to work on at all).
+// 2026-09-16 11:10:45 UTC: a single transient PostgREST 5xx/network blip on
+// this query made the whole run return http_502 and sat in cron_runs as
+// "error" for a full 24h until the next scheduled fire (this cron only runs
+// once daily). Root cause was a one-off upstream hiccup, not a code bug —
+// confirmed by replaying the exact same query seconds later (200 OK) and by
+// a clean manual re-trigger the next morning. A cheap retry on 5xx/network
+// failure absorbs that class of blip instead of reporting a false
+// "persistently failing" signal for a day. Per-post errors already have
+// their own retry-via-next-run + dead-letter handling below; this only
+// covers the query gate itself.
+async function supabaseFetchWithRetry(path, init = {}, attempts = 3) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    last = await supabaseFetch(path, init).catch((err) => ({ ok: false, status: 0, data: null, error: err }));
+    if (last.ok) return last;
+    // Only retry transient conditions: network failure (status 0) or 5xx.
+    // A 4xx (bad query, auth) won't fix itself on retry — fail fast instead.
+    if (last.status && last.status < 500) break;
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 500 * (i + 1)));
+  }
+  return last;
 }
 
 function pickRecording(topic, persona, platform) {
@@ -306,14 +349,24 @@ module.exports = withTelemetry('cron-render-videos', async function handler(req,
   // status=in.(...) never includes 'video_failed' — that's the dead-letter
   // terminal state (Bug 1 fix, 2026-09-09) and is permanently excluded from
   // every render attempt, same technique as image_mismatch_hold.
-  const { data: posts, ok: loadOk } = await supabaseFetch(
-    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&order=created_at.asc&limit=${MAX_PER_RUN}`,
+  const { data: posts, ok: loadOk, status: loadStatus } = await supabaseFetchWithRetry(
+    `/rest/v1/social_posts?video_required=eq.true&media_url=is.null&status=in.(draft,approved,pending_video)&platform=not.in.(instagram,tiktok,youtube)&order=created_at.asc&limit=${MAX_PER_RUN}`,
   );
   if (!loadOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render' });
+    console.error(`[cron-render-videos] posts query failed after retries: status=${loadStatus}`);
+    return res.status(502).json({ ok: false, error: 'Failed to query posts needing video render', status: loadStatus });
   }
 
-  const queue = Array.isArray(posts) ? posts : [];
+  // Defensive second gate (see SKIP_RENDER_PLATFORMS comment above) — belt
+  // and suspenders in case a row slips past the query filter.
+  const queue = (Array.isArray(posts) ? posts : []).filter((post) => {
+    const platform = String(post.platform || '').toLowerCase();
+    if (SKIP_RENDER_PLATFORMS.has(platform)) {
+      console.log(`[cron-render-videos] skipping post ${post.id} — platform "${platform}" is on the retired per-post render path (Pipeline B handles it now)`);
+      return false;
+    }
+    return true;
+  });
   console.log(`[cron-render-videos] ${queue.length} posts need video render`);
 
   if (queue.length === 0) {

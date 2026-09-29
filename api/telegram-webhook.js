@@ -1446,12 +1446,74 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Auto-reply-with-veto STOP button (Heath's explicit approval, 2026-09-16
+  // — supabase/migrations/20260916_auto_reply_veto.sql). Only LOW-RISK
+  // comments (risk classifier + content gates both passed, kill switch on)
+  // ever reach reply_status='pending_veto'. A tap here cancels the reply
+  // before it can auto-post; no tap within the 10-minute window and
+  // api/cron-auto-reply-veto-check.js auto-approves it instead. The PATCH
+  // is status-guarded (reply_status=eq.pending_veto) so a STOP that arrives
+  // after the veto-check cron already claimed the row is a safe no-op.
+  const autoReplyStopMatch = data.match(/^autoreply_stop:([\w-]+)$/);
+  if (autoReplyStopMatch) {
+    const rowId = autoReplyStopMatch[1];
+    const originalBody = String(message?.text || '');
+    const nowIso = new Date().toISOString();
+    const patch = await supabaseFetch(
+      `/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.pending_veto`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ reply_status: 'skipped', reply_error: 'vetoed_by_heath', updated_at: nowIso }),
+      },
+    );
+    const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+    const tail = won
+      ? 'STOPPED — cancelled, nothing will post.'
+      : 'Too late — already auto-approved/posted, or already handled.';
+    if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+    if (callbackId) await answerCallback(callbackId, tail);
+    return;
+  }
+
+  // 1:1 DM LINK — closes the "group comments never mention Dossie, so a
+  // conversation that moves to 1:1 is invisible to attribution" gap
+  // (Heath, 2026-09-17). Read-only against the conversation row (only
+  // writes dm_link_tag, via api/_lib/dm-link.js's idempotent
+  // get-or-create) — never touches reply_status/status, so it can be
+  // tapped any time without racing or corrupting the Approve/Edit/Skip
+  // state machine above/below it.
+  // callback_data: dmlink_tc:<uuid> (tc_discovery_responses) or
+  //                dmlink_opp:<uuid> (comment_opportunities)
+  const dmLinkMatch = data.match(/^dmlink_(tc|opp):([\w-]+)$/);
+  if (dmLinkMatch) {
+    const sourceTable = dmLinkMatch[1] === 'tc' ? 'tc_discovery_responses' : 'comment_opportunities';
+    const rowId = dmLinkMatch[2];
+    const { getOrCreateDmLink } = require('./_lib/dm-link.js');
+    const result = await getOrCreateDmLink({ sourceTable, sourceId: rowId, sbFetch: supabaseFetch });
+    if (!result.ok) {
+      if (callbackId) await answerCallback(callbackId, 'Could not build link');
+      if (chatId) await sendMessage(chatId, `DM link failed: ${result.error || 'unknown error'}`);
+      return;
+    }
+    if (callbackId) await answerCallback(callbackId, result.created ? 'Link ready' : 'Link (already generated for this conversation)');
+    if (chatId) {
+      await sendMessage(
+        chatId,
+        `1:1 DM link for this conversation (tag: ${result.tag}):\n${result.url}\n\nPaste this — clicks/signups from it will show up under this content_tag in the attribution report.`,
+      );
+    }
+    return;
+  }
+
   // TC discovery comment-reply approval flow (cron-tc-reply-approval).
   // callback_data: tcreply_approve:<uuid> / tcreply_edit:<uuid> / tcreply_skip:<uuid>
   // Rows live in tc_discovery_responses. NOTHING posts without an explicit
-  // Approve (or an explicit edit-reply, which is a stronger approval) — no
-  // auto-approve, no veto window. The actual Facebook post happens locally
-  // via `node scripts/fb-group-commenter.js --tc-reply-queue`.
+  // Approve (or an explicit edit-reply, which is a stronger approval) —
+  // EXCEPT the narrow, heavily-gated auto-reply-with-veto path above, which
+  // is a separate reply_status ('pending_veto') this matcher never sees.
+  // The actual Facebook post happens locally via
+  // `node scripts/fb-group-commenter.js --tc-reply-queue`.
   const tcReplyMatch = data.match(/^tcreply_(approve|edit|skip):([\w-]+)$/);
   if (tcReplyMatch) {
     const action = tcReplyMatch[1];

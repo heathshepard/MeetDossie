@@ -131,6 +131,13 @@ const gate = require(path.join(__dirname, '..', 'api', '_lib', 'telegram-gate.js
 const commenter = require(path.join(__dirname, 'fb-group-commenter.js'));
 const caps = require(path.join(__dirname, '_lib', 'comment-caps.js'));
 
+// Risk classifier is now a real Claude Haiku 4.5 call in production
+// (scripts/_lib/auto-reply-risk-classifier.js) — stub it so this suite
+// stays zero-network regardless of sandbox network behavior. The verdict
+// doesn't matter to anything asserted in this file; see
+// scripts/regression-auto-reply-classifier.js for classifier coverage.
+const stubClassifyEscalate = async () => ({ eligible: false, category: 'low_confidence', confidence: 'low', reason: 'stub', source: 'model' });
+
 const SUPPRESSED_PAYLOAD = {
   ok: true, delivered: false, suppressed: true, suppressed_by: 'telegram-gate',
   result: { message_id: 0, date: 0 },
@@ -147,7 +154,11 @@ async function main() {
   // (comment-opportunity pipeline; see regression-comment-opportunity-pipeline.js).
   // 49 -> 54 on 2026-09-09: +5 for the 'facebook_group_post' daily 5-group-post
   // budget (see regression-group-post-pipeline.js).
-  assert.strictEqual(caps.TOTAL_DAILY_CAP, 54, 'total cap is the sum of all budgets');
+  // 54 -> 57 on 2026-09-10: +3 for the 'facebook_group_post_listing' rotation
+  // budget. (Pre-existing drift found and fixed 2026-09-16 while building
+  // the auto-reply-with-veto feature — comment-caps.js was correct, this
+  // assertion just never got updated.)
+  assert.strictEqual(caps.TOTAL_DAILY_CAP, 57, 'total cap is the sum of all budgets');
   const capSum = Object.values(caps.PLATFORM_DAILY_CAPS).reduce((a, b) => a + b, 0);
   assert.strictEqual(caps.TOTAL_DAILY_CAP, capSum, 'TOTAL_DAILY_CAP must equal the sum of PLATFORM_DAILY_CAPS');
   assert.strictEqual(caps.MIN_GAP_MINUTES.facebook_reply, 30, 'reply min-gap is 30 min');
@@ -239,13 +250,15 @@ async function main() {
   assert.strictEqual(watch.check_count, 2, 'check_count keeps counting');
 
   // ── 8. CADENCE reuses the harvester scheme ────────────────────────────────
+  // TIGHTENED 2026-09-16 (auto-reply-with-veto's 1-hour SLA): hot-window
+  // poll interval dropped 45min -> 15min; first-pass delay 30min -> 15min.
   const t0 = Date.parse('2026-09-08T12:00:00Z');
   const MIN = 60000;
   const freshWatch = { thread_url: THREAD, posted_at: '2026-09-08T12:00:00Z', check_count: 0, last_checked_at: null };
   assert.strictEqual(watcher.isWatchDue(freshWatch, t0 + 10 * MIN), false, 'not due 10 min after the comment');
-  assert.strictEqual(watcher.isWatchDue(freshWatch, t0 + 35 * MIN), true, 'first pass ~30 min in (hot window)');
-  assert.strictEqual(watcher.isWatchDue({ ...freshWatch, check_count: 1, last_checked_at: new Date(t0 + 35 * MIN).toISOString() }, t0 + 60 * MIN), false, 'not due 25 min after last hot pass');
-  assert.strictEqual(watcher.isWatchDue({ ...freshWatch, check_count: 1, last_checked_at: new Date(t0 + 35 * MIN).toISOString() }, t0 + 85 * MIN), true, 'due 50 min after last hot pass');
+  assert.strictEqual(watcher.isWatchDue(freshWatch, t0 + 20 * MIN), true, 'first pass ~15 min in (hot window)');
+  assert.strictEqual(watcher.isWatchDue({ ...freshWatch, check_count: 1, last_checked_at: new Date(t0 + 20 * MIN).toISOString() }, t0 + 30 * MIN), false, 'not due 10 min after last hot pass');
+  assert.strictEqual(watcher.isWatchDue({ ...freshWatch, check_count: 1, last_checked_at: new Date(t0 + 20 * MIN).toISOString() }, t0 + 40 * MIN), true, 'due 20 min after last hot pass');
   assert.strictEqual(watcher.isWatchDue({ ...freshWatch, check_count: 9, last_checked_at: new Date(t0 + 47 * 60 * MIN).toISOString() }, t0 + 50 * 60 * MIN), false, 'long tail: not due 3h later');
   assert.strictEqual(watcher.isWatchDue(freshWatch, t0 + 46 * 86400000), false, 'never due past 45 days');
 
@@ -264,6 +277,7 @@ async function main() {
       guestCtxSeen.push({ name: row.commenter_name, guest });
       return { hostile: false, hostileReason: '', reply: `Draft for ${row.commenter_name}` };
     },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: SUPPRESSED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },
@@ -284,6 +298,7 @@ async function main() {
   const res2 = await cron.processPendingReplies({
     sbFetch: mockSbFetch,
     draft: async () => { throw new Error('must not re-draft — stored draft must be reused'); },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: DELIVERED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },

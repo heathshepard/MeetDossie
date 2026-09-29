@@ -158,9 +158,17 @@ async function main() {
   // ── 4. Suppressed send must NOT advance state ─────────────────────────────
   const r1 = seedComment();
   let draftCalls = 0;
+  // Risk classifier is now a real Claude Haiku 4.5 call in production
+  // (scripts/_lib/auto-reply-risk-classifier.js) — stub it here so this
+  // manual-approval-flow suite stays zero-network. The actual verdict
+  // doesn't matter to anything asserted below; see
+  // scripts/regression-auto-reply-classifier.js for classifier coverage.
+  const stubClassifyEscalate = async () => ({ eligible: false, category: 'low_confidence', confidence: 'low', reason: 'stub', source: 'model' });
+
   const res1 = await cron.processPendingReplies({
     sbFetch: mockSbFetch,
     draft: async () => { draftCalls++; return { hostile: false, hostileReason: '', reply: 'Ugh, 9 days dark is brutal — did they ever explain what happened, or just resurface?' }; },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: SUPPRESSED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },
@@ -175,6 +183,7 @@ async function main() {
   const res2 = await cron.processPendingReplies({
     sbFetch: mockSbFetch,
     draft: async () => { throw new Error('must not re-draft — draft already stored'); },
+    classifyRisk: stubClassifyEscalate,
     send: async () => ({ ok: true, status: 200, data: DELIVERED_PAYLOAD }),
     isSuppressed: gate.wasSuppressed,
     log: { warn: () => {}, error: () => {} },
@@ -298,13 +307,16 @@ async function main() {
   assert.strictEqual(q5.posted + q5.failed, 0, 'post_failed row never retried — no double-reply risk');
 
   // ── 7. Harvest hot-window cadence ─────────────────────────────────────────
+  // TIGHTENED 2026-09-16 (auto-reply-with-veto's 1-hour SLA): hot-window
+  // poll interval dropped 45min -> 15min; first-pass delay 30min -> 15min.
+  // Hot window itself (48h) and long-tail cadence (3-day) are unchanged.
   const t0 = Date.parse('2026-09-08T12:00:00Z');
   const post = { posted_at: '2026-09-08T12:00:00Z', post_url: 'https://x', harvest_count: 0, last_harvested_at: null };
   const MIN = 60000;
   assert.strictEqual(harvester.isDue(post, t0 + 10 * MIN), false, 'not due 10 min after posting');
-  assert.strictEqual(harvester.isDue(post, t0 + 35 * MIN), true, 'first pass due ~30 min after posting (hot window)');
-  assert.strictEqual(harvester.isDue({ ...post, harvest_count: 1, last_harvested_at: new Date(t0 + 35 * MIN).toISOString() }, t0 + 60 * MIN), false, 'not due 25 min after last hot-window pass');
-  assert.strictEqual(harvester.isDue({ ...post, harvest_count: 1, last_harvested_at: new Date(t0 + 35 * MIN).toISOString() }, t0 + 85 * MIN), true, 'due 50 min after last hot-window pass (45-min interval)');
+  assert.strictEqual(harvester.isDue(post, t0 + 20 * MIN), true, 'first pass due ~15 min after posting (hot window)');
+  assert.strictEqual(harvester.isDue({ ...post, harvest_count: 1, last_harvested_at: new Date(t0 + 20 * MIN).toISOString() }, t0 + 30 * MIN), false, 'not due 10 min after last hot-window pass');
+  assert.strictEqual(harvester.isDue({ ...post, harvest_count: 1, last_harvested_at: new Date(t0 + 20 * MIN).toISOString() }, t0 + 40 * MIN), true, 'due 20 min after last hot-window pass (15-min interval)');
   const h47 = new Date(t0 + 47 * 60 * MIN).toISOString();
   assert.strictEqual(harvester.isDue({ ...post, harvest_count: 20, last_harvested_at: h47 }, t0 + 50 * 60 * MIN), false, 'long tail: not due 3h after last pass once past 48h');
   assert.strictEqual(harvester.isDue({ ...post, harvest_count: 20, last_harvested_at: h47 }, t0 + (47 + 73) * 60 * MIN), true, 'long tail: due 3+ days after last pass');

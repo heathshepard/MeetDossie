@@ -190,6 +190,42 @@ async function main() {
 
   halt.clearAll();
 
+  // ── 6b. A verify failure (submitted, but two re-reads can't find it) is
+  //      ALSO group-scoped as of 2026-09-17 — the exact bug behind the
+  //      2026-09-15 incident, where this call site was still the pre-rescope
+  //      GLOBAL default and halted every group for 2 days off one thread. ──
+  db.comment_opportunities.length = 0;
+  const vfRow = seedOpp({ group_name: 'DFW Realtors', comment_final: 'This will submit but never verify.' });
+  const otherRow = seedOpp({ group_name: 'Texas Real Estate Agents', comment_final: 'This is in a totally different group and should still post.' });
+  const vfNotifications = [];
+  const resultVf = await poster.runOppQueue({
+    sbFetch: mockSbFetch, caps,
+    poster: async () => ({ submitted: true }),
+    verifier: async () => false, // fails on every re-read
+    notify: async (t) => { vfNotifications.push(t); },
+    log: quietLog, haltState: halt, gapMinutes: 45,
+    sleep: async () => {}, // instant in tests
+  });
+  assert.strictEqual(resultVf.failed, 1, 'verify-fail counted as failed');
+  assert.strictEqual(vfRow.status, 'post_failed', 'verify-fail row is terminal post_failed');
+  assert.strictEqual(halt.isHalted('DFW Realtors'), true, 'the row\'s OWN group is paused');
+  assert.strictEqual(halt.isHalted(), false, 'a SINGLE thread\'s verify failure is NOT a global halt');
+  assert.strictEqual(halt.isHalted('Texas Real Estate Agents'), false, 'a different group is completely unaffected');
+  assert.ok(vfNotifications.some((t) => /DFW Realtors/.test(t) && /PAUSED/i.test(t)), 'Heath is told which GROUP paused, not that the whole pipeline halted');
+
+  // A second run in the SAME window still posts the other group's approved
+  // row — the verify-fail pause did not take down distribution everywhere.
+  let posted2 = [];
+  const resultVf2 = await poster.runOppQueue({
+    sbFetch: mockSbFetch, caps,
+    poster: async (row) => { posted2.push(row.group_name); return { submitted: true }; },
+    verifier: async () => true,
+    notify: async () => {}, log: quietLog, haltState: halt, gapMinutes: 0, // no spacing wait needed for this assertion
+  });
+  assert.strictEqual(posted2[0], 'Texas Real Estate Agents', 'the unpaused group still posts after the OTHER group\'s verify-fail pause');
+  assert.strictEqual(otherRow.status, 'posted', 'unpaused group row posted normally');
+  halt.clearAll();
+
   // ── 7. A GLOBAL halt still blocks everything up front (no row fetch at all) ─
   halt.setHalt('facebook login/checkpoint redirect while posting', {});
   db.comment_opportunities.length = 0;
@@ -220,8 +256,17 @@ async function main() {
 
   const posterSrc = fs.readFileSync(path.join(__dirname, 'fb-comment-opp-poster.js'), 'utf8');
   assert.ok(posterSrc.includes('haltState.isHalted(row.group_name)'), 'the poster row loop skips rows in a paused group');
+  // The 2026-09-15 incident's exact call site — verify-fail must ALSO opt
+  // into group scope now, not stay on the pre-rescope GLOBAL default.
+  const verifyFailCallMatch = posterSrc.match(/haltState\.setHalt\('comment submitted but failed to render back on verify',\s*\{[^}]*\}\)/s);
+  assert.ok(verifyFailCallMatch, 'verify-fail halt call site found');
+  assert.ok(/scope:\s*'group'/.test(verifyFailCallMatch[0]), 'the verify-fail halt call now opts into scope:\'group\' (was GLOBAL — the 2026-09-15 bug)');
+  // Checkpoint-while-posting must stay GLOBAL — that IS an account signal.
+  const postCheckpointCallMatch = posterSrc.match(/haltState\.setHalt\('facebook login\/checkpoint redirect while posting',\s*\{[^}]*\}\)/);
+  assert.ok(postCheckpointCallMatch, 'post-time checkpoint halt call site found');
+  assert.ok(!/scope/.test(postCheckpointCallMatch[0]), 'the post-time checkpoint halt does NOT pass scope — stays global');
 
-  console.log('PASS: per-group circuit breaker (single-group removal isolates, checkpoint always global, 2+ groups escalate, independent clearing, poster skips only the paused group)');
+  console.log('PASS: per-group circuit breaker (single-group removal isolates, checkpoint always global, 2+ groups escalate, independent clearing, poster skips only the paused group, verify-fail rescoped off the 2026-09-15 global-halt bug)');
 }
 
 main()

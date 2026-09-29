@@ -33,7 +33,14 @@
 //   - a previously posted comment is no longer present in its thread,
 //     removed by a mod (GROUP scope — see above)
 //   - Facebook redirects to login / checkpoint (temp block / logged out) — GLOBAL
-//   - a submitted comment fails to render back on re-read (verify failure) — GLOBAL
+//   - a submitted comment fails to render back on re-read on TWO separate
+//     checks (verify failure) — GROUP scope as of 2026-09-17. Originally
+//     GLOBAL; rescoped after the 2026-09-15 incident where one thread's
+//     verify failure (fb-comment-opp-poster.js) halted every group's
+//     scanning AND posting for 2 days with no account-level signal anywhere
+//     — the exact one-strict-signal-shouldn't-halt-everything failure mode
+//     this file's 2026-09-14 group-scoping was written to prevent, just via
+//     a different call site that hadn't been updated yet.
 //   - a group-post queue run does not confirm success — GLOBAL
 //
 // While GLOBALLY halted: nothing scans, nothing posts, anywhere. While a

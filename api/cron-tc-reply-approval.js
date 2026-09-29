@@ -43,7 +43,11 @@
 // failed/suppressed send never re-bills the Claude call.
 //
 // Auth: x-vercel-cron header or Bearer ${CRON_SECRET}.
-// Schedule: vercel.json — */30 * * * *.
+// Schedule: fires from api/cron-dispatch-every10.js (*/10 * * * *) — moved
+// from the every30 dispatcher 2026-09-17 (Carter) to fit inside Heath's
+// 1-hour reply SLA. Not its own vercel.json cron entry (54/100 used, hard
+// cap 100) — see cron-dispatch-every10.js header for the full timing
+// budget across harvest -> draft/notify -> veto -> poster.
 //
 // Owner: Carter, 2026-09-08
 
@@ -53,6 +57,10 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const voiceGuard = require('./_lib/heath-voice-guard');
+const { classifyCommentRisk } = require('../scripts/_lib/auto-reply-risk-classifier.js');
+const { checkContentGates } = require('../scripts/_lib/auto-reply-content-gates.js');
+const autoReplyKillSwitch = require('../scripts/_lib/auto-reply-kill-switch.js');
+const opsPolicy = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,6 +73,15 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const DRAFT_MODEL = 'claude-sonnet-5';
 const MAX_PER_RUN = 5;
+
+// Auto-reply-with-veto (Heath's explicit approval, 2026-09-16 — see
+// supabase/migrations/20260916_auto_reply_veto.sql). 10-minute hold: Heath
+// gets a STOP button instead of Approve/Edit/Skip; no tap by the deadline
+// means api/cron-auto-reply-veto-check.js auto-approves it. Gated by the
+// risk classifier, the content gates, AND the kill switch below — any one
+// of the three failing routes the row through the pre-existing manual
+// notified -> Approve/Edit/Skip flow, unchanged.
+const VETO_WINDOW_MS = 10 * 60 * 1000;
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -287,10 +304,33 @@ function buildFlagMessage(post, row, guest = null) {
 
 function approvalKeyboard(rowId) {
   return {
+    inline_keyboard: [
+      [
+        { text: 'Approve', callback_data: `tcreply_approve:${rowId}` },
+        { text: 'Edit', callback_data: `tcreply_edit:${rowId}` },
+        { text: 'Skip', callback_data: `tcreply_skip:${rowId}` },
+      ],
+      // Tapped when this conversation moves to a 1:1 DM — hands back a
+      // tagged link so the one channel group-comments intentionally never
+      // link to is still measurable once it goes 1:1. Handler:
+      // api/telegram-webhook.js dmlink_tc:<id> -> api/_lib/dm-link.js.
+      [{ text: '🔗 DM link', callback_data: `dmlink_tc:${rowId}` }],
+    ],
+  };
+}
+
+// ─── Auto-reply-with-veto message (low-risk path) ────────────────────────────
+
+function buildVetoMessage(post, row, guest = null) {
+  const base = guest ? buildApprovalMessage(post, row, guest) : buildApprovalMessage(post, row, guest);
+  const header = 'LOW-RISK — AUTO-POSTING IN 10 MIN unless you tap STOP below.';
+  return `${header}\n\n${base}`.slice(0, 4090);
+}
+
+function vetoKeyboard(rowId) {
+  return {
     inline_keyboard: [[
-      { text: 'Approve', callback_data: `tcreply_approve:${rowId}` },
-      { text: 'Edit', callback_data: `tcreply_edit:${rowId}` },
-      { text: 'Skip', callback_data: `tcreply_skip:${rowId}` },
+      { text: 'STOP — cancel this reply', callback_data: `autoreply_stop:${rowId}` },
     ]],
   };
 }
@@ -315,15 +355,18 @@ async function telegramSend(text, replyMarkup) {
  * Process pending rows: draft where needed, notify Heath, advance state.
  * State only advances to 'notified'/'flagged'+notified_at on a DELIVERED send.
  *
- * @param {object} deps { sbFetch, draft, send, isSuppressed, log }
+ * @param {object} deps { sbFetch, draft, classifyRisk, send, isSuppressed, log }
  * @returns {Promise<{drafted:number, notified:number, flagged:number, errors:Array}>}
  */
 async function processPendingReplies(deps) {
   const {
     sbFetch = supabaseFetch,
     draft = draftReply,
+    classifyRisk = classifyCommentRisk,
     send = telegramSend,
     isSuppressed = wasSuppressed,
+    isAutoReplyEnabled = autoReplyKillSwitch.isAutoReplyEnabled,
+    logCapabilityDecision = opsPolicy.logAutonomousAction,
     log = console,
   } = deps || {};
 
@@ -334,8 +377,16 @@ async function processPendingReplies(deps) {
   const { ok, data, status } = await sbFetch(
     '/rest/v1/tc_discovery_responses'
     + '?reply_status=in.(new,flagged)&reply_notified_at=is.null&is_own_comment=eq.false'
-    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id`
-    + `&order=harvested_at.asc&limit=${MAX_PER_RUN}`,
+    + `&select=id,group_post_id,post_url,question_id,source_group,commenter_name,comment_text,comment_permalink,reply_status,reply_draft,reply_error,thread_role,watchlist_id,auto_reply_eligible,auto_reply_category,auto_reply_confidence,auto_reply_reason,auto_reply_source`
+    // Secondary sort on id: harvest batches insert many rows with the exact
+    // same harvested_at timestamp (one per API page/thread pass), so
+    // order=harvested_at.asc alone is unstable under LIMIT — Postgres can
+    // return a DIFFERENT arbitrary subset of a tied group on each run,
+    // meaning some rows in a large tied batch might never be picked while a
+    // permanently-stuck older row keeps re-claiming a slot every run. Found
+    // 2026-09-17: 8 of 14 backlogged rows never even reached the draft step
+    // for exactly this reason. id is a stable, always-unique tiebreaker.
+    + `&order=harvested_at.asc,id.asc&limit=${MAX_PER_RUN}`,
   );
   if (!ok) {
     out.errors.push({ step: 'load', status });
@@ -343,6 +394,11 @@ async function processPendingReplies(deps) {
   }
   const rows = Array.isArray(data) ? data : [];
   if (rows.length === 0) return out;
+
+  // Fetched once per run, not per row — same value for every row in this
+  // pass, and this is a network call now (Supabase ops_flags), not a local
+  // file stat.
+  const autoReplySwitchOn = await isAutoReplyEnabled();
 
   // Recent opener shapes (last 8 delivered replies) so THIS run doesn't
   // repeat a recently-used opening — grows in-memory as this run drafts
@@ -405,10 +461,36 @@ async function processPendingReplies(deps) {
         } else {
           if (!d.reply) throw new Error('empty draft for non-hostile comment');
           row.reply_draft = d.reply;
+
+          // Risk classification (model call, api/../scripts/_lib/
+          // auto-reply-risk-classifier.js) + content gates, logged on
+          // EVERY drafted row regardless of outcome (spec: "log the
+          // model's verdict and reason on the row, so a wrong call is
+          // diagnosable later"). A gate failure or an ineligible/low-
+          // confidence classification never blocks the reply — it just
+          // means this row takes the existing manual notified path below.
+          const risk = await classifyRisk(row.comment_text, d.reply);
+          const gates = risk.eligible ? checkContentGates(d.reply) : { pass: false, failures: [] };
+          row.auto_reply_eligible = risk.eligible && gates.pass;
+          row.auto_reply_category = risk.category;
+          row.auto_reply_confidence = risk.confidence;
+          row.auto_reply_reason = risk.reason;
+          row.auto_reply_source = risk.source;
+          row.auto_reply_gate_failures = gates.failures.map((f) => f.code);
+
           await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
             method: 'PATCH',
             headers: { Prefer: 'return=minimal' },
-            body: JSON.stringify({ reply_draft: d.reply, updated_at: new Date().toISOString() }),
+            body: JSON.stringify({
+              reply_draft: d.reply,
+              auto_reply_eligible: row.auto_reply_eligible,
+              auto_reply_category: row.auto_reply_category,
+              auto_reply_confidence: row.auto_reply_confidence,
+              auto_reply_reason: row.auto_reply_reason,
+              auto_reply_source: row.auto_reply_source,
+              auto_reply_gate_failures: row.auto_reply_gate_failures,
+              updated_at: new Date().toISOString(),
+            }),
           });
           out.drafted++;
           // So the NEXT draft in this same run also varies (not just against
@@ -417,10 +499,52 @@ async function processPendingReplies(deps) {
         }
       }
 
-      // 2. Notify.
+      // 2. Notify. Three shapes: flagged (no draft, no buttons), low-risk
+      // auto-eligible (STOP button, 10-min veto window — ONLY when the kill
+      // switch is on), everything else (the original Approve/Edit/Skip).
       const isFlag = row.reply_status === 'flagged';
-      const text = isFlag ? buildFlagMessage(post, row, guest) : buildApprovalMessage(post, row, guest);
-      const markup = isFlag ? null : approvalKeyboard(row.id);
+      const isAutoVeto = !isFlag
+        && row.auto_reply_eligible === true
+        && autoReplySwitchOn;
+
+      // Standing-authority logging (api/_lib/ops-policy.js, 2026-09-17):
+      // 'reply_low_risk_comments' is the ops-policy name for this exact
+      // decision. Logged here (not via ops-policy's own checkAndLog) because
+      // this cron already read the flag above via autoReplyKillSwitch — a
+      // second independent read would risk disagreeing with isAutoVeto if
+      // the flag flipped mid-run. ops_action_log had ZERO rows for this
+      // capability before this fix even though ops_flags.auto_reply was on
+      // — the decision was being made but never recorded, so there was no
+      // durable evidence the capability had ever fired. Best-effort: never
+      // blocks the actual notify/veto path below.
+      if (!isFlag && row.auto_reply_eligible === true) {
+        await logCapabilityDecision({
+          capability: 'reply_low_risk_comments',
+          decision: isAutoVeto ? 'autonomous' : 'blocked_flag_off',
+          action: isAutoVeto
+            ? `entered 10-min veto window for reply to ${row.commenter_name || 'commenter'}`
+            : 'auto_reply_eligible but ops_flags.auto_reply is off — routed to manual Approve/Edit/Skip',
+          firedBy: 'cron-tc-reply-approval',
+          gatesPassed: isAutoVeto ? ['risk_classifier_low_risk_high_confidence', 'content_gates'] : [],
+          refTable: 'tc_discovery_responses',
+          refId: row.id,
+          metadata: { auto_reply_confidence: row.auto_reply_confidence, auto_reply_category: row.auto_reply_category },
+        }, sbFetch).catch((e) => log.warn(`[cron-tc-reply-approval] ops_action_log write failed: ${e.message}`));
+      }
+
+      let text;
+      let markup;
+      if (isFlag) {
+        text = buildFlagMessage(post, row, guest);
+        markup = null;
+      } else if (isAutoVeto) {
+        text = buildVetoMessage(post, row, guest);
+        markup = vetoKeyboard(row.id);
+      } else {
+        text = buildApprovalMessage(post, row, guest);
+        markup = approvalKeyboard(row.id);
+      }
+
       const sendRes = await send(text, markup);
       if (!sendRes.ok) {
         out.errors.push({ id: row.id, step: 'send', status: sendRes.status });
@@ -439,13 +563,19 @@ async function processPendingReplies(deps) {
         reply_telegram_message_id: sendRes.data?.result?.message_id != null ? String(sendRes.data.result.message_id) : null,
         updated_at: nowIso,
       };
-      if (!isFlag) patch.reply_status = 'notified';
+      if (isAutoVeto) {
+        patch.reply_status = 'pending_veto';
+        patch.veto_deadline_at = new Date(Date.now() + VETO_WINDOW_MS).toISOString();
+      } else if (!isFlag) {
+        patch.reply_status = 'notified';
+      }
       await sbFetch(`/rest/v1/tc_discovery_responses?id=eq.${encodeURIComponent(row.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify(patch),
       });
       out.notified++;
+      if (isAutoVeto) out.autoVetoed = (out.autoVetoed || 0) + 1;
     } catch (err) {
       log.error(`[cron-tc-reply-approval] row ${row.id} failed: ${err.message}`);
       out.errors.push({ id: row.id, step: 'process', error: err.message });
@@ -480,7 +610,10 @@ module.exports = withTelemetry('cron-tc-reply-approval', async function handler(
 module.exports.processPendingReplies = processPendingReplies;
 module.exports.buildApprovalMessage = buildApprovalMessage;
 module.exports.buildFlagMessage = buildFlagMessage;
+module.exports.buildVetoMessage = buildVetoMessage;
 module.exports.approvalKeyboard = approvalKeyboard;
+module.exports.vetoKeyboard = vetoKeyboard;
+module.exports.VETO_WINDOW_MS = VETO_WINDOW_MS;
 module.exports.DRAFT_PROMPT = DRAFT_PROMPT;
 module.exports.GUEST_DRAFT_PROMPT = GUEST_DRAFT_PROMPT;
 module.exports.draftReply = draftReply;

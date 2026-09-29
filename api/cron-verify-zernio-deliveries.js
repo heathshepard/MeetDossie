@@ -12,6 +12,17 @@
 //   - After 2 cron runs, every 'posted' row from last 4h has verified_at OR status='failed'
 //   - Telegram alert if failed rate > 30% in 24h window
 //
+// PIPELINE B COVERAGE (Carter, 2026-09-17): also verifies video_library rows
+// (cron-post-videos.js -> Zernio). Previously ONLY social_posts was covered
+// here and in cron-verify-posts.js — a scheduled video post could silently
+// fail with nothing noticing (the same silent-failure class documented in
+// memory feedback_silent-failure-is-the-enemy.md). See
+// verifyVideoLibraryDeliveries() below and api/_lib/video-delivery-verify.js
+// for the per-platform proof-level model (a video posts to several
+// platforms at once, unlike a social_posts row which is one row per
+// platform, so this needed its own jsonb-array tracking rather than reusing
+// social_posts' single zernio_post_id column).
+//
 // Auth:     Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — every 30 min ("*/30 * * * *").
 
@@ -19,8 +30,15 @@
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
 require('./_lib/telegram-gate').install('cron-verify-zernio-deliveries');
 
-const { retryFetch } = require('./_lib/retry.js');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const { checkZernioDeliveryStatus } = require('./_lib/zernio-post-status.js');
+const {
+  proofLevelFor,
+  patchDeliveryEntry,
+  isDueForStaleAlert,
+  entriesNeedingCheck,
+  entriesUnconfirmable,
+} = require('./_lib/video-delivery-verify.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -28,8 +46,6 @@ const ZERNIO_API_KEY = process.env.ZERNIO_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_MARKETING_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
-const ZERNIO_POSTS_API = 'https://zernio.com/api/v1/posts';
 
 async function supabaseFetch(path, init = {}) {
   const headers = {
@@ -68,77 +84,133 @@ async function sendTelegramAlert(text) {
   }
 }
 
-// Query Zernio API to check delivery status of a scheduled post.
-// POST ID format in Zernio: may be the scheduled post ID returned at publish time.
-async function checkZernioDeliveryStatus(zernioPostId) {
-  try {
-    // Zernio docs: GET /posts/:id returns the post details + status + platform_urls
-    const res = await retryFetch(
-      `${ZERNIO_POSTS_API}/${encodeURIComponent(zernioPostId)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ZERNIO_API_KEY}`,
-        },
-      },
-      { name: 'Zernio-status-check', maxAttempts: 3, baseDelay: 1000 }
-    );
+// --- Pipeline B: video_library delivery verification ---------------------
+//
+// A video_library row posts to several platforms at once (see
+// cron-post-videos.js), so — unlike social_posts, which is one row per
+// platform — the per-platform Zernio accept/confirm state lives in the
+// row's `zernio_deliveries` jsonb array (api/_lib/video-delivery-verify.js
+// documents the schema). This function:
+//   1. Loads 'posted' video_library rows from the lookback window that have
+//      at least one delivery entry still unresolved.
+//   2. For entries with a zernio_post_id: polls Zernio, records the honest
+//      proof_level (never claims a live-URL confirmation we didn't get —
+//      see proofLevelFor()), and alerts immediately on a confirmed failure.
+//   3. For entries with NO zernio_post_id (Zernio accepted the call but
+//      gave nothing to poll) or still-processing entries: alerts once,
+//      after DEFAULT_STALE_WINDOW_MS, instead of staying silent forever.
+//
+// VIDEO_LOOKBACK_MS is wider than social_posts' 2h window — video transcode
+// (TikTok/YouTube especially) can legitimately take longer than a text/image
+// post, and this cron runs every 30 min regardless, so a wider window just
+// means more rows re-scanned, not slower alerting.
+const VIDEO_LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24h
 
-    const respText = await res.text();
-    let data = null;
-    try { data = respText ? JSON.parse(respText) : null; } catch { data = null; }
+async function verifyVideoLibraryDeliveries() {
+  const now = new Date();
+  const lookbackIso = new Date(now.getTime() - VIDEO_LOOKBACK_MS).toISOString();
 
-    if (!res.ok) {
-      return {
-        ok: false,
-        status: res.status,
-        error: `Zernio ${res.status}: ${respText.slice(0, 300)}`,
-        data,
-      };
-    }
+  // Can't filter "an array element is missing verified_at" (or "the array
+  // is non-empty") reliably in a PostgREST jsonb query, so pull all
+  // recently-posted rows and filter client-side — video_library posts at
+  // most a handful of times a day, so this is a small scan either way.
+  const filter = `status=eq.posted&posted_date=gte.${encodeURIComponent(lookbackIso)}&order=posted_date.asc&select=id,topic,posted_date,zernio_deliveries`;
+  const { data: rows, ok: loadOk } = await supabaseFetch(`/rest/v1/video_library?${filter}&limit=100`);
 
-    // Extract post status and platform URLs from Zernio response.
-    // Response shape varies — look for common patterns:
-    //   { status, platform_urls: { twitter: 'url', ... }, ... }
-    //   { posts: [ { status, platform_urls, ... } ] }
-    //   { id, platforms: [ { platform, url, status } ] }
-    const postData = Array.isArray(data?.posts)
-      ? data.posts[0]
-      : data?.posts
-      ? data
-      : data;
-
-    const status = postData?.status || data?.status;
-    const platformUrls = postData?.platform_urls || data?.platform_urls || {};
-    const platforms = Array.isArray(postData?.platforms) ? postData.platforms : [];
-
-    // Infer main platform URL from the response
-    let mainPlatformUrl = null;
-    if (Object.keys(platformUrls).length > 0) {
-      mainPlatformUrl = Object.values(platformUrls)[0];
-    } else if (platforms.length > 0) {
-      mainPlatformUrl = platforms[0].url;
-    }
-
-    const isLive = status === 'published' || status === 'live' || status === 'posted';
-
-    return {
-      ok: true,
-      status: res.status,
-      data,
-      zernio_status: status,
-      is_live: isLive,
-      platform_url: mainPlatformUrl,
-    };
-  } catch (err) {
-    const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
-    console.error(`[checkZernioDeliveryStatus] ${zernioPostId}: ${errorMsg}`);
-    return {
-      ok: false,
-      error: errorMsg,
-    };
+  if (!loadOk) {
+    console.error('[cron-verify-zernio-deliveries] failed to load video_library rows');
+    return { summary: { rows_checked: 0, error: 'load failed' }, alerts: [] };
   }
+
+  const candidates = Array.isArray(rows) ? rows : [];
+  let confirmed = 0;
+  let failedCount = 0;
+  let staleAlerted = 0;
+  const alerts = [];
+
+  for (const video of candidates) {
+    const deliveries = Array.isArray(video.zernio_deliveries) ? video.zernio_deliveries : [];
+    const toCheck = entriesNeedingCheck(deliveries);
+    const unconfirmable = entriesUnconfirmable(deliveries);
+    if (toCheck.length === 0 && unconfirmable.length === 0) continue;
+
+    let working = deliveries;
+    let rowChanged = false;
+
+    for (const entry of toCheck) {
+      const result = await checkZernioDeliveryStatus(entry.zernio_post_id, ZERNIO_API_KEY);
+
+      if (result.ok && result.is_live) {
+        const proof_level = proofLevelFor({ isLive: true, platformUrl: result.platform_url });
+        working = patchDeliveryEntry(working, entry.platform, {
+          status: 'confirmed',
+          proof_level,
+          platform_url: result.platform_url || entry.platform_url || null,
+          verified_at: now.toISOString(),
+          error: null,
+        });
+        rowChanged = true;
+        confirmed++;
+        console.log(`[cron-verify-zernio-deliveries] video ${video.id} ${entry.platform}: confirmed (${proof_level})`);
+      } else if (result.ok && !result.is_live) {
+        // Still processing at Zernio — not a failure yet. Alert once if
+        // it's been unresolved past the stale window; keep polling either way.
+        if (isDueForStaleAlert({ entry, nowIso: now.toISOString() })) {
+          const msg = `⚠️ <b>Video delivery unconfirmed</b>\n\nVideo ${video.id} (${video.topic || 'untitled'}) — ${entry.platform} still shows "${result.zernio_status || 'processing'}" at Zernio ${Math.round((Date.now() - Date.parse(entry.accepted_at)) / 3600000)}h after posting. Check the platform/Zernio dashboard directly.`;
+          await sendTelegramAlert(msg);
+          alerts.push({ video_id: video.id, platform: entry.platform, reason: 'stale_unconfirmed' });
+          working = patchDeliveryEntry(working, entry.platform, { alerted_at: now.toISOString() });
+          rowChanged = true;
+          staleAlerted++;
+        }
+      } else {
+        // Zernio explicitly reports failure/error — this is the case the
+        // regression test locks in: a Pipeline B row Zernio never delivered
+        // must alert, not sit silently as 'posted'.
+        const errorMsg = result.error || 'Zernio delivery check failed';
+        working = patchDeliveryEntry(working, entry.platform, {
+          status: 'failed',
+          proof_level: proofLevelFor({ isLive: false, platformUrl: null }),
+          verified_at: null,
+          error: errorMsg,
+          alerted_at: now.toISOString(),
+        });
+        rowChanged = true;
+        failedCount++;
+        const msg = `🚨 <b>Video delivery FAILED</b>\n\nVideo ${video.id} (${video.topic || 'untitled'}) — ${entry.platform} was marked posted but Zernio never delivered it.\n\nError: ${String(errorMsg).slice(0, 300)}`;
+        await sendTelegramAlert(msg);
+        alerts.push({ video_id: video.id, platform: entry.platform, reason: 'delivery_failed', error: errorMsg });
+      }
+    }
+
+    // Entries Zernio never gave us an id for at all — can't poll, so the
+    // only guard is staleness alerting.
+    for (const entry of unconfirmable) {
+      if (isDueForStaleAlert({ entry, nowIso: now.toISOString() })) {
+        const msg = `⚠️ <b>Video delivery unverifiable</b>\n\nVideo ${video.id} (${video.topic || 'untitled'}) — ${entry.platform} was accepted by Zernio with no post id to check, ${Math.round((Date.now() - Date.parse(entry.accepted_at)) / 3600000)}h ago. Cannot confirm delivery automatically — check the platform directly.`;
+        await sendTelegramAlert(msg);
+        alerts.push({ video_id: video.id, platform: entry.platform, reason: 'unconfirmable_stale' });
+        working = patchDeliveryEntry(working, entry.platform, { alerted_at: now.toISOString() });
+        rowChanged = true;
+        staleAlerted++;
+      }
+    }
+
+    if (rowChanged) {
+      await supabaseFetch(`/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ zernio_deliveries: working }),
+      });
+    }
+  }
+
+  console.log(`[cron-verify-zernio-deliveries] video_library: ${candidates.length} rows checked, ${confirmed} confirmed, ${failedCount} failed, ${staleAlerted} stale-alerted`);
+
+  return {
+    summary: { rows_checked: candidates.length, confirmed, failed: failedCount, stale_alerted: staleAlerted },
+    alerts,
+  };
 }
 
 module.exports = async function handler(req, res) {
@@ -188,7 +260,7 @@ module.exports = async function handler(req, res) {
 
       console.log(`[cron-verify-zernio-deliveries] checking post ${post.id} (${post.platform}) zernio_id=${post.zernio_post_id}`);
 
-      const result = await checkZernioDeliveryStatus(post.zernio_post_id);
+      const result = await checkZernioDeliveryStatus(post.zernio_post_id, ZERNIO_API_KEY);
 
       if (result.ok && result.is_live) {
         // Delivery confirmed — mark as verified
@@ -274,11 +346,15 @@ module.exports = async function handler(req, res) {
       await sendTelegramAlert(alertMsg);
     }
 
+    // Pipeline B: video_library delivery verification (see file header).
+    const videoReport = await verifyVideoLibraryDeliveries();
+
     await recordCronRun('cron-verify-zernio-deliveries', 'ok', {
       unverified_checked: queue.length,
       verified,
       failed,
       failure_rate_24h: (failureRate * 100).toFixed(1),
+      video_library: videoReport.summary,
     });
 
     return res.status(200).json({
@@ -288,6 +364,7 @@ module.exports = async function handler(req, res) {
       failed,
       failure_rate_24h: (failureRate * 100).toFixed(1),
       failures,
+      video_library: videoReport,
     });
   } catch (e) {
     console.error('[cron-verify-zernio-deliveries] crashed:', e);
@@ -295,3 +372,8 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: e.message });
   }
 };
+
+// Exposed for regression coverage (scripts/regression-video-delivery-verify.js)
+// so the video_library path can be exercised directly without spinning up a
+// full request/response cycle or the social_posts side of this handler.
+module.exports.verifyVideoLibraryDeliveries = verifyVideoLibraryDeliveries;

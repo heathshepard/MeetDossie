@@ -22,6 +22,8 @@
 // required-disclosure check that matters for a read-only admin risk summary.
 // Not the full role/deal-shape-dependent rule set from dossie-app.jsx's
 // getRequiredDocs() — not worth duplicating here.
+const { todayInTexasYMD } = require('./chat-deal-deadlines');
+
 const REQUIRED_DOC_TYPES = [
   { type: 'sellers_disclosure', label: "Seller's Disclosure Notice" },
 ];
@@ -139,7 +141,15 @@ async function buildTeamRiskRollup(supabase, orgId) {
     docTypesByTx[d.transaction_id].add(d.document_type);
   });
 
-  const today = new Date().toISOString().slice(0, 10);
+  // "Today" for every past-due comparison below must be the calendar date in
+  // TEXAS, not UTC. transactions.*_deadline and action_items.due_date are
+  // date columns compared as 'YYYY-MM-DD' strings, so a UTC "today" flagged
+  // everything due tomorrow as already overdue for the ~5 hours between
+  // 19:00/20:00 CT and midnight — and this rollup is injected verbatim into
+  // the api/chat.js prompt as TEAM_DEADLINE_FLAGS / TEAM_OVERDUE_ACTION_ITEMS,
+  // where a team lead reads it as fact. Same helper api/chat.js anchors TODAY
+  // on, for the same reason.
+  const today = todayInTexasYMD();
 
   const agentLabel = (userId) => ({
     user_id: userId,

@@ -77,7 +77,13 @@ $TelegramEnvWslPath = '/home/heath/.claude/channels/telegram/.env'
 # (default 90s) and the poll interval (default 1.5s) -- covers Task
 # Scheduler jitter and a slow tick without false-alarming.
 $STALE_SECONDS = 300
-# Don't re-alert every 5 min while still down -- once, then every 30 min.
+# NOTE (Atlas, 2026-09-11): this used to re-alert every 30 min while still
+# down. That is what caused the ~100-notification spam incident -- a relay
+# outage that sat unresolved for 68+ hours re-fired on a fixed schedule with
+# no cap. Fixed: alert ONCE per down transition, then stay silent until the
+# state actually changes (recovery), at which point a fresh outage can alert
+# again. $REALERT_SECONDS is kept only as a documented constant, unused by
+# the new logic below.
 $REALERT_SECONDS = 1800
 
 New-Item -ItemType Directory -Force -Path (Split-Path $LogPath) | Out-Null
@@ -173,7 +179,7 @@ if ($heartbeatOk -and $ageSeconds -lt $STALE_SECONDS) {
 # actual fix instead of a generic "something's wrong" -----------------------
 
 $devChannelsUp = Test-WslProcess -Pattern 'dangerously-load-development-channels'
-$bridgeChildUp = Test-WslProcess -Pattern 'bun server.ts'
+$bridgeChildUp = Test-WslProcess -Pattern 'jarvis-bridge/server.ts'
 
 if (-not $heartbeatOk) {
     $detail = "heartbeat file missing/unreadable at $HeartbeatWslPath"
@@ -194,11 +200,13 @@ if (-not $devChannelsUp) {
 
 Write-WatchdogLog "DOWN -- $detail. devChannelsUp=$devChannelsUp bridgeChildUp=$bridgeChildUp. $diagnosis"
 
-$shouldAlert = ($state.status -ne 'down') -or (($nowUnix - [int]$state.lastAlertUnix) -gt $REALERT_SECONDS)
+# Alert only on the ok->down TRANSITION. While status is already 'down',
+# say nothing further -- the condition is unchanged and Heath already has
+# the one alert. This is a genuine state change, not a timer: it only fires
+# again once the heartbeat actually recovers and then goes stale again.
+$shouldAlert = ($state.status -ne 'down')
 if ($shouldAlert) {
     Send-TelegramAlert "Jarvis voice channel is down. $diagnosis $fix ($detail)"
-    Save-WatchdogState -State ([pscustomobject]@{ status = 'down'; lastAlertUnix = $nowUnix })
-} else {
-    Save-WatchdogState -State ([pscustomobject]@{ status = 'down'; lastAlertUnix = $state.lastAlertUnix })
 }
+Save-WatchdogState -State ([pscustomobject]@{ status = 'down'; lastAlertUnix = $nowUnix })
 exit 1

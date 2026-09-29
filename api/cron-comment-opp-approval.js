@@ -46,6 +46,7 @@ const { wasSuppressed } = telegramGate;
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const voiceGuard = require('./_lib/heath-voice-guard');
+const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -202,11 +203,16 @@ function buildOppMessage(row) {
 
 function oppKeyboard(rowId) {
   return {
-    inline_keyboard: [[
-      { text: 'Approve', callback_data: `oppc_approve:${rowId}` },
-      { text: 'Edit', callback_data: `oppc_edit:${rowId}` },
-      { text: 'Skip', callback_data: `oppc_skip:${rowId}` },
-    ]],
+    inline_keyboard: [
+      [
+        { text: 'Approve', callback_data: `oppc_approve:${rowId}` },
+        { text: 'Edit', callback_data: `oppc_edit:${rowId}` },
+        { text: 'Skip', callback_data: `oppc_skip:${rowId}` },
+      ],
+      // Same 1:1 DM link attribution close as the tcreply flow — see
+      // api/_lib/dm-link.js + api/telegram-webhook.js dmlink_opp:<id>.
+      [{ text: '🔗 DM link', callback_data: `dmlink_opp:${rowId}` }],
+    ],
   };
 }
 
@@ -228,22 +234,31 @@ async function telegramSend(text, replyMarkup) {
 
 /**
  * Expire stale candidates, score+draft new ones, notify Heath about the best.
- * State only advances to 'notified' on a DELIVERED send.
+ * State only advances to 'notified' on a DELIVERED send — UNLESS batching is
+ * on (api/_lib/ops-policy.js capability 'batch_routine_approvals', default
+ * enabled), in which case this is a ROUTINE, non-time-sensitive approval:
+ * it's marked 'notified' WITHOUT an individual Telegram send, and
+ * api/_lib/silence-alarm.js's decision-picker delivers its Approve/Edit/
+ * Skip buttons folded into the one daily morning brief instead — the exact
+ * "batch routine approvals into one message" ask (Heath, 2026-09-17).
+ * Fails closed to the old immediate-send behavior if the flag can't be
+ * read (never silently drops a notification either way).
  *
- * @param {object} deps { sbFetch, score, send, isSuppressed, log, now }
- * @returns {Promise<{expired:number, scored:number, rejected:number, notified:number, errors:Array}>}
+ * @param {object} deps { sbFetch, score, send, isSuppressed, log, now, checkBatching }
+ * @returns {Promise<{expired:number, scored:number, rejected:number, notified:number, batched:number, errors:Array}>}
  */
 async function processOpportunities(deps) {
   const {
     sbFetch = supabaseFetch,
     score = scoreAndDraft,
+    checkBatching = () => checkCapability('batch_routine_approvals', sbFetch),
     send = telegramSend,
     isSuppressed = wasSuppressed,
     log = console,
     now = () => new Date(),
   } = deps || {};
 
-  const out = { expired: 0, scored: 0, rejected: 0, notified: 0, errors: [] };
+  const out = { expired: 0, scored: 0, rejected: 0, notified: 0, batched: 0, errors: [] };
   const nowIso = now().toISOString();
 
   // 1. Expire never-notified candidates past the freshness window.
@@ -320,7 +335,38 @@ async function processOpportunities(deps) {
     out.errors.push({ step: 'load_notify' });
     return out;
   }
+
+  // Standing-authority check — ONE lookup for the whole batch, not per row
+  // (this is a pipeline-level posture, not a per-item decision). Fails
+  // closed to the pre-existing immediate-send behavior.
+  const batching = await checkBatching();
+
   for (const row of (Array.isArray(nData) ? nData : [])) {
+    if (batching.allowed) {
+      // Routine approval — fold into the one daily morning brief instead of
+      // pinging now. No Telegram call, so nothing can be "suppressed" —
+      // mark notified directly. api/_lib/silence-alarm.js picks up rows in
+      // this state (status='notified', comment_draft not null) and
+      // delivers their Approve/Edit/Skip buttons in the brief.
+      const stampIso = now().toISOString();
+      await sbFetch(`/rest/v1/comment_opportunities?id=eq.${encodeURIComponent(row.id)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'notified', notified_at: stampIso, updated_at: stampIso }),
+      });
+      out.batched++;
+      await logAutonomousAction({
+        capability: 'batch_routine_approvals',
+        decision: 'autonomous',
+        action: `folded comment-opportunity approval into the morning brief instead of an individual ping`,
+        firedBy: 'cron-comment-opp-approval',
+        gatesPassed: ['score_gte_min', 'daily_notify_cap'],
+        refTable: 'comment_opportunities',
+        refId: row.id,
+      }).catch(() => {});
+      continue;
+    }
+
     const sendRes = await send(buildOppMessage(row), oppKeyboard(row.id));
     if (!sendRes.ok) {
       out.errors.push({ id: row.id, step: 'send', status: sendRes.status });

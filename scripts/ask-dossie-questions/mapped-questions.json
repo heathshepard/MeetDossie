@@ -1,0 +1,726 @@
+{
+  "generated_at": "2026-09-16T21:30:42.271Z",
+  "allowlist_source": "docs/DOSSIE-VERIFIED-CAPABILITIES.md (verified 2026-09-14; WORKS items only)",
+  "note": "Every `verbatim_text` is a REAL row from the live database. The mapper is allowed - and expected - to return \"skipped\" with a reason; a skipped quote is never stretched onto an adjacent capability.",
+  "counts": {
+    "rows_fetched": 86,
+    "candidates": 83,
+    "mapped": 10,
+    "skipped": 73,
+    "by_capability": {
+      "7 — Stage checklist (Pre-Contract through Closed)": 3,
+      "6 — TREC deadline calculator (real paragraph citations, recomputed live)": 3,
+      "9 — Document management (per-dossier file list, upload/view/delete)": 2,
+      "5 — Dossier detail view (per-transaction)": 1,
+      "13 — Morning Brief (data-grounded daily summary)": 1
+    }
+  },
+  "mapped": [
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "6c262fac-4445-4a1f-a525-7ae88c77378b",
+      "author": "r/RealEstateAgents",
+      "source_ref": "https://www.reddit.com/r/realestateagents/comments/1kxvp3q/thoughts_on_using_a_transaction_coordinator/",
+      "captured_at": "2025-05-28T23:19:05+00:00",
+      "verbatim_text": "Thoughts on Using a Transaction Coordinator? — Hey everyone, I’m a new agent and currently finalizing my first deal. I decided to hire a transaction coordinator to help with the process, and honestly, I’m so glad I did. It really helped ease some of the stress and made sure I didn’t miss any important steps. I’m not sure if I’ll use one for every deal moving forward, but for my first one, it was 100% worth it. Curious to hear your thoughts — do you use a TC regularly? Why or why not? &#32; submitted by &#32; /u/AfraidChocolate370 [link] &#32",
+      "decision": "mapped",
+      "capability_number": 7,
+      "capability_name": "Stage checklist (Pre-Contract through Closed)",
+      "ask_question": "What's left to do on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "What's left to do on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bmiss(ed|ing)?\\b[^.]{0,30}\\bstep/i",
+        "/\\bimportant steps\\b/i",
+        "/\\bprocess\\b/i",
+        "/\\bdidn.?t miss\\b/i"
+      ]
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "782e5150-9318-4b7c-9c2a-87b2bfa564a9",
+      "author": "r/realtors",
+      "source_ref": "https://www.reddit.com/r/realtors/comments/1vo88bu/typical_contingency_timeline_disagreement_on/",
+      "captured_at": "2026-08-14T14:05:43+00:00",
+      "verbatim_text": "Typical Contingency timeline? Disagreement on specifics — having a difference of opinion on a matter. we are about to offer on a house that’s been on the market for 3 months. we need to sell our house. When we started this process, we stated, for various reasons, we weren’t listing until we had an accepted offer. No problem. Was told if accepted offer, we’d write in house will be listed within either 10-14 days, and when we sign P&amp;S we’ll include house needs to be under agreement within 2 weeks of this signing. sounded good to me, and made sense. A",
+      "decision": "mapped",
+      "capability_number": 6,
+      "capability_name": "TREC deadline calculator (real paragraph citations, recomputed live)",
+      "ask_question": "When does the option period end on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "When does the option period end on 789 Ranch Rd?",
+        "What is the title commitment deadline on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bcontingency timeline\\b/i"
+      ]
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "977d5507-bc13-4a66-801a-e96ce9b10049",
+      "author": "r/RealEstateAdvice",
+      "source_ref": "https://www.reddit.com/r/RealEstateAdvice/comments/1vmkzgx/va_home_loan_questions/",
+      "captured_at": "2026-08-12T17:37:51+00:00",
+      "verbatim_text": "VA Home Loan Questions! — Hi! This is from from my friend who is selling her house to someone using a VA loan and looking for advice. I asked my sister who bought her home with a VA loan, but I was hoping you guys could help while I wait for her to get out of class :) “So apparently there’s some missing paperwork with the community well for our house, and now closing has been put off until minimally August 30th, when it was originally supposed to be July 31st, but got moved to this Friday, Which isn’t that big of a deal,",
+      "decision": "mapped",
+      "capability_number": 6,
+      "capability_name": "TREC deadline calculator (real paragraph citations, recomputed live)",
+      "ask_question": "When does the option period end on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "When does the option period end on 789 Ranch Rd?",
+        "What is the title commitment deadline on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bclosing (date|got|has been) (moved|put off|pushed)/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "12228957-9a62-4a7f-ae6a-780a0bf38928",
+      "author": "James Molter",
+      "source_ref": "https://www.facebook.com/groups/texasusarealestateagents/posts/2352200355549051/?comment_id=2352217525547334&reply_comment_id=2354079758694444",
+      "captured_at": "2026-09-10T21:30:43.731+00:00",
+      "verbatim_text": "It's more about consolidating their folders into one and categorizing them according to types of clients.",
+      "decision": "mapped",
+      "capability_number": 9,
+      "capability_name": "Document management (per-dossier file list, upload/view/delete)",
+      "ask_question": "What documents are on file for 789 Ranch Rd?",
+      "ask_alternatives": [
+        "What documents are on file for 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bfolder/i",
+        "/\\bconsolidat/i",
+        "/\\bcategoriz/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "040521f6-46ba-4991-903c-3fa4bfee05f7",
+      "author": "James Molter",
+      "source_ref": "https://www.facebook.com/groups/texasusarealestateagents/posts/2352200355549051/?comment_id=2352217525547334&reply_comment_id=2353815335387553",
+      "captured_at": "2026-09-09T16:32:44.16+00:00",
+      "verbatim_text": "Organizing their internal processes with tracking clients and files. I create a filing structure within their emails to better manage communications with clients.",
+      "decision": "mapped",
+      "capability_number": 5,
+      "capability_name": "Dossier detail view (per-transaction)",
+      "ask_question": "Give me the full picture on 789 Ranch Rd.",
+      "ask_alternatives": [
+        "Give me the full picture on 789 Ranch Rd."
+      ],
+      "matched_signals": [
+        "/\\bfiling structure\\b/i",
+        "/\\btracking clients and files\\b/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "0abe5d47-9f7a-442a-8b9d-a84411f680ac",
+      "author": "Andy Bearden",
+      "source_ref": "https://www.facebook.com/groups/531847711158328/posts/1792845771725176/?comment_id=1792883101721443",
+      "captured_at": "2026-09-07T22:19:20.255+00:00",
+      "verbatim_text": "The real pain point is usually me.   I don’t set good expectations or provide complete instructions.",
+      "decision": "mapped",
+      "capability_number": 7,
+      "capability_name": "Stage checklist (Pre-Contract through Closed)",
+      "ask_question": "What's left to do on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "What's left to do on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bexpectations\\b/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "ff991036-2256-4387-9f7c-dd81b33b0011",
+      "author": "Holly Peery Osborne",
+      "source_ref": "https://www.facebook.com/groups/531847711158328/posts/1792845771725176/?comment_id=1792870721722681&reply_comment_id=1793814148295005",
+      "captured_at": "2026-09-09T02:00:19.887+00:00",
+      "verbatim_text": "Heath Shepard i have not had something slip through yet, but it's because I'm on top of looking at it and you do have to forward it. In Texas, you can actually put it in the contract with your email and your TC's email. Every time they don't copy, I send them a professionally worded email with a request and point out it's part of the contract. Thankfully, my title company of choice is really good. Most of the pertinent information we need in a deal eventually is verified or comes through title.",
+      "decision": "mapped",
+      "capability_number": 13,
+      "capability_name": "Morning Brief (data-grounded daily summary)",
+      "ask_question": "What's urgent today?",
+      "ask_alternatives": [
+        "What's urgent today?"
+      ],
+      "matched_signals": [
+        "/\\btop of\\b.*\\blooking at it\\b/i",
+        "/\\bon top of\\b/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "5b90e0bf-8cfa-4ae6-ad61-4a536d5dbf9b",
+      "author": "Andy Bearden",
+      "source_ref": "https://www.facebook.com/groups/531847711158328/posts/1792845771725176/?comment_id=1792883101721443&reply_comment_id=1794387018237718",
+      "captured_at": "2026-09-09T17:27:23.858+00:00",
+      "verbatim_text": "Heath Shepard may standards for follow up with the client.",
+      "decision": "mapped",
+      "capability_number": 7,
+      "capability_name": "Stage checklist (Pre-Contract through Closed)",
+      "ask_question": "What's left to do on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "What's left to do on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bstandards for follow ?up\\b/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "9825d2c5-9624-48c5-ab7d-a5fbd33288f5",
+      "author": "Chaska Wilkinson",
+      "source_ref": "https://www.facebook.com/groups/531847711158328/posts/1792845771725176/?comment_id=1792857128390707",
+      "captured_at": "2026-09-07T21:29:20.255+00:00",
+      "verbatim_text": "With the right TC you eliminate pain points. \nMy gal is phenomenal & I don’t ever have to worry about missing deadlines or her overlooking anything.",
+      "decision": "mapped",
+      "capability_number": 6,
+      "capability_name": "TREC deadline calculator (real paragraph citations, recomputed live)",
+      "ask_question": "When does the option period end on 789 Ranch Rd?",
+      "ask_alternatives": [
+        "When does the option period end on 789 Ranch Rd?",
+        "What is the title commitment deadline on 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bdeadline/i",
+        "/\\bmiss(ed|ing|es)?\\b[^.]{0,30}\\b(date|deadline)/i"
+      ]
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "d11a893b-fb77-4ab7-a5ce-527a7493ad1d",
+      "author": "James Molter",
+      "source_ref": "https://www.facebook.com/groups/texasusarealestateagents/posts/2352200355549051/?comment_id=2352217525547334&reply_comment_id=2359326281503125",
+      "captured_at": "2026-09-15T19:42:35.642+00:00",
+      "verbatim_text": "Heath Shepard maybe they should consider consolidating further. This is how I categorize and then build the individual subfiles within these either by client or by property. If it’s by client first (buyer) I change them to property once they go under contract.",
+      "decision": "mapped",
+      "capability_number": 9,
+      "capability_name": "Document management (per-dossier file list, upload/view/delete)",
+      "ask_question": "What documents are on file for 789 Ranch Rd?",
+      "ask_alternatives": [
+        "What documents are on file for 789 Ranch Rd?"
+      ],
+      "matched_signals": [
+        "/\\bconsolidat/i",
+        "/\\bcategoriz/i",
+        "/\\bsubfiles?\\b/i"
+      ]
+    }
+  ],
+  "skipped": [
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "3304977b-c79b-4518-98c8-cfaea396660d",
+      "author": "r/realtors",
+      "verbatim_text": "Lost - NYC Salesperson — I got my Real Estate license last month, and I just feel so lost and overwhelmed. I recently joined both a rental coaching, and a seller/buyer coaching (within my brokerage), and I'm starting to ",
+      "reason": "NO HONEST MATCH - Lead generation is not a product capability"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "33600c3f-0349-4191-b9ae-68fb7ca0f27a",
+      "author": "r/RealEstateAdvice",
+      "verbatim_text": "Hollywood tricked me — You know in the movies sometimes those rich people have some kind of retreat where they take a break from everything. Isolate themselves making wine from grapes, grinding some olives to make their ",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "9b386032-65a6-4707-99e6-22f93d91e608",
+      "author": "r/realtors",
+      "verbatim_text": "New CA agent joining a team — what splits and lead ownership terms should I negotiate? — I’m a newly licensed agent in California (licensed ~2 months) and joined a small team about a month ago. I haven’t signed a team ag",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "2564f544-4e5b-4fbf-8d71-34643d8fe871",
+      "author": "r/RealEstateAdvice",
+      "verbatim_text": "[UPDATE] Seller doesn’t want to be responsible for any repairs — Link to original: Seller doesn’t want to be responsible for any repairs : r/RealEstateAdvice Thank you for the overwhelming number of responses. I apprecia",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "48fb61c5-4dd3-4465-aedc-3deb77c33069",
+      "author": "r/realtors",
+      "verbatim_text": "I'm building a new brokerage compensation model and would love to get feedback from Realtors on it. — I'm still in the phases of ensuring compliance with tax codes and real estate compensation regulations. I'm not recrui",
+      "reason": "NO HONEST MATCH - CMA generation DOES NOT EXIST (cap 20)"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "c0003bee-bc39-43f3-85df-0d279c821538",
+      "author": "r/RealEstateAdvice",
+      "verbatim_text": "Am I overreacting, or is this commercial lease situation as weird as it feels? — First-time commercial tenant here. I'm opening a small service/entertainment business and have been negotiating for roughly 2,000 sq. ft. o",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "5d7b3606-a9e7-49f1-9391-d81ae45db6f4",
+      "author": "r/realtors",
+      "verbatim_text": "Day 1 and I’m gonna give up. — I got soaked, ran out of gas, got into a car accident, got ghosted and sprained my ankle all within 6 hours. I think it’s a sign. &#32; submitted by &#32; /u/studyingforaporshe [link] &#32;",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "babea5c5-15dd-4056-b4b8-da1d3d584320",
+      "author": "r/realtors",
+      "verbatim_text": "Considering a move from marketing back to real estate (kind of) — Currently I work for a corporate company on a marketing team. I’ve been at this company for 1 &amp; 1/2 years but all together I have 7 years of marketing",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "5a59197f-60c3-4aa1-9805-dfb245be3807",
+      "author": "r/realtors",
+      "verbatim_text": "First year no sales. No nothing. — Hey everyone, I'm posting this because I'm a little bit frustrated and confused. I have had my first year in real estate and I cannot say that my efforts matched any of my outcome becau",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "f5d637a3-a29a-4059-a892-1740df083b1d",
+      "author": "r/realtors",
+      "verbatim_text": "Thinking of switching brokerages — Hi, I tried looking up posts here to see if someone had already asked something like this but didn’t find anything, and I’m looking for advice! I’ve been licensed for approximately 4 mo",
+      "reason": "NO HONEST MATCH - MLS integration DOES NOT EXIST (cap 21)"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "4ee2651e-bae6-4d69-a0a9-0ca7d2c9d393",
+      "author": "r/realtors",
+      "verbatim_text": "Hiring a transaction coordinator! Any ideas where to look?? — Hey everyone! I am hiring a transaction coordinator for my company and wanted some info about where to find someone for this! I am open to a virtual role if i",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "reddit_pain_language",
+      "row_id": "7d1de52f-6346-483a-922e-3980f1fbb4c4",
+      "author": "r/RealEstateAgents",
+      "verbatim_text": "New Agent — hello everyone, I recently join the brokerage and my commissions split at the moment is 20/80. she mentioned she would be covering all my business cards, transaction coordinator, and my MLS portal fee. She do",
+      "reason": "NO HONEST MATCH - MLS integration DOES NOT EXIST (cap 21)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "75d23c0d-6a6b-4d2a-9931-ef6f758bfdbc",
+      "author": "Pauline Mumme",
+      "verbatim_text": "This is dreamy!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "55c21f12-21c9-4dcc-8b2d-b9f842fc7405",
+      "author": "Taylor McCormack Engel",
+      "verbatim_text": "Nicole Roth-Volentine would you consider giving her your email password? After a year working together maybe there’s enough trust there to try that method instead. Im a full time TC & have the password to 80% of my (busy",
+      "reason": "NO HONEST MATCH - Dossie does not manage logins, MFA codes, or shared passwords"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "c4878871-ddef-4b4f-8214-4ee2e15de959",
+      "author": "Nicole Roth-Volentine",
+      "verbatim_text": "It’s been a year but I’m pretty positive she had to pretty much everything that requires a login the password. I never said I didn’t trust her. I said for me personally it seemed more work than doing it by myself. I know",
+      "reason": "NO HONEST MATCH - Dossie does not manage logins, MFA codes, or shared passwords"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "f7644745-79ec-4bc9-9cb6-8112adc2a76d",
+      "author": "Kim Francis",
+      "verbatim_text": "I clean part time and have excellent references",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "44b6c09f-4d9b-4bbe-a30e-a77e450855f3",
+      "author": "Shawna Holly",
+      "verbatim_text": "Autumn Sanchez Thank you. Love you!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "0871edb8-768e-447a-ac99-eeda1f709200",
+      "author": "Shawna Holly",
+      "verbatim_text": "Marie Holly Maybe another day!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "4963ab23-d0a8-47bc-94e6-c20e4cadd3b4",
+      "author": "Marie Holly",
+      "verbatim_text": "Very nice. Now you can over and our porch.",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "019f3b46-48e1-4e8c-997a-ba9b080dc2ad",
+      "author": "Ren EWok",
+      "verbatim_text": "Beautiful!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "961ac71d-3c75-4095-acd2-d1e9798327b9",
+      "author": "Adrienne Lewis",
+      "verbatim_text": "Wow, belongs in a magazine! ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "4a9a5011-ca56-4f62-b2a2-45910d0e6fc3",
+      "author": "Shawna Holly",
+      "verbatim_text": "Adrienne Lewis Aww, thank you!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "2e244bf2-b9c3-4792-985f-787b976bd657",
+      "author": "Shawna Holly",
+      "verbatim_text": "Pauline Mumme Thank youuuu!!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "a79a2314-8583-472e-bf4e-02f9ba703f12",
+      "author": "Samantha Mcguffey",
+      "verbatim_text": "I’d recommend using Ready set clean",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "197eca3d-72f7-4933-a885-540191a24b62",
+      "author": "Autumn Sanchez",
+      "verbatim_text": "Beautiful sister ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "6c985c8a-0d2a-4493-bf80-f5b2713a0efe",
+      "author": "Shawna Holly",
+      "verbatim_text": "Ren EWok Thank you! Probably could have picked a cooler day to do it",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "da06cde0-c2d1-4977-8385-712bc11c51b4",
+      "author": "James Molter",
+      "verbatim_text": "Yes I’m a TC.",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "9f9dfa28-638d-4dd5-a8d4-a38ead0aeac8",
+      "author": "Shawna Holly",
+      "verbatim_text": "Staci Pierce Gahm To be fair, it's all stuff from our old house and the curtains were already there\n I'm just glad it's finally cleaned and put together! And thank you!",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "9933301d-453d-4274-811e-f2f41b019eae",
+      "author": "Donna Spradlin",
+      "verbatim_text": "Gorgeous ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "69f08c15-6d3e-44c8-b02f-18caf807fa38",
+      "author": "Shawna Holly",
+      "verbatim_text": "Donna Spradlin thank you!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "4c768b43-2835-417f-9bef-f15d52651f21",
+      "author": "Deana K Lopez",
+      "verbatim_text": "We have availability I sent you a message",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "f9f286b5-0e97-427c-b6dd-d2e7a7286d9e",
+      "author": "Nikki Hesse Guerra",
+      "verbatim_text": "Beautiful! I always love seeing your spaces you decorate!",
+      "reason": "social/vendor noise, carries no product question"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "b412695c-d283-4cea-829c-092a9e034c31",
+      "author": "Shawna Holly",
+      "verbatim_text": "Nikki Hesse Guerra Thank you!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "ba1228eb-8b15-425b-b995-9f82f51d61e8",
+      "author": "Donna Denise Gruber",
+      "verbatim_text": "So cozy.",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "af790cf9-a741-44c7-b60c-419263f248f4",
+      "author": "Diana Clary",
+      "verbatim_text": "Ha! You must know a cat",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "117ac701-7da4-4cda-9d3e-66be4231cb48",
+      "author": "Nicole Roth-Volentine",
+      "verbatim_text": "The constant emails or texts for a code to log into Dotloop or CRM or whatever the heck. To me that was more exhausting than just doing it myself. I don’t think using a TC is or will ever be for me. And I hate all office",
+      "reason": "NO HONEST MATCH - Brokerage portal upload DOES NOT EXIST (cap 24)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "1e3f7754-73a0-4f0e-b980-855ce03abdac",
+      "author": "Staci Pierce Gahm",
+      "verbatim_text": "You def have a touch!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "9c041981-f583-458c-8b72-6242f554a5b2",
+      "author": "Sadie Smith",
+      "verbatim_text": "Love this SO so much ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "3a8786a3-2813-45b9-8613-3fc84b895024",
+      "author": "Jennifer Click",
+      "verbatim_text": "Way to change the world!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "59cd14c0-5d0b-40bd-9335-9f22e03322f3",
+      "author": "Susan Price",
+      "verbatim_text": "Ellen Swindell I am so sorry! I’ll call you. ",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "3cf472c3-36b1-413c-bf9e-2d7b6d7d3986",
+      "author": "Susan Price",
+      "verbatim_text": "Cathy Tucker ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "b9926ef7-2c0a-45ca-82b3-a63698ed305f",
+      "author": "Cathy Tucker",
+      "verbatim_text": "I think this every day! \n I feel you! ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "14a170e5-b1f9-4b60-bf81-5774abb66f2a",
+      "author": "Robyn Pearl Weber",
+      "verbatim_text": "Ditto, it’s a constant!\nBest to you! ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "95af790e-7c71-470b-a287-560c026f2e69",
+      "author": "Ben Howard",
+      "verbatim_text": "Couple times a week. But as soon as I get a verification text, I just forward it to her.",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "0a96eec2-2243-442a-8f93-cc4467b06811",
+      "author": "James Molter",
+      "verbatim_text": "I actually offer everything.",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "87ec6958-d9dc-467e-98b4-96ecd16f8a74",
+      "author": "Heath Shepard, Realtor with Keller Williams City View",
+      "verbatim_text": "Honestly I tried Dotloop and a spreadsheet for the first couple years and still missed an option period deadline that nearly cost me a client. Lesson learned the hard way: brokerage platforms track docs, not deadlines. T",
+      "reason": "Heath's own comment - not an outside voice"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "7ccebbf2-6aad-4800-9b56-5eed358da8bc",
+      "author": "Ellen Swindell",
+      "verbatim_text": "Call me!!!! I wrote you a text",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "aa0c4bfc-1af3-4a95-be9c-7344cd720158",
+      "author": "Kristina Guzman",
+      "verbatim_text": "…like a cat would tell you even if they could. ",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "8f6a3ac4-d412-4747-ab5d-86dc9e6185e7",
+      "author": "Alison Hudson Leonard",
+      "verbatim_text": "All the time",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "13962abc-53f0-41d5-b784-731670270978",
+      "author": "Nicole Roth-Volentine",
+      "verbatim_text": "I can’t think of anything else right now. But I do remember it was more of a hassle than anything else to me. It’s been well over a year. Some people told me to give it more time but honestly even time would not change t",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "958a3397-e477-490e-a9ff-18957b6670ad",
+      "author": "Ben Howard",
+      "verbatim_text": "I don't think there's a workaround. She just texts. ￼",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "e6d5d7f8-937c-4a43-b339-a19502a3e6bb",
+      "author": "Ben Howard",
+      "verbatim_text": "I agree with the previous comments. It is all of the multi factor authorizations that we have to do. My TC is awesome and she 100% makes my business better! ￼",
+      "reason": "NO HONEST MATCH - Dossie does not manage logins, MFA codes, or shared passwords"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "1f48255b-e7b2-41a8-a5a6-aa3537def23c",
+      "author": "Kevin Hanlon",
+      "verbatim_text": "In a Baron?!? Way to go!!!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "a5afbbe0-d65e-4cd0-9ffb-3716b1cd7c12",
+      "author": "Eric J Portis",
+      "verbatim_text": "Kevin Hanlon yes a Baron",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "097bac31-faa2-4a8b-85b5-7bbd1d93590d",
+      "author": "Tommy Bonner",
+      "verbatim_text": "Heck yea!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "70776d1d-8e57-4cc2-85c8-d934be7fb424",
+      "author": "Tyler Swennes",
+      "verbatim_text": "Agents need more help than just keeping a contract flowing through deadlines.\nWith that, I've had an agent ask for help putting together his Buyer and Seller brochures. So I am now desinging these in his Canva along with",
+      "reason": "social/vendor noise, carries no product question"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "fdcf9fbd-476d-499f-8cad-3400e64b39ac",
+      "author": "Maryanna Gillespie Pearson",
+      "verbatim_text": "Congrats! ",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "8494db2f-f105-4470-8f28-ccf0e1083c27",
+      "author": "Carol Portis Reed",
+      "verbatim_text": "Awesome",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "e90265a6-9c41-473e-a69e-bb033a6e225a",
+      "author": "Timothy Soukup",
+      "verbatim_text": "Atta-boy, Garrett !!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "4b30e13a-ca52-4a04-b452-3cdd0cb36223",
+      "author": "Mike Foster",
+      "verbatim_text": "Congratulations..",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "5753911d-e32a-4593-a86d-884633367fed",
+      "author": "Samuel Kyle",
+      "verbatim_text": "Like father like son! Congrats! Proud dad for sure. ",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "1328cb0a-4478-4178-897b-e66ec61a7ab9",
+      "author": "Rome Arroyo",
+      "verbatim_text": "Thank You Amy!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "eb0a3103-7843-42e3-a6c0-e8b48ad146d2",
+      "author": "James Molter",
+      "verbatim_text": "Yeah I’d like to know too. I’m always looking for new ideas to expand my services.",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "e9a27969-09d6-45e3-8f77-e0299724a9c4",
+      "author": "Melisa Bradley Shelton",
+      "verbatim_text": "Heavenly Maid does great work! Highly recommend! ",
+      "reason": "social/vendor noise, carries no product question"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "3a2c0a8b-68ec-4a64-a4c9-a646ed3673f5",
+      "author": "Alex Polanco",
+      "verbatim_text": "Happy Birthday!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "938e4cbf-0797-49c6-b6a4-dc85d54aff17",
+      "author": "Jean Alonso",
+      "verbatim_text": "Happy Birthday \n Enjoy your special day",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "5959bf46-16b3-46a1-a1d4-0b1fd07c1f65",
+      "author": "Keith Blakely",
+      "verbatim_text": "Lunch looks tasty",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "5e208266-791f-4f1d-bb03-ad64f1bdc2da",
+      "author": "Marilyn Cazar",
+      "verbatim_text": "Sparkle&Shine Cleaning service would love to be considered!!",
+      "reason": "social/vendor noise, carries no product question"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "94c79b2d-3a10-4940-889b-38c15a55f3bb",
+      "author": "Holly Peery Osborne",
+      "verbatim_text": "Getting the agent on the other side of the deal to copy your TC on all of the emails they send or reply to.",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "bd9db04d-07ea-4fb9-b1cb-1215de64a7ee",
+      "author": "Samantha Mcguffey",
+      "verbatim_text": "I recommend Ready set clean",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "357152c3-42d2-46d7-b290-39ee085d9bd6",
+      "author": "Jessica Taylor",
+      "verbatim_text": "Check our reviews. Crazy Hands Daniel Kaplan",
+      "reason": "no verified-WORKS capability matches this quote"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "f4e4ae7f-124e-4153-b3e8-8b3e425ef00b",
+      "author": "Jessica Ann Weaver",
+      "verbatim_text": "Lacey for Spacey is amazing!",
+      "reason": "too short to be a real question (<40 chars)"
+    },
+    {
+      "source_table": "tc_discovery_responses",
+      "row_id": "96e2913d-58ea-4579-b78e-6107c6efea08",
+      "author": "Carmelita Perdomo",
+      "verbatim_text": "I highly recommend Denizze Camaxhx with Sparklean Solutions",
+      "reason": "social/vendor noise, carries no product question"
+    }
+  ]
+}

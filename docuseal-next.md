@@ -1,0 +1,384 @@
+- generic [active] [ref=f1e1]:
+  - main [ref=f1e3]:
+    - button "Enter screen reader mode" [ref=f1e4] [cursor=pointer]
+    - generic [ref=f1e5]:
+      - generic [ref=f1e11]:
+        - text: Developer Sandbox.
+        - link "Upgrade" [ref=f1e12] [cursor=pointer]:
+          - /url: https://console.docuseal.com/plans
+        - text: to start using in Production.
+      - link "DocuSeal" [ref=f1e14] [cursor=pointer]:
+        - /url: /
+      - generic [ref=f1e19]:
+        - heading "Dossie envelope 1787621818372" [level=1] [ref=f1e20]
+        - generic [ref=f1e21]:
+          - button "Decline" [ref=f1e23] [cursor=pointer]
+          - button "Download" [ref=f1e24] [cursor=pointer]
+      - generic [ref=f1e27]:
+        - button "Decline" [ref=f1e29] [cursor=pointer]
+        - button "Download" [ref=f1e34] [cursor=pointer]
+      - generic [ref=f1e40]:
+        - button "Enter screen reader mode" [ref=f1e41] [cursor=pointer]
+        - generic [ref=f1e42]:
+          - img "20-19.pdf - Page 1" [ref=f1e43]
+          - generic [ref=f1e44]:
+            - button "1 PARTIES The parties to this contract are" [ref=f1e45] [cursor=pointer]:
+              - generic: 1 PARTIES The parties to this contract are (optional)
+              - generic [ref=f1e46]: Wren Everly and Sutton Everly
+            - button "Seller and" [ref=f1e48] [cursor=pointer]:
+              - generic [ref=f1e49]: Nolan Dunmore
+            - button "A LAND Lot" [ref=f1e51] [cursor=pointer]
+            - button "Block" [ref=f1e58] [cursor=pointer]
+            - button "undefined" [ref=f1e65] [cursor=pointer]
+            - button "Addition City of" [ref=f1e72] [cursor=pointer]
+            - button "County of" [ref=f1e79] [cursor=pointer]
+            - button "Texas known as" [ref=f1e86] [cursor=pointer]:
+              - generic [ref=f1e87]: 789 Ranch Rd
+            - button "be removed prior to delivery of possession" [ref=f1e89] [cursor=pointer]
+            - button "Text" [ref=f1e96] [cursor=pointer]
+            - button "Text" [ref=f1e103] [cursor=pointer]:
+              - generic [ref=f1e104]: "850000"
+            - checkbox "B Sum of all financing described in the attached" [ref=f1e108] [cursor=pointer]
+            - checkbox "Check Box2" [ref=f1e111] [cursor=pointer]
+            - checkbox "Loan Assumption Addendum" [ref=f1e114] [cursor=pointer]
+            - button "Text" [ref=f1e115] [cursor=pointer]
+            - button "Text" [ref=f1e122] [cursor=pointer]
+            - checkbox "i will not be amended or deleted from the title policy or" [ref=f1e131] [cursor=pointer]
+            - checkbox "ii will be amended to read shortages in area at the expense of" [ref=f1e134] [cursor=pointer]
+            - checkbox "A TITLE POLICY Seller shall furnish to Buyer at" [ref=f1e137] [cursor=pointer]
+            - checkbox "Sellers" [ref=f1e140] [cursor=pointer]
+            - checkbox "Seller" [ref=f1e143] [cursor=pointer]
+            - button "to escrow agent within 1" [ref=f1e144] [cursor=pointer]
+            - button "Initialed for identification by Buyer" [ref=f1e151] [cursor=pointer]
+            - button "Text" [ref=f1e158] [cursor=pointer]
+            - button "and Seller" [ref=f1e165] [cursor=pointer]
+            - button "Text" [ref=f1e172] [cursor=pointer]
+        - generic [ref=f1e179]:
+          - img "20-19.pdf - Page 2" [ref=f1e180]
+          - generic [ref=f1e181]:
+            - button "Page 2 of 10" [ref=f1e182] [cursor=pointer]
+            - button "Text" [ref=f1e189] [cursor=pointer]
+            - button "other party in writing before entering into a contract of sale Disclose if applicable" [ref=f1e196] [cursor=pointer]
+            - button "Text" [ref=f1e203] [cursor=pointer]
+            - button "as earnest money to" [ref=f1e210] [cursor=pointer]
+            - button "as earnest money to 2" [ref=f1e217] [cursor=pointer]
+            - button "earnest money of" [ref=f1e224] [cursor=pointer]
+            - button "to escrow agent within" [ref=f1e231] [cursor=pointer]
+            - button "the Title Company and Buyers lenders Check one box only" [ref=f1e238] [cursor=pointer]
+            - checkbox "Checkbox" [ref=f1e247] [cursor=pointer]
+            - checkbox "Buyers expense no later" [ref=f1e250] [cursor=pointer]
+            - button "insurance Title Policy issued by" [ref=f1e251] [cursor=pointer]
+            - checkbox "2Within" [ref=f1e260] [cursor=pointer]
+            - checkbox "3Within" [ref=f1e263] [cursor=pointer]
+            - checkbox "is" [ref=f1e266] [cursor=pointer]
+            - checkbox "is not" [ref=f1e269] [cursor=pointer]
+            - button "2 MEMBERSHIP IN PROPERTY OWNERS ASSOCIATIONS The Property" [ref=f1e270] [cursor=pointer]
+            - button "Text" [ref=f1e277] [cursor=pointer]
+            - button "Text" [ref=f1e284] [cursor=pointer]
+            - button "Text" [ref=f1e291] [cursor=pointer]
+        - generic [ref=f1e298]:
+          - img "20-19.pdf - Page 3" [ref=f1e299]
+          - generic [ref=f1e300]:
+            - button "Page 3 of 10" [ref=f1e301] [cursor=pointer]
+            - checkbox "Buyer" [ref=f1e310] [cursor=pointer]
+            - button "than 3 days prior to Closing Date" [ref=f1e311] [cursor=pointer]
+            - checkbox "Within one" [ref=f1e320] [cursor=pointer]
+            - checkbox "Within two" [ref=f1e323] [cursor=pointer]
+            - checkbox "Within three" [ref=f1e326] [cursor=pointer]
+            - button "3 days prior" [ref=f1e327] [cursor=pointer]
+            - checkbox "Within four" [ref=f1e336] [cursor=pointer]
+            - button "receipt or the date specified in this paragraph whichever is earlier" [ref=f1e337] [cursor=pointer]
+            - button "Commitment other than items 6A1 through 9 above or which prohibit the following use" [ref=f1e344] [cursor=pointer]
+            - button "the Commitment Exception Documents and the survey Buyers failure to object within the" [ref=f1e351] [cursor=pointer]
+            - checkbox "1Within" [ref=f1e360] [cursor=pointer]
+            - checkbox "2 Within" [ref=f1e363] [cursor=pointer]
+            - button "Property Code requires Seller to notify Buyer as follows" [ref=f1e364] [cursor=pointer]
+            - button "Text" [ref=f1e371] [cursor=pointer]
+            - button "Text" [ref=f1e378] [cursor=pointer]
+            - button "The private transfer fee" [ref=f1e385] [cursor=pointer]
+        - generic [ref=f1e392]:
+          - img "20-19.pdf - Page 4" [ref=f1e393]
+          - generic [ref=f1e394]:
+            - button "Contract Concerning" [ref=f1e395] [cursor=pointer]
+            - checkbox "1 Buyer accepts the Property As Is" [ref=f1e404] [cursor=pointer]
+            - checkbox "2 Buyer accepts the Property As Is provided Seller at Sellers expense shall complete the" [ref=f1e407] [cursor=pointer]
+            - button "Within" [ref=f1e408] [cursor=pointer]
+            - checkbox "upon" [ref=f1e417] [cursor=pointer]
+            - button "Text" [ref=f1e418] [cursor=pointer]
+            - button "Text" [ref=f1e425] [cursor=pointer]
+            - button "Text" [ref=f1e432] [cursor=pointer]
+            - button "Text" [ref=f1e439] [cursor=pointer]
+        - generic [ref=f1e446]:
+          - img "20-19.pdf - Page 5" [ref=f1e447]
+          - generic [ref=f1e448]:
+            - button "Text" [ref=f1e449] [cursor=pointer]
+            - checkbox "As Is" [ref=f1e458] [cursor=pointer]
+            - checkbox "As Is except" [ref=f1e461] [cursor=pointer]
+            - button "following specific repairs and treatments" [ref=f1e462] [cursor=pointer]
+            - button "Text" [ref=f1e469] [cursor=pointer]
+            - button "service contract in an amount not exceeding0" [ref=f1e476] [cursor=pointer]
+            - checkbox "Seller as List Brok Sub agent2" [ref=f1e485] [cursor=pointer]
+            - checkbox "Dollar Amt2" [ref=f1e488] [cursor=pointer]
+            - button "service contract in an amount not exceeding1" [ref=f1e489] [cursor=pointer]
+            - checkbox "Dollar Amt" [ref=f1e498] [cursor=pointer]
+            - button "service contract in an amount not exceeding3" [ref=f1e499] [cursor=pointer]
+            - button "service contract in an amount not exceeding" [ref=f1e506] [cursor=pointer]
+            - button "Text" [ref=f1e513] [cursor=pointer]
+            - button "Buyers Expenses as allowed by the lender" [ref=f1e520] [cursor=pointer]
+            - button "Text" [ref=f1e527] [cursor=pointer]
+            - button "Text" [ref=f1e534] [cursor=pointer]
+        - generic [ref=f1e541]:
+          - img "20-19.pdf - Page 6" [ref=f1e542]
+          - generic [ref=f1e543]:
+            - button "Text" [ref=f1e544] [cursor=pointer]
+            - button "Brokers and Sales4" [ref=f1e551] [cursor=pointer]
+            - button "Brokers and Sales" [ref=f1e558] [cursor=pointer]
+            - button "Brokers and Sales 2" [ref=f1e565] [cursor=pointer]
+            - button "A The closing of the sale will be on or before" [ref=f1e572] [cursor=pointer]:
+              - generic [ref=f1e573]: 2026-10-15
+            - button "Text" [ref=f1e575] [cursor=pointer]
+            - checkbox "will" [ref=f1e584] [cursor=pointer]
+            - checkbox "will not be credited to the Sales Price at closing Time is of the" [ref=f1e587] [cursor=pointer]
+            - button "Text3" [ref=f1e588] [cursor=pointer]
+            - button "Text3 2" [ref=f1e595] [cursor=pointer]
+            - button "Text3 3" [ref=f1e602] [cursor=pointer]
+            - button "acknowledged by Seller and Buyers agreement to pay Seller 1" [ref=f1e609] [cursor=pointer]
+            - button "Text" [ref=f1e616] [cursor=pointer]
+            - button "Text" [ref=f1e623] [cursor=pointer]
+            - button "Text" [ref=f1e630] [cursor=pointer]
+            - button "Text" [ref=f1e637] [cursor=pointer]
+        - generic [ref=f1e644]:
+          - img "20-19.pdf - Page 7" [ref=f1e645]
+          - generic [ref=f1e646]:
+            - button "Page 7 of 10" [ref=f1e647] [cursor=pointer]
+            - checkbox "Seller as List Brok Sub agent" [ref=f1e656] [cursor=pointer]
+            - checkbox "Seller as List Brok Sub agent27" [ref=f1e659] [cursor=pointer]
+            - button "acknowledged by Seller and Buyers agreement to pay Seller 130" [ref=f1e660] [cursor=pointer]
+            - checkbox "Seller only as Sellers agent" [ref=f1e669] [cursor=pointer]
+            - button "acknowledged by Seller and Buyers agreement to pay Seller 31" [ref=f1e670] [cursor=pointer]
+            - checkbox "Dollar Amt4" [ref=f1e679] [cursor=pointer]
+            - checkbox "Dollar Amt5" [ref=f1e682] [cursor=pointer]
+            - button "acknowledged by Seller and Buyers agreement to pay Seller 32" [ref=f1e683] [cursor=pointer]
+            - checkbox "Percentage" [ref=f1e692] [cursor=pointer]
+            - button "acknowledged by Seller and Buyers agreement to pay Seller 40" [ref=f1e693] [cursor=pointer]
+            - button "AC numb 1" [ref=f1e700] [cursor=pointer]
+            - button "AC numb 2" [ref=f1e707] [cursor=pointer]
+            - button "AC numb 3" [ref=f1e714] [cursor=pointer]
+            - button "AC numb 4" [ref=f1e721] [cursor=pointer]
+        - generic [ref=f1e728]:
+          - img "20-19.pdf - Page 8" [ref=f1e729]
+          - generic [ref=f1e730]:
+            - button "Text" [ref=f1e731] [cursor=pointer]
+            - button "when mailed to handdelivered at or transmitted by fax or electronic transmission as follow15" [ref=f1e738] [cursor=pointer]
+            - button "at7" [ref=f1e745] [cursor=pointer]
+            - button "Phone 5217" [ref=f1e752] [cursor=pointer]
+            - button "Text" [ref=f1e759] [cursor=pointer]
+            - button "Text" [ref=f1e766] [cursor=pointer]
+            - button "Text" [ref=f1e773] [cursor=pointer]
+            - button "undefined6" [ref=f1e780] [cursor=pointer]
+            - button "Text" [ref=f1e787] [cursor=pointer]
+            - button "undefined numb 2110" [ref=f1e794] [cursor=pointer]
+            - button "undefined numb 22-012" [ref=f1e801] [cursor=pointer]
+            - button "undefined numb 2214" [ref=f1e808] [cursor=pointer]
+            - button "undefined numb 22-0" [ref=f1e815] [cursor=pointer]
+            - button "when mailed to handdelivered at or transmitted by fax or electronic transmission as follows" [ref=f1e822] [cursor=pointer]
+            - button "at" [ref=f1e829] [cursor=pointer]
+            - button "Phone 52" [ref=f1e836] [cursor=pointer]
+            - button "Text" [ref=f1e843] [cursor=pointer]
+            - button "Text" [ref=f1e850] [cursor=pointer]
+            - button "Text" [ref=f1e857] [cursor=pointer]
+            - button "undefined numb 21" [ref=f1e864] [cursor=pointer]
+            - button "undefined numb 22" [ref=f1e871] [cursor=pointer]
+            - button "Text" [ref=f1e878] [cursor=pointer]
+            - button "Text" [ref=f1e885] [cursor=pointer]
+            - button "Text" [ref=f1e892] [cursor=pointer]
+            - button "Text" [ref=f1e899] [cursor=pointer]
+        - generic [ref=f1e906]:
+          - img "20-19.pdf - Page 9" [ref=f1e907]
+          - generic [ref=f1e908]:
+            - button "Address of Property" [ref=f1e909] [cursor=pointer]:
+              - generic [ref=f1e910]: 789 Ranch Rd
+            - checkbox "Addendum for Reservation of Oil Gas" [ref=f1e914] [cursor=pointer]
+            - checkbox "Sellers Disclos" [ref=f1e917] [cursor=pointer]
+            - checkbox "Addendum for BackUp Contract" [ref=f1e920] [cursor=pointer]
+            - checkbox "Checkbox" [ref=f1e923] [cursor=pointer]
+            - checkbox "Other" [ref=f1e926] [cursor=pointer]
+            - checkbox "Check box 11" [ref=f1e929] [cursor=pointer]
+            - checkbox "Environmental Assessment Threatened or" [ref=f1e932] [cursor=pointer]
+            - checkbox "Third Party Financing Addendum" [ref=f1e935] [cursor=pointer]
+            - checkbox "Sellers Temporary Residential Lease" [ref=f1e938] [cursor=pointer]
+            - checkbox "Seller Financing Addendum" [ref=f1e941] [cursor=pointer]
+            - checkbox "Short Sale Addendum" [ref=f1e944] [cursor=pointer]
+            - checkbox "Addendum for Property Subject to" [ref=f1e947] [cursor=pointer]
+            - checkbox "Addendum for Property Located Seaward" [ref=f1e950] [cursor=pointer]
+            - checkbox "Buyers Temporary Residential Lease" [ref=f1e953] [cursor=pointer]
+            - checkbox "Checkbox" [ref=f1e956] [cursor=pointer]
+            - checkbox "Addendum for Sale of Other Property by" [ref=f1e959] [cursor=pointer]
+            - checkbox "Addendum for Property in a Propane Gas" [ref=f1e962] [cursor=pointer]
+            - checkbox "Check Box8" [ref=f1e965] [cursor=pointer]
+            - checkbox "PID" [ref=f1e968] [cursor=pointer]
+            - button "Brokers and Sales20" [ref=f1e969] [cursor=pointer]
+            - button "Brokers and Sales21" [ref=f1e976] [cursor=pointer]
+            - checkbox "Check Box9" [ref=f1e985] [cursor=pointer]
+            - checkbox "Addendum for Section 1031" [ref=f1e988] [cursor=pointer]
+            - checkbox "Check box 10" [ref=f1e991] [cursor=pointer]
+            - checkbox "Buyer only" [ref=f1e994] [cursor=pointer]
+            - checkbox "Seller and Buyer as an intermediary" [ref=f1e997] [cursor=pointer]
+            - button "Brokers and Sales22" [ref=f1e998] [cursor=pointer]
+            - button "Brokers and Sales41" [ref=f1e1005] [cursor=pointer]
+            - button "Attorney is" [ref=f1e1012] [cursor=pointer]
+            - button "Text" [ref=f1e1019] [cursor=pointer]
+            - button "Text2" [ref=f1e1026] [cursor=pointer]
+            - button "Text1" [ref=f1e1033] [cursor=pointer]
+            - button "Text7" [ref=f1e1040] [cursor=pointer]
+            - button "Text6" [ref=f1e1047] [cursor=pointer]
+            - button "Email" [ref=f1e1054] [cursor=pointer]
+            - button "Text" [ref=f1e1061] [cursor=pointer]
+            - button "Text" [ref=f1e1068] [cursor=pointer]
+            - button "Text22" [ref=f1e1075] [cursor=pointer]
+            - button "Phone11" [ref=f1e1082] [cursor=pointer]
+            - button "Text23" [ref=f1e1089] [cursor=pointer]
+            - button "Phone 2" [ref=f1e1096] [cursor=pointer]
+            - button "Text" [ref=f1e1103] [cursor=pointer]
+            - button "Text" [ref=f1e1110] [cursor=pointer]
+            - button "Text" [ref=f1e1117] [cursor=pointer]
+            - button "Text" [ref=f1e1124] [cursor=pointer]
+            - button "Text" [ref=f1e1131] [cursor=pointer]
+        - generic [ref=f1e1138]:
+          - img "20-19.pdf - Page 10" [ref=f1e1139]
+          - generic [ref=f1e1140]:
+            - button "Addr of Prop" [ref=f1e1141] [cursor=pointer]:
+              - generic [ref=f1e1142]: 789 Ranch Rd
+            - button "EXECUTED the" [ref=f1e1144] [cursor=pointer]
+            - button "day of" [ref=f1e1151] [cursor=pointer]
+            - button "Text" [ref=f1e1158] [cursor=pointer]
+            - button "Signature8" [ref=f1e1165] [cursor=pointer]
+            - button "Signature9" [ref=f1e1172] [cursor=pointer]
+            - button "Signature10" [ref=f1e1179] [cursor=pointer]
+            - button "Signature11" [ref=f1e1186] [cursor=pointer]
+        - generic [ref=f1e1193]:
+          - img "20-19.pdf - Page 11" [ref=f1e1194]
+          - generic [ref=f1e1195]:
+            - button "Text" [ref=f1e1196] [cursor=pointer]:
+              - generic [ref=f1e1197]: 789 Ranch Rd
+            - button "Other Broker Firm" [ref=f1e1199] [cursor=pointer]
+            - button "License No" [ref=f1e1206] [cursor=pointer]
+            - button "Listing Broker Firm" [ref=f1e1213] [cursor=pointer]
+            - button "Text" [ref=f1e1220] [cursor=pointer]
+            - button "Associates Name numb 1" [ref=f1e1227] [cursor=pointer]
+            - button "Text" [ref=f1e1234] [cursor=pointer]
+            - button "List Assoc Name" [ref=f1e1241] [cursor=pointer]
+            - button "Text" [ref=f1e1248] [cursor=pointer]
+            - button "Associates Name" [ref=f1e1255] [cursor=pointer]
+            - button "Listing Associates Name" [ref=f1e1262] [cursor=pointer]
+            - button "Text" [ref=f1e1269] [cursor=pointer]
+            - button "Associates Email Address" [ref=f1e1276] [cursor=pointer]
+            - button "Listing Associates Email Address" [ref=f1e1283] [cursor=pointer]
+            - button "Phone" [ref=f1e1290] [cursor=pointer]
+            - button "Licensed Supervisor of Associate" [ref=f1e1297] [cursor=pointer]
+            - button "Text" [ref=f1e1304] [cursor=pointer]
+            - button "Text" [ref=f1e1311] [cursor=pointer]
+            - button "Other Brokers Address" [ref=f1e1318] [cursor=pointer]
+            - button "Text" [ref=f1e1325] [cursor=pointer]
+            - button "Licensed Supervisor of Listing Associate" [ref=f1e1332] [cursor=pointer]
+            - button "City" [ref=f1e1339] [cursor=pointer]
+            - button "State" [ref=f1e1346] [cursor=pointer]
+            - button "Zip" [ref=f1e1353] [cursor=pointer]
+            - button "Listing Brokers Office Address" [ref=f1e1360] [cursor=pointer]
+            - button "Text" [ref=f1e1367] [cursor=pointer]
+            - button "Text" [ref=f1e1374] [cursor=pointer]
+            - button "Text" [ref=f1e1381] [cursor=pointer]
+            - button "Text" [ref=f1e1388] [cursor=pointer]
+            - button "Selling Associates Name" [ref=f1e1395] [cursor=pointer]
+            - button "Text" [ref=f1e1402] [cursor=pointer]
+            - button "Selling Associates Name-1" [ref=f1e1409] [cursor=pointer]
+            - button "Selling Associates Email Address" [ref=f1e1416] [cursor=pointer]
+            - button "Text" [ref=f1e1423] [cursor=pointer]
+            - button "Licensed Supervisor of Selling Associate" [ref=f1e1430] [cursor=pointer]
+            - button "Text" [ref=f1e1437] [cursor=pointer]
+            - button "Selling Associates Office Address" [ref=f1e1444] [cursor=pointer]
+            - button "when mailed to" [ref=f1e1451] [cursor=pointer]
+            - button "when the Listing Brokers fee is received Escrow agent is authorized and directed to pay Other Broker from" [ref=f1e1458] [cursor=pointer]
+            - button "Text" [ref=f1e1465] [cursor=pointer]
+            - button "Text" [ref=f1e1472] [cursor=pointer]
+            - button "Text" [ref=f1e1479] [cursor=pointer]
+        - generic [ref=f1e1486]:
+          - img "20-19.pdf - Page 12" [ref=f1e1487]
+          - generic [ref=f1e1488]:
+            - button "Text" [ref=f1e1489] [cursor=pointer]:
+              - generic [ref=f1e1490]: 789 Ranch Rd
+            - button "is acknowledged" [ref=f1e1492] [cursor=pointer]
+            - button "Option Fee in the form of" [ref=f1e1499] [cursor=pointer]
+            - button "Seller or Listing Broker" [ref=f1e1506] [cursor=pointer]
+            - button "Date" [ref=f1e1513] [cursor=pointer]
+            - button "Text" [ref=f1e1520] [cursor=pointer]
+            - button "Earnest Money in the form of" [ref=f1e1527] [cursor=pointer]
+            - button "Escrow Agent" [ref=f1e1534] [cursor=pointer]
+            - button "Received by" [ref=f1e1541] [cursor=pointer]
+            - button "Email Address" [ref=f1e1548] [cursor=pointer]
+            - button "DateTime" [ref=f1e1555] [cursor=pointer]
+            - button "Address" [ref=f1e1562] [cursor=pointer]
+            - button "Text" [ref=f1e1569] [cursor=pointer]
+            - button "Text" [ref=f1e1576] [cursor=pointer]
+            - button "Text" [ref=f1e1583] [cursor=pointer]
+            - button "Text" [ref=f1e1590] [cursor=pointer]
+            - button "Fax" [ref=f1e1597] [cursor=pointer]
+            - button "Text" [ref=f1e1604] [cursor=pointer]
+            - button "Text" [ref=f1e1611] [cursor=pointer]
+            - button "Text" [ref=f1e1618] [cursor=pointer]
+            - button "Text" [ref=f1e1625] [cursor=pointer]
+            - button "Text" [ref=f1e1632] [cursor=pointer]
+            - button "Text" [ref=f1e1639] [cursor=pointer]
+            - button "Text" [ref=f1e1646] [cursor=pointer]
+            - button "Text" [ref=f1e1653] [cursor=pointer]
+            - button "Text" [ref=f1e1660] [cursor=pointer]
+            - button "Text" [ref=f1e1667] [cursor=pointer]
+            - button "Text" [ref=f1e1674] [cursor=pointer]
+            - button "additional Earnest Money in the form of" [ref=f1e1681] [cursor=pointer]
+            - button "Text" [ref=f1e1688] [cursor=pointer]
+            - button "Text" [ref=f1e1695] [cursor=pointer]
+            - button "Text" [ref=f1e1702] [cursor=pointer]
+            - button "Text" [ref=f1e1709] [cursor=pointer]
+            - button "Text" [ref=f1e1716] [cursor=pointer]
+            - button "Text" [ref=f1e1723] [cursor=pointer]
+            - button "Text" [ref=f1e1730] [cursor=pointer]
+            - button "Text" [ref=f1e1737] [cursor=pointer]
+            - button "Text" [ref=f1e1744] [cursor=pointer]
+            - button "Text" [ref=f1e1751] [cursor=pointer]
+      - generic [ref=f1e1758]:
+        - text: Powered by
+        - link "DocuSeal" [ref=f1e1759] [cursor=pointer]:
+          - /url: https://www.docuseal.com
+        - text: "- open source documents software"
+  - generic [ref=f1e1760]:
+    - button "Minimize" [ref=f1e1761] [cursor=pointer]
+    - generic [ref=f1e1768]:
+      - generic [ref=f1e1770]:
+        - generic [ref=f1e1771] [cursor=pointer]:
+          - text: 1 PARTIES The parties to this contract are
+          - generic [ref=f1e1772]: (optional)
+        - generic [ref=f1e1773]: "PARTIES: The parties to this contract are"
+        - generic [ref=f1e1775]:
+          - textbox "1 PARTIES The parties to this contract are (optional)" [ref=f1e1776]:
+            - /placeholder: Type here... (optional)
+            - text: Wren Everly and Sutton Everly
+          - generic [ref=f1e1777]:
+            - text: Toggle Multiline Text
+            - button "Toggle Multiline Text" [ref=f1e1778] [cursor=pointer]
+      - button "next" [ref=f1e1782] [cursor=pointer]
+  - dialog "Decline":
+    - generic:
+      - generic:
+        - generic: Decline
+        - generic:
+          - button "Close": ×
+      - generic:
+        - generic:
+          - generic:
+            - generic: Notify the sender with the reason you declined
+            - textbox "Notify the sender with the reason you declined":
+              - /placeholder: Provide a reason
+          - generic:
+            - button "Decline"
+    - generic:
+      - button "Close"

@@ -10,7 +10,9 @@
 
 ## CONTENT RULES — NON-NEGOTIABLE
 
-**Persona voice:** all content in **third person** — never first-person "I". Brenda=she/her, Patricia=she/her, Victor=he/him. WRONG "I closed 6 deals." RIGHT "She closed 6 deals."
+**Persona voice — RETIRED 2026-06-14.** `cron-generate-posts.js` `POST_PLAN_BASE` has generated zero `PERSONA_STORY` (Brenda/Patricia/Victor) slots since commit `25aa1b02`, and `BRAND_VOICE_FORMATS_ENFORCED` overrides any `PERSONA_STORY` the model still hallucinates back to `CAPABILITY_ONELINER`/`dossie` at insert time. Every live slot (LinkedIn included) is one of `CAPABILITY_ONELINER` / `TREC_EDUCATION` / `FOUNDER_STORY` — first-person Dossie brand voice, never a fictional third-person agent. Reason: LinkedIn's March 2026 Authenticity Update penalizes templated AI-persona content 30-55% (`docs/CONTENT-FORMAT-LIBRARY.md` §6 item 2). The persona voice rules below are kept only as historical reference for reading old `social_posts` rows.
+
+**Persona voice (historical — Brenda/Patricia/Victor, retired):** all content in **third person** — never first-person "I". Brenda=she/her, Patricia=she/her, Victor=he/him. WRONG "I closed 6 deals." RIGHT "She closed 6 deals."
 
 **Field constraints:** `card_body` max 50w (card only); `caption` full text; `stat` max 10 chars ("$8,000","80+"); `stat_label` max 50 chars; `hook` max 8 words, pattern-interrupting.
 

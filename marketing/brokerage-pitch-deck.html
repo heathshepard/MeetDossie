@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossie for Brokerages — Pitch Deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #FDFCFA;
+  --bg-warm: #F9F6F1;
+  --bg-card: #FFFFFF;
+  --bg-dark: #1A1A2E;
+  --border: #E8E2D9;
+  --border-light: #F0EBE3;
+  --text-primary: #2D2A26;
+  --text-secondary: #7A7468;
+  --text-light: #A39E94;
+  --blush: #D4A0A0;
+  --blush-light: #F2E4E4;
+  --blush-deep: #C08080;
+  --sage: #8BA888;
+  --sage-light: #E4EDE2;
+  --sage-deep: #6B8E68;
+  --gold: #C9A96E;
+  --gold-light: #F5EDD8;
+  --navy: #1A1A2E;
+  --cream: #FAF7F2;
+  --coral: #E8836B;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--navy);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.serif { font-family: 'Cormorant Garamond', 'Georgia', serif; }
+
+/* ---- DECK CHROME ---- */
+#deck { position: relative; width: 100%; height: 100vh; overflow: hidden; }
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 7vh 9vw;
+  background: var(--bg);
+  overflow-y: auto;
+}
+.slide.active { display: flex; }
+.slide.dark { background: var(--navy); color: #fff; }
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blush-deep);
+  margin-bottom: 18px;
+}
+.slide.dark .eyebrow { color: var(--blush); }
+
+h1.title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: clamp(34px, 5.2vw, 64px);
+  line-height: 1.08;
+  letter-spacing: -1px;
+  margin-bottom: 22px;
+  max-width: 900px;
+}
+
+h1.title em {
+  font-style: italic;
+  background: linear-gradient(135deg, var(--blush-deep) 0%, var(--sage-deep) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.slide.dark h1.title em {
+  background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+p.lede {
+  font-size: clamp(15px, 1.5vw, 19px);
+  color: var(--text-secondary);
+  max-width: 680px;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+.slide.dark p.lede { color: rgba(255,255,255,0.68); }
+
+.body-copy { font-size: 14.5px; color: var(--text-secondary); line-height: 1.75; max-width: 720px; }
+.slide.dark .body-copy { color: rgba(255,255,255,0.62); }
+
+/* two-column */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 36px; width: 100%; max-width: 1050px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px 26px;
+}
+.card.old { background: #FFFBFB; border-color: #F0D8D8; }
+.card.new { background: #FBFDFB; border-color: #D4E4D2; }
+.card-head {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 600; margin-bottom: 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border-light);
+}
+.card.old .card-head { color: var(--coral); }
+.card.new .card-head { color: var(--sage-deep); }
+.item { display: flex; gap: 10px; padding: 7px 0; font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); }
+.item .ic { flex-shrink: 0; font-weight: 700; margin-top: 2px; }
+.item.x .ic { color: var(--coral); }
+.item.ok .ic { color: var(--sage-deep); }
+
+/* grid of feature cards */
+.feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px; width: 100%; max-width: 1150px; }
+@media (max-width: 1000px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+.feat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 20px 22px; }
+.feat-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.feat-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+
+/* demo screenshot grid */
+.shot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 34px; width: 100%; max-width: 1200px; }
+@media (max-width: 980px) { .shot-grid { grid-template-columns: 1fr 1fr; } }
+.shot-card .frame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px rgba(26,26,46,0.08); margin-bottom: 10px; }
+.shot-card .chrome { display: flex; gap: 6px; padding: 8px 12px; background: var(--bg-warm); border-bottom: 1px solid var(--border-light); }
+.shot-card .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-r { background: #E8836B; } .dot-y { background: #C9A96E; } .dot-g { background: #8BA888; }
+.shot-card .media { position: relative; background: #000; }
+.shot-card video, .shot-card img { display: block; width: 100%; height: auto; }
+.shot-card .play-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 46px; height: 46px; border-radius: 50%; background: rgba(26,26,46,0.78); border: 2px solid rgba(255,255,255,0.85); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.shot-card .play-btn::before { content: ''; width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 13px; border-color: transparent transparent transparent #fff; margin-left: 3px; }
+.shot-card .media.playing .play-btn { display: none; }
+.shot-card h4 { font-family: 'Cormorant Garamond', serif; font-size: 15.5px; font-weight: 600; margin-bottom: 4px; }
+.shot-card p { font-size: 11.5px; color: var(--text-secondary); line-height: 1.55; }
+
+/* stat row */
+.stat-row { display: flex; gap: 40px; margin-top: 40px; flex-wrap: wrap; }
+.stat { min-width: 160px; }
+.stat .num { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 700; color: var(--sage-deep); letter-spacing: -1px; line-height: 1; }
+.slide.dark .stat .num { color: var(--sage); }
+.stat .lbl { font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; letter-spacing: 0.3px; }
+.slide.dark .stat .lbl { color: rgba(255,255,255,0.55); }
+.note { font-size: 12px; color: var(--text-light); margin-top: 30px; max-width: 680px; line-height: 1.6; }
+.slide.dark .note { color: rgba(255,255,255,0.4); }
+
+/* pricing table */
+.price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 34px; width: 100%; max-width: 1050px; }
+@media (max-width: 900px) { .price-grid { grid-template-columns: 1fr; } }
+.price-card { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 20px; padding: 26px 24px; position: relative; }
+.price-card.hi { border-color: var(--blush); box-shadow: 0 8px 28px rgba(212,160,160,0.15); }
+.price-card.hi::before { content: 'Best for teams'; position: absolute; top: -11px; left: 24px; padding: 3px 14px; background: linear-gradient(135deg, var(--blush), var(--sage)); color: #fff; font-size: 10px; font-weight: 700; border-radius: 100px; letter-spacing: 0.4px; text-transform: uppercase; }
+.plan-name { font-family: 'Cormorant Garamond', serif; font-size: 21px; font-weight: 600; }
+.plan-for { font-size: 12px; color: var(--text-light); margin: 2px 0 16px; }
+.plan-amount { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 700; letter-spacing: -1px; }
+.plan-amount span { font-size: 14px; font-weight: 400; color: var(--text-light); }
+.plan-feats { list-style: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+.plan-feats li { font-size: 12.5px; color: var(--text-secondary); padding: 5px 0; display: flex; gap: 8px; }
+.plan-feats li .c { color: var(--sage); font-weight: 700; }
+
+/* ROI table */
+.roi-table { width: 100%; max-width: 780px; margin-top: 30px; border-collapse: collapse; font-size: 13.5px; }
+.roi-table th, .roi-table td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border-light); }
+.roi-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); font-weight: 700; }
+.roi-table td.num { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 17px; }
+.roi-table tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 700; padding-top: 16px; }
+.roi-table tr.total td.num { color: var(--sage-deep); font-size: 22px; }
+
+/* cta */
+.cta-box { display: flex; gap: 14px; margin-top: 40px; flex-wrap: wrap; }
+.btn { padding: 15px 34px; border-radius: 100px; font-size: 14.5px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--sage-deep); color: #fff; }
+.btn-outline { border: 1.5px solid rgba(255,255,255,0.3); color: #fff; }
+.slide:not(.dark) .btn-outline { border-color: var(--border); color: var(--text-primary); }
+
+/* quote */
+.founder-quote { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-style: italic; line-height: 1.5; max-width: 650px; margin-top: 30px; }
+
+/* logo mark reused everywhere */
+.mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, var(--blush) 0%, var(--sage) 100%); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; font-family: 'Cormorant Garamond', serif; }
+.brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+.brand-name { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 600; }
+.slide.dark .brand-name { color: #fff; }
+
+/* nav controls (screen only) */
+#nav {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(26,26,46,0.85); backdrop-filter: blur(10px);
+  padding: 10px 18px; border-radius: 100px; z-index: 999;
+  font-size: 12.5px; color: rgba(255,255,255,0.85);
+}
+#nav button { background: rgba(255,255,255,0.12); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+#nav button:hover { background: rgba(255,255,255,0.24); }
+#nav .count { min-width: 42px; text-align: center; }
+#nav .hint { color: rgba(255,255,255,0.4); margin-left: 6px; }
+
+@media print {
+  body { background: #fff; }
+  #nav { display: none; }
+  #deck { height: auto; overflow: visible; }
+  .slide { position: static; display: flex !important; page-break-after: always; height: 100vh; overflow: visible; }
+  .shot-card video { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+<!-- SLIDE 1: COVER -->
+<section class="slide dark active">
+  <div class="brand-row"><div class="mark">D</div><div class="brand-name">Dossie</div></div>
+  <div class="eyebrow">Brokerage Presentation</div>
+  <h1 class="title">Your deals.<br><em>Her job.</em></h1>
+  <p class="lede">An AI transaction coordinator built by a working Texas REALTOR — reads every TREC contract, tracks every deadline, drafts every follow-up. For your whole office, not just one agent.</p>
+  <p class="note">Prepared by Heath Shepard, Texas REALTOR &amp; Founder &middot; meetdossie.com/agents &middot; heath@meetdossie.com</p>
+</section>
+
+<!-- SLIDE 2: THE PROBLEM -->
+<section class="slide">
+  <div class="eyebrow">The Problem</div>
+  <h1 class="title">Your agents became agents to<br>build relationships. Not to chase paperwork.</h1>
+  <p class="lede">Every file in your office runs through the same TREC paperwork grind — and right now, every agent is solving it a different way.</p>
+  <div class="cols">
+    <div class="card old">
+      <div class="card-head">Without a system</div>
+      <div class="item x"><span class="ic">&#10005;</span> Human TCs run $350&ndash;500 per file, per agent, with no office-wide consistency</div>
+      <div class="item x"><span class="ic">&#10005;</span> ZipForms, email, calendar, and CRM never talk to each other</div>
+      <div class="item x"><span class="ic">&#10005;</span> Every agent calculates TREC deadlines by hand, their own way</div>
+      <div class="item x"><span class="ic">&#10005;</span> Deadlines slip when an agent is in a showing, not at a desk</div>
+      <div class="item x"><span class="ic">&#10005;</span> Broker has zero real-time visibility into file health across the office</div>
+    </div>
+    <div class="card new">
+      <div class="card-head">With Dossie</div>
+      <div class="item ok"><span class="ic">&#10003;</span> One tool, one price structure, every file in the office</div>
+      <div class="item ok"><span class="ic">&#10003;</span> One dashboard replaces the scattered stack</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Every deadline auto-calculated, cited to the paragraph, the same way every time</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Morning Brief puts what matters in front of the agent before they ask</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Office-wide consistency the broker can actually see</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: THE SOLUTION -->
+<section class="slide">
+  <div class="eyebrow">The Solution</div>
+  <h1 class="title">Dossie reads the contract.<br>Dossie keeps the file.</h1>
+  <p class="lede">Built Texas-first, TREC-native — not a generic project-management tool with real estate bolted on.</p>
+  <div class="cols">
+    <div class="card">
+      <div class="card-head" style="color:var(--blush-deep)">Door A &mdash; Agents</div>
+      <p class="body-copy">Replace a $350&ndash;500/file human TC with Dossie for a flat monthly rate. Unlimited files, no per-deal surprise cost, no waiting on someone else's schedule.</p>
+    </div>
+    <div class="card">
+      <div class="card-head" style="color:var(--sage-deep)">Door B &mdash; TCs &amp; Teams</div>
+      <p class="body-copy">Transaction coordinators already on staff use Dossie to carry 3x the file load without adding headcount &mdash; she does the reading and the drafting, they do the judgment calls.</p>
+    </div>
+  </div>
+  <p class="note">Architecture note for anyone technical in the room: the AI core is vertical-agnostic with a Texas/TREC configuration layer on top &mdash; built to extend state-by-state, not rebuilt from scratch.</p>
+</section>
+
+<!-- SLIDE 4: WATCH HER WORK -->
+<section class="slide">
+  <div class="eyebrow">See It In Action</div>
+  <h1 class="title">Not a mockup. This is the live product.</h1>
+  <p class="lede">Click to play any clip &mdash; these are real screen recordings from the current app, same build your agents would log into.</p>
+  <div class="shot-grid">
+    <div class="shot-card">
+      <div class="frame"><div class="chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="media">
+          <video poster="../assets/product/contract-scan.jpg" preload="none" playsinline data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-contract-scan-desktop-2026-08-17.mp4"></video>
+          <button class="play-btn" type="button" aria-label="Play: Contract Scan"></button>
+        </div>
+      </div>
+      <h4>Contract Scan</h4>
+      <p>Drop in a TREC contract. Dossie reads it and flags what's still missing.</p>
+    </div>
+    <div class="shot-card">
+      <div class="frame"><div class="chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="media">
+          <video poster="../assets/product/morning-brief.jpg" preload="none" playsinline data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-morning-brief-desktop-2026-08-17.mp4"></video>
+          <button class="play-btn" type="button" aria-label="Play: Morning Brief"></button>
+        </div>
+      </div>
+      <h4>Morning Brief</h4>
+      <p>Every active file, sorted by what needs the agent today.</p>
+    </div>
+    <div class="shot-card">
+      <div class="frame"><div class="chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="media">
+          <video poster="../assets/product/dossier-detail.jpg" preload="none" playsinline data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-dossier-detail-desktop-2026-08-17.mp4"></video>
+          <button class="play-btn" type="button" aria-label="Play: Dossier Detail"></button>
+        </div>
+      </div>
+      <h4>Dossier Detail</h4>
+      <p>The whole file in one place &mdash; every deadline cited to the paragraph.</p>
+    </div>
+    <div class="shot-card">
+      <div class="frame"><div class="chrome"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+        <div class="media">
+          <video poster="../assets/product/email-drafts.png" preload="none" playsinline data-src="https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/public/videos/feature-demos/feature-demo-email-drafting-desktop-2026-08-17.mp4"></video>
+          <button class="play-btn" type="button" aria-label="Play: Auto Follow-Ups"></button>
+        </div>
+      </div>
+      <h4>Auto Follow-Ups</h4>
+      <p>Welcome emails, lender intros, title orders &mdash; drafted from the agent's own inbox.</p>
+    </div>
+  </div>
+  <p class="note">Requires an internet connection to stream. If offline, walk through the poster frames and describe each step &mdash; or open meetdossie.com/agents on a phone as backup.</p>
+</section>
+
+<!-- SLIDE 5: FEATURE DEPTH -->
+<section class="slide">
+  <div class="eyebrow">Under The Hood</div>
+  <h1 class="title">What she actually does, file by file.</h1>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-title">TREC Deadline Engine</div>
+      <div class="feat-desc">Option, financing, title, survey, closing &mdash; every critical date auto-calculated the moment a contract is uploaded, cited to the paragraph.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">Contract Scan</div>
+      <div class="feat-desc">Reads parties, price, dates, and addenda from an uploaded TREC contract, then flags missing signatures, initials, and blank required fields.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">Auto Follow-Ups</div>
+      <div class="feat-desc">Drafts welcome notes, lender check-ins, title requests, and closing reminders from the agent's own email address. Agent approves with one tap.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">Morning Brief</div>
+      <div class="feat-desc">One tap, every morning: what's due today, what's coming up, what needs attention right now &mdash; across every active file.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">Pipeline View</div>
+      <div class="feat-desc">Every deal at a glance, by stage, by agent. Click into any file for the full timeline and document set.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">E-Sign Workflow</div>
+      <div class="feat-desc">Send disclosures and amendments for signature without leaving the file &mdash; no separate DocuSign login for the agent to juggle.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">Closing Checklist</div>
+      <div class="feat-desc">A standardized, office-wide checklist per file type &mdash; the same list every agent works from, every time.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-title">"Hey Dossie" Voice</div>
+      <div class="feat-desc">Voice-first design for the car or a showing &mdash; talk to Dossie, she listens and takes action. Coming soon.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: BUILT FOR BROKERAGES -->
+<section class="slide dark">
+  <div class="eyebrow">Built For Brokerages</div>
+  <h1 class="title">This is a broker-visibility play,<br>not just an agent-productivity tool.</h1>
+  <div class="cols" style="max-width:1050px">
+    <div class="card" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);">
+      <div class="card-head" style="color:var(--blush)">For the office</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> Every agent's files follow the same TREC-compliant checklist &mdash; no more "however that agent does it"</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> Cuts the office's per-file TC cost at scale instead of paying $350&ndash;500 per file per agent</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> New agents ramp faster &mdash; the deadline math and the checklist are built in, not tribal knowledge</div>
+    </div>
+    <div class="card" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12);">
+      <div class="card-head" style="color:var(--sage)">For the broker</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> Compliance reporting across the whole roster, not file-by-file spot checks</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> Custom branding &mdash; it can look and feel like the brokerage's own tool</div>
+      <div class="item ok" style="color:rgba(255,255,255,0.75)"><span class="ic" style="color:var(--sage)">&#10003;</span> Dedicated onboarding so this isn't one more thing dropped on the office manager's desk</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7: REAL TRACTION -->
+<section class="slide">
+  <div class="eyebrow">Real Traction</div>
+  <h1 class="title">This is live, in the field, today.</h1>
+  <p class="lede">Not a prototype. Real Texas agents are actively running real files through Dossie right now &mdash; closing deals with her as their transaction coordinator, not testing a beta.</p>
+  <div class="stat-row">
+    <div class="stat"><div class="num">6+</div><div class="lbl">Texas markets represented &mdash; San Antonio, Austin, Houston, the Rio Grande Valley, Central Texas, Boerne/Hill Country</div></div>
+  </div>
+  <div class="cols" style="margin-top:28px">
+    <div class="card new">
+      <div class="card-head">Real, not projected</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Every customer is a real, paying subscription &mdash; no pilot accounts, no comped seats, no beta users</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Bootstrapped and self-funded &mdash; no VC pressure inflating the story</div>
+      <div class="item ok"><span class="ic">&#10003;</span> Founding-member pricing was capped and closed 2026-08-04 &mdash; that early cohort is locked in for life at that rate</div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 8: SAMPLE ROI MATH -->
+<section class="slide">
+  <div class="eyebrow">Illustrative Only &mdash; Not A Quote</div>
+  <h1 class="title">What this could mean for an 8-agent office.</h1>
+  <p class="lede">Sample math to make the comparison concrete. Plug in your office's real file volume &mdash; the shape of the savings holds at almost any size.</p>
+  <table class="roi-table">
+    <tr><th>Assumption</th><th>Value</th></tr>
+    <tr><td>Agents in office</td><td>8</td></tr>
+    <tr><td>Avg. files per agent / month</td><td>2</td></tr>
+    <tr><td>Human TC cost per file (mid-market rate)</td><td>$400</td></tr>
+    <tr><td class="num">Monthly TC spend today</td><td class="num">$6,400</td></tr>
+  </table>
+  <table class="roi-table">
+    <tr><th>Dossie path</th><th>Monthly cost</th></tr>
+    <tr><td>Team plan (3 seats included at $349/mo, + 5 additional seats &times; $79.99/agent/mo)</td><td class="num">$349 + $399.95 = $748.95</td></tr>
+    <tr class="total"><td>Estimated monthly savings vs. per-file TC spend</td><td class="num">~$5,651</td></tr>
+  </table>
+  <p class="note">Illustrative example only, built from the published $350&ndash;500/file TC rate cited on meetdossie.com/agents and Dossie's current Team pricing (3 seats included, additional seats $79.99/agent/mo, up to 8 seats total). Offices larger than 8 agents move to Brokerage &mdash; a custom quote built around the office's real agent count and file volume, shown on the next slide.</p>
+</section>
+
+<!-- SLIDE 9: PRICING -->
+<section class="slide">
+  <div class="eyebrow">Pricing</div>
+  <h1 class="title">Simple for one agent. Custom for an office.</h1>
+  <div class="price-grid">
+    <div class="price-card">
+      <div class="plan-name">Solo</div>
+      <div class="plan-for">For individual agents</div>
+      <div class="plan-amount">$149<span>/mo</span></div>
+      <ul class="plan-feats">
+        <li><span class="c">&#10003;</span> 1 seat, unlimited transactions</li>
+        <li><span class="c">&#10003;</span> Morning Brief + Contract Scan</li>
+        <li><span class="c">&#10003;</span> TREC deadline engine</li>
+        <li><span class="c">&#10003;</span> Auto email follow-ups</li>
+      </ul>
+    </div>
+    <div class="price-card hi">
+      <div class="plan-name">Team</div>
+      <div class="plan-for">For teams of up to 8 agents</div>
+      <div class="plan-amount">$349<span>/mo</span></div>
+      <ul class="plan-feats">
+        <li><span class="c">&#10003;</span> 3 seats included, unlimited transactions</li>
+        <li><span class="c">&#10003;</span> Up to 8 seats total &mdash; additional seats $79.99/agent/mo</li>
+        <li><span class="c">&#10003;</span> Team pipeline dashboard, shared templates</li>
+        <li><span class="c">&#10003;</span> Priority support</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div class="plan-name">Brokerage</div>
+      <div class="plan-for">For offices above 8 agents</div>
+      <div class="plan-amount">Custom</div>
+      <ul class="plan-feats">
+        <li><span class="c">&#10003;</span> Priced to your real agent count and file volume</li>
+        <li><span class="c">&#10003;</span> Compliance reporting across the whole roster</li>
+        <li><span class="c">&#10003;</span> Custom branding, dedicated onboarding</li>
+        <li><span class="c">&#10003;</span> Built together with Heath &mdash; not a published rate card</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Team pricing shown is Dossie's current published rate. Brokerage quotes are sized around your office's actual agent count and file volume &mdash; reach out and we'll work through the numbers together.</p>
+</section>
+
+<!-- SLIDE 10: FOUNDER -->
+<section class="slide">
+  <div class="eyebrow">Why This, Why Now</div>
+  <h1 class="title">Built by an agent who was living the problem.</h1>
+  <p class="body-copy">Dossie isn't a real estate feature bolted onto generic software. It's built by a working Texas REALTOR who was choosing between growing the business and managing the paperwork &mdash; and built the tool so nobody has to make that choice.</p>
+  <div class="founder-quote">"I built Dossie because I was tired of choosing between growing my business and managing my transactions. Now I don't have to choose."</div>
+  <p class="note" style="margin-top:14px">&mdash; Heath Shepard, Texas REALTOR &amp; Founder, KW City View / KW Boerne</p>
+</section>
+
+<!-- SLIDE 11: NEXT STEPS -->
+<section class="slide dark">
+  <div class="brand-row"><div class="mark">D</div><div class="brand-name">Dossie</div></div>
+  <div class="eyebrow">Next Steps</div>
+  <h1 class="title">Let's put it in front of a few of your agents.</h1>
+  <p class="lede">The fastest way to evaluate this is a short pilot &mdash; a handful of agents, their real files, two weeks. Not a slide deck promise.</p>
+  <div class="body-copy" style="color:rgba(255,255,255,0.62)">
+    1. Pick 3&ndash;5 agents to pilot Dossie on their next live files.<br>
+    2. We size a Brokerage-tier quote around your actual agent count and file volume.<br>
+    3. Dedicated onboarding gets the office set up &mdash; no IT lift required.
+  </div>
+  <div class="cta-box">
+    <a class="btn btn-primary" href="mailto:heath@meetdossie.com">heath@meetdossie.com</a>
+    <a class="btn btn-outline" href="https://meetdossie.com/agents" target="_blank" rel="noopener">meetdossie.com/agents</a>
+  </div>
+</section>
+
+</div>
+
+<div id="nav">
+  <button id="prevBtn" aria-label="Previous slide">&#8592;</button>
+  <span class="count"><span id="curNum">1</span> / <span id="totalNum"></span></span>
+  <button id="nextBtn" aria-label="Next slide">&#8594;</button>
+  <button id="fsBtn" aria-label="Fullscreen">&#9974;</button>
+  <span class="hint">arrows to navigate &middot; f fullscreen &middot; p print/PDF</span>
+</div>
+
+<script>
+(function() {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var idx = 0;
+  document.getElementById('totalNum').textContent = slides.length;
+
+  function show(i) {
+    idx = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function(s, n) { s.classList.toggle('active', n === idx); });
+    document.getElementById('curNum').textContent = idx + 1;
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', function() { show(idx - 1); });
+  document.getElementById('nextBtn').addEventListener('click', function() { show(idx + 1); });
+  document.getElementById('fsBtn').addEventListener('click', function() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(idx + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(idx - 1); e.preventDefault(); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    } else if (e.key === 'p' || e.key === 'P') { window.print(); }
+  });
+
+  // click-to-play for embedded demo videos
+  document.querySelectorAll('.media').forEach(function(media) {
+    var video = media.querySelector('video');
+    var btn = media.querySelector('.play-btn');
+    if (!video || !btn) return;
+    function play() {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
+      media.classList.add('playing');
+      video.setAttribute('controls', '');
+      video.play().catch(function() {});
+    }
+    btn.addEventListener('click', play);
+  });
+
+  show(0);
+})();
+</script>
+
+</body>
+</html>

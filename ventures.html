@@ -4073,11 +4073,26 @@
         const nextRunText = c.schedule ? cronNextRunText(c.schedule) : '';
         // Map cron name to endpoint path
         const endpoint = `/api/${c.name}`;
+        // Skip visibility: c.summaryCounts (from cron_runs.last_meta) is only
+        // present for crons that emit a `summary` block (posted/skipped/
+        // queued_for_review) — currently cron-post-videos. A green dot alone
+        // can't distinguish "posted 3" from "skipped everything, cap-out" —
+        // both are last_status='ok'. Show the split whenever it's there.
+        let countsText = '';
+        if (c.summaryCounts && typeof c.summaryCounts === 'object') {
+          const parts = [];
+          if ('posted' in c.summaryCounts) parts.push(`${c.summaryCounts.posted} posted`);
+          if ('skipped' in c.summaryCounts) parts.push(`${c.summaryCounts.skipped} skipped`);
+          if ('queued_for_review' in c.summaryCounts) parts.push(`${c.summaryCounts.queued_for_review} queued for review`);
+          if (parts.length) countsText = parts.join(' / ');
+        }
+        const skippedEverything = c.summaryCounts && (c.summaryCounts.posted === 0) && (c.summaryCounts.skipped > 0);
         return `<div class="cron-row" style="flex-wrap:wrap;gap:6px 10px;">
           <span class="cron-dot ${c.health}" title="${escHtml(c.health)}"></span>
           <span class="cron-label" title="${escHtml(c.name)}" style="flex:1;min-width:100px;">${escHtml(c.label)}</span>
           <span class="cron-age" style="flex-shrink:0;">${escHtml(ageText)}</span>
           ${nextRunText ? `<span style="font-size:0.65rem;color:var(--text-dim);width:100%;padding-left:18px;">Next: ${escHtml(nextRunText)}</span>` : ''}
+          ${countsText ? `<span style="font-size:0.65rem;color:${skippedEverything ? 'var(--gold)' : 'var(--text-dim)'};width:100%;padding-left:18px;">${skippedEverything ? '&#9888; ' : ''}${escHtml(countsText)}</span>` : ''}
           <button class="btn-cron-trigger" data-endpoint="${escHtml(endpoint)}" onclick="triggerCron('${escHtml(c.name)}','${escHtml(endpoint)}')" title="Trigger now" style="margin-left:auto;padding:2px 8px;font-size:0.65rem;font-weight:700;background:rgba(201,169,110,0.10);border:1px solid rgba(201,169,110,0.25);border-radius:5px;color:var(--gold);cursor:pointer;white-space:nowrap;">&#9654; Trigger</button>
         </div>`;
       }).join('');

@@ -198,7 +198,7 @@ function buildNineFakePosts() {
       stat: '$149/mo', stat_label: 'Solo pricing',
     },
     clean('tiktok', 'TREC_EDUCATION'),
-    clean('youtube', 'TREC_EDUCATION'),
+    clean('youtube', 'TREC_EDUCATION'), // youtube disabled 2026-09-16 too — see assertion below
   ];
 }
 
@@ -225,7 +225,25 @@ async function main() {
   //    an omitted-format/patricia post (slot 7), every inserted row is
   //    forced to a valid brand-voice format with persona="dossie" ─────────
   const inserted = tables.social_posts.filter((r) => r.status !== undefined);
-  assert.strictEqual(inserted.length, 9, 'all 9 planned slots inserted');
+  // 6, not 9: the fixture's instagram (index 1), tiktok (index 7), and
+  // youtube (index 8) posts are DROPPED. getPostPlan() strips
+  // GENERATION_DISABLED_PLATFORMS from the slot plan, but the model can still
+  // hand back a disabled platform — and until now that value was trusted
+  // verbatim and inserted. Such a row can never publish: none of the three
+  // has a card fallback, cron-publish-approved parks a media-less row at
+  // status='pending_video', and cron-render-videos explicitly excludes all
+  // three, so nothing ever attaches media. 53 rejected instagram + 53
+  // rejected tiktok rows accumulated in that graveyard before the 2026-09-15
+  // fix; youtube got the identical fix 2026-09-16 after one row went dark
+  // the same day posting_schedule.is_active was flipped live for it. Video
+  // duty for all three belongs to Pipeline B (video_library).
+  assert.strictEqual(inserted.length, 6, 'the 3 disabled-platform posts are dropped, the other 6 insert');
+  for (const row of inserted) {
+    assert.ok(
+      !['instagram', 'tiktok', 'youtube'].includes(row.platform),
+      `row ${row.post_id} is on disabled platform "${row.platform}" — it could never publish`,
+    );
+  }
   const VALID_FORMATS = ['CAPABILITY_ONELINER', 'TREC_EDUCATION', 'FOUNDER_STORY'];
   for (const row of inserted) {
     const fmt = row.verifier_result && row.verifier_result.content_format;

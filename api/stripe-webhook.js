@@ -540,6 +540,22 @@ async function handleCheckoutSessionCompleted(stripe, session) {
   // Affiliate ref can come from either metadata (preferred) or cookie fallback
   const affiliateRef = (session.metadata && session.metadata.affiliate_ref) || null;
 
+  // First/last-touch attribution — captured client-side (assets/dossie-
+  // acquisition.js) and forwarded through /api/create-checkout-session's
+  // Stripe metadata (see safeTouchJson there). Never trusted for anything
+  // beyond attribution; parse failures are silently null, never guessed.
+  function parseTouchMetadata(raw) {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  const firstTouch = parseTouchMetadata(session.metadata && session.metadata.first_touch);
+  const lastTouch = parseTouchMetadata(session.metadata && session.metadata.last_touch);
+
   let currentPeriodStart = null;
   let currentPeriodEnd = null;
   let priceId = null;
@@ -611,6 +627,11 @@ async function handleCheckoutSessionCompleted(stripe, session) {
       status: 'pending_onboarding',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
+      // Only set when this checkout actually carried a signal — upsertSubscription
+      // also PATCHes existing rows on resubscribe, and unconditionally sending
+      // `first_touch: null` there would silently erase a prior attribution.
+      ...(firstTouch ? { first_touch: firstTouch } : {}),
+      ...(lastTouch ? { last_touch: lastTouch } : {}),
     });
     if (upsertResult && upsertResult.skipped) {
       // Real, live example: an existing founding member (e.g. Brittney

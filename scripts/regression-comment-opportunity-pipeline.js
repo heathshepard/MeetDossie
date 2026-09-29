@@ -402,7 +402,29 @@ async function main() {
   assert.strictEqual(db.comment_caps_state[0].count, capBefore, 'no cap count when nothing was typed');
   assert.strictEqual(q6.posted, 0, 'nothing posted');
 
-  // ── 6. VERIFY-FAIL: terminal post_failed + HALT + cap counted ─────────────
+  // ── 6a. VERIFY RETRY: a false-negative on the FIRST read that succeeds
+  //       on the retry must post normally — no halt, no post_failed.
+  const retryRow = seedOpp({ status: 'approved', comment_final: 'Retry-then-succeed test comment with plenty of substance.', approved_at: new Date().toISOString() });
+  let retryVerifyCalls = 0;
+  const q7a = await poster.runOppQueue({
+    sbFetch: mockSbFetch, caps,
+    poster: async () => ({ submitted: true }),
+    verifier: async () => { retryVerifyCalls++; return retryVerifyCalls >= 2; }, // false, then true
+    notify: mockNotify, log: quietLog, haltState, gapMinutes: 45,
+    sleep: async () => {}, // instant in tests
+  });
+  assert.strictEqual(retryVerifyCalls, 2, 'verifier called twice — one retry after the first false read');
+  assert.strictEqual(q7a.posted, 1, 'a false-negative that clears on retry still posts normally');
+  assert.strictEqual(retryRow.status, 'posted', 'retry-then-succeed row is posted, not post_failed');
+  assert.strictEqual(haltState.isHalted(), false, 'a retry that succeeds never touches the halt at all');
+  // Reopen the spacing gap for the rest of the file — same manual pattern
+  // used earlier for `posted.posted_at` — this post just happened for real
+  // (posted_at = now), which would otherwise silently spacing-block every
+  // runOppQueue call below with gapMinutes:45.
+  retryRow.posted_at = new Date(Date.now() - 61 * 60000).toISOString();
+
+  // ── 6b. VERIFY-FAIL ON BOTH READS: terminal post_failed + GROUP-scoped
+  //       halt (not global) + cap counted ──────────────────────────────────
   const vfRow = seedOpp({ status: 'approved', comment_final: 'Verify-fail test comment that submits but cannot be read back from the thread.', approved_at: new Date().toISOString() });
   notifications.length = 0;
   const capBefore2 = db.comment_caps_state[0].count;
@@ -411,12 +433,13 @@ async function main() {
     poster: async () => ({ submitted: true }),
     verifier: async () => false,
     notify: mockNotify, log: quietLog, haltState, gapMinutes: 45,
+    sleep: async () => {}, // instant in tests
   });
   assert.strictEqual(q7.failed, 1, 'verify-fail counted as failed');
-  assert.strictEqual(vfRow.status, 'post_failed', 'verify-fail is TERMINAL post_failed');
+  assert.strictEqual(vfRow.status, 'post_failed', 'verify-fail (on both reads) is TERMINAL post_failed');
   assert.strictEqual(db.comment_caps_state[0].count, capBefore2 + 1, 'cap still counted — the comment may be live');
-  assert.ok(haltState.isHalted(), 'verify-fail HALTS the whole pipeline');
-  assert.ok(notifications.some((t) => /HALT/i.test(t)), 'Heath alerted about the halt');
+  assert.ok(haltState.isHalted(), 'verify-fail sets a halt (this simplified mock does not distinguish group vs global — see regression-comment-hunt-halt-scoping.js for the real per-group behavior)');
+  assert.ok(notifications.some((t) => /PAUSED/i.test(t) && new RegExp(vfRow.group_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(t)), 'Heath alerted by group name, not a blanket pipeline halt');
 
   // Halted pipeline posts NOTHING even with approved rows waiting.
   const haltedRow = seedOpp({ status: 'approved', comment_final: 'Must never post while halted.', approved_at: new Date().toISOString() });

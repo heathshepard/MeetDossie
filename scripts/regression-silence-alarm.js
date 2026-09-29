@@ -38,10 +38,17 @@ function matchFilter(row, key, expr) {
   if (expr.startsWith('eq.')) return String(row[key]) === decodeURIComponent(expr.slice(3));
   if (expr === 'is.null') return row[key] === null || row[key] === undefined;
   if (expr.startsWith('gte.')) return row[key] != null && String(row[key]) >= decodeURIComponent(expr.slice(4));
+  if (expr.startsWith('gt.')) return row[key] != null && String(row[key]) > decodeURIComponent(expr.slice(3));
   if (expr.startsWith('lt.')) return row[key] != null && String(row[key]) < decodeURIComponent(expr.slice(3));
   if (expr.startsWith('in.(')) {
     const vals = expr.slice(4, -1).split(',').map(decodeURIComponent);
     return vals.includes(String(row[key]));
+  }
+  if (expr.startsWith('like.')) {
+    // Only the `*substring*` shape used by this codebase is supported --
+    // strip the wildcards and do a plain (case-sensitive) substring test.
+    const pattern = decodeURIComponent(expr.slice(5)).replace(/^\*|\*$/g, '');
+    return row[key] != null && String(row[key]).includes(pattern);
   }
   return true;
 }
@@ -51,6 +58,9 @@ function startMockSupabase(seed) {
     social_posts: (seed.social_posts || []).map((r) => ({ ...r })),
     group_posts: (seed.group_posts || []).map((r) => ({ ...r })),
     video_library: (seed.video_library || []).map((r) => ({ ...r })),
+    fb_comment_replies: (seed.fb_comment_replies || []).map((r) => ({ ...r })),
+    tc_discovery_responses: (seed.tc_discovery_responses || []).map((r) => ({ ...r })),
+    comment_opportunities: (seed.comment_opportunities || []).map((r) => ({ ...r })),
     alert_state: (seed.alert_state || []).map((r) => ({ ...r })),
   };
 
@@ -167,6 +177,30 @@ async function run() {
     video_library: [
       { id: 'vid-1', status: 'pending_heath_review', topic: 'feature-demo-x', platforms: ['tiktok', 'instagram'], created_at: hoursAgo(96) },
     ],
+    fb_comment_replies: [
+      // Stale unverified submit (2026-09-17 fix) -- must fire.
+      { id: 'reply-unverified-stale', reply_author: 'Jane Doe', status: 'failed', reply_error: 'unconfirmed_submit: composer closed / no error shown, but no permalink captured and no feed match found', posted_at: hoursAgo(30) },
+      // Same shape but recent -- inside the threshold, must NOT fire yet.
+      { id: 'reply-unverified-fresh', reply_author: 'Fresh Fresh', status: 'failed', reply_error: 'unconfirmed_submit: composer closed / no error shown, but no permalink captured and no feed match found', posted_at: hoursAgo(2) },
+      // Genuinely posted -- must never be counted.
+      { id: 'reply-posted', reply_author: 'Posted Person', status: 'posted', reply_error: null, posted_at: hoursAgo(30), verified_at: hoursAgo(30) },
+      // Pre-submit failure reset to approved for retry -- different status entirely, must never be counted.
+      { id: 'reply-retryable', reply_author: 'Retry Me', status: 'approved', reply_error: 'could not locate Reply button for the comment', posted_at: null },
+    ],
+    tc_discovery_responses: [
+      // Stale unverified submit on the LIVE tc-reply-queue pipeline -- must fire.
+      { id: 'tc-unverified-stale', commenter_name: 'John Q', reply_status: 'post_failed', reply_error: 'submitted but verification could not find the reply in the re-rendered thread', updated_at: hoursAgo(30) },
+      // A clean pre-submit failure (nothing typed) -- must NOT be counted as "unverified", different reason prefix.
+      { id: 'tc-not-submitted', commenter_name: 'Clean Fail', reply_status: 'post_failed', reply_error: 'not_submitted: could not locate Reply button', updated_at: hoursAgo(30) },
+    ],
+    // The 2026-09-15 -> 2026-09-17 comment-opportunity pipeline gap: real
+    // history (every found_at older than the 24h window) so the scanner
+    // fires as silent, plus one approved row that never posted.
+    comment_opportunities: [
+      { id: 'co-old-1', group_name: 'DFW Realtors', found_at: hoursAgo(50), status: 'rejected' },
+      { id: 'co-old-2', group_name: 'Keller Williams Real Estate Group', found_at: hoursAgo(40), status: 'posted' },
+      { id: 'co-approved-stale', group_name: 'DFW Realtors', found_at: hoursAgo(60), status: 'approved', approved_at: hoursAgo(30) },
+    ],
     alert_state: [],
   };
 
@@ -209,6 +243,65 @@ async function run() {
     assert.ok(/tiktok/.test(videoReview[0].message) && /instagram/.test(videoReview[0].message), `expected platforms named, got: ${videoReview[0].message}`);
   });
 
+  console.log('\nTest 2a-2: group posting silence (2026-09-17, the "1 post in 24h" incident)');
+  const sharedGroupSilence = await lib.checkGroupPostingSilence(24);
+  check('shared seed has a group_posts row posted 10h ago -> does NOT fire (pipeline is moving)', () => {
+    assert.strictEqual(sharedGroupSilence.length, 0, `expected no group-posting-silence alert, got: ${JSON.stringify(sharedGroupSilence)}`);
+  });
+
+  const approvedWaitingMock = await startMockSupabase({
+    group_posts: [
+      { id: 'gp-approved-stuck', group_name: 'Texas Real Estate Agents (22K)', status: 'approved', approved_at: hoursAgo(96), created_at: hoursAgo(100) },
+      { id: 'gp-old-post', group_name: 'DFW Realtors', status: 'posted', posted_at: daysAgo(3) },
+    ],
+    alert_state: [],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${approvedWaitingMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const approvedWaitingLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const approvedWaitingResult = await approvedWaitingLib.checkGroupPostingSilence(24);
+  check('nothing posted in 24h but a row sits approved -> fires approved_not_draining, names the queue scripts', () => {
+    const cond = approvedWaitingResult.find((x) => x.key === 'group_posting_silent:approved_not_draining');
+    assert.ok(cond, `expected group_posting_silent:approved_not_draining, got: ${JSON.stringify(approvedWaitingResult.map((x) => x.key))}`);
+    assert.strictEqual(cond.count, 1);
+    assert.ok(/Texas Real Estate Agents \(22K\)/.test(cond.message));
+    assert.ok(/fb-group5-post-queue\.js/.test(cond.message));
+  });
+  approvedWaitingMock.server.close();
+
+  const noSupplyMock = await startMockSupabase({ group_posts: [], alert_state: [] });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${noSupplyMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const noSupplyLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const noSupplyResult = await noSupplyLib.checkGroupPostingSilence(24);
+  check('zero group_posts rows at all -> fires no_supply, distinct key from approved_not_draining', () => {
+    const cond = noSupplyResult.find((x) => x.key === 'group_posting_silent:no_supply');
+    assert.ok(cond, `expected group_posting_silent:no_supply, got: ${JSON.stringify(noSupplyResult.map((x) => x.key))}`);
+  });
+  noSupplyMock.server.close();
+
+  const draftsNoApprovalMock = await startMockSupabase({
+    group_posts: [
+      { id: 'gp-draft-1', group_name: 'Keller Williams Real Estate Group (28.6K)', status: 'draft', created_at: hoursAgo(20) },
+      { id: 'gp-old-post-2', group_name: 'DFW Realtors', status: 'posted', posted_at: daysAgo(5) },
+    ],
+    alert_state: [],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${draftsNoApprovalMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const draftsNoApprovalLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const draftsNoApprovalResult = await draftsNoApprovalLib.checkGroupPostingSilence(24);
+  check('drafts exist this week but nothing approved -> fires nothing_approved, not no_supply/approved_not_draining', () => {
+    assert.ok(draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:nothing_approved'), `expected group_posting_silent:nothing_approved, got: ${JSON.stringify(draftsNoApprovalResult.map((x) => x.key))}`);
+    assert.ok(!draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:no_supply'));
+    assert.ok(!draftsNoApprovalResult.find((x) => x.key === 'group_posting_silent:approved_not_draining'));
+  });
+  draftsNoApprovalMock.server.close();
+
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+
   console.log('\nTest 2b: TC-discovery host-comment harvest staleness + scope-gap (2026-09-15)');
   const hotStale = await lib.checkTcHarvestHotWindowStale(24, 48);
   check('hot-window post with no harvest in >24h fires tc_harvest_hot_window_stale', () => {
@@ -245,6 +338,77 @@ async function run() {
     assert.strictEqual(quietHotStale.length, 0, `expected no hot-window alert for a long-tail-only post, got: ${JSON.stringify(quietHotStale)}`);
   });
   quietMock.server.close();
+  process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+
+  console.log('\nTest 2d: unverified reply submits (2026-09-17 fix) — stuck, never auto-retried, must surface');
+  const unverifiedReplies = await lib.checkUnverifiedRepliesStuck(24);
+  check('fb_comment_replies: stale unconfirmed submit fires', () => {
+    const c = unverifiedReplies.find((x) => x.key === 'unverified_reply_stuck:fb_comment_replies');
+    assert.ok(c, `expected unverified_reply_stuck:fb_comment_replies to fire, got: ${JSON.stringify(unverifiedReplies.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1, 'the fresh (2h old) unconfirmed row must not be counted yet');
+    assert.ok(/Jane Doe/.test(c.message));
+  });
+  check('tc_discovery_responses: stale unconfirmed submit fires, separately from fb_comment_replies', () => {
+    const c = unverifiedReplies.find((x) => x.key === 'unverified_reply_stuck:tc_discovery_responses');
+    assert.ok(c, `expected unverified_reply_stuck:tc_discovery_responses to fire, got: ${JSON.stringify(unverifiedReplies.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1, 'the not_submitted row must not be counted as unverified');
+    assert.ok(/John Q/.test(c.message));
+  });
+  check('a genuinely posted reply is never counted', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Posted Person/.test(c.message));
+  });
+  check('a pre-submit failure reset to approved (safe retry) is never counted as unverified', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Retry Me/.test(c.message));
+  });
+  check('a clean not_submitted failure is never counted as unverified', () => {
+    for (const c of unverifiedReplies) assert.ok(!/Clean Fail/.test(c.message));
+  });
+
+  console.log('\nTest 2e: comment-opportunity pipeline silence (2026-09-17: the 2-day dark halt)');
+  const scannerSilent = await lib.checkCommentOppScannerSilence(24);
+  check('scanner fires when every found_at is older than the window, despite real history', () => {
+    assert.strictEqual(scannerSilent.length, 1, `expected exactly one condition, got: ${JSON.stringify(scannerSilent)}`);
+    assert.strictEqual(scannerSilent[0].key, 'comment_opp_scanner_silent');
+    assert.ok(/24h/.test(scannerSilent[0].message));
+  });
+
+  const approvedStale = await lib.checkCommentOppApprovedStale(24);
+  check('approved-stale fires with the right count and names the group', () => {
+    const c = approvedStale.find((x) => x.key === 'comment_opp_approved_stale');
+    assert.ok(c, `expected comment_opp_approved_stale to fire, got: ${JSON.stringify(approvedStale.map((x) => x.key))}`);
+    assert.strictEqual(c.count, 1);
+    assert.ok(/DFW Realtors/.test(c.message));
+  });
+
+  // Healthy pipeline: something found inside the window -> scanner must NOT fire.
+  const healthyMock = await startMockSupabase({
+    ...seed,
+    comment_opportunities: [
+      ...seed.comment_opportunities,
+      { id: 'co-fresh', group_name: 'Texas Real Estate Agents', found_at: hoursAgo(2), status: 'found' },
+    ],
+  });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${healthyMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const healthyLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const healthyScanner = await healthyLib.checkCommentOppScannerSilence(24);
+  check('a fresh found_at inside the window means the scanner is healthy — no false alarm', () => {
+    assert.strictEqual(healthyScanner.length, 0, `expected no scanner-silent alert, got: ${JSON.stringify(healthyScanner)}`);
+  });
+  healthyMock.server.close();
+
+  // Never-used pipeline (no rows at all): must NOT fire — dormant, not broken.
+  const neverUsedMock = await startMockSupabase({ comment_opportunities: [], alert_state: [] });
+  process.env.SUPABASE_URL = `http://127.0.0.1:${neverUsedMock.port}`;
+  delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
+  const neverUsedLib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));
+  const neverUsedScanner = await neverUsedLib.checkCommentOppScannerSilence(24);
+  check('a pipeline with zero rows ever (never turned on) does NOT fire — avoids alarming forever on something never started', () => {
+    assert.strictEqual(neverUsedScanner.length, 0, `expected no alert for a never-used pipeline, got: ${JSON.stringify(neverUsedScanner)}`);
+  });
+  neverUsedMock.server.close();
   process.env.SUPABASE_URL = `http://127.0.0.1:${mock.port}`;
   delete require.cache[require.resolve(path.join(REPO, 'api/_lib/silence-alarm.js'))];
   lib = require(path.join(REPO, 'api/_lib/silence-alarm.js'));

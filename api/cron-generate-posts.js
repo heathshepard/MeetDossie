@@ -16,6 +16,13 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * * (11:00 UTC daily, ~6am Central during DST).
 // Personas removed 2026-06-14: all content now brand-voice (dossie) only.
+//
+// ADVANCE FILL (Carter, 2026-09-16): optional ?target_date=YYYY-MM-DD (bounded
+// [today, today+13] UTC) generates a batch dated for that day instead of real
+// "now" — used by cron-weekly-content-scheduler.js to pre-fill the next 7
+// days on Monday rather than leaving every day's content to its own same-day
+// 11:00 UTC run. on_conflict=post_id (date-keyed) makes reruns for the same
+// date idempotent whether triggered by this or the daily cron.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -425,13 +432,25 @@ const PLATFORM_RULES = {
 // Length rules live in PLATFORM_RULES (single source of truth). Per-post
 // notes only carry format-flavor guidance, not length conflicts.
 //
-// Weekly format mix (updated 2026-05-29 — 9 posts/day, YouTube added):
+// Weekly format mix (updated 2026-09-16 — instagram/tiktok/youtube removed, 6 posts/day):
 //   2x CAPABILITY_ONELINER (facebook + linkedin)
-//   2x TREC_EDUCATION (instagram + twitter)
+//   1x TREC_EDUCATION (twitter)
 //   1x FOUNDER_STORY (facebook — high-credibility platform)
-//   2x PERSONA_STORY/brenda+victor (twitter — fills 3/day cap)
-//   1x PERSONA_STORY/victor (tiktok — feeds DONE video pipeline)
-//   1x TREC_EDUCATION (youtube — educational long-form, 60-90s voiceover)
+//   2x CAPABILITY_ONELINER (twitter — fills 3/day cap; comment below was
+//   stale, said "PERSONA_STORY/brenda+victor" — POST_PLAN_BASE has had zero
+//   PERSONA_STORY slots since 2026-06-14, see BRAND_VOICE_FORMATS_ENFORCED above)
+//
+// 2026-09-15 (Carter): removed the instagram + tiktok slots below. Both
+// platforms retired the per-post Creatomate video path on 2026-09-09 in
+// favor of Pipeline B (video_library -> cron-post-videos.js — see
+// docs/PIPELINE.md). With video_required=false but no card fallback (video-
+// only policy, 2026-08-18/26), every instagram/tiktok row this cron
+// generated sat inert forever — 79 accumulated before this fix. Instagram
+// Reels and TikTok content now come exclusively from Pipeline B
+// (scripts/feature-demo-recorder.js -> video_library -> cron-post-videos.js)
+// or one-off scripts like scripts/sage-reel-builder.js that attach real
+// media at insert time. Do not re-add instagram/tiktok here without wiring
+// a real video source first.
 const POST_PLAN_BASE = [
   // CAPABILITY_ONELINER — shows one specific shipped feature in plain Dossie voice
   {
@@ -439,13 +458,6 @@ const POST_PLAN_BASE = [
     persona: null,
     platform: 'facebook',
     notes: 'Feature name -> what it does -> one concrete outcome -> CTA. Plain language, no hype. Facebook audience skews experienced agents — make the feature feel obvious and useful, not trendy.',
-  },
-  // TREC_EDUCATION — teaches Texas agents something real about TREC
-  {
-    format: 'TREC_EDUCATION',
-    persona: null,
-    platform: 'instagram',
-    notes: 'TREC fact/rule -> why it matters -> how Dossie handles it -> CTA. Keep it crisp and mobile-readable. Line breaks between each beat.',
   },
   // CAPABILITY_ONELINER — first Twitter slot (replaces brenda persona_story)
   {
@@ -482,25 +494,24 @@ const POST_PLAN_BASE = [
     platform: 'twitter',
     notes: 'Operational insight for volume agents. Margins, deal capacity, efficiency angle. One specific feature that unlocks scale. Third Twitter slot — make it math-driven and confident.',
   },
-  // TREC_EDUCATION — TikTok slot. Generates caption+hook for the DONE video pipeline.
-  // cron-publish-approved parks these as pending_video; a video must be attached
-  // before they publish. Short-form, curiosity-first, under 150 words.
-  {
-    format: 'TREC_EDUCATION',
-    persona: null,
-    platform: 'tiktok',
-    notes: 'Under 150 words. First sentence under 8 words, immediate curiosity or tension. Line break after every 1-2 sentences. Teach one TREC rule, show how Dossie solves it. End with "Link in bio" or "Comment YES if this applies to you." 2-3 hashtags. This content will be attached to a video via the DONE pipeline before posting.',
-  },
-  // TREC_EDUCATION — YouTube slot. Educational long-form (60-90s voiceover).
-  // YouTube rewards watch time — more depth than TikTok/Instagram.
-  // Video required: cron-publish-approved will park as pending_video if media_url is null.
-  // Account ID: ZERNIO_YOUTUBE_ACCOUNT_ID env var (Heath must add in Vercel dashboard).
-  {
-    format: 'TREC_EDUCATION',
-    persona: null,
-    platform: 'youtube',
-    notes: 'Educational angle — teach one TREC rule, show how Dossie handles it, give the agent a takeaway they can use today. Voiceover should be 60-90 seconds (550-800 chars). More depth than TikTok — YouTube audience expects to learn something, not just feel something. Description (caption) supports the video. 3-5 hashtags at end.',
-  },
+  // YouTube slot — REMOVED 2026-09-16 (Carter). Same defect class as the
+  // 2026-09-15 instagram/tiktok removal below: this slot set
+  // video_required=true and relied on the per-post Creatomate render
+  // (cron-render-videos.js), which has been dead (402, out of credits) since
+  // 2026-06-30 — same as instagram/tiktok before their fix. It stayed
+  // "harmless" only because posting_schedule.is_active was false for youtube
+  // on all 7 days, so getPostPlan()'s activePlatforms filter dropped it
+  // before generation. 78c1c876 (2026-09-16) flipped posting_schedule +
+  // zernio_accounts live to unblock Pipeline B (video_library ->
+  // cron-post-videos.js) for youtube — but that same flip reactivated THIS
+  // slot too, since nothing here knew Pipeline B was the intended path. One
+  // row generated (video_required=true, media_url null) before this fix
+  // landed; see scripts/regression-video-platforms-have-attach-path.js.
+  // YouTube Shorts content now comes exclusively from Pipeline B
+  // (scripts/queue-finished-videos.py -> video_library ->
+  // cron-post-videos.js), consuming the same 1080x1920 vertical asset as
+  // instagram/tiktok. Do not re-add a youtube slot here without wiring a
+  // real video source first — see GENERATION_DISABLED_PLATFORMS below.
 ];
 
 // Carter, 2026-09-12: instagram + tiktok social_posts rows generated by THIS
@@ -522,7 +533,13 @@ const POST_PLAN_BASE = [
 // Pipeline B is ALLOWED to post to a platform today. Flipping it off here
 // would silence the one pipeline that actually works. This exclusion is
 // generation-only and local to this file.
-const GENERATION_DISABLED_PLATFORMS = new Set(['instagram', 'tiktok']);
+//
+// 2026-09-16 (Carter): added 'youtube' for the identical reason — see the
+// removed POST_PLAN_BASE slot comment above. Flipping posting_schedule.
+// is_active=true for youtube (needed to unblock Pipeline B posting) would
+// otherwise re-admit youtube into activePlatforms and regenerate a
+// dead-per-post-Creatomate row every day.
+const GENERATION_DISABLED_PLATFORMS = new Set(['instagram', 'tiktok', 'youtube']);
 
 function getPostPlan(date = new Date(), opts = {}) {
   // LinkedIn now posts daily, no day-of-week routing needed.
@@ -531,8 +548,28 @@ function getPostPlan(date = new Date(), opts = {}) {
   // be skipped at publish time. Active set is passed in via opts.activePlatforms.)
   const active = opts && Array.isArray(opts.activePlatforms) ? new Set(opts.activePlatforms) : null;
   let plan = POST_PLAN_BASE.filter(slot => !GENERATION_DISABLED_PLATFORMS.has(slot.platform));
-  if (!active) return plan;
-  return plan.filter(slot => active.has(slot.platform));
+  if (active) plan = plan.filter(slot => active.has(slot.platform));
+
+  // Goal-pacing extra slots (see parseExtraFacebookPosts() above). Built as
+  // a NEW array, never mutates POST_PLAN_BASE — every other caller of
+  // getPostPlan() that doesn't pass extraFacebookPosts is unaffected. These
+  // stay text-only (no card fallback under the video-only policy — see
+  // card_fallback_removed in the response below) so they help
+  // public_posts, NOT public_posts_with_photos.
+  const extraCount = Math.max(0, Number(opts.extraFacebookPosts) || 0);
+  if (extraCount > 0 && (!active || active.has('facebook'))) {
+    for (let i = 0; i < extraCount; i++) {
+      plan.push({
+        format: 'CAPABILITY_ONELINER',
+        persona: null,
+        platform: 'facebook',
+        notes: 'Extra goal-pacing slot (api/cron-weekly-content-scheduler.js catching up the weekly public_posts target). One specific shipped feature, plain Dossie voice — same bar as the normal facebook slot, just an additional one for this day.',
+        goal_pacing_extra: true,
+      });
+    }
+  }
+
+  return plan;
 }
 
 function parseForceDay(req) {
@@ -551,11 +588,65 @@ function parseForceDay(req) {
   return (Number.isInteger(n) && n >= 0 && n <= 6) ? n : null;
 }
 
-function pickTopic() {
-  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const today = new Date();
+// Carter, 2026-09-16: cron-weekly-content-scheduler.js's advance-fill run
+// (vercel.json — Monday early AM) calls THIS endpoint once per missing day
+// in the next 7, with ?target_date=YYYY-MM-DD, so the daily 11:00 UTC cron
+// isn't the only thing standing between "content generated" and "content
+// exists a week out". Bounded to [today, today+13] UTC so a typo can't
+// regenerate/backdate a stale historical day's post_id-keyed rows. Absent
+// (the normal daily-cron case) this returns null and `now` stays real
+// wall-clock time — zero behavior change for the existing schedule.
+const TARGET_DATE_MAX_DAYS_AHEAD = 13;
+function parseTargetDate(req) {
+  let raw = null;
+  try {
+    if (req && req.query && req.query.target_date) raw = String(req.query.target_date);
+    else if (req && typeof req.url === 'string') {
+      raw = new URL(req.url, 'https://x').searchParams.get('target_date');
+    }
+  } catch (_e) { raw = null; }
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return { error: `target_date must be YYYY-MM-DD, got "${raw}"` };
+  const parsed = new Date(`${raw}T12:00:00.000Z`); // noon UTC avoids any DST/rounding edge landing on the wrong calendar day
+  if (Number.isNaN(parsed.getTime())) return { error: `target_date "${raw}" is not a valid date` };
+  const todayUtc = new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00.000Z`);
+  const diffDays = Math.round((parsed - todayUtc) / 86400000);
+  if (diffDays < 0 || diffDays > TARGET_DATE_MAX_DAYS_AHEAD) {
+    return { error: `target_date "${raw}" is ${diffDays} day(s) from today — must be within [0, ${TARGET_DATE_MAX_DAYS_AHEAD}]` };
+  }
+  return { date: parsed, iso: raw };
+}
+
+function pickTopic(asOf) {
+  const today = asOf instanceof Date ? asOf : new Date();
+  const start = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   const dayOfYear = Math.floor((today - start) / 86400000);
   return TOPICS[dayOfYear % TOPICS.length];
+}
+
+// Carter, 2026-09-16: api/cron-weekly-content-scheduler.js's goal-pacing
+// pass (api/_lib/social-goals.js's dossie_fb_page target — 23 new public
+// posts/week) can request N extra facebook CAPABILITY_ONELINER slots for a
+// specific advance-filled day beyond the normal 2/day fixed plan, when
+// public_posts is behind pace. Hard safety ceiling of 5 here regardless of
+// caller — the scheduler's own knob (social-goals.js
+// scheduler.max_extra_public_posts_per_day) is the real, lower, editable
+// limit; this is just the outer rail against a malformed/malicious query
+// string. Absent (the normal daily-cron case and every existing call site)
+// this parses to 0 — zero behavior change.
+const EXTRA_FACEBOOK_POSTS_MAX = 5;
+function parseExtraFacebookPosts(req) {
+  let raw = null;
+  try {
+    if (req && req.query && req.query.extra_facebook_posts) raw = String(req.query.extra_facebook_posts);
+    else if (req && typeof req.url === 'string') {
+      raw = new URL(req.url, 'https://x').searchParams.get('extra_facebook_posts');
+    }
+  } catch (_e) { raw = null; }
+  if (!raw) return 0;
+  const n = parseInt(raw, 10);
+  if (!Number.isInteger(n) || n < 0) return 0;
+  return Math.min(n, EXTRA_FACEBOOK_POSTS_MAX);
 }
 
 // ─── Top-performer hook injection ──────────────────────────────────────────
@@ -707,9 +798,9 @@ function pickHookFormula(dayOfYear, postIndex) {
 
 // Pre-compute today\'s dayOfYear once for the full batch so all formula picks
 // are consistent within a single run.
-function getDayOfYear() {
-  const start = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const today = new Date();
+function getDayOfYear(asOf) {
+  const today = asOf instanceof Date ? asOf : new Date();
+  const start = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
   return Math.floor((today - start) / 86400000);
 }
 
@@ -1374,8 +1465,17 @@ async function lookupZernioAccountId(platform, owner = 'dossie') {
 // below). Hoisted to module scope so end-of-run logging/response payloads
 // can derive the current list instead of hardcoding a copy that goes stale
 // when this set changes (see Quinn QA gate, 2026-09-09).
-const VIDEO_REQUIRED_PLATFORMS = new Set(["youtube"]);
-const ALLOWED_VIDEO_REQUIRED = new Set(["tiktok", "youtube", "facebook", "instagram"]);
+// 2026-09-16 (Carter): emptied. youtube was the last platform in this set —
+// removed alongside its POST_PLAN_BASE slot above (same dead-Creatomate
+// defect that already killed instagram/tiktok on 2026-09-09/15). No platform
+// this cron generates relies on the per-post Creatomate render anymore;
+// every video-required platform is carried by Pipeline B instead. Left as a
+// live Set (not deleted) because the safety-guard loop below and the
+// response-payload logging both key off it — re-adding a platform here
+// without also giving cron-render-videos.js a real render path is exactly
+// the bug this comment is warning against.
+const VIDEO_REQUIRED_PLATFORMS = new Set([]);
+const ALLOWED_VIDEO_REQUIRED = new Set([]);
 
 module.exports = withTelemetry('cron-generate-posts', async function handler(req, res) {
   // Auth: accept EITHER Vercel's built-in cron header OR manual Bearer token
@@ -1393,9 +1493,14 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
   }
 
-  const now = new Date();
-  const topic = pickTopic();
+  const targetDateResult = parseTargetDate(req);
+  if (targetDateResult && targetDateResult.error) {
+    return res.status(400).json({ ok: false, error: targetDateResult.error });
+  }
+  const now = targetDateResult ? targetDateResult.date : new Date();
+  const topic = pickTopic(now);
   const forceDay = parseForceDay(req);
+  const extraFacebookPosts = parseExtraFacebookPosts(req);
 
   // Atlas 2026-06-12 engagement-fix: respect posting_schedule.is_active so
   // we don't generate drafts for paused platforms (currently instagram + tiktok).
@@ -1412,21 +1517,9 @@ module.exports = withTelemetry('cron-generate-posts', async function handler(req
     console.warn(`[cron-generate-posts] could not load posting_schedule (${e.message}) — using full POST_PLAN`);
   }
 
-  let plan = getPostPlan(now, { forceDay, activePlatforms });
+  let plan = getPostPlan(now, { forceDay, activePlatforms, extraFacebookPosts });
   const founding = await getFoundingMemberCount();
-  const dayOfYear = getDayOfYear();
-
-  // If an Instagram Reel is already queued for today (status draft/approved/pending_video),
-  // skip generating a static Instagram post — Reels get 3,173% more reach than static posts.
-  const todayUtc = now.toISOString().slice(0, 10);
-  const reelCheck = await supabaseFetch(
-    `/rest/v1/social_posts?platform=eq.instagram&status=in.(draft,approved,pending_video)&created_at=gte.${todayUtc}T00:00:00Z&created_at=lt.${todayUtc}T23:59:59Z&select=id&limit=1`,
-  );
-  const reelAlreadyQueued = reelCheck.ok && Array.isArray(reelCheck.data) && reelCheck.data.length > 0;
-  if (reelAlreadyQueued) {
-    console.log('[cron-generate-posts] Instagram Reel already queued for today — skipping static post');
-    plan = plan.filter((p) => p.platform !== 'instagram');
-  }
+  const dayOfYear = getDayOfYear(now);
 
   // Log which hook formulas are assigned to today's batch for diagnostics.
   const hookAssignments = plan.map((p, i) => {
@@ -1572,7 +1665,36 @@ function classifyCTA(ctaText) {
     }
 
     let persona = String(p.persona || '').toLowerCase();
-    const platform = String(p.platform || '').toLowerCase();
+
+    // Bug fix (2026-09-16): the PLANNED slot is authoritative for platform
+    // too, for exactly the reason it is for format and persona above — the
+    // model's own field was being trusted verbatim.
+    //
+    // getPostPlan() strips GENERATION_DISABLED_PLATFORMS (instagram, tiktok)
+    // out of the slot plan, but nothing re-checked the platform the model
+    // handed back. So the model could — and did — return platform:"instagram"
+    // for a planned facebook/linkedin slot, and that row got inserted anyway.
+    // Those rows can NEVER publish: instagram and tiktok both require media,
+    // cron-publish-approved parks a media-less row at status='pending_video',
+    // and cron-render-videos explicitly excludes them
+    // (`platform=not.in.(instagram,tiktok)`) because the per-post Creatomate
+    // path is dead. The row sits in that graveyard forever — 53 rejected
+    // instagram + 53 rejected tiktok rows are the accumulated result.
+    // Video duty for those platforms belongs to Pipeline B (video_library),
+    // not social_posts. See the video-only policy note further down.
+    const modelPlatform = String(p.platform || '').toLowerCase();
+    const slotPlatform = String((plan[i] && plan[i].platform) || '').toLowerCase();
+    let platform = modelPlatform;
+    if (GENERATION_DISABLED_PLATFORMS.has(modelPlatform)) {
+      if (slotPlatform && !GENERATION_DISABLED_PLATFORMS.has(slotPlatform)) {
+        console.warn(`[cron-generate-posts] slot ${i}: model returned disabled platform "${modelPlatform}" — overriding to planned slot platform "${slotPlatform}"`);
+        platform = slotPlatform;
+      } else {
+        console.warn(`[cron-generate-posts] slot ${i}: model returned disabled platform "${modelPlatform}" and the planned slot is no better — skipping (a row here could never publish)`);
+        insertErrors.push({ index: i, error: 'disabled platform', got: { platform: modelPlatform, slot_platform: slotPlatform || null } });
+        continue;
+      }
+    }
     let caption = String(p.caption || p.content || '').trim(); // caption = full post text
     const voiceoverScript = String(p.voiceover_script || '').trim(); // spoken TTS script for Creatomate video
     const hook = String(p.hook || '').trim();
@@ -1631,13 +1753,27 @@ function classifyCTA(ctaText) {
     // cron-post-videos, verified working: 8 videos heath_approved, 1 posted
     // this week). Facebook's daily caption now flows as a plain text post
     // (cron-publish-approved.js IMAGE_CARD_PLATFORMS narrowed to
-    // instagram-only for the same reason). Instagram/TikTok stay
-    // video_required=false too, but structurally still can't post without
-    // media (TikTok has its own always-on park gate; Instagram's Graph API
-    // has no text-only feed post) — their daily captions sit inert until
-    // Pipeline B or a future re-enable attaches a video. YouTube left as-is
-    // per Cole's instruction (also currently posting_schedule.is_active=false,
-    // so it isn't generating today regardless).
+    // instagram-only for the same reason).
+    //
+    // UPDATED 2026-09-15 (Carter): the 2026-09-09 fix above stopped setting
+    // video_required=true for instagram/tiktok but did NOT stop this cron
+    // from generating instagram/tiktok rows in the first place — those rows
+    // still had no card fallback and no video source, so they sat inert
+    // (pending_video / draft, never postable) forever. 79 had piled up.
+    // instagram + tiktok are now removed from POST_PLAN_BASE entirely — see
+    // the comment above that array. This platform can still theoretically
+    // appear here if activePlatforms/posting_schedule ever re-adds it, so
+    // the video_required derivation below is left platform-driven rather
+    // than hardcoded.
+    //
+    // UPDATED 2026-09-16 (Carter): "YouTube left as-is per Cole's
+    // instruction" above was wrong to leave standing — it assumed youtube
+    // would keep sitting dormant behind posting_schedule.is_active=false
+    // forever. 78c1c876 flipped that flag live the same day to unblock
+    // Pipeline B, which silently re-armed this exact dead-Creatomate path
+    // for youtube too (one pending_video row generated before this fix).
+    // youtube is now in GENERATION_DISABLED_PLATFORMS alongside
+    // instagram/tiktok for the identical reason — see that Set's comment.
     const platformVideoRequired = VIDEO_REQUIRED_PLATFORMS.has(platform);
 
     // Safety guard: VIDEO_REQUIRED_PLATFORMS must only contain the platforms
@@ -1863,6 +1999,9 @@ function classifyCTA(ctaText) {
     batch_id: batchId,
     topic: topic.key,
     force_day: forceDay,
+    target_date: targetDateResult ? targetDateResult.iso : now.toISOString().slice(0, 10),
+    advance_fill: !!targetDateResult,
+    extra_facebook_posts: extraFacebookPosts,
     errors: insertErrors,
     card_fallback_removed: true, // 2026-08-26: no static HCTI cards anywhere
     video_required: [...VIDEO_REQUIRED_PLATFORMS].join('+'),
@@ -1876,3 +2015,11 @@ function classifyCTA(ctaText) {
     } : null,
   });
 });
+
+// Exported for scripts/regression-cron-generate-posts-target-date.js — a
+// pure validation function, no network, safe to unit-test directly.
+module.exports.parseTargetDate = parseTargetDate;
+// Exported for scripts/regression-social-goals-pacing.js — pure functions,
+// no network, safe to unit-test directly.
+module.exports.parseExtraFacebookPosts = parseExtraFacebookPosts;
+module.exports.getPostPlan = getPostPlan;

@@ -1,0 +1,1122 @@
+- generic [ref=e25]:
+  - banner [ref=e26]:
+    - button "D Dossie" [ref=e27] [cursor=pointer]:
+      - generic [ref=e28]: D
+      - generic [ref=e29]: Dossie
+    - button "Talk to Dossie" [ref=e30] [cursor=pointer]: 📞 Talk to Dossie
+  - complementary [ref=e31]:
+    - generic [ref=e33]:
+      - button "☀️ Morning Brief" [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]: ☀️
+        - generic [ref=e36]: Morning Brief
+      - button "🗂️ Pipeline" [ref=e37] [cursor=pointer]:
+        - generic [ref=e38]: 🗂️
+        - generic [ref=e39]: Pipeline
+      - button "🚀 What's Coming" [ref=e40] [cursor=pointer]:
+        - generic [ref=e41]: 🚀
+        - generic [ref=e42]: What's Coming
+      - button "✉️ Emails" [ref=e43] [cursor=pointer]:
+        - generic [ref=e44]: ✉️
+        - generic [ref=e45]: Emails
+      - button "🧷 Closed Dossiers 9" [ref=e46] [cursor=pointer]:
+        - generic [ref=e47]: 🧷
+        - generic [ref=e48]: Closed Dossiers
+        - generic [ref=e49]: "9"
+      - button "🎫 Support" [ref=e50] [cursor=pointer]:
+        - generic [ref=e51]: 🎫
+        - generic [ref=e52]: Support
+      - button "⚙️ Settings" [ref=e53] [cursor=pointer]:
+        - generic [ref=e54]: ⚙️
+        - generic [ref=e55]: Settings
+      - button "✓ Getting Started Done" [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]: ✓
+        - generic [ref=e58]: Getting Started
+        - generic [ref=e59]: Done
+    - button "Share Dossie" [ref=e60] [cursor=pointer]
+    - generic [ref=e66]:
+      - generic [ref=e67]: SW
+      - generic [ref=e68]:
+        - generic [ref=e69]: Sarah Whitley
+        - generic [ref=e70]: demo@meetdossie.com
+      - button "Sign Out" [ref=e71] [cursor=pointer]
+  - main [ref=e72]:
+    - generic [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]: The TC That Never Sleeps.
+        - heading "Dossie keeps the whole file." [level=1] [ref=e76]
+      - button "Open New Dossier" [ref=e77] [cursor=pointer]
+    - generic [ref=e252]:
+      - generic [ref=e253]:
+        - button "← Back to Pipeline" [ref=e254] [cursor=pointer]
+        - generic [ref=e255]:
+          - button "Open in Emails" [ref=e256] [cursor=pointer]
+          - button "📝 Draft Amendment" [ref=e257] [cursor=pointer]
+          - button "✏️ Fill Contract" [ref=e258] [cursor=pointer]
+          - button "✍ Generate + Sign" [ref=e259] [cursor=pointer]
+          - button "✉️ Send to Compliance" [ref=e260] [cursor=pointer]
+          - button "⬇️ Download ZIP" [ref=e261] [cursor=pointer]
+      - generic [ref=e262]: Not yet sent to compliance
+      - generic [ref=e263]:
+        - generic [ref=e264]: Dossier No. 007
+        - generic [ref=e265]:
+          - generic [ref=e266]:
+            - generic [ref=e267]: 789 Ranch Rd
+            - generic [ref=e268]: San Antonio, TX 78230
+            - generic [ref=e269]: "Buyer's agent: Sarah Whitley · Sarah Whitley Real Estate · TX #0712345"
+          - generic [ref=e270]:
+            - generic [ref=e271]: 🔑 Buyer side
+            - generic [ref=e272]: 🤝 Under Contract
+        - generic [ref=e274]:
+          - generic [ref=e275]: Stage progression
+          - generic [ref=e276]:
+            - generic [ref=e277]:
+              - generic [ref=e278]: 💼
+              - generic [ref=e279]: Pre-Listing
+            - generic [ref=e280]:
+              - generic [ref=e281]: 📝
+              - generic [ref=e282]: Pre-Contract
+            - generic [ref=e283]:
+              - generic [ref=e284]: 🏡
+              - generic [ref=e285]: Active Listing
+            - generic [ref=e286]:
+              - generic [ref=e287]: 🤝
+              - generic [ref=e288]: Under Contract
+            - generic [ref=e289]:
+              - generic [ref=e290]: 🔎
+              - generic [ref=e291]: Option Period
+            - generic [ref=e292]:
+              - generic [ref=e293]: 🛠️
+              - generic [ref=e294]: Inspection
+            - generic [ref=e295]:
+              - generic [ref=e296]: 🏦
+              - generic [ref=e297]: Financing
+            - generic [ref=e298]:
+              - generic [ref=e299]: 📜
+              - generic [ref=e300]: Title & Survey
+            - generic [ref=e301]:
+              - generic [ref=e302]: ✨
+              - generic [ref=e303]: Clear to Close
+            - generic [ref=e304]:
+              - generic [ref=e305]: 🗂️
+              - generic [ref=e306]: Closed
+        - generic [ref=e307]:
+          - button "Advance to Option Period →" [ref=e308] [cursor=pointer]
+          - button "Close / Archive Dossier" [ref=e309] [cursor=pointer]
+        - generic [ref=e310]:
+          - generic [ref=e311]: "Move to stage:"
+          - combobox "Move to stage:" [ref=e312] [cursor=pointer]:
+            - option "💼 Pre-Listing"
+            - option "📝 Pre-Contract"
+            - option "🏡 Active Listing"
+            - option "🤝 Under Contract" [selected]
+            - option "🔎 Option Period"
+            - option "🛠️ Inspection"
+            - option "🏦 Financing"
+            - option "📜 Title & Survey"
+            - option "✨ Clear to Close"
+            - option "🗂️ Closed"
+      - generic [ref=e313]:
+        - button "Scroll tabs left" [disabled] [ref=e314]: ‹
+        - navigation "Dossier sections" [ref=e315]:
+          - generic [ref=e316]:
+            - button "Deadlines" [ref=e317] [cursor=pointer]
+            - button "Deal" [ref=e318] [cursor=pointer]
+            - button "Land" [ref=e319] [cursor=pointer]
+            - button "Title" [ref=e320] [cursor=pointer]
+            - button "Key dates" [ref=e321] [cursor=pointer]
+            - button "Option" [ref=e322] [cursor=pointer]
+            - button "Inspection" [ref=e323] [cursor=pointer]
+            - button "Appraisal" [ref=e324] [cursor=pointer]
+            - button "Title" [ref=e325] [cursor=pointer]
+            - button "Closing" [ref=e326] [cursor=pointer]
+            - button "Post-Close" [ref=e327] [cursor=pointer]
+            - button "Activity" [ref=e328] [cursor=pointer]
+            - button "Checklist" [ref=e329] [cursor=pointer]
+            - button "Required" [ref=e330] [cursor=pointer]
+            - button "Actions" [ref=e331] [cursor=pointer]
+            - button "Documents" [ref=e332] [cursor=pointer]
+            - button "Milestones" [ref=e333] [cursor=pointer]
+        - button "Scroll tabs right" [ref=e334] [cursor=pointer]: ›
+      - generic [ref=e335]:
+        - generic [ref=e336]:
+          - heading "TREC deadlines" [level=3] [ref=e337]
+          - generic [ref=e338]: Computed from the contract dates below. Editing dates updates this list.
+        - generic [ref=e339]:
+          - generic [ref=e340]:
+            - generic [ref=e341]: 💵
+            - generic [ref=e342]:
+              - generic [ref=e343]: Earnest money due
+              - generic [ref=e344]: June 1, 2026 · ¶ 5A
+            - generic [ref=e345]: Completed
+          - generic [ref=e346]:
+            - generic [ref=e347]: 🧾
+            - generic [ref=e348]:
+              - generic [ref=e349]: Option fee due
+              - generic [ref=e350]: June 1, 2026 · ¶ 5A
+            - generic [ref=e351]: Completed
+          - generic [ref=e352]:
+            - generic [ref=e353]: 🔔
+            - generic [ref=e354]:
+              - generic [ref=e355]: Option period expires
+              - generic [ref=e356]: June 8, 2026 · ¶ 5B
+            - generic [ref=e357]: Completed
+          - generic [ref=e358]:
+            - generic [ref=e359]: 📜
+            - generic [ref=e360]:
+              - generic [ref=e361]: Title commitment deadline
+              - generic [ref=e362]: June 18, 2026 · ¶ 6A
+            - generic [ref=e363]: Completed
+          - generic [ref=e364]:
+            - generic [ref=e365]: 🏦
+            - generic [ref=e366]:
+              - generic [ref=e367]: Financing deadline
+              - generic [ref=e368]: June 22, 2026 · Third Party Financing Addendum
+            - generic [ref=e369]: Completed
+          - generic [ref=e370]:
+            - generic [ref=e371]: 🏡
+            - generic [ref=e372]:
+              - generic [ref=e373]: Closing date
+              - generic [ref=e374]: October 15, 2026 · ¶ 9A
+            - generic [ref=e375]: 52 days
+        - generic [ref=e376]:
+          - generic [ref=e377]: ⚠
+          - generic [ref=e378]: Wire Fraud Warning not sent
+        - generic [ref=e379]:
+          - generic [ref=e380]: IABS not yet recorded as delivered
+          - button "Mark Delivered" [ref=e381] [cursor=pointer]
+      - generic [ref=e382]:
+        - generic [ref=e383]:
+          - heading "Deal details" [level=3] [ref=e384]
+          - generic [ref=e385]: Click any field to edit — saves immediately.
+        - generic [ref=e386]:
+          - generic [ref=e387]:
+            - generic [ref=e388]: Property address
+            - button "789 Ranch Rd ✎" [ref=e389] [cursor=pointer]:
+              - generic [ref=e390]: 789 Ranch Rd
+              - generic [ref=e391]: ✎
+          - generic [ref=e392]:
+            - generic [ref=e393]: City / State / ZIP
+            - button "San Antonio, TX 78230 ✎" [ref=e394] [cursor=pointer]:
+              - generic [ref=e395]: San Antonio, TX 78230
+              - generic [ref=e396]: ✎
+          - generic [ref=e397]:
+            - generic [ref=e398]: Buyer
+            - button "Wren Everly and Sutton Everly ✎" [ref=e399] [cursor=pointer]:
+              - generic [ref=e400]: Wren Everly and Sutton Everly
+              - generic [ref=e401]: ✎
+          - generic [ref=e402]:
+            - generic [ref=e403]: Buyer email
+            - button "buyer@example.com ✎" [ref=e404] [cursor=pointer]:
+              - generic [ref=e405]: buyer@example.com
+              - generic [ref=e406]: ✎
+          - generic [ref=e407]:
+            - generic [ref=e408]: Buyer phone
+            - button "(555) 555-5555 ✎" [ref=e409] [cursor=pointer]:
+              - generic [ref=e410]: (555) 555-5555
+              - generic [ref=e411]: ✎
+          - generic [ref=e412]:
+            - generic [ref=e413]: Seller
+            - button "Nolan Dunmore ✎" [ref=e414] [cursor=pointer]:
+              - generic [ref=e415]: Nolan Dunmore
+              - generic [ref=e416]: ✎
+          - generic [ref=e417]:
+            - generic [ref=e418]: Seller email
+            - button "circlehranch@example.com ✎" [ref=e419] [cursor=pointer]:
+              - generic [ref=e420]: circlehranch@example.com
+              - generic [ref=e421]: ✎
+          - generic [ref=e422]:
+            - generic [ref=e423]: Seller phone
+            - button "(555) 555-5555 ✎" [ref=e424] [cursor=pointer]:
+              - generic [ref=e425]: (555) 555-5555
+              - generic [ref=e426]: ✎
+          - generic [ref=e427]:
+            - generic [ref=e428]: Buyer 2 (optional)
+            - button "Second buyer's full name ✎" [ref=e429] [cursor=pointer]:
+              - generic [ref=e430]: Second buyer's full name
+              - generic [ref=e431]: ✎
+          - generic [ref=e432]:
+            - generic [ref=e433]: Buyer 2 email
+            - button "buyer2@example.com ✎" [ref=e434] [cursor=pointer]:
+              - generic [ref=e435]: buyer2@example.com
+              - generic [ref=e436]: ✎
+          - generic [ref=e437]:
+            - generic [ref=e438]: Buyer 2 phone
+            - button "(555) 555-5555 ✎" [ref=e439] [cursor=pointer]:
+              - generic [ref=e440]: (555) 555-5555
+              - generic [ref=e441]: ✎
+          - generic [ref=e442]:
+            - generic [ref=e443]: Seller 2 (optional)
+            - button "Second seller's full name ✎" [ref=e444] [cursor=pointer]:
+              - generic [ref=e445]: Second seller's full name
+              - generic [ref=e446]: ✎
+          - generic [ref=e447]:
+            - generic [ref=e448]: Seller 2 email
+            - button "seller2@example.com ✎" [ref=e449] [cursor=pointer]:
+              - generic [ref=e450]: seller2@example.com
+              - generic [ref=e451]: ✎
+          - generic [ref=e452]:
+            - generic [ref=e453]: Seller 2 phone
+            - button "(555) 555-5555 ✎" [ref=e454] [cursor=pointer]:
+              - generic [ref=e455]: (555) 555-5555
+              - generic [ref=e456]: ✎
+          - generic [ref=e457]:
+            - generic [ref=e458]: Sale price
+            - button "$850,000 ✎" [ref=e459] [cursor=pointer]:
+              - generic [ref=e460]: $850,000
+              - generic [ref=e461]: ✎
+          - generic [ref=e462]:
+            - generic [ref=e463]: Earnest money
+            - button "$8,500 ✎" [ref=e464] [cursor=pointer]:
+              - generic [ref=e465]: $8,500
+              - generic [ref=e466]: ✎
+          - generic [ref=e467]:
+            - generic [ref=e468]: Option fee
+            - button "$100 ✎" [ref=e469] [cursor=pointer]:
+              - generic [ref=e470]: $100
+              - generic [ref=e471]: ✎
+          - generic [ref=e472]:
+            - generic [ref=e473]: Option period
+            - button "10 days ✎" [ref=e474] [cursor=pointer]:
+              - generic [ref=e475]: 10 days
+              - generic [ref=e476]: ✎
+          - generic [ref=e477]:
+            - generic [ref=e478]: Financing days
+            - button "21 days ✎" [ref=e479] [cursor=pointer]:
+              - generic [ref=e480]: 21 days
+              - generic [ref=e481]: ✎
+          - generic [ref=e482]:
+            - generic [ref=e483]: Effective date
+            - button "5/29/2026 ✎" [ref=e484] [cursor=pointer]:
+              - generic [ref=e485]: 5/29/2026
+              - generic [ref=e486]: ✎
+          - generic [ref=e487]:
+            - generic [ref=e488]: Closing date
+            - button "10/15/2026 ✎" [ref=e489] [cursor=pointer]:
+              - generic [ref=e490]: 10/15/2026
+              - generic [ref=e491]: ✎
+      - generic [ref=e492]:
+        - generic [ref=e493]:
+          - heading "Land details" [level=3] [ref=e494]
+          - generic [ref=e495]: Property description, survey, utilities, and environmental.
+        - generic [ref=e496]:
+          - generic [ref=e497]: Property description
+          - generic [ref=e498]:
+            - generic [ref=e499]:
+              - generic [ref=e500]: Total acreage
+              - button "100 ✎" [ref=e501] [cursor=pointer]:
+                - generic [ref=e502]: "100"
+                - generic [ref=e503]: ✎
+            - generic [ref=e504]:
+              - generic [ref=e505]: Legal description
+              - button "Survey / abstract / lot description ✎" [ref=e506] [cursor=pointer]:
+                - generic [ref=e507]: Survey / abstract / lot description
+                - generic [ref=e508]: ✎
+            - generic [ref=e509]:
+              - generic [ref=e510]: Parcel ID / Tax ID
+              - button "County appraisal district ID ✎" [ref=e511] [cursor=pointer]:
+                - generic [ref=e512]: County appraisal district ID
+                - generic [ref=e513]: ✎
+            - generic [ref=e514]:
+              - generic [ref=e515]: Current zoning
+              - button "e.g. AG, R-1, Commercial ✎" [ref=e516] [cursor=pointer]:
+                - generic [ref=e517]: e.g. AG, R-1, Commercial
+                - generic [ref=e518]: ✎
+            - generic [ref=e519]:
+              - generic [ref=e520]: Deed restrictions
+              - generic [ref=e521]:
+                - checkbox [ref=e522] [cursor=pointer]
+                - generic [ref=e523]: Reviewed
+            - generic [ref=e524]:
+              - generic [ref=e525]: Deed restriction notes
+              - button "Notes on deed restrictions / covenants ✎" [ref=e526] [cursor=pointer]:
+                - generic [ref=e527]: Notes on deed restrictions / covenants
+                - generic [ref=e528]: ✎
+        - generic [ref=e529]:
+          - generic [ref=e530]: Survey
+          - generic [ref=e531]:
+            - generic [ref=e532]:
+              - generic [ref=e533]: Survey type
+              - combobox [ref=e534] [cursor=pointer]:
+                - option "Select type" [selected]
+                - option "Boundary Survey"
+                - option "ALTA Survey"
+                - option "Fence Survey"
+                - option "None Required"
+            - generic [ref=e535]:
+              - generic [ref=e536]: Survey ordered
+              - button "YYYY-MM-DD ✎" [ref=e537] [cursor=pointer]:
+                - generic [ref=e538]: YYYY-MM-DD
+                - generic [ref=e539]: ✎
+            - generic [ref=e540]:
+              - generic [ref=e541]: Survey received
+              - button "YYYY-MM-DD ✎" [ref=e542] [cursor=pointer]:
+                - generic [ref=e543]: YYYY-MM-DD
+                - generic [ref=e544]: ✎
+            - generic [ref=e545]:
+              - generic [ref=e546]: Survey clear
+              - generic [ref=e547]:
+                - checkbox [ref=e548] [cursor=pointer]
+                - generic [ref=e549]: Clear
+            - generic [ref=e550]:
+              - generic [ref=e551]: Fence survey required
+              - generic [ref=e552]:
+                - checkbox [ref=e553] [cursor=pointer]
+                - generic [ref=e554]: Required
+            - generic [ref=e555]:
+              - generic [ref=e556]: Survey notes
+              - button "Any notes on the survey result ✎" [ref=e557] [cursor=pointer]:
+                - generic [ref=e558]: Any notes on the survey result
+                - generic [ref=e559]: ✎
+        - generic [ref=e560]:
+          - generic [ref=e561]: Utilities & infrastructure
+          - generic [ref=e562]:
+            - generic [ref=e563]:
+              - generic [ref=e564]: Water source
+              - combobox [ref=e565] [cursor=pointer]:
+                - option "Select source" [selected]
+                - option "Municipal"
+                - option "Well"
+                - option "None"
+            - generic [ref=e566]:
+              - generic [ref=e567]: Sewer source
+              - combobox [ref=e568] [cursor=pointer]:
+                - option "Select source" [selected]
+                - option "Municipal"
+                - option "Septic"
+                - option "None"
+            - generic [ref=e569]:
+              - generic [ref=e570]: Electric
+              - generic [ref=e571]:
+                - checkbox [ref=e572] [cursor=pointer]
+                - generic [ref=e573]: Confirmed available
+            - generic [ref=e574]:
+              - generic [ref=e575]: Gas
+              - generic [ref=e576]:
+                - checkbox [ref=e577] [cursor=pointer]
+                - generic [ref=e578]: Confirmed available
+            - generic [ref=e579]:
+              - generic [ref=e580]: Internet / telecom
+              - generic [ref=e581]:
+                - checkbox [ref=e582] [cursor=pointer]
+                - generic [ref=e583]: Confirmed available
+            - generic [ref=e584]:
+              - generic [ref=e585]: Road access / easement
+              - generic [ref=e586]:
+                - checkbox [ref=e587] [cursor=pointer]
+                - generic [ref=e588]: Confirmed
+        - generic [ref=e589]:
+          - generic [ref=e590]: Environmental
+          - generic [ref=e591]:
+            - generic [ref=e592]:
+              - generic [ref=e593]: FEMA flood zone
+              - button "e.g. Zone X, Zone AE ✎" [ref=e594] [cursor=pointer]:
+                - generic [ref=e595]: e.g. Zone X, Zone AE
+                - generic [ref=e596]: ✎
+            - generic [ref=e597]:
+              - generic [ref=e598]: Flood map checked
+              - generic [ref=e600]:
+                - checkbox [ref=e601] [cursor=pointer]
+                - generic [ref=e602]: Checked
+            - generic [ref=e603]:
+              - generic [ref=e604]: Wetlands present
+              - generic [ref=e605]:
+                - checkbox [ref=e606] [cursor=pointer]
+                - generic [ref=e607]: "Yes"
+            - generic [ref=e608]:
+              - generic [ref=e609]: Phase 1 ESA required
+              - generic [ref=e610]:
+                - checkbox [ref=e611] [cursor=pointer]
+                - generic [ref=e612]: Required
+            - generic [ref=e613]:
+              - generic [ref=e614]: Phase 1 ESA received
+              - generic [ref=e616]:
+                - checkbox [ref=e617] [cursor=pointer]
+                - generic [ref=e618]: Received
+            - generic [ref=e619]:
+              - generic [ref=e620]: Environmental concerns notes
+              - button "Any environmental concerns or study notes ✎" [ref=e621] [cursor=pointer]:
+                - generic [ref=e622]: Any environmental concerns or study notes
+                - generic [ref=e623]: ✎
+      - generic [ref=e624]:
+        - generic [ref=e625]:
+          - heading "Title company" [level=3] [ref=e626]
+          - generic [ref=e627]: Closer of record and contact info.
+        - generic [ref=e628]:
+          - generic [ref=e629]:
+            - generic [ref=e630]: Title company
+            - button "Pecan Grove Title ✎" [ref=e631] [cursor=pointer]:
+              - generic [ref=e632]: Pecan Grove Title
+              - generic [ref=e633]: ✎
+          - generic [ref=e634]:
+            - generic [ref=e635]: Title officer
+            - button "Patricia Reyes ✎" [ref=e636] [cursor=pointer]:
+              - generic [ref=e637]: Patricia Reyes
+              - generic [ref=e638]: ✎
+          - generic [ref=e639]:
+            - generic [ref=e640]: Title officer email
+            - button "officer@title.com ✎" [ref=e641] [cursor=pointer]:
+              - generic [ref=e642]: officer@title.com
+              - generic [ref=e643]: ✎
+          - generic [ref=e644]:
+            - generic [ref=e645]: Title officer phone
+            - button "(555) 555-1234 ✎" [ref=e646] [cursor=pointer]:
+              - generic [ref=e647]: (555) 555-1234
+              - generic [ref=e648]: ✎
+      - generic [ref=e649]:
+        - generic [ref=e650]:
+          - heading "Key dates" [level=3] [ref=e651]
+          - generic [ref=e652]: Possession and contract-derived deadlines.
+        - generic [ref=e653]:
+          - generic [ref=e654]:
+            - generic [ref=e655]: Possession
+            - button "5/24/2026 ✎" [ref=e656] [cursor=pointer]:
+              - generic [ref=e657]: 5/24/2026
+              - generic [ref=e658]: ✎
+          - generic [ref=e659]:
+            - generic [ref=e660]: Appraisal deadline
+            - button "YYYY-MM-DD ✎" [ref=e661] [cursor=pointer]:
+              - generic [ref=e662]: YYYY-MM-DD
+              - generic [ref=e663]: ✎
+          - generic [ref=e664]:
+            - generic [ref=e665]: Survey deadline
+            - button "YYYY-MM-DD ✎" [ref=e666] [cursor=pointer]:
+              - generic [ref=e667]: YYYY-MM-DD
+              - generic [ref=e668]: ✎
+          - generic [ref=e669]:
+            - generic [ref=e670]: HOA documents
+            - button "YYYY-MM-DD ✎" [ref=e671] [cursor=pointer]:
+              - generic [ref=e672]: YYYY-MM-DD
+              - generic [ref=e673]: ✎
+          - generic [ref=e674]:
+            - generic [ref=e675]: Loan approval
+            - button "YYYY-MM-DD ✎" [ref=e676] [cursor=pointer]:
+              - generic [ref=e677]: YYYY-MM-DD
+              - generic [ref=e678]: ✎
+      - generic [ref=e679]:
+        - generic [ref=e680]:
+          - heading "Option period" [level=3] [ref=e681]
+          - generic [ref=e682]: Track option fee payment and earnest money deposit.
+        - generic [ref=e683]:
+          - generic [ref=e684]:
+            - generic [ref=e685]: Option fee amount
+            - button "200 ✎" [ref=e686] [cursor=pointer]:
+              - generic [ref=e687]: "200"
+              - generic [ref=e688]: ✎
+          - generic [ref=e689]:
+            - generic [ref=e690]: Option fee paid to
+            - button "Seller or agent name ✎" [ref=e691] [cursor=pointer]:
+              - generic [ref=e692]: Seller or agent name
+              - generic [ref=e693]: ✎
+          - generic [ref=e694]:
+            - generic [ref=e695]: Option fee paid date
+            - button "YYYY-MM-DD ✎" [ref=e696] [cursor=pointer]:
+              - generic [ref=e697]: YYYY-MM-DD
+              - generic [ref=e698]: ✎
+          - generic [ref=e699]:
+            - generic [ref=e700]: Earnest money amount
+            - button "5000 ✎" [ref=e701] [cursor=pointer]:
+              - generic [ref=e702]: "5000"
+              - generic [ref=e703]: ✎
+          - generic [ref=e704]:
+            - generic [ref=e705]: EM deposited date
+            - button "YYYY-MM-DD ✎" [ref=e706] [cursor=pointer]:
+              - generic [ref=e707]: YYYY-MM-DD
+              - generic [ref=e708]: ✎
+          - generic [ref=e709]:
+            - generic [ref=e710]: EM confirmed by title
+            - button "YYYY-MM-DD ✎" [ref=e711] [cursor=pointer]:
+              - generic [ref=e712]: YYYY-MM-DD
+              - generic [ref=e713]: ✎
+          - generic [ref=e714]:
+            - generic [ref=e715]: EM held at title company
+            - button "Title company holding earnest money ✎" [ref=e716] [cursor=pointer]:
+              - generic [ref=e717]: Title company holding earnest money
+              - generic [ref=e718]: ✎
+        - generic [ref=e719]:
+          - generic [ref=e720]: Recent emails on this option period
+          - generic [ref=e721]: No emails filed under Option Period yet.
+      - generic [ref=e722]:
+        - generic [ref=e723]:
+          - heading "Inspection" [level=3] [ref=e724]
+          - generic [ref=e725]: Inspector contact, schedule, and report status.
+        - generic [ref=e726]:
+          - generic [ref=e727]:
+            - generic [ref=e728]: Inspector name
+            - button "Full name ✎" [ref=e729] [cursor=pointer]:
+              - generic [ref=e730]: Full name
+              - generic [ref=e731]: ✎
+          - generic [ref=e732]:
+            - generic [ref=e733]: Inspector phone
+            - button "(555) 555-1234 ✎" [ref=e734] [cursor=pointer]:
+              - generic [ref=e735]: (555) 555-1234
+              - generic [ref=e736]: ✎
+          - generic [ref=e737]:
+            - generic [ref=e738]: Inspector email
+            - button "inspector@email.com ✎" [ref=e739] [cursor=pointer]:
+              - generic [ref=e740]: inspector@email.com
+              - generic [ref=e741]: ✎
+          - generic [ref=e742]:
+            - generic [ref=e743]: Inspection scheduled
+            - button "YYYY-MM-DD ✎" [ref=e744] [cursor=pointer]:
+              - generic [ref=e745]: YYYY-MM-DD
+              - generic [ref=e746]: ✎
+          - generic [ref=e747]:
+            - generic [ref=e748]: Inspection completed
+            - button "YYYY-MM-DD ✎" [ref=e749] [cursor=pointer]:
+              - generic [ref=e750]: YYYY-MM-DD
+              - generic [ref=e751]: ✎
+          - generic [ref=e752]:
+            - generic [ref=e753]: Report received
+            - generic [ref=e754]:
+              - checkbox "Not yet received" [ref=e755] [cursor=pointer]
+              - generic [ref=e756] [cursor=pointer]: Not yet received
+      - generic [ref=e757]:
+        - generic [ref=e758]:
+          - heading "Appraisal" [level=3] [ref=e759]
+          - generic [ref=e760]: Track when the appraisal was ordered, received, and the appraised value.
+        - generic [ref=e761]:
+          - generic [ref=e762]:
+            - generic [ref=e763]: Appraisal ordered
+            - button "YYYY-MM-DD ✎" [ref=e764] [cursor=pointer]:
+              - generic [ref=e765]: YYYY-MM-DD
+              - generic [ref=e766]: ✎
+          - generic [ref=e767]:
+            - generic [ref=e768]: Appraisal received
+            - button "YYYY-MM-DD ✎" [ref=e769] [cursor=pointer]:
+              - generic [ref=e770]: YYYY-MM-DD
+              - generic [ref=e771]: ✎
+          - generic [ref=e772]:
+            - generic [ref=e773]: Appraised value
+            - button "425000 ✎" [ref=e774] [cursor=pointer]:
+              - generic [ref=e775]: "425000"
+              - generic [ref=e776]: ✎
+      - generic [ref=e777]:
+        - generic [ref=e778]:
+          - heading "Title commitment & survey" [level=3] [ref=e779]
+          - generic [ref=e780]: Track when the title commitment and survey arrive and clear.
+        - generic [ref=e781]:
+          - generic [ref=e782]:
+            - generic [ref=e783]: Title commitment received
+            - generic [ref=e784]:
+              - checkbox "Not yet received" [ref=e785] [cursor=pointer]
+              - generic [ref=e786] [cursor=pointer]: Not yet received
+          - generic [ref=e787]:
+            - generic [ref=e788]: Commitment effective date
+            - button "YYYY-MM-DD ✎" [ref=e789] [cursor=pointer]:
+              - generic [ref=e790]: YYYY-MM-DD
+              - generic [ref=e791]: ✎
+          - generic [ref=e792]:
+            - generic [ref=e793]: Survey ordered
+            - button "YYYY-MM-DD ✎" [ref=e794] [cursor=pointer]:
+              - generic [ref=e795]: YYYY-MM-DD
+              - generic [ref=e796]: ✎
+          - generic [ref=e797]:
+            - generic [ref=e798]: Survey received
+            - generic [ref=e799]:
+              - checkbox "Not yet received" [ref=e800] [cursor=pointer]
+              - generic [ref=e801] [cursor=pointer]: Not yet received
+          - generic [ref=e802]:
+            - generic [ref=e803]: Survey clear
+            - generic [ref=e804]:
+              - checkbox "Not yet confirmed clear" [ref=e805] [cursor=pointer]
+              - generic [ref=e806] [cursor=pointer]: Not yet confirmed clear
+          - generic [ref=e807]:
+            - generic [ref=e808]: Loan approved
+            - generic [ref=e809]:
+              - checkbox "Awaiting approval" [ref=e810] [cursor=pointer]
+              - generic [ref=e811] [cursor=pointer]: Awaiting approval
+          - generic [ref=e812]:
+            - generic [ref=e813]: Clear to close
+            - generic [ref=e814]:
+              - checkbox "Not yet clear to close" [ref=e815] [cursor=pointer]
+              - generic [ref=e816] [cursor=pointer]: Not yet clear to close
+      - generic [ref=e817]:
+        - generic [ref=e818]:
+          - heading "Closing checklist" [level=3] [ref=e819]
+          - generic [ref=e820]: Pre-closing tasks — check each item as it is verified.
+        - generic [ref=e821]:
+          - button "CD / HUD-1 received and reviewed" [ref=e822] [cursor=pointer]
+          - button "Commission amounts verified on CD" [ref=e825] [cursor=pointer]
+          - button "Proration amounts verified" [ref=e828] [cursor=pointer]
+          - button "Payoff amounts verified (if applicable)" [ref=e831] [cursor=pointer]
+          - button "Wire fraud warning acknowledged by buyer" [ref=e834] [cursor=pointer]
+          - button "Final walkthrough completed" [ref=e837] [cursor=pointer]
+          - button "All contract repairs completed and verified" [ref=e840] [cursor=pointer]
+          - button "All fixtures and appliances present per contract" [ref=e843] [cursor=pointer]
+      - generic [ref=e846]:
+        - generic [ref=e847]:
+          - heading "Post-closing" [level=3] [ref=e848]
+          - generic [ref=e849]: Recorded deed, title policy, and commission paperwork.
+        - generic [ref=e850]:
+          - generic [ref=e851]:
+            - generic [ref=e852]: Recorded deed received
+            - generic [ref=e853]:
+              - checkbox "Not yet received" [ref=e854] [cursor=pointer]
+              - generic [ref=e855] [cursor=pointer]: Not yet received
+          - generic [ref=e856]:
+            - generic [ref=e857]: Title policy delivered to buyer
+            - generic [ref=e858]:
+              - checkbox "Not yet delivered" [ref=e859] [cursor=pointer]
+              - generic [ref=e860] [cursor=pointer]: Not yet delivered
+          - generic [ref=e861]:
+            - generic [ref=e862]: CDA signed by broker
+            - generic [ref=e863]:
+              - checkbox "Not yet signed" [ref=e864] [cursor=pointer]
+              - generic [ref=e865] [cursor=pointer]: Not yet signed
+      - generic [ref=e866]:
+        - generic [ref=e867]:
+          - heading "Checklist" [level=3] [ref=e868]
+          - generic [ref=e869]: Click an item to mark it done.
+        - generic [ref=e870]:
+          - generic [ref=e871]:
+            - generic [ref=e872]: 📝 Pre-Contract
+            - button "✓ Deliver IABS to client" [ref=e873] [cursor=pointer]:
+              - generic [ref=e874]: ✓
+              - generic [ref=e875]: Deliver IABS to client
+            - button "✓ Execute buyer representation agreement" [ref=e876] [cursor=pointer]:
+              - generic [ref=e877]: ✓
+              - generic [ref=e878]: Execute buyer representation agreement
+            - button "✓ Collect pre-approval letter" [ref=e879] [cursor=pointer]:
+              - generic [ref=e880]: ✓
+              - generic [ref=e881]: Collect pre-approval letter
+            - button "✓ Set buyer search criteria" [ref=e882] [cursor=pointer]:
+              - generic [ref=e883]: ✓
+              - generic [ref=e884]: Set buyer search criteria
+            - button "✓ Schedule showings" [ref=e885] [cursor=pointer]:
+              - generic [ref=e886]: ✓
+              - generic [ref=e887]: Schedule showings
+          - generic [ref=e888]:
+            - generic [ref=e889]: 🏡 Active Listing
+            - button "✓ Upload listing to MLS" [ref=e890] [cursor=pointer]:
+              - generic [ref=e891]: ✓
+              - generic [ref=e892]: Upload listing to MLS
+            - button "✓ Schedule professional photos" [ref=e893] [cursor=pointer]:
+              - generic [ref=e894]: ✓
+              - generic [ref=e895]: Schedule professional photos
+            - button "✓ Set up showing instructions" [ref=e896] [cursor=pointer]:
+              - generic [ref=e897]: ✓
+              - generic [ref=e898]: Set up showing instructions
+            - button "✓ Confirm seller disclosures" [ref=e899] [cursor=pointer]:
+              - generic [ref=e900]: ✓
+              - generic [ref=e901]: Confirm seller disclosures
+            - button "✓ Review listing agreement" [ref=e902] [cursor=pointer]:
+              - generic [ref=e903]: ✓
+              - generic [ref=e904]: Review listing agreement
+          - generic [ref=e905]:
+            - generic [ref=e906]: 🤝 Under Contract
+            - button "Collect earnest money" [ref=e907] [cursor=pointer]
+            - button "Verify option fee paid" [ref=e910] [cursor=pointer]
+            - button "Order title commitment" [ref=e913] [cursor=pointer]
+            - button "Send contract to all parties" [ref=e916] [cursor=pointer]
+            - button "Confirm effective date" [ref=e919] [cursor=pointer]
+          - generic [ref=e922]:
+            - generic [ref=e923]: 🔎 Option Period
+            - button "Schedule inspection" [ref=e924] [cursor=pointer]
+            - button "Receive inspection report" [ref=e927] [cursor=pointer]
+            - button "Negotiate repairs" [ref=e930] [cursor=pointer]
+            - button "Send amendment if needed" [ref=e933] [cursor=pointer]
+          - generic [ref=e936]:
+            - generic [ref=e937]: 🛠️ Inspection
+            - button "Confirm repair agreement" [ref=e938] [cursor=pointer]
+            - button "Get repair receipts" [ref=e941] [cursor=pointer]
+          - generic [ref=e944]:
+            - generic [ref=e945]: 🏦 Financing
+            - button "Submit loan application confirmation" [ref=e946] [cursor=pointer]
+            - button "Order appraisal" [ref=e949] [cursor=pointer]
+            - button "Receive appraisal" [ref=e952] [cursor=pointer]
+            - button "Clear underwriting conditions" [ref=e955] [cursor=pointer]
+            - button "Receive clear to close" [ref=e958] [cursor=pointer]
+          - generic [ref=e961]:
+            - generic [ref=e962]: 📜 Title & Survey
+            - button "Order survey" [ref=e963] [cursor=pointer]
+            - button "Receive survey" [ref=e966] [cursor=pointer]
+            - button "Review title commitment" [ref=e969] [cursor=pointer]
+            - button "Clear title exceptions" [ref=e972] [cursor=pointer]
+          - generic [ref=e975]:
+            - generic [ref=e976]: ✨ Clear to Close
+            - button "Confirm closing date and time" [ref=e977] [cursor=pointer]
+            - button "Send closing instructions to buyer" [ref=e980] [cursor=pointer]
+            - button "Confirm wire instructions" [ref=e983] [cursor=pointer]
+          - generic [ref=e986]:
+            - generic [ref=e987]: 🗂️ Closed
+            - button "Collect commission" [ref=e988] [cursor=pointer]
+            - button "Upload documents to broker" [ref=e991] [cursor=pointer]
+            - button "Send post-closing thank you" [ref=e994] [cursor=pointer]
+      - generic [ref=e997]:
+        - generic [ref=e998]:
+          - heading "Recent activity" [level=3] [ref=e999]
+          - generic [ref=e1000]: Emails Dossie matched and filed into this dossier automatically.
+        - generic [ref=e1001]: No emails filed here yet. Once someone on this deal emails your KW inbox, Dossie summarizes and files it here.
+      - generic [ref=e1003]:
+        - generic [ref=e1004]:
+          - heading "Required documents" [level=3] [ref=e1005]
+          - generic [ref=e1006]: Upload a doc and Dossie will check it off automatically.
+        - generic [ref=e1007]:
+          - generic [ref=e1008]:
+            - button "Mark as received (no upload)" [ref=e1009] [cursor=pointer]
+            - generic [ref=e1010]:
+              - generic [ref=e1011]:
+                - generic [ref=e1012]: Information About Brokerage Services (IABS)
+                - generic [ref=e1013]: TX Law
+              - generic [ref=e1014]: Required
+              - generic [ref=e1016]: Required by Texas law — TRELA §1101.558
+            - button "Send" [ref=e1017] [cursor=pointer]
+          - generic [ref=e1018]:
+            - button "Mark as received (no upload)" [ref=e1019] [cursor=pointer]
+            - generic [ref=e1020]:
+              - generic [ref=e1021]:
+                - generic [ref=e1022]: Buyer Representation Agreement
+                - generic [ref=e1023]: TX Law
+              - generic [ref=e1024]: Required
+              - generic [ref=e1026]: Signed TAR 1501 — required by Texas law effective Jan 1 2026
+            - button "Send" [ref=e1027] [cursor=pointer]
+          - generic [ref=e1028]:
+            - button "Mark as received (no upload)" [ref=e1029] [cursor=pointer]
+            - generic [ref=e1030]:
+              - generic [ref=e1031]: Pre-Approval Letter
+              - generic [ref=e1033]: Required
+              - generic [ref=e1035]: From lender
+            - button "✕" [ref=e1036] [cursor=pointer]
+            - button "Request" [ref=e1037] [cursor=pointer]
+          - generic [ref=e1038]:
+            - button "Mark as received (no upload)" [ref=e1039] [cursor=pointer]
+            - generic [ref=e1040]:
+              - generic [ref=e1041]:
+                - generic [ref=e1042]: Lead Paint Disclosure
+                - generic [ref=e1043]: TX Law
+              - generic [ref=e1044]: Required
+              - generic [ref=e1046]: Required by federal law — home built before 1978 or year unknown
+            - button "Send" [ref=e1047] [cursor=pointer]
+          - generic [ref=e1048]:
+            - generic [ref=e1049]: "⚠ Year built not set — defaulting to required. Add it:"
+            - button "e.g. 2005 ✎" [ref=e1050] [cursor=pointer]:
+              - generic [ref=e1051]: e.g. 2005
+              - generic [ref=e1052]: ✎
+          - generic [ref=e1053]:
+            - button "Mark as received (no upload)" [ref=e1054] [cursor=pointer]
+            - generic [ref=e1055]:
+              - generic [ref=e1056]: Executed Contract
+              - generic [ref=e1058]: Required
+              - generic [ref=e1060]: TREC 20-19 signed by all parties
+            - button "✕" [ref=e1061] [cursor=pointer]
+            - button "Request" [ref=e1062] [cursor=pointer]
+          - generic [ref=e1063]:
+            - button "Mark as received (no upload)" [ref=e1064] [cursor=pointer]
+            - generic [ref=e1065]:
+              - generic [ref=e1066]: Third Party Financing Addendum
+              - generic [ref=e1068]: Required
+              - generic [ref=e1070]: Buyer is financing — required
+            - button "✕" [ref=e1071] [cursor=pointer]
+            - button "Send" [ref=e1072] [cursor=pointer]
+          - generic [ref=e1073]:
+            - button "Mark as received (no upload)" [ref=e1074] [cursor=pointer]
+            - generic [ref=e1075]:
+              - generic [ref=e1076]: Closing Disclosure
+              - generic [ref=e1078]: Required
+              - generic [ref=e1080]: From title company
+            - button "✕" [ref=e1081] [cursor=pointer]
+            - button "Request" [ref=e1082] [cursor=pointer]
+          - generic [ref=e1083]:
+            - button "Mark as received (no upload)" [ref=e1084] [cursor=pointer]
+            - generic [ref=e1085]:
+              - generic [ref=e1086]: Wire Instructions
+              - generic [ref=e1088]: Required
+              - generic [ref=e1090]: Verified wire instructions
+            - button "✕" [ref=e1091] [cursor=pointer]
+            - button "Request" [ref=e1092] [cursor=pointer]
+        - generic [ref=e1093]:
+          - generic [ref=e1094]: Add a standard document to this dossier
+          - generic [ref=e1095]:
+            - textbox "Document name" [ref=e1096]
+            - button "Add" [disabled] [ref=e1097]
+          - generic [ref=e1098]:
+            - text: 💡 To add broker-required docs to every dossier automatically, go to
+            - button "⚙ Settings → My Standard Documents" [ref=e1099] [cursor=pointer]
+            - text: .
+      - generic [ref=e1100]:
+        - generic [ref=e1101]:
+          - heading "Action items" [level=3] [ref=e1102]
+          - generic [ref=e1103]: Pending follow-ups Dossie is tracking.
+        - generic [ref=e1104]: No pending action items — all clear.
+      - generic [ref=e1105]:
+        - generic [ref=e1106]:
+          - heading "Documents" [level=3] [ref=e1107]
+          - generic [ref=e1108]: Contracts, addenda, IDs — anything worth keeping with this dossier.
+        - generic [ref=e1109]:
+          - button "📎 Upload & Scan Document" [ref=e1110] [cursor=pointer]
+          - button "Form Library" [ref=e1111] [cursor=pointer]
+        - generic [ref=e1112]:
+          - generic [ref=e1113]:
+            - generic [ref=e1114]: On file (13)
+            - generic [ref=e1115]: What you've actually uploaded or received.
+          - generic [ref=e1116]:
+            - generic [ref=e1117]:
+              - generic [ref=e1118]: 📄
+              - generic [ref=e1119]:
+                - generic [ref=e1120]: OP-L-Lead-Paint-1783250616190.pdf
+                - generic [ref=e1121]: 413.6 KB · Jul 5, 2026 · lead_paint_addendum
+                - generic [ref=e1122]:
+                  - button "✍ Send for sig." [ref=e1123] [cursor=pointer]
+                  - link "View" [ref=e1124] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/OP-L-Lead-Paint-1783250616190.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9PUC1MLUxlYWQtUGFpbnQtMTc4MzI1MDYxNjE5MC5wZGYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg3NjIxNTU2LCJleHAiOjE3ODc2MjUxNTZ9.tcf5Ux7YLb0yUGqRTqakSkx7OB-RyhJU_BnIk6e8adY
+                  - button "Delete" [ref=e1125] [cursor=pointer]
+            - generic [ref=e1126]:
+              - generic [ref=e1127]: 📄
+              - generic [ref=e1128]:
+                - generic [ref=e1129]: TREC-HOA-Addendum-1783250615772.pdf
+                - generic [ref=e1130]: 316.9 KB · Jul 5, 2026 · hoa_addendum
+                - generic [ref=e1131]:
+                  - button "✍ Send for sig." [ref=e1132] [cursor=pointer]
+                  - link "View" [ref=e1133] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-HOA-Addendum-1783250615772.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLUhPQS1BZGRlbmR1bS0xNzgzMjUwNjE1NzcyLnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTYsImV4cCI6MTc4NzYyNTE1Nn0.cWug1o5zNexKKvu6SS9pd0cT3357ANRSy00-dZn2Ymw
+                  - button "Delete" [ref=e1134] [cursor=pointer]
+            - generic [ref=e1135]:
+              - generic [ref=e1136]: 📄
+              - generic [ref=e1137]:
+                - generic [ref=e1138]: TREC-Financing-Addendum-1783250615311.pdf
+                - generic [ref=e1139]: 538.9 KB · Jul 5, 2026 · financing_addendum
+                - generic [ref=e1140]:
+                  - button "✍ Send for sig." [ref=e1141] [cursor=pointer]
+                  - link "View" [ref=e1142] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-Financing-Addendum-1783250615311.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLUZpbmFuY2luZy1BZGRlbmR1bS0xNzgzMjUwNjE1MzExLnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTYsImV4cCI6MTc4NzYyNTE1Nn0.ZYSUzIA-B-8_dxnGT9ZHzQSryrMFZLW10Wkjp2ICj0A
+                  - button "Delete" [ref=e1143] [cursor=pointer]
+            - generic [ref=e1144]:
+              - generic [ref=e1145]: 📄
+              - generic [ref=e1146]:
+                - generic [ref=e1147]: TREC-9-Unimproved-Property-1783250613900.pdf
+                - generic [ref=e1148]: 1.1 MB · Jul 5, 2026 · unimproved_property_contract
+                - generic [ref=e1149]:
+                  - button "✍ Send for sig." [ref=e1150] [cursor=pointer]
+                  - link "View" [ref=e1151] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-9-Unimproved-Property-1783250613900.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTktVW5pbXByb3ZlZC1Qcm9wZXJ0eS0xNzgzMjUwNjEzOTAwLnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTYsImV4cCI6MTc4NzYyNTE1Nn0.El2AGDp7K0xY2LXEetDhTfy5ag8TCLqJAifO14Z_s5I
+                  - button "Delete" [ref=e1152] [cursor=pointer]
+            - generic [ref=e1153]:
+              - generic [ref=e1154]: 📄
+              - generic [ref=e1155]:
+                - generic [ref=e1156]: OP-L-Lead-Paint-1783250419375.pdf
+                - generic [ref=e1157]: 413.6 KB · Jul 5, 2026 · lead_paint_addendum
+                - generic [ref=e1158]:
+                  - button "✍ Send for sig." [ref=e1159] [cursor=pointer]
+                  - link "View" [ref=e1160] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/OP-L-Lead-Paint-1783250419375.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9PUC1MLUxlYWQtUGFpbnQtMTc4MzI1MDQxOTM3NS5wZGYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg3NjIxNTU2LCJleHAiOjE3ODc2MjUxNTZ9.70D-bSI5Lm8cXlEz3c70YsyxsdwlveH4GREgRbBj-Kk
+                  - button "Delete" [ref=e1161] [cursor=pointer]
+            - generic [ref=e1162]:
+              - generic [ref=e1163]: 📄
+              - generic [ref=e1164]:
+                - generic [ref=e1165]: TREC-HOA-Addendum-1783250418908.pdf
+                - generic [ref=e1166]: 316.9 KB · Jul 5, 2026 · hoa_addendum
+                - generic [ref=e1167]:
+                  - button "✍ Send for sig." [ref=e1168] [cursor=pointer]
+                  - link "View" [ref=e1169] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-HOA-Addendum-1783250418908.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLUhPQS1BZGRlbmR1bS0xNzgzMjUwNDE4OTA4LnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTcsImV4cCI6MTc4NzYyNTE1N30.V68rHGZNkvnr1HZcL9bTCJ3dAv7--z-EORBhUT-g2yw
+                  - button "Delete" [ref=e1170] [cursor=pointer]
+            - generic [ref=e1171]:
+              - generic [ref=e1172]: 📄
+              - generic [ref=e1173]:
+                - generic [ref=e1174]: TREC-Financing-Addendum-1783250418328.pdf
+                - generic [ref=e1175]: 538.9 KB · Jul 5, 2026 · financing_addendum
+                - generic [ref=e1176]:
+                  - button "✍ Send for sig." [ref=e1177] [cursor=pointer]
+                  - link "View" [ref=e1178] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-Financing-Addendum-1783250418328.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLUZpbmFuY2luZy1BZGRlbmR1bS0xNzgzMjUwNDE4MzI4LnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTYsImV4cCI6MTc4NzYyNTE1Nn0.YzA3pbxnAqlREw8gxWPlwbrs01DzbAtES15uA0FvUHU
+                  - button "Delete" [ref=e1179] [cursor=pointer]
+            - generic [ref=e1180]:
+              - generic [ref=e1181]: 📄
+              - generic [ref=e1182]:
+                - generic [ref=e1183]: TREC-9-Unimproved-Property-1783250417361.pdf
+                - generic [ref=e1184]: 1.1 MB · Jul 5, 2026 · unimproved_property_contract
+                - generic [ref=e1185]:
+                  - button "✍ Send for sig." [ref=e1186] [cursor=pointer]
+                  - link "View" [ref=e1187] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-9-Unimproved-Property-1783250417361.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTktVW5pbXByb3ZlZC1Qcm9wZXJ0eS0xNzgzMjUwNDE3MzYxLnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTYsImV4cCI6MTc4NzYyNTE1Nn0.Y-d5odWX-MkZC643QONx1eGVNFL3xtLwsdE9WW6KLdo
+                  - button "Delete" [ref=e1188] [cursor=pointer]
+            - generic [ref=e1189]:
+              - generic [ref=e1190]: 📄
+              - generic [ref=e1191]:
+                - generic [ref=e1192]: TREC-24-New-Home-Complete-1781563658881.pdf
+                - generic [ref=e1193]: 899.8 KB · Jun 15, 2026 · new_home_contract_complete
+                - generic [ref=e1194]:
+                  - button "✍ Send for sig." [ref=e1195] [cursor=pointer]
+                  - link "View" [ref=e1196] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-24-New-Home-Complete-1781563658881.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTI0LU5ldy1Ib21lLUNvbXBsZXRlLTE3ODE1NjM2NTg4ODEucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NzYyMTU1NiwiZXhwIjoxNzg3NjI1MTU2fQ.IVR3OAsgreqqxHAWHJEakt8TXVoWr9Unz1GXYtpOo1o
+                  - button "Delete" [ref=e1197] [cursor=pointer]
+            - generic [ref=e1198]:
+              - generic [ref=e1199]: 📄
+              - generic [ref=e1200]:
+                - generic [ref=e1201]: TREC-24-New-Home-Complete-1781563373087.pdf
+                - generic [ref=e1202]: 899.9 KB · Jun 15, 2026 · new_home_contract_complete
+                - generic [ref=e1203]:
+                  - button "✍ Send for sig." [ref=e1204] [cursor=pointer]
+                  - link "View" [ref=e1205] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-24-New-Home-Complete-1781563373087.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTI0LU5ldy1Ib21lLUNvbXBsZXRlLTE3ODE1NjMzNzMwODcucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NzYyMTU1NiwiZXhwIjoxNzg3NjI1MTU2fQ.bBxKGxAMcT_0MAEeJiVJYgmrOHlpsC72dchdt0-yGiM
+                  - button "Delete" [ref=e1206] [cursor=pointer]
+            - generic [ref=e1207]:
+              - generic [ref=e1208]: 📄
+              - generic [ref=e1209]:
+                - generic [ref=e1210]: TREC-24-New-Home-Complete-1781562908519.pdf
+                - generic [ref=e1211]: 898.8 KB · Jun 15, 2026 · new_home_contract_complete
+                - generic [ref=e1212]:
+                  - button "✍ Send for sig." [ref=e1213] [cursor=pointer]
+                  - link "View" [ref=e1214] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-24-New-Home-Complete-1781562908519.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTI0LU5ldy1Ib21lLUNvbXBsZXRlLTE3ODE1NjI5MDg1MTkucGRmIiwic2NvcGUiOiJkb3dubG9hZCIsImlhdCI6MTc4NzYyMTU1NiwiZXhwIjoxNzg3NjI1MTU2fQ.bFOMnZ3QkHnTPyA62iWGepfykDxzlyAOP4VwZ6lZJ_8
+                  - button "Delete" [ref=e1215] [cursor=pointer]
+            - generic [ref=e1216]:
+              - generic [ref=e1217]: 📄
+              - generic [ref=e1218]:
+                - generic [ref=e1219]: TREC-25-Farm-Ranch-1781410042169.pdf
+                - generic [ref=e1220]: 948.3 KB · Jun 13, 2026 · farm_ranch_contract
+                - generic [ref=e1221]:
+                  - button "✍ Send for sig." [ref=e1222] [cursor=pointer]
+                  - link "View" [ref=e1223] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-25-Farm-Ranch-1781410042169.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTI1LUZhcm0tUmFuY2gtMTc4MTQxMDA0MjE2OS5wZGYiLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg3NjIxNTU2LCJleHAiOjE3ODc2MjUxNTZ9.L78edf5cwMM_S_AUk7YSucRjiZCvv3nWW9xhxFlhDBY
+                  - button "Delete" [ref=e1224] [cursor=pointer]
+            - generic [ref=e1225]:
+              - generic [ref=e1226]: 📄
+              - generic [ref=e1227]:
+                - generic [ref=e1228]: TREC-9-Unimproved-Property-1781410017888.pdf
+                - generic [ref=e1229]: 1.1 MB · Jun 13, 2026 · unimproved_property_contract
+                - generic [ref=e1230]:
+                  - button "✍ Send for sig." [ref=e1231] [cursor=pointer]
+                  - link "View" [ref=e1232] [cursor=pointer]:
+                    - /url: https://pgwoitbdiyubjugwufhk.supabase.co/storage/v1/object/sign/documents/c29ce34c-1434-44e5-a260-8d1a45213ec3/15d81c6e-f7e6-4faf-8a42-d5ff5040a7de/TREC-9-Unimproved-Property-1781410017888.pdf?token=eyJraWQiOiJiOTk2NTI5OS1lZGU4LTRmZTQtODA5MS05YTczYzY1ZTM3NjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJkb2N1bWVudHMvYzI5Y2UzNGMtMTQzNC00NGU1LWEyNjAtOGQxYTQ1MjEzZWMzLzE1ZDgxYzZlLWY3ZTYtNGZhZi04YTQyLWQ1ZmY1MDQwYTdkZS9UUkVDLTktVW5pbXByb3ZlZC1Qcm9wZXJ0eS0xNzgxNDEwMDE3ODg4LnBkZiIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODc2MjE1NTcsImV4cCI6MTc4NzYyNTE1N30.4_oGKxLd9vwNgxPBNDgQ901nRkPwLhbAH_tP6b3R1YU
+                  - button "Delete" [ref=e1233] [cursor=pointer]
+      - generic [ref=e1235]:
+        - generic [ref=e1236]:
+          - heading "Milestones" [level=3] [ref=e1237]
+          - generic [ref=e1238]: Shareable cards for every milestone this dossier hits — closed, clear-to-close, under contract.
+        - button "Under Contract milestone — open to share" [ref=e1240] [cursor=pointer]:
+          - button "Delete milestone" [ref=e1241]: ×
+          - img "Under Contract card" [ref=e1243]
+          - generic [ref=e1244]:
+            - generic [ref=e1245]: 🤝 Under Contract
+            - generic [ref=e1246]: May 29, 2026
+      - generic [ref=e1247]:
+        - generic [ref=e1248]:
+          - heading "Notes" [level=3] [ref=e1249]
+          - generic [ref=e1250]: Free-form working notes for this dossier.
+        - button "Water rights disclosure required for this property. ✎" [ref=e1251] [cursor=pointer]:
+          - generic [ref=e1252]: Water rights disclosure required for this property.
+          - generic [ref=e1253]: ✎
+  - complementary [ref=e152]:
+    - generic [ref=e153]:
+      - generic [ref=e155]:
+        - generic [ref=e156]: Talk to Dossie
+        - heading [level=3] [ref=e157]: Tell me what you need.
+        - paragraph [ref=e158]: Type your command or tap the mic to dictate. Try "what's urgent today?", "change closing on 311 Main to May 15", or "extend option period on Rilla Vista by 2 days".
+      - button [ref=e159] [cursor=pointer]:
+        - generic [ref=e160]: ⓘ
+        - generic [ref=e161]: "Email Integration: Not connected"
+        - generic [ref=e162]: Enable in Settings
+      - generic [ref=e164]:
+        - textbox [ref=e165]:
+          - /placeholder: Type a command, or tap the mic to start a voice call…
+        - generic [ref=e166]:
+          - button [ref=e167] [cursor=pointer]: 🎤 Voice call
+          - button [disabled] [ref=e168] [cursor=pointer]: Send
+  - button "Help and feedback" [ref=e169] [cursor=pointer]: "?"
+  - generic [ref=e1255]:
+    - button "Close" [ref=e1256] [cursor=pointer]: ×
+    - generic [ref=e1257]: Send for Signature
+    - generic [ref=e1258]: Document.pdf
+    - generic [ref=e1259]:
+      - generic [ref=e1260]: Signers
+      - generic [ref=e1262]:
+        - textbox "Full name" [ref=e1263]
+        - textbox "Email address" [ref=e1264]
+        - combobox [ref=e1265]:
+          - option "Buyer 1" [selected]
+          - option "Buyer 2"
+          - option "Seller 1"
+          - option "Seller 2"
+          - option "Buyer Broker"
+          - option "Seller Broker"
+          - option "Broker"
+          - option "Buyer"
+          - option "Seller"
+      - button "+ Add signer" [ref=e1266] [cursor=pointer]
+    - generic [ref=e1268]:
+      - generic [ref=e1269]:
+        - generic [ref=e1270]: Select form
+        - textbox "Type a form name — e.g. \"disclosure\", \"listing\", \"amendment\"..." [active] [ref=e1271]
+        - generic [ref=e1272]:
+          - button "TREC 20-19 Resale Contract One to Four Family Residential Contract (Resale)" [ref=e1273] [cursor=pointer]:
+            - generic [ref=e1274]: TREC 20-19 Resale Contract
+            - generic [ref=e1275]: One to Four Family Residential Contract (Resale)
+          - button "TREC 40-11 Third Party Financing Third Party Financing Addendum" [ref=e1276] [cursor=pointer]:
+            - generic [ref=e1277]: TREC 40-11 Third Party Financing
+            - generic [ref=e1278]: Third Party Financing Addendum
+          - button "TREC 49-1 Lender Appraisal Notice of Buyer's Termination Due to Lender's Appraisal" [ref=e1279] [cursor=pointer]:
+            - generic [ref=e1280]: TREC 49-1 Lender Appraisal
+            - generic [ref=e1281]: Notice of Buyer's Termination Due to Lender's Appraisal
+          - button "TREC 39-11 Amendment Amendment to Contract — modify closing date, sales price, or other terms" [ref=e1282] [cursor=pointer]:
+            - generic [ref=e1283]: TREC 39-11 Amendment
+            - generic [ref=e1284]: Amendment to Contract — modify closing date, sales price, or other terms
+          - button "TREC 36-11 HOA Addendum Addendum for Property Subject to Mandatory Membership in a POA" [ref=e1285] [cursor=pointer]:
+            - generic [ref=e1286]: TREC 36-11 HOA Addendum
+            - generic [ref=e1287]: Addendum for Property Subject to Mandatory Membership in a POA
+          - button "OP-L Lead-Based Paint Addendum for Seller's Disclosure of Info on Lead-Based Paint" [ref=e1288] [cursor=pointer]:
+            - generic [ref=e1289]: OP-L Lead-Based Paint
+            - generic [ref=e1290]: Addendum for Seller's Disclosure of Info on Lead-Based Paint
+          - button "OP-H Seller's Disclosure Seller's Disclosure Notice" [ref=e1291] [cursor=pointer]:
+            - generic [ref=e1292]: OP-H Seller's Disclosure
+            - generic [ref=e1293]: Seller's Disclosure Notice
+          - button "TREC 61-0 Groundwater Notice on Availability of Public Groundwater Rights" [ref=e1294] [cursor=pointer]:
+            - generic [ref=e1295]: TREC 61-0 Groundwater
+            - generic [ref=e1296]: Notice on Availability of Public Groundwater Rights
+          - button "TREC 11-8 Backup Contract Addendum for Back-Up Contract" [ref=e1297] [cursor=pointer]:
+            - generic [ref=e1298]: TREC 11-8 Backup Contract
+            - generic [ref=e1299]: Addendum for Back-Up Contract
+          - button "TREC 11-9 Backup Contract Addendum for Back-Up Contract (updated variant)" [ref=e1300] [cursor=pointer]:
+            - generic [ref=e1301]: TREC 11-9 Backup Contract
+            - generic [ref=e1302]: Addendum for Back-Up Contract (updated variant)
+          - button "TREC 26 Seller Financing Seller Financing Addendum" [ref=e1303] [cursor=pointer]:
+            - generic [ref=e1304]: TREC 26 Seller Financing
+            - generic [ref=e1305]: Seller Financing Addendum
+          - button "TREC 25-17 Farm & Ranch Farm and Ranch Contract" [ref=e1306] [cursor=pointer]:
+            - generic [ref=e1307]: TREC 25-17 Farm & Ranch
+            - generic [ref=e1308]: Farm and Ranch Contract
+          - button "TREC 30-18 Condominium Residential Condominium Contract (Resale)" [ref=e1309] [cursor=pointer]:
+            - generic [ref=e1310]: TREC 30-18 Condominium
+            - generic [ref=e1311]: Residential Condominium Contract (Resale)
+          - button "TREC 23-20 New Home Incomplete New Home Contract (Incomplete Construction)" [ref=e1312] [cursor=pointer]:
+            - generic [ref=e1313]: TREC 23-20 New Home Incomplete
+            - generic [ref=e1314]: New Home Contract (Incomplete Construction)
+          - button "TREC 24-20 New Home Complete New Home Contract (Completed Construction)" [ref=e1315] [cursor=pointer]:
+            - generic [ref=e1316]: TREC 24-20 New Home Complete
+            - generic [ref=e1317]: New Home Contract (Completed Construction)
+          - button "IABS (Buyer/Tenant) Information About Brokerage Services — Buyer/Tenant" [ref=e1318] [cursor=pointer]:
+            - generic [ref=e1319]: IABS (Buyer/Tenant)
+            - generic [ref=e1320]: Information About Brokerage Services — Buyer/Tenant
+          - button "IABS (Seller/Landlord) Information About Brokerage Services — Seller/Landlord" [ref=e1321] [cursor=pointer]:
+            - generic [ref=e1322]: IABS (Seller/Landlord)
+            - generic [ref=e1323]: Information About Brokerage Services — Seller/Landlord
+          - button "Option Period Extension Extend the option period with an additional fee (TREC 39-11)" [ref=e1324] [cursor=pointer]:
+            - generic [ref=e1325]: Option Period Extension
+            - generic [ref=e1326]: Extend the option period with an additional fee (TREC 39-11)
+          - button "Sales Price Change Amend the purchase price (TREC 39-11 Paragraph 1)" [ref=e1327] [cursor=pointer]:
+            - generic [ref=e1328]: Sales Price Change
+            - generic [ref=e1329]: Amend the purchase price (TREC 39-11 Paragraph 1)
+          - button "TAR 1501 Buyer Rep Agreement Residential Buyer/Tenant Representation Agreement — required by TX law effective 2026-01-01" [ref=e1330] [cursor=pointer]:
+            - generic [ref=e1331]: TAR 1501 Buyer Rep Agreement
+            - generic [ref=e1332]: Residential Buyer/Tenant Representation Agreement — required by TX law effective 2026-01-01
+          - button "Wire Fraud Warning Broker-required warning to buyer about wire fraud" [ref=e1333] [cursor=pointer]:
+            - generic [ref=e1334]: Wire Fraud Warning
+            - generic [ref=e1335]: Broker-required warning to buyer about wire fraud
+          - button "General Information and Notice to Consumers Texas consumer protection notice" [ref=e1336] [cursor=pointer]:
+            - generic [ref=e1337]: General Information and Notice to Consumers
+            - generic [ref=e1338]: Texas consumer protection notice
+          - button "TREC 10-11 Nonrealty Items Addendum Non-realty items and any related terms" [ref=e1339] [cursor=pointer]:
+            - generic [ref=e1340]: TREC 10-11 Nonrealty Items Addendum
+            - generic [ref=e1341]: Non-realty items and any related terms
+          - button "TXR 2602 Release of Earnest Money Release of earnest money at contract termination or closing" [ref=e1342] [cursor=pointer]:
+            - generic [ref=e1343]: TXR 2602 Release of Earnest Money
+            - generic [ref=e1344]: Release of earnest money at contract termination or closing
+          - button "TXR 1409 Intermediary Relationship Notice Notice when one broker represents both buyer and seller" [ref=e1345] [cursor=pointer]:
+            - generic [ref=e1346]: TXR 1409 Intermediary Relationship Notice
+            - generic [ref=e1347]: Notice when one broker represents both buyer and seller
+          - button "TXR-1101 Residential Listing Agreement Exclusive Right to Sell listing agreement between Seller and Broker" [ref=e1348] [cursor=pointer]:
+            - generic [ref=e1349]: TXR-1101 Residential Listing Agreement
+            - generic [ref=e1350]: Exclusive Right to Sell listing agreement between Seller and Broker
+      - generic [ref=e1351]:
+        - button "Cancel" [ref=e1352] [cursor=pointer]
+        - button "Generate + Send for Signature" [disabled] [ref=e1353] [cursor=pointer]

@@ -1,0 +1,242 @@
+{
+  "form_id": "txr-1904",
+  "form_name": "Release of Earnest Money",
+  "form_number": "TXR-1904",
+  "form_source": "Texas REALTORS (TAR) form library, NOT TREC-promulgated",
+  "effective_date": "02-06-02",
+  "acroform": false,
+  "acroform_note": "pdfinfo on the zipForm-exported PDF reports 'Form: none' — this is a FLAT PDF like TREC 38-7 / 23-20 / 24-20 / 25-17, not a true fillable AcroForm. Fill via api/_assets/flat-pdf-filler.js (coordinate text draw), not pdf-lib form field APIs.",
+  "page_count": 1,
+  "page_dimensions": {
+    "width": 612,
+    "height": 792
+  },
+  "geometry_source": "Anchored to the live rendered page rect, same method as the 25 TREC AcroForm forms (0.7pt-class discipline) — but derived by measuring the zipForm-rendered field-highlight rectangles pixel-for-pixel from a 144dpi (2x) render of a real zipForm export (.tmp/low-oak-termination/DRAFT-Release-of-Earnest-Money-2822-LowOak.pdf), not from AcroForm widget rects (this form has none) and not from where filled text happened to end. The highlight boxes are a persistent UI affordance present on EMPTY fields too (confirmed: 3 of 4 disbursement rows and most buyer/seller/broker fields were blank in the source and still rendered their highlight box at full native width) — so box edges reflect the form's own field geometry, not this transaction's values. CAVEAT: the source PDF is a FILLED instance, not a separately-pulled blank template (no blank TXR-1904 export was available this session) — see build script for exact method.",
+  "verify_script": "scripts/verify-txr-1904-fieldmap.js",
+  "fields": {
+    "property_address": {
+      "page": 1,
+      "x": 67.5,
+      "y": 154,
+      "width": 409,
+      "height": 13,
+      "font_size": 10,
+      "required": true,
+      "notes": "Highlighted line under 'RELEASE OF EARNEST MONEY BETWEEN THE UNDERSIGNED BUYER AND SELLER CONCERNING THE PROPERTY AT'"
+    },
+    "escrow_agent_name": {
+      "page": 1,
+      "x": 186,
+      "y": 265,
+      "width": 231,
+      "height": 11,
+      "font_size": 9,
+      "required": true,
+      "notes": "Para B — 'The undersigned direct ______ (escrow agent) to disburse the earnest money as follows:'. Nudged 3pt higher + font_size 10->9 after render-and-readback showed descenders on long names (e.g. 'TESTESCROW-Acme Title Co') touching the paragraph line below (only 1pt of native clearance in the source form)."
+    },
+    "disbursement_amount_1": {
+      "page": 1,
+      "x": 101.5,
+      "y": 300,
+      "width": 92.5,
+      "height": 12,
+      "font_size": 10,
+      "required": true,
+      "notes": "Para B line 1 — '$ ___ to ___'. Dollar sign is pre-printed at x~95; field starts after it."
+    },
+    "disbursement_payee_1": {
+      "page": 1,
+      "x": 206,
+      "y": 300,
+      "width": 270.5,
+      "height": 12,
+      "font_size": 10,
+      "required": true,
+      "notes": "Para B line 1 payee, after pre-printed 'to' at x~197-204"
+    },
+    "disbursement_amount_2": {
+      "page": 1,
+      "x": 101.5,
+      "y": 311.5,
+      "width": 92.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 2"
+    },
+    "disbursement_payee_2": {
+      "page": 1,
+      "x": 206,
+      "y": 311.5,
+      "width": 270.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 2"
+    },
+    "disbursement_amount_3": {
+      "page": 1,
+      "x": 101.5,
+      "y": 323.5,
+      "width": 92.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 3"
+    },
+    "disbursement_payee_3": {
+      "page": 1,
+      "x": 206,
+      "y": 323.5,
+      "width": 270.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 3"
+    },
+    "disbursement_amount_4": {
+      "page": 1,
+      "x": 101.5,
+      "y": 336,
+      "width": 92.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 4"
+    },
+    "disbursement_payee_4": {
+      "page": 1,
+      "x": 206,
+      "y": 336,
+      "width": 270.5,
+      "height": 12,
+      "font_size": 10,
+      "required": false,
+      "notes": "Para B line 4"
+    },
+    "buyer_name_1": {
+      "page": 1,
+      "x": 91.5,
+      "y": 380,
+      "width": 148,
+      "height": 11,
+      "font_size": 9,
+      "required": true,
+      "notes": "Printed/typed name under Buyer 1 signature line, left column. Signature itself (line above, x~71-215) is an e-sign anchor, not a text field — out of scope here."
+    },
+    "buyer_date_1": {
+      "page": 1,
+      "x": 215.5,
+      "y": 368,
+      "width": 46,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Date box on the Buyer 1 signature line itself (row above the printed name), right end of that line"
+    },
+    "seller_name_1": {
+      "page": 1,
+      "x": 310,
+      "y": 380,
+      "width": 143,
+      "height": 11,
+      "font_size": 9,
+      "required": true,
+      "notes": "Printed/typed name under Seller 1 signature line, right column"
+    },
+    "seller_date_1": {
+      "page": 1,
+      "x": 429.5,
+      "y": 368,
+      "width": 47,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Date box on the Seller 1 signature line"
+    },
+    "buyer_name_2": {
+      "page": 1,
+      "x": 91.5,
+      "y": 414,
+      "width": 148,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Second buyer (joint), same column as buyer_name_1, one row down"
+    },
+    "buyer_date_2": {
+      "page": 1,
+      "x": 215.5,
+      "y": 402,
+      "width": 46,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Buyer 2 signature-line date box"
+    },
+    "seller_name_2": {
+      "page": 1,
+      "x": 310,
+      "y": 414,
+      "width": 143,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Second seller (joint), same column as seller_name_1, one row down"
+    },
+    "seller_date_2": {
+      "page": 1,
+      "x": 429.5,
+      "y": 402,
+      "width": 47,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Seller 2 signature-line date box"
+    },
+    "buyer_address": {
+      "page": 1,
+      "x": 67.5,
+      "y": 438.5,
+      "width": 194,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Single line after printed 'Address:' label, left column, below both buyer signature rows"
+    },
+    "seller_address": {
+      "page": 1,
+      "x": 286,
+      "y": 438.5,
+      "width": 190.5,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Single line after printed 'Address:' label, right column, below both seller signature rows"
+    },
+    "other_broker_date": {
+      "page": 1,
+      "x": 216,
+      "y": 514,
+      "width": 45.5,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Other/Cooperating Broker 'By ___ Date ___' line — date box only. 'By' signature itself is an e-sign anchor."
+    },
+    "listing_broker_date": {
+      "page": 1,
+      "x": 430,
+      "y": 514,
+      "width": 46.5,
+      "height": 11,
+      "font_size": 9,
+      "required": false,
+      "notes": "Broker Listing/Principal Broker 'By ___ Date ___' line — date box only"
+    }
+  },
+  "excluded_fields": {
+    "note": "Other/Cooperating Broker and Broker Listing/Principal Broker firm name + street/city/state/zip address (bottom of form, e.g. '15510 Vance Jackson Road Suite 101, San Antonio, TX 78249') were deliberately left OUT of this map. In the rendered source they print as plain colored text with NO highlight-box background (unlike every other field above, which is highlighted even when blank) — meaning they are auto-populated from the office/agent profile at export time, not a manually filled data field on this document, and there is no reliable native box to anchor to. The page footer strip (firm name/phone/fax/agent/MLS# in tiny print at the very bottom) is zipForm's own stamp, never a form field on any TAR/TREC document.",
+    "checkboxes": "None. This form has no checkbox fields — confirmed by visual inspection of the full rendered page; the only checkbox-typed elements captured during zipForm DOM extraction were the app's own sidebar navigation icons (PARTIES/FORMS/LISTING INFO/etc.), not document content."
+  }
+}

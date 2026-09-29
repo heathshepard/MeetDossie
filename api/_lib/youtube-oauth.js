@@ -141,6 +141,14 @@ async function uploadVideo(userId, videoBuffer, meta = {}) {
     status: {
       privacyStatus: meta.privacyStatus || 'private',
       selfDeclaredMadeForKids: false,
+      // AI-disclosure (Carter, 2026-09-16): YouTube Data API v3's real field
+      // for disclosing realistic Altered/Synthetic content, confirmed
+      // against developers.google.com/youtube/v3/docs/videos. Callers pass
+      // containsSyntheticMedia: true for any clone-voiced upload (see the
+      // identical Zernio-path gate + rationale in
+      // api/cron-post-videos.js postToZernio()). Defaults to false/omitted
+      // when the caller doesn't say otherwise.
+      ...(meta.containsSyntheticMedia ? { containsSyntheticMedia: true } : {}),
     },
   };
 

@@ -181,6 +181,7 @@ async function runOnce(videoRow) {
       platforms: ['facebook', 'instagram'],
       caption: 'Waiving your option period isnt always a bad idea. Heath Shepard, REALTOR - Keller Williams City-View.',
       supabase_url: 'https://example.com/storage/v1/object/public/videos/regr-realtor.mp4',
+      quality_status: 'passed', // 2026-09-15 video quality gate — this fixture tests owner routing, not the quality gate
     });
 
     const fbCall = zernioCalls.find((c) => c.payload?.platforms?.[0]?.platform === 'facebook');
@@ -216,6 +217,7 @@ async function runOnce(videoRow) {
       platforms: ['facebook', 'instagram', 'tiktok'],
       caption: 'A TC went dark on me mid-deal. Comment TC and I will send you what I built.',
       supabase_url: 'https://example.com/storage/v1/object/public/videos/regr-dossie.mp4',
+      quality_status: 'passed', // 2026-09-15 video quality gate — this fixture tests owner routing, not the quality gate
     });
 
     check('all three platforms used dossie-* accounts', () => {
@@ -240,6 +242,7 @@ async function runOnce(videoRow) {
       platforms: ['facebook', 'tiktok'], // tiktok has no heath-realtor row
       caption: 'More land, more drive time. Heath Shepard, REALTOR - Keller Williams City-View.',
       supabase_url: 'https://example.com/storage/v1/object/public/videos/regr-realtor2.mp4',
+      quality_status: 'passed', // 2026-09-15 video quality gate — this fixture tests owner routing, not the quality gate
     });
 
     const calledPlatforms = zernioCalls.map((c) => c.payload?.platforms?.[0]?.platform);

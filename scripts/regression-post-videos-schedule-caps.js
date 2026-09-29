@@ -97,6 +97,13 @@ function startMockSupabase() {
               platforms: ['facebook', 'twitter', 'linkedin', 'instagram'],
               caption: 'Regression harness caption for schedule and cap gating.',
               supabase_url: 'https://example.com/storage/v1/object/public/videos/regr.mp4',
+              // Video quality gate (2026-09-15) — this fixture is testing
+              // schedule/cap logic, not the quality gate, so it must already
+              // carry a pass or gateVideoQuality() would hold it before the
+              // schedule/cap code is ever reached. See
+              // scripts/regression-video-quality-gate.js for the gate's own
+              // dedicated regression coverage.
+              quality_status: 'passed',
             }]);
           }
           return json([]); // status=eq.approved, status=eq.posted (cap count)

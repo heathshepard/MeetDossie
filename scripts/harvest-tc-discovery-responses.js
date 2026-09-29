@@ -100,7 +100,20 @@ const CHROME_PROFILE_PATH = process.env.SAGE_PROFILE_DIR || path.join(
   os.homedir(), 'AppData', 'Local', 'DossieBot-Sage'
 );
 
-const HEATH_FB_NAMES = ['Heath Shepard'];
+// Standing-authority audit trail (api/_lib/ops-policy.js, capability
+// 'harvest_and_draft'). Best-effort — never blocks a harvest run on a
+// logging failure, and never gates it either: harvesting is read-only
+// against Facebook (never posts/replies), so there is no unsafe action to
+// hold back even if ops_flags is unreadable from this local machine.
+const { logAutonomousAction } = require('../api/_lib/ops-policy.js');
+
+// Own-identity name list + matcher: scripts/_lib/fb-own-identity.js. Config
+// (HEATH_FB_OWN_NAMES env var), not a literal here -- and matched with a
+// normalized prefix match, not exact equality, because Facebook's acting
+// identity renders as "Heath Shepard, Realtor with Keller Williams City
+// View" (the Page), not the bare personal name (2026-09-16 bug fix).
+const { getOwnNames, isOwnAuthor } = require('./_lib/fb-own-identity');
+const HEATH_FB_NAMES = getOwnNames();
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -167,9 +180,21 @@ function hasRealPermalink(postUrl) {
 // long tail keeps the old every-3-days cadence, stopping at 45 days.
 // (Previous scheme was +24h / +72h / every-3-days — far too slow to feed
 // same-hour reply notifications.)
+//
+// TIGHTENED AGAIN 2026-09-16 (Carter, auto-reply-with-veto's 1-hour SLA —
+// supabase/migrations/20260916_auto_reply_veto.sql): 45 min was too slow to
+// reliably catch, draft, and resolve a comment inside a 60-minute SLA
+// window once you add draft time + the 10-min veto hold. Hot window itself
+// is unchanged (still 48h); only the poll interval inside it drops to 15
+// min. Long tail (after 48h) is UNCHANGED — falls back to the existing
+// every-3-days cadence below.
+// NOTE: this only tightens the code-level cadence. The Windows Task
+// Scheduler trigger for "Dossie TC Discovery Harvest" (run-tc-discovery-
+// harvest.cmd) must ALSO be lowered to a <=15-min tick for this to have
+// any effect — that's an OS-level scheduled task, outside this repo.
 const HOT_WINDOW_MS = 48 * HOUR;
-const HOT_INTERVAL_MS = 45 * 60 * 1000;
-const FIRST_PASS_DELAY_MS = 30 * 60 * 1000;
+const HOT_INTERVAL_MS = 15 * 60 * 1000;
+const FIRST_PASS_DELAY_MS = 15 * 60 * 1000;
 
 function isDue(post, nowMs = Date.now()) {
   if (!post || !post.posted_at || !post.post_url) return false;
@@ -283,7 +308,7 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
       comment_permalink: c.permalink || null,
       commented_at: c.at || null,
       commented_at_raw: c.atRaw || null,
-      is_own_comment: HEATH_FB_NAMES.some((n) => author.toLowerCase() === n.toLowerCase()),
+      is_own_comment: isOwnAuthor(author),
       harvested_at: nowIso,
       last_seen_at: nowIso,
     });
@@ -593,6 +618,18 @@ async function main() {
   }
 
   console.log('[tc-harvest] summary: ' + JSON.stringify(summary));
+
+  if (!DRY_RUN) {
+    const inserted = summary.reduce((n, r) => n + (r.inserted || 0), 0);
+    await logAutonomousAction({
+      capability: 'harvest_and_draft',
+      decision: 'autonomous',
+      action: `harvested ${due.length} thread(s), ${inserted} new comment(s) inserted`,
+      firedBy: 'scripts/harvest-tc-discovery-responses.js',
+      gatesPassed: ['read_only_scrape'],
+      metadata: { posts_checked: due.length, comments_inserted: inserted },
+    }).catch(() => {});
+  }
 }
 
 module.exports = {
@@ -614,6 +651,7 @@ module.exports = {
   launchContext,
   normHash,
   HEATH_FB_NAMES,
+  isOwnAuthor,
   // Post-boundary permalink gate (2026-09-09 cross-post contamination fix) —
   // pure, regression-tested without a browser.
   extractPostId,

@@ -31,6 +31,28 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VALID_PLANS = new Set(['solo', 'team']);
 const VALID_PERIODS = new Set(['monthly', 'annual']);
 
+// Stripe metadata values are capped at 500 chars each — trims defensively so
+// a malformed/huge client payload never fails session creation outright.
+// Client-supplied and unauthenticated, so this is attribution ONLY (never
+// trusted for anything security- or billing-sensitive).
+function safeTouchJson(touch) {
+  if (!touch || typeof touch !== 'object') return null;
+  try {
+    const picked = {
+      utm_source: touch.utm_source || null,
+      utm_medium: touch.utm_medium || null,
+      utm_campaign: touch.utm_campaign || null,
+      content_tag: touch.content_tag || null,
+      referrer: touch.referrer || null,
+      landing_page: touch.landing_page || null,
+    };
+    const json = JSON.stringify(picked);
+    return json.length <= 480 ? json : null;
+  } catch {
+    return null;
+  }
+}
+
 function applyCors(req, res) {
   return applyCorsHeaders(req, res, { methods: 'POST, OPTIONS', headers: 'Content-Type' });
 }
@@ -100,6 +122,10 @@ module.exports = async function handler(req, res) {
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' });
 
     const sessionMetadata = { source: 'signup_page', plan, billing_period: billingPeriod };
+    const firstTouchJson = safeTouchJson(body.first_touch);
+    const lastTouchJson = safeTouchJson(body.last_touch);
+    if (firstTouchJson) sessionMetadata.first_touch = firstTouchJson;
+    if (lastTouchJson) sessionMetadata.last_touch = lastTouchJson;
     const sessionParams = {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],

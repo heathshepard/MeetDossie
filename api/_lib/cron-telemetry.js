@@ -16,6 +16,37 @@
  *    or non-2xx responses. Wrapper failures never break the cron.
  */
 
+// Pull a small, generic set of counts out of a cron's JSON response body,
+// when it follows the `{ summary: { posted, skipped, queued_for_review } }`
+// shape several crons already use (cron-post-videos.js, cron-publish-
+// approved.js, etc.). This is the ONLY place a run's outcome — not just
+// ok/error — reaches cron_runs.last_meta, so the /ventures dashboard can
+// show "0 posted / 4 skipped" instead of a green dot that looks identical
+// whether the run shipped 5 posts or silently skipped everything (every
+// platform capped, no heath_approved candidates, schedule fail-closed).
+// Read-only extraction, never throws, never assumes a shape that isn't
+// there — a cron with no `summary` field is unaffected.
+function summarizeCounts(body) {
+  try {
+    if (!body || typeof body !== 'object') return undefined;
+    const s = body.summary;
+    if (!s || typeof s !== 'object') return undefined;
+    const countOf = (v) => {
+      if (Array.isArray(v)) return v.length;
+      if (typeof v === 'number') return v;
+      return undefined;
+    };
+    const out = {};
+    for (const key of ['posted', 'skipped', 'queued_for_review', 'skit_posted']) {
+      const c = countOf(s[key]);
+      if (c !== undefined) out[key] = c;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function recordCronRun(cronName, status, meta = {}) {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.warn('[telemetry] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing, skipping telemetry');
@@ -94,7 +125,7 @@ function withTelemetry(cronName, handler) {
     const origSend = res.send && res.send.bind(res);
     const origEnd  = res.end  && res.end.bind(res);
 
-    async function finalizeAndPassThrough(passThrough) {
+    async function finalizeAndPassThrough(passThrough, body) {
       const code = (res && typeof res.statusCode === 'number') ? res.statusCode : 0;
       // 401 = the auth gate rejected this specific caller, not "the cron ran
       // and failed." A real cron trigger (Vercel's own x-vercel-cron header,
@@ -114,6 +145,8 @@ function withTelemetry(cronName, handler) {
       }
       const status = code >= 400 ? 'error' : 'ok';
       const extra = code >= 400 ? { error: `http_${code}` } : {};
+      const counts = summarizeCounts(body);
+      if (counts) extra.summary_counts = counts;
       await record(status, extra);
       return passThrough();
     }
@@ -123,7 +156,7 @@ function withTelemetry(cronName, handler) {
         // Note: schedule telemetry then call origJson. We can't await here without
         // changing the signature, so we kick off telemetry and trust Vercel to wait.
         // To guarantee write completion we make this async by returning a Promise.
-        return finalizeAndPassThrough(() => origJson(body));
+        return finalizeAndPassThrough(() => origJson(body), body);
       };
     }
     if (origSend) {

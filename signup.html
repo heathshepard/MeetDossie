@@ -16,6 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23E8927C'/><text y='.9em' font-size='90' x='10'>D</text></svg>">
 <script src="/assets/posthog-loader.js"></script>
+<script src="/assets/dossie-acquisition.js"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -324,10 +325,13 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
         }
       } catch (e) {}
       try {
+        var acq = (window.DossieAcquisition || {});
+        var firstTouch = acq.getFirstTouch ? acq.getFirstTouch() : null;
+        var lastTouch = acq.getLastTouch ? acq.getLastTouch() : null;
         var res = await fetch("/api/create-checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: plan, billing_period: currentPeriod })
+          body: JSON.stringify({ plan: plan, billing_period: currentPeriod, first_touch: firstTouch, last_touch: lastTouch })
         });
         var out = null;
         try { out = await res.json(); } catch (e) { out = null; }
@@ -391,7 +395,9 @@ button.submit:disabled { opacity: .6; cursor: not-allowed; }
       brokerage: document.getElementById("brokerage").value.trim(),
       trec_license: document.getElementById("trec_license").value.trim(),
       deals: document.getElementById("deals").value,
-      heard_from: document.getElementById("heard_from").value
+      heard_from: document.getElementById("heard_from").value,
+      first_touch: (window.DossieAcquisition && window.DossieAcquisition.getFirstTouch) ? window.DossieAcquisition.getFirstTouch() : null,
+      last_touch: (window.DossieAcquisition && window.DossieAcquisition.getLastTouch) ? window.DossieAcquisition.getLastTouch() : null
     };
   }
 

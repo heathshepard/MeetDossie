@@ -76,6 +76,101 @@
 
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
+
+// === WSL guard (added 2026-09-14) ===
+// Real Chrome only exists on the Windows side of this box. Two things broke
+// silently when a script requiring this module was run from a WSL bash shell
+// (`node scripts/brokerage-login-setup.js`), confirmed live 2026-09-14 after
+// Heath got a blank window twice:
+//   1. `channel: 'chrome'` resolves to a Linux Chrome path
+//      (/opt/google/chrome/chrome) that doesn't exist under WSL, so
+//      launchPersistentContext throws "Chromium distribution 'chrome' is not
+//      found" — but callers that don't surface that error just look dead.
+//   2. Even if that were papered over, os.homedir() under WSL node resolves
+//      to /home/heath, NOT the real profile at
+//      C:\Users\Heath\.brokerage-browser-profile — so it would write into a
+//      throwaway Linux directory with none of the saved connectMLS/zipForm
+//      login state, silently.
+//
+// Fix: detect WSL at require()-time (before any caller does other work) and
+// transparently re-exec the CALLING script through the real Windows
+// node.exe, translating /mnt/c/... argv[1]/args to C:\... and inheriting
+// stdio so output looks identical to a native run. This mirrors the proven
+// bat-file-wrapper pattern in scripts/win-launch.sh (nested cmd.exe quoting
+// silently mangles paths — write a temp .bat, run that instead) and the
+// gbp holder.js/attach.js precedent for driving real Windows Chrome from a
+// WSL agent session. If the re-exec itself can't be set up for any reason,
+// this throws a loud, explicit error with the exact command to run manually
+// — it never falls through to a silent no-op launch.
+function isWSL() {
+  if (process.platform !== 'linux') return false;
+  try {
+    return /microsoft/i.test(fs.readFileSync('/proc/version', 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
+function toWindowsPath(p) {
+  const m = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(p);
+  if (!m) return p;
+  return `${m[1].toUpperCase()}:\\${m[2].replace(/\//g, '\\')}`;
+}
+
+const WINDOWS_NODE_EXE = 'C:\\Program Files\\nodejs\\node.exe';
+
+if (isWSL() && !process.env.BROKERAGE_BROWSER_REEXECD) {
+  const scriptPath = process.argv[1];
+  const manualCmd = scriptPath
+    ? `scripts/win-launch.sh "${WINDOWS_NODE_EXE}" "${toWindowsPath(path.resolve(scriptPath))}" ${process.argv.slice(2).join(' ')}`.trim()
+    : `run this from a Windows shell instead of WSL (node.exe at "${WINDOWS_NODE_EXE}")`;
+
+  if (!scriptPath) {
+    throw new Error(
+      '[brokerage-browser] running under WSL with no resolvable entry script (process.argv[1] missing) — ' +
+      'cannot re-exec through Windows node.exe. Real Chrome does not exist under WSL. ' +
+      `Run this script from Windows node instead: ${manualCmd}`
+    );
+  }
+
+  try {
+    const { spawnSync } = require('child_process');
+    const winScript = toWindowsPath(path.resolve(scriptPath));
+    const winArgs = process.argv.slice(2);
+    const tmpDir = '/mnt/c/Users/Heath/AppData/Local/Temp';
+    const batPathWsl = path.join(tmpDir, `brokerage-reexec-${process.pid}.bat`);
+    const batPathWin = toWindowsPath(batPathWsl);
+    const quoted = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    const batContents = [
+      '@echo off',
+      `"${WINDOWS_NODE_EXE}" ${quoted(winScript)} ${winArgs.map(quoted).join(' ')}`,
+      '',
+    ].join('\r\n');
+    fs.writeFileSync(batPathWsl, batContents, 'utf8');
+
+    console.error(`[brokerage-browser] WSL detected — real Chrome only exists on Windows. Re-launching ${path.basename(scriptPath)} through Windows node.exe...`);
+
+    const result = require('child_process').spawnSync('cmd.exe', ['/c', batPathWin], {
+      stdio: 'inherit',
+      env: { ...process.env, BROKERAGE_BROWSER_REEXECD: '1' },
+    });
+
+    try { fs.unlinkSync(batPathWsl); } catch {}
+
+    if (result.error) {
+      throw result.error;
+    }
+    process.exit(result.status == null ? 1 : result.status);
+  } catch (e) {
+    throw new Error(
+      `[brokerage-browser] running under WSL and auto re-exec through Windows node.exe FAILED (${e && e.message || e}). ` +
+      `Real Chrome does not exist under WSL — this cannot proceed silently. ` +
+      `Run this manually instead: ${manualCmd}`
+    );
+  }
+}
+
 const { unlockProfile } = require('./chrome-profile-unlock');
 const { loadZipFormSessionOptions } = require('./zipform-session');
 

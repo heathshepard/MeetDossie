@@ -40,6 +40,8 @@ const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
 const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
+const { tagOutboundLinks } = require('./_lib/content-tag.js');
+const { logAutonomousAction } = require('./_lib/ops-policy.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -285,30 +287,39 @@ async function supabaseFetch(path, init = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// Append UTM parameters to all meetdossie.com links in the content so we can
-// attribute traffic per platform. Idempotent — won't double-stamp if a link
-// already has utm_source set. Hooks into buildPostBody so every Zernio
-// publish call gets the same treatment regardless of platform.
-function applyUtm(content, platform) {
-  if (!content || !platform) return content;
-  const campaign = 'organic';
-  const re = /(https?:\/\/(?:www\.)?meetdossie\.com[^\s)<>\]"']*)/gi;
-  return content.replace(re, (match) => {
-    if (/[?&]utm_source=/i.test(match)) return match;
-    const sep = match.includes('?') ? '&' : '?';
-    return `${match}${sep}utm_source=${encodeURIComponent(platform)}&utm_medium=social&utm_campaign=${campaign}`;
-  });
-}
-
+// Append content-attribution params to every meetdossie.com link in the post
+// so a click can be traced back to this exact row (see api/_lib/content-tag.js
+// for the tag scheme + which platforms strip caption links entirely).
+// Idempotent — won't double-stamp a link that already has utm_source.
+//
+// FIX (2026-09-17): the prior version required an "https?://" scheme prefix,
+// but cron-generate-posts.js's cta_rule fields write the bare domain
+// ("meetdossie.com/signup", no scheme) — the old regex silently matched
+// nothing on the vast majority of real captions. content-tag.js's regex
+// matches with or without a scheme.
+//
+// Brand comes from target_owner (defaults 'dossie'; the same pipeline also
+// carries Heath's own listing marketing under target_owner='heath-realtor').
+// Format is 'video' for every row today (the video-only hard gate above
+// blocks anything without a real video attachment), derived rather than
+// hardcoded so a future non-video format still tags correctly.
 function buildPostBody(post) {
   const hashtags = Array.isArray(post.hashtags) ? post.hashtags : [];
   const tagLine = hashtags.length
     ? '\n\n' + hashtags.map((h) => `#${String(h).replace(/^#/, '')}`).join(' ')
     : '';
   const rawContent = String(post.content || '');
-  const content = applyUtm(rawContent, post.platform);
-  const text = /\B#\w/.test(content) ? content : `${content}${tagLine}`;
-  return text.trim();
+  const isVideo = !!post.media_url && inferMediaItem(post.media_url).type === 'video';
+  const { text: tagged, tag, linked } = tagOutboundLinks(rawContent, {
+    domain: 'meetdossie.com',
+    brand: post.target_owner || 'dossie',
+    platform: post.platform,
+    format: isVideo ? 'video' : 'image',
+    contentId: post.id,
+    postedAt: new Date(),
+  });
+  const text = /\B#\w/.test(tagged) ? tagged : `${tagged}${tagLine}`;
+  return { text: text.trim(), contentTag: tag, linked };
 }
 
 // Fallback account lookup — Phase 5/6 seeders sometimes ship rows without
@@ -360,7 +371,8 @@ async function pushToZernio(post) {
       return { ok: false, error: 'no zernio_account_id on row (and no fallback in zernio_accounts)' };
     }
   }
-  const text = buildPostBody(post);
+  const { text, contentTag, linked } = buildPostBody(post);
+  console.log(`[content-tag] post ${post.id} (${post.platform}, ${post.target_owner || 'dossie'}): tag=${contentTag} linked=${linked}`);
 
   // Real Zernio schema (per docs.zernio.com/platforms/{twitter,instagram}):
   //   { content, mediaItems[], platforms[{platform, accountId, platformSpecificData}], publishNow|scheduledFor }
@@ -420,6 +432,37 @@ async function pushToZernio(post) {
     const rawTitle = post.hook || text.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       title: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
+  }
+
+  // AI-disclosure label (Carter, 2026-09-16; fixed to read off content
+  // 2026-09-17) — see the identical block in api/cron-post-videos.js
+  // postToZernio() for the full rationale and field sourcing. This is the
+  // other live path a video media_url can reach Zernio through
+  // (social_posts.media_url). Was gated on owner==='heath-realtor' — a
+  // proxy, not a fact, and one that could never flag Rust content even
+  // though Heath's cloned voice is approved for Rust too
+  // (heath-voice-clone-usage-scope.md). Reads social_posts.uses_cloned_voice
+  // directly instead (20260917b_ai_disclosure_content_property.sql) — Rust
+  // doesn't route through cron-generate-posts.js/social_posts today, but
+  // the column exists so that isn't a reason it can't disclose correctly
+  // once it does.
+  const usesHeathClonedVoice = post.uses_cloned_voice === true;
+  if (usesHeathClonedVoice && post.platform === 'youtube' && post.media_url) {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      containsSyntheticMedia: true,
+    };
+  }
+  if (usesHeathClonedVoice && post.platform === 'tiktok' && post.media_url) {
+    // See cron-post-videos.js note: TikTok's other required tiktokSettings
+    // fields aren't sent here either — pre-existing gap, not fixed here.
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      tiktokSettings: {
+        ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+        video_made_with_ai: true,
+      },
     };
   }
 
@@ -497,10 +540,10 @@ async function pushToZernio(post) {
       // watchdog AND the morning digest treat it as unverified, not
       // counted-as-posted.
       console.warn(`[zernio-post-id] post ${post.id} (${post.platform}): NO post_id in 2xx response — treating as unverified. Full response: ${respText.slice(0, 600)}`);
-      return { ok: true, status: res.status, data, zernio_post_id: null, unverified: true };
+      return { ok: true, status: res.status, data, zernio_post_id: null, unverified: true, content_tag: contentTag };
     }
     console.log(`[zernio-post-id] post ${post.id} (${post.platform}): captured zernio_post_id=${zernioPostId}`);
-    return { ok: true, status: res.status, data, zernio_post_id: zernioPostId };
+    return { ok: true, status: res.status, data, zernio_post_id: zernioPostId, content_tag: contentTag };
   } catch (err) {
     const errorMsg = err && err.message ? `Zernio exception: ${err.message}` : 'No response from Zernio';
     console.error(`[zernio-exception] post ${post.id} (${post.platform}):`, errorMsg);
@@ -536,10 +579,25 @@ function hhmmToMin(t) {
   return h * 60 + m;
 }
 
+// Fetches ALL rows (active and inactive, every owner) — isDueForPublish()
+// below picks the right one per (platform, day, owner) and checks is_active
+// itself. Previously this filtered is_active=eq.true at the query, which
+// meant an owner-specific override could never be seen if the SHARED row
+// for that platform happened to be inactive (exactly Twitter/X's state for
+// Dossie — see 20260916d_rust_owner_wiring.sql).
 async function loadSchedules() {
-  const { data, ok } = await supabaseFetch('/rest/v1/posting_schedule?is_active=eq.true&select=platform,day_of_week,time_slots,timezone,max_per_day,max_per_slot');
+  const { data, ok } = await supabaseFetch('/rest/v1/posting_schedule?select=platform,day_of_week,time_slots,timezone,is_active,max_per_day,max_per_slot,owner');
   if (!ok) return [];
   return Array.isArray(data) ? data : [];
+}
+
+// Resolve the schedule row for (platform, day, owner): an owner-specific
+// override (owner = the exact value) takes precedence over the shared row
+// (owner IS NULL) for that same platform+day. Mirrors cron-post-videos.js's
+// loadTodaySchedule()/gatePlatform() (Carter 2026-09-16 — RUST-OWNER-WIRING).
+function findScheduleRow(schedules, platform, dow, owner) {
+  const rows = schedules.filter((s) => s.platform === platform && s.day_of_week === dow);
+  return rows.find((s) => s.owner === owner) || rows.find((s) => !s.owner) || null;
 }
 
 // Count how many posts have been published (or are being published right now) for
@@ -607,12 +665,13 @@ async function isDueForPublish(platform, schedules, owner) {
   // Filter by platform AND current day of week
   const tz = 'America/Chicago'; // Default timezone for day calculation
   const today = nowInTz(tz);
-  const row = schedules.find((s) => s.platform === platform && s.day_of_week === today.dow);
+  const row = findScheduleRow(schedules, platform, today.dow, owner || 'dossie');
   // BUG FIX (2026-05-29): Previously returned due:true (uncapped publish) when no
   // schedule row existed for this platform+day combo. That let stale approved rows
   // fire on days they shouldn't publish (e.g. a Sunday row with no schedule entry
   // published immediately). Correct behaviour: no schedule = do not publish today.
-  if (!row) return { due: false, reason: `no schedule row for ${platform} on day ${today.dow} — skipping` };
+  if (!row) return { due: false, reason: `no schedule row for ${platform}/${owner || 'dossie'} on day ${today.dow} — skipping` };
+  if (!row.is_active) return { due: false, reason: `schedule row for ${platform}/${owner || 'dossie'} is INACTIVE` };
 
   const slots = (row.time_slots || []).map(hhmmToMin).sort((a, b) => a - b);
   const nowMin = hhmmToMin(today.hhmm);
@@ -673,7 +732,7 @@ const FALLBACK_MAX_PER_PLATFORM_PER_DAY = 2;
 
 async function assignFreshScheduleForOrphans() {
   const { data: orphans, ok } = await supabaseFetch(
-    '/rest/v1/social_posts?select=id,platform,created_at&status=eq.approved&scheduled_for=is.null&order=created_at.asc&limit=50'
+    '/rest/v1/social_posts?select=id,platform,created_at,target_owner&status=eq.approved&scheduled_for=is.null&order=created_at.asc&limit=50'
   );
   if (!ok || !Array.isArray(orphans) || orphans.length === 0) return { assigned: 0 };
 
@@ -701,7 +760,13 @@ async function assignFreshScheduleForOrphans() {
       const dow = candidateDay.weekday % 7; // luxon: Mon=1..Sun=7, we want Sun=0..Sat=6
       const dowIndex = dow === 7 ? 0 : dow;
 
-      const scheduleRow = schedules.find((s) => s.platform === platform && s.day_of_week === dowIndex);
+      // findScheduleRow (owner-aware, see loadSchedules() comment above) —
+      // `schedules` can now hold more than one row per platform+day (a
+      // shared row plus an owner override, e.g. rust's twitter row), so a
+      // plain .find() here would pick whichever happens to come first in
+      // query order. Orphan-backfill is Dossie's own legacy social_posts
+      // pipeline; scope explicitly to the orphan's own target_owner.
+      const scheduleRow = findScheduleRow(schedules, platform, dowIndex, orphan.target_owner || 'dossie');
       const slots = scheduleRow && Array.isArray(scheduleRow.time_slots) && scheduleRow.time_slots.length > 0
         ? scheduleRow.time_slots.map((t) => String(t).slice(0, 5)).sort()
         : FALLBACK_SLOTS_CT;
@@ -899,6 +964,19 @@ module.exports = async function handler(req, res) {
     console.error('[cron-publish-approved] ZERNIO_API_KEY not configured — skipping run.');
     await recordCronRun('cron-publish-approved', 'skipped', { reason: 'zernio not configured' });
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
+  }
+
+  // Standing-authority gate (api/_lib/ops-policy.js, capability
+  // 'publish_content'). Fail-closed: if the flag can't be read, this run
+  // does NOT publish — same "never fail open" contract as every other
+  // switch in this codebase. Individual gate results (schedule/dedup/
+  // media/sanitizer) are unchanged below and logged per-post at publish.
+  const { checkCapability } = require('./_lib/ops-policy.js');
+  const publishAuthority = await checkCapability('publish_content');
+  if (!publishAuthority.allowed) {
+    console.warn(`[cron-publish-approved] publish_content capability not autonomous this run (${publishAuthority.decision}: ${publishAuthority.reason}) — skipping.`);
+    await recordCronRun('cron-publish-approved', 'skipped', { reason: `ops-policy: ${publishAuthority.reason}` });
+    return res.status(200).json({ ok: true, skipped: true, reason: `ops-policy: ${publishAuthority.reason}` });
   }
 
   try {
@@ -1118,6 +1196,7 @@ module.exports = async function handler(req, res) {
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
           zernio_post_id: result.zernio_post_id,
+          content_tag: result.content_tag || null,
           error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
       });
@@ -1128,6 +1207,18 @@ module.exports = async function handler(req, res) {
         } else {
           console.log(`[cron-publish-approved] ✅ Published ${post.id} successfully`);
         }
+        // Standing-authority audit trail (api/_lib/ops-policy.js). Fire-and-
+        // forget — never blocks or reverses a publish already committed.
+        await logAutonomousAction({
+          capability: 'publish_content',
+          decision: 'autonomous',
+          action: `published ${post.platform} post`,
+          firedBy: 'cron-publish-approved',
+          gatesPassed: ['schedule', 'dedup', 'media_required', 'caption_sanitizer'],
+          refTable: 'social_posts',
+          refId: post.id,
+          metadata: { platform: post.platform, target_owner: post.target_owner || 'dossie', unverified },
+        }).catch(() => {});
       } else {
         console.error(`[cron-publish-approved] Patch after publish failed for ${post.id}:`, patch.status, patch.text);
         errors.push({ id: post.id, error: 'patch after publish failed', status: patch.status });

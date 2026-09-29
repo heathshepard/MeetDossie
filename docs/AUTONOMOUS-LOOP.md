@@ -10,18 +10,19 @@ Ridge, 2026-07-01. Owner: Ridge (reliability + observability).
 
 ## What it does, in one paragraph
 
-Every 4 hours a cron wakes up, looks at everything that might need attention
-(open customer bugs, prod errors, KPI drift, tech debt, Dossie Sign last-mile
-blockers, agent idleness), picks the single most important thing, and hands
-it to the right agent to build/fix/investigate. Once a day at 6 AM CDT you
-get a plain-English morning brief telling you what shipped, what's blocked
-on your call, and whether anything scary happened.
+Once a day the loop wakes up, looks at everything that might need attention
+(open customer bugs, prod errors, unanswered production alarms, KPI drift, the
+two backlog documents, tech debt, Dossie Sign last-mile blockers, agent
+idleness), picks the single most important thing, and hands it to the right
+agent to build/fix/investigate. Once a day at 6 AM CDT you get a plain-English
+morning brief telling you what shipped, what's blocked on your call, and
+whether anything scary happened.
 
 ## The pieces
 
 | Piece | File | Fires |
 |---|---|---|
-| The loop | `api/cron-autonomous-loop.js` | Every 4 hours (0 */4 * * *) |
+| The loop | `api/cron-autonomous-loop.js` | Once daily at 11:00 UTC, fanned out from `cron-dispatch-daily-1100.js` |
 | Daily digest | `api/cron-autonomous-daily-digest.js` | 6 AM CDT (0 11 * * *) |
 | Run log | `autonomous_loop_runs` table | Row per tick |
 | Cooldown ledger | `autonomous_loop_signals_seen` table | Row per unique signal |
@@ -34,17 +35,95 @@ on your call, and whether anything scary happened.
    confidence <8) — score 100 (customer-bug tier per Heath's directive)
 3. **Prod errors** — `cron_runs` in error status >6h + email deliverability
    (Resend complaints/bounces via `email_events`) — score 80
-4. **KPI drift** — `kpi_snapshots` week-over-week diff >±10% — score 60
-5. **Urgent tech debt** (🚨 / URGENT items in `docs/TECH-DEBT.md`) — score 50
-6. **Dossie Sign mid-confidence blockers** (confidence >=8) — score 40
-7. **Active tech debt** (other items in NOT DONE section) — score 30
-8. **Ridge reliability idle** — score 25
-9. **Sage / Hadley backlog idle** — score 20
-10. **Pierce activation backlog idle** — score 15
+4. **Unanswered alarms** (`alert_state`, fired in the last 48h) — score 70
+5. **KPI drift** — `kpi_snapshots` week-over-week diff >±10% — score 60
+6. **Urgent tech debt** (🚨 / URGENT items in `docs/TECH-DEBT.md`) — score 50
+7. **Backlog items** (`docs/BACKLOG-ENGINEERING.md`, `docs/BACKLOG-BUSINESS.md`)
+   — score 35, plus up to +12 for position in the document
+8. **Dossie Sign mid-confidence blockers** (confidence >=8) — score 40
+9. **Active tech debt** (other items in NOT DONE section) — score 30
+10. **Ridge reliability idle** — score 25
+11. **Sage / Hadley backlog idle** — score 20
+12. **Pierce activation backlog idle** — score 15
 
 Every candidate is scored, sorted, and only THE ONE highest-score item is
-picked per 4h tick. If everything is on cooldown, the loop logs "no signal"
+picked per tick. If everything is on cooldown, the loop logs "no signal"
 and exits quietly (silence = healthy).
+
+### Closed items are skipped (added 2026-09-17)
+
+`docs/TECH-DEBT.md` mixes open and closed work in the same section — closed
+entries stay for their history, struck through and annotated. The loop had no
+filter for this. It read the first 10 `- ` lines of "NOT DONE / ACTIVE
+BLOCKERS", and the first of those was `~~cron-comment-opp-approval never left
+staging~~ — RESOLVED 2026-09-09 …`. That item was dispatched to carter on
+**2026-09-13 and again on 2026-09-15**, with the word RESOLVED in the task
+title, while real work waited behind it.
+
+`api/_lib/backlog-parser.js` now decides what counts as closed:
+
+| Marker | Example |
+|---|---|
+| `~~strikethrough~~` on the title | `~~Fill-and-sign Phase 2~~ — RESOLVED …` |
+| A status word after the title | `— RESOLVED`, `(DONE)`, `: FIXED`, `— LIVE`, `DEPRECATED` |
+| A ticked checkbox or leading ✅ | `- [x] …`, `- ✅ …` |
+| A closing phrase | `stale entry`, `already built`, `no longer an issue` |
+
+Only the **status region** — the title plus the first sentence after it — is
+scanned. The body of an open item routinely mentions completed sub-parts
+(`Needs phone capture (done) + opt-in toggle`, `Smithery ✅ live`), and
+scanning whole lines wrongly closed both of those. The 10-item cap is also
+applied *after* filtering now; before, closed lines consumed slots meant for
+real work.
+
+### The two backlog documents (added 2026-09-17)
+
+`docs/BACKLOG-ENGINEERING.md` (88 items) and `docs/BACKLOG-BUSINESS.md` (90
+items) were compiled 2026-09-17. Before them, all ten signal sources were
+engineering-shaped, which is how 90 business items — lapsed insurance, a
+payment webhook that never fired, deadline exposure on a rental — accumulated
+unseen while the loop ran.
+
+**Every item carries a `Blocked by` field, and it is binding.** The loop only
+picks up items that field marks as agent-completable:
+
+| `Blocked by` value | Pulled? |
+|---|---|
+| `agent` | yes |
+| `agent, Heath gates merge` | yes — the normal staging→main gate every change has |
+| `mixed — …` | **no** |
+| `Heath …` | **no** |
+| `gated on …` | **no** |
+| `agent …` with any other Heath dependency | **no** |
+
+The decision is made at parse time, not delegated to the agent that receives
+the task. Anything needing a credential, a payment, a legal call, a physical
+action, or a message to a real person cannot reach the queue. The rule is
+deliberately conservative — an item whose `Blocked by` says
+`agent (to diagnose and report). The outreach itself needs a policy decision
+from Heath` is withheld even though half of it is agent work.
+
+As of 2026-09-17 that yields **50 of 88** engineering items and **18 of 90**
+business items. The business document's own §8 hand-counted 22; the three-item
+difference is items conditioned on a Bitwarden session or on pre-approved copy,
+which this gate treats as Heath's.
+
+### `alert_state` (added 2026-09-17)
+
+Detection has worked for months; nothing ever looked at the results. Fourteen
+keys fired on 2026-09-16/17 — three dead platforms, stale approval queues, and
+`linkedin_login_required`, where Heath's personal LinkedIn has failed 20
+consecutive times and has never once published — and nothing responded to any
+of them.
+
+Alerts fired in the last 48 hours become candidates, routed to **ridge** as
+diagnose-and-report. High-cardinality key families collapse to one candidate
+(the 17 `linkedin_publish_dead_letter:*` keys are one problem), while
+account-scoped keys like `silence:instagram:dossie` and
+`silence:instagram:heath-realtor` stay distinct.
+
+The brief explicitly forbids posting, publishing, sending or merging — draining
+a stuck publishing queue by publishing it is not a fix.
 
 ## Cooldowns (so we don't spawn-loop)
 
@@ -58,6 +137,13 @@ and exits quietly (silence = healthy).
 | tech_debt | 24 hours |
 | kpi_drift | 24 hours |
 | pierce_backlog | 24 hours |
+| alert_state | 24 hours |
+| backlog_engineering / backlog_business | 72 hours |
+
+Cooldowns are looked up in one batched query (`checkCooldownBatch`). The
+candidate pool went from ~10 to ~90 when the backlog docs came online, and the
+old one-query-per-candidate filter would have meant ~90 sequential round-trips
+per tick.
 
 Once a signal is dispatched, it will not be re-picked until its cooldown
 expires. If the same signal is dispatched 3+ times without resolution,
@@ -149,10 +235,24 @@ curl -H "Authorization: Bearer $(Get-Content .\.tmp\cs.txt)" `
 Or ask Heath to fire it from Telegram — never embed the secret in
 tracked files (per Section 15 of CLAUDE.md).
 
+## Tests
+
+```bash
+node scripts/carter-autonomous-loop-backlog-parser-test.js
+```
+
+119 assertions covering the closed-item filter, the `Blocked by` gate, both
+real backlog documents, and the loop's gatherers read-only (never `dispatch()`).
+The `alert_state` section needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
+from `.env.local` and skips cleanly without them. Every false positive found
+against the real docs is pinned as a regression case.
+
 ## Files touched by this build
 
-- `api/cron-autonomous-loop.js` — the 4-hour loop
+- `api/cron-autonomous-loop.js` — the loop
 - `api/cron-autonomous-daily-digest.js` — the 6 AM morning brief
 - `supabase/migrations/20260701_autonomous_loop_runs.sql` — logging + cooldown tables
 - `vercel.json` — 2 new cron entries + function budgets (300s for loop, 60s for digest)
 - `docs/AUTONOMOUS-LOOP.md` — this file
+- `api/_lib/backlog-parser.js` — closed-item filter + `Blocked by` gate (2026-09-17)
+- `scripts/carter-autonomous-loop-backlog-parser-test.js` — tests for both (2026-09-17)

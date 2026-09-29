@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<!--
+  Brand-parameterised hook card. Playbook §5 items 1/3/7, §5a checks 1/2/4.
+
+  Tokens: {{BG}} {{INK}} {{ACCENT}} {{KICKER_COLOR}} {{KICKER}} {{HEADLINE}} {{SUB}}
+  Colours come from the brand's `palette` in scripts/_lib/shortform-brands.json,
+  so one template serves Dossie, Rust and the realtor page without any generator
+  restating a hex.
+
+  {{HEADLINE}} may contain the literal marker [[hl]]...[[/hl]] to accent-colour a
+  phrase; the compositor HTML-escapes substituted text, and a tiny inline script
+  converts those escaped markers back into a span. That keeps real copy (a Reddit
+  quote, a listing line) unable to inject markup while still allowing emphasis.
+
+  This card is never text-alone-on-flat: the kicker, the accent rule and the
+  accent-coloured phrase are the required visual grab (§5 item 3). Motion at
+  frame 0 comes from the compositor's continuous punch-in over the card, not
+  from anything here.
+-->
+<style>
+  body{background:{{BG}}}
+  .safe{justify-content:center}
+  .kick{color:{{KICKER_COLOR}}}
+  h1{color:{{INK}};font-size:112px}
+  h1 .hl{color:{{ACCENT}}}
+  .rule{background:{{ACCENT}}}
+  .sub{color:{{INK}};opacity:.72;font-size:44px}
+</style></head><body>
+<div class="safe">
+  <div class="kick">{{KICKER}}</div>
+  <h1 id="hl">{{HEADLINE}}</h1>
+  <div class="rule"></div>
+  <div class="sub">{{SUB}}</div>
+</div>
+<script>
+  // Re-enable [[hl]]…[[/hl]] emphasis after HTML-escaping. Only this exact
+  // marker pair is honoured — any other markup stays escaped and inert.
+  var h = document.getElementById('hl');
+  h.innerHTML = h.textContent
+    .replace(/\[\[hl\]\]/g, '<span class="hl">')
+    .replace(/\[\[\/hl\]\]/g, '</span>');
+</script>
+</body></html>

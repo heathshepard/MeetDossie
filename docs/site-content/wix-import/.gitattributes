@@ -1,0 +1,2 @@
+# CSV import artifacts are byte-exact deliverables: no EOL normalization.
+*.csv -text

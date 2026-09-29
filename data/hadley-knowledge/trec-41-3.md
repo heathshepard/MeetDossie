@@ -74,7 +74,7 @@ If the noteholder maintains an escrow account (ad valorem taxes, casualty insura
 | Either party terminates for excess variance | Prior to closing | Loan balance variance > cap in ¶C | Earnest money refunded to Buyer (unless other party covers excess) |
 | Either party terminates for noteholder non-consent | Prior to closing | Noteholder refuses consent | Earnest money refunded to Buyer |
 
-If any deadline lands on a Saturday, Sunday, or legal holiday, the standard TREC 20-18 ¶24 rule applies (extend to next day that is not a Saturday, Sunday, or legal holiday), because 41-3 rides on top of the master contract.
+**CORRECTED 2026-09-28 (Hadley review catch — prior text was overbroad and mis-cited).** This section previously claimed a blanket rule that "any deadline lands on a Saturday, Sunday, or legal holiday, the standard TREC 20-18 ¶24 rule applies... because 41-3 rides on top of the master contract." That ¶24 citation doesn't correspond to a real holiday-extension paragraph, and the blanket claim is wrong. The ONLY automatic Saturday/Sunday/legal-holiday extension in the current promulgated master contract (carried from 20-18 into 20-19) is scoped to the Earnest Money / Option Fee delivery deadline at ¶5.A(2) — see `trec-20-19.md` deadline-math table. Texas REALTORS' own published member guidance ("When Contract Deadlines Fall on Holidays") confirms this scope directly: only the earnest money and option fee delivery deadlines get the automatic bump, and "the rest of the contract deadlines do not change if the final day falls on a weekend or holiday." TREC 41-3 has no day-computation or holiday-extension clause of its own anywhere in ¶A–¶H, so **none of the deadlines in the table above (credit-doc delivery, either 7-day window, noteholder-consent) automatically roll to the next business day** just because they land on a Saturday, Sunday, or legal holiday. If a 41-3 clock lands on a holiday, treat that day as the actual deadline unless the parties sign a written Amendment (TREC 39-11) moving it. Do not tell a customer a 41-3 deadline "auto-extends" without that caveat — this is a genuinely common agent misconception, and money/termination rights turn on getting it right. See Q11 below.
 
 ## Common Q&A a working TX agent would ask
 
@@ -108,6 +108,9 @@ A. Seller transfers the escrow account to Buyer with no deficiency; Buyer reimbu
 **Q10. Is there a form change coming that I should watch for?**
 A. As of 2026-07-01, TREC 41-3 (11-07-2022) remains current. Watch `trec.texas.gov/agency-information/legal-resources/advisories-news-and-alerts` and Broker-Lawyer Committee updates for any new promulgation. If a 41-4 issues, this file needs an appendix + supersedence note.
 
+**Q11. My buyer is assuming the seller's loan and our financing/credit-approval deadline under 41-3 falls on Labor Day (or any Saturday, Sunday, or legal holiday). Does it automatically extend to the next business day?**
+A. No — almost certainly not, and don't assume it does. The current TREC master contract's only automatic weekend/holiday extension is narrowly scoped to the Earnest Money / Option Fee delivery deadline (¶5.A(2)); every other deadline, including the 41-3 clocks (credit-doc delivery, Seller's 7-day windows, noteholder consent), stays exactly where it's calendared unless the parties put an extension in writing. Practical fix, at zero cost and zero risk either way: don't rely on the legal question — get a one-line Amendment (TREC 39-11) signed by both Buyer and Seller before the deadline, moving the date to the next business day. That makes the auto-extend question moot. Given real money and termination rights are on the line, this specific fact pattern should also get a same-day check from a licensed Texas real estate attorney or the Texas REALTORS Legal Hotline before anyone treats a deadline as blown (or safe) based on this answer alone. (TREC 41-3 ¶A/¶B, cross-ref 20-19 ¶5.A(2); TREC 39-11 for the fix.)
+
 ## Notes for the fill engine (Dossie internal)
 
 - ¶A day count → `credit_documentation_delivery_days`
@@ -129,6 +132,7 @@ Page 1 has "Initialed for identification by Buyer and Seller" — that's an init
 - TAC Title 22, Part 23, Chapter 537 (Standard Contracts) — TREC's authority to promulgate this form
 - Cross-reference with TREC 12-3 (Release of Liability) whenever seller wants a release
 - Cross-reference with TREC 20-18 ¶3.B for the trigger
+- Texas REALTORS, "When Contract Deadlines Fall on Holidays" (member guidance) — scope of the ¶5.A(2) holiday-extension exception
 
 ## Auto-draft sourcing note
 
@@ -137,3 +141,4 @@ The paragraph-by-paragraph rules, deadline math, and fixture-key section are rea
 - Q4 "one-shot chance to save the deal" — plain reading of ¶D(1), not TREC-unverified.
 - Q6 "loop in a Texas real estate attorney" — TREC unverified as a formal rule; practical guidance.
 - Q10 promulgation-watch guidance — administrative, not a form rule.
+- Q11 conclusion is Hadley's read of secondary sources (Texas REALTORS member guidance) cross-checked against the form text, not a direct TREC citation for the negative ("does not extend") — flagged TREC-unverified-as-negative and paired with an explicit licensed-attorney-review recommendation given the money/deadline stakes.

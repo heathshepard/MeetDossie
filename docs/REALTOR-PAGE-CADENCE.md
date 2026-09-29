@@ -5,6 +5,16 @@ OAuth re-auth click (see `docs/PIPELINE.md` Social Media Accounts section and
 `scripts/finish-realtor-page-zernio-setup.js`). Nothing below posts until that
 exists. This is draft-only, ready to execute the moment access is granted.
 
+**2026-09-16 note:** this doc is Facebook-only — Heath's realtor page has no
+LinkedIn destination connected today (`docs/PIPELINE.md` Social Media
+Accounts; realtor `owner='heath-realtor'` has facebook/instagram/youtube
+only). The "link in first comment" convention below is written for Facebook
+and stays as-is there. **Do not copy it to LinkedIn if/when a LinkedIn
+destination gets connected** — Van der Blom's ~1.3M-post study found
+link-in-first-comment costs LinkedIn up to 80% of visibility; the link goes
+in the LinkedIn post body instead (`docs/CONTENT-FORMAT-LIBRARY.md` §6 item 3,
+`docs/sage-engagement-rules-by-platform.md` §6.F).
+
 ## Why this exists
 
 Heath has posted NEITHER his own listings/market updates NOR organic Dossie
