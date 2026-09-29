@@ -215,6 +215,103 @@ test('client_config_error: bad client_id/secret stops the ladder immediately, do
   assert.deepEqual(result.prunedIds, [], 'nothing here is a revoked GRANT — nothing gets pruned');
 });
 
+// --- THE 2026-09-29 FIX: per-provider client resolution --------------------
+//
+// Live incident: heath.shepard@kw.com has rows under TWO Google Cloud OAuth
+// clients (2026-09-01 CUSTOMER/INTERNAL split). The newest row was
+// 'google_calendar' (INTERNAL client) and got refreshed with the CUSTOMER
+// pair -> unauthorized_client -> the ladder used to abort entirely,
+// never even trying the healthy 'google_gmail' (CUSTOMER-client) row.
+
+function providerRow(id, updatedAt, refreshToken, oauth_provider) {
+  return { id, updated_at: updatedAt, google_email: ENV.account, refresh_token: refreshToken, oauth_provider };
+}
+
+test('THE 2026-09-29 FIX: a broken INTERNAL client must not block a healthy CUSTOMER-client row for the same account', async () => {
+  const rows = [
+    providerRow('newest-calendar', '2026-09-28T00:00:00Z', 'rt-cal', 'google_calendar'),
+    providerRow('older-gmail', '2026-09-19T00:00:00Z', 'rt-gmail', 'google_gmail'),
+  ];
+  const clientsByProvider = {
+    google_calendar: { clientId: 'internal-id', clientSecret: 'internal-secret' },
+    google_gmail: { clientId: ENV.clientId, clientSecret: ENV.clientSecret },
+  };
+  const seenClientIds = [];
+  const fetchImpl = async (url, init) => {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) {
+      const params = new URLSearchParams(init.body);
+      seenClientIds.push(params.get('client_id'));
+      const rt = params.get('refresh_token');
+      if (rt === 'rt-cal') {
+        // Simulate the live incident: whatever was configured for the
+        // INTERNAL client is itself broken in Vercel right now.
+        return jsonRes(401, { error: 'unauthorized_client', error_description: 'Unauthorized' });
+      }
+      if (rt === 'rt-gmail') {
+        return jsonRes(200, { access_token: 'gmail-token', expires_in: 3600, scope: 'gmail.readonly' });
+      }
+      throw new Error(`unexpected refresh_token in test: ${rt}`);
+    }
+    if (init && init.method === 'PATCH') return jsonRes(200, null);
+    return jsonRes(200, rows);
+  };
+
+  const result = await refreshWithLadder({ ...ENV, clientsByProvider, fetchImpl, sleepImpl: instantSleep });
+
+  assert.equal(result.outcome, 'healthy', 'the healthy google_gmail row must still win despite google_calendar being broken');
+  assert.equal(result.winningRowId, 'older-gmail');
+  assert.equal(result.attempts[0].provider, 'google_calendar');
+  assert.equal(result.attempts[0].verdict, 'client_config');
+  assert.equal(result.attempts[1].provider, 'google_gmail');
+  assert.equal(result.attempts[1].verdict, 'success');
+  assert.deepEqual(seenClientIds, ['internal-id', ENV.clientId], 'each row must be refreshed with ITS OWN provider\'s client_id, never the other one\'s');
+});
+
+test('client_config_error across two DIFFERENT providers reports each distinctly in byProvider', async () => {
+  const rows = [
+    providerRow('r-cal', '2026-09-28T00:00:00Z', 'rt-cal', 'google_calendar'),
+    providerRow('r-gmail', '2026-09-19T00:00:00Z', 'rt-gmail', 'google_gmail'),
+  ];
+  const clientsByProvider = {
+    google_calendar: { clientId: 'internal-id', clientSecret: 'internal-secret' },
+    google_gmail: { clientId: ENV.clientId, clientSecret: ENV.clientSecret },
+  };
+  const { fetchImpl } = makeFetch({
+    rows,
+    googlePlan: {
+      'rt-cal': [{ status: 401, body: { error: 'unauthorized_client', error_description: 'Unauthorized' } }],
+      'rt-gmail': [{ status: 401, body: { error: 'invalid_client', error_description: 'The OAuth client was not found.' } }],
+    },
+  });
+
+  const result = await refreshWithLadder({ ...ENV, clientsByProvider, fetchImpl, sleepImpl: instantSleep });
+
+  assert.equal(result.outcome, 'client_config_error');
+  assert.equal(result.byProvider.length, 2);
+  const byKey = Object.fromEntries(result.byProvider.map((p) => [p.provider, p.errorCode]));
+  assert.equal(byKey.google_calendar, 'unauthorized_client');
+  assert.equal(byKey.google_gmail, 'invalid_client');
+});
+
+test('a row whose provider has no configured client at all fails as client_config without ever calling fetch', async () => {
+  const rows = [providerRow('r1', '2026-09-28T00:00:00Z', 'rt-1', 'google_calendar')];
+  let fetchCalled = false;
+  const fetchImpl = async (url, init) => {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) { fetchCalled = true; return jsonRes(200, {}); }
+    return jsonRes(200, rows);
+  };
+
+  const result = await refreshWithLadder({
+    ...ENV,
+    clientsByProvider: { google_calendar: { clientId: '', clientSecret: '' } },
+    fetchImpl,
+    sleepImpl: instantSleep,
+  });
+
+  assert.equal(result.outcome, 'client_config_error');
+  assert.equal(fetchCalled, false, 'a row with no configured client_id/secret must never hit Google at all');
+});
+
 // --- the "alarm itself must not fail silently" class ----------------------
 
 test('no_rows: no user_integrations row at all for the account', async () => {

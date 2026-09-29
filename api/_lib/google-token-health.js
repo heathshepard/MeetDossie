@@ -28,9 +28,20 @@
 // a Telegram message. Only Google's categorical error code/description and
 // row metadata (id, updated_at) are safe to surface.
 //
-// Owner: Atlas, 2026-09-28.
+// FOLLOW-UP, 2026-09-29: heath.shepard@kw.com has user_integrations rows
+// under TWO different Google Cloud OAuth clients (the 2026-09-01
+// CUSTOMER/INTERNAL split -- api/_lib/google-oauth-clients.js). This file
+// used to pass a single client_id/client_secret pair for every row
+// regardless of which client actually issued it, which produced exactly
+// the "unauthorized_client" false alarm this comment is now next to (the
+// newest row was 'google_calendar'/INTERNAL, refreshed with the CUSTOMER
+// pair). Now builds a clientsByProvider map via google-oauth-clients.js and
+// lets api/_lib/google-refresh-ladder.js resolve the right pair per row.
+//
+// Owner: Atlas, 2026-09-28 (per-provider client fix 2026-09-29).
 
 const { refreshWithLadder } = require('./google-refresh-ladder.js');
+const { buildClients } = require('./google-oauth-clients.js');
 
 // Single-tenant today -- mirrors scripts/preflight-check.js's KW_ACCOUNT and
 // scripts/kw-mail.py's ACCOUNT.
@@ -53,18 +64,42 @@ const THE_FIX = 'Open meetdossie.com/myjarvis and click Connect Google Calendar 
  * @param {object} [opts]
  * @param {Function} [opts.fetchImpl] - injectable for tests; defaults to global fetch
  * @param {Function} [opts.sleepImpl] - injectable for tests; defaults to real setTimeout
- * @param {object} [opts.env] - injectable env override for tests
+ * @param {object} [opts.env] - injectable env override for tests. Recognizes
+ *   clientId/clientSecret (CUSTOMER client -- also the fallback default) and
+ *   internalClientId/internalClientSecret (INTERNAL client, google_calendar
+ *   rows only); any key omitted falls back to the matching real env var.
  */
 async function checkGoogleTokenHealth(opts = {}) {
   const env = opts.env || {};
+  const customerClientId = 'clientId' in env ? env.clientId : process.env.GOOGLE_CLIENT_ID;
+  const customerClientSecret = 'clientSecret' in env ? env.clientSecret : process.env.GOOGLE_CLIENT_SECRET;
+
+  // Same CUSTOMER/INTERNAL split google-oauth-callback.js exchanges tokens
+  // with -- built from the SAME resolved (test-overridable) values, not raw
+  // process.env, so injecting env.clientId/clientSecret in a test actually
+  // takes effect for the 'google_gmail'/'google_youtube' rows that map to
+  // the CUSTOMER client below.
+  const { CLIENT_BY_PROVIDER } = buildClients({
+    GOOGLE_CLIENT_ID: customerClientId,
+    GOOGLE_CLIENT_SECRET: customerClientSecret,
+    GOOGLE_INTERNAL_CLIENT_ID: 'internalClientId' in env ? env.internalClientId : process.env.GOOGLE_INTERNAL_CLIENT_ID,
+    GOOGLE_INTERNAL_CLIENT_SECRET: 'internalClientSecret' in env ? env.internalClientSecret : process.env.GOOGLE_INTERNAL_CLIENT_SECRET,
+  });
+  const clientsByProvider = {
+    google_calendar: CLIENT_BY_PROVIDER.google_calendar,
+    google_gmail: CLIENT_BY_PROVIDER.google_gmail,
+    google_youtube: CLIENT_BY_PROVIDER.google_youtube,
+  };
+
   const result = await refreshWithLadder({
     account: GOOGLE_ACCOUNT,
     fetchImpl: opts.fetchImpl,
     sleepImpl: opts.sleepImpl,
     supabaseUrl: 'supabaseUrl' in env ? env.supabaseUrl : process.env.SUPABASE_URL,
     serviceKey: 'serviceKey' in env ? env.serviceKey : process.env.SUPABASE_SERVICE_ROLE_KEY,
-    clientId: 'clientId' in env ? env.clientId : process.env.GOOGLE_CLIENT_ID,
-    clientSecret: 'clientSecret' in env ? env.clientSecret : process.env.GOOGLE_CLIENT_SECRET,
+    clientId: customerClientId,
+    clientSecret: customerClientSecret,
+    clientsByProvider,
   });
 
   switch (result.outcome) {
@@ -102,13 +137,23 @@ async function checkGoogleTokenHealth(opts = {}) {
           + `Gmail/Calendar has never been connected, or every grant has already been pruned as dead. ${THE_FIX}`,
       }];
 
-    case 'client_config_error':
+    case 'client_config_error': {
+      // byProvider names exactly which Google Cloud client(s) are broken --
+      // 'google_calendar' means GOOGLE_INTERNAL_CLIENT_ID/SECRET, everything
+      // else means GOOGLE_CLIENT_ID/SECRET (see api/_lib/google-oauth-clients.js).
+      const parts = (result.byProvider || [{ provider: null, errorCode: result.errorCode, errorDetail: result.errorDetail }])
+        .map((p) => {
+          const envVars = p.provider === 'google_calendar'
+            ? 'GOOGLE_INTERNAL_CLIENT_ID/GOOGLE_INTERNAL_CLIENT_SECRET'
+            : 'GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET';
+          return `${p.provider || 'default'} client (${envVars}): ${p.errorCode}${p.errorDetail ? ` -- ${p.errorDetail}` : ''}`;
+        });
       return [{
         key: 'google_token_client_config_error',
-        message: `Google rejected the client credentials themselves (${result.errorCode}${result.errorDetail ? `: ${result.errorDetail}` : ''}) -- `
-          + `this is a GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET problem in Vercel, not a revoked grant. `
-          + `No stored credential could even attempt a refresh. Fix the env vars, not consent.`,
+        message: `Google rejected the client credentials themselves for every stored credential, not a revoked grant. `
+          + `${parts.join('; ')}. Fix the Vercel env var(s) named above, not consent.`,
       }];
+    }
 
     case 'all_revoked': {
       const dates = (result.attempts || []).map((a) => a.updatedAt).filter(Boolean).join(', ');

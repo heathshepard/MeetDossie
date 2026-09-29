@@ -63,12 +63,36 @@
 // the 2026-09-28 incident. The ladder only ever trusts a REAL refresh
 // attempt's response.
 //
+// FOLLOW-UP DEFECT, found live 2026-09-29 (this ladder's OWN first real
+// run): user_integrations rows are not all issued by the same Google Cloud
+// OAuth client. The 2026-09-01 two-client split (api/google-oauth-callback.js
+// CLIENT_BY_PROVIDER, now api/_lib/google-oauth-clients.js) means a
+// 'google_calendar' row was issued by the INTERNAL client
+// (GOOGLE_INTERNAL_CLIENT_ID/SECRET) while a 'google_gmail' row was issued
+// by the CUSTOMER client (GOOGLE_CLIENT_ID/SECRET) -- Google's token
+// endpoint correctly returns unauthorized_client if you present the wrong
+// one. This file shipped one day after that split without accounting for
+// it, tried heath.shepard@kw.com's newest row (google_calendar, INTERNAL)
+// with the CUSTOMER pair, got unauthorized_client, and -- because a
+// client_config verdict used to abort the ENTIRE ladder -- never even
+// attempted the google_gmail rows, which would have refreshed fine.
+// Fix: resolve client_id/client_secret PER ROW from its own oauth_provider
+// (opts.clientsByProvider, keyed identically to
+// api/_lib/google-oauth-clients.js's CLIENT_BY_PROVIDER; opts.clientId/
+// opts.clientSecret remain the fallback "default client" for any provider
+// not in that map, and the ONLY thing sole callers with a single client
+// need to pass -- existing behavior for a single-provider caller is
+// unchanged). A client_config verdict now only skips OTHER ROWS OF THE SAME
+// PROVIDER (retrying them would fail identically) rather than the whole
+// ladder -- a broken INTERNAL client must never block recovery of a
+// perfectly fine CUSTOMER-client row for the same account.
+//
 // SECURITY: never returns refresh_token, access_token, or client_secret in
 // any field -- only Google's categorical error code/description and row
 // metadata (id, updated_at). This module's output can end up in a
 // Telegram message, and this repo is public.
 //
-// Owner: Atlas, 2026-09-28.
+// Owner: Atlas, 2026-09-28 (per-provider client fix 2026-09-29).
 
 const MAX_ATTEMPTS_PER_ROW = 3;
 const BASE_BACKOFF_MS = 300;
@@ -137,12 +161,31 @@ function classifyTokenResponse(res) {
   return { verdict: 'transient', errorCode: code || `http_${res.status}`, errorDetail: detail };
 }
 
-async function attemptRowWithRetries(fetchImpl, sleepImpl, row, clientId, clientSecret) {
+// Resolves which client_id/client_secret to use for a given row's
+// oauth_provider. `clientsByProvider` is optional (keyed like
+// api/_lib/google-oauth-clients.js's CLIENT_BY_PROVIDER) -- any provider not
+// present in it, or when the map itself isn't supplied, falls back to the
+// single default client (opts.clientId/opts.clientSecret), preserving the
+// original single-client behavior for any caller that only has one.
+function resolveClient(row, defaultClient, clientsByProvider) {
+  if (clientsByProvider && row.oauth_provider && clientsByProvider[row.oauth_provider]) {
+    return clientsByProvider[row.oauth_provider];
+  }
+  return defaultClient;
+}
+
+async function attemptRowWithRetries(fetchImpl, sleepImpl, row, client) {
+  // Missing client_id/client_secret for THIS row's provider is a config
+  // problem, not a network one -- never spend a Google call finding that
+  // out.
+  if (!client || !client.clientId || !client.clientSecret) {
+    return { verdict: 'client_config', errorCode: 'missing_client_config', errorDetail: 'no client_id/client_secret configured for this row\'s oauth_provider', tries: 0 };
+  }
   let last = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_ROW; attempt++) {
     let classified;
     try {
-      const res = await attemptGoogleRefresh(fetchImpl, row.refresh_token, clientId, clientSecret);
+      const res = await attemptGoogleRefresh(fetchImpl, row.refresh_token, client.clientId, client.clientSecret);
       classified = classifyTokenResponse(res);
     } catch (err) {
       classified = { verdict: 'transient', errorCode: 'network_error', errorDetail: String((err && err.message) || err).slice(0, 200) };
@@ -210,8 +253,13 @@ async function pruneDeadRows(fetchImpl, supabaseUrl, serviceKey, ids) {
  * @param {string} opts.account - google_email to look up
  * @param {string} opts.supabaseUrl
  * @param {string} opts.serviceKey
- * @param {string} opts.clientId
- * @param {string} opts.clientSecret
+ * @param {string} opts.clientId - default/fallback client_id, used for any
+ *   row whose oauth_provider isn't in opts.clientsByProvider
+ * @param {string} opts.clientSecret - default/fallback client_secret
+ * @param {Object<string, {clientId: string, clientSecret: string}>} [opts.clientsByProvider] -
+ *   per-oauth_provider client override (see api/_lib/google-oauth-clients.js
+ *   CLIENT_BY_PROVIDER). Optional -- a caller with only one Google Cloud
+ *   client for every row it manages can omit this entirely.
  * @param {Function} [opts.fetchImpl] - injectable for tests; defaults to global fetch
  * @param {Function} [opts.sleepImpl] - injectable for tests; defaults to real setTimeout
  * @returns {Promise<object>} outcome: 'healthy' | 'healthy_persist_failed' |
@@ -221,7 +269,8 @@ async function pruneDeadRows(fetchImpl, supabaseUrl, serviceKey, ids) {
 async function refreshWithLadder(opts = {}) {
   const fetchImpl = opts.fetchImpl || global.fetch;
   const sleepImpl = opts.sleepImpl || defaultSleep;
-  const { account, supabaseUrl, serviceKey, clientId, clientSecret } = opts;
+  const { account, supabaseUrl, serviceKey, clientId, clientSecret, clientsByProvider } = opts;
+  const defaultClient = { clientId, clientSecret };
 
   const missingEnv = [];
   if (!supabaseUrl) missingEnv.push('SUPABASE_URL');
@@ -242,22 +291,34 @@ async function refreshWithLadder(opts = {}) {
 
   const attempts = [];
   const confirmedDeadIds = [];
+  // Providers whose client credentials are confirmed broken THIS run --
+  // retrying another row under the SAME provider can't change that outcome,
+  // but a DIFFERENT provider's rows must still get a real attempt (that's
+  // the exact 2026-09-29 bug: one provider's bad client must never block
+  // another provider's good one for the same account).
+  const brokenProviders = new Set();
   let winner = null;
 
   for (const row of rows) {
-    const result = await attemptRowWithRetries(fetchImpl, sleepImpl, row, clientId, clientSecret);
+    const providerKey = row.oauth_provider || '__default__';
+    const client = resolveClient(row, defaultClient, clientsByProvider);
+    const result = brokenProviders.has(providerKey)
+      ? { verdict: 'client_config', errorCode: 'client_config', errorDetail: 'skipped -- this provider\'s client already confirmed broken this run', tries: 0 }
+      : await attemptRowWithRetries(fetchImpl, sleepImpl, row, client);
     attempts.push({
       rowId: row.id,
       updatedAt: row.updated_at,
+      provider: row.oauth_provider || null,
       verdict: result.verdict,
       errorCode: result.errorCode,
+      errorDetail: result.errorDetail,
       tries: result.tries,
     });
     if (result.verdict === 'success') {
       winner = { row, ...result };
       break;
     }
-    if (result.verdict === 'client_config') break; // no row can fix this
+    if (result.verdict === 'client_config') { brokenProviders.add(providerKey); continue; } // only THIS provider is a dead end
     if (result.verdict === 'invalid_grant') confirmedDeadIds.push(row.id);
     // 'permanent_other' and retry-exhausted 'transient': move to next row.
   }
@@ -292,20 +353,35 @@ async function refreshWithLadder(opts = {}) {
     return { outcome: 'healthy', attempts, winningRowId: winner.row.id, prunedIds };
   }
 
-  const lastAttempt = attempts[attempts.length - 1];
-  if (lastAttempt && lastAttempt.verdict === 'client_config') {
-    return {
-      outcome: 'client_config_error',
-      attempts,
-      errorCode: lastAttempt.errorCode,
-      errorDetail: lastAttempt.errorDetail,
-      prunedIds,
-    };
-  }
-
   const allInvalidGrant = attempts.length === rows.length && attempts.every((a) => a.verdict === 'invalid_grant');
   if (allInvalidGrant) {
     return { outcome: 'all_revoked', attempts, totalRows: rows.length, prunedIds };
+  }
+
+  // Every row failed on CLIENT credentials -- not necessarily the same
+  // provider's credentials (an account can have rows under both the
+  // CUSTOMER and INTERNAL client). Report one entry per distinct provider
+  // hit so the alert names the actual broken client(s), not just "google"
+  // generically. Top-level errorCode/errorDetail mirror the FIRST provider
+  // hit, for callers (api/gmail-refresh.js) that only care about one.
+  const allClientConfig = attempts.length === rows.length && attempts.every((a) => a.verdict === 'client_config');
+  if (allClientConfig) {
+    const seen = new Set();
+    const byProvider = [];
+    for (const a of attempts) {
+      const key = a.provider || '__default__';
+      if (seen.has(key)) continue;
+      seen.add(key);
+      byProvider.push({ provider: a.provider, errorCode: a.errorCode, errorDetail: a.errorDetail });
+    }
+    return {
+      outcome: 'client_config_error',
+      attempts,
+      errorCode: byProvider[0].errorCode,
+      errorDetail: byProvider[0].errorDetail,
+      byProvider,
+      prunedIds,
+    };
   }
 
   return { outcome: 'inconclusive', attempts, totalRows: rows.length, prunedIds };

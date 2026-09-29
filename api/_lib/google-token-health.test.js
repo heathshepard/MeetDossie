@@ -71,6 +71,41 @@ test('healthy: [] when the newest row is dead but the ladder self-heals via an o
   assert.deepEqual(conditions, [], 'self-heal must stay silent -- alerting is the last resort, not the deliverable');
 });
 
+// --- THE LIVE 2026-09-29 INCIDENT, reproduced at this file's own level ----
+//
+// heath.shepard@kw.com's real user_integrations has BOTH a 'google_calendar'
+// row (INTERNAL client) and a 'google_gmail' row (CUSTOMER client). This
+// check used to send every row through the single CUSTOMER pair, so the
+// INTERNAL-issued row failed with unauthorized_client and aborted before
+// ever trying the healthy CUSTOMER-issued row.
+test('THE LIVE FIX: a broken google_calendar (INTERNAL) row must not block a healthy google_gmail (CUSTOMER) row', async () => {
+  const rows = [
+    { id: 'cal', updated_at: '2026-09-28T00:00:00Z', google_email: GOOGLE_ACCOUNT, refresh_token: 'rt-cal', oauth_provider: 'google_calendar' },
+    { id: 'gmail', updated_at: '2026-09-19T00:00:00Z', google_email: GOOGLE_ACCOUNT, refresh_token: 'rt-gmail', oauth_provider: 'google_gmail' },
+  ];
+  const seenClientIds = [];
+  const fetchImpl = async (url, init) => {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) {
+      const params = new URLSearchParams(init.body);
+      seenClientIds.push(params.get('client_id'));
+      const rt = params.get('refresh_token');
+      if (rt === 'rt-cal') return jsonRes(401, { error: 'unauthorized_client' });
+      return jsonRes(200, { access_token: 'tok', expires_in: 3600, scope: 'gmail.readonly' });
+    }
+    if (init && init.method === 'PATCH') return jsonRes(200, null);
+    return jsonRes(200, rows);
+  };
+
+  const conditions = await checkGoogleTokenHealth({
+    fetchImpl,
+    sleepImpl: instantSleep,
+    env: { ...ENV, internalClientId: 'internal-id', internalClientSecret: 'internal-secret' },
+  });
+
+  assert.deepEqual(conditions, [], 'the healthy google_gmail row recovers the integration -- nothing to alert on');
+  assert.deepEqual(seenClientIds, ['internal-id', ENV.clientId], 'each provider must be tried with its OWN client, never the other\'s');
+});
+
 test('all_revoked: exactly one condition, states the count tried, names the fix, no secrets', async () => {
   const rows = [
     row('r1', '2026-09-26T00:00:00Z', 'rt-1'),

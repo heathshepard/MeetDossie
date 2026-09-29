@@ -41,37 +41,18 @@
 // callback), but authenticity is proven via the opaque state token.
 //
 // Owner: Atlas (SV-JARVIS-CAL-1, 2026-07-06; generalized for youtube
-// 2026-08-25; two-client split Carter 2026-09-01).
+// 2026-08-25; two-client split Carter 2026-09-01; map extracted to
+// api/_lib/google-oauth-clients.js Atlas 2026-09-29 so
+// api/_lib/google-refresh-ladder.js's self-heal ladder can't drift from it
+// again -- see that file's header for the incident this caused).
+
+const { clientForProvider } = require('./_lib/google-oauth-clients.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI;
-const GOOGLE_INTERNAL_CLIENT_ID = process.env.GOOGLE_INTERNAL_CLIENT_ID;
-const GOOGLE_INTERNAL_CLIENT_SECRET = process.env.GOOGLE_INTERNAL_CLIENT_SECRET;
-const GOOGLE_INTERNAL_OAUTH_REDIRECT_URI = process.env.GOOGLE_INTERNAL_OAUTH_REDIRECT_URI;
-
-const CUSTOMER_CLIENT = {
-  clientId: GOOGLE_CLIENT_ID,
-  clientSecret: GOOGLE_CLIENT_SECRET,
-  redirectUri: GOOGLE_OAUTH_REDIRECT_URI,
-};
-const INTERNAL_CLIENT = {
-  clientId: GOOGLE_INTERNAL_CLIENT_ID,
-  clientSecret: GOOGLE_INTERNAL_CLIENT_SECRET,
-  redirectUri: GOOGLE_INTERNAL_OAUTH_REDIRECT_URI,
-};
-
-const CLIENT_BY_PROVIDER = {
-  google_calendar: INTERNAL_CLIENT,
-  google_gmail: CUSTOMER_CLIENT,
-  google_youtube: CUSTOMER_CLIENT,
-};
-
-function clientForProvider(provider) {
-  return CLIENT_BY_PROVIDER[provider] || CUSTOMER_CLIENT;
-}
 
 export const config = { api: { bodyParser: false }, maxDuration: 15 };
 

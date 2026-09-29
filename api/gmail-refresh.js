@@ -19,16 +19,27 @@
 // header for the full incident + why a revoked grant still can't be
 // auto-fixed past that point (needs a human at Google's consent screen).
 //
+// PER-PROVIDER CLIENT FIX (Atlas, 2026-09-29): the same account can have
+// rows under two different Google Cloud OAuth clients since the 2026-09-01
+// CUSTOMER/INTERNAL split (api/_lib/google-oauth-clients.js) — e.g. a
+// 'google_calendar' row only refreshes under GOOGLE_INTERNAL_CLIENT_ID/
+// SECRET. This endpoint used to always send the CUSTOMER pair for every
+// row regardless of provider, which fails with unauthorized_client on any
+// INTERNAL-issued row. Now passes clientsByProvider so the ladder resolves
+// the right pair per row — see api/_lib/google-refresh-ladder.js header.
+//
 // Auth:  Authorization: Bearer ${CRON_SECRET}
 // Usage: GET /api/gmail-refresh?email=heath.shepard@kw.com
 
 const { refreshWithLadder } = require('./_lib/google-refresh-ladder.js');
+const { buildClients } = require('./_lib/google-oauth-clients.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const { CLIENT_BY_PROVIDER } = buildClients(process.env);
 
 export const config = { maxDuration: 30 };
 
@@ -51,6 +62,11 @@ export default async function handler(req, res) {
       serviceKey: SERVICE_KEY,
       clientId: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
+      clientsByProvider: {
+        google_calendar: CLIENT_BY_PROVIDER.google_calendar,
+        google_gmail: CLIENT_BY_PROVIDER.google_gmail,
+        google_youtube: CLIENT_BY_PROVIDER.google_youtube,
+      },
     });
 
     if (result.outcome === 'healthy' || result.outcome === 'healthy_persist_failed') {
@@ -79,7 +95,8 @@ export default async function handler(req, res) {
       return res.status(502).json({
         error: 'client_config_error',
         detail: result.errorCode,
-        hint: 'GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET rejected by Google — check the Vercel env vars, not consent.',
+        by_provider: result.byProvider,
+        hint: 'Google rejected the client credentials for the provider(s) above — google_calendar means GOOGLE_INTERNAL_CLIENT_ID/SECRET, everything else means GOOGLE_CLIENT_ID/SECRET. Check the Vercel env vars, not consent.',
       });
     }
 
