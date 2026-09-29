@@ -338,3 +338,9 @@ if (failures) {
   process.exit(1);
 }
 console.log('\nAll checks passed.');
+// Explicit exit on the success path — without this, the process hangs
+// indefinitely after all checks pass (an open handle from a required module
+// keeps the event loop alive; found 2026-09-28 while wiring this script into
+// the daily staging auto-merge gate's CI run, which would otherwise burn its
+// full per-script timeout on every single green run, forever).
+process.exit(0);
