@@ -30,6 +30,7 @@
 // Owner: Atlas (Tier 2 build, 2026-06-21).
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+import { classifyTokenResponse } from './_lib/google-refresh-ladder.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -99,13 +100,31 @@ async function refreshGoogleAccessToken(refreshToken) {
   });
   if (!r.ok) {
     const t = await r.text().catch(() => '');
+    let parsed = null;
+    try { parsed = t ? JSON.parse(t) : null; } catch { parsed = null; }
+    // Shared classification (api/_lib/google-refresh-ladder.js, Atlas
+    // 2026-09-28): invalid_grant is a revoked/expired refresh token
+    // (commonly a Workspace admin re-auth policy, not a code bug -- see
+    // api/cron-email-to-dossier.js header comment for the same failure
+    // mode on the Gmail side). But Google returns OTHER named errors for
+    // an equally dead grant -- unauthorized_client, invalid_client,
+    // invalid_request -- and a 2026-09-29 prod recurrence (20 hits in a
+    // ~1000-line log window) proved the old check missed those: it only
+    // matched the literal string "invalid_grant", so `unauthorized_client`
+    // fell through silently and the widget kept serving stale fallback
+    // data with no reconnect button. classifyTokenResponse treats all of
+    // these as non-transient (dead), separate from real transient hiccups
+    // (network errors, 5xx, 429).
+    const classified = classifyTokenResponse({ ok: r.ok, status: r.status, data: parsed });
     const err = new Error(`google_refresh ${r.status}: ${t.slice(0, 200)}`);
-    // Google returns 400 invalid_grant when the refresh token itself has
-    // been revoked/expired (commonly a Workspace admin re-auth policy, not
-    // a code bug -- see api/cron-email-to-dossier.js header comment for the
-    // same failure mode on the Gmail side). Flag it so the caller can tell
-    // "dead token, needs re-consent" apart from a transient Google hiccup.
-    err.isInvalidGrant = r.status === 400 && /invalid_grant/i.test(t);
+    // Kept for any existing caller that only checks isInvalidGrant.
+    err.isInvalidGrant = classified.verdict === 'invalid_grant';
+    // Broader flag: any non-transient OAuth grant failure -- the token (or
+    // the client config) is dead and needs a human to re-consent.
+    err.isAuthDead = classified.verdict === 'invalid_grant'
+      || classified.verdict === 'client_config'
+      || classified.verdict === 'permanent_other';
+    err.googleErrorCode = classified.errorCode || null;
     throw err;
   }
   const data = await r.json();
@@ -249,15 +268,18 @@ export default async function handler(req, res) {
         window: { start: timeMin, end: timeMax, days },
       });
     } catch (err) {
-      console.warn('[jarvis-calendar] google fetch failed:', err.message);
-      // A dead/revoked refresh token (invalid_grant) means the row in
-      // user_integrations exists but is useless -- this must surface as
-      // needs_oauth so the "Connect Google Calendar" button re-appears.
-      // Previously this fell through silently and the widget claimed
-      // "Calendar connected" even though nothing was actually working
-      // (confirmed live 2026-08-12 -- Heath had no way to find the
-      // reconnect button because the UI never showed it).
-      if (err.isInvalidGrant) googleAuthBroken = true;
+      console.warn('[jarvis-calendar] google fetch failed:', err.message, err.googleErrorCode ? `(code=${err.googleErrorCode})` : '');
+      // A dead/revoked refresh token means the row in user_integrations
+      // exists but is useless -- this must surface as needs_oauth so the
+      // "Connect Google Calendar" button re-appears. Previously this fell
+      // through silently and the widget claimed "Calendar connected" even
+      // though nothing was actually working (confirmed live 2026-08-12 --
+      // Heath had no way to find the reconnect button because the UI
+      // never showed it). isAuthDead is deliberately broader than
+      // isInvalidGrant -- see refreshGoogleAccessToken -- because the
+      // 2026-09-29 recurrence was the exact same silent failure via
+      // unauthorized_client instead of invalid_grant.
+      if (err.isAuthDead) googleAuthBroken = true;
       // fall through to local
     }
   }
