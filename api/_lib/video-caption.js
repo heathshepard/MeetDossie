@@ -31,7 +31,11 @@ async function generateCaption(stem, opts = {}) {
     `Generate a 1-2 sentence social media caption for a Dossie video. ` +
     `Topic: ${stem}. ` +
     `Brand: warm AI transaction coordinator for Texas real estate agents. ` +
-    `End with: meetdossie.com/signup. Max 150 chars. Plain ASCII only.`;
+    `Open with the stake in plain language -- never a paragraph number, form number, ` +
+    `or citation as the first words (that is the weakest possible hook; only ~125 chars ` +
+    `show before "more" on Instagram). If you cite a contract paragraph, put it second, ` +
+    `after the plain-language stake, never first. Use a real em dash (\u2014), never "--". ` +
+    `End with: meetdossie.com/signup. Max 150 chars.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {

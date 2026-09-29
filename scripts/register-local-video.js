@@ -40,6 +40,9 @@
 //                                   # posting_schedule slot (queueVariant.js)
 //     [--approve]                   # write heath_approved instead of approved
 //     [--dry-run]                   # gate + print, upload/insert nothing
+//     [--dm-keyword WATER --dm-asset-url https://... --dm-message "..."]
+//         required together if the caption contains "Comment X" — see
+//         api/_lib/caption-structure-gate.js, refused otherwise.
 //
 // ORIENTATION (Atlas 2026-09-26, Cole relay): classifyOrientation() in
 // api/_lib/verify-video-quality.js checks an EXPLICIT orientation argument
@@ -135,6 +138,9 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const approve = process.argv.includes('--approve');
   const scheduledFor = arg('--scheduled-for');
+  const dmKeyword = arg('--dm-keyword');
+  const dmAssetUrl = arg('--dm-asset-url');
+  const dmMessage = arg('--dm-message');
 
   if (!platforms.length) {
     console.error('FAILED: --platforms is required (comma-separated, e.g. tiktok,instagram,facebook)');
@@ -173,6 +179,7 @@ async function main() {
     const out = await queueVariant({
       videoPath, coverPath, id, topic, caption, platforms, owner,
       gateResult, approve, dryRun, scheduledFor,
+      dm_keyword: dmKeyword, dm_asset_url: dmAssetUrl, dm_message: dmMessage,
       extraDetail: { registered_by: 'scripts/register-local-video.js', orientation },
     });
     console.log(JSON.stringify(out, null, 2));

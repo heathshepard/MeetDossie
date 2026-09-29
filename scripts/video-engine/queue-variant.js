@@ -58,6 +58,9 @@
 //     --caption-file caption.txt \
 //     --platforms tiktok,instagram \
 //     [--owner dossie] [--approve] [--dry-run]
+//     [--dm-keyword WATER --dm-asset-url https://... --dm-message "..."]
+//         required together if the caption contains "Comment X" — see
+//         api/_lib/caption-structure-gate.js, refused otherwise.
 
 'use strict';
 
@@ -65,6 +68,8 @@ const fs = require('fs');
 const path = require('path');
 
 require('./env-local.js').load(null, { quiet: true });
+
+const { checkCaptionStructure, checkDmFieldsForCaption } = require('../../api/_lib/caption-structure-gate.js');
 
 // Auto-scheduling (Atlas 2026-09-25 — see api/_lib/video-schedule.js file
 // header). Same module api/register-video.js and scripts/register-local-
@@ -180,12 +185,16 @@ async function resolveScheduledTargets(platforms, owner) {
  *   this script's name ("queue"), a video that gets produced also gets
  *   scheduled, not just inserted with no opinion about when it posts.
  * @param {boolean} o.dryRun
+ * @param {string} [o.dm_keyword]    required if caption contains "Comment X"
+ * @param {string} [o.dm_asset_url]  required if caption contains "Comment X"
+ * @param {string} [o.dm_message]    required if caption contains "Comment X"
  */
 async function queueVariant(o) {
   const {
     videoPath, coverPath, id, topic, caption, platforms,
     owner = 'dossie', gateResult, approve = false, dryRun = false, extraDetail = {},
     scheduledFor: explicitScheduledFor = undefined,
+    dm_keyword = null, dm_asset_url = null, dm_message = null,
   } = o;
 
   // ---- refuse to queue anything the gate did not pass -------------------
@@ -201,6 +210,23 @@ async function queueVariant(o) {
   }
   if (!Array.isArray(platforms) || !platforms.length) {
     throw new Error(`refusing to queue ${id}: no platforms`);
+  }
+
+  // ---- caption structure gate (Sage 2026-09-29) -------------------------
+  // See api/_lib/caption-structure-gate.js header for the live post this
+  // closes. Refused at registration, not caught after it is already posted.
+  const structureCheck = checkCaptionStructure(caption);
+  if (!structureCheck.ok) {
+    throw new Error(`refusing to queue ${id}: ${structureCheck.violations.join('; ')}`);
+  }
+
+  // ---- "Comment X" DM-promise gate (Sage 2026-09-29) --------------------
+  // A caption offering "Comment WATER and I'll DM you..." must not be
+  // queueable without dm_keyword/dm_asset_url/dm_message set — otherwise the
+  // promise ships with nothing behind it, which is the exact bug this closes.
+  const dmCheck = checkDmFieldsForCaption({ caption, dm_keyword, dm_asset_url, dm_message });
+  if (!dmCheck.ok) {
+    throw new Error(`refusing to queue ${id}: ${dmCheck.violations.join('; ')}`);
   }
   if (!fs.existsSync(videoPath)) throw new Error(`video not found: ${videoPath}`);
   if (!fs.existsSync(coverPath)) throw new Error(`cover not found: ${coverPath}`);
@@ -233,6 +259,9 @@ async function queueVariant(o) {
     caption: String(caption).trim(),
     platforms,
     target_owner: owner,
+    dm_keyword,
+    dm_asset_url,
+    dm_message,
     produced_date: new Date().toISOString().slice(0, 10),
     status,
     scheduled_for: scheduledFor,
@@ -294,6 +323,9 @@ async function main() {
     approve: process.argv.includes('--approve'),
     scheduledFor: arg('--scheduled-for'),
     dryRun: process.argv.includes('--dry-run'),
+    dm_keyword: arg('--dm-keyword'),
+    dm_asset_url: arg('--dm-asset-url'),
+    dm_message: arg('--dm-message'),
   });
   console.log(JSON.stringify(out, null, 2));
 }
