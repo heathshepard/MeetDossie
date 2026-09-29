@@ -299,3 +299,13 @@ node_modules
 # hook firing in any checkout/worktree.
 .claude/hooks/logs/
 .claude/hooks/state/
+
+# memory-capture.js staging output — transient JSON written by the extraction
+# sub-turn, read back and deleted by the hook within the same run. Lives at
+# repo ROOT, deliberately NOT under .claude/, because Claude Code treats
+# .claude/ paths as "sensitive" and blocks Write there even under
+# permissions.defaultMode=acceptEdits (discovered empirically 2026-09-28 —
+# the extraction turn correctly proposed real candidates and then silently
+# could not save them). May transiently contain real conversation content
+# before this hook's secret-scan gate runs — must never be committed.
+.memory-capture-tmp/
