@@ -172,6 +172,14 @@ async function executeContractExtractionTool(name, input, { userId }) {
   try {
     const scan = await scanner.scanContract(pdfBase64);
     extracted = scan && scan.extracted;
+    // success:false means the model's response was unparseable or had to be
+    // truncation-repaired — extracted may be all-null or partial, not a
+    // confirmed-complete read. Log loudly so this shows up in Vercel logs
+    // instead of silently persisting whatever (possibly nulled) fields came
+    // back as if the scan were clean. See scan-contract.js MAX_TOKENS comment.
+    if (scan && scan.success === false) {
+      console.error('[contract-extraction-tools] scan reported degraded/truncated extraction:', (scan.warnings || []).join(' | '));
+    }
   } catch (err) {
     console.error('[contract-extraction-tools] scan failed:', err && err.message);
     return { ok: false, error: "I couldn't read that contract just now. Try again in a moment." };
