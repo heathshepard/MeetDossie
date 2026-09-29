@@ -18,22 +18,6 @@
             "type": "command",
             "command": "node .claude/hooks/precompact-handoff.js",
             "timeout": 120
-          },
-          {
-            "type": "command",
-            "command": "node .claude/hooks/memory-capture.js",
-            "timeout": 240
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/memory-capture.js",
-            "timeout": 60
           }
         ]
       }
