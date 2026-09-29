@@ -124,6 +124,11 @@ async function zernio(path, init = {}, budget = null) {
           Accept: 'application/json',
           ...(init.headers || {}),
         },
+        // Atlas, 2026-09-29 — cron-comment-monitor timeout incident. A per-
+        // attempt cap so one slow/hanging Zernio call can't stall the whole
+        // request budget loop. An abort throws the same as any other network
+        // error and lands in this same catch -> {ok:false} contract unchanged.
+        signal: AbortSignal.timeout(6000),
       });
     } catch (err) {
       if (attempt >= 3) return { ok: false, status: 0, error: err.message, data: null };
@@ -180,13 +185,23 @@ async function zernio(path, init = {}, budget = null) {
  * swallowed: an account whose token expired is a silent hole in coverage and
  * has to reach a human.
  */
-async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50, budget = null } = {}) {
+async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50, budget = null, deadlineAt = null } = {}) {
   const posts = [];
   let cursor = null;
   let meta = null;
   const errors = [];
 
   for (let page = 0; page < 10; page += 1) {
+    // 2026-09-29 (Atlas) — measured live: this pagination loop, not the
+    // per-post comment loop, was the actual source of a 53s run (10 real
+    // sequential Zernio pages at several seconds each). The caller's overall
+    // wall-clock deadline has to bound THIS loop too, not just the per-post
+    // one downstream, or a slow/many-paged discovery alone blows the whole
+    // handler's budget before the per-post loop ever starts.
+    if (deadlineAt && Date.now() >= deadlineAt) {
+      errors.push({ stage: 'discovery_deadline', detail: `deadline hit while paging discovery (page ${page}, ${posts.length} posts found so far)` });
+      break;
+    }
     const qs = new URLSearchParams({ minComments: String(minComments), limit: String(limit) });
     if (sinceIso) qs.set('since', sinceIso);
     if (cursor) qs.set('cursor', cursor);
