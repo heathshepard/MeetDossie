@@ -15,10 +15,15 @@
  * memory/feedback_conserve-max-plan-usage.md) for material this hook will
  * catch a few minutes later at the next PreCompact anyway.
  *
- * Defaults to REPORT MODE: extracts, filters, and logs what it would write,
- * writes nothing to any memory file. Set MEMORY_CAPTURE_LIVE=1 to write for
- * real. This is intentional per the build spec — nothing here writes
- * autonomously until a real session's report-mode output has been read.
+ * Defaults to REPORT MODE (MEMORY_CAPTURE_LIVE unset): logs that there is
+ * new content and that it WOULD have extracted, but does not spawn the
+ * `claude -p` extraction at all and writes nothing. Set MEMORY_CAPTURE_LIVE=1
+ * to actually extract and write. This is a deliberate change from the
+ * original spec (which had report mode run the full extraction and only
+ * gate the write) — that version made report mode cost the same as live,
+ * which is exactly backwards for a mode whose whole purpose is to be cheap.
+ * See lib/capture-lock.js for the machine-wide lock + rate limiter that
+ * gates the real (live-mode-only) spawn.
  *
  * Never blocks its own event: PreCompact and SessionEnd both always exit 0.
  * SessionEnd additionally has only a 1.5s DEFAULT shared timeout budget
@@ -31,6 +36,7 @@ const fs = require('fs');
 const path = require('path');
 const util = require(path.join(__dirname, 'lib', 'hook-utils.js'));
 const lib = require(path.join(__dirname, 'lib', 'memory-capture-lib.js'));
+const captureLock = require(path.join(__dirname, 'lib', 'capture-lock.js'));
 
 const LOG_FILE = 'memory-capture.log'; // repo-local, gitignored, METADATA ONLY — never content
 // MUST be inside the repo AND outside .claude/: the extraction sub-turn's
@@ -45,15 +51,17 @@ const LOG_FILE = 'memory-capture.log'; // repo-local, gitignored, METADATA ONLY 
 // See .gitignore for why this directory must never be committed.
 const REPO_ROOT = path.resolve(__dirname, '..', '..'); // .claude/hooks -> repo root
 const OUT_FILE_DIR = path.join(REPO_ROOT, '.memory-capture-tmp');
-const MIN_RERUN_INTERVAL_MS = 5 * 60 * 1000; // throttle back-to-back firings
-const LOCK_STALE_MS = 3 * 60 * 1000; // a crashed/killed run should not jam this forever
+// Cheap, LOCAL, per-session backstop only — avoids redundant excerpt reads
+// when the SAME session_id fires repeatedly in a tight window (SessionEnd
+// has been observed firing every 10-50s in a busy multi-agent session).
+// This is NOT the concurrency-safety mechanism (a per-session anything
+// can't be — see capture-lock.js header for why) — that job now belongs
+// entirely to the machine-wide lock + rate limiter in lib/capture-lock.js,
+// checked in runCapture() immediately before the expensive spawn.
+const MIN_RERUN_INTERVAL_MS = 5 * 60 * 1000; // throttle back-to-back firings, same session only
 
 function watermarkKey(sessionId) {
   return `memory-capture-watermark-${(sessionId || 'unknown').slice(0, 12)}.json`;
-}
-
-function lockKey(sessionId) {
-  return `memory-capture-lock-${(sessionId || 'unknown').slice(0, 12)}.txt`;
 }
 
 function readWatermark(cwd, sessionId) {
@@ -64,29 +72,6 @@ function readWatermark(cwd, sessionId) {
 
 function writeWatermark(cwd, sessionId, state) {
   util.writeState(cwd, watermarkKey(sessionId), JSON.stringify(state));
-}
-
-/**
- * Simple mutex so two overlapping firings for the same session (observed in
- * practice: this environment fires SessionEnd every 10-50s during a busy
- * multi-agent/background-dispatch session, nothing like the "session truly
- * ends" cadence the docs describe for an interactive terminal) can't both
- * spawn a `claude -p` extraction at once. A stale lock (owner crashed/timed
- * out) is treated as free after LOCK_STALE_MS rather than jamming forever.
- */
-function tryAcquireLock(cwd, sessionId) {
-  const key = lockKey(sessionId);
-  const existing = util.readState(cwd, key);
-  if (existing) {
-    const age = Date.now() - Number(existing || 0);
-    if (Number.isFinite(age) && age < LOCK_STALE_MS) return false;
-  }
-  util.writeState(cwd, key, String(Date.now()));
-  return true;
-}
-
-function releaseLock(cwd, sessionId) {
-  util.clearState(cwd, lockKey(sessionId));
 }
 
 function main() {
@@ -110,39 +95,26 @@ function main() {
   const watermark = readWatermark(cwd, sessionId);
   const sinceLastAttemptMs = Date.now() - (watermark.lastAttemptAt || watermark.lastRunAt || 0);
 
-  // Throttle covers every trigger EXCEPT a manual /compact, which is a
-  // deliberate one-off user action worth honoring immediately. Measured
-  // against lastAttemptAt (set below, BEFORE the spawn) rather than
-  // lastRunAt (only set on success) — a run that errors or times out still
-  // counts as an attempt, otherwise a failing extraction retries in a tight
-  // loop instead of backing off. See LOCK_STALE_MS / tryAcquireLock for the
-  // companion fix: this throttle alone doesn't stop two firings that land
-  // within the same instant from both slipping through before either has
-  // written lastAttemptAt.
+  // Cheap local backstop covers every trigger EXCEPT a manual /compact
+  // (a deliberate one-off user action worth honoring immediately). Measured
+  // against lastAttemptAt (set below) rather than lastRunAt (only set on
+  // success) — a run that errors or times out still counts as an attempt,
+  // otherwise a failing extraction retries in a tight loop instead of
+  // backing off. This does NOT provide concurrency safety by itself (see
+  // capture-lock.js header) — that's the machine-wide gate checked inside
+  // runCapture(), right before the expensive spawn.
   if (trigger !== 'manual' && sinceLastAttemptMs < MIN_RERUN_INTERVAL_MS) {
     util.appendLog(cwd, LOG_FILE, { level: 'SKIP_THROTTLE', event, trigger, sinceLastAttemptMs });
     process.exit(0);
   }
 
-  if (!tryAcquireLock(cwd, sessionId)) {
-    util.appendLog(cwd, LOG_FILE, { level: 'SKIP_LOCKED', event, trigger });
-    process.exit(0);
-  }
-
-  // Record the attempt immediately, before the (slow) extraction spawn, so a
-  // second overlapping firing that arrives before this one finishes sees a
-  // fresh lastAttemptAt and backs off via the throttle above too.
+  // Record the attempt immediately, before any slow work, so a second
+  // overlapping firing for this SAME session that arrives before this one
+  // finishes sees a fresh lastAttemptAt and backs off via the throttle
+  // above too.
   writeWatermark(cwd, sessionId, { ...watermark, lastAttemptAt: Date.now() });
 
-  // Everything below holds the lock — always release it, on every exit path,
-  // including an unexpected throw. A held lock past LOCK_STALE_MS free-fixes
-  // itself, but there's no reason to make the next firing wait 3 minutes for
-  // a run that actually finished cleanly.
-  try {
-    runCapture({ cwd, event, trigger, sessionId, transcriptPath, live, watermark });
-  } finally {
-    releaseLock(cwd, sessionId);
-  }
+  runCapture({ cwd, event, trigger, sessionId, transcriptPath, live, watermark });
 }
 
 // SessionEnd's real budget is much smaller than PreCompact's (see file
@@ -170,65 +142,98 @@ function runCapture({ cwd, event, trigger, sessionId, transcriptPath, live, wate
     });
   }
 
-  try { fs.mkdirSync(OUT_FILE_DIR, { recursive: true }); } catch (e) { /* ignore */ }
-  const outFile = path.join(OUT_FILE_DIR, `${sessionId.slice(0, 12)}-${Date.now()}.json`);
-
-  const memoryIndexText = lib.readMemoryIndexText();
-  const existingFilenames = lib.readExistingMemoryFilenames();
-  const claudeMdText = lib.readClaudeMdText();
-  const sessionDate = new Date().toISOString().slice(0, 10);
-
-  const prompt = lib.buildExtractionPrompt({
-    excerpt, memoryIndexText, existingFilenames, claudeMdText, outFile, sessionDate,
-  });
-
-  // Measured for real against a 150k-char excerpt + ~200KB total prompt
-  // (CLAUDE.md + MEMORY.md index + excerpt): completions ran 46s-180s, one
-  // run hit a 100s cap that turned out to be a real completion, not a hang.
-  // PreCompact's settings.json timeout was raised to 240s to match (see
-  // settings.json) — this internal spawn timeout stays a little under that
-  // so the hook can still log an ERROR and release its lock cleanly instead
-  // of being hard-killed by Claude Code's own hook timeout. SessionEnd is
-  // capped by the shared-budget rule in the file header, so it additionally
-  // gets a smaller excerpt cap (see maxExcerptChars below), not just a
-  // shorter spawn timeout.
-  const timeoutMs = event === 'SessionEnd' ? 45000 : 220000;
-
-  const { candidates, error: extractError } = lib.runExtraction({ cwd, prompt, outFile, timeoutMs });
-  try { fs.unlinkSync(outFile); } catch (e) { /* best effort cleanup */ }
-
-  if (extractError) {
-    util.appendLog(cwd, LOG_FILE, { level: 'ERROR', event, msg: extractError });
-    // Do NOT advance the watermark's offset on a failed extraction — retry
-    // the same delta next time instead of silently losing it. lastAttemptAt
-    // was already written above, so the throttle still backs this off.
+  // REPORT MODE: genuinely cheap. There IS new content, but report mode
+  // never spawns `claude -p` — log that it would have and stop. Deliberately
+  // does NOT touch capture-lock.js at all (no lock acquire, no rate-limit or
+  // daily-cap consumption) — that ledger exists to bound spawn cost, and
+  // report mode has no spawn cost to bound. Offset is NOT advanced, so this
+  // same delta is what live mode (or a future firing) will see.
+  if (!live) {
+    util.appendLog(cwd, LOG_FILE, {
+      level: 'REPORT_WOULD_EXTRACT',
+      event,
+      trigger,
+      excerptChars: excerpt.length,
+      truncated,
+    });
     return;
   }
 
-  const { accepted, rejected } = lib.validateAndFilterCandidates(candidates, { existingFilenames });
+  // LIVE MODE from here on — this is the expensive path. Gate it globally
+  // before spawning anything. gate() itself logs the reason (to
+  // capture-lock.js's REASON_LOG, the one file for "why did/didn't capture
+  // run") on every outcome, pass or skip.
+  const gateResult = captureLock.gate({ event, sessionId });
+  if (!gateResult.allowed) {
+    util.appendLog(cwd, LOG_FILE, { level: 'SKIP_GATE', event, trigger, reason: gateResult.reason });
+    // Do NOT advance offset — this delta is still pending. The next firing
+    // (this session or any other) picks it up once the gate opens again.
+    return;
+  }
 
-  const appliedNew = live ? lib.applyCaptures(accepted, { live, sessionId }) : lib.applyCaptures(accepted, { live: false, sessionId });
-  const indexResult = lib.updateMemoryIndex(appliedNew, { live });
+  try {
+    try { fs.mkdirSync(OUT_FILE_DIR, { recursive: true }); } catch (e) { /* ignore */ }
+    const outFile = path.join(OUT_FILE_DIR, `${sessionId.slice(0, 12)}-${Date.now()}.json`);
 
-  const logPath = lib.writeCaptureSessionLog({
-    sessionId, event, trigger, live, accepted, rejected, indexResult, error: null, truncated, fullChars,
-  });
+    const memoryIndexText = lib.readMemoryIndexText();
+    const existingFilenames = lib.readExistingMemoryFilenames();
+    const claudeMdText = lib.readClaudeMdText();
+    const sessionDate = new Date().toISOString().slice(0, 10);
 
-  util.appendLog(cwd, LOG_FILE, {
-    level: 'RUN',
-    event,
-    trigger,
-    live,
-    candidatesRaw: Array.isArray(candidates) ? candidates.length : 0,
-    accepted: accepted.length,
-    rejected: rejected.length,
-    indexAdded: indexResult.added,
-    indexPending: indexResult.pending,
-    indexCapHit: indexResult.capHit,
-    sessionLog: logPath,
-  });
+    const prompt = lib.buildExtractionPrompt({
+      excerpt, memoryIndexText, existingFilenames, claudeMdText, outFile, sessionDate,
+    });
 
-  writeWatermark(cwd, sessionId, { offset: newOffset, lastRunAt: Date.now(), lastAttemptAt: Date.now() });
+    // Measured for real against a 150k-char excerpt + ~200KB total prompt
+    // (CLAUDE.md + MEMORY.md index + excerpt): completions ran 46s-180s, one
+    // run hit a 100s cap that turned out to be a real completion, not a hang.
+    // PreCompact's settings.json timeout was raised to 240s to match (see
+    // settings.json) — this internal spawn timeout stays a little under that
+    // so the hook can still log an ERROR and release its lock cleanly instead
+    // of being hard-killed by Claude Code's own hook timeout. SessionEnd is
+    // capped by the shared-budget rule in the file header, so it additionally
+    // gets a smaller excerpt cap (see maxExcerptChars below), not just a
+    // shorter spawn timeout.
+    const timeoutMs = event === 'SessionEnd' ? 45000 : 220000;
+
+    const { candidates, error: extractError } = lib.runExtraction({ cwd, prompt, outFile, timeoutMs });
+    try { fs.unlinkSync(outFile); } catch (e) { /* best effort cleanup */ }
+
+    if (extractError) {
+      util.appendLog(cwd, LOG_FILE, { level: 'ERROR', event, msg: extractError });
+      // Do NOT advance the watermark's offset on a failed extraction — retry
+      // the same delta next time instead of silently losing it. lastAttemptAt
+      // was already written above, so the throttle still backs this off.
+      return;
+    }
+
+    const { accepted, rejected } = lib.validateAndFilterCandidates(candidates, { existingFilenames });
+
+    const appliedNew = lib.applyCaptures(accepted, { live: true, sessionId });
+    const indexResult = lib.updateMemoryIndex(appliedNew, { live: true });
+
+    const logPath = lib.writeCaptureSessionLog({
+      sessionId, event, trigger, live, accepted, rejected, indexResult, error: null, truncated, fullChars,
+    });
+
+    util.appendLog(cwd, LOG_FILE, {
+      level: 'RUN',
+      event,
+      trigger,
+      live,
+      candidatesRaw: Array.isArray(candidates) ? candidates.length : 0,
+      accepted: accepted.length,
+      rejected: rejected.length,
+      indexAdded: indexResult.added,
+      indexPending: indexResult.pending,
+      indexCapHit: indexResult.capHit,
+      sessionLog: logPath,
+    });
+
+    writeWatermark(cwd, sessionId, { offset: newOffset, lastRunAt: Date.now(), lastAttemptAt: Date.now() });
+  } finally {
+    gateResult.release();
+  }
 }
 
 try {

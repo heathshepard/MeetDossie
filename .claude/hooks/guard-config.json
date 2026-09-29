@@ -7,5 +7,12 @@
     "worktree_isolation_required": true,
     "browser_preflight_required": true,
     "no_unverified_send_retry": true
+  },
+  "memory_capture": {
+    "_comment": "Global (machine-wide) lock + rate limiter for the memory-capture hook. See .claude/hooks/lib/capture-lock.js. 'enabled': false is a hard kill switch, independent of the MEMORY_CAPTURE_LIVE env var — flips the hook to skip-and-log everywhere without touching settings.json.",
+    "enabled": true,
+    "rate_limit_minutes": 30,
+    "daily_max_extractions": 12,
+    "lock_stale_ms": 300000
   }
 }
