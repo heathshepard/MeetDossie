@@ -164,8 +164,14 @@ async function handler(req, res) {
   const sinceIso = new Date(Date.now() - LOOKBACK_DAYS * 86400 * 1000).toISOString();
   const errors = [];
 
+  // Single absolute deadline for the WHOLE handler (discovery paging AND the
+  // per-post comment loop below), not just the per-post loop. Measured live:
+  // discovery's own pagination (up to 10 sequential Zernio pages) was able to
+  // consume the entire budget on its own before the per-post loop ever ran.
+  const deadlineAt = handlerStart + DEADLINE_MS;
+
   // 1. Ask the PLATFORM which posts have comments.
-  const discovery = await listCommentedPosts({ minComments: 1, sinceIso, budget });
+  const discovery = await listCommentedPosts({ minComments: 1, sinceIso, budget, deadlineAt });
   errors.push(...discovery.errors);
 
   // An account that failed to answer is a hole in coverage, not a rounding
@@ -192,10 +198,12 @@ async function handler(req, res) {
       ok: true,
       items: 0,
       posts_with_comments: 0,
+      deadline_hit: discovery.errors.some((e) => e.stage === 'discovery_deadline'),
       comments_seen: 0,
       requests_used: budget.used,
       account_failures: discovery.errors.filter((e) => e.stage === 'account').length,
       errors: errors.slice(0, 5),
+      duration_ms: Date.now() - handlerStart,
     });
   }
 
@@ -205,12 +213,12 @@ async function handler(req, res) {
   let ownSkipped = 0;
   const rows = [];
 
-  // Deadline budget from cron entry, not from here — the discovery call
-  // above (step 1) already spends part of the 15s. Concurrency bounded at
-  // CONCURRENCY_LIMIT; the shared request `budget` (Zernio call cap) is still
-  // honored inside the worker exactly as it was in the sequential loop.
-  const deadlineAt = handlerStart + DEADLINE_MS;
-  const { deadlineHit, remaining: postsNotScanned } = await mapWithConcurrency(posts, deadlineAt, async (post) => {
+  // Same absolute deadline as discovery above — the discovery call already
+  // spent part of the 15s budget; whatever's left is what the per-post loop
+  // gets. Concurrency bounded at CONCURRENCY_LIMIT; the shared request
+  // `budget` (Zernio call cap) is still honored inside the worker exactly as
+  // it was in the sequential loop.
+  const { deadlineHit: perPostDeadlineHit, remaining: postsNotScanned } = await mapWithConcurrency(posts, deadlineAt, async (post) => {
     if (budget.exhausted) { errors.push({ stage: 'budget', detail: 'request budget exhausted mid-scan' }); return; }
     const { comments, errors: cerr } = await getPostComments({
       postId: post.id, accountId: post.accountId, platform: post.platform, budget,
@@ -225,7 +233,9 @@ async function handler(req, res) {
       rows.push(toRow(c, post));
     }
   });
-  if (deadlineHit) {
+  const discoveryDeadlineHit = discovery.errors.some((e) => e.stage === 'discovery_deadline');
+  const deadlineHit = discoveryDeadlineHit || perPostDeadlineHit;
+  if (perPostDeadlineHit) {
     errors.push({ stage: 'deadline', detail: `${DEADLINE_MS}ms budget hit, ${postsNotScanned} of ${posts.length} posts not scanned this tick` });
   }
 
