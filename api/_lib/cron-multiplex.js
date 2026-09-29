@@ -72,10 +72,52 @@ const { recordCronRun } = require('./cron-telemetry.js');
 
 // Per-member deadline (Atlas, 2026-09-29) — see the INCIDENT this fixes in
 // the header block above runGroup(). Overridable per handler entry via
-// `{ name, mod, timeoutMs }`. Default chosen so N members racing this bound
-// concurrently still land well inside every existing dispatcher's own
-// maxDuration (the tightest is every15's 40s).
-const DEFAULT_MEMBER_TIMEOUT_MS = 20000;
+// `{ name, mod, timeoutMs }`.
+//
+// REGRESSION FOUND AND FIXED SAME DAY: a flat 20000ms default (this file's
+// first version) is correct for every15's 40s budget but WRONG for every
+// 300s-budget group (every20, daily-1000, daily-1100) — those exist
+// specifically because cron-post-videos / cron-generate-posts / etc.
+// legitimately need minutes, not seconds. A flat 20s default would have
+// raced them down to 504 member_timeout on every single run: Heath's videos
+// silently stop posting and his daily content silently stops generating —
+// worse than the timeout-flood incident this file fixes, and the same
+// silent-failure class that already burned him once (2026-09-28, a video
+// produced and never posted).
+//
+// FIX: the per-member default now DERIVES from the group's own budget
+// (`budgetMs`, passed by the caller — see runGroup below), instead of being
+// a fixed constant. Formula: `Math.max(FLOOR_MS, budgetMs - RESERVE_MS)`.
+//   RESERVE_MS=10000  leaves headroom inside the function's own maxDuration
+//                     for: the top-level auth check, JSON-stringifying the
+//                     final response, and Vercel's own invocation overhead
+//                     — all of which happen AFTER every member either
+//                     finishes or times out. Without this reserve, a member
+//                     racing right up to the full budget could still cause
+//                     the group itself to blow its maxDuration even though
+//                     no single member "misbehaved."
+//   FLOOR_MS=15000    a floor so a very tight group budget (the 20s daily-
+//                     1200/1330/1400 buckets) doesn't get squeezed to
+//                     something silly-short — 15s is still enough for every
+//                     member in those groups to complete normally (they're
+//                     the ones proven fast in the every15 incident
+//                     investigation), while still leaving ~5s of the 20s
+//                     ceiling as dispatcher overhead margin.
+// Examples: 300000ms group -> 290000ms per member (cron-post-videos keeps
+// ~290s). 40000ms group (every15) -> 30000ms per member. 20000ms group ->
+// 15000ms (floor).
+//
+// If a caller genuinely can't pass budgetMs, the fallback must fail toward
+// "a slow job still runs" rather than "a working job gets killed" — so it
+// assumes a LONG budget (same as the 300s groups), not a short one.
+const MEMBER_TIMEOUT_RESERVE_MS = 10000;
+const MEMBER_TIMEOUT_FLOOR_MS = 15000;
+const FALLBACK_BUDGET_MS = 300000; // assumed when a caller omits budgetMs entirely
+
+function deriveDefaultMemberTimeoutMs(budgetMs) {
+  const budget = (typeof budgetMs === 'number' && budgetMs > 0) ? budgetMs : FALLBACK_BUDGET_MS;
+  return Math.max(MEMBER_TIMEOUT_FLOOR_MS, budget - MEMBER_TIMEOUT_RESERVE_MS);
+}
 
 // Top-level dispatcher gate. Mirrors the exact check every individual
 // sub-handler already does (x-vercel-cron header set by Vercel's own cron
@@ -117,10 +159,17 @@ function makeShimRes(name) {
 
 /**
  * @param {object} req - the real incoming request (headers forwarded as-is)
- * @param {Array<{name: string, mod: Function}>} handlers
+ * @param {Array<{name: string, mod: Function, timeoutMs?: number}>} handlers
+ * @param {{budgetMs?: number}} [options] - the CALLING dispatcher's own
+ *   `module.exports.config.maxDuration` in MILLISECONDS (maxDuration is
+ *   declared in seconds; multiply by 1000). Every dispatcher should pass
+ *   this — see the individual cron-dispatch-*.js files for the pattern that
+ *   keeps the two numbers from drifting apart (one shared constant used for
+ *   both `budgetMs` and `maxDuration`).
  * @returns {Promise<Array<{name: string, status: number, body: any, error?: string}>>}
  */
-async function runGroup(req, handlers) {
+async function runGroup(req, handlers, options = {}) {
+  const defaultMemberTimeoutMs = deriveDefaultMemberTimeoutMs(options.budgetMs);
   // Per-member start/finish timing (Atlas, 2026-09-29) — added while chasing
   // a chronic 40s Task-timeout flood on cron-dispatch-every15 (~500 Vercel
   // emails, 96 invocations/day). Promise.all means the whole dispatcher hard
@@ -142,7 +191,7 @@ async function runGroup(req, handlers) {
     const t0 = Date.now();
     const timeoutMs = (typeof h.timeoutMs === 'number' && h.timeoutMs > 0)
       ? h.timeoutMs
-      : DEFAULT_MEMBER_TIMEOUT_MS;
+      : defaultMemberTimeoutMs;
     console.log(`[cron-multiplex] start ${h.name}`);
 
     const work = (async () => {
@@ -186,4 +235,4 @@ async function runGroup(req, handlers) {
   return Promise.all(jobs);
 }
 
-module.exports = { runGroup, makeShimRes, isAuthorizedDispatch };
+module.exports = { runGroup, makeShimRes, isAuthorizedDispatch, deriveDefaultMemberTimeoutMs };

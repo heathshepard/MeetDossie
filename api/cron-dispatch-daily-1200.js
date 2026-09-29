@@ -21,6 +21,13 @@
 
 const { runGroup, isAuthorizedDispatch } = require('./_lib/cron-multiplex.js');
 
+// Single source of truth for this dispatcher's time budget -- used for BOTH
+// the per-member deadline default (runGroup's budgetMs below) and Vercel's
+// own maxDuration a few lines down, so the two can never drift apart (Atlas,
+// 2026-09-29 -- a flat per-member default previously killed 300s-budget
+// members like cron-post-videos at 20s; see api/_lib/cron-multiplex.js).
+const MAX_DURATION_S = 20;
+
 const HANDLERS = [
   { name: 'cron-followup', mod: require('./cron-followup.js') },
   { name: 'cron-morning-brief', mod: require('./cron-morning-brief.js') },
@@ -36,7 +43,7 @@ module.exports = async function handler(req, res) {
   if (!isAuthorizedDispatch(req)) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
-  const results = await runGroup(req, HANDLERS);
+  const results = await runGroup(req, HANDLERS, { budgetMs: MAX_DURATION_S * 1000 });
   const anyFail = results.some((r) => r.status >= 400);
   return res.status(anyFail ? 207 : 200).json({
     ok: !anyFail,
@@ -47,4 +54,4 @@ module.exports = async function handler(req, res) {
   });
 };
 
-module.exports.config = { maxDuration: 20 };
+module.exports.config = { maxDuration: MAX_DURATION_S };
