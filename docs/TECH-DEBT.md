@@ -10,6 +10,8 @@
 
 ---
 
+- **Money-stack contract extraction + offer net sheet** — `api/scan-contract.js` now extracts the full money stack (¶3A/B/C, ¶12A(1)(b) seller concession, ¶12B(1)/(2) brokerage compensation, ¶7H service contract cap, ¶6A title policy payer, ¶6C survey payer, ¶11 special-provisions flag) into `extracted.moneyStack`, and `api/_lib/offer-net-sheet.js` + `POST /api/offer-net-sheet` compute a net sheet off it (payoff required input, customary TX seller costs labeled `estimate_default`). NOT YET wired: (1) no Dossie React UI panel calls `/api/offer-net-sheet` — API-only today; (2) money-stack fields are not persisted onto the `transactions` row, so `/api/net-sheet`'s `loadTransactionDefaults()` can't see them yet; (3) the live acceptance test (`api/scan-contract-fawndale.live.test.mjs`, real 702 Fawndale PDF) has not been run against the real model — this sandbox has no `ANTHROPIC_API_KEY` by design (CLAUDE.md "local env mostly empty"). Run it against staging/Vercel before treating the extraction as field-verified; the mocked regression (`api/scan-contract-money-stack.mock.test.mjs`) proves the parsing code, not the model's real read. 2026-09-29.
+
 ## NOT DONE / ACTIVE BLOCKERS
 
 - Brokerage compliance document sending (specced, not built — high value)

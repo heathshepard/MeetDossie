@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseCheckedOption } = require('./checkbox-election');
+const { parseCheckedOption, parseCheckedParty, parseDollarOrPercentElection } = require('./checkbox-election');
 
 // The real verbatim shape captured off 23 Nopalito's actual executed
 // contract (¶6C, page 3 of the TREC 20-19) — box (1) is checked, confirmed
@@ -49,4 +49,65 @@ test('null/empty/non-string input never throws, returns null', () => {
   assert.equal(parseCheckedOption(undefined), null);
   assert.equal(parseCheckedOption(''), null);
   assert.equal(parseCheckedOption(42), null);
+});
+
+// ---------------------------------------------------------------------------
+// parseCheckedParty — ¶6A "who pays for the title policy" style election.
+// ---------------------------------------------------------------------------
+
+test('parseCheckedParty: the real Nopalito ¶6C nested shape ("[ ] Seller\'s [X] Buyer\'s expense") — Buyer checked', () => {
+  const text = "Buyer shall obtain a new survey at [ ] Seller's [X] Buyer's expense no later than 3 days prior to Closing Date.";
+  assert.equal(parseCheckedParty(text), 'Buyer');
+});
+
+test('parseCheckedParty: mark BEFORE the word — Seller checked', () => {
+  const text = "Seller shall furnish to Buyer at [X] Seller's [ ] Buyer's expense a Title Policy.";
+  assert.equal(parseCheckedParty(text), 'Seller');
+});
+
+test('parseCheckedParty: nothing checked returns null, never guesses', () => {
+  const text = "Seller shall furnish to Buyer at [ ] Seller's [ ] Buyer's expense a Title Policy.";
+  assert.equal(parseCheckedParty(text), null);
+});
+
+test('parseCheckedParty: both checked (contradictory) returns null', () => {
+  const text = "at [X] Seller's [X] Buyer's expense";
+  assert.equal(parseCheckedParty(text), null);
+});
+
+test('parseCheckedParty: null/empty/non-string input never throws, returns null', () => {
+  assert.equal(parseCheckedParty(null), null);
+  assert.equal(parseCheckedParty(undefined), null);
+  assert.equal(parseCheckedParty(''), null);
+  assert.equal(parseCheckedParty(42), null);
+});
+
+// ---------------------------------------------------------------------------
+// parseDollarOrPercentElection — ¶12B(1)/(2) brokerage compensation.
+// ---------------------------------------------------------------------------
+
+test('parseDollarOrPercentElection: percentage checked — the 702 Fawndale ¶12B(1) shape (3% BAC)', () => {
+  const text = '12B(1) At closing, Seller shall pay Other Broker a fee of [ ] $_____ or [X] 3.000 % of the Sales Price.';
+  assert.deepEqual(parseDollarOrPercentElection(text), { amount: null, percentage: 3 });
+});
+
+test('parseDollarOrPercentElection: dollar amount checked', () => {
+  const text = 'At closing, Seller shall pay Other Broker a fee of [X] $ 5,500.00 or [ ] _____% of the Sales Price.';
+  assert.deepEqual(parseDollarOrPercentElection(text), { amount: 5500, percentage: null });
+});
+
+test('parseDollarOrPercentElection: neither checked (¶12B(2) commonly blank) returns both null, not an error', () => {
+  const text = '12B(2) At closing, Buyer shall pay Other Broker a fee of [ ] $_____ or [ ] _____% of the Sales Price.';
+  assert.deepEqual(parseDollarOrPercentElection(text), { amount: null, percentage: null });
+});
+
+test('parseDollarOrPercentElection: both checked (contradictory) returns both null rather than guessing', () => {
+  const text = '[X] $ 5,000.00 or [X] 3.000 % of the Sales Price.';
+  assert.deepEqual(parseDollarOrPercentElection(text), { amount: null, percentage: null });
+});
+
+test('parseDollarOrPercentElection: null/empty/non-string input never throws', () => {
+  assert.deepEqual(parseDollarOrPercentElection(null), { amount: null, percentage: null });
+  assert.deepEqual(parseDollarOrPercentElection(undefined), { amount: null, percentage: null });
+  assert.deepEqual(parseDollarOrPercentElection(''), { amount: null, percentage: null });
 });

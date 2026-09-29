@@ -12,7 +12,7 @@ const {
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
 const { addCalendarDaysYMD, rollForwardYMD } = require('./_lib/business-calendar.js');
-const { parseCheckedOption } = require('./_lib/checkbox-election.js');
+const { parseCheckedOption, parseCheckedParty, parseDollarOrPercentElection } = require('./_lib/checkbox-election.js');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -494,12 +494,14 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   6. Return the final verified value as salePrice (plain number, no commas or dollar signs).
   Example: 3A = $8,750, 3B = $241,250, stated 3C = $260,000 but calculated = $250,000 → use $250,000.
   Sanity check: Sales price should typically be between $50,000 and $5,000,000 for Texas residential.
+  ALSO extract salePriceCash (the raw 3A figure) and salePriceFinanced (the raw 3B figure) as their own top-level numbers — these are part of the money stack (how much is cash vs. financed), not just a check on 3C. Null if a line is genuinely blank (e.g. an all-cash deal has no 3B).
 - Paragraph 4 LICENSE HOLDER DISCLOSURE: usually about agent affiliation, ignore for deal fields.
 - Paragraph 5 EARNEST MONEY AND TERMINATION OPTION:
   CRITICAL — OPTION DAYS: Read ONLY the text content of Paragraph 5B (labeled "TERMINATION OPTION" or "Option Period"). Do NOT read any other paragraph. From the Paragraph 5B text ONLY, extract ALL numbers that appear. Filter these numbers to only those in the range 3-30 (reasonable option period). If multiple numbers in this range exist in Paragraph 5B, take the FIRST number that appears before the phrase "days after the Effective Date". This is the termination option period. Common values: 5, 7, 10. By reading ONLY Paragraph 5B content, you avoid accidentally extracting survey days (Paragraph 6C) or appraisal days (elsewhere). Return as integer into optionDays. Paragraph 5B also states the Option Fee dollar amount ("Buyer must pay Seller $___ (Option Fee)") — extract that into optionFee.
   Also pull earnest money amounts from 5A, and the "earnest money holder" — the title company / escrow agent named on the 5A line — into paragraph5.earnestMoneyHolder, and the deadline (typically "within X days after the Effective Date") into paragraph5.earnestMoneyDeadlineDays. If the contract calls for additional earnest money on a later date, capture both into paragraph5.additionalEarnestMoney and paragraph5.additionalEarnestMoneyDate (yyyy-MM-dd).
   CRITICAL — DOLLAR AMOUNTS ARE HANDWRITTEN/FILLED-IN BLANKS: earnestMoney (5A) and optionFee (5B) are the two figures most often missed because they're filled into a blank rather than printed — read the actual digits carefully, don't assume a "typical" value, and don't return null just because the figure is handwritten. This is exactly why debugParagraph5A and debugParagraph5B exist below — deterministic code re-parses those verbatim strings as a backstop.
 - Paragraph 6 TITLE POLICY AND SURVEY: 6A title company name and address. 6D typically contains title objection deadlines — DO NOT extract these as the closing date.
+  CRITICAL — ¶6A WHO PAYS FOR THE OWNER'S TITLE POLICY: Paragraph 6A states who pays for the Owner Policy of Title Insurance — most commonly printed as "Seller shall furnish to Buyer at [ ] Seller's [ ] Buyer's expense" with a checkbox election (the printed form usually defaults to Seller's expense; some contracts mark Buyer instead, or split it). ALWAYS populate debugParagraph6A with the exact verbatim text of Paragraph 6A's expense election, with the checkbox mark written IMMEDIATELY BEFORE the word it belongs to exactly as printed — "[X] Seller's" or "[ ] Buyer's", never reordered — same convention as debugParagraph6C's checkbox marks. Do not resolve which party pays yourself; deterministic code parses debugParagraph6A afterward the same way it parses debugParagraph6C. Do NOT populate titlePolicyPayer yourself — always return null for it; it is computed server-side from debugParagraph6A.
 - Paragraph 9 CLOSING and POSSESSION:
   CRITICAL — CLOSING DATE: Look in Paragraph 9.A for the line that says "The Closing of the sale will be on or before" followed by a specific date. This is the CLOSING DATE — the date the transaction is scheduled to close/fund. Extract ONLY this date into closingDate (top-level) and mirror into paragraph9Closing.closingDate. DO NOT confuse this with title objection deadlines from Paragraph 6D, survey deadlines, or any other deadline. The closing date is the final date when ownership transfers and funds are exchanged.
   Possession is in 9.B — there are checkbox options for "upon closing and funding", "upon closing", or "according to a temporary residential lease form" / a specific date.
@@ -507,11 +509,17 @@ FIELD LOCATIONS BY PARAGRAPH (TREC 20-16 / 20-17):
   - A specific date -> possession.type = "specific_date" and possession.specificDate = yyyy-MM-dd
   Mirror the same values into paragraph9Closing.possessionType and paragraph9Closing.possessionDate.
 - Paragraph 7 PROPERTY CONDITION: Scan this paragraph for TWO distinct things:
-  1. Residential Service Contracts ("home warranty"): look for language about Buyer purchasing a residential service contract from a company licensed by TREC, and whether Seller will pay/reimburse for it and up to what dollar amount. Capture a one-sentence free-text summary into paragraph7HomeWarranty, e.g. "Seller to pay up to $500 toward a home warranty Buyer purchases" or "No residential service contract" if the box is unchecked/blank. If there is no such provision on the form at all, return null.
+  1. Residential Service Contracts ("home warranty") — Paragraph 7H specifically: look for language about Buyer purchasing a residential service contract from a company licensed by TREC, and whether Seller will pay/reimburse for it and up to what dollar amount ("an amount not to exceed $___"). Capture a one-sentence free-text summary into paragraph7HomeWarranty, e.g. "Seller to pay up to $500 toward a home warranty Buyer purchases" or "No residential service contract" if the box is unchecked/blank. If there is no such provision on the form at all, return null.
+     ALSO extract the SAME dollar cap as a plain number into the top-level serviceContractCap field (e.g. 800 for "not to exceed $800.00") — this is the structured, money-stack version of the same figure paragraph7HomeWarranty describes in prose; null if the box is unchecked/blank/not present. ALWAYS populate debugParagraph7H with the exact verbatim text of the Paragraph 7H residential-service-contract sentence (including the dollar figure and any checkbox marks), null only if Paragraph 7H genuinely does not exist on this form.
   2. Negotiated repairs: any language where Seller has agreed to complete specific repairs before closing (this is uncommon directly in the base contract — more often found in Paragraph 11 Special Provisions or as an attached repair amendment, so check there too). Capture a free-text summary into paragraph7Repairs, e.g. "Seller to repair the fence and replace the HVAC filter before closing." If none found anywhere in the contract or its addenda, return null.
 - Paragraph 10 POSSESSION / FIXTURES (the "items included / not included" list): TREC 20-17 lists standard items (curtains, drapery rods, mounted TV brackets, etc.) and has write-in lines for additional inclusions and for exclusions. Capture each non-default included item into paragraph10.inclusions[] and each excluded item into paragraph10.exclusions[]. Don't enumerate items the form lists as included by default; only capture write-in additions/removals.
-- Paragraph 11 SPECIAL PROVISIONS: free-text block. Capture the entire content verbatim (including line breaks as \\n) into paragraph11SpecialProvisions. Trim leading/trailing whitespace. If the field is blank, return null.
-- Paragraph 12 SETTLEMENT AND OTHER EXPENSES: 12A.(1)(b) lists the seller's contribution to the buyer's expenses. The line is typically "Seller's Expenses (Buyer's Expenses): An amount not to exceed $___ ..." Capture the dollar amount into paragraph12Expenses.sellerPaysAmount, and any percentage into paragraph12Expenses.sellerPaysPercentage. paragraph12Expenses.buyerPaysClosingCosts is true unless the seller-pays line covers ALL of buyer's typical closing costs (rare).
+- Paragraph 11 SPECIAL PROVISIONS: free-text block. Capture the entire content verbatim (including line breaks as \\n) into paragraph11SpecialProvisions. Trim leading/trailing whitespace. If the field is blank OR reads only "N/A" / "None" / "N.A." (with no other content), return null — those mean no special provisions, not "found N/A as a special provision." Any OTHER content, however short, must be captured verbatim — special provisions are the single highest-risk paragraph on this form (parties routinely bury price adjustments, contingencies, and side agreements here) and deterministic code flags any non-null value here for mandatory human review.
+- Paragraph 12 SETTLEMENT AND OTHER EXPENSES — THE MONEY STACK. This paragraph carries THREE separate money-stack figures that are each easy to miss because none of them are the headline sales price:
+  12A(1)(b) SELLER CONCESSION: lists the seller's contribution to the buyer's expenses. The line is typically "Seller's Expenses (Buyer's Expenses): An amount not to exceed $___ ..." Capture the dollar amount into paragraph12Expenses.sellerPaysAmount, and any percentage into paragraph12Expenses.sellerPaysPercentage. paragraph12Expenses.buyerPaysClosingCosts is true unless the seller-pays line covers ALL of buyer's typical closing costs (rare). This is a handwritten/filled-in dollar blank, the same figure class as earnestMoney/optionFee — read the actual digits, don't assume $0 just because you don't immediately see a number. ALWAYS populate debugParagraph12A with the exact verbatim text of the 12A(1)(b) sentence including the dollar figure exactly as printed; deterministic code re-parses this as a backstop the same way debugParagraph5A/5B are re-parsed.
+  CRITICAL — 12B(1) AND 12B(2) BROKERAGE COMPENSATION: these are TWO SEPARATE checkbox elections, each a choice between a flat DOLLAR amount OR a PERCENTAGE of the sales price (never both — exactly one box per sub-paragraph, or neither if unused):
+    - 12B(1): "At closing, Seller shall pay Other Broker named in Paragraph 21 a fee of ⬜ $_____ or ⬜ ____% of the Sales Price" — this is what the SELLER pays the BUYER'S broker. This is real money out of the seller's pocket at closing, in addition to whatever their own listing broker charges — do not assume it is already covered elsewhere.
+    - 12B(2): "At closing, Buyer shall pay Other Broker named in Paragraph 21 a fee of ⬜ $_____ or ⬜ ____% of the Sales Price" — this is what the BUYER pays the SELLER'S broker (uncommon; it being blank/unchecked is normal and not an error).
+    ALWAYS populate debugParagraph12B with the exact verbatim text of BOTH 12B(1) and 12B(2), preserving [X]/[ ] marks immediately before each "$" and each "%" exactly as printed (same verbatim-with-marks convention as debugParagraph6C — do not resolve which option is checked yourself; deterministic code parses debugParagraph12B afterward). Example shape to preserve: "12B(1) [ ] $_____ or [X] 3.000 % of the Sales Price ... 12B(2) [ ] $_____ or [ ] _____% of the Sales Price". Do NOT populate paragraph12BuyerBrokerComp or paragraph12SellerBrokerComp yourself — always return null for both; they are computed server-side from debugParagraph12B.
 - Paragraph 13 PRORATIONS: usually standard boilerplate (taxes and rents prorated through the Closing Date, homestead exemption assumptions, rollback taxes language). Capture into paragraph13Prorations ONLY if it has been modified or has a non-standard note (different proration date, a specific dollar escrow, a rollback-tax allocation called out, etc). If it is the standard unmodified boilerplate, or you cannot tell, return null — do not transcribe the standard language.
 - Paragraph 22 AGREEMENT OF PARTIES — ATTACHED ADDENDA: a list of checkboxes for every standard TREC addendum. Look at each checkbox and record whether it is marked. Map each to the addenda.* schema below. Standard items in this list:
   - "Third Party Financing Addendum" (TREC 40-x) -> addenda.hasThirdPartyFinancing
@@ -590,10 +598,13 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "buyerName": string | null,                  // full buyer name(s), comma-separated if multiple
     "sellerName": string | null,                 // full seller name(s), comma-separated if multiple
     "salePrice": number | null,                  // TOTAL sales price from Paragraph 3C as a number, no $ or commas (NOT 3A or 3B)
+    "salePriceCash": number | null,              // raw Paragraph 3A cash portion, no $ or commas
+    "salePriceFinanced": number | null,          // raw Paragraph 3B financed portion, no $ or commas
     "earnestMoney": number | null,               // earnest money in 5A as a number
     "optionFee": number | null,                  // option fee in 5D as a number
     "optionDays": number | null,                 // termination option period (paragraph 23) as integer
     "financingDays": number | null,              // financing approval days from Third Party Financing Addendum, null if no addendum
+    "financingType": string | null,              // "conventional" | "fha" | "va" | "usda" | "seller_financing" | "other" | null — ONLY from an attached Third Party Financing Addendum's loan-type checkbox or an attached Seller Financing Addendum. Never infer "cash" from the absence of an addendum — return null if not stated.
     "hasFinancingAddendum": boolean,             // legacy mirror of addenda.hasThirdPartyFinancing — keep both in sync
     "contractEffectiveDate": string | null,      // "yyyy-MM-dd"
     "closingDate": string | null,                // "yyyy-MM-dd"
@@ -697,13 +708,27 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     },
     "paragraph7HomeWarranty": string | null,            // free-text summary of residential service contract / home warranty terms, or null if none
     "paragraph7Repairs": string | null,                 // free-text summary of negotiated repairs Seller agreed to complete, or null if none
-    "paragraph11SpecialProvisions": string | null,      // verbatim text of special provisions, line breaks as \\n
+    "serviceContractCap": number | null,                // Paragraph 7H dollar cap, plain number, structured twin of paragraph7HomeWarranty — see Paragraph 7 instructions above
+    "debugParagraph7H": string | null,                  // DEBUG ONLY: verbatim Paragraph 7H residential-service-contract sentence — see Paragraph 7 instructions above
+    "paragraph11SpecialProvisions": string | null,      // verbatim text of special provisions, line breaks as \\n. null if blank or "N/A" only.
     "paragraph12Expenses": {
-      "sellerPaysAmount": number | null,                // dollar amount seller agreed to credit toward buyer expenses
+      "sellerPaysAmount": number | null,                // dollar amount seller agreed to credit toward buyer expenses (¶12A(1)(b))
       "sellerPaysPercentage": number | null,            // percentage if expressed that way (e.g. 3 means 3%)
       "buyerPaysClosingCosts": boolean
     },
+    "debugParagraph12A": string | null,                 // DEBUG ONLY: verbatim ¶12A(1)(b) seller-concession sentence — see Paragraph 12 instructions above
+    "debugParagraph12B": string | null,                 // DEBUG ONLY: verbatim text of BOTH 12B(1) and 12B(2) with [X]/[ ] marks preserved — see Paragraph 12 instructions above
+    "paragraph12BuyerBrokerComp": {                     // DO NOT FILL — computed deterministically server-side from debugParagraph12B. Always return both sub-fields null here.
+      "amount": number | null,                          // ¶12B(1): dollar fee Seller pays the buyer's broker
+      "percentage": number | null                       // ¶12B(1): percent-of-sales-price fee Seller pays the buyer's broker (e.g. 3 means 3%)
+    },
+    "paragraph12SellerBrokerComp": {                     // DO NOT FILL — computed deterministically server-side from debugParagraph12B. Always return both sub-fields null here.
+      "amount": number | null,                          // ¶12B(2): dollar fee Buyer pays the seller's broker (uncommon)
+      "percentage": number | null                       // ¶12B(2): percent-of-sales-price fee Buyer pays the seller's broker (uncommon)
+    },
     "paragraph13Prorations": string | null,             // free-text note ONLY if prorations are non-standard/customized, else null
+    "titlePolicyPayer": string | null,                  // DO NOT FILL — computed deterministically server-side from debugParagraph6A. Always return null here.
+    "debugParagraph6A": string | null,                  // DEBUG ONLY: verbatim Paragraph 6A expense election with [X]/[ ] marks preserved — see Paragraph 6 instructions above
     "surveyPayer": string | null,                       // DO NOT FILL — computed deterministically server-side from debugParagraph6C after extraction, same as surveyDeadline. Always return null here.
     "sellerProvidesSurvey": boolean | null,              // DO NOT FILL — computed deterministically server-side from debugParagraph6C (true only if checkbox option (1) is marked). Always return null here.
     "paragraph23TerminationOption": {
@@ -729,10 +754,13 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "buyerName": number,
     "sellerName": number,
     "salePrice": number,
+    "salePriceCash": number,
+    "salePriceFinanced": number,
     "earnestMoney": number,
     "optionFee": number,
     "optionDays": number,
     "financingDays": number,
+    "financingType": number,
     "hasFinancingAddendum": number,
     "contractEffectiveDate": number,
     "closingDate": number,
@@ -804,11 +832,13 @@ EXTRACT each field and return ONLY valid JSON (no prose, no markdown fences) mat
     "paragraph10.exclusions": number,
     "paragraph7HomeWarranty": number,
     "paragraph7Repairs": number,
+    "serviceContractCap": number,
     "paragraph11SpecialProvisions": number,
     "paragraph12Expenses.sellerPaysAmount": number,
     "paragraph12Expenses.sellerPaysPercentage": number,
     "paragraph12Expenses.buyerPaysClosingCosts": number,
     "paragraph13Prorations": number,
+    "titlePolicyPayer": number,
     "paragraph23TerminationOption.optionDays": number,
     "paragraph23TerminationOption.optionFee": number,
     "paragraph23TerminationOption.optionFeePayableTo": number
@@ -1073,6 +1103,64 @@ function applyDeterministicDeadlineOverrides(extracted) {
     }
   }
 
+  // --- Title policy payer (¶6A) — deterministic from debugParagraph6A,
+  // same "verbatim capture + code parses the marks" pattern as survey payer
+  // above. Always force-reset to null first: titlePolicyPayer is a
+  // DO-NOT-FILL field per the prompt, and a model that ignores that
+  // instruction must never have its guess survive past this point.
+  extracted.titlePolicyPayer = null;
+  if (extracted.debugParagraph6A && typeof extracted.debugParagraph6A === 'string') {
+    extracted.titlePolicyPayer = parseCheckedParty(extracted.debugParagraph6A);
+  }
+
+  // --- Brokerage compensation (¶12B(1) Seller pays buyer's broker,
+  // ¶12B(2) Buyer pays seller's broker) — the exact provision missed on the
+  // real 702 Fawndale offer that motivated this whole extension (3% of
+  // $315,000 = $9,450, on top of the ¶12A(1)(b) concession and the ¶7H
+  // service contract cap). Both are DO-NOT-FILL per the prompt; force-reset
+  // first for the same reason as titlePolicyPayer above, then parse the two
+  // halves of debugParagraph12B independently — split on the "12B(2)"
+  // label so a dollar/percent mark that belongs to (2) can never be read as
+  // belonging to (1), or vice versa.
+  extracted.paragraph12BuyerBrokerComp = { amount: null, percentage: null };
+  extracted.paragraph12SellerBrokerComp = { amount: null, percentage: null };
+  if (extracted.debugParagraph12B && typeof extracted.debugParagraph12B === 'string') {
+    const splitIdx = extracted.debugParagraph12B.search(/12B\s*\(\s*2\s*\)/i);
+    const block1 = splitIdx > -1 ? extracted.debugParagraph12B.slice(0, splitIdx) : extracted.debugParagraph12B;
+    const block2 = splitIdx > -1 ? extracted.debugParagraph12B.slice(splitIdx) : '';
+    extracted.paragraph12BuyerBrokerComp = parseDollarOrPercentElection(block1);
+    extracted.paragraph12SellerBrokerComp = parseDollarOrPercentElection(block2);
+  }
+
+  // --- Special provisions flag (¶11) — deterministic, not model-supplied:
+  // any non-null paragraph11SpecialProvisions (the model is instructed to
+  // return null for blank/"N/A" content) gets flagged for mandatory human
+  // review. This is the highest-risk paragraph on the form for buried terms
+  // (price adjustments, contingencies, side agreements), so the flag is a
+  // plain boolean derived straight from presence-of-content, never a model
+  // judgment call about whether content "looks important."
+  extracted.hasSpecialProvisions = Boolean(
+    extracted.paragraph11SpecialProvisions && String(extracted.paragraph11SpecialProvisions).trim(),
+  );
+
+  // --- Sales price cash/financed portions (¶3A/¶3B) — deterministic regex
+  // backstop, same reasoning as the earnestMoney/optionFee backstops below:
+  // these are handwritten/filled-in dollar blanks, the figure most likely to
+  // be silently dropped by a free-form model read. Reuses debugParagraph3C,
+  // which already always captures all three lines verbatim.
+  if (extracted.debugParagraph3C && typeof extracted.debugParagraph3C === 'string') {
+    const cashMatch = extracted.debugParagraph3C.match(/3A[.\s]*\$\s*([\d][\d,]*(?:\.\d{1,2})?)/i);
+    if (cashMatch) {
+      const n = parseFloat(cashMatch[1].replace(/,/g, ''));
+      if (Number.isFinite(n) && n >= 0) extracted.salePriceCash = n;
+    }
+    const financedMatch = extracted.debugParagraph3C.match(/3B[.\s]*\$\s*([\d][\d,]*(?:\.\d{1,2})?)/i);
+    if (financedMatch) {
+      const n = parseFloat(financedMatch[1].replace(/,/g, ''));
+      if (Number.isFinite(n) && n >= 0) extracted.salePriceFinanced = n;
+    }
+  }
+
   return extracted;
 }
 
@@ -1086,10 +1174,13 @@ function emptyResult(warning) {
       buyer2Name: null,
       seller2Name: null,
       salePrice: null,
+      salePriceCash: null,
+      salePriceFinanced: null,
       earnestMoney: null,
       optionFee: null,
       optionDays: null,
       financingDays: null,
+      financingType: null,
       hasFinancingAddendum: false,
       contractEffectiveDate: null,
       closingDate: null,
@@ -1188,16 +1279,26 @@ function emptyResult(warning) {
       },
       paragraph7HomeWarranty: null,
       paragraph7Repairs: null,
+      serviceContractCap: null,
+      debugParagraph7H: null,
       paragraph11SpecialProvisions: null,
+      hasSpecialProvisions: false,
       paragraph12Expenses: {
         sellerPaysAmount: null,
         sellerPaysPercentage: null,
         buyerPaysClosingCosts: true,
       },
+      debugParagraph12A: null,
+      debugParagraph12B: null,
+      paragraph12BuyerBrokerComp: { amount: null, percentage: null },
+      paragraph12SellerBrokerComp: { amount: null, percentage: null },
       paragraph13Prorations: null,
+      titlePolicyPayer: null,
+      debugParagraph6A: null,
       surveyPayer: null,
       sellerProvidesSurvey: null,
       addendaSummary: [],
+      moneyStack: null,
       paragraph23TerminationOption: {
         optionDays: null,
         optionFee: null,
@@ -1274,6 +1375,13 @@ async function scanContract(pdfBase64) {
       : [],
   };
   extracted.paragraph12Expenses = { ...base.extracted.paragraph12Expenses, ...(parsedExtracted.paragraph12Expenses || {}) };
+  // paragraph12BuyerBrokerComp / paragraph12SellerBrokerComp are DO-NOT-FILL
+  // fields per the prompt (computed deterministically from debugParagraph12B
+  // below) — always reset to the null shape here regardless of what the
+  // model returned, so a model that ignores the instruction can't leak a
+  // guessed value through.
+  extracted.paragraph12BuyerBrokerComp = { amount: null, percentage: null };
+  extracted.paragraph12SellerBrokerComp = { amount: null, percentage: null };
   extracted.paragraph23TerminationOption = { ...base.extracted.paragraph23TerminationOption, ...(parsedExtracted.paragraph23TerminationOption || {}) };
   if (typeof parsedExtracted.paragraph11SpecialProvisions === 'string') {
     extracted.paragraph11SpecialProvisions = parsedExtracted.paragraph11SpecialProvisions.trim() || null;
@@ -1409,6 +1517,34 @@ async function scanContract(pdfBase64) {
         extracted.optionFee = n;
         extracted.paragraph23TerminationOption.optionFee = n;
       }
+    }
+  }
+
+  // Residential service contract cap (¶7H) — same handwritten-dollar-blank
+  // backstop, reusing debugParagraph7H the same way debugParagraph5A/5B are
+  // reused above. This is the $800 figure on 702 Fawndale that, combined
+  // with the ¶12A(1)(b) concession and ¶12B(1) BAC, made up the $15,250
+  // giveback that motivated this whole extension — the exact figure class
+  // (handwritten dollar blank) already proven to get silently dropped.
+  if (extracted.debugParagraph7H && typeof extracted.debugParagraph7H === 'string') {
+    const sc = parseDollarAmount(extracted.debugParagraph7H);
+    if (sc != null) {
+      extracted.serviceContractCap = sc;
+    }
+  }
+
+  // Seller concession to buyer's expenses (¶12A(1)(b)) — the exact provision
+  // Heath himself missed on the real 702 Fawndale offer. Same backstop
+  // pattern as ¶7H above.
+  if (extracted.debugParagraph12A && typeof extracted.debugParagraph12A === 'string') {
+    const conc = parseDollarAmount(extracted.debugParagraph12A);
+    if (conc != null) {
+      extracted.paragraph12Expenses.sellerPaysAmount = conc;
+    }
+    const pctMatch = extracted.debugParagraph12A.match(/([\d]+(?:\.\d{1,3})?)\s*%/);
+    if (pctMatch) {
+      const p = parseFloat(pctMatch[1]);
+      if (Number.isFinite(p) && p > 0) extracted.paragraph12Expenses.sellerPaysPercentage = p;
     }
   }
 
@@ -1554,6 +1690,22 @@ async function scanContract(pdfBase64) {
   if (extracted.optionExpirationDate) confidence.optionExpirationDate = 1.0;
   if (extracted.earnestMoneyDueDate) confidence.earnestMoneyDueDate = 1.0;
   if (extracted.optionFeeDueDate) confidence.optionFeeDueDate = 1.0;
+  // Money-stack deterministic backstops (2026-09-29 — 702 Fawndale) — same
+  // "the parse is verified, the model's self-reported 0 must not survive"
+  // reasoning as the block above.
+  if (typeof extracted.salePriceCash === 'number') confidence.salePriceCash = 1.0;
+  if (typeof extracted.salePriceFinanced === 'number') confidence.salePriceFinanced = 1.0;
+  if (typeof extracted.serviceContractCap === 'number') confidence.serviceContractCap = 1.0;
+  if (extracted.paragraph12Expenses && typeof extracted.paragraph12Expenses.sellerPaysAmount === 'number') {
+    confidence['paragraph12Expenses.sellerPaysAmount'] = 1.0;
+  }
+  if (extracted.titlePolicyPayer) confidence.titlePolicyPayer = 1.0;
+  if (extracted.paragraph12BuyerBrokerComp && (extracted.paragraph12BuyerBrokerComp.amount != null || extracted.paragraph12BuyerBrokerComp.percentage != null)) {
+    confidence['paragraph12BuyerBrokerComp'] = 1.0;
+  }
+  if (extracted.paragraph12SellerBrokerComp && (extracted.paragraph12SellerBrokerComp.amount != null || extracted.paragraph12SellerBrokerComp.percentage != null)) {
+    confidence['paragraph12SellerBrokerComp'] = 1.0;
+  }
 
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.filter((w) => typeof w === 'string') : [];
 
@@ -1593,7 +1745,75 @@ async function scanContract(pdfBase64) {
     }
   }
 
+  // Money stack — one assembled object citing the paragraph + confidence for
+  // every dollar figure on the contract, built 2026-09-29 after Heath caught
+  // a $5,000 seller concession on his own 702 Fawndale offer buried in
+  // ¶12A(1)(b) that neither he nor a first pass of this scanner would have
+  // surfaced next to the headline sales price. Pure presentation over fields
+  // already computed above — adds no new extraction, just makes "where did
+  // this number come from and how sure are we" answerable in one place
+  // instead of requiring a caller to know which nested object + confidence
+  // key to look up. null value = genuinely unverifiable; never a guess.
+  extracted.moneyStack = buildMoneyStack(extracted, confidence);
+
   return { extracted, confidence, warnings };
+}
+
+// Confidence lookup mirrors the flat/dotted key convention the model's own
+// confidence object already uses (e.g. "paragraph12Expenses.sellerPaysAmount")
+// and the deterministic overrides just above.
+function moneyStackField(value, paragraph, confidenceKey, confidence) {
+  const conf = typeof confidence[confidenceKey] === 'number' ? confidence[confidenceKey] : (value == null ? 0 : null);
+  return { value: value == null ? null : value, paragraph, confidence: conf };
+}
+
+function buildMoneyStack(extracted, confidence) {
+  const p12b1 = extracted.paragraph12BuyerBrokerComp || { amount: null, percentage: null };
+  const p12b2 = extracted.paragraph12SellerBrokerComp || { amount: null, percentage: null };
+  const p12b1Value = p12b1.amount != null ? p12b1.amount : p12b1.percentage;
+  const p12b1Mode = p12b1.amount != null ? 'dollar' : (p12b1.percentage != null ? 'percent' : null);
+  const p12b2Value = p12b2.amount != null ? p12b2.amount : p12b2.percentage;
+  const p12b2Mode = p12b2.amount != null ? 'dollar' : (p12b2.percentage != null ? 'percent' : null);
+
+  return {
+    salesPrice: moneyStackField(extracted.salePrice, '3C', 'salePrice', confidence),
+    cashPortion: moneyStackField(extracted.salePriceCash, '3A', 'salePriceCash', confidence),
+    financedAmount: moneyStackField(extracted.salePriceFinanced, '3B', 'salePriceFinanced', confidence),
+    financingType: moneyStackField(extracted.financingType, '3B / Third Party Financing Addendum', 'financingType', confidence),
+    earnestMoney: moneyStackField(extracted.earnestMoney, '5A', 'earnestMoney', confidence),
+    escrowAgent: moneyStackField(
+      extracted.paragraph5 ? extracted.paragraph5.earnestMoneyHolder : null,
+      '5A', 'paragraph5.earnestMoneyHolder', confidence,
+    ),
+    optionFee: moneyStackField(extracted.optionFee, '5B / 23', 'optionFee', confidence),
+    optionDays: moneyStackField(extracted.optionDays, '5B / 23', 'optionDays', confidence),
+    sellerConcessionToBuyerExpenses: moneyStackField(
+      extracted.paragraph12Expenses ? extracted.paragraph12Expenses.sellerPaysAmount : null,
+      '12A(1)(b)', 'paragraph12Expenses.sellerPaysAmount', confidence,
+    ),
+    buyerBrokerCompensation: {
+      value: p12b1Value,
+      mode: p12b1Mode, // 'dollar' | 'percent' | null
+      paragraph: '12B(1)',
+      confidence: typeof confidence['paragraph12BuyerBrokerComp'] === 'number' ? confidence['paragraph12BuyerBrokerComp'] : (p12b1Value == null ? 0 : null),
+    },
+    sellerBrokerCompensationFromBuyer: {
+      value: p12b2Value,
+      mode: p12b2Mode,
+      paragraph: '12B(2)',
+      confidence: typeof confidence['paragraph12SellerBrokerComp'] === 'number' ? confidence['paragraph12SellerBrokerComp'] : (p12b2Value == null ? 0 : null),
+    },
+    residentialServiceContractCap: moneyStackField(extracted.serviceContractCap, '7H', 'serviceContractCap', confidence),
+    titlePolicyPayer: moneyStackField(extracted.titlePolicyPayer, '6A', 'titlePolicyPayer', confidence),
+    surveyPayer: moneyStackField(extracted.surveyPayer, '6C', 'surveyPayer', confidence),
+    closingDate: moneyStackField(extracted.closingDate, '9A', 'closingDate', confidence),
+    specialProvisions: {
+      value: extracted.paragraph11SpecialProvisions || null,
+      flagged: Boolean(extracted.hasSpecialProvisions),
+      paragraph: '11',
+      confidence: typeof confidence['paragraph11SpecialProvisions'] === 'number' ? confidence['paragraph11SpecialProvisions'] : (extracted.paragraph11SpecialProvisions == null ? 0 : null),
+    },
+  };
 }
 
 async function identifyDocument(pdfBase64) {
