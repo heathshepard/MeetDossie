@@ -32,7 +32,14 @@
 // blanket flip is exactly the failure class the incident review flagged.
 // Add a form here only after confirming, against the rendered form, that
 // its initials lines are a real signing requirement.
-const INITIALS_REQUIRED_FORMS = new Set(['unimproved-property']);
+//
+// 2026-09-29 CARTER — TXR-1406 Seller's Disclosure Notice. Heath's rule
+// ("all initials are required" on contract documents) applies here the same
+// way it applied to 9-17: the seller footer initials on pages 1-5/7 are a
+// party-owned SIGNING WIDGET (same class as the page-6 signature), not a
+// Barry-Whyte-class legal election baked into the PDF. Confirmed against the
+// rendered form before adding.
+const INITIALS_REQUIRED_FORMS = new Set(['unimproved-property', 'sellers-disclosure-txr-1406']);
 
 function dsFieldRequired(type, formType) {
   if (type === 'signature' || type === 'date') return true;

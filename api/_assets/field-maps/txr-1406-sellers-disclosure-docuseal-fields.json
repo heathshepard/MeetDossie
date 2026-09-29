@@ -1,0 +1,5144 @@
+{
+ "_readme": "TXR-1406 Seller's Disclosure Notice -- DocuSeal-ready widget list for the disclosure content grid + seller signing widgets. Coordinates are absolute PDF points (612x792, bottom-left origin, matching pdf-lib convention) measured against api/_assets/txr-1406-sellers-disclosure-base64.js via pdftotext -bbox on the rendered page, per the acroform-field-names-lie method -- never guessed from AcroForm field names (this PDF has none; it is a flat/0-AcroForm-field form). role is a generic slot token (\"Seller 1\"/\"Seller 2\") resolved to a real signer at send time by scripts/build-txr-1406-packet.js -- NOT a specific person's name, so this map is reusable across deals. Built 2026-09-29 fixing two defects found on the completed test PDF: (1) missing per-page seller initials -- OLD generator (gen-fields.py, 2026-09-25) placed them a full row above the real \"Seller:\" footer line; SELLER_LINE below is the verified real line position. (2) property address never appearing on pages 2-7 -- NOT a DocuSeal field at all; fixed separately by baking real PDF text via api/_assets/field-maps/txr-1406-address-coords.json before the PDF reaches DocuSeal. Also carries two pre-existing cosmetic fixes verified the same session: Section 11 report-count field no longer overlaps the printed word \"attached:\"; page 6 seller signature/date/printed-name boxes no longer overlap their own captions.",
+ "page_count": 7,
+ "fields": [
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Seller occupying Property?",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "is",
+     "x": 62,
+     "y": 211,
+     "w": 12,
+     "h": 10
+    },
+    {
+     "value": "is not",
+     "x": 92,
+     "y": 211,
+     "w": 12,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "If unoccupied - approximate date last occupied",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 220,
+   "y": 222,
+   "w": 110,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Never occupied the Property",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 462,
+   "y": 222,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Cable TV Wiring (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Carbon Monoxide Det. (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Ceiling Fans (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Cooktop/Range/Stove (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Dishwasher (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Disposal (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Emergency Escape Ladder(s) (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Exhaust Fans (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Fences (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Fire Detection Equip. (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "French Drain (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Gas Fixtures (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Liquid Propane (LP) Gas: (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 489,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 489,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 489,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "-LP Community (Captive) (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "-LP on Property (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 147,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 165,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 183,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Natural Gas Lines (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Fuel Gas Piping: (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "-Black Iron Pipe (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "-Copper (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "-Corrugated Stainless Steel Tubing (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 347,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 347,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 347,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Hot Tub (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Intercom System (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Microwave (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Outdoor Grill (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Patio/Decking (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Plumbing System (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Pool (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Pool Equipment (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 488,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 488,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 488,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Pool Maint. Accessories (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 503,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Pool Heater (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 345,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 363,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 381,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Pump: sump/grinder (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 295,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Rain Gutters (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 308,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Roof/Attic Vents (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 321,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sauna (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 334,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Smoke Detector (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 353,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Smoke Detector - Hearing Impaired (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 373,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 373,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 373,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Spa (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 404,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 404,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 404,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Trash Compactor (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 423,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "TV Antenna (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 436,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Washer/Dryer Hookup (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 449,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Window Screens (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 462,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Public Sewer System (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 543,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 557,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 575,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Central A/C (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 557,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 557,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 557,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Central A/C - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 558,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Evaporative Coolers (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 570,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 570,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 570,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Evaporative Coolers - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 571,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Wall/Window AC Units (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 583,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 583,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 583,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Wall/Window AC Units - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 584,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Attic Fan(s) (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 596,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 596,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 596,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Attic Fan(s) - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 597,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Central Heat (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 609,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 609,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 609,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Central Heat - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 610,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Other Heat (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 622,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 622,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 622,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Other Heat - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 623,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Oven (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 635,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 635,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 635,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Oven - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 636,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Fireplace & Chimney (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 648,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 648,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 648,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Fireplace & Chimney - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 649,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Carport (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 661,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 661,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 661,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Carport - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 662,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Garage (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 674,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 674,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 674,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Garage - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 675,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Garage Door Openers (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 687,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 687,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 687,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Garage Door Openers - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 688,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Satellite Dish & Controls (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 699,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 699,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 699,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Satellite Dish & Controls - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 700,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Security System (Y/N/U)",
+   "role": "Seller 1",
+   "page": 1,
+   "options": [
+    {
+     "value": "Y",
+     "x": 202,
+     "y": 712,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 712,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 712,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Security System - additional info",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 371,
+   "y": 713,
+   "w": 205,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Solar Panels (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Solar Panels - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 79,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Water Heater (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 91,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 91,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 91,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water Heater - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 92,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Water Softener (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 104,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 104,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 104,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water Softener - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 105,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Other Leased Items(s) (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 118,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 118,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 118,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Other Leased Items(s) - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 119,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Underground Lawn Sprinkler (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 135,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 135,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 135,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Underground Lawn Sprinkler - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 136,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Septic / On-Site Sewer Facility (Y/N/U)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 201,
+     "y": 150,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 219,
+     "y": 150,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "U",
+     "x": 237,
+     "y": 150,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Septic / On-Site Sewer Facility - additional info",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 307,
+   "y": 151,
+   "w": 268,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Water supply provided by",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "city",
+     "x": 163,
+     "y": 169,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "well",
+     "x": 195,
+     "y": 169,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "MUD",
+     "x": 229,
+     "y": 169,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "co-op",
+     "x": 268,
+     "y": 169,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "unknown",
+     "x": 310,
+     "y": 169,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water supply - other",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 393,
+   "y": 169,
+   "w": 175,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Property built before 1978?",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "yes",
+     "x": 229,
+     "y": 181,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 268,
+     "y": 181,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "unknown",
+     "x": 303,
+     "y": 181,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Roof Type",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 90,
+   "y": 210,
+   "w": 190,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Roof Age (approximate)",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 315,
+   "y": 210,
+   "w": 190,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Overlay roof covering on the Property?",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "yes",
+     "x": 94,
+     "y": 234,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 127,
+     "y": 234,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "unknown",
+     "x": 154,
+     "y": 234,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Aware of Section 1 items not working/needing repair?",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "yes",
+     "x": 182,
+     "y": 263,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 214,
+     "y": 263,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 1 - explain (defects/repairs needed)",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 36,
+   "y": 273,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Basement (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Ceilings (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Doors (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Driveways (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 398,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 398,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Electrical Systems (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 411,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 411,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Exterior Walls (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 166,
+     "y": 424,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 183,
+     "y": 424,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Floors (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Foundation / Slab(s) (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Interior Walls (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Lighting Fixtures (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 398,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 398,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Plumbing Systems (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 411,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 411,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Roof (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 364,
+     "y": 424,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 381,
+     "y": 424,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sidewalks (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 359,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Walls / Fences (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 372,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Windows (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 385,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Other Structural Components (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 399,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 2 - explain",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 36,
+   "y": 453,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Aluminum Wiring (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 537,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 537,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Asbestos Components (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 550,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 550,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Diseased Trees: (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 563,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 563,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Endangered Species/Habitat on Property (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 576,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 576,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Fault Lines (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 589,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 589,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Hazardous or Toxic Waste (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 602,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 602,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Improper Drainage (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 615,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 615,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Intermittent or Weather Springs (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 628,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 628,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Landfill (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 641,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 641,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Lead-Based Paint or Lead-Based Pt. Hazards (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 661,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 661,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Encroachments onto the Property (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 681,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 681,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Improvements encroaching on others' property (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 694,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 694,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in Historic District (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 707,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 707,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Diseased Trees - other describe",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 185,
+   "y": 564,
+   "w": 130,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Radon Gas (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 537,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 537,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Settling (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 550,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 550,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Soil Movement (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 563,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 563,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Unplatted Easements (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 576,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 576,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Unrecorded Easements (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 589,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 589,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Urea-formaldehyde Insulation (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 602,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 602,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Water Damage Not Due to a Flood Event (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 615,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 615,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Wetlands on Property (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 628,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 628,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Wood Rot (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 641,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 641,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Active infestation of termites or other WDI (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 655,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 655,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous treatment for termites or WDI (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 681,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 681,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous termite or WDI damage repaired (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 694,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 694,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Termite or WDI damage needing repair (Y/N)",
+   "role": "Seller 1",
+   "page": 2,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 707,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 707,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Historic Property Designation (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous Foundation Repairs (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 96,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 96,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous Roof Repairs or Replacement (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 114,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 114,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous Other Structural Repairs (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 128,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 128,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous Use of Premises for Manufacture of Methamphetamine (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 142,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 142,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "A private road on or adjoining the Property (buyer financially responsible) (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 168,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 168,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Alkali-Silica Reaction (ASR) or \"Concrete Cancer\" (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 269,
+     "y": 206,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 287,
+     "y": 206,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous Fires (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 78,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Single Blockable Main Drain in Pool/Hot Tub/Spa* (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 91,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 91,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Subsurface Structure or Pits (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 114,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 114,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Underground Storage Tanks** (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 128,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 128,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Aboveground Storage Tanks** (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 147,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 147,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Aboveground Storage Tanks 500gal+ w/ petroleum/chemicals** (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 168,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 168,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Conservation Easements*** (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 206,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 206,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 3 - explain",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 36,
+   "y": 233,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 4 - aware of unrepaired item/equipment/system not yet disclosed?",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "yes",
+     "x": 347,
+     "y": 344,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 388,
+     "y": 344,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 4 - explain",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 36,
+   "y": 364,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Property presently covered by insurance (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 434,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 434,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Property presently covered by flood insurance (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 447,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 447,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Property presently covered by windstorm insurance (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 461,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 461,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Seller unable to insure the Property for any reason (Y/N)",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "Y",
+     "x": 548,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 566,
+     "y": 475,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 5 - explain",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 36,
+   "y": 545,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 6 - ever filed an insurance/NFIP claim for Property damage?",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "yes",
+     "x": 92,
+     "y": 612,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 124,
+     "y": 612,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 6 - explain",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 195,
+   "y": 612,
+   "w": 380,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 7 - received claim proceeds not used for repairs?",
+   "role": "Seller 1",
+   "page": 3,
+   "options": [
+    {
+     "value": "yes",
+     "x": 200,
+     "y": 677,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 233,
+     "y": 677,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 7 - explain",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 305,
+   "y": 677,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous flooding due to reservoir failure/breach/release (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 126,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 126,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous flooding due to a natural flood event (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 155,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 155,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Previous water penetration into a structure due to a natural flood (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 172,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 172,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in 100-year floodplain (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 189,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 189,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in 500-year floodplain (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 218,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 218,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in a floodway (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 235,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 235,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in a flood pool (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 252,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 252,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in a reservoir (Y/N)",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 269,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 269,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in 100-yr floodplain - wholly/partly",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "wholly",
+     "x": 129,
+     "y": 190,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "partly",
+     "x": 180,
+     "y": 190,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in 500-yr floodplain - wholly/partly",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "wholly",
+     "x": 129,
+     "y": 219,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "partly",
+     "x": 180,
+     "y": 219,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in floodway - wholly/partly",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "wholly",
+     "x": 129,
+     "y": 236,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "partly",
+     "x": 180,
+     "y": 236,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in flood pool - wholly/partly",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "wholly",
+     "x": 129,
+     "y": 253,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "partly",
+     "x": 180,
+     "y": 253,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Located in reservoir - wholly/partly",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "wholly",
+     "x": 129,
+     "y": 270,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "partly",
+     "x": 180,
+     "y": 270,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 8 - explain",
+   "role": "Seller 1",
+   "page": 4,
+   "x": 36,
+   "y": 299,
+   "w": 545,
+   "h": 34
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 9 - received FEMA/SBA flood assistance?",
+   "role": "Seller 1",
+   "page": 4,
+   "options": [
+    {
+     "value": "yes",
+     "x": 347,
+     "y": 618,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 387,
+     "y": 618,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 9 - explain",
+   "role": "Seller 1",
+   "page": 4,
+   "x": 36,
+   "y": 640,
+   "w": 545,
+   "h": 22
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Room additions/structural mods without permits or not code-compliant (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 119,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 119,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Notices of deed restriction/ordinance violations (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 150,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 150,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Lawsuits or other legal proceedings affecting the Property (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 181,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 181,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Death on the Property (except natural/suicide/unrelated accident) (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 212,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 212,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Condition materially affecting health or safety (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 243,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 243,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Repairs/treatments for environmental hazards incl. MOLD (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 262,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 262,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Rainwater harvesting system >500 gal using public water as auxiliary (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 317,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 317,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Property in a propane gas system service area (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 348,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 348,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Portion of Property in groundwater conservation/subsidence district (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 379,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 10 - explain",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 36,
+   "y": 425,
+   "w": 545,
+   "h": 78
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "HOA / maintenance fees or assessments apply (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 518,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - Name of association",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 165,
+   "y": 531,
+   "w": 380,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - Manager's name",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 165,
+   "y": 543,
+   "w": 250,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - Manager phone",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 460,
+   "y": 543,
+   "w": 100,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - Fees/assessments amount ($)",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 233,
+   "y": 555,
+   "w": 80,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - Fees/assessments per (period)",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 325,
+   "y": 555,
+   "w": 80,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "HOA fees mandatory or voluntary",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "mandatory",
+     "x": 456,
+     "y": 555,
+     "w": 11,
+     "h": 10
+    },
+    {
+     "value": "voluntary",
+     "x": 520,
+     "y": 555,
+     "w": 11,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "HOA - any unpaid fees/assessment?",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "yes",
+     "x": 336,
+     "y": 567,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 472,
+     "y": 567,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - unpaid amount ($)",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 366,
+   "y": 567,
+   "w": 85,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "HOA - other associations info",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 36,
+   "y": 601,
+   "w": 545,
+   "h": 22
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Common area co-owned in undivided interest (Y/N)",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "Y",
+     "x": 34,
+     "y": 638,
+     "w": 14,
+     "h": 10
+    },
+    {
+     "value": "N",
+     "x": 55,
+     "y": 638,
+     "w": 14,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Common area - optional user fees charged?",
+   "role": "Seller 1",
+   "page": 5,
+   "options": [
+    {
+     "value": "yes",
+     "x": 356,
+     "y": 663,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 388,
+     "y": 663,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Common area - describe fees",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 438,
+   "y": 663,
+   "w": 143,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 11 - received written inspection reports (last 4 yrs)?",
+   "role": "Seller 1",
+   "page": 6,
+   "options": [
+    {
+     "value": "yes",
+     "x": 410,
+     "y": 122,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 453,
+     "y": 122,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 11 - number of reports attached",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 324,
+   "y": 134,
+   "w": 220,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Homestead",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 55,
+   "y": 240,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Wildlife Management",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 55,
+   "y": 253,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Other",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 55,
+   "y": 266,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Exemption: Other - describe",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 100,
+   "y": 266,
+   "w": 120,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Senior Citizen",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 217,
+   "y": 240,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Agricultural",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 217,
+   "y": 253,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Disabled",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 397,
+   "y": 240,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Disabled Veteran",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 397,
+   "y": 253,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Exemption: Unknown",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 397,
+   "y": 266,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "radio",
+   "name": "Sec 13 - working smoke detectors per Ch. 766?",
+   "role": "Seller 1",
+   "page": 6,
+   "options": [
+    {
+     "value": "unknown",
+     "x": 412,
+     "y": 297,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "no",
+     "x": 476,
+     "y": 297,
+     "w": 10,
+     "h": 10
+    },
+    {
+     "value": "yes",
+     "x": 511,
+     "y": 297,
+     "w": 10,
+     "h": 10
+    }
+   ]
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 13 - explain (if no/unknown)",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 36,
+   "y": 320,
+   "w": 545,
+   "h": 22
+  },
+  {
+   "doc": "1406",
+   "type": "signature",
+   "name": "Seller 1 Signature",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 36,
+   "y": 501,
+   "w": 220,
+   "h": 21
+  },
+  {
+   "doc": "1406",
+   "type": "date",
+   "name": "Seller 1 Date",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 262,
+   "y": 501,
+   "w": 60,
+   "h": 21
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Seller 1 Printed Name",
+   "role": "Seller 1",
+   "page": 6,
+   "x": 103,
+   "y": 549,
+   "w": 190,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "signature",
+   "name": "Seller 2 Signature",
+   "role": "Seller 2",
+   "page": 6,
+   "x": 306,
+   "y": 501,
+   "w": 220,
+   "h": 21
+  },
+  {
+   "doc": "1406",
+   "type": "date",
+   "name": "Seller 2 Date",
+   "role": "Seller 2",
+   "page": 6,
+   "x": 541,
+   "y": 501,
+   "w": 60,
+   "h": 21
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Seller 2 Printed Name",
+   "role": "Seller 2",
+   "page": 6,
+   "x": 373,
+   "y": 549,
+   "w": 190,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Electric provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 90,
+   "y": 290,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Electric phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 290,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Sewer provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 90,
+   "y": 308,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Sewer phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 308,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 90,
+   "y": 326,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 326,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Cable provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 90,
+   "y": 344,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Cable phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 344,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Trash provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 90,
+   "y": 362,
+   "w": 270,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Trash phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 362,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Natural Gas provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 118,
+   "y": 380,
+   "w": 240,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Natural Gas phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 380,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Phone Company",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 130,
+   "y": 398,
+   "w": 230,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Phone Company phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 398,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Propane provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 100,
+   "y": 416,
+   "w": 260,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Propane phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 416,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Internet provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 100,
+   "y": 434,
+   "w": 260,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Internet phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 434,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Security System provider",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 132,
+   "y": 452,
+   "w": 230,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Security System phone#",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 411,
+   "y": 452,
+   "w": 150,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p1",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 384,
+   "y": 731.4,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p1",
+   "role": "Seller 2",
+   "page": 1,
+   "x": 424,
+   "y": 731.4,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p2",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 384,
+   "y": 728.9,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p2",
+   "role": "Seller 2",
+   "page": 2,
+   "x": 424,
+   "y": 728.9,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p3",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 384,
+   "y": 736,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p3",
+   "role": "Seller 2",
+   "page": 3,
+   "x": 424,
+   "y": 736,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p4",
+   "role": "Seller 1",
+   "page": 4,
+   "x": 384,
+   "y": 731.7,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p4",
+   "role": "Seller 2",
+   "page": 4,
+   "x": 424,
+   "y": 731.7,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p5",
+   "role": "Seller 1",
+   "page": 5,
+   "x": 384,
+   "y": 731.7,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p5",
+   "role": "Seller 2",
+   "page": 5,
+   "x": 424,
+   "y": 731.7,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 1 Initials p7",
+   "role": "Seller 1",
+   "page": 7,
+   "x": 298,
+   "y": 715.75,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "initials",
+   "name": "Seller 2 Initials p7",
+   "role": "Seller 2",
+   "page": 7,
+   "x": 337,
+   "y": 715.75,
+   "w": 32,
+   "h": 11
+  }
+ ]
+}
