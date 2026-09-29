@@ -14,6 +14,13 @@
 //   - /api/cron-content-pipeline-review
 //   - /api/cron-engagement-review
 //   - /api/cron-content-pipeline-promote
+//   - /api/cron-post-videos (moved 2026-09-29, from cron-dispatch-every15 —
+//     see that file's header for the timeout-flood evidence. This group's
+//     vercel.json bucket is maxDuration:300, ample headroom for real Zernio
+//     upload work. Gated on status='heath_approved' + scheduled_for<=now()
+//     + per-(owner,platform) daily caps, so it is a true no-op on every run
+//     with nothing due — safe at any cadence. every20 vs every15 does not
+//     meaningfully change Heath's Telegram-approval-to-post latency.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -26,6 +33,7 @@ const HANDLERS = [
   { name: 'cron-content-pipeline-review', mod: require('./cron-content-pipeline-review.js') },
   { name: 'cron-engagement-review', mod: require('./cron-engagement-review.js') },
   { name: 'cron-content-pipeline-promote', mod: require('./cron-content-pipeline-promote.js') },
+  { name: 'cron-post-videos', mod: require('./cron-post-videos.js') },
 ];
 
 module.exports = async function handler(req, res) {
