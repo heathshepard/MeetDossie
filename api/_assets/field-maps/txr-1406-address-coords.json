@@ -1,0 +1,17 @@
+{
+  "form_id": "txr-1406-sellers-disclosure",
+  "form_name": "Seller's Disclosure Notice (TXR 1406)",
+  "form_number": "TXR-1406",
+  "page_count": 7,
+  "page_dimensions": { "width": 612, "height": 792 },
+  "notes": "Defect 1 fix (2026-09-29). The 'Concerning the Property at ___' header line prints on EVERY page (1-7), but the blank asset (api/_assets/txr-1406-sellers-disclosure-base64.js) has zero AcroForm fields for it anywhere -- it is baked as plain text by scripts/build-txr-1406-packet.js before the PDF ever reaches DocuSeal, same Mode-A-style bake-then-sign principle as the committed TREC 38-7/23-20/24-20/25-17 flat-PDF fills. Coordinates measured via pdftotext -bbox against the real blank asset (top-left-origin points); 'Concerning the Property at' ends x=155.43 on pages 2-7 (y=41.6-52.8, page 5 y=42.6-53.8 -- 1pt printer variance, immaterial). Page 1 has a distinct bold-caps title-block layout ending x=200.29, y=139.68-150.84. NOTE: no `required` key on purpose -- unlike the other files in this directory these are pdf-lib drawText coordinates consumed directly by build-txr-1406-packet.js's bakeAddress(), never a DocuSeal field/flat-pdf-filler.js `required` flag, so scripts/regression-esign-field-maps.js's Barry Whyte gate (which expects signature/date-only `required:true` across this directory) correctly does not apply here.",
+  "fields": {
+    "property_address_p1": { "page": 1, "x": 205, "y": 150, "width": 380, "height": 13, "font_size": 11, "bold": true },
+    "property_address_p2": { "page": 2, "x": 165, "y": 51, "width": 400, "height": 12, "font_size": 10, "bold": false },
+    "property_address_p3": { "page": 3, "x": 165, "y": 51, "width": 400, "height": 12, "font_size": 10, "bold": false },
+    "property_address_p4": { "page": 4, "x": 165, "y": 51, "width": 400, "height": 12, "font_size": 10, "bold": false },
+    "property_address_p5": { "page": 5, "x": 165, "y": 52, "width": 400, "height": 12, "font_size": 10, "bold": false },
+    "property_address_p6": { "page": 6, "x": 165, "y": 51, "width": 400, "height": 12, "font_size": 10, "bold": false },
+    "property_address_p7": { "page": 7, "x": 165, "y": 51, "width": 400, "height": 12, "font_size": 10, "bold": false }
+  }
+}
