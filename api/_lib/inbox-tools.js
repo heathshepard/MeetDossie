@@ -974,6 +974,13 @@ async function importEmailAttachments(input, { userId }) {
     try {
       const scan = await scanner.scanContract(primaryContractBytes.toString('base64'));
       extracted = (scan && scan.extracted) || null;
+      // success:false = unparseable or truncation-repaired response; the
+      // caller-visible note replaces the old silent-nulling behavior where
+      // this looked identical to a clean scan of a contract with no terms.
+      if (scan && scan.success === false) {
+        console.error('[inbox-tools] scan reported degraded/truncated extraction:', (scan.warnings || []).join(' | '));
+        notes.push('Filed the contract, but the automated read of its terms looks incomplete (response was truncated) — some fields may be missing or wrong. Open the dossier to verify.');
+      }
     } catch (err) {
       notes.push("Filed the contract but couldn't read the terms off it automatically.");
     }

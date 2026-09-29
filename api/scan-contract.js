@@ -21,8 +21,35 @@ const anthropic = new Anthropic({
 // Haiku 4.5 is ~3-4x faster than Sonnet 4.5 for field extraction on contracts.
 // Switched 2026-05-23 — Heath flagged scan time as "entirely too long" on desktop.
 // Large PDFs still route to Opus below for the harder extraction job.
+//
+// 2026-09-29 REGRESSION: the schema below grew to ~90 fields when the
+// money-stack fields were added (2026-09-29, same day), and Haiku at
+// MAX_TOKENS=4096 started truncating mid-object on every real multi-page
+// contract — JSON.parse threw, and the catch fell through to
+// emptyResult(), silently wiping the ENTIRE extracted object to null with
+// ok:true still returned to the caller. auditCompliance() hit the identical
+// truncation on 2026-08-06 and was fixed there (Sonnet + 6144 tokens for
+// trec-20-17) but that fix was never mirrored here. scanContract() is only
+// ever invoked for trec-20-17 (see identifyDocument gating in runFullScan
+// below and the three direct callers in contract-extraction-tools.js,
+// inbox-tools.js, backfill-contacts-from-documents.js) so it's safe to
+// always use the larger budget rather than branching on document type.
 const MODEL = 'claude-haiku-4-5-20251001';
 const IDENTIFY_MODEL = 'claude-haiku-4-5-20251001';
+const EXTRACT_MODEL = 'claude-sonnet-5';
+// 8192, not auditCompliance's 6144 — confirmed live 2026-09-29: claude-sonnet-5
+// auto-enables extended thinking by default (undocumented in this pinned SDK's
+// v0.32.1 types but present at the API level), and thinking tokens are drawn
+// from the SAME max_tokens budget as the visible text. At 6144 with thinking
+// left on, the model spent the ENTIRE budget thinking (thinking_tokens:6144,
+// stop_reason:max_tokens) and emitted zero characters of the actual JSON — a
+// worse truncation than the original Haiku bug because there was no partial
+// text to even try to repair. Fixed by explicitly passing
+// `thinking: { type: 'disabled' }` below (this schema is a deterministic
+// field-extraction task, not something that benefits from reasoning) and
+// verified end_turn / 5178 output tokens on the real 12-page fixture with
+// this budget, well under 8192.
+const EXTRACT_MAX_TOKENS = 8192;
 const MAX_TOKENS = 4096;
 const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
 
@@ -882,6 +909,73 @@ function safeParseJson(text) {
   }
 }
 
+// Recover as much of a TRUNCATED model response as possible instead of
+// discarding it whole. safeParseJson() above only handles well-formed JSON
+// (optionally wrapped in markdown fences); a response cut off mid-object by
+// max_tokens fails both of its attempts. This walks the raw text tracking
+// brace/bracket/string nesting, finds the last position that is
+// structurally safe to cut at (right after a closed string, a closed
+// nested object/array, or right before a comma — never mid-string,
+// mid-escape, mid-number, or mid-literal), drops everything after that
+// point, and closes out the remaining open brackets/braces in order. A
+// truncated field is lost; every field that was fully emitted before the
+// cutoff survives. Returns null if nothing salvageable was found.
+function repairTruncatedJson(text) {
+  if (!text || typeof text !== 'string') return null;
+  let s = text.trim();
+  if (s.startsWith('```')) {
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  }
+  const start = s.indexOf('{');
+  if (start === -1) return null;
+  s = s.slice(start);
+
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+  let lastSafeIndex = -1;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+        lastSafeIndex = i + 1;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '{' || ch === '[') {
+      stack.push(ch);
+    } else if (ch === '}' || ch === ']') {
+      stack.pop();
+      lastSafeIndex = i + 1;
+    } else if (ch === ',') {
+      lastSafeIndex = i; // cut BEFORE the comma — drop the dangling next field
+    }
+  }
+
+  if (lastSafeIndex === -1 || stack.length === 0) return null;
+
+  let truncated = s.slice(0, lastSafeIndex);
+  for (let i = stack.length - 1; i >= 0; i--) {
+    truncated += stack[i] === '{' ? '}' : ']';
+  }
+
+  try {
+    return JSON.parse(truncated);
+  } catch (e) {
+    return null;
+  }
+}
+
 // 2026-08-22 — Structured buyer2Name/seller2Name, captured at scan time.
 // TREC contracts print multi-person parties as one combined string on the
 // signature line ("Chelsea Linton, Thomas Linton" or "Kathleen Champie and
@@ -1317,12 +1411,17 @@ async function scanContract(pdfBase64) {
   //Check PDF size - if over 5MB, use increased max_tokens and Opus for better large-doc handling
   const pdfSizeBytes = Math.floor((pdfBase64.length * 3) / 4);
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
-  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : MODEL;
-  const maxTokensToUse = isLargePdf ? 8192 : MAX_TOKENS;
+  // Sonnet + EXTRACT_MAX_TOKENS below the large-PDF branch — started from
+  // the working auditCompliance() trec-20-17 fix (2026-08-06) and increased
+  // further after finding thinking also eats this budget. See the MODEL
+  // and EXTRACT_MAX_TOKENS comments above.
+  const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : EXTRACT_MODEL;
+  const maxTokensToUse = isLargePdf ? 8192 : EXTRACT_MAX_TOKENS;
 
   const response = await anthropic.messages.create({
     model: modelToUse,
     max_tokens: maxTokensToUse,
+    thinking: { type: 'disabled' },
     messages: [
       {
         role: 'user',
@@ -1346,11 +1445,30 @@ async function scanContract(pdfBase64) {
 
   const textBlock = (response.content || []).find((b) => b.type === 'text');
   const rawText = textBlock ? textBlock.text : '';
-  const parsed = safeParseJson(rawText);
+  let parsed = safeParseJson(rawText);
+  let recoveredFromTruncation = false;
 
   if (!parsed || typeof parsed !== 'object') {
-    const fallback = emptyResult('Claude returned a response that could not be parsed as JSON.');
+    // Direct parse failed — most commonly a response cut off mid-object by
+    // max_tokens. Try to salvage whatever fields were fully emitted before
+    // the cutoff rather than discarding the entire extraction. See
+    // repairTruncatedJson() above.
+    const repaired = repairTruncatedJson(rawText);
+    if (repaired && typeof repaired === 'object') {
+      parsed = repaired;
+      recoveredFromTruncation = true;
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    // Nothing salvageable. CRITICAL: this must not look like a successful
+    // scan to the caller — success:false is the signal every caller
+    // (contract-extraction-tools.js, inbox-tools.js, the /api/scan-contract
+    // handler) needs to check instead of silently treating a nulled-out
+    // extracted object as a real "no data on this contract" result.
+    const fallback = emptyResult('Claude returned a response that could not be parsed as JSON, even after truncation-repair. Extraction failed — no fields were recovered.');
     fallback.warnings.push(`Raw response (first 300 chars): ${String(rawText).slice(0, 300)}`);
+    fallback.success = false;
     return fallback;
   }
 
@@ -1756,7 +1874,20 @@ async function scanContract(pdfBase64) {
   // key to look up. null value = genuinely unverifiable; never a guess.
   extracted.moneyStack = buildMoneyStack(extracted, confidence);
 
-  return { extracted, confidence, warnings };
+  if (recoveredFromTruncation) {
+    warnings.push(
+      'Claude\'s response was truncated mid-object and had to be repaired — the fields above are what was fully emitted before the cutoff. Some fields the contract actually contains may be missing here (not null-because-blank, null-because-cut-off). Re-scan or verify manually.'
+    );
+  }
+
+  // success:true means the model's JSON parsed cleanly. success:false covers
+  // both "nothing salvageable" (handled in the early return above, where
+  // every field is a genuine null) and "recovered a partial object via
+  // truncation-repair" (some fields here are real, but the extraction as a
+  // whole is not a confirmed-complete read of the contract). Callers must
+  // check this instead of trusting a non-null `extracted` object as proof
+  // the scan succeeded.
+  return { extracted, confidence, warnings, success: !recoveredFromTruncation };
 }
 
 // Confidence lookup mirrors the flat/dotted key convention the model's own
@@ -2019,12 +2150,20 @@ async function runFullScan(pdfBase64) {
     complianceReport.missingInitials = workingInitials;
   }
 
+  // true only when this IS a trec-20-17 (extraction applicable) AND the
+  // extraction call either threw (trecExtraction === null) or parsed with
+  // success:false (nothing/partial salvaged from a truncated response).
+  // false for every other document type — extraction never runs for those,
+  // that's expected behavior, not a failure.
+  const extractionFailed = documentType === 'trec-20-17' && (!trecExtraction || trecExtraction.success === false);
+
   return {
     documentType,
     documentLabel,
     documentTypeConfidence: ident.confidence,
     complianceReport,
     extractedFields,
+    extractionFailed,
     // Backwards-compat fields — only populated for TREC 20-17.
     extracted: trecExtraction ? trecExtraction.extracted : null,
     confidence: trecExtraction ? trecExtraction.confidence : {},
@@ -2268,6 +2407,13 @@ async function handler(req, res) {
       documentTypeConfidence: result.documentTypeConfidence,
       complianceReport: result.complianceReport,
       extractedFields: result.extractedFields,
+      // true only for a trec-20-17 whose money-stack/term extraction failed
+      // or had to be truncation-repaired — check this before trusting
+      // extractedFields/extracted as a complete read of the contract.
+      // ok stays true here (document identification + compliance audit ran
+      // fine); this is the caller-visible signal the earlier silent-nulling
+      // bug did not provide.
+      extractionFailed: result.extractionFailed,
       // Legacy fields preserved for any client that hasn't been updated yet.
       extracted: result.extracted,
       confidence: result.confidence,
@@ -2335,3 +2481,6 @@ module.exports.identifyDocument = identifyDocument;
 module.exports.auditCompliance = auditCompliance;
 module.exports.DOCUMENT_LABELS = DOCUMENT_LABELS;
 module.exports.applyDeterministicDeadlineOverrides = applyDeterministicDeadlineOverrides;
+// Exported for scripts/regression-scan-contract-truncation.js only — same
+// pattern as applyDeterministicDeadlineOverrides above.
+module.exports.repairTruncatedJson = repairTruncatedJson;
