@@ -67,20 +67,61 @@ const LOOKBACK_DAYS = 1095;
 const MAX_POSTS_PER_TICK = 40;
 const REQUEST_BUDGET = 150;
 
+// 2026-09-29 (Atlas) — measured 44.3s live against prod at MAX_POSTS_PER_TICK
+// sequential Zernio calls, no fetch timeouts; the whole every15 dispatcher
+// group has a 40s maxDuration. Neither this cron's own business logic
+// (discovery -> per-post comment fetch -> upsert) nor which comments get
+// ingested changed below — only the time budget and concurrency did.
+const FETCH_TIMEOUT_MS = 6000;
+const DEADLINE_MS = 15000;
+const CONCURRENCY_LIMIT = 5;
+
 async function sb(path, init = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      ...(init.headers || {}),
-    },
-  });
-  const text = await res.text();
-  let data = null;
-  if (text) { try { data = JSON.parse(text); } catch { data = null; } }
-  return { ok: res.ok, status: res.status, data, raw: text ? text.slice(0, 300) : '' };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        ...(init.headers || {}),
+      },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    const text = await res.text();
+    let data = null;
+    if (text) { try { data = JSON.parse(text); } catch { data = null; } }
+    return { ok: res.ok, status: res.status, data, raw: text ? text.slice(0, 300) : '' };
+  } catch (err) {
+    // Abort (timeout) or any other network failure -> same {ok:false} shape
+    // every caller here already handles; previously this had no try/catch at
+    // all and a network error would throw uncaught out of the handler.
+    return { ok: false, status: 0, data: null, error: String((err && err.message) || err), raw: '' };
+  }
+}
+
+/** Bounded concurrency, deadline-aware. Never starts a new post's comment
+ *  fetch past `deadlineAt`; in-flight fetches are bounded by FETCH_TIMEOUT_MS
+ *  and the shared request budget, so worst-case overrun is small and finite. */
+async function mapWithConcurrency(items, deadlineAt, worker) {
+  let cursor = 0;
+  let deadlineHit = false;
+  const results = [];
+
+  async function run() {
+    for (;;) {
+      if (Date.now() >= deadlineAt) { deadlineHit = true; return; }
+      if (cursor >= items.length) return;
+      const item = items[cursor];
+      cursor += 1;
+      const r = await worker(item);
+      results.push(r);
+    }
+  }
+
+  const n = Math.min(CONCURRENCY_LIMIT, items.length);
+  await Promise.all(Array.from({ length: n }, run));
+  return { results, deadlineHit, remaining: items.length - results.length };
 }
 
 /** Normalize one Zernio comment into a social_comment_replies row. */
@@ -107,6 +148,7 @@ function toRow(comment, post) {
 }
 
 async function handler(req, res) {
+  const handlerStart = Date.now();
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ ok: false, error: 'unauthorized' });
@@ -163,8 +205,13 @@ async function handler(req, res) {
   let ownSkipped = 0;
   const rows = [];
 
-  for (const post of posts) {
-    if (budget.exhausted) { errors.push({ stage: 'budget', detail: 'request budget exhausted mid-scan' }); break; }
+  // Deadline budget from cron entry, not from here — the discovery call
+  // above (step 1) already spends part of the 15s. Concurrency bounded at
+  // CONCURRENCY_LIMIT; the shared request `budget` (Zernio call cap) is still
+  // honored inside the worker exactly as it was in the sequential loop.
+  const deadlineAt = handlerStart + DEADLINE_MS;
+  const { deadlineHit, remaining: postsNotScanned } = await mapWithConcurrency(posts, deadlineAt, async (post) => {
+    if (budget.exhausted) { errors.push({ stage: 'budget', detail: 'request budget exhausted mid-scan' }); return; }
     const { comments, errors: cerr } = await getPostComments({
       postId: post.id, accountId: post.accountId, platform: post.platform, budget,
     });
@@ -177,6 +224,9 @@ async function handler(req, res) {
       if (!String(c.message || '').trim()) continue;
       rows.push(toRow(c, post));
     }
+  });
+  if (deadlineHit) {
+    errors.push({ stage: 'deadline', detail: `${DEADLINE_MS}ms budget hit, ${postsNotScanned} of ${posts.length} posts not scanned this tick` });
   }
 
   // 3. One upsert. The unique index on (platform, comment_external_id) makes
@@ -206,6 +256,8 @@ async function handler(req, res) {
     ok: true,
     items: itemsNew,
     posts_with_comments: posts.length,
+    posts_not_scanned: postsNotScanned,
+    deadline_hit: deadlineHit,
     comments_seen: commentsSeen,
     own_comments_skipped: ownSkipped,
     candidates: rows.length,
@@ -213,6 +265,7 @@ async function handler(req, res) {
     account_failures: discovery.errors.filter((e) => e.stage === 'account').length,
     error_count: errors.length,
     errors: errors.slice(0, 5),
+    duration_ms: Date.now() - handlerStart,
   });
 }
 

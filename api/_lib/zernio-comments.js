@@ -124,6 +124,11 @@ async function zernio(path, init = {}, budget = null) {
           Accept: 'application/json',
           ...(init.headers || {}),
         },
+        // Atlas, 2026-09-29 — cron-comment-monitor timeout incident. A per-
+        // attempt cap so one slow/hanging Zernio call can't stall the whole
+        // request budget loop. An abort throws the same as any other network
+        // error and lands in this same catch -> {ok:false} contract unchanged.
+        signal: AbortSignal.timeout(6000),
       });
     } catch (err) {
       if (attempt >= 3) return { ok: false, status: 0, error: err.message, data: null };

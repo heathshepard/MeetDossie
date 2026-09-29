@@ -65,6 +65,17 @@
 // require() telegram-gate.js first in this dispatcher's HANDLERS list.
 
 const telegramGate = require('./telegram-gate.js');
+// recordCronRun is a plain named export (no other require in this file's
+// require graph pulls in cron-telemetry.js, and telegram-gate.js does not
+// require cron-multiplex.js or cron-telemetry.js) — safe, no circularity.
+const { recordCronRun } = require('./cron-telemetry.js');
+
+// Per-member deadline (Atlas, 2026-09-29) — see the INCIDENT this fixes in
+// the header block above runGroup(). Overridable per handler entry via
+// `{ name, mod, timeoutMs }`. Default chosen so N members racing this bound
+// concurrently still land well inside every existing dispatcher's own
+// maxDuration (the tightest is every15's 40s).
+const DEFAULT_MEMBER_TIMEOUT_MS = 20000;
 
 // Top-level dispatcher gate. Mirrors the exact check every individual
 // sub-handler already does (x-vercel-cron header set by Vercel's own cron
@@ -119,18 +130,58 @@ async function runGroup(req, handlers) {
   // alone. These two lines cost <1ms and turn the NEXT timeout into an
   // instant diagnosis: whichever member logs "start" with no matching
   // "done" is the one still running when the timeout fires.
+  //
+  // THE ACTUAL FIX (Atlas, 2026-09-29): the diagnosis above found the real
+  // culprits (cron-merge-queue-backfill, cron-comment-monitor — see their own
+  // files), but the *dispatcher* itself had no defense against the NEXT
+  // unbounded member. Each job is now raced against a per-member deadline so
+  // one hung member can never again take the whole group — and therefore
+  // every OTHER member's already-computed result — down with it.
   const jobs = handlers.map(async (h) => {
     const shim = makeShimRes(h.name);
     const t0 = Date.now();
+    const timeoutMs = (typeof h.timeoutMs === 'number' && h.timeoutMs > 0)
+      ? h.timeoutMs
+      : DEFAULT_MEMBER_TIMEOUT_MS;
     console.log(`[cron-multiplex] start ${h.name}`);
-    try {
-      await telegramGate.runWithJobContext(h.name, () => h.mod(req, shim));
-      console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=${shim._status}`);
-      return { name: h.name, status: shim._status, body: shim._body };
-    } catch (err) {
-      console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=500 (error)`);
-      return { name: h.name, status: 500, error: (err && err.message) || String(err) };
-    }
+
+    const work = (async () => {
+      try {
+        await telegramGate.runWithJobContext(h.name, () => h.mod(req, shim));
+        console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=${shim._status}`);
+        return { name: h.name, status: shim._status, body: shim._body };
+      } catch (err) {
+        console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=500 (error)`);
+        return { name: h.name, status: 500, error: (err && err.message) || String(err) };
+      }
+    })();
+
+    // IMPORTANT: Promise.race cannot cancel `work`. Node has no thread to
+    // kill it on — the handler keeps executing in the background (making its
+    // own outbound calls, potentially writing to the DB) until Vercel
+    // freezes the function after THIS dispatcher sends its own response. So
+    // this only stops one slow member from blocking the group's response and
+    // hiding every sibling's already-good result; it is NOT a substitute for
+    // real per-member deadlines inside the member itself (AbortSignal
+    // timeouts on outbound fetches, wall-clock loop budgets) — see
+    // cron-merge-queue-backfill.js and cron-comment-monitor.js for those.
+    const timeout = new Promise((resolve) => {
+      setTimeout(() => {
+        console.log(`[cron-multiplex] TIMEOUT ${h.name} at ${timeoutMs}ms (still running in background)`);
+        // Best-effort visibility write, fire-and-forget — must never delay
+        // the dispatcher's own response. If `work` eventually finishes
+        // before the function is frozen, its own withTelemetry wrapper
+        // overwrites this row with the real result (same cron_name), so a
+        // member that's merely slow-but-fine self-corrects; a member that's
+        // truly hanging stays visibly 'member_timeout' instead of silent.
+        try {
+          recordCronRun(h.name, 'error', { error: 'member_timeout', timeoutMs }).catch(() => {});
+        } catch (_) { /* telemetry must never break dispatch */ }
+        resolve({ name: h.name, status: 504, error: 'member_timeout', timeoutMs });
+      }, timeoutMs);
+    });
+
+    return Promise.race([work, timeout]);
   });
   return Promise.all(jobs);
 }
