@@ -18,16 +18,22 @@
 //   - /api/cron-merge-queue-backfill
 //   - /api/cron-comment-monitor
 //   - /api/cron-support-ticket-triage   (added 2026-09-18)
-//   - /api/cron-post-videos             (moved 2026-09-28, from
-//     cron-dispatch-daily-1330 — that group only ran once/day, so a Heath
-//     Telegram approval could sit up to ~21h before posting. Runs here every
-//     15 minutes instead; it's a real no-op when nothing is
-//     status='heath_approved' AND scheduled_for<=now(), and per-platform
-//     daily caps still apply on every invocation — see cron-post-videos.js's
-//     own header for the full gate chain. This group's members ran fine at
-//     the previous 40s ceiling; cron-post-videos itself previously ran
-//     inside a TIGHTER 20s budget (cron-dispatch-daily-1330), so this move
-//     is strictly more timeout headroom, not less.
+//
+// cron-post-videos MOVED OUT AGAIN (Atlas, 2026-09-29) to cron-dispatch-
+// every20 — this group's own vercel.json bucket (api/{cron-dispatch-daily-
+// 1300,cron-dispatch-every15}.js) is capped at maxDuration:40, and Vercel
+// logs confirm this dispatcher was hitting "Task timed out after 40 seconds"
+// on 32/32 sampled runs over 8h (the ~500-email flood). In 26 of those 32
+// runs cron-post-videos itself logged completion in well under 40s
+// ("nothing to post"), so it was not reliably the hang — but it's still the
+// one member here doing real outbound work (Zernio uploads across multiple
+// platforms), and 2026-09-28's move put it in the group with the LEAST
+// headroom of any bucket it could have landed in. every20 shares vercel.json's
+// 300s bucket, which is a strict improvement in both directions: more time
+// for post-videos' own Zernio calls, and it no longer contends for the 8
+// remaining every15 members' already-tight 40s budget. Approval-latency
+// concern from 2026-09-28 (why it left daily-1330 in the first place) is
+// unaffected — 20 vs 15 minutes is not a meaningfully different wait.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -44,7 +50,6 @@ const HANDLERS = [
   { name: 'cron-merge-queue-backfill', mod: require('./cron-merge-queue-backfill.js') },
   { name: 'cron-comment-monitor', mod: require('./cron-comment-monitor.js') },
   { name: 'cron-support-ticket-triage', mod: require('./cron-support-ticket-triage.js') },
-  { name: 'cron-post-videos', mod: require('./cron-post-videos.js') },
 ];
 
 module.exports = async function handler(req, res) {

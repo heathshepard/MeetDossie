@@ -110,12 +110,25 @@ function makeShimRes(name) {
  * @returns {Promise<Array<{name: string, status: number, body: any, error?: string}>>}
  */
 async function runGroup(req, handlers) {
+  // Per-member start/finish timing (Atlas, 2026-09-29) — added while chasing
+  // a chronic 40s Task-timeout flood on cron-dispatch-every15 (~500 Vercel
+  // emails, 96 invocations/day). Promise.all means the whole dispatcher hard
+  // -times-out at the group's maxDuration if ANY single member hangs, but
+  // none of the 8 non-post-videos members ever printed a single log line in
+  // 32/32 sampled runs, so the hang could not be isolated from Vercel logs
+  // alone. These two lines cost <1ms and turn the NEXT timeout into an
+  // instant diagnosis: whichever member logs "start" with no matching
+  // "done" is the one still running when the timeout fires.
   const jobs = handlers.map(async (h) => {
     const shim = makeShimRes(h.name);
+    const t0 = Date.now();
+    console.log(`[cron-multiplex] start ${h.name}`);
     try {
       await telegramGate.runWithJobContext(h.name, () => h.mod(req, shim));
+      console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=${shim._status}`);
       return { name: h.name, status: shim._status, body: shim._body };
     } catch (err) {
+      console.log(`[cron-multiplex] done ${h.name} ${Date.now() - t0}ms status=500 (error)`);
       return { name: h.name, status: 500, error: (err && err.message) || String(err) };
     }
   });
