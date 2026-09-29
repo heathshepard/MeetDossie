@@ -1,0 +1,268 @@
+name: Staging auto-merge gate
+
+# Heath approved this 2026-09-28: 89 commits / 188 files were sitting on
+# staging, oldest 11 days, all his own work (mostly social/cron infra),
+# stuck purely because merging required him and he's busy.
+#
+# DESIGN: every morning, run the real test suite against staging. If green
+# AND nothing in the changeset touches contracts/e-sign, client sends,
+# money, auth/RLS/migrations, or vercel.json's cron config, fast-forward
+# main to staging and push. Otherwise HOLD and tell him why. He remains the
+# gate for the risky stuff; everything else flows.
+#
+# WHY GITHUB ACTIONS, NOT A VERCEL CRON:
+#   - Vercel's 20/20 cron cap is already full (new crons go to
+#     cron-job.org per CLAUDE.md) — this uses neither, it's a separate
+#     scheduler entirely.
+#   - The test suite includes 2 regression scripts that launch a real
+#     headless Chromium (Playwright) — Vercel serverless has no Chromium
+#     binary (see api/cron-regression-suite.js's own comment: "Playwright/
+#     UI tier runs on Heath's PC ... Vercel serverless has no Chromium").
+#     A GitHub-hosted runner can install Playwright's browser in seconds.
+#   - This repo already runs its "must never silently pass" test tiers in
+#     Actions for the identical reason (.github/workflows/
+#     trec-validator-tests.yml: "These two cannot [run in the daily cron]:
+#     they use node:test and read api/chat.js off disk, neither of which
+#     works inside a Vercel function. CI is the only place they can run").
+#   - Native git push with the default GITHUB_TOKEN — no need to reinvent
+#     GitHub's Git Refs API (api/merge-to-main.js's fast-forward pattern)
+#     just to move a ref.
+#
+# DRY-RUN IS THE DEFAULT. This workflow will NEVER push to main unless
+# BOTH of these are true:
+#   1. `vars.AUTO_MERGE_LIVE` repository variable is exactly 'true'
+#      (Settings -> Secrets and variables -> Actions -> Variables) — flip
+#      this only after Heath has seen a dry-run report and confirmed.
+#   2. OR a manual workflow_dispatch run with `live: true` input, for a
+#      one-off supervised test.
+# Until then it always reports what it WOULD do and changes nothing.
+#
+# NOTIFICATION: one Telegram message, 3 lines, either way (merged with
+# commit count, or held with the reason + what to do). Reuses the plain
+# api.telegram.org send pattern every other cron in this repo uses
+# (api/cron-silence-alarm.js's sendTelegram). Needs repo secrets
+# TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (separate from Vercel's copies —
+# GitHub Actions secrets are not shared with Vercel). If those secrets
+# aren't set yet, the notify step logs to the run summary instead of
+# failing the job.
+#
+# NEVER force-pushes, never rewrites history, never resolves a conflict
+# automatically. Fast-forward only (`git merge --ff-only`) — anything else
+# is a HOLD.
+#
+# Owner: Atlas, 2026-09-28.
+
+on:
+  schedule:
+    # 12:00 UTC = 7am CDT / 6am CST — before Heath's day starts.
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      live:
+        description: 'Actually merge if clear+green (overrides the dry-run default for this one run)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staging-auto-merge-gate
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history, both branches)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch staging
+        run: git fetch origin staging:refs/remotes/origin/staging
+
+      - name: Resolve live/dry-run mode
+        id: mode
+        env:
+          REPO_VAR_LIVE: ${{ vars.AUTO_MERGE_LIVE }}
+          DISPATCH_LIVE: ${{ github.event.inputs.live }}
+        run: |
+          if [ "$REPO_VAR_LIVE" = "true" ] || [ "$DISPATCH_LIVE" = "true" ]; then
+            echo "live=true" >> "$GITHUB_OUTPUT"
+            echo "MODE: LIVE (will push to main if clear + green)"
+          else
+            echo "live=false" >> "$GITHUB_OUTPUT"
+            echo "MODE: DRY-RUN (default — reports only, never pushes)"
+          fi
+
+      - name: Diff staging vs main
+        id: diff
+        run: |
+          git diff --name-only origin/main...origin/staging > /tmp/changed_files.txt
+          COMMIT_COUNT=$(git log --oneline origin/main..origin/staging | wc -l | tr -d ' ')
+          FILE_COUNT=$(wc -l < /tmp/changed_files.txt | tr -d ' ')
+          echo "commit_count=$COMMIT_COUNT" >> "$GITHUB_OUTPUT"
+          echo "file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Staging is $COMMIT_COUNT commits / $FILE_COUNT files ahead of main."
+          cat /tmp/changed_files.txt
+
+      - name: No-op check (staging already == main)
+        id: noop
+        if: steps.diff.outputs.commit_count == '0'
+        run: echo "Nothing to merge — staging is not ahead of main."
+
+      - name: Risk gate
+        id: risk
+        if: steps.diff.outputs.commit_count != '0'
+        run: |
+          node -e "
+          const fs = require('fs');
+          const { classifyFiles } = require('./api/_lib/auto-merge-risk-gate.js');
+          const files = fs.readFileSync('/tmp/changed_files.txt', 'utf8').split('\n').filter(Boolean);
+          const result = classifyFiles(files);
+          fs.writeFileSync('/tmp/risk_result.json', JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(result, null, 2));
+          process.exit(result.decision === 'hold' ? 0 : 0); // never fail the step itself — decision is read below
+          "
+          DECISION=$(node -e "console.log(require('/tmp/risk_result.json').decision)")
+          echo "decision=$DECISION" >> "$GITHUB_OUTPUT"
+
+      - name: Install Playwright Chromium (only needed if risk gate is clear)
+        if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install dependencies
+        if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
+        run: npm ci --omit=optional || npm install --omit=optional
+
+      - name: Checkout staging content for the test run
+        # The test suite must exercise staging's code, not main's. We stay
+        # on the `main` ref (so later git operations are unambiguous) but
+        # run the suite against a second worktree checked out at staging.
+        if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
+        run: git worktree add /tmp/staging-checkout origin/staging
+
+      - name: Run test suite against staging
+        id: tests
+        if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
+        working-directory: /tmp/staging-checkout
+        run: |
+          node scripts/auto-merge-test-suite.js --json-out /tmp/test_result.json
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Read test verdict
+        id: verdict
+        if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
+        run: |
+          if [ -f /tmp/test_result.json ]; then
+            OVERALL=$(node -e "console.log(require('/tmp/test_result.json').overall)")
+          else
+            OVERALL="errored"
+          fi
+          echo "overall=$OVERALL" >> "$GITHUB_OUTPUT"
+          echo "Test suite overall: $OVERALL"
+
+      - name: Fast-forward merge + push (LIVE mode only, clear + green)
+        id: merge
+        if: >
+          steps.diff.outputs.commit_count != '0' &&
+          steps.risk.outputs.decision == 'clear' &&
+          steps.verdict.outputs.overall == 'green' &&
+          steps.mode.outputs.live == 'true'
+        run: |
+          git config user.name "staging-auto-merge-gate"
+          git config user.email "atlas-bot@meetdossie.com"
+          if git merge --ff-only origin/staging; then
+            git push origin main
+            echo "result=merged" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=merge_conflict" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine final outcome
+        id: outcome
+        if: always() && steps.diff.outputs.commit_count != '0'
+        run: |
+          COMMITS="${{ steps.diff.outputs.commit_count }}"
+          FILES="${{ steps.diff.outputs.file_count }}"
+          LIVE="${{ steps.mode.outputs.live }}"
+          RISK="${{ steps.risk.outputs.decision }}"
+          VERDICT="${{ steps.verdict.outputs.overall }}"
+          MERGE="${{ steps.merge.outputs.result }}"
+
+          if [ "$RISK" = "hold" ]; then
+            REASON=$(node -e "const r=require('/tmp/risk_result.json'); console.log(r.holds.slice(0,3).map(h=>h.file+' ('+h.reason+')').join('; '))")
+            echo "status=held" >> "$GITHUB_OUTPUT"
+            echo "reason=risk gate: ${REASON}" >> "$GITHUB_OUTPUT"
+            echo "action=review the flagged file(s) and merge manually when ready" >> "$GITHUB_OUTPUT"
+          elif [ "$VERDICT" != "green" ]; then
+            echo "status=held" >> "$GITHUB_OUTPUT"
+            echo "reason=test suite did not pass (${VERDICT:-errored})" >> "$GITHUB_OUTPUT"
+            echo "action=see the auto-merge-gate run log for the failing test(s)" >> "$GITHUB_OUTPUT"
+          elif [ "$MERGE" = "merge_conflict" ]; then
+            echo "status=held" >> "$GITHUB_OUTPUT"
+            echo "reason=staging no longer fast-forwards onto main (diverged)" >> "$GITHUB_OUTPUT"
+            echo "action=resolve manually — never auto-resolved" >> "$GITHUB_OUTPUT"
+          elif [ "$LIVE" != "true" ]; then
+            echo "status=dry_run_clear" >> "$GITHUB_OUTPUT"
+            echo "reason=tests green, no risk flags — would merge, but AUTO_MERGE_LIVE is off" >> "$GITHUB_OUTPUT"
+            echo "action=flip the AUTO_MERGE_LIVE repo variable to true once you've reviewed a dry run" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=merged" >> "$GITHUB_OUTPUT"
+            echo "reason=tests green, no risk flags" >> "$GITHUB_OUTPUT"
+            echo "action=none" >> "$GITHUB_OUTPUT"
+          fi
+          echo "commits=$COMMITS" >> "$GITHUB_OUTPUT"
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Telegram (3 lines, either way)
+        if: always() && steps.diff.outputs.commit_count != '0'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ steps.outcome.outputs.status }}
+          REASON: ${{ steps.outcome.outputs.reason }}
+          ACTION: ${{ steps.outcome.outputs.action }}
+          COMMITS: ${{ steps.outcome.outputs.commits }}
+          FILES: ${{ steps.outcome.outputs.files }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          case "$STATUS" in
+            merged)        LINE1="MERGED staging -> main: ${COMMITS} commits, ${FILES} files." ;;
+            dry_run_clear) LINE1="DRY-RUN clear: ${COMMITS} commits, ${FILES} files would merge." ;;
+            held)          LINE1="HELD: staging -> main NOT merged (${COMMITS} commits, ${FILES} files)." ;;
+            *)              LINE1="Auto-merge gate ran, status unknown." ;;
+          esac
+          MSG="$(printf '%s\n%s\n%s' "$LINE1" "$REASON" "See: $RUN_URL")"
+          echo "$MSG"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -H 'Content-Type: application/json' \
+              -d "$(node -e "console.log(JSON.stringify({chat_id: process.env.TELEGRAM_CHAT_ID, text: process.argv[1], disable_web_page_preview: true}))" "$MSG")" \
+              || echo "::warning::Telegram send failed — see job summary for the message"
+          else
+            echo "::warning::TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set as repo secrets — message above was not delivered"
+          fi
+          {
+            echo "## Staging auto-merge gate"
+            echo "$LINE1"
+            echo ""
+            echo "$REASON"
+            echo ""
+            echo "Next: $ACTION"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Clean up staging worktree
+        if: always()
+        run: git worktree remove /tmp/staging-checkout --force 2>/dev/null || true
