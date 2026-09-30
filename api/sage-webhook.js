@@ -467,49 +467,23 @@ async function dispatchMarkers(chatId, sourceMessageId, markers) {
       continue;
     }
 
-    // Insert the agent_requests row
-    const insert = await supabaseFetch('/rest/v1/agent_requests', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        from_agent: 'sage',
-        to_agent: agent,
-        request_text: task,
-        source_chat_id: String(chatId),
-        source_message_id: sourceMessageId ? String(sourceMessageId) : null,
-        status: 'pending',
-      }),
-    });
-
-    if (!insert.ok || !Array.isArray(insert.data) || insert.data.length === 0) {
-      console.error('[sage-webhook] agent_requests insert failed:', insert.status);
-      continue;
-    }
-
-    const requestId = insert.data[0].request_id;
-
-    // Fire-and-forget POST to agent-dispatch. We don't await the body.
-    if (CRON_SECRET) {
-      try {
-        fetch(
-          `${PUBLIC_BASE_URL}/api/agent-dispatch?to=${encodeURIComponent(agent)}&request_id=${encodeURIComponent(requestId)}`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${CRON_SECRET}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ request_id: requestId, to: agent }),
-          },
-        ).catch((err) => {
-          console.warn('[sage-webhook] dispatch fetch swallowed:', err && err.message);
-        });
-      } catch (err) {
-        console.warn('[sage-webhook] dispatch threw sync:', err && err.message);
-      }
-    } else {
-      console.warn('[sage-webhook] CRON_SECRET not set — dispatch skipped, will be picked up by cron');
-    }
+    // DEPRECATED 2026-09-30 (Atlas, SV-ENG-AGENT-REQUESTS-DECOY): this used
+    // to insert an agent_requests row + fire-and-forget /api/agent-dispatch,
+    // relying on cron-process-agent-requests (documented as running every
+    // minute via cron-job.org) to actually execute it within ~60s. That
+    // reader has not run since 2026-06-10 — its cron-job.org registration
+    // lapsed — so every marker dispatched here since then silently vanished
+    // into a 'pending' row nobody ever read (1,046 of them by 2026-09-30,
+    // across this and cron-staging-watcher.js's own now-retired write).
+    // Until a real queue-backed path is rebuilt, fall back to the same
+    // "just tell Heath" pattern already used for the cole branch above —
+    // a visible relay beats a silent drop into a dead table.
+    void sourceMessageId; // no longer threaded through a DB row
+    await sendTelegramText(
+      chatId,
+      `[${agent} relay] Sage wants ${agent} to handle:\n\n${task}\n\n` +
+        `(auto-dispatch queue is currently deprecated — Heath/Cole to route this manually)`,
+    );
   }
 }
 

@@ -24,6 +24,7 @@
 const telegramGate = require('./_lib/telegram-gate');
 telegramGate.install('cron-engagement-review');
 const { wasSuppressed } = telegramGate;
+const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -99,7 +100,20 @@ function formatMessage(row) {
   ].join('\n');
 }
 
-module.exports = async function handler(req, res) {
+// BUGFIX (Atlas, 2026-09-30) — this was the only member of the every20
+// dispatcher group NOT wrapped in withTelemetry (all 4 siblings are:
+// cron-dossie-sign-completion-loop, cron-content-pipeline-review,
+// cron-content-pipeline-promote, cron-post-videos). Without it, a success
+// here writes nothing to cron_runs at all -- only cron-multiplex.js's
+// member_timeout fallback ever wrote a row for this cron. Net effect: a
+// single transient timeout (confirmed real, member_timeout at
+// 2026-09-30T04:00:20Z, 290000ms) left cron_runs permanently stuck on
+// 'error' even though every run since has succeeded in well under a second
+// (verified live via direct dispatcher call) -- a false, unclearable
+// "erroring right now" alarm. withTelemetry makes every run (ok or error)
+// overwrite the row, so a real problem shows as fresh and a fixed one
+// self-clears on the next tick.
+module.exports = withTelemetry('cron-engagement-review', async function handler(req, res) {
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
   const authHeader = (req.headers && (req.headers.authorization || req.headers.Authorization)) || '';
   const isManualAuth = CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`;
@@ -158,4 +172,4 @@ module.exports = async function handler(req, res) {
 
   console.log('[cron-engagement-review] done — sent', sent, 'of', items.length, 'errors:', errors.length);
   return res.status(200).json({ ok: true, sent, found: items.length, errors });
-};
+});

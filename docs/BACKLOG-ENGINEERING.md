@@ -1283,6 +1283,22 @@ packet, the initials geometry, the audit-trail storage and the draft merge all s
 - **Blocked by** — **Heath** approves the bulk close — it is a destructive DB write, and the right
   fix is arguably to stop `cron-staging-watcher` writing them at all.
 - **Confidence** — Verified now.
+- **UPDATE 2026-09-30 (Atlas)** — the "stop the producer" half is done. Backlog had grown to 1,046
+  pending by the time this was re-checked (still 0 failed — the drainer, `cron-process-agent-
+  requests`, has not run since 2026-06-10; its cron-job.org registration lapsed and was never
+  restored). Both writers are now retired: `api/cron-staging-watcher.js`'s `dispatchQuinn()` is a
+  documented no-op (safe to retire outright, not just pause — `fireQaLoop()` at the same call site
+  already delivers a real, Telegram-surfaced QA signal for MeetDossie staging pushes), and
+  `api/sage-webhook.js`'s `dispatchMarkers()` now falls back to a direct Telegram notify-Heath
+  message for every non-`cole` agent marker instead of inserting here, mirroring the pattern
+  already used for `cole` markers in the same function. Table itself is marked deprecated via
+  `COMMENT ON TABLE` (`supabase/migrations/20260930_agent_requests_deprecated.sql` /
+  `api/admin-migrate-agent-requests-deprecated.js`) so it stops looking like a live queue to the
+  next person who queries it — table NOT renamed and NOT dropped (renaming needs a coordinated
+  update across every remaining reader: `api/cron-agent-requests-stale-check.js`, `api/cron-
+  process-agent-requests.js`, `api/agent-dispatch.js`, `api/_lib/telegram-gate.js`, `api/_lib/
+  agent-prompts/atlas.js`). The bulk-close of the ~1,046 backlogged rows is still explicitly
+  gated on Heath — untouched.
 
 ### E5. 42 `self_improvement_candidates` awaiting a decision, oldest 2026-07-03
 - **Evidence** — 42 undecided rows drafted 2026-07-03 → 2026-09-10, all awaiting `heath_decision`.
