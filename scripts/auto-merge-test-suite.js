@@ -30,13 +30,36 @@
 // summary's overall !== 'green') on ANY failure, timeout, or crash — never
 // merge on red or unknown state.
 //
+// REAL-ARTIFACT CHECK (2026-09-29): scripts/regression-scan-contract-
+// real-artifact.js makes a REAL, billed Anthropic API call — see its own
+// header. It is picked up automatically by the regression-*.js glob below
+// like every other script, but running it on every daily gate invocation
+// regardless of what changed would spend money on merges that never touch
+// the document pipeline. --changed-files gates that: pass the same
+// changed-file list the workflow already computed
+// (git diff --name-only origin/main...origin/staging), and this script
+// only REQUIRES the real-artifact check when
+// api/_lib/auto-merge-risk-gate.js's touchesDocumentPipeline() says the
+// diff actually touches it — otherwise it's excluded for this run (never
+// silently "passed", always reported as excluded with a reason).
+//
+// FAIL CLOSED, same reasoning as the risk gate itself: if --changed-files
+// is NOT supplied at all (unknown diff), the real-artifact check is
+// REQUIRED by default rather than skipped — a false hold (running an
+// unnecessary check) costs a few cents; a false skip could re-ship the
+// exact 2026-09-29 regression.
+//
 // Usage:
 //   node scripts/auto-merge-test-suite.js            # human-readable + JSON summary on stdout
 //   node scripts/auto-merge-test-suite.js --json-out result.json
+//   node scripts/auto-merge-test-suite.js --changed-files /tmp/changed_files.txt --json-out result.json
 
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { touchesDocumentPipeline } = require('../api/_lib/auto-merge-risk-gate.js');
+
+const REAL_ARTIFACT_SCRIPT = 'scripts/regression-scan-contract-real-artifact.js';
 
 const REPO_ROOT = path.join(__dirname, '..');
 const TEST_TIMEOUT_MS = 5 * 60 * 1000; // 5 min per script — generous, catches real hangs
@@ -139,9 +162,24 @@ function runNodeTest(files) {
   }
 }
 
+function readChangedFiles() {
+  const idx = process.argv.indexOf('--changed-files');
+  if (idx === -1 || !process.argv[idx + 1]) return null; // not supplied
+  const filePath = process.argv[idx + 1];
+  if (!fs.existsSync(filePath)) {
+    console.warn(`[auto-merge-test-suite] --changed-files path does not exist: ${filePath} — treating as unknown diff (fail closed)`);
+    return null;
+  }
+  return fs.readFileSync(filePath, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+}
+
 function main() {
   const allRegressionScripts = listRegressionScripts();
   const libTestFiles = listLibTestFiles();
+
+  const changedFiles = readChangedFiles(); // null = unknown diff -> fail closed, require the real-artifact check
+  const pipelineCheck = touchesDocumentPipeline(changedFiles || []);
+  const requireRealArtifactCheck = changedFiles === null || pipelineCheck.triggered;
 
   const excludedNames = new Set(EXCLUDED.map((e) => e.file));
   const runnable = [];
@@ -153,7 +191,24 @@ function main() {
       skipped.push({ file: script, reason: 'not applicable in this environment (see isApplicable()) — reported as excluded, never as a pass' });
       continue;
     }
+    if (script === REAL_ARTIFACT_SCRIPT && !requireRealArtifactCheck) {
+      skipped.push({
+        file: script,
+        reason: `diff does not touch the document/extraction pipeline (api/_lib/auto-merge-risk-gate.js touchesDocumentPipeline() found no match against ${changedFiles.length} changed file(s)) — the real, billed Anthropic API call is skipped to avoid spend on unrelated merges. Excluded, never counted as a pass.`,
+      });
+      continue;
+    }
     runnable.push(script);
+  }
+
+  if (requireRealArtifactCheck) {
+    console.log(
+      `[auto-merge-test-suite] real-artifact check REQUIRED — ${
+        changedFiles === null
+          ? 'no --changed-files supplied, failing closed'
+          : `diff touches: ${pipelineCheck.matched.join(', ')}`
+      }`,
+    );
   }
 
   console.log(`[auto-merge-test-suite] ${allRegressionScripts.length} regression scripts total, ${runnable.length} runnable, ${skipped.length} excluded (documented below), ${libTestFiles.length} api/_lib/*.test.js files`);

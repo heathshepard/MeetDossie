@@ -139,9 +139,64 @@ function classifyFiles(files) {
   };
 }
 
+// ─── Document/extraction pipeline real-artifact trigger ────────────────────
+//
+// WHY (2026-09-29 postmortem, docs at scripts/regression-scan-contract-
+// real-artifact.js): the money-stack extraction schema shipped with every
+// mock test green, then returned every field null with ok:true against a
+// real 12-page PDF through a real model call (Haiku truncated mid-JSON at
+// max_tokens=4096). classifyFile() above never held api/scan-contract.js —
+// it fell through to the flat `api/*.js` SAFE_ALLOWLIST entry — so this
+// exact regression would have auto-merged clean under the gate as it stood
+// on 2026-09-28.
+//
+// This is a SEPARATE, ORTHOGONAL concern from RISK_CATEGORIES above: it does
+// not decide hold-for-Heath vs. clear-to-merge (a file can be risk-CLEAR and
+// still require the real-artifact check, e.g. api/scan-contract.js itself
+// was never in a risk-hold category and shouldn't become one — extraction
+// bugs are exactly the kind of thing this repo wants caught by a test, not
+// by making every contract-adjacent file require Heath's manual review
+// forever). Instead, touching one of these paths means
+// scripts/auto-merge-test-suite.js MUST include and REQUIRE
+// scripts/regression-scan-contract-real-artifact.js to pass (a live
+// Anthropic API call against a committed synthetic fixture) before the
+// suite can report green — see that script's own header for what it does
+// and does not catch, and scripts/auto-merge-test-suite.js's
+// --changed-files wiring for how the requirement is threaded through.
+//
+// Heath's explicit path list (2026-09-29): api/scan-contract.js,
+// api/_lib/contract-extraction-tools.js, api/_lib/offer-net-sheet.js,
+// api/_lib/checkbox-election.js, api/esign-create.js, api/_lib/esign-*,
+// api/_assets/field-maps/*, scripts/esign-role-maps/*, and the TXR-1406
+// packet builder (scripts/build-txr-1406-packet.js). Several of these
+// (esign-create.js, esign-*, checkbox-election.js) ALSO already hold via
+// ESIGN_CONTRACT_RE above for unrelated reasons — that's fine, the two
+// checks are independent and both can fire on the same file.
+const DOCUMENT_PIPELINE_TRIGGER_RE =
+  /^api\/scan-contract\.js$|^api\/_lib\/contract-extraction-tools\.js$|^api\/_lib\/offer-net-sheet\.js$|^api\/_lib\/checkbox-election\.js$|^api\/esign-create\.js$|^api\/_lib\/esign-[^/]*\.js$|^api\/_assets\/field-maps\/|^scripts\/esign-role-maps\/|^scripts\/build-txr-1406-packet\.js$/i;
+
+/**
+ * Does this changeset touch the document/extraction pipeline closely
+ * enough that the real-artifact check must run and pass? Pure function,
+ * same "fail closed is not the goal here, MISSING the trigger is the
+ * failure mode to avoid" reasoning as classifyFile — err toward including
+ * a file rather than excluding it.
+ * @param {string[]} files
+ * @returns {{triggered: boolean, matched: string[]}}
+ */
+function touchesDocumentPipeline(files) {
+  const list = Array.isArray(files) ? files : [];
+  const matched = list
+    .map((f) => String(f || '').replace(/^\/+/, ''))
+    .filter((f) => DOCUMENT_PIPELINE_TRIGGER_RE.test(f));
+  return { triggered: matched.length > 0, matched };
+}
+
 module.exports = {
   classifyFile,
   classifyFiles,
   RISK_CATEGORIES,
   SAFE_ALLOWLIST_RE,
+  DOCUMENT_PIPELINE_TRIGGER_RE,
+  touchesDocumentPipeline,
 };

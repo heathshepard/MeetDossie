@@ -46,6 +46,17 @@ name: Staging auto-merge gate
 # aren't set yet, the notify step logs to the run summary instead of
 # failing the job.
 #
+# REAL-ARTIFACT CHECK (2026-09-29): when the staging/main diff touches the
+# document/extraction pipeline (api/scan-contract.js, esign, checkbox-
+# election, field-maps, etc. — see api/_lib/auto-merge-risk-gate.js's
+# touchesDocumentPipeline()), the test suite step below also needs repo
+# secret ANTHROPIC_API_KEY (again separate from Vercel's copy) to run
+# scripts/regression-scan-contract-real-artifact.js, which makes a real,
+# billed Anthropic API call against a committed synthetic fixture. If that
+# secret isn't set when the check is required, the check fails LOUD (never
+# silently skips) and the gate correctly HOLDS — see that script's own
+# header for the full rationale.
+#
 # NEVER force-pushes, never rewrites history, never resolves a conflict
 # automatically. Fast-forward only (`git merge --ff-only`) — anything else
 # is a HOLD.
@@ -155,8 +166,18 @@ jobs:
         id: tests
         if: steps.diff.outputs.commit_count != '0' && steps.risk.outputs.decision == 'clear'
         working-directory: /tmp/staging-checkout
+        # ANTHROPIC_API_KEY is only actually USED (and billed) when the diff
+        # touches the document/extraction pipeline — see
+        # scripts/regression-scan-contract-real-artifact.js and
+        # api/_lib/auto-merge-risk-gate.js's touchesDocumentPipeline(). It
+        # must still be present as a repo secret for that case: a merge that
+        # touches scan-contract.js/esign/checkbox-election/etc. with no key
+        # available correctly HOLDS (see that script's own "fail loud, never
+        # skip" behavior) rather than merging on an unrun check.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          node scripts/auto-merge-test-suite.js --json-out /tmp/test_result.json
+          node scripts/auto-merge-test-suite.js --changed-files /tmp/changed_files.txt --json-out /tmp/test_result.json
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
         continue-on-error: true
 

@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyFile, classifyFiles } = require('./auto-merge-risk-gate.js');
+const { classifyFile, classifyFiles, touchesDocumentPipeline } = require('./auto-merge-risk-gate.js');
 
 test('e-sign / contract paths HOLD', () => {
   const paths = [
@@ -96,4 +96,46 @@ test('classifyFiles: all-clear changeset', () => {
   assert.equal(result.decision, 'clear');
   assert.equal(result.holds.length, 0);
   assert.equal(result.cleared.length, 2);
+});
+
+// touchesDocumentPipeline() — 2026-09-29, the real-artifact check trigger.
+// Independent of classifyFile()'s hold/clear decision: a file can be
+// risk-CLEAR (e.g. api/scan-contract.js itself, which is NOT in any HOLD
+// category — it fell through to the flat api/*.js allowlist, which is
+// exactly how the 2026-09-29 regression would have auto-merged clean) and
+// still require the real-artifact check.
+test('touchesDocumentPipeline: every path Heath named triggers', () => {
+  const paths = [
+    'api/scan-contract.js',
+    'api/_lib/contract-extraction-tools.js',
+    'api/_lib/offer-net-sheet.js',
+    'api/_lib/checkbox-election.js',
+    'api/esign-create.js',
+    'api/_lib/esign-role-resolver.js',
+    'api/_assets/field-maps/amendment.json',
+    'scripts/esign-role-maps/resale.json',
+    'scripts/build-txr-1406-packet.js',
+  ];
+  for (const p of paths) {
+    assert.equal(touchesDocumentPipeline([p]).triggered, true, `expected trigger for ${p}`);
+  }
+});
+
+test('touchesDocumentPipeline: unrelated changes do not trigger', () => {
+  const result = touchesDocumentPipeline([
+    'api/cron-dispatch-daily-0800.js',
+    'scripts/regression-social-goals-pacing.js',
+    'docs/PIPELINE.md',
+  ]);
+  assert.equal(result.triggered, false);
+  assert.deepEqual(result.matched, []);
+});
+
+test('touchesDocumentPipeline: scan-contract.js is risk-CLEAR but still triggers the real-artifact check', () => {
+  assert.equal(classifyFile('api/scan-contract.js').decision, 'clear');
+  assert.equal(touchesDocumentPipeline(['api/scan-contract.js']).triggered, true);
+});
+
+test('touchesDocumentPipeline: empty changeset does not trigger', () => {
+  assert.equal(touchesDocumentPipeline([]).triggered, false);
 });

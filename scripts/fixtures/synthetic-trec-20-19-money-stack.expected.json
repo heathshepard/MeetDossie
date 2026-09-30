@@ -1,0 +1,12 @@
+{
+  "salePrice": 500000,
+  "salePriceCash": 100000,
+  "salePriceFinanced": 400000,
+  "earnestMoney": 10000,
+  "optionFee": 250,
+  "optionDays": 10,
+  "closingDate": "2026-12-15",
+  "hasSpecialProvisions": true,
+  "serviceContractCap": 650,
+  "paragraph12BuyerBrokerCompPct": 3
+}
