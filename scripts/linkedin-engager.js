@@ -330,6 +330,14 @@ async function markLeadNotFound(leadId) {
   });
 }
 
+// Session-dead signal, kept distinct from "genuinely couldn't find this
+// person" (2026-09-29: runWarmTouchMode was calling markLeadNotFound() on a
+// login-redirect exactly like a real not-found -- would permanently burn
+// through the pending warm_touch_queue as terminal 'not_found' rows the next
+// time the DossieBot LinkedIn session goes dead, none of them ever eligible
+// for retry again). See LinkedInLoginRequiredError usage in runWarmTouchMode.
+class LinkedInLoginRequiredError extends Error {}
+
 async function searchAndEngageLead(page, lead, seenIds) {
   const name = lead.lead_name;
   const searchUrl = `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(name + ' real estate')}&sortBy=date_posted`;
@@ -339,8 +347,7 @@ async function searchAndEngageLead(page, lead, seenIds) {
 
   const currentUrl = page.url();
   if (currentUrl.includes('/login') || currentUrl.includes('/authwall')) {
-    console.warn('[linkedin-engager] Redirected to login');
-    return false;
+    throw new LinkedInLoginRequiredError('Redirected to login');
   }
 
   try {
@@ -399,7 +406,7 @@ async function runWarmTouchMode(page, seenIds) {
   const leads = await fetchWarmTouchLeads();
   if (!leads.length) {
     console.log('[linkedin-engager] No pending warm-touch leads');
-    return { engaged: 0, not_found: 0 };
+    return { engaged: 0, not_found: 0, login_required: false };
   }
 
   console.log(`[linkedin-engager] Warm-touch: ${leads.length} leads to engage`);
@@ -407,7 +414,26 @@ async function runWarmTouchMode(page, seenIds) {
   let notFound = 0;
 
   for (const lead of leads) {
-    const found = await searchAndEngageLead(page, lead, seenIds);
+    let found;
+    try {
+      found = await searchAndEngageLead(page, lead, seenIds);
+    } catch (err) {
+      if (err instanceof LinkedInLoginRequiredError) {
+        // Session is dead -- every remaining lead would fail the same way.
+        // Abort now (leave them at status='pending' for the next tick)
+        // instead of marking real leads not_found just because the browser
+        // wasn't authenticated. Same alert key + cooldown as
+        // postApprovedLinkedIn's login check, so this doesn't double-fire.
+        console.warn('[linkedin-engager] Warm-touch aborted — LinkedIn session not logged in (DossieBot profile). Leaving remaining leads pending.');
+        await alertPublishFailure(
+          'linkedin_login_required',
+          `LinkedIn warm-touch cannot run — DossieBot Chrome profile is not logged into LinkedIn (redirected to login/authwall). ${leads.length - engaged - notFound} lead(s) left pending. Log in manually in that Chrome profile.`,
+        );
+        return { engaged, not_found: notFound, login_required: true };
+      }
+      console.warn(`[linkedin-engager] Warm-touch error for "${lead.lead_name}":`, err.message);
+      found = false;
+    }
     if (found) {
       await markLeadEngaged(lead.id);
       engaged++;
@@ -418,7 +444,7 @@ async function runWarmTouchMode(page, seenIds) {
     await new Promise(r => setTimeout(r, 3000));
   }
 
-  return { engaged, not_found: notFound };
+  return { engaged, not_found: notFound, login_required: false };
 }
 
 // ─── Failure alerting (silence-alarm) ────────────────────────────────────────
