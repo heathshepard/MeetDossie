@@ -187,6 +187,11 @@ async function extractFromFile(pdfBase64, accountFullName, accountEmail) {
   const textBlock = (response.content || []).find((b) => b.type === 'text');
   const parsed = safeParseJson(textBlock ? textBlock.text : '');
   if (!parsed || typeof parsed !== 'object') {
+    // TEMP DIAGNOSTIC 2026-09-30 — remove once the real cause of
+    // "Could not read this document reliably" is confirmed. Every prior
+    // occurrence gave zero visibility into what Claude actually returned.
+    console.error('[onboarding-extract-profile-defaults] JSON parse failed. Raw text:',
+      textBlock ? textBlock.text.slice(0, 1000) : '(no text block)');
     return {
       documentType: id.documentType,
       qualifying: true,
@@ -359,7 +364,18 @@ async function handler(req, res) {
     const fieldsFound = FIELD_KEYS.filter((k) => merged[k].value != null);
     const docTypes = fileResults.map((r) => r.documentType);
 
-    logExtractionAudit({
+    // 2026-09-30 — MUST be awaited, not fire-and-forget. This endpoint runs
+    // on Vercel's standard (non-streaming) Node runtime, which is free to
+    // freeze/suspend the execution context the instant res.json() flushes
+    // the response -- an un-awaited promise started before that point has
+    // no guarantee of ever finishing. Confirmed live: with this un-awaited,
+    // the client got a normal 200 and a correct warnings array, but ZERO
+    // rows ever landed in onboarding_document_extractions across repeated
+    // real runs, with no error anywhere (the fetch was simply abandoned
+    // mid-flight). This audit table is the only record of what a member's
+    // uploaded document was used for, so losing writes to it silently is
+    // not an acceptable "non-fatal" background task.
+    await logExtractionAudit({
       userId,
       docTypes,
       fieldsFound,
@@ -369,7 +385,7 @@ async function handler(req, res) {
         designated_broker: brokerCheck.status,
         supervisor_vs_sponsor: sponsorCheck.status,
       },
-    }).catch(() => {});
+    });
 
     if (userId) {
       const totalUsage = fileResults.reduce((acc, r) => {
@@ -378,7 +394,7 @@ async function handler(req, res) {
         acc.output_tokens += r.usage.output_tokens || 0;
         return acc;
       }, { input_tokens: 0, output_tokens: 0 });
-      logAnthropic(userId, 'onboarding-extract-defaults', totalUsage, EXTRACT_MODEL, {
+      await logAnthropic(userId, 'onboarding-extract-defaults', totalUsage, EXTRACT_MODEL, {
         file_count: files.length,
       }).catch((err) => console.error('[onboarding-extract-profile-defaults] usage log failed:', err));
     }
