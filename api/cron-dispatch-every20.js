@@ -30,6 +30,17 @@
 //     share; gated on ops_flags.zernio_comment_replies, default FALSE — a
 //     true no-op until Heath turns it on. See that file's header for the
 //     full eligibility/escalation contract.
+//   - /api/cron-comment-monitor (moved 2026-09-30, from cron-dispatch-
+//     every15 — same reasoning as cron-post-videos and cron-publish-comment-
+//     replies above, plus a live incident: its own 15s internal deadline was
+//     hit mid-scan on a real every15 run, and every15's 30s member ceiling
+//     cannot fit the ~80-95s a full Zernio discovery sweep measures at.
+//     Own internal deadline (180s, DEADLINE_MS in that file) leaves real
+//     headroom inside this group's ~290s member ceiling. Paired with a
+//     resumable discovery cursor (cron_comment_monitor_state table) so a
+//     tick that still runs long resumes next time instead of re-scanning the
+//     same head of the list forever — see that file's header for the full
+//     measured numbers.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -51,6 +62,7 @@ const HANDLERS = [
   { name: 'cron-content-pipeline-promote', mod: require('./cron-content-pipeline-promote.js') },
   { name: 'cron-post-videos', mod: require('./cron-post-videos.js') },
   { name: 'cron-publish-comment-replies', mod: require('./cron-publish-comment-replies.js') },
+  { name: 'cron-comment-monitor', mod: require('./cron-comment-monitor.js') },
 ];
 
 module.exports = async function handler(req, res) {

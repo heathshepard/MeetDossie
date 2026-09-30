@@ -181,17 +181,38 @@ async function zernio(path, init = {}, budget = null) {
  * success for 79 consecutive days. Asking the platform instead means a post we
  * never recorded, or recorded wrongly, still cannot hide a comment from us.
  *
- * Returns { posts, meta, errors }. `meta.failedAccounts` is surfaced, not
- * swallowed: an account whose token expired is a silent hole in coverage and
- * has to reach a human.
+ * RESUMABLE (Atlas, 2026-09-30): accepts `cursor` to pick up a walk already
+ * in progress instead of always restarting at the beginning. A truncating
+ * scan that always starts from the same place always misses the same tail
+ * — measured live 2026-09-29/30: this discovery pagination is the entire
+ * source of cron-comment-monitor's deadline overruns (individual pages
+ * measured 200ms-14s; a full 3-year sweep measured ~16-17 pages / ~80s cold
+ * to reach the end), and a caller that always begins at cursor=null re-walks
+ * the SAME first few pages every tick and can structurally never reach the
+ * rest, no matter how the deadline is tuned.
+ *
+ * Returns { posts, meta, errors, cursor, complete, pagesWalked }:
+ *   cursor       - where to resume next time. The page NOT yet fetched (due
+ *                  to deadline, error, or budget exhaustion), or null if the
+ *                  walk reached the end (`complete: true`).
+ *   complete     - true only when Zernio itself reported hasMore=false, i.e.
+ *                  every page in the `since` window was actually walked.
+ *   pagesWalked  - how many pages THIS call fetched (for telemetry).
+ *
+ * `meta.failedAccounts` is surfaced, not swallowed: an account whose token
+ * expired is a silent hole in coverage and has to reach a human.
  */
-async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50, budget = null, deadlineAt = null } = {}) {
+async function listCommentedPosts({
+  minComments = 1, sinceIso = null, limit = 50, budget = null, deadlineAt = null,
+  cursor = null, maxPages = 60,
+} = {}) {
   const posts = [];
-  let cursor = null;
   let meta = null;
+  let complete = false;
+  let pagesWalked = 0;
   const errors = [];
 
-  for (let page = 0; page < 10; page += 1) {
+  for (let page = 0; page < maxPages; page += 1) {
     // 2026-09-29 (Atlas) — measured live: this pagination loop, not the
     // per-post comment loop, was the actual source of a 53s run (10 real
     // sequential Zernio pages at several seconds each). The caller's overall
@@ -199,7 +220,7 @@ async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50
     // one downstream, or a slow/many-paged discovery alone blows the whole
     // handler's budget before the per-post loop ever starts.
     if (deadlineAt && Date.now() >= deadlineAt) {
-      errors.push({ stage: 'discovery_deadline', detail: `deadline hit while paging discovery (page ${page}, ${posts.length} posts found so far)` });
+      errors.push({ stage: 'discovery_deadline', detail: `deadline hit while paging discovery (page ${page}, ${posts.length} posts found so far this call)` });
       break;
     }
     const qs = new URLSearchParams({ minComments: String(minComments), limit: String(limit) });
@@ -211,6 +232,7 @@ async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50
       errors.push({ stage: 'list_commented_posts', status: r.status, error: r.error });
       break;
     }
+    pagesWalked += 1;
     const rows = Array.isArray(r.data && r.data.data) ? r.data.data : [];
     // Ad rows live on a different endpoint entirely and are not our organic
     // comment surface. Skip rather than fetch a thread that 400s.
@@ -218,7 +240,11 @@ async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50
 
     meta = (r.data && r.data.meta) || meta;
     const pg = (r.data && r.data.pagination) || {};
-    if (!pg.hasMore || !pg.nextCursor) break;
+    if (!pg.hasMore || !pg.nextCursor) {
+      complete = true;
+      cursor = null;
+      break;
+    }
     cursor = pg.nextCursor;
   }
 
@@ -234,7 +260,9 @@ async function listCommentedPosts({ minComments = 1, sinceIso = null, limit = 50
     });
   }
 
-  return { posts, meta, errors };
+  return {
+    posts, meta, errors, cursor, complete, pagesWalked,
+  };
 }
 
 /**
