@@ -56,8 +56,19 @@ function safeParseJson(text) {
   try {
     return JSON.parse(text);
   } catch (_) {
+    // 2026-09-30 — repairTruncatedJson() (api/scan-contract.js) already
+    // returns a PARSED OBJECT (it calls JSON.parse() internally and
+    // returns null on failure), not a JSON string. Re-wrapping its result
+    // in JSON.parse() here always threw — "[object Object]" is not valid
+    // JSON — so this fallback silently failed on every single call,
+    // including the extremely common case of Claude wrapping its answer
+    // in a ```json fence despite being told not to. Confirmed live: a
+    // real extraction run found every field correctly (verified via the
+    // raw response in Vercel logs) but still surfaced "Could not read
+    // this document reliably" because of this double-parse.
     try {
-      return JSON.parse(repairTruncatedJson(text));
+      const repaired = repairTruncatedJson(text);
+      return repaired && typeof repaired === 'object' ? repaired : null;
     } catch (_e2) {
       return null;
     }
@@ -187,9 +198,11 @@ async function extractFromFile(pdfBase64, accountFullName, accountEmail) {
   const textBlock = (response.content || []).find((b) => b.type === 'text');
   const parsed = safeParseJson(textBlock ? textBlock.text : '');
   if (!parsed || typeof parsed !== 'object') {
-    // TEMP DIAGNOSTIC 2026-09-30 — remove once the real cause of
-    // "Could not read this document reliably" is confirmed. Every prior
-    // occurrence gave zero visibility into what Claude actually returned.
+    // 2026-09-30 — kept as a permanent (not temp) diagnostic. This branch
+    // used to be unreachable-in-practice-but-actually-hit-constantly due
+    // to the safeParseJson double-parse bug (see above); logging the raw
+    // text is cheap and is the only way to see what a genuine future
+    // parse failure actually looked like.
     console.error('[onboarding-extract-profile-defaults] JSON parse failed. Raw text:',
       textBlock ? textBlock.text.slice(0, 1000) : '(no text block)');
     return {
