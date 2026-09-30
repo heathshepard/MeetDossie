@@ -979,6 +979,109 @@ async function checkCronSanity(scanOpts) {
   }));
 }
 
+// ─── structurally unpublishable approved posts ────────────────────────────
+//
+// The linkedin_personal incident, 2026-09-30: cron-generate-heath-linkedin.js
+// generated a post every weekday into social_posts with platform=
+// 'linkedin_personal'. Nothing ever added a posting_schedule row OR a
+// zernio_accounts row for that platform, so cron-publish-approved.js's
+// isDueForPublish() correctly (and silently) skipped every single one,
+// forever — `skipped_schedule` climbed in the cron's JSON response body,
+// which nobody reads, while cron_runs kept reporting 'ok' because the cron
+// itself never errored. 7 rows piled up, one 101 minutes past its
+// scheduled_for, before anyone noticed.
+//
+// checkStaleApprovals() above catches "approved and old" generically but
+// can't say WHY — a post stuck behind a full daily cap or a not-yet-reached
+// time slot looks identical to one sitting behind a schedule/account gap
+// that can NEVER resolve on its own. This check is deliberately narrower
+// and structural: it only fires when the (platform, owner) pair the row
+// would publish through has no active posting_schedule row AND/OR no
+// active zernio_accounts row at all — not "hasn't hit its slot yet" (that's
+// normal, expected, and must stay silent) but "the destination doesn't
+// exist." A post waiting on a real, wired destination is never included
+// here, however long it waits.
+const STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES = 30;
+
+function minutesAgoIso(minutes) {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+}
+
+async function checkStructurallyUnpublishablePosts(staleMinutes = STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES) {
+  const cutoff = minutesAgoIso(staleMinutes);
+
+  const stale = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.approved&scheduled_for=not.is.null&scheduled_for=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,platform,target_owner,scheduled_for&order=scheduled_for.asc',
+  );
+  if (!stale.ok || !Array.isArray(stale.data) || stale.data.length === 0) return [];
+
+  const [scheduleRes, zernioRes] = await Promise.all([
+    supabaseFetch('/rest/v1/posting_schedule?select=platform,owner,is_active'),
+    supabaseFetch('/rest/v1/zernio_accounts?select=platform,owner,is_active'),
+  ]);
+  // Fail SAFE (not closed) here, deliberately the opposite of
+  // ops-policy.js's checkCapability(): a failed read of posting_schedule or
+  // zernio_accounts must never be treated as "these rows don't exist" — that
+  // would flag every approved-and-stale row on every platform as
+  // structurally broken on a transient network blip, which is exactly how
+  // an alarm becomes wallpaper Heath stops trusting. If either lookup table
+  // itself is unreadable, skip this run's structural check entirely rather
+  // than guess.
+  if (!scheduleRes.ok || !Array.isArray(scheduleRes.data) || !zernioRes.ok || !Array.isArray(zernioRes.data)) {
+    return [];
+  }
+  const scheduleRows = scheduleRes.data;
+  const zernioRows = zernioRes.data;
+
+  // Mirrors findScheduleRow() in cron-publish-approved.js: an owner-specific
+  // active row OR the shared (owner IS NULL) active row counts as "wired."
+  function hasSchedule(platform, owner) {
+    return scheduleRows.some((r) => r.platform === platform && r.is_active
+      && (r.owner === owner || !r.owner));
+  }
+  // Mirrors lookupZernioAccountId()/lookupZernioPageId() in
+  // cron-publish-approved.js: EXACT owner match only, no shared-row
+  // fallback — a post's zernio_account_id is always resolved per-owner.
+  function hasZernio(platform, owner) {
+    return zernioRows.some((r) => r.platform === platform && r.is_active && r.owner === owner);
+  }
+
+  const byPair = new Map();
+  for (const row of stale.data) {
+    const owner = row.target_owner || 'dossie';
+    const scheduleOk = hasSchedule(row.platform, owner);
+    const zernioOk = hasZernio(row.platform, owner);
+    if (scheduleOk && zernioOk) continue; // wired destination, just hasn't fired yet — not our concern
+
+    const pairKey = `${row.platform}/${owner}`;
+    if (!byPair.has(pairKey)) {
+      byPair.set(pairKey, { platform: row.platform, owner, rows: [], missingSchedule: !scheduleOk, missingZernio: !zernioOk });
+    }
+    byPair.get(pairKey).rows.push(row);
+  }
+
+  const results = [];
+  for (const [pairKey, info] of byPair) {
+    const missing = [];
+    if (info.missingSchedule) missing.push('no active posting_schedule row');
+    if (info.missingZernio) missing.push('no active zernio_accounts row');
+    results.push({
+      key: `structurally_unpublishable:${pairKey}`,
+      platform: info.platform,
+      target_owner: info.owner,
+      count: info.rows.length,
+      oldest: info.rows[0],
+      message: `${info.rows.length} social_posts row(s) on platform '${info.platform}'`
+        + `${info.owner !== 'dossie' ? ` (owner ${info.owner})` : ''} sat approved >${staleMinutes}min past `
+        + `scheduled_for and can NEVER publish as-is (${missing.join(' and ')}) — oldest scheduled_for `
+        + `${info.rows[0].scheduled_for}. Either park generation for this platform/owner or wire the missing `
+        + 'posting_schedule/zernio_accounts row.',
+    });
+  }
+  return results;
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -1017,7 +1120,9 @@ async function runAllChecks(opts = {}) {
   // Promise.all below, rather than inserted in the middle — every earlier
   // entry's position is load-bearing (positional destructuring), and
   // appending is the only change that cannot silently relabel a sibling.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale] = await Promise.all([
+  // structurallyUnpublishable appended 2026-09-30 (Atlas, linkedin_personal
+  // incident) — same reason, same rule: append only.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1037,9 +1142,10 @@ async function runAllChecks(opts = {}) {
     checkCronSanity(opts.cronSanityScanOpts),
     checkGoogleTokenHealth(opts.googleTokenOpts),
     checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
+    checkStructurallyUnpublishablePosts(opts.structuralUnpublishableStaleMinutes),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable];
   const fired = [];
   const suppressed = [];
 
@@ -1399,6 +1505,8 @@ module.exports = {
   checkSupportTriageSilence,
   checkDealWatchSilence,
   checkCronSanity,
+  checkStructurallyUnpublishablePosts,
+  STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES,
   shouldFire,
   markFired,
   runAllChecks,

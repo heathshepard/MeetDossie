@@ -775,6 +775,55 @@ async function isDueForPublish(platform, schedules, owner) {
   return { due: true, reason: `slot ${passedSlots[passedSlots.length - 1]} passed` };
 }
 
+// ─── structural-skip visibility (Atlas 2026-09-30, linkedin_personal) ────
+//
+// isDueForPublish()'s reason string is per-day — "no schedule row for X/Y
+// on day N" is EXPECTED and fine for a platform that just doesn't post on
+// Sundays. It cannot distinguish that from "this platform/owner has no
+// schedule row on ANY day, ever" — the actually-broken case, where a row
+// will sit 'approved' forever. The linkedin_personal incident: 7 rows sat
+// silently skipped for weeks with zero write-back to the row itself; the
+// only visibility was a counter (`skipped_schedule`) inside this cron's
+// JSON response body, which nobody reads. This checks the precise
+// structural condition and writes it to social_posts.error_message so the
+// state is visible in the table, not only in a response nobody polls.
+//
+// Fetched once per cron run (not per row) and cached — same rationale as
+// loadSchedules() itself.
+let zernioAccountRowsCache = null;
+async function loadZernioAccountRows() {
+  if (zernioAccountRowsCache) return zernioAccountRowsCache;
+  const { data, ok } = await supabaseFetch('/rest/v1/zernio_accounts?select=platform,owner,is_active');
+  zernioAccountRowsCache = ok && Array.isArray(data) ? data : [];
+  return zernioAccountRowsCache;
+}
+
+// Mirrors findScheduleRow()'s fallback (owner-specific row OR the shared
+// owner-IS-NULL row counts as "wired") but ignores day_of_week — this asks
+// "does ANY day have an active row for this platform/owner", not "does
+// today."
+function hasAnyActiveSchedule(schedules, platform, owner) {
+  return schedules.some((r) => r.platform === platform && r.is_active && (r.owner === owner || !r.owner));
+}
+
+// Returns a ready-to-store error_message string when (platform, owner) has
+// no active posting_schedule row on any day and/or no active zernio_accounts
+// row — i.e. the destination doesn't exist, not just "hasn't hit its slot
+// yet." Returns null when the destination is wired (even if today's slot/cap
+// isn't met — that is normal and must stay silent).
+async function structuralSkipReason(platform, owner, schedules) {
+  const scheduleOk = hasAnyActiveSchedule(schedules, platform, owner);
+  const zernioRows = await loadZernioAccountRows();
+  // Mirrors lookupZernioAccountId()'s exact-owner match — no shared-row
+  // fallback for zernio_accounts.
+  const zernioOk = zernioRows.some((r) => r.platform === platform && r.is_active && r.owner === owner);
+  if (scheduleOk && zernioOk) return null;
+  const missing = [];
+  if (!scheduleOk) missing.push('no active posting_schedule row for this platform/owner on any day');
+  if (!zernioOk) missing.push('no active zernio_accounts row for this platform/owner');
+  return `STRUCTURALLY_UNPUBLISHABLE: ${missing.join(' and ')} — this post can never publish as configured.`;
+}
+
 // Soft lock: atomically flip status approved→publishing for this row.
 // PostgREST's `?id=eq.X&status=eq.approved` filter scopes the PATCH so only
 // rows still in 'approved' state are affected. Returns true if WE acquired
@@ -1141,6 +1190,20 @@ module.exports = async function handler(req, res) {
     if (!decision.due) {
       skippedSchedule++;
       skips.push({ id: post.id, platform: post.platform, reason: decision.reason });
+
+      // Structural case: write it to the row itself so it's visible without
+      // reading this cron's response body. Only PATCH when the message
+      // actually changed, so a healthy-but-not-yet-due row (which hits this
+      // branch every 30 min forever, correctly) doesn't get re-written on
+      // every run.
+      const structReason = await structuralSkipReason(post.platform, post.target_owner || 'dossie', schedules);
+      if (structReason && post.error_message !== structReason) {
+        await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ error_message: structReason }),
+        });
+      }
       continue;
     }
 

@@ -5,10 +5,31 @@
 // Auth: Authorization: Bearer ${CRON_SECRET}
 // Schedule: vercel.json — 0 11 * * 1-5 (11:00 UTC / 6am CDT, weekdays only)
 //
-// The existing cron-send-to-sage.js picks up drafts automatically.
-// The existing cron-publish-approved.js will skip these (no posting_schedule
-// row for linkedin_personal). Publishing is handled by
-// scripts/linkedin-engager.js --post-approved via Playwright.
+// PARKED 2026-09-30 (Atlas) — see ops_flags.generate_heath_linkedin_personal
+// and supabase/migrations/20260930c_park_linkedin_personal.sql.
+// This comment used to say "the existing cron-publish-approved.js will skip
+// these (no posting_schedule row for linkedin_personal)" as if that were a
+// deliberate, monitored parking mechanism. It was not: nothing ever wired a
+// posting_schedule row OR a zernio_accounts row for linkedin_personal, so
+// every post this cron generated queued forever behind a silent skip in
+// cron-publish-approved.js — 7 approved rows piled up over weeks before
+// anyone noticed (one sat 101 minutes past its scheduled_for the day it was
+// caught). linkedin_personal was INTENDED to be Heath's own realtor
+// LinkedIn page, never connected to Zernio — the lane itself is legitimate
+// and NOT deleted, just gated.
+//
+// This handler now reads ops_flags.generate_heath_linkedin_personal before
+// calling Anthropic or inserting a row. While that flag is FALSE (its
+// default), the cron no-ops instead of adding to a backlog that can never
+// publish. UNPARK: connect Heath's realtor LinkedIn to Zernio, add a
+// posting_schedule row + a zernio_accounts row for
+// platform=linkedin_personal (pick an owner key, e.g. 'heath-realtor'),
+// restore the parked backlog (restore query in the migration above), then
+// flip ops_flags.generate_heath_linkedin_personal to TRUE.
+//
+// Publishing (once unparked) is handled by scripts/linkedin-engager.js
+// --post-approved via Playwright, or by wiring a real posting_schedule +
+// zernio_accounts row so cron-publish-approved.js can publish it directly.
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 
@@ -208,6 +229,26 @@ module.exports = withTelemetry('cron-generate-heath-linkedin', async function ha
   }
   if (!ANTHROPIC_API_KEY) {
     return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' });
+  }
+
+  // ─── Parked-lane gate ───────────────────────────────────────────────────
+  // See the header comment above. Fail CLOSED (same contract as
+  // api/_lib/ops-policy.js's checkCapability()) — an unreadable flag row
+  // must never be treated as "on" and resume queuing into a dead lane.
+  const flagRes = await supabaseFetch(
+    '/rest/v1/ops_flags?key=eq.generate_heath_linkedin_personal&select=enabled,reason',
+  );
+  const flagRow = flagRes.ok && Array.isArray(flagRes.data) ? flagRes.data[0] : null;
+  const generationEnabled = flagRow && flagRow.enabled === true;
+  if (!generationEnabled) {
+    console.log(`[cron-generate-heath-linkedin] PARKED — ops_flags.generate_heath_linkedin_personal is ${flagRow ? 'off' : 'unreadable'}, skipping generation`);
+    return res.status(200).json({
+      ok: true,
+      skipped: true,
+      reason: flagRow
+        ? (flagRow.reason || 'ops_flags.generate_heath_linkedin_personal is off')
+        : 'ops_flags.generate_heath_linkedin_personal row unreadable — failing closed',
+    });
   }
 
   const now = new Date();
