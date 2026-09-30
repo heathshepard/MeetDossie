@@ -23,12 +23,17 @@
 // Usage: GET /api/gmail-refresh?email=heath.shepard@kw.com
 
 const { refreshWithLadder } = require('./_lib/google-refresh-ladder.js');
+// Per-row client resolution (Atlas, 2026-09-29): heath.shepard@kw.com holds
+// BOTH a google_calendar row (INTERNAL client) and google_gmail rows
+// (CUSTOMER client) under one email. A flat GOOGLE_CLIENT_ID/SECRET here
+// sent the INTERNAL-minted row's refresh_token to the CUSTOMER client and
+// Google rejected it with unauthorized_client — see
+// api/_lib/google-oauth-clients.js header for the full incident.
+const { resolveGoogleClient } = require('./_lib/google-oauth-clients.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 export const config = { maxDuration: 30 };
 
@@ -36,9 +41,6 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization || '';
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     return res.status(401).json({ error: 'unauthorized' });
-  }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(503).json({ error: 'google_oauth_not_configured' });
   }
 
   const email = String(req.query.email || '').trim();
@@ -49,8 +51,7 @@ export default async function handler(req, res) {
       account: email,
       supabaseUrl: SUPABASE_URL,
       serviceKey: SERVICE_KEY,
-      clientId: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
+      resolveClient: resolveGoogleClient,
     });
 
     if (result.outcome === 'healthy' || result.outcome === 'healthy_persist_failed') {
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
       return res.status(502).json({
         error: 'client_config_error',
         detail: result.errorCode,
-        hint: 'GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET rejected by Google — check the Vercel env vars, not consent.',
+        hint: 'The Google OAuth client that minted this row\'s token was rejected — check GOOGLE_CLIENT_ID/SECRET (customer) or GOOGLE_INTERNAL_CLIENT_ID/SECRET (internal) in Vercel, not consent.',
       });
     }
 

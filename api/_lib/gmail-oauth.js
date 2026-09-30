@@ -10,11 +10,16 @@
 // and api/gmail-refresh.js. oauth_provider is 'google_calendar' historically
 // (the row also carries gmail.* scopes — see api/google-oauth-callback.js) so
 // this looks up by user_id, not by provider name.
+//
+// Per-row client resolution (Atlas, 2026-09-29): oauth_provider determines
+// which Google Cloud client actually minted this row's refresh_token --
+// google_calendar rows come from the INTERNAL client, google_gmail rows from
+// the CUSTOMER client. Refreshing with the wrong one gets unauthorized_client
+// from Google, not a helpful error. See api/_lib/google-oauth-clients.js.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const { resolveGoogleClient } = require('./google-oauth-clients.js');
 
 async function sb(path, init = {}) {
   const headers = {
@@ -36,7 +41,7 @@ async function sb(path, init = {}) {
 // row that can't be refreshed when a usable one exists.
 async function loadGoogleTokensForUser(userId) {
   const { ok, data } = await sb(
-    `user_integrations?select=id,access_token,refresh_token,expires_at,google_email&user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
+    `user_integrations?select=id,access_token,refresh_token,expires_at,google_email,oauth_provider&user_id=eq.${encodeURIComponent(userId)}&google_email=not.is.null&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
   );
   if (!ok || !Array.isArray(data) || !data.length) return null;
   return data[0];
@@ -56,10 +61,16 @@ async function persistAccessToken(userId, accessToken, expiresAt, rowId) {
   }).catch(() => {});
 }
 
-async function refreshGoogleToken(refreshToken) {
+async function refreshGoogleToken(refreshToken, provider) {
+  const client = resolveGoogleClient(provider);
+  if (client.missingEnvNames.length > 0) {
+    const err = new Error(`google_refresh_failed:client_config_error:${client.missingEnvNames.join(',')}`);
+    err.isInvalidGrant = false;
+    throw err;
+  }
   const body = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     refresh_token: refreshToken,
     grant_type: 'refresh_token',
   });
@@ -100,7 +111,7 @@ function makeGmailClient({ userId, tokens }) {
       return await raw(path, params);
     } catch (err) {
       if (err.status === 401) {
-        const refreshed = await refreshGoogleToken(tokens.refresh_token);
+        const refreshed = await refreshGoogleToken(tokens.refresh_token, tokens.oauth_provider);
         accessToken = refreshed.access_token;
         const expiresAt = new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString();
         await persistAccessToken(userId, accessToken, expiresAt, tokens.id);
