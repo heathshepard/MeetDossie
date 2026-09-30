@@ -239,7 +239,7 @@ async function fetchAccountIdentity(userId) {
 
 async function logExtractionAudit({ userId, docTypes, fieldsFound, trecSummary }) {
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/onboarding_document_extractions`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/onboarding_document_extractions`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -256,6 +256,15 @@ async function logExtractionAudit({ userId, docTypes, fieldsFound, trecSummary }
         documents_retained: false,
       }),
     });
+    // 2026-09-30 — this previously only caught network-level throws. A
+    // non-2xx PostgREST response (bad payload, FK violation, etc.) was
+    // silently swallowed and the audit row just never appeared, with no
+    // trace anywhere. Log the body so a real failure is visible in Vercel
+    // function logs instead of looking identical to "worked."
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('[onboarding-extract-profile-defaults] audit log insert non-ok:', res.status, text.slice(0, 500));
+    }
   } catch (err) {
     console.error('[onboarding-extract-profile-defaults] audit log insert failed (non-fatal):', err && err.message);
   }
