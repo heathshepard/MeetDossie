@@ -45,17 +45,58 @@ const TMP_DIR = path.join(REPO_ROOT, '.tmp', 'screen-recording-trec');
 // beyond the tightest word bounding boxes so the highlight box doesn't
 // crop letters. Measured against scripts/trec-forms/20-19.pdf (the blank
 // 05-04-2026 promulgated revision — never a filled/executed copy).
+// Every bboxPt boundary below was found by rendering the page at 400 DPI to
+// grayscale PGM and scanning for a horizontal pixel row that is genuinely
+// 100% white (value 255) across the full text-column width — not just a
+// pdftotext -bbox word gap, which is unreliable: word/checkbox glyph boxes
+// routinely claim 1-2pt more padding than the glyph actually ink, and this
+// form's line leading is tight enough that adjacent lines' *bboxes* overlap
+// even when their *ink* does not. Trusting bbox numbers alone previously
+// shipped a highlight box whose lower edge sliced through "(1) Buyer has
+// received the Seller's Water Disclosure." — caught only by a coordinator
+// watching the actual frame. The fix: find the real blank pixel row first
+// (scripts/capture-screen-recording-trec-clause.js was iterated against
+// scratch PNG/PGM renders, not committed — see the method in this file's
+// git history if a boundary ever needs re-deriving), THEN pick bboxPt from
+// the middle of that confirmed-blank band.
 const CLAUSES = {
   'para-7i-groundwater': {
     pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
     page: 5,
     label: 'Paragraph 7.I — Seller’s Disclosure About Groundwater and Surface Water Rights',
-    // y0=427 sits in the 1.5pt gap between ¶7.H's last line (ends 426.5pt)
-    // and the ¶7.I heading (starts 428pt); y1=500 stops just before the
-    // "(2) Buyer has not received..." line (starts 503.8pt). Both bounds are
-    // chosen from pdftotext -bbox word coordinates specifically so the
-    // highlight box border never bisects a line of text.
-    bboxPt: [51, 427, 564, 500],
+    // Top: blank band 426.5-428pt between ¶7.H's last line and the ¶7.I
+    // heading. Bottom: blank band 504.0-507.5pt between "(1) Buyer has
+    // received..." and "(2) Buyer has not received...". (The original 500pt
+    // bottom bound sliced through "(1)"'s line and its checkbox glyph —
+    // fixed 2026-09-30.)
+    bboxPt: [51, 427, 564, 505.5],
+  },
+  'para-12b-brokerage-compensation': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 7,
+    label: 'Paragraph 12.B — Brokerage Compensation',
+    // Top: blank band 75.3-75.9pt between ¶12.A's last line and "B.
+    // BROKERAGE COMPENSATION:". Bottom: blank band 181.8-182.2pt between
+    // "...owed by Seller to Seller's broker." and "C. EXPENSE LIMITATION:".
+    bboxPt: [51, 75.8, 566, 182.0],
+  },
+  'para-5b-option-period': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 2,
+    label: 'Paragraph 5.B — Termination Option (Option Period + 5:00 p.m. deadline)',
+    // Whole lettered clause B, heading to end — contains both the blank
+    // "_____ days" field and the printed "5:00 p.m. ... by the date
+    // specified." line the script needs. Top: blank band 253.8-255.2pt
+    // (after ¶5.A). Bottom: blank band 338.5-339.4pt (before ¶5.C).
+    bboxPt: [51, 254.5, 566, 339.0],
+  },
+  'para-5e-time-of-essence': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 2,
+    label: 'Paragraph 5.E — Time Is Of the Essence',
+    // Top: blank band 401.6-402.2pt (after ¶5.D). Bottom: blank band
+    // 422.9-424.9pt (before ¶6).
+    bboxPt: [51, 401.9, 566, 423.5],
   },
 };
 
@@ -237,7 +278,8 @@ async function captureOne({ clauseKey, formFactor, outputW, outputH, zoomMultipl
 async function main() {
   const args = process.argv.slice(2);
   const clauseIdx = args.indexOf('--clause');
-  const clauseKey = clauseIdx >= 0 ? args[clauseIdx + 1] : 'para-7i-groundwater';
+  const clauseArg = clauseIdx >= 0 ? args[clauseIdx + 1] : 'para-7i-groundwater';
+  const clauseKeys = clauseArg === 'all' ? Object.keys(CLAUSES) : [clauseArg];
   const onlyIdx = args.indexOf('--only');
   const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null; // 'mobile' | 'desktop'
 
@@ -247,10 +289,12 @@ async function main() {
   ].filter((t) => !only || t.formFactor === only);
 
   const outputs = [];
-  for (const target of targets) {
-    // eslint-disable-next-line no-await-in-loop
-    const out = await captureOne({ clauseKey, ...target });
-    outputs.push(out);
+  for (const clauseKey of clauseKeys) {
+    for (const target of targets) {
+      // eslint-disable-next-line no-await-in-loop
+      const out = await captureOne({ clauseKey, ...target });
+      outputs.push(out);
+    }
   }
   console.log('\n[trec-capture] All done:');
   outputs.forEach((o) => console.log(`  ${o}`));
