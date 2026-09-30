@@ -56,16 +56,34 @@ function safeParseJson(text) {
   try {
     return JSON.parse(text);
   } catch (_) {
-    // 2026-09-30 — repairTruncatedJson() (api/scan-contract.js) already
-    // returns a PARSED OBJECT (it calls JSON.parse() internally and
-    // returns null on failure), not a JSON string. Re-wrapping its result
-    // in JSON.parse() here always threw — "[object Object]" is not valid
-    // JSON — so this fallback silently failed on every single call,
-    // including the extremely common case of Claude wrapping its answer
-    // in a ```json fence despite being told not to. Confirmed live: a
-    // real extraction run found every field correctly (verified via the
-    // raw response in Vercel logs) but still surfaced "Could not read
-    // this document reliably" because of this double-parse.
+    // 2026-09-30 — two stacked bugs found via a real live extraction run
+    // that found every field correctly but still surfaced "Could not read
+    // this document reliably":
+    //
+    // 1) repairTruncatedJson() (api/scan-contract.js) already returns a
+    //    PARSED OBJECT (it calls JSON.parse() internally, returns null on
+    //    failure) -- not a JSON string. Re-wrapping its result in
+    //    JSON.parse() here always threw ("[object Object]" is not valid
+    //    JSON), so this fallback silently failed on every call.
+    //
+    // 2) repairTruncatedJson() is a TRUNCATION repair tool specifically --
+    //    it walks the text tracking bracket depth and explicitly returns
+    //    null when the stack ends EMPTY (stack.length === 0), i.e. exactly
+    //    the case where the JSON is already complete/well-formed. A
+    //    complete response wrapped in a ```json fence (extremely common —
+    //    Claude does this despite being told not to) is exactly that case,
+    //    so repairTruncatedJson() was never going to fix it regardless of
+    //    bug #1. Strip a fence and try a direct parse FIRST; only fall
+    //    back to the truncation repair for a genuinely cut-off response.
+    let s = text.trim();
+    if (s.startsWith('```')) {
+      s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      try {
+        return JSON.parse(s);
+      } catch (_e1) {
+        // fall through to truncation repair below
+      }
+    }
     try {
       const repaired = repairTruncatedJson(text);
       return repaired && typeof repaired === 'object' ? repaired : null;
