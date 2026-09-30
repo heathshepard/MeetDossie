@@ -58,7 +58,17 @@ from typing import Optional
 # Constants
 # --------------------------------------------------------------------------------------
 
-ROOT = Path(r"C:\Users\Heath Shepard\Desktop\MeetDossie")
+# Derived from this file's own location rather than a hardcoded absolute
+# path — a hardcoded `C:\Users\Heath Shepard\Desktop\MeetDossie` here (the
+# repo's OLD location) silently pointed at a directory that hasn't existed
+# since the 2026-07-28 profile/path correction in CLAUDE.md (profile is
+# `Heath`, not `Heath Shepard`; repo lives under `Projects\`, not
+# `Desktop\`). That made every path below resolve to a directory that never
+# existed, so SCREEN_RECORDINGS_DIR, LIBRARY.md, b-roll, voiceovers, and
+# finished-videos were all silently unreachable — found 2026-09-30 while
+# verifying that a newly-registered LIBRARY.md entry could actually be
+# selected by this script.
+ROOT = Path(__file__).resolve().parent.parent
 MEDIA = ROOT / "Media"
 BROLL_DIR = MEDIA / "b-roll"
 VOICEOVERS_DIR = MEDIA / "voiceovers"
@@ -339,8 +349,8 @@ VOICE_REGISTRY = {
 PERSONA_DEFAULT_VOICE = {"brenda": "luna", "patricia": "luna", "victor": "bill"}
 
 # Tools
-FFMPEG = shutil.which("ffmpeg") or r"C:\Users\Heath Shepard\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe"
-FFPROBE = shutil.which("ffprobe") or r"C:\Users\Heath Shepard\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffprobe.exe"
+FFMPEG = shutil.which("ffmpeg") or r"C:\Users\Heath\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe"
+FFPROBE = shutil.which("ffprobe") or r"C:\Users\Heath\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffprobe.exe"
 
 
 # --------------------------------------------------------------------------------------
