@@ -1082,6 +1082,58 @@ async function checkStructurallyUnpublishablePosts(staleMinutes = STRUCTURAL_UNP
   return results;
 }
 
+// video_library rows landing status='posted_partial' — one or more
+// originally-targeted platforms were gated out (daily cap / inactive
+// posting_schedule row / no schedule row) before ever reaching Zernio. See
+// 20260930e_video_library_posted_partial_status.sql and
+// api/_lib/video-delivery-verify.js's buildSkipEntry() for the full
+// incident this closes.
+//
+// Deliberately NOT restricted to "recent" rows the way most checks here
+// are — a posted_partial row with a genuinely missing platform stays wrong
+// forever unless something (Heath, or a future retry pass) fixes it; there
+// is no cron that will quietly resolve it on its own the way a "not yet
+// due" gate skip does. staleMinutes below gates only how soon after the
+// row is marked partial this starts firing, to give
+// cron-verify-zernio-deliveries.js a chance to finish confirming the
+// platforms that DID get attempted before Heath is bothered about the ones
+// that didn't.
+const PARTIAL_VIDEO_DELIVERY_STALE_MINUTES = 30;
+
+async function checkPartialVideoDeliveries(staleMinutes = PARTIAL_VIDEO_DELIVERY_STALE_MINUTES) {
+  const cutoff = minutesAgoIso(staleMinutes);
+
+  const res = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.posted_partial&posted_date=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,topic,target_owner,platforms,zernio_deliveries,posted_date&order=posted_date.asc&limit=25',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  const results = [];
+  for (const row of res.data) {
+    const deliveries = Array.isArray(row.zernio_deliveries) ? row.zernio_deliveries : [];
+    const missing = deliveries
+      .filter((e) => e && e.status === 'gate_skipped')
+      .map((e) => `${e.platform} (${e.error || 'gated before publish'})`);
+    // Defensive: a posted_partial row with no gate_skipped entries would
+    // mean the status and the bookkeeping disagree — still worth surfacing,
+    // just with an honest "reason unknown" rather than an empty list.
+    const missingLabel = missing.length > 0 ? missing.join(', ') : 'no gate_skipped entries found on this row — status/bookkeeping mismatch, investigate directly';
+    results.push({
+      key: `partial_video_delivery:${row.id}`,
+      video_id: row.id,
+      target_owner: row.target_owner || 'dossie',
+      topic: row.topic,
+      count: 1,
+      oldest: row,
+      message: `video_library ${row.id}${row.target_owner && row.target_owner !== 'dossie' ? ` [${row.target_owner}]` : ''} posted_partial — `
+        + `targeted [${(row.platforms || []).join(', ')}], never reached: ${missingLabel}. `
+        + `Retry candidates require Zernio-side absence confirmation before resending — see scripts/retry-missed-video-platforms-dry-run.js.`,
+    });
+  }
+  return results;
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -1122,7 +1174,9 @@ async function runAllChecks(opts = {}) {
   // appending is the only change that cannot silently relabel a sibling.
   // structurallyUnpublishable appended 2026-09-30 (Atlas, linkedin_personal
   // incident) — same reason, same rule: append only.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable] = await Promise.all([
+  // partialVideoDeliveries appended 2026-09-30 (Atlas, video
+  // partial-delivery investigation) — same rule, appended at the end.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1143,9 +1197,10 @@ async function runAllChecks(opts = {}) {
     checkGoogleTokenHealth(opts.googleTokenOpts),
     checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
     checkStructurallyUnpublishablePosts(opts.structuralUnpublishableStaleMinutes),
+    checkPartialVideoDeliveries(opts.partialVideoDeliveryStaleMinutes),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries];
   const fired = [];
   const suppressed = [];
 
@@ -1507,6 +1562,8 @@ module.exports = {
   checkCronSanity,
   checkStructurallyUnpublishablePosts,
   STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES,
+  checkPartialVideoDeliveries,
+  PARTIAL_VIDEO_DELIVERY_STALE_MINUTES,
   shouldFire,
   markFired,
   runAllChecks,

@@ -32,7 +32,16 @@
  *   3. Eligible platforms still post: linkedin (slots all passed) fires with
  *      publishNow:true; instagram (slot still ahead) fires with scheduledFor
  *      and NO publishNow.
- *   4. The video row still ends up status='posted' for the eligible subset.
+ *   4. The video row ends up status='posted_partial' (Atlas 2026-09-30 —
+ *      facebook and twitter were both TARGETED but gated out before ever
+ *      reaching Zernio; a row is only 'posted' when every originally-
+ *      targeted platform was at least attempted. See
+ *      20260930e_video_library_posted_partial_status.sql and
+ *      api/_lib/video-delivery-verify.js's buildSkipEntry()). This
+ *      assertion used to expect 'posted' here — that was the exact bug:
+ *      this fixture's own scenario (2 of 4 targeted platforms gated out) is
+ *      a partial delivery, and the test was asserting the buggy behavior
+ *      was correct.
  *
  * Run manually:
  *   node scripts/regression-post-videos-schedule-caps.js
@@ -235,11 +244,20 @@ function fakeReqRes() {
   });
 
   console.log('\nTest 4: row lifecycle');
-  check("video row ends status='posted'", () => {
+  check("video row ends status='posted_partial' (facebook + twitter were targeted but never attempted)", () => {
     const vp = patches.filter((p) => p.table === 'video_library' && p.query.includes(encodeURIComponent(VIDEO_ID)));
     const statuses = vp.map((p) => p.body && p.body.status).filter(Boolean);
-    assert.strictEqual(statuses[statuses.length - 1], 'posted',
-      `expected final status 'posted', PATCH statuses were: ${JSON.stringify(statuses)}`);
+    assert.strictEqual(statuses[statuses.length - 1], 'posted_partial',
+      `expected final status 'posted_partial', PATCH statuses were: ${JSON.stringify(statuses)}`);
+  });
+
+  check('zernio_deliveries carries a gate_skipped entry for each never-attempted platform', () => {
+    const vp = patches.filter((p) => p.table === 'video_library' && p.query.includes(encodeURIComponent(VIDEO_ID)));
+    const last = vp[vp.length - 1];
+    const deliveries = (last && last.body && last.body.zernio_deliveries) || [];
+    const skipped = deliveries.filter((d) => d.status === 'gate_skipped').map((d) => d.platform).sort();
+    assert.deepStrictEqual(skipped, ['facebook', 'twitter'],
+      `expected gate_skipped entries for facebook+twitter, got: ${JSON.stringify(deliveries)}`);
   });
 
   console.log('');
