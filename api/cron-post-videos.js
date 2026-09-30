@@ -53,7 +53,7 @@ const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-qua
 // gap where a video_library post's per-platform Zernio result was logged
 // and thrown away, leaving nothing for cron-verify-zernio-deliveries.js to
 // later confirm. See api/_lib/video-delivery-verify.js file header.
-const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
+const { buildDeliveryEntry, buildSkipEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
 // Routine-approval batching (Heath, 2026-09-17: "batched into the morning
 // brief rather than pinging per item"). Same capability and same mechanism
 // api/cron-comment-opp-approval.js already uses: when 'batch_routine_approvals'
@@ -219,8 +219,12 @@ async function getPostCountsToday() {
   const { data: socialRows, ok: socialOk } = await supabaseFetch(
     `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform,target_owner`,
   );
+  // status=in.(posted,posted_partial) (Atlas 2026-09-30 — partial-delivery
+  // fix): a posted_partial row DID really deliver to some of its platforms
+  // and that real usage must still count against today's cap, same as a
+  // fully-posted row always has.
   const { data: videoRows, ok: videoOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms,target_owner`,
+    `/rest/v1/video_library?status=in.(posted,posted_partial)&posted_date=gte.${startIso}&select=platforms,target_owner,zernio_deliveries`,
   );
   if (!socialOk || !videoOk) return null;
 
@@ -230,7 +234,26 @@ async function getPostCountsToday() {
   if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.target_owner, r.platform));
   if (Array.isArray(videoRows)) {
     videoRows.forEach((r) => {
-      if (Array.isArray(r.platforms)) r.platforms.forEach((p) => bump(r.target_owner, p));
+      if (!Array.isArray(r.platforms)) return;
+      // PHANTOM-CAP FIX (Atlas 2026-09-30). Previously every platform
+      // LISTED on a posted row bumped its cap count, even platforms that
+      // row never actually attempted (gated out by gatePlatform() before
+      // reaching postToZernio() — see cron-post-videos.js's gate-skip
+      // handling below). Measured live, 2026-09-28: a 5-platform row that
+      // only ever called Zernio for 2 of them still inflated the OTHER 3
+      // platforms' same-day counts for every later candidate this cron
+      // considered — a row that never touched facebook was still spending
+      // facebook's daily cap. Skip any platform this row's own
+      // zernio_deliveries marks 'gate_skipped' (see buildSkipEntry()) —
+      // count only platforms that were genuinely attempted.
+      const skipped = new Set(
+        (Array.isArray(r.zernio_deliveries) ? r.zernio_deliveries : [])
+          .filter((e) => e && e.status === 'gate_skipped')
+          .map((e) => e.platform),
+      );
+      r.platforms.forEach((p) => {
+        if (!skipped.has(p)) bump(r.target_owner, p);
+      });
     });
   }
   return counts;
@@ -919,31 +942,65 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
             }
           }
+          // Record a bookkeeping entry for every platform the row TARGETED
+          // but that never reached postToZernio() at all — gated out by
+          // resolvePlatformTargets()/gatePlatform() above (daily cap,
+          // inactive posting_schedule row, or none for today). Fixes the
+          // gap this whole change exists for: previously a gated-out
+          // platform left NO trace anywhere on the row, and the row still
+          // read status='posted' as if every targeted platform had been
+          // reached. See buildSkipEntry()'s header for the measured
+          // 2026-09-28 evidence (Atlas 2026-09-30).
+          const skipEntries = platformSkips.map((s) => buildSkipEntry({
+            platform: s.platform,
+            reason: s.reason,
+            nowIso,
+          }));
           // Persist per-platform delivery state so cron-verify-zernio-deliveries.js
           // can confirm actual delivery later — previously this was logged
           // and discarded, the exact gap this fix closes.
-          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, deliveryEntries);
+          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, [...deliveryEntries, ...skipEntries]);
 
           if (libraryOk) {
+            // PARTIAL-DELIVERY STATUS (Atlas 2026-09-30). libraryOk only
+            // reflects "no platform we actually CALLED came back with a
+            // hard Zernio failure" — it says nothing about platforms that
+            // never got called in the first place (platformSkips, above).
+            // A row must not read 'posted' when a targeted platform got
+            // nothing: status='posted' now means every originally-targeted
+            // platform was at least attempted; status='posted_partial'
+            // means some were gated out before ever reaching Zernio. Either
+            // way zernioDeliveries carries a complete per-platform record
+            // (attempted AND skipped) — see 20260930e_video_library_
+            // posted_partial_status.sql for the constraint widen and
+            // api/_lib/silence-alarm.js's checkPartialVideoDeliveries() for
+            // the alarm that makes this visible without Heath having to go
+            // looking.
+            const hasGateSkips = platformSkips.length > 0;
+            const finalStatus = hasGateSkips ? 'posted_partial' : 'posted';
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
+                body: JSON.stringify({ status: finalStatus, posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
               },
             );
             const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
             const msgLines = [
-              `Video posted: ${video.id}`,
+              `Video ${hasGateSkips ? 'PARTIALLY posted' : 'posted'}: ${video.id}`,
               `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
             ];
-            if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
+            if (hasGateSkips) msgLines.push(`NEVER ATTEMPTED (gated before publish): ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
             if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
             msgLines.push(caption.slice(0, 100));
             await sendTelegramMessage(msgLines.join('\n'));
-            console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+            console.log(`[cron-post-videos] Video ${video.id} ${hasGateSkips ? 'posted_partial' : 'posted'} (${hasGateSkips ? `missing: ${platformSkips.map((s) => s.platform).join(',')}` : 'all targeted platforms attempted'})`);
             summary.posted.push(video.id);
+            if (hasGateSkips) {
+              summary.posted_partial = summary.posted_partial || [];
+              summary.posted_partial.push({ id: video.id, missing: platformSkips.map((s) => s.platform) });
+            }
           } else {
             const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
             await supabaseFetch(
