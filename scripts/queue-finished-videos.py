@@ -148,32 +148,105 @@ KIT_DOC_PATH = Path(os.environ["WEEKLY_KIT_PATH"]).expanduser() if os.environ.ge
 STORAGE_BUCKET = "videos"
 STORAGE_PREFIX = "video-library"
 
-# Default platforms per lane. Meet Dossie's FB Page is a real channel, so
-# selfie clips go to all three (2026-09-10 fix -- previously defaulted to
-# tiktok+instagram only, silently dropping Facebook every week). Heath's
-# realtor "Brokerage" Zernio profile only has facebook + instagram connected
-# today (see docs/PIPELINE.md) -- no tiktok, so we don't default to a
-# platform that will just fail at post time.
+# ── Routing config (Atlas, 2026-09-30) ────────────────────────────────────
 #
-# 'youtube' added to the Dossie vertical lanes 2026-09-16 (Carter,
-# fix(video-pipeline): YouTube attach-path). cron-post-videos.js and
-# zernio_accounts/posting_schedule were fixed live the same day (78c1c876)
-# so Pipeline B CAN post to youtube, but nothing upstream ever tagged a
-# video_library row with 'youtube' -- this file is that upstream. YouTube
-# Shorts wants the same 1080x1920 vertical asset tiktok/instagram already
-# get from build-shortform-video.py, so it rides the same selfie/skit/mobile
-# lanes. Desktop (landscape) screen recordings stay off youtube -- Shorts is
-# vertical-only. Not added to REALTOR_SELFIE_PLATFORMS: Heath's realtor
-# Zernio profile has a youtube destination wired but explicitly "no content
-# plan" (docs/PIPELINE.md) -- don't originate realtor content for it.
-DOSSIE_SELFIE_PLATFORMS = ["facebook", "instagram", "tiktok", "youtube"]
-REALTOR_SELFIE_PLATFORMS = ["facebook", "instagram"]
+# Which owner(s)/platform(s) each lane publishes to used to be five
+# hardcoded Python lists (DOSSIE_SELFIE_PLATFORMS, REALTOR_SELFIE_PLATFORMS,
+# RUST_PLATFORMS, plus two inline lists for the skit/mobile/desktop lanes in
+# classify_video() below) — changing routing meant editing this file. It now
+# lives in config/video-routing.json, a single declarative table any future
+# change (new owner, new platform, retiring a lane) edits instead. This
+# loader keeps the EXACT SAME values as a fail-safe if the config is ever
+# missing/corrupt, so a bad edit there degrades to today's known-good
+# behavior rather than silently spraying video across every connected
+# account.
+# Each lane's `targets` is a list of {owner, platforms, role}. Mirrors
+# config/video-routing.json's shape exactly — see that file's header for
+# the full rationale.
+_ROUTING_FALLBACK = {
+    "dossie_founder_selfie": {"targets": [
+        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary"},
+        {"owner": "dossie", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "also"},
+    ]},
+    "dossie_skit": {"targets": [
+        {"owner": "dossie", "platforms": ["tiktok", "instagram", "youtube"], "role": "primary"},
+    ]},
+    "dossie_screen_mobile": {"targets": [
+        {"owner": "dossie", "platforms": ["tiktok", "instagram", "youtube"], "role": "primary"},
+    ]},
+    "dossie_screen_desktop": {"targets": [
+        {"owner": "dossie", "platforms": ["facebook", "twitter"], "role": "primary"},
+    ]},
+    "realtor_selfie": {"targets": [
+        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary"},
+    ]},
+    "rust_coach_conversation": {"targets": [
+        {"owner": "rust", "platforms": ["instagram", "twitter"], "role": "primary"},
+    ]},
+}
+
+
+def load_routing_config() -> dict:
+    """Load config/video-routing.json's 'lanes' table. Falls back to
+    _ROUTING_FALLBACK (byte-for-byte today's pre-2026-09-30 behavior, except
+    dossie_founder_selfie's heath-realtor cross-post and realtor_selfie's
+    youtube addition, both new) on any read/parse error."""
+    cfg_path = REPO / "config" / "video-routing.json"
+    try:
+        data = json.loads(cfg_path.read_text(encoding="utf-8"))
+        lanes = data.get("lanes")
+        if isinstance(lanes, dict) and lanes:
+            return lanes
+    except Exception as exc:
+        print(f"  WARN: config/video-routing.json unreadable ({exc}) — using built-in routing fallback")
+    return _ROUTING_FALLBACK
+
+
+ROUTING = load_routing_config()
+
+
+def _lane_target(lane_key: str, owner: str, fallback: list) -> list:
+    """Platforms for a specific owner within one lane. Falls back to
+    `fallback` if the lane/owner/platforms are missing or malformed."""
+    lane = ROUTING.get(lane_key) or {}
+    for target in lane.get("targets") or []:
+        if target.get("owner") == owner:
+            platforms = target.get("platforms")
+            if isinstance(platforms, list) and platforms:
+                return list(platforms)
+            break
+    return list(fallback)
+
+
+def _lane_cross_targets(lane_key: str, exclude_owner: str) -> list:
+    """Every OTHER owner's target in a lane (role is documentation-only,
+    never checked) — used to build a cross-post row. Returns
+    [{"owner": str, "platforms": [str, ...]}, ...]."""
+    lane = ROUTING.get(lane_key) or {}
+    out = []
+    for target in lane.get("targets") or []:
+        owner = target.get("owner")
+        platforms = target.get("platforms")
+        if owner and owner != exclude_owner and isinstance(platforms, list) and platforms:
+            out.append({"owner": owner, "platforms": list(platforms)})
+    return out
+
+
+# Kept as named constants (not just inline ROUTING reads) because they are
+# also referenced directly by classify_video()'s legacy-shape return dict
+# and by scripts/regression-queue-finished-videos.js's assertions.
+DOSSIE_SELFIE_PLATFORMS = _lane_target("dossie_founder_selfie", "dossie", ["facebook", "instagram", "tiktok", "youtube"])
+# 'youtube' added 2026-09-30 (was ["facebook", "instagram"]): the heath-realtor
+# YouTube channel ("Shepard Real Estate Solutions") has been connected in
+# zernio_accounts since 2026-08-25 (20260825_zernio_accounts_youtube_heath_realtor.sql)
+# but this lane never included it — unrouted, not unconnected.
+REALTOR_SELFIE_PLATFORMS = _lane_target("realtor_selfie", "heath-realtor", ["facebook", "instagram", "youtube"])
 # Rust (rustfitness.app), added 2026-09-16 (RUST-OWNER-WIRING). Matches the
 # two Zernio accounts actually connected and verified live for the 'rust'
 # owner (zernio_accounts, 20260916d_rust_owner_wiring.sql) -- no facebook/
 # tiktok/youtube row exists for rust today, so we don't default to a
 # platform that will just fail account resolution at post time.
-RUST_PLATFORMS = ["instagram", "twitter"]
+RUST_PLATFORMS = _lane_target("rust_coach_conversation", "rust", ["instagram", "twitter"])
 
 
 # ── Filename / topic-slug helpers ─────────────────────────────────────────────
@@ -303,11 +376,16 @@ def classify_video(file_path: Path, owner: str) -> dict:
     if "selfie" in stem:
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
     elif stem.startswith("skit-"):
-        vtype, platforms = "skit", ["tiktok", "instagram", "youtube"]
+        vtype, platforms = "skit", _lane_target("dossie_skit", "dossie", ["tiktok", "instagram", "youtube"])
     elif "-mobile-" in stem:
-        vtype, platforms = "screen_recording", ["tiktok", "instagram", "youtube"]
+        vtype, platforms = "screen_recording", _lane_target("dossie_screen_mobile", "dossie", ["tiktok", "instagram", "youtube"])
     elif "-desktop-" in stem:
-        vtype, platforms = "screen_recording", ["facebook", "twitter", "linkedin"]
+        # 'linkedin' removed here 2026-09-30 (was ["facebook", "twitter",
+        # "linkedin"]): LinkedIn's content path is the carousel/document
+        # post (api/cron-publish-approved.js), which outperforms video on
+        # that platform (docs/CONTENT-FORMAT-LIBRARY.md §6 item 2) — see
+        # config/video-routing.json's file header for the full rationale.
+        vtype, platforms = "screen_recording", _lane_target("dossie_screen_desktop", "dossie", ["facebook", "twitter"])
     else:
         # Default: treat as selfie-style short-form
         vtype, platforms = "selfie", list(DOSSIE_SELFIE_PLATFORMS)
@@ -316,7 +394,7 @@ def classify_video(file_path: Path, owner: str) -> dict:
     # voices in shortform-brands.json) as a DEFAULT only -- a generator that
     # narrated in Heath's clone says so in its meta sidecar, and that wins
     # (see the overrides block at the top of this function).
-    return {
+    info = {
         "type": vtype,
         "platforms": platforms,
         "topic": topic,
@@ -324,6 +402,32 @@ def classify_video(file_path: Path, owner: str) -> dict:
         "uses_cloned_voice": False,
         **overrides,
     }
+
+    # Cross-post to Heath's personal accounts (Atlas, 2026-09-30 — routing
+    # change, no new content). Scoped tightly: ONLY the founder-selfie lane
+    # (Heath physically on camera) gets a cross-post row, and ONLY when the
+    # platforms list came from the default (a generator that explicitly set
+    # `platforms` via its own meta sidecar is asserting "I already know
+    # where this goes" and is left alone — same reasoning the override
+    # system already uses everywhere else in this function). Screen
+    # recordings/skits (no face, no personal voice) are NOT in scope: the
+    # 3x-personal-engagement research (memory
+    # social-growth-research-2026-09-26.md) is about content FROM A PERSON,
+    # not about product-demo clips wearing a different account.
+    if info["type"] == "selfie" and info["target_owner"] == "dossie" and "platforms" not in overrides:
+        cross_targets = _lane_cross_targets("dossie_founder_selfie", exclude_owner="dossie")
+        if cross_targets:
+            # Exactly one cross-post target is supported today (a second
+            # video_library row per extra owner) — take the first and warn
+            # if the config ever grows a second, rather than silently
+            # dropping it.
+            if len(cross_targets) > 1:
+                print(f"  WARN: dossie_founder_selfie lane has {len(cross_targets)} cross-post targets "
+                      f"besides 'dossie' — only the first ({cross_targets[0]['owner']}) is wired; "
+                      f"the rest are ignored until main() supports N cross-posts.")
+            info["cross_post"] = cross_targets[0]
+
+    return info
 
 
 # ── Caption sourcing — from the kit doc itself, never a template ─────────────
@@ -592,7 +696,55 @@ def read_meta_sidecar(video_path: Path) -> dict:
     return {}
 
 
-def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[str] | None = None) -> dict | None:
+def detect_orientation_from_pixels(video_path: Path) -> str | None:
+    """
+    Ground-truth vertical/horizontal from the file's OWN pixel dimensions via
+    ffprobe -- mirrors scripts/register-local-video.js's
+    detectOrientationFromPixels() exactly (Atlas, 2026-09-26 there; ported
+    here 2026-09-30 to fix the same class of bug in THIS caller).
+
+    THE BUG THIS FIXES: run_quality_gate()'s `platforms` argument feeds
+    classifyOrientation() in api/_lib/verify-video-quality.js, which throws
+    'orientation_determined' the moment a platforms array mixes a
+    VERTICAL_PLATFORMS entry (tiktok/instagram) with a HORIZONTAL_PLATFORMS
+    one (facebook/twitter/linkedin/youtube) -- see that file. DOSSIE_SELFIE_
+    PLATFORMS has been ["facebook","instagram","tiktok","youtube"] since
+    2026-09-16 (youtube added), which is EXACTLY that mix, for a video that
+    is actually, genuinely vertical (1080x1920, per build-shortform-video.py
+    / the selfie-recording convention). Every dossie/realtor selfie row
+    ingested through THIS SCRIPT since then has been silently landing in
+    quality_hold for a reason that has nothing to do with its real quality --
+    the gate never saw the file's actual pixels, only a platform-name
+    guess. (This is very likely why the ad-hoc register-local-video.js
+    workaround exists: it passes an explicit --orientation and posts one
+    platform per row specifically to dodge this same trap.)
+
+    An explicit orientation (this function's return value, fed to
+    run_quality_gate() below) is checked BEFORE the platforms-mix logic in
+    classifyOrientation(), so a real answer here bypasses the false-positive
+    entirely -- ground truth over inference, same fix register-local-video.js
+    already applied on the other ingestion path.
+
+    Returns 'vertical' | 'horizontal', or None if ffprobe can't read the
+    file (caller falls back to platforms-only inference, i.e. today's
+    behavior, rather than failing closed on an unreadable file here).
+    """
+    try:
+        out = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", str(video_path)],
+            capture_output=True, text=True, timeout=15,
+        ).stdout.strip()
+        w_str, _, h_str = out.partition("x")
+        w, h = int(w_str), int(h_str)
+        if not w or not h:
+            return None
+        return "vertical" if h > w else "horizontal"
+    except Exception:
+        return None
+
+
+def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[str] | None = None, orientation: str | None = None) -> dict | None:
     """
     Shells out to scripts/check-video-quality-cli.js (same subprocess pattern
     as compress_video()'s ffmpeg call) -- see that file for why this is a
@@ -608,6 +760,15 @@ def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[
     only behavior, so always pass info["platforms"] here at the real call
     site.
 
+    orientation (2026-09-30): explicit ground-truth override from
+    detect_orientation_from_pixels(), passed through to --orientation.
+    classifyOrientation() checks this BEFORE the platforms-mix check, so
+    passing it whenever ffprobe could read the file avoids the false
+    'orientation_determined' failure described in
+    detect_orientation_from_pixels()'s docstring above. None = omit the flag
+    (today's platforms-only behavior, unchanged for a file ffprobe can't
+    read).
+
     Returns the parsed {pass, rules, failedRules, detail} dict, or None if
     the CLI itself couldn't be run at all (missing node, crashed, etc.) --
     callers MUST treat None as a hard failure (fail-closed), never as "skip
@@ -616,6 +777,8 @@ def run_quality_gate(video_path: Path, cover_path: Path | None, platforms: list[
     cmd = ["node", str(QUALITY_GATE_CLI), "--video", str(video_path)]
     if cover_path:
         cmd += ["--cover", str(cover_path)]
+    if orientation:
+        cmd += ["--orientation", orientation]
     # CTA-URL resolve (added 2026-09-17). The gate CLI only runs the
     # `cta_url_resolves` rule when it is TOLD which URL the end card carries --
     # it cannot read a URL out of an mp4. Generators that know their CTA drop a
@@ -874,7 +1037,15 @@ def main():
         # ORIGINAL file, before any lossy compression. A missing/failed cover
         # or gate CLI failure is fail-closed, never a silent pass.
         cover_local = extract_cover_frame(video_path)
-        gate_result = run_quality_gate(video_path, cover_local, platforms=info["platforms"])
+        # Ground-truth orientation from the file's own pixels (Atlas,
+        # 2026-09-30 — see detect_orientation_from_pixels()'s docstring):
+        # avoids a false 'orientation_determined' hold on any row whose
+        # platforms mix a horizontal-classified entry (facebook/youtube)
+        # with a vertical one (tiktok/instagram) despite the file itself
+        # genuinely being vertical — exactly today's dossie/realtor selfie
+        # default platform lists.
+        detected_orientation = detect_orientation_from_pixels(video_path)
+        gate_result = run_quality_gate(video_path, cover_local, platforms=info["platforms"], orientation=detected_orientation)
 
         if gate_result is None:
             print(f"  ERROR: quality gate could not run for {filename} — failing closed, not approving")
@@ -966,6 +1137,50 @@ def main():
             results["queued"].append(stem)
         else:
             results["quality_held"].append(stem)
+
+        # 7. Cross-post row (Atlas, 2026-09-30 — see classify_video()'s
+        # "Cross-post to Heath's personal accounts" block for the full
+        # scoping rationale). Same uploaded asset, same caption, same
+        # quality-gate result (it's the same physical file) — a SECOND
+        # video_library row because target_owner is one-per-row and this
+        # content now needs to reach two owners' accounts. Only attempted
+        # if the primary row itself upserted cleanly; a failed primary
+        # insert means something is already wrong and doubling the attempt
+        # would just double the failure mode.
+        if ok and info.get("cross_post"):
+            cp = info["cross_post"]
+            cp_owner = cp["owner"]
+            cp_suffix = cp_owner.split("-")[0]  # 'heath-realtor' -> 'heath'
+            cp_stem = f"{stem}-{cp_suffix}"
+            if cp_stem in existing_ids:
+                print(f"  SKIP cross-post (already in DB): {cp_stem}")
+            else:
+                cp_scheduled_for = assign_next_slot(cp["platforms"], cp_owner, exclude_id=cp_stem) if quality_passed else None
+                cp_row = dict(row)
+                cp_row.update({
+                    "id": cp_stem,
+                    "platforms": cp["platforms"],
+                    "target_owner": cp_owner,
+                    "scheduled_for": cp_scheduled_for,
+                    # uses_cloned_voice is a FACT about this exact audio/video,
+                    # not about who's posting it — propagate the primary row's
+                    # value rather than re-deriving a per-owner default (the
+                    # anti-pattern Carter's 2026-09-17 QA fix on
+                    # RUST-OWNER-WIRING explicitly called out: "a proxy, not
+                    # a fact"). See video_delivery-verify / postToZernio()
+                    # comments in api/cron-post-videos.js for the same rule
+                    # applied at publish time.
+                    "uses_cloned_voice": info["uses_cloned_voice"],
+                })
+                cp_ok = upsert_video_library(cp_row)
+                if not cp_ok:
+                    print(f"  ERROR: cross-post upsert failed for {cp_stem}")
+                    results["failed"].append(cp_stem)
+                elif quality_passed:
+                    print(f"  Cross-posted: {cp_stem} -> owner={cp_owner} platforms={cp['platforms']}")
+                    results["queued"].append(cp_stem)
+                else:
+                    results["quality_held"].append(cp_stem)
 
     # Summary
     print(f"\n{'='*65}")
