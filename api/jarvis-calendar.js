@@ -30,11 +30,18 @@
 // Owner: Atlas (Tier 2 build, 2026-06-21).
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+import { classifyTokenResponse } from './_lib/google-refresh-ladder.js';
+import { resolveGoogleClient } from './_lib/google-oauth-clients.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+// findGoogleIntegration() below filters oauth_provider=eq.google_calendar
+// only, so this widget always refreshes a token minted by the INTERNAL
+// client (api/google-internal-oauth-init.js), never the customer-facing
+// one. Fixed 2026-09-29 -- this used to read the flat GOOGLE_CLIENT_ID/
+// SECRET (customer) module consts, which Google rejects with
+// unauthorized_client for a refresh_token the INTERNAL client issued. See
+// api/_lib/google-oauth-clients.js header for the full incident.
 
 export const config = { api: { bodyParser: true }, maxDuration: 15 };
 
@@ -83,12 +90,13 @@ function extractConferenceUrl(description, location) {
 // ---------------------------------------------------------------------------
 
 async function refreshGoogleAccessToken(refreshToken) {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    throw new Error('google_oauth_env_missing');
+  const client = resolveGoogleClient('google_calendar');
+  if (client.missingEnvNames.length > 0) {
+    throw new Error(`google_oauth_env_missing:${client.missingEnvNames.join(',')}`);
   }
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     refresh_token: refreshToken,
     grant_type: 'refresh_token',
   });

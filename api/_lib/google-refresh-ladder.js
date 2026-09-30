@@ -221,13 +221,26 @@ async function pruneDeadRows(fetchImpl, supabaseUrl, serviceKey, ids) {
 async function refreshWithLadder(opts = {}) {
   const fetchImpl = opts.fetchImpl || global.fetch;
   const sleepImpl = opts.sleepImpl || defaultSleep;
-  const { account, supabaseUrl, serviceKey, clientId, clientSecret } = opts;
+  const { account, supabaseUrl, serviceKey, clientId, clientSecret, resolveClient } = opts;
 
+  // Two modes:
+  //  - legacy flat mode (clientId/clientSecret): the SAME client refreshes
+  //    every row for this account. Correct only when every stored row for
+  //    the account was minted by one client.
+  //  - resolveClient(oauth_provider) mode: each row gets refreshed with
+  //    whichever client actually minted it (api/_lib/google-oauth-clients.js).
+  //    Required for heath.shepard@kw.com, which carries BOTH a
+  //    google_calendar row (INTERNAL client) and google_gmail rows
+  //    (CUSTOMER client) under one email -- flat mode against that account
+  //    is exactly the 2026-09-29 unauthorized_client incident (right
+  //    refresh_token, wrong client paired with it).
   const missingEnv = [];
   if (!supabaseUrl) missingEnv.push('SUPABASE_URL');
   if (!serviceKey) missingEnv.push('SUPABASE_SERVICE_ROLE_KEY');
-  if (!clientId) missingEnv.push('GOOGLE_CLIENT_ID');
-  if (!clientSecret) missingEnv.push('GOOGLE_CLIENT_SECRET');
+  if (!resolveClient) {
+    if (!clientId) missingEnv.push('GOOGLE_CLIENT_ID');
+    if (!clientSecret) missingEnv.push('GOOGLE_CLIENT_SECRET');
+  }
   if (missingEnv.length > 0) return { outcome: 'misconfigured', missingEnv, attempts: [] };
 
   let rowsRes;
@@ -245,19 +258,56 @@ async function refreshWithLadder(opts = {}) {
   let winner = null;
 
   for (const row of rows) {
-    const result = await attemptRowWithRetries(fetchImpl, sleepImpl, row, clientId, clientSecret);
+    let rowClientId = clientId;
+    let rowClientSecret = clientSecret;
+    let rowClientLabel;
+
+    if (resolveClient) {
+      const resolved = resolveClient(row.oauth_provider) || {};
+      rowClientLabel = resolved.label;
+      const rowMissingEnv = resolved.missingEnvNames || [];
+      if (!resolved.clientId || !resolved.clientSecret || rowMissingEnv.length > 0) {
+        // This row's provider needs a client that isn't configured in this
+        // environment. Unlike legacy flat mode, this does NOT stop the
+        // whole ladder -- a different row may use a DIFFERENT, properly
+        // configured client (exactly the heath.shepard@kw.com case: a
+        // missing INTERNAL client shouldn't block trying the CUSTOMER-
+        // client rows, and vice versa).
+        attempts.push({
+          rowId: row.id,
+          updatedAt: row.updated_at,
+          verdict: 'client_config',
+          errorCode: `env_missing:${rowMissingEnv.join(',') || 'unknown'}`,
+          tries: 0,
+          clientLabel: rowClientLabel,
+        });
+        continue;
+      }
+      rowClientId = resolved.clientId;
+      rowClientSecret = resolved.clientSecret;
+    }
+
+    const result = await attemptRowWithRetries(fetchImpl, sleepImpl, row, rowClientId, rowClientSecret);
     attempts.push({
       rowId: row.id,
       updatedAt: row.updated_at,
       verdict: result.verdict,
       errorCode: result.errorCode,
       tries: result.tries,
+      clientLabel: rowClientLabel,
     });
     if (result.verdict === 'success') {
       winner = { row, ...result };
       break;
     }
-    if (result.verdict === 'client_config') break; // no row can fix this
+    if (result.verdict === 'client_config') {
+      // Legacy flat mode: one client serves every row, so a client_config
+      // error here means no row can ever succeed -- stop immediately.
+      // resolveClient mode: this row's client is bad, but another row may
+      // use a different client that works -- keep going.
+      if (!resolveClient) break;
+      continue;
+    }
     if (result.verdict === 'invalid_grant') confirmedDeadIds.push(row.id);
     // 'permanent_other' and retry-exhausted 'transient': move to next row.
   }

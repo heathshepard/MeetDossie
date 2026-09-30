@@ -55,9 +55,14 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Per-row client resolution (Atlas, 2026-09-29): the user_integrations row
+// this cron reads for heath.shepard@kw.com is whichever oauth_provider is
+// newest (currently google_calendar, minted by the INTERNAL client). A flat
+// GOOGLE_CLIENT_ID/SECRET (customer client) here sent that row's
+// refresh_token to the wrong client and Google returned unauthorized_client
+// -- see api/_lib/google-oauth-clients.js header for the full incident.
+const { resolveGoogleClient } = require('./_lib/google-oauth-clients.js');
 
 // OFF by default and on purpose — see file header. Do not flip in code; this
 // only ever gets turned on by setting the env var in Vercel after Heath signs
@@ -300,7 +305,7 @@ async function loadGoogleTokens() {
   // google_email, so re-consent stragglers can coexist for this address.
   // Require a refresh token and take the most recently updated row.
   const res = await supaFetch(
-    `user_integrations?select=id,access_token,refresh_token,expires_at&google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`
+    `user_integrations?select=id,access_token,refresh_token,expires_at,oauth_provider&google_email=eq.${encodeURIComponent(GMAIL_ACCOUNT)}`
     + `&refresh_token=not.is.null&order=updated_at.desc&limit=1`,
     { method: 'GET' },
   );
@@ -365,10 +370,14 @@ async function insertHit(row) {
 // Gmail (same OAuth row kw-mail.py / gmail-refresh.js use, refreshed in-process)
 // --------------------------------------------------------------------------
 
-async function refreshGoogleToken(refreshToken) {
+async function refreshGoogleToken(refreshToken, provider) {
+  const client = resolveGoogleClient(provider);
+  if (client.missingEnvNames.length > 0) {
+    throw new Error(`google_refresh_failed:client_config_error:${client.missingEnvNames.join(',')}`);
+  }
   const body = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    client_secret: GOOGLE_CLIENT_SECRET,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     refresh_token: refreshToken,
     grant_type: 'refresh_token',
   });
@@ -638,8 +647,16 @@ async function handler(req, res) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(200).json({ ok: true, status: 'skipped', reason: 'ANTHROPIC_API_KEY not set' });
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.status(200).json({ ok: true, status: 'skipped', reason: 'GOOGLE_CLIENT_ID/SECRET not set' });
+  {
+    // Sanity gate: at least one Google client must be configured, but WHICH
+    // one is needed depends on the row's oauth_provider (resolved per-call
+    // in refreshGoogleToken below) -- so this only catches "neither client
+    // exists at all", not a specific missing pair.
+    const customer = resolveGoogleClient('google_gmail');
+    const internal = resolveGoogleClient('google_calendar');
+    if (customer.missingEnvNames.length > 0 && internal.missingEnvNames.length > 0) {
+      return res.status(200).json({ ok: true, status: 'skipped', reason: 'no Google OAuth client configured (checked customer + internal)' });
+    }
   }
 
   const stats = {
@@ -680,7 +697,7 @@ async function handler(req, res) {
       return await gmailFetch(accessToken, path, params);
     } catch (err) {
       if (err.status === 401) {
-        const refreshed = await refreshGoogleToken(tokens.refresh_token);
+        const refreshed = await refreshGoogleToken(tokens.refresh_token, tokens.oauth_provider);
         accessToken = refreshed.access_token;
         const expiresAt = new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString();
         await persistAccessToken(accessToken, expiresAt, tokens.id);

@@ -45,32 +45,16 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI;
-const GOOGLE_INTERNAL_CLIENT_ID = process.env.GOOGLE_INTERNAL_CLIENT_ID;
-const GOOGLE_INTERNAL_CLIENT_SECRET = process.env.GOOGLE_INTERNAL_CLIENT_SECRET;
-const GOOGLE_INTERNAL_OAUTH_REDIRECT_URI = process.env.GOOGLE_INTERNAL_OAUTH_REDIRECT_URI;
 
-const CUSTOMER_CLIENT = {
-  clientId: GOOGLE_CLIENT_ID,
-  clientSecret: GOOGLE_CLIENT_SECRET,
-  redirectUri: GOOGLE_OAUTH_REDIRECT_URI,
-};
-const INTERNAL_CLIENT = {
-  clientId: GOOGLE_INTERNAL_CLIENT_ID,
-  clientSecret: GOOGLE_INTERNAL_CLIENT_SECRET,
-  redirectUri: GOOGLE_INTERNAL_OAUTH_REDIRECT_URI,
-};
-
-const CLIENT_BY_PROVIDER = {
-  google_calendar: INTERNAL_CLIENT,
-  google_gmail: CUSTOMER_CLIENT,
-  google_youtube: CUSTOMER_CLIENT,
-};
+// Provider -> client mapping now lives in one shared place
+// (api/_lib/google-oauth-clients.js) so every consumer that later refreshes
+// a stored token resolves the SAME pairing this callback used to mint it.
+// Sprinkling GOOGLE_INTERNAL_* through a dozen files is exactly how the
+// 2026-09-29 unauthorized_client incident happened — see that file's header.
+const { resolveGoogleClient } = require('./_lib/google-oauth-clients.js');
 
 function clientForProvider(provider) {
-  return CLIENT_BY_PROVIDER[provider] || CUSTOMER_CLIENT;
+  return resolveGoogleClient(provider);
 }
 
 export const config = { api: { bodyParser: false }, maxDuration: 15 };
@@ -181,9 +165,12 @@ export default async function handler(req, res) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(503).json({ ok: false, error: 'supabase_env_missing' });
   }
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_OAUTH_REDIRECT_URI) {
-    return res.status(503).json({ ok: false, error: 'google_oauth_not_configured' });
-  }
+  // Which Google client (customer vs internal) must be configured depends
+  // on stateRow.provider, looked up below — this used to gate on the
+  // CUSTOMER client only, which would have 503'd every INTERNAL
+  // (google_calendar) callback if the customer client ever went unset.
+  // The per-provider check right before token exchange (clientForProvider)
+  // is the real gate now.
 
   const { code, state, error: userError } = req.query;
 
