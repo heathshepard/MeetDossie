@@ -21,6 +21,15 @@
 //     + per-(owner,platform) daily caps, so it is a true no-op on every run
 //     with nothing due — safe at any cadence. every20 vs every15 does not
 //     meaningfully change Heath's Telegram-approval-to-post latency.
+//   - /api/cron-publish-comment-replies (added 2026-09-29, Atlas — the
+//     social_comment_replies publisher for 'drafted' rows, same real-Zernio-
+//     API reasoning as cron-post-videos above: this group's 300s budget is
+//     ample headroom, and NOT cron-dispatch-every15 per explicit instruction
+//     given that group's own timeout history. Own internal deadline (20s,
+//     MAX_DURATION_S in that file) is far inside this group's per-member
+//     share; gated on ops_flags.zernio_comment_replies, default FALSE — a
+//     true no-op until Heath turns it on. See that file's header for the
+//     full eligibility/escalation contract.
 //
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
@@ -41,6 +50,7 @@ const HANDLERS = [
   { name: 'cron-engagement-review', mod: require('./cron-engagement-review.js') },
   { name: 'cron-content-pipeline-promote', mod: require('./cron-content-pipeline-promote.js') },
   { name: 'cron-post-videos', mod: require('./cron-post-videos.js') },
+  { name: 'cron-publish-comment-replies', mod: require('./cron-publish-comment-replies.js') },
 ];
 
 module.exports = async function handler(req, res) {
