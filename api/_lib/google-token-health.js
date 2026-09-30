@@ -31,6 +31,11 @@
 // Owner: Atlas, 2026-09-28.
 
 const { refreshWithLadder } = require('./google-refresh-ladder.js');
+// Per-row client resolution (Atlas, 2026-09-29) -- see
+// api/_lib/google-oauth-clients.js header for the unauthorized_client
+// incident this closes. heath.shepard@kw.com carries rows minted by BOTH
+// the customer and internal Google clients under one email.
+const { resolveGoogleClient } = require('./google-oauth-clients.js');
 
 // Single-tenant today -- mirrors scripts/preflight-check.js's KW_ACCOUNT and
 // scripts/kw-mail.py's ACCOUNT.
@@ -57,14 +62,23 @@ const THE_FIX = 'Open meetdossie.com/myjarvis and click Connect Google Calendar 
  */
 async function checkGoogleTokenHealth(opts = {}) {
   const env = opts.env || {};
+  // Tests inject a single explicit clientId/clientSecret pair (flat legacy
+  // mode -- every fixture row is oauth_provider='google_gmail'). Real
+  // production calls pass no env override at all, so they get the shared
+  // per-row resolver -- required because heath.shepard@kw.com's rows span
+  // TWO different Google clients (see google-oauth-clients.js).
+  const hasLegacyOverride = ('clientId' in env) || ('clientSecret' in env);
+  const clientOpts = hasLegacyOverride
+    ? { clientId: env.clientId, clientSecret: env.clientSecret }
+    : { resolveClient: resolveGoogleClient };
+
   const result = await refreshWithLadder({
     account: GOOGLE_ACCOUNT,
     fetchImpl: opts.fetchImpl,
     sleepImpl: opts.sleepImpl,
     supabaseUrl: 'supabaseUrl' in env ? env.supabaseUrl : process.env.SUPABASE_URL,
     serviceKey: 'serviceKey' in env ? env.serviceKey : process.env.SUPABASE_SERVICE_ROLE_KEY,
-    clientId: 'clientId' in env ? env.clientId : process.env.GOOGLE_CLIENT_ID,
-    clientSecret: 'clientSecret' in env ? env.clientSecret : process.env.GOOGLE_CLIENT_SECRET,
+    ...clientOpts,
   });
 
   switch (result.outcome) {

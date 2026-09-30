@@ -277,3 +277,80 @@ test('inconclusive: nothing succeeded, but not every row was cleanly invalid_gra
   assert.equal(result.outcome, 'inconclusive');
   assert.deepEqual(result.prunedIds, ['r1'], 'the one row that WAS confirmed dead still gets pruned even though the overall call is inconclusive');
 });
+
+// --- resolveClient mode: per-row client resolution (2026-09-29 fix) -------
+//
+// Proves THE bug this fix closes: heath.shepard@kw.com carries a
+// google_calendar row (minted by the INTERNAL client) newer than its
+// google_gmail rows (minted by the CUSTOMER client). Flat single-client
+// mode sends every row through the same client and breaks the newest row
+// with unauthorized_client. resolveClient mode must pick the right client
+// per row AND must not let one row's client_config error stop a different
+// row that uses a working client.
+
+function providerRow(id, updatedAt, refreshToken, provider) {
+  return { id, updated_at: updatedAt, google_email: ENV.account, refresh_token: refreshToken, oauth_provider: provider };
+}
+
+test('resolveClient mode: newest row (internal client) refreshes fine even though older rows use a different (dead) client', async () => {
+  const rows = [
+    providerRow('cal', '2026-09-28T00:00:00Z', 'rt-internal', 'google_calendar'),
+    providerRow('gmail-old', '2026-09-19T00:00:00Z', 'rt-customer', 'google_gmail'),
+  ];
+  const seenClientIds = [];
+  const fetchImpl = async (url, init) => {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) {
+      const params = new URLSearchParams(init.body);
+      seenClientIds.push(params.get('client_id'));
+      const rt = params.get('refresh_token');
+      if (rt === 'rt-internal') return jsonRes(200, { access_token: 'internal-token', expires_in: 3600 });
+      return jsonRes(400, { error: 'unauthorized_client' }); // would fire if wrong client used
+    }
+    if (init && init.method === 'PATCH') return jsonRes(200, null);
+    return jsonRes(200, rows);
+  };
+
+  const resolveClient = (provider) => (provider === 'google_calendar'
+    ? { label: 'internal', clientId: 'internal-id', clientSecret: 'internal-secret', missingEnvNames: [] }
+    : { label: 'customer', clientId: 'customer-id', clientSecret: 'customer-secret', missingEnvNames: [] });
+
+  const result = await refreshWithLadder({
+    account: ENV.account, supabaseUrl: ENV.supabaseUrl, serviceKey: ENV.serviceKey,
+    resolveClient, fetchImpl, sleepImpl: instantSleep,
+  });
+
+  assert.equal(result.outcome, 'healthy');
+  assert.equal(result.winningRowId, 'cal');
+  assert.deepEqual(seenClientIds, ['internal-id'], 'never even tried the customer client — newest row won on the first attempt');
+});
+
+test('resolveClient mode: one provider client not configured does not block a different row from succeeding', async () => {
+  const rows = [
+    providerRow('cal', '2026-09-28T00:00:00Z', 'rt-internal', 'google_calendar'),
+    providerRow('gmail-old', '2026-09-19T00:00:00Z', 'rt-customer', 'google_gmail'),
+  ];
+  const fetchImpl = async (url, init) => {
+    if (url.startsWith('https://oauth2.googleapis.com/token')) {
+      return jsonRes(200, { access_token: 'customer-token', expires_in: 3600 });
+    }
+    if (init && init.method === 'PATCH') return jsonRes(200, null);
+    return jsonRes(200, rows);
+  };
+
+  // Internal client env vars missing entirely -- must not block the
+  // customer-client row from being tried and succeeding.
+  const resolveClient = (provider) => (provider === 'google_calendar'
+    ? { label: 'internal', clientId: null, clientSecret: null, missingEnvNames: ['GOOGLE_INTERNAL_CLIENT_ID', 'GOOGLE_INTERNAL_CLIENT_SECRET'] }
+    : { label: 'customer', clientId: 'customer-id', clientSecret: 'customer-secret', missingEnvNames: [] });
+
+  const result = await refreshWithLadder({
+    account: ENV.account, supabaseUrl: ENV.supabaseUrl, serviceKey: ENV.serviceKey,
+    resolveClient, fetchImpl, sleepImpl: instantSleep,
+  });
+
+  assert.equal(result.outcome, 'healthy');
+  assert.equal(result.winningRowId, 'gmail-old');
+  assert.equal(result.attempts[0].verdict, 'client_config');
+  assert.match(result.attempts[0].errorCode, /env_missing/);
+  assert.equal(result.attempts[1].verdict, 'success');
+});
