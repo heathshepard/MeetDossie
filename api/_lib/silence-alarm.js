@@ -540,15 +540,23 @@ async function checkCommentsAwaitingReplyStale(staleHours = COMMENT_REPLY_STALE_
     });
   }
 
+  // FIXED 2026-09-29 (Atlas, cron-publish-comment-replies build): this query
+  // read reply_status=eq.draft against a column that has never held that
+  // value (the real enum is 'drafted') and filtered on created_at, which
+  // does not exist on this table at all -- every call 400'd, supabaseFetch
+  // swallowed it as {ok:false}, and this condition has therefore returned
+  // [] on every single run since it was written. A broken alarm reporting
+  // healthy is the exact failure class feedback_silent-failure-is-the-enemy.md
+  // exists to catch, just one layer up (the alarm itself, not the pipeline).
   const social = await supabaseFetch(
-    `/rest/v1/social_comment_replies?reply_status=eq.draft&created_at=lt.${encodeURIComponent(cutoff)}&select=id,created_at&order=created_at.asc`,
+    `/rest/v1/social_comment_replies?reply_status=eq.drafted&drafted_at=lt.${encodeURIComponent(cutoff)}&select=id,drafted_at&order=drafted_at.asc`,
   );
   if (social.ok && Array.isArray(social.data) && social.data.length > 0) {
     results.push({
       key: 'comments_awaiting_reply:social',
       count: social.data.length,
       oldest: social.data[0],
-      message: `${social.data.length} drafted comment reply(s) sitting >${staleHours}h without posting (oldest drafted ${social.data[0].created_at}).`,
+      message: `${social.data.length} drafted comment reply(s) sitting >${staleHours}h without posting (oldest drafted ${social.data[0].drafted_at}). Check api/cron-publish-comment-replies.js and its ops_flags.zernio_comment_replies switch.`,
     });
   }
 
@@ -698,6 +706,54 @@ async function checkCommentOppApprovedStale(staleHours = COMMENT_OPP_APPROVED_ST
     oldest: res.data[0],
     message: `${res.data.length} Heath-approved comment(s) sitting >${staleHours}h without posting (oldest: "${res.data[0].group_name}", approved ${res.data[0].approved_at}). `
       + 'Check node scripts/fb-comment-opp-poster.js --dry-run and scripts/.comment-hunt-halt.json for a halt (global or scoped to that group).',
+  }];
+}
+
+// 9c. The comment-reply PUBLISHER (api/cron-publish-comment-replies.js,
+// Atlas, 2026-09-29) has gone silent: rows that ARE eligible to post
+// (reply_status='drafted', not spam, not escalated) are sitting well past a
+// normal publish cycle even though Heath has turned the pipeline ON. This is
+// a narrower, more actionable signal than checkCommentsAwaitingReplyStale
+// above -- that one only says a backlog EXISTS; this one excludes exactly
+// the rows the publisher is SUPPOSED to leave alone (age>14d -> the
+// publisher itself marks those 'expired'; an escalation-guard match -> the
+// publisher marks those 'held'), so a nonzero count here means "the
+// publisher should have posted these and didn't."
+//
+// Deliberately does NOT fire while ops_flags.zernio_comment_replies is off.
+// That flag is the intentional gate Heath hasn't flipped yet as of
+// 2026-09-29 (a dry-run-only build, pending his review of the first live
+// list) -- alarming on an intentionally-paused pipeline is exactly the
+// "alarm becomes wallpaper" failure this file exists to avoid.
+const COMMENT_REPLY_PUBLISH_STALE_HOURS = 6;
+// Mirrors api/cron-publish-comment-replies.js's own AGE_CUTOFF_DAYS as a
+// plain number rather than an import -- same reasoning as the TC-harvest
+// constants above: this file must never pull a cron's whole require graph
+// in just to read one number.
+const COMMENT_REPLY_PUBLISH_AGE_CUTOFF_DAYS_MIRROR = 14;
+
+async function checkCommentReplyPublisherStale(staleHours = COMMENT_REPLY_PUBLISH_STALE_HOURS) {
+  const flag = await supabaseFetch('/rest/v1/ops_flags?key=eq.zernio_comment_replies&select=enabled');
+  const enabled = flag.ok && Array.isArray(flag.data) && flag.data[0] && flag.data[0].enabled === true;
+  if (!enabled) return [];
+
+  const cutoff = hoursAgoIso(staleHours);
+  const res = await supabaseFetch(
+    '/rest/v1/social_comment_replies?reply_status=eq.drafted&is_spam=not.is.true'
+    + `&escalated=is.false&drafted_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,platform,drafted_at,comment_created_at&order=drafted_at.asc',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  const cutoffMs = Date.now() - COMMENT_REPLY_PUBLISH_AGE_CUTOFF_DAYS_MIRROR * 24 * 60 * 60 * 1000;
+  const stillEligible = res.data.filter((r) => new Date(r.comment_created_at).getTime() >= cutoffMs);
+  if (stillEligible.length === 0) return [];
+
+  return [{
+    key: 'comment_reply_publisher_stale',
+    count: stillEligible.length,
+    oldest: stillEligible[0],
+    message: `${stillEligible.length} eligible drafted comment repl${stillEligible.length === 1 ? 'y is' : 'ies are'} sitting unposted >${staleHours}h even though zernio_comment_replies is ON (oldest drafted ${stillEligible[0].drafted_at}). Check cron-dispatch-every20 for a member_timeout on cron-publish-comment-replies, and the daily/platform caps in scripts/_lib/comment-caps.js.`,
   }];
 }
 
@@ -956,7 +1012,12 @@ async function runAllChecks(opts = {}) {
   // wrong condition. googleToken added 2026-09-28 (Atlas self-heal cherry-pick).
   // NOTE: telegramGateSuppressed (f7db3c6f) is a separate, not-yet-merged
   // change on staging — intentionally NOT included here.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken] = await Promise.all([
+  // commentReplyPublisherStale appended 2026-09-29 (Atlas, cron-publish-
+  // comment-replies build) at the END of both this destructure and the
+  // Promise.all below, rather than inserted in the middle — every earlier
+  // entry's position is load-bearing (positional destructuring), and
+  // appending is the only change that cannot silently relabel a sibling.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -975,9 +1036,10 @@ async function runAllChecks(opts = {}) {
     checkDealWatchSilence(opts.dealWatchCronStaleHours, opts.dealWatchNoDecisionsDays),
     checkCronSanity(opts.cronSanityScanOpts),
     checkGoogleTokenHealth(opts.googleTokenOpts),
+    checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale];
   const fired = [];
   const suppressed = [];
 
@@ -1055,7 +1117,10 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     supabaseFetch(`/rest/v1/video_library?status=eq.quality_hold&select=id`),
     supabaseFetch(`/rest/v1/video_library?status=eq.failed&select=id`),
     supabaseFetch(`/rest/v1/tc_discovery_responses?reply_status=eq.notified&select=id`),
-    supabaseFetch(`/rest/v1/social_comment_replies?reply_status=eq.draft&select=id`),
+    // FIXED 2026-09-29 (Atlas): same eq.draft/'drafted' typo as
+    // checkCommentsAwaitingReplyStale above -- this heartbeat count read 0
+    // every single morning regardless of real backlog size.
+    supabaseFetch(`/rest/v1/social_comment_replies?reply_status=eq.drafted&select=id`),
   ]);
 
   // Fold both posted-social and posted-video rows into one (platform,owner)
@@ -1310,6 +1375,7 @@ module.exports = {
   REPLY_UNVERIFIED_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
+  COMMENT_REPLY_PUBLISH_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
   SUPPORT_TRIAGE_CRON_STALE_HOURS,
   SUPPORT_TRIAGE_UNTRIAGED_HOURS,
@@ -1328,6 +1394,7 @@ module.exports = {
   checkUnverifiedRepliesStuck,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
+  checkCommentReplyPublisherStale,
   checkGroupPostingSilence,
   checkSupportTriageSilence,
   checkDealWatchSilence,
