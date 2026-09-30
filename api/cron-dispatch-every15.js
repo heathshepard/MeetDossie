@@ -16,8 +16,16 @@
 //   - /api/cron-email-to-dossier
 //   - /api/cron-esign-events
 //   - /api/cron-merge-queue-backfill
-//   - /api/cron-comment-monitor
 //   - /api/cron-support-ticket-triage   (added 2026-09-18)
+//
+// cron-comment-monitor MOVED OUT (Atlas, 2026-09-30) to cron-dispatch-every20
+// — its own 15s internal deadline was hit mid-scan on a live run here, and
+// measured live against prod its discovery pagination needs ~80-95s for a
+// full sweep (Zernio's own per-page latency, 200ms-14s, not our per-post
+// loop). This group's 40s maxDuration (30s member ceiling) structurally
+// cannot fit that; every20's 300s bucket (~290s member ceiling) can, with
+// real headroom. See cron-comment-monitor.js's own header for the full
+// measured numbers and the resumable-cursor fix that goes with the move.
 //
 // cron-post-videos MOVED OUT AGAIN (Atlas, 2026-09-29) to cron-dispatch-
 // every20 — this group's own vercel.json bucket (api/{cron-dispatch-daily-
@@ -55,7 +63,6 @@ const HANDLERS = [
   { name: 'cron-email-to-dossier', mod: require('./cron-email-to-dossier.js') },
   { name: 'cron-esign-events', mod: require('./cron-esign-events.js') },
   { name: 'cron-merge-queue-backfill', mod: require('./cron-merge-queue-backfill.js') },
-  { name: 'cron-comment-monitor', mod: require('./cron-comment-monitor.js') },
   { name: 'cron-support-ticket-triage', mod: require('./cron-support-ticket-triage.js') },
 ];
 

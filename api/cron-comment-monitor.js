@@ -38,8 +38,65 @@
 // It does NOT draft or post anything. Drafting is cron-comment-reply-draft.js;
 // posting is cron-post-comment-replies.js behind a kill switch.
 //
-// Schedule: */15 (Zernio caches comment reads up to 10 min; faster buys
-// nothing). Owner: Atlas, rewritten 2026-09-25.
+// Schedule: */20 (moved from */15 2026-09-30 -- see "WHY EVERY20" below).
+// Zernio caches comment reads up to 10 min anyway, so 15 vs 20 min buys
+// nothing. Owner: Atlas, rewritten 2026-09-25, resumable scan 2026-09-30.
+//
+// ─── WHY EVERY20, AND THE RESUMABLE SCAN (2026-09-30) ────────────────────────
+// Incident: this cron's own 15s internal deadline (added 2026-09-29 to stop a
+// slow scan from taking down the whole every15 dispatcher) was hit MID-SCAN
+// on a live every15 run. It returned early every time, and because discovery
+// always restarted at cursor=null, every single tick re-walked the SAME first
+// few pages and structurally could never reach the rest -- a truncating scan
+// that always starts from the same place always misses the same tail.
+//
+// MEASURED LIVE AGAINST PROD, 2026-09-30 (not inferred):
+//   - Per-post comment fetch (getPostComments): NOT the bottleneck. 0.8-1.7s
+//     each, 5-way concurrent. Never the thing blowing the deadline.
+//   - Discovery pagination (GET /v1/inbox/comments): THE bottleneck. Individual
+//     pages measured 200ms-13.9s each (Zernio's own latency, highly variable --
+//     raw uncached calls clustered 3-4s; some full-sweep pages spiked to ~14s).
+//     A full sweep of the entire 3-year lookback window took 16 pages / 17
+//     requests / ~80s wall-clock, and found 29 real posts carrying comments
+//     (ground truth for this account set as of 2026-09-30).
+//   - Repeating the EXACT same page (same since+cursor+limit) a second time
+//     measured ~20-30x faster (6.8s cold -> ~200-300ms warm) -- a real Zernio
+//     response cache, but keyed narrowly enough (same cursor, not just same
+//     since) that it does not meaningfully help forward progress through new
+//     pages, only retries of a page already fetched.
+//
+// So: an 80s full sweep never fit in every15's 15s self-deadline (nor its 30s
+// member ceiling), but does fit in every20's ~290s member ceiling on a normal
+// day -- with Zernio's measured per-page variance (up to 14s) still able to
+// push a bad day past a single tick. RESUMABILITY (see cron_comment_monitor_
+// state below) is what makes that survivable: a run that gets cut off resumes
+// next tick from the exact page it stopped on, instead of re-scanning the same
+// head of the list forever. Moving groups alone would not have fixed the
+// structural miss; the cursor persistence is the actual fix, group headroom is
+// what makes each individual sweep attempt likely to finish in one tick.
+//
+// RESUMABLE STATE: cron_comment_monitor_state, a singleton row (id=1) --
+// supabase/migrations/20260930e_comment_monitor_resumable_cursor.sql.
+//   discovery_cursor        - resume point. NULL = start a fresh sweep.
+//   discovery_since         - the `since` this sweep is pinned to; reused
+//                             verbatim across every resumed page (a Zernio
+//                             cursor issued under one `since` replayed under a
+//                             different one is unproven territory against the
+//                             live API -- not worth risking a silent skip).
+//   sweep_started_at         - when the CURRENT (or most recent) sweep began.
+//   last_sweep_completed_at  - last time discovery reached hasMore=false, i.e.
+//                             a full pass over the whole lookback window was
+//                             PROVEN complete. This is the coverage guarantee,
+//                             made visible: if it keeps advancing every few
+//                             ticks, nothing in the window can stay
+//                             permanently unseen.
+//   posts_seen_this_sweep    - running count of unique posts found so far in
+//                             the sweep in progress.
+//   total_posts_last_sweep   - count from the most recently COMPLETED sweep,
+//                             for monitoring / regression comparison.
+// On hasMore=false the cursor resets to null and a new sweep begins next
+// tick, which is what lets a NEW comment on a post we already passed (or a
+// brand-new post) get picked up again -- not just a one-time backfill.
 // =============================================================================
 
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
@@ -67,14 +124,28 @@ const LOOKBACK_DAYS = 1095;
 const MAX_POSTS_PER_TICK = 40;
 const REQUEST_BUDGET = 150;
 
-// 2026-09-29 (Atlas) — measured 44.3s live against prod at MAX_POSTS_PER_TICK
-// sequential Zernio calls, no fetch timeouts; the whole every15 dispatcher
-// group has a 40s maxDuration. Neither this cron's own business logic
-// (discovery -> per-post comment fetch -> upsert) nor which comments get
-// ingested changed below — only the time budget and concurrency did.
-const FETCH_TIMEOUT_MS = 6000;
-const DEADLINE_MS = 15000;
+// 2026-09-30 (Atlas) -- moved from every15 (40s group, 30s member ceiling) to
+// every20 (300s group, ~290s member ceiling: runGroup derives per-member
+// timeout as budgetMs - 10s reserve). Measured full sweep is ~80s-95s on a
+// normal day; DEADLINE_MS below leaves >100s of headroom inside the group's
+// own per-member ceiling rather than consuming the whole allowance, so a
+// slower-than-measured day degrades to "resumes next tick" instead of
+// "blows the dispatcher's budget."
+//
+// FETCH_TIMEOUT_MS raised from 6000 -- measured discovery pages legitimately
+// take up to ~13.9s on a slow page; a 6s AbortSignal was aborting genuine
+// in-flight requests and forcing the zernio() retry path to pay for them
+// twice (abort + backoff + retry) instead of once. 15s covers every
+// measured real page with margin, and every20's budget can afford it.
+const FETCH_TIMEOUT_MS = 15000;
+const DEADLINE_MS = 180000;
 const CONCURRENCY_LIMIT = 5;
+
+// A resumed cursor that's somehow gone stale (Zernio's own retention window,
+// an account reconnect) should self-heal into a fresh sweep rather than
+// error forever. Threshold is generous -- multiple worst-case measured full
+// sweeps (~80-95s each) would still finish in well under this.
+const STALE_CURSOR_MAX_AGE_MS = 24 * 3600 * 1000;
 
 async function sb(path, init = {}) {
   try {
@@ -124,6 +195,24 @@ async function mapWithConcurrency(items, deadlineAt, worker) {
   return { results, deadlineHit, remaining: items.length - results.length };
 }
 
+/** Read the singleton resume-state row. Returns null if the migration
+ *  (20260930e_comment_monitor_resumable_cursor.sql) hasn't been applied yet
+ *  or the read fails -- callers fall back to "start a fresh sweep", which is
+ *  exactly today's (pre-resumable) behavior, never worse. */
+async function loadScanState() {
+  const r = await sb('cron_comment_monitor_state?id=eq.1&select=*', {});
+  if (r.ok && Array.isArray(r.data) && r.data[0]) return r.data[0];
+  return null;
+}
+
+async function saveScanState(patch) {
+  return sb('cron_comment_monitor_state?id=eq.1', {
+    method: 'PATCH',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
+  });
+}
+
 /** Normalize one Zernio comment into a social_comment_replies row. */
 function toRow(comment, post) {
   const from = comment.from || {};
@@ -161,18 +250,52 @@ async function handler(req, res) {
   }
 
   const budget = makeBudget(REQUEST_BUDGET);
-  const sinceIso = new Date(Date.now() - LOOKBACK_DAYS * 86400 * 1000).toISOString();
   const errors = [];
 
   // Single absolute deadline for the WHOLE handler (discovery paging AND the
   // per-post comment loop below), not just the per-post loop. Measured live:
-  // discovery's own pagination (up to 10 sequential Zernio pages) was able to
-  // consume the entire budget on its own before the per-post loop ever ran.
+  // discovery's own pagination is the actual bottleneck (see file header) and
+  // can consume the entire budget on its own before the per-post loop runs.
   const deadlineAt = handlerStart + DEADLINE_MS;
 
-  // 1. Ask the PLATFORM which posts have comments.
-  const discovery = await listCommentedPosts({ minComments: 1, sinceIso, budget, deadlineAt });
+  // 0. Resume a sweep already in progress, or start a fresh one. See file
+  // header "RESUMABLE STATE". A missing/unreadable state row (migration not
+  // yet applied, transient read failure) degrades to "start fresh" -- never
+  // worse than the pre-resumable behavior.
+  const state = await loadScanState();
+  const freshSince = new Date(Date.now() - LOOKBACK_DAYS * 86400 * 1000).toISOString();
+  const stateAgeMs = state && state.sweep_started_at
+    ? Date.now() - new Date(state.sweep_started_at).getTime()
+    : Infinity;
+  const resuming = !!(state && state.discovery_cursor && stateAgeMs < STALE_CURSOR_MAX_AGE_MS);
+
+  const sinceIso = resuming ? state.discovery_since : freshSince;
+  const resumeCursor = resuming ? state.discovery_cursor : null;
+  const sweepStartedAt = resuming ? state.sweep_started_at : new Date().toISOString();
+  const postsSeenBeforeThisTick = resuming ? (state.posts_seen_this_sweep || 0) : 0;
+
+  // 1. Ask the PLATFORM which posts have comments, continuing from last
+  // tick's cursor if this sweep isn't finished yet.
+  const discovery = await listCommentedPosts({
+    minComments: 1, sinceIso, budget, deadlineAt, cursor: resumeCursor,
+  });
   errors.push(...discovery.errors);
+
+  // Persist the new resume point immediately after discovery, independent of
+  // whether the per-post loop below finishes -- the whole point of a
+  // resumable scan is that discovery progress is never lost even if
+  // everything after it fails or the tick runs out of time.
+  const postsSeenThisSweep = postsSeenBeforeThisTick + discovery.posts.length;
+  await saveScanState({
+    discovery_cursor: discovery.cursor,
+    discovery_since: sinceIso,
+    sweep_started_at: sweepStartedAt,
+    posts_seen_this_sweep: discovery.complete ? 0 : postsSeenThisSweep,
+    ...(discovery.complete ? {
+      last_sweep_completed_at: new Date().toISOString(),
+      total_posts_last_sweep: postsSeenThisSweep,
+    } : {}),
+  });
 
   // An account that failed to answer is a hole in coverage, not a rounding
   // error. Write it where the outcome monitor already looks.
@@ -204,6 +327,10 @@ async function handler(req, res) {
       account_failures: discovery.errors.filter((e) => e.stage === 'account').length,
       errors: errors.slice(0, 5),
       duration_ms: Date.now() - handlerStart,
+      resumed_scan: resuming,
+      discovery_pages_this_tick: discovery.pagesWalked,
+      sweep_complete: discovery.complete,
+      posts_seen_this_sweep: postsSeenThisSweep,
     });
   }
 
@@ -214,10 +341,10 @@ async function handler(req, res) {
   const rows = [];
 
   // Same absolute deadline as discovery above — the discovery call already
-  // spent part of the 15s budget; whatever's left is what the per-post loop
-  // gets. Concurrency bounded at CONCURRENCY_LIMIT; the shared request
-  // `budget` (Zernio call cap) is still honored inside the worker exactly as
-  // it was in the sequential loop.
+  // spent part of the handler's DEADLINE_MS budget; whatever's left is what
+  // the per-post loop gets. Concurrency bounded at CONCURRENCY_LIMIT; the
+  // shared request `budget` (Zernio call cap) is still honored inside the
+  // worker exactly as it was in the sequential loop.
   const { deadlineHit: perPostDeadlineHit, remaining: postsNotScanned } = await mapWithConcurrency(posts, deadlineAt, async (post) => {
     if (budget.exhausted) { errors.push({ stage: 'budget', detail: 'request budget exhausted mid-scan' }); return; }
     const { comments, errors: cerr } = await getPostComments({
@@ -276,6 +403,15 @@ async function handler(req, res) {
     error_count: errors.length,
     errors: errors.slice(0, 5),
     duration_ms: Date.now() - handlerStart,
+    // Resumable-scan visibility (2026-09-30) -- proves coverage instead of
+    // asserting it. resumed_scan=true means this tick continued a sweep
+    // already in progress rather than restarting at the head of the list.
+    // sweep_complete=true means discovery reached hasMore=false THIS tick,
+    // i.e. every post in the lookback window was walked this cycle.
+    resumed_scan: resuming,
+    discovery_pages_this_tick: discovery.pagesWalked,
+    sweep_complete: discovery.complete,
+    posts_seen_this_sweep: postsSeenThisSweep,
   });
 }
 
