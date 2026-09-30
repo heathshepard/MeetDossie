@@ -228,7 +228,24 @@ async function addToMergeQueue(repo, commit, branchFrom) {
 }
 
 // ─── Quinn auto-dispatch via agent_requests ───────────────────────────────────
-
+//
+// DEPRECATED 2026-09-30 (Atlas, SV-ENG-AGENT-REQUESTS-DECOY). This used to
+// insert an agent_requests row and rely on cron-process-agent-requests
+// (documented as running every minute via cron-job.org) to drain it within
+// ~60s. That reader has not actually run since 2026-06-10 (its cron-job.org
+// registration lapsed) — every call here since then just added a dead
+// 'pending' row that nothing would ever process, 1,046 of them by
+// 2026-09-30, cheerfully misdiagnosable as "the" broken queue when the real
+// one (agent_queue) was fine the whole time. Retired the write below;
+// dispatchQuinn() is now a documented no-op. This is safe to retire outright
+// (not just pause) because fireQaLoop(), called right alongside this in
+// pollRepo(), is the real, currently-working QA signal for MeetDossie
+// staging pushes — it hits /api/cron-dossie-qa-loop directly and that loop
+// Telegram-pings Heath itself on findings. This function is kept (rather
+// than deleted) only so the call site and quinnResult.ok/error shape below
+// don't need touching, and so anyone re-reading this file understands why
+// agent_requests is no longer written here. See supabase/migrations for the
+// agent_requests deprecation note if this table itself gets renamed later.
 function buildQuinnRequestText(commit, stagingUrl, repoLabel) {
   const msg = commit.message || '(no commit message)';
   const sha = commit.sha.slice(0, 7);
@@ -250,42 +267,17 @@ function buildQuinnRequestText(commit, stagingUrl, repoLabel) {
 }
 
 async function dispatchQuinn(commit, repoLabel) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return { ok: false, error: 'no_supabase_env' };
-  }
-  const requestText = buildQuinnRequestText(commit, STAGING_URL, repoLabel);
-  const res = await sb('/rest/v1/agent_requests', {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({
-      from_agent: 'ridge',
-      to_agent: 'quinn',
-      request_text: requestText,
-      source_chat_id: String(TELEGRAM_CHAT_ID || ''),
-      source_message_id: null,
-      status: 'pending',
-    }),
-  });
-  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
-    return { ok: false, status: res.status, error: 'agent_requests_insert_failed' };
-  }
-  const row = res.data[0];
-  const requestId = row.request_id || row.id;
-
-  // Fire-and-forget kick to /api/agent-dispatch so cron-process-agent-requests
-  // doesn't have to wait for its next minute boundary. Best-effort only.
-  if (CRON_SECRET && requestId) {
-    fetch(`${SELF_BASE_URL}/api/agent-dispatch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${CRON_SECRET}`,
-      },
-      body: JSON.stringify({ request_id: requestId }),
-    }).catch(() => {});
-  }
-
-  return { ok: true, request_id: requestId };
+  // DEPRECATED 2026-09-30 (Atlas) — see the block comment above
+  // buildQuinnRequestText(). No agent_requests insert, no agent-dispatch
+  // kick: the reader that used to drain this within ~60s
+  // (cron-process-agent-requests) has been unregistered since 2026-06-10,
+  // and fireQaLoop() (called right after this at the same call site)
+  // already delivers a real, Telegram-surfaced QA signal for this exact
+  // event. buildQuinnRequestText/STAGING_URL/repoLabel are unused now that
+  // this is a stub — kept only so a future real re-wiring has the message
+  // text ready to reuse.
+  void commit; void repoLabel; void buildQuinnRequestText; void STAGING_URL;
+  return { ok: false, skipped: true, reason: 'agent_requests_pipeline_deprecated_2026-09-30' };
 }
 
 // ─── Fire cron-dossie-qa-loop ─────────────────────────────────────────────────
