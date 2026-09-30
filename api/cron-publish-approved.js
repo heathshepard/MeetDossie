@@ -712,8 +712,12 @@ async function countPostedToday(platform, tz, owner) {
 
   console.log(`[countPostedToday] ${platform}/${owner || 'any'} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
-  // Count 'posted' rows: use posted_at timestamp (accurate).
-  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted${ownerFilter}` +
+  // Count 'posted' AND 'posted_unverified' rows: use posted_at timestamp
+  // (accurate). posted_unverified included (Atlas 2026-09-30) — a
+  // genuinely-sent-but-unverified post must still count toward today's cap,
+  // otherwise this cron would undercount and publish past the real daily
+  // limit for that platform.
+  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=in.(posted,posted_unverified)${ownerFilter}` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id,post_id,posted_at`;
@@ -976,8 +980,11 @@ async function recoverStuckPublishing() {
 async function isDuplicateRecentPost(post) {
   if (!post.content_hash || !post.platform) return false;
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // status IN (posted, posted_unverified) — Atlas 2026-09-30. An unverified
+  // send is still a real send; excluding it here would let the exact-same
+  // content_hash re-publish within 24h of a send we simply couldn't confirm.
   const filter = `platform=eq.${encodeURIComponent(post.platform)}` +
-    `&status=eq.posted` +
+    `&status=in.(posted,posted_unverified)` +
     `&content_hash=eq.${encodeURIComponent(post.content_hash)}` +
     `&posted_at=gte.${encodeURIComponent(cutoff)}` +
     `&id=neq.${encodeURIComponent(post.id)}` +
@@ -1325,21 +1332,23 @@ module.exports = async function handler(req, res) {
     }
 
     if (result.ok) {
-      // FIX #3 (Atlas 2026-06-11): if zernio_post_id is null even on a 2xx,
-      // mark posted with an error_message flagging unverified. The watchdog
-      // and morning digest both filter on zernio_post_id IS NOT NULL so an
-      // unverified row will appear as "behind pace" and the watchdog will
-      // route around. Don't auto-republish from this lane — that risks
-      // double-posting if Zernio actually fired.
+      // FIX #3 (Atlas 2026-06-11), UPGRADED 2026-09-30: if zernio_post_id is
+      // null even on a 2xx, this used to still write status='posted' with
+      // only an error_message flagging it — indistinguishable from a
+      // verified post to anything that just checks status. Now it lands in
+      // 'posted_unverified' instead (20260930d migration) so "posted" means
+      // "we have a verifiable identifier," full stop. Never auto-republish
+      // from this lane — that risks double-posting if Zernio actually fired
+      // (feedback_never-retry-an-unverified-send.md).
       const unverified = !!result.unverified || !result.zernio_post_id;
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
-          status: 'posted',
+          status: unverified ? 'posted_unverified' : 'posted',
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
-          zernio_post_id: result.zernio_post_id,
+          zernio_post_id: result.zernio_post_id || null,
           content_tag: result.content_tag || null,
           error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
