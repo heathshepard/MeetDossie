@@ -34,6 +34,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { chromium } = require('playwright');
+const { assertBlessedPdf } = require('./video-engine/assert-blessed-pdf.js');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const SCREEN_RECORDINGS_DIR = path.join(REPO_ROOT, 'Media', 'screen-recordings');
@@ -209,8 +210,11 @@ async function captureOne({ clauseKey, formFactor, outputW, outputH, zoomMultipl
 
   fs.mkdirSync(TMP_DIR, { recursive: true });
   const pngBase = path.join(TMP_DIR, `${clauseKey}-p${clause.page}`);
-  console.log(`[trec-capture] rendering page ${clause.page} of ${path.basename(clause.pdf)} @ ${RENDER_DPI}dpi`);
-  run('pdftoppm', ['-png', '-r', String(RENDER_DPI), '-f', String(clause.page), '-l', String(clause.page), clause.pdf, pngBase]);
+  // Guard: only a blank specimen form in scripts/trec-forms/ may ever be
+  // rendered into video output — see video-engine/assert-blessed-pdf.js.
+  const safePdf = assertBlessedPdf(clause.pdf);
+  console.log(`[trec-capture] rendering page ${clause.page} of ${path.basename(safePdf)} @ ${RENDER_DPI}dpi`);
+  run('pdftoppm', ['-png', '-r', String(RENDER_DPI), '-f', String(clause.page), '-l', String(clause.page), safePdf, pngBase]);
   const rendered = fs.readdirSync(TMP_DIR).find((f) => f.startsWith(path.basename(pngBase)) && f.endsWith('.png'));
   if (!rendered) throw new Error('pdftoppm did not produce a PNG');
   const imagePath = path.join(TMP_DIR, rendered);

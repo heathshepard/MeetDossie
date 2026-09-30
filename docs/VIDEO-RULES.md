@@ -11,6 +11,52 @@
 
 ---
 
+## DOCUMENT SOURCE OF TRUTH — REAL CONTRACTS NEVER APPEAR ON CAMERA
+
+**`scripts/trec-forms/` is the ONLY directory any video/screen-recording script may
+read a PDF from.** Blank/specimen promulgated TREC forms only — never a filled,
+executed, or client contract. This is enforced, not advisory (see next paragraph),
+because on 2026-09-30 an agent building a video reached for
+`.tmp/quinn-downloaded-20-19.pdf` as the on-screen contract background — a real
+FILLED contract (real address, title company, $7,200 earnest money). Caught on
+visual inspection before it shipped; nothing in code would have stopped it. Full
+incident: `docs/INCIDENT-LOG.md`.
+
+**The guard:** every PDF path on the video-render path is checked by
+`scripts/video-engine/assert-blessed-pdf.js` before `pdftoppm` ever touches it —
+called from `doc-scroll.js` (`buildStrip`), `doc-snip.js` (`buildCard`), and
+`capture-screen-recording-trec-clause.js`. Two layers:
+1. **Path allowlist (primary).** The resolved, symlink-free path must sit inside
+   `scripts/trec-forms/`. Anything else throws and refuses to render — the file's
+   content is never even checked if the path fails.
+2. **Content backstop.** Even a blessed-path PDF is scanned for a filled street
+   address (`\d+ Street, City, TX`) or a completed dollar figure (`$ 123,456`).
+   A genuine blank TREC form has neither. Catches the case where a blessed
+   filename gets silently overwritten with real content instead of a new file
+   being added elsewhere.
+
+**If you need a new document on camera:** add the blank specimen PDF to
+`scripts/trec-forms/` (nowhere else), confirm with `pdftotext` that it has no real
+address/dollar figures, then reference it. Never point `--pdf` / a config's `"pdf"`
+field at anything in `.tmp/`, `generated-docs/`, a client's working folder, or
+anywhere outside `scripts/trec-forms/` — it will fail loudly, by design.
+
+**Real/filled transaction documents live in `.private-transaction-docs/`** at the
+repo root (gitignored — confirmed via `git check-ignore -v`). Moved there
+2026-09-30 from `.tmp/` (49 files: executed contracts, sellers' disclosures,
+surveys, T-47s, offer packets — all with real addresses/dollar figures) and from
+`scripts/trec-forms/` (6 files: `SMOKE-*`/`TEST-*` amendment fixtures with a
+synthetic test address, moved out purely to keep the blessed directory
+literally blank-only). Files were **moved, never deleted** — they may be live
+client files. Nested per-deal working folders inside `.tmp/` (e.g.
+`.tmp/ridgebluff-offer/`, `.tmp/nopalito-mail/`, `.tmp/low-oak-executed/`) were
+**left in place** — they're active brokerage working directories, not reachable
+by any video script (which takes an explicit `--pdf`/config path, never globs a
+directory), and the path-allowlist guard makes their location irrelevant to
+video-pipeline safety either way.
+
+---
+
 ## VIDEO PIPELINE RULES (summary)
 
 Source of truth: `RENDER_RULES` block in `scripts/generate-lifestyle-video.py` + `RENDER_FEEDBACK_LOG.md`. Read both before touching the renderer.

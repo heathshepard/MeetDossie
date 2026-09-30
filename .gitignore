@@ -218,6 +218,14 @@ scripts/_quinn_shots/
 .tmp-*.txt
 .tmp-*.json
 
+# Quarantined real/filled transaction documents (executed contracts, disclosures,
+# surveys, offer packets with real addresses/dollar figures/signatures) moved out
+# of .tmp/ and scripts/trec-forms/ on 2026-09-30 so the video pipeline can never
+# reach them. NEVER read from here for video/social rendering — see
+# docs/VIDEO-RULES.md "Document source of truth" and
+# scripts/video-engine/assert-blessed-pdf.js.
+.private-transaction-docs/
+
 # Pipeline / one-off test scripts that historically had hardcoded secrets
 execute-pipeline-test.sh
 

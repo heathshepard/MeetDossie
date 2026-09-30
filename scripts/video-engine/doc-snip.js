@@ -58,6 +58,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { assertBlessedPdf } = require('./assert-blessed-pdf.js');
 
 const PROVEN = {
   dpi: 300,
@@ -115,12 +116,14 @@ function buildCard(opts) {
     borderColor = PROVEN.borderColor, borderT = PROVEN.borderT,
   } = opts;
 
-  if (!fs.existsSync(pdf)) throw new Error(`doc-snip: PDF not found: ${pdf}`);
+  // Guard: only a blank specimen form in scripts/trec-forms/ may ever be
+  // rendered into video output — see assert-blessed-pdf.js header for why.
+  const safePdf = assertBlessedPdf(pdf);
   const { nativeTmp } = require('./doc-scroll.js');
   const work = nativeTmp('snip');
   try {
     const prefix = path.join(work, 'pg');
-    run('pdftoppm', ['-f', String(page), '-l', String(page), '-r', String(dpi), '-png', pdf, prefix]);
+    run('pdftoppm', ['-f', String(page), '-l', String(page), '-r', String(dpi), '-png', safePdf, prefix]);
     const rendered = fs.readdirSync(work).filter(f => /\.png$/.test(f)).sort();
     if (!rendered.length) throw new Error(`pdftoppm produced nothing for page ${page}`);
     const pagePng = path.join(work, rendered[0]);

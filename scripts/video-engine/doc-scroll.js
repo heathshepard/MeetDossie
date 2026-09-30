@@ -57,6 +57,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { assertBlessedPdf } = require('./assert-blessed-pdf.js');
 
 const PROVEN = {
   dpi: 200,
@@ -114,9 +115,11 @@ function nativeTmp(tag) {
  * Returns { strip, w, h }.
  */
 function buildStrip({ pdf, first, last, dpi, workDir }) {
-  if (!fs.existsSync(pdf)) throw new Error(`PDF not found: ${pdf}`);
+  // Guard: only a blank specimen form in scripts/trec-forms/ may ever be
+  // rendered into video output — see assert-blessed-pdf.js header for why.
+  const safePdf = assertBlessedPdf(pdf);
   const prefix = path.join(workDir, 'p');
-  run('pdftoppm', ['-f', String(first), '-l', String(last), '-r', String(dpi), '-png', pdf, prefix]);
+  run('pdftoppm', ['-f', String(first), '-l', String(last), '-r', String(dpi), '-png', safePdf, prefix]);
   const pages = fs.readdirSync(workDir).filter(f => /^p-?\d+\.png$/.test(f)).sort();
   if (!pages.length) throw new Error(`pdftoppm produced no pages for ${pdf} ${first}-${last}`);
   const strip = path.join(workDir, 'strip.png');
