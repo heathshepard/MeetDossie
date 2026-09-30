@@ -60,9 +60,14 @@ export default async function handler(req, res) {
     // "unverified survival" pattern cron-publish-approved.js already uses
     // (search that file for FIX #3, 2026-06-11) rather than inventing a new
     // one — same meaning, same place a human would look for it.
+    // Atlas 2026-09-30: was status='posted' + error_message flag for the
+    // unverified case — indistinguishable from a real verified post to
+    // anything that only checks status. Now lands in 'posted_unverified'
+    // (see 20260930d_social_posts_posted_unverified_status.sql) so 'posted'
+    // means "we have a verifiable identifier," full stop.
     const unverified = !zernio_post_id;
     const patchBody = {
-      status: 'posted',
+      status: unverified ? 'posted_unverified' : 'posted',
       posted_at: now,
       publishing_started_at: null,
       error_message: unverified

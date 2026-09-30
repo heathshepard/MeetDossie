@@ -88,15 +88,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Safety net: if error_message contains "published successfully", mark as published instead
+    // Safety net: if error_message contains "published successfully", mark as published instead.
+    // Atlas 2026-09-30: this path never receives a zernio_post_id (the
+    // request body for /api/mark-post-failed has no such field) — it was
+    // writing status='posted' with zernio_post_id permanently null AND
+    // error_message wiped to null, the least-verifiable write of any path
+    // in the codebase, with nothing to show for it afterward. Now lands in
+    // 'posted_unverified' (see 20260930d migration) with a real
+    // error_message instead of manufacturing a clean-looking 'posted' row.
     const errorMsg = typeof error_message === 'string' ? error_message : JSON.stringify(error_message) || 'Unknown error';
     if (errorMsg.toLowerCase().includes('published successfully')) {
       const now = new Date().toISOString();
       const patchBody = {
-        status: 'posted',
+        status: 'posted_unverified',
         posted_at: now,
         publishing_started_at: null,
-        error_message: null,
+        error_message: 'Marked posted via /api/mark-post-failed safety-net redirect (error_message contained "published successfully") — no zernio_post_id available on this path, unverified survival',
       };
 
       const { ok: patchOk, data: patched } = await supabaseFetch(
