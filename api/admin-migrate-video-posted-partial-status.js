@@ -1,5 +1,5 @@
 // One-time migration for
-// supabase/migrations/20260930e_video_library_posted_partial_status.sql —
+// supabase/migrations/20260930f_video_library_posted_partial_status.sql —
 // see that file for the full incident writeup. Adds a real CHECK
 // constraint to video_library.status (there was none before this) that
 // allows 'posted_partial' through the same direct-Postgres connection
@@ -28,7 +28,7 @@ ALTER TABLE public.video_library
   ));
 
 COMMENT ON CONSTRAINT video_library_status_check ON public.video_library IS
-  'posted_partial added 2026-09-30 — one or more originally-targeted platforms were gated out (daily cap / inactive schedule / no schedule row) before ever reaching Zernio. Distinct from posted (every targeted platform was at least attempted) and failed (a platform that WAS attempted got a hard Zernio rejection). See 20260930e_video_library_posted_partial_status.sql and api/_lib/video-delivery-verify.js buildSkipEntry().';
+  'posted_partial added 2026-09-30 — one or more originally-targeted platforms were gated out (daily cap / inactive schedule / no schedule row) before ever reaching Zernio. Distinct from posted (every targeted platform was at least attempted) and failed (a platform that WAS attempted got a hard Zernio rejection). See 20260930f_video_library_posted_partial_status.sql and api/_lib/video-delivery-verify.js buildSkipEntry().';
 `;
 
 // Proves the widened constraint actually accepts 'posted_partial' by
