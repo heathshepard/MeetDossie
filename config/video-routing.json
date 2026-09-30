@@ -1,0 +1,89 @@
+{
+  "_doc": [
+    "Single source of truth for WHICH Zernio owner(s)/platform(s) a video lane",
+    "publishes to. Read by scripts/queue-finished-videos.py at ingestion time.",
+    "Edit THIS FILE to change routing -- never sprinkle a new owner/platform",
+    "conditional into scripts/queue-finished-videos.py or api/cron-post-videos.js.",
+    "",
+    "SHAPE: each lane has a `targets` array. Every target is one",
+    "{owner, platforms, role} triple -- one target = one video_library row",
+    "(video_library.target_owner can only hold ONE owner per row, so a lane",
+    "that should reach two owners from the same physical file gets TWO rows,",
+    "both pointing at the same uploaded asset). `role` is 'primary' (the main",
+    "reach vehicle for this lane) or 'also' (a secondary echo); it's",
+    "descriptive only -- queue-finished-videos.py keys lookups off `owner`,",
+    "never off array position or role.",
+    "",
+    "WHY THIS EXISTS (Atlas, 2026-09-30 -- ISP-cutover routing task):",
+    "45 days of live post_analytics (1,311 posts: FB 599 / LinkedIn 521 / IG 191)",
+    "averaged 1 / 0 / 2 views with zero shares on any platform -- everything",
+    "published to the Dossie brand accounts, which have single-digit-to-low-",
+    "double-digit followers. Heath's OWN personal accounts",
+    "(@heathshepardrealtor IG: 982 followers, HeathShepardRealtor FB: 416",
+    "followers, both already connected in zernio_accounts under",
+    "owner='heath-realtor') sit idle. Per memory",
+    "social-growth-research-2026-09-26.md, a personal-account post gets ~3x",
+    "the engagement of the identical post from a brand account, and YouTube",
+    "Shorts median views for a sub-5k-follower channel (Socialinsider, 69M",
+    "videos) is 15,160 vs 625 for Instagram Reels -- so both of Heath's",
+    "connected YouTube channels (dossie's @meetdossie AND heath-realtor's",
+    "'Shepard Real Estate Solutions') matter, not just IG/FB.",
+    "",
+    "'founder' content (Heath physically on camera, vertical, filmed selfie-",
+    "style -- see docs/WEEKLY-RECORDING-KIT.md + memory",
+    "multi-take-splice-workflow.md) is the ONLY content this reroutes.",
+    "Screen-recording/skit/product-demo content (no face, no personal voice)",
+    "stays brand-only -- the 3x-engagement research is specifically about",
+    "content FROM A PERSON, not about Dossie's product demos wearing a",
+    "different account.",
+    "",
+    "LinkedIn is deliberately EXCLUDED from every video lane below. Per",
+    "docs/CONTENT-FORMAT-LIBRARY.md §6 item 2 / CLAUDE.md §14, LinkedIn video",
+    "views fell 36% YoY and carousels/documents median 21.8% engagement vs",
+    "7.4% for video on that platform. LinkedIn's content path is the",
+    "document/carousel post (api/cron-publish-approved.js, social_posts",
+    "table) -- a completely separate pipeline from this file. A video lane",
+    "that includes 'linkedin' here would just add a worse-performing surface",
+    "the carousel pipeline already covers better."
+  ],
+
+  "lanes": {
+    "dossie_founder_selfie": {
+      "_doc": "Heath on camera, vertical, talking about Dossie (classify_video()'s 'selfie' type, owner=dossie). PRIMARY reach target is now Heath's own personal accounts; the Dossie brand accounts still get it too ('also'), just no longer the only destination.",
+      "targets": [
+        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary" },
+        { "owner": "dossie", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "also" }
+      ]
+    },
+    "dossie_skit": {
+      "_doc": "Scripted product-demo skits (classify_video() vtype='skit', filename prefix 'skit-'). No face/personal voice -- brand-only.",
+      "targets": [
+        { "owner": "dossie", "platforms": ["tiktok", "instagram", "youtube"], "role": "primary" }
+      ]
+    },
+    "dossie_screen_mobile": {
+      "_doc": "Vertical screen-recording of the app (filename marker '-mobile-'). Brand-only -- same reasoning as skits.",
+      "targets": [
+        { "owner": "dossie", "platforms": ["tiktok", "instagram", "youtube"], "role": "primary" }
+      ]
+    },
+    "dossie_screen_desktop": {
+      "_doc": "Landscape desktop screen-recording (filename marker '-desktop-'). 'linkedin' intentionally removed here (was ['facebook','twitter','linkedin']) -- see file-header note on why LinkedIn gets carousels, not video.",
+      "targets": [
+        { "owner": "dossie", "platforms": ["facebook", "twitter"], "role": "primary" }
+      ]
+    },
+    "realtor_selfie": {
+      "_doc": "Heath on camera in Media/finished-videos/realtor/ -- his own real-estate-practice content, no Dossie CTA. 'youtube' added here 2026-09-30: the heath-realtor YouTube channel ('Shepard Real Estate Solutions') has been connected in zernio_accounts since 2026-08-25 but this lane never included it, so it went unrouted.",
+      "targets": [
+        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary" }
+      ]
+    },
+    "rust_coach_conversation": {
+      "_doc": "Rust (rustfitness.app) coach clips. Unchanged by this routing pass -- no personal-account angle applies (Rust has no 'founder' identity yet).",
+      "targets": [
+        { "owner": "rust", "platforms": ["instagram", "twitter"], "role": "primary" }
+      ]
+    }
+  }
+}

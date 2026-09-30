@@ -100,16 +100,33 @@ const ZERNIO_ACCOUNTS = {
 
 // Default: post video to all connected platforms unless overridden by video.platforms row.
 // YouTube is included — videos are the only thing YouTube accepts, which matches our video_library content.
-const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin', 'youtube'];
+// 'linkedin' removed 2026-09-30 (was ['tiktok','instagram','facebook','twitter','linkedin','youtube']):
+// LinkedIn's content path is the carousel/document post (api/cron-publish-
+// approved.js, social_posts table), which measurably outperforms video on
+// that platform (docs/CONTENT-FORMAT-LIBRARY.md §6 item 2 — LinkedIn video
+// views fell 36% YoY, carousels median 21.8% engagement vs 7.4% for video).
+// This constant is a legacy-row fail-safe only (see defaultPlatformsFor()
+// below) — no live queue-finished-videos.py row has ever set an empty
+// platforms array, so this had zero live effect either way, but a legacy
+// row should default to the same policy real rows now follow.
+const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'youtube'];
 
-// Heath's realtor "Brokerage" Zernio profile only has facebook + instagram
-// (+ youtube, no content plan) connected today (docs/PIPELINE.md) — no
+// Heath's realtor "Brokerage" Zernio profile has facebook + instagram +
+// youtube connected today (zernio_accounts, docs/PIPELINE.md) — no
 // tiktok/twitter/linkedin row exists under owner='heath-realtor'. Falling
 // back to the Dossie DEFAULT_PLATFORMS list for a heath-realtor row would
-// just generate loud, expected failures on those three. Used only when a
+// just generate loud, expected failures on those. Used only when a
 // heath-realtor row ships with an empty platforms array (queue-finished-
 // videos.py always sets one explicitly, so this is a legacy-row fallback).
-const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram'];
+// 'youtube' added 2026-09-30 (was ['facebook', 'instagram']) — the
+// heath-realtor YouTube channel ("Shepard Real Estate Solutions") has been
+// connected in zernio_accounts since 2026-08-25
+// (20260825_zernio_accounts_youtube_heath_realtor.sql) but this fail-safe
+// constant never matched that — unrouted, not unconnected. The live path
+// (defaultPlatformsFor()'s zernio_accounts read, below) already resolved
+// youtube correctly for any real heath-realtor row; this only fixes what
+// happens if that DB read itself fails.
+const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram', 'youtube'];
 
 // Default platforms for a video whose row shipped with an empty/missing
 // `platforms` array — a legacy-row fallback (queue-finished-videos.py

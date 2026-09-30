@@ -193,12 +193,21 @@ function splitForTwitter(body) {
     // ships with a mangled or missing CTA link. It is a separate defect from
     // the length one and it destroys the only clickable thing in the post.
     // Masking each URL to a dot-free token keeps it atomic through the split.
+    // Sentinel is intentionally NOT space-delimited (Sage, 2026-09-28,
+    // fixing a regression this same investigation found): the sentence
+    // splitter below is greedy on \s+, so a space-delimited placeholder
+    // (` URL0 `) gets its own leading space swallowed into the PRECEDING
+    // sentence's trailing whitespace whenever the source text already had a
+    // natural space on the other side of the URL (i.e. almost always) —
+    // unmask() then never matches and the literal token "URL0" ships in the
+    // post. `@@URL0@@` has no whitespace for \s+ to eat, so the sentence
+    // boundary can't cut through it.
     const urlStore = [];
     const masked = para.replace(
       /\b(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s<>"')\]]*)?/gi,
-      (u) => { urlStore.push(u); return ` URL${urlStore.length - 1} `; },
+      (u) => { urlStore.push(u); return `@@URL${urlStore.length - 1}@@`; },
     );
-    const unmask = (s) => s.replace(/ URL(\d+) /g, (_, i) => urlStore[Number(i)]);
+    const unmask = (s) => s.replace(/@@URL(\d+)@@/g, (_, i) => urlStore[Number(i)]);
 
     const sentences = (masked.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [masked]).map(unmask);
     let cur = '';
@@ -293,10 +302,16 @@ function splitForTwitter(body) {
 }
 
 // Map a media URL to the Zernio docs' mediaItems entry shape.
+// .pdf/.ppt/.pptx/.doc/.docx -> 'document' (Sage, 2026-09-28): LinkedIn
+// native document posts (docs.zernio.com/platforms/linkedin) need
+// mediaItems: [{ type: 'document', url }] + platformSpecificData.documentTitle
+// (added just below, in pushToZernio). Before this, any PDF media_url was
+// silently sent as type: 'image', which Zernio's LinkedIn endpoint rejects.
 function inferMediaItem(url) {
   const u = String(url || '').toLowerCase();
   let type = 'image';
   if (/\.(mp4|mov|avi|webm|mkv)(?:$|\?)/i.test(u)) type = 'video';
+  else if (/\.(pdf|ppt|pptx|doc|docx)(?:$|\?)/i.test(u)) type = 'document';
   return { url, type };
 }
 
@@ -485,6 +500,19 @@ async function pushToZernio(post) {
     const rawTitle = post.hook || text.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       title: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
+  }
+
+  // LinkedIn native document posts require documentTitle in
+  // platformSpecificData (docs.zernio.com/platforms/linkedin) — the first
+  // page of the PDF is the cover, but the carousel's title bar is this
+  // field, not derived from the file. Only set for document media; a plain
+  // LinkedIn image/video post has no such field.
+  if (post.platform === 'linkedin' && topMediaItems && topMediaItems[0] && topMediaItems[0].type === 'document') {
+    const rawTitle = post.hook || text.split('\n')[0] || 'TREC 20-19 Contract Changes';
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      documentTitle: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
     };
   }
 

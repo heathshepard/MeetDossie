@@ -16,6 +16,36 @@
 // mismatch in cron-publish-approved — known tech debt). For rows without a
 // zernio_post_id we fall back to matching by accountId + posted_at window
 // (+-5 min) in the Zernio paginated response, then back-fill the ID if found.
+//
+// OWNER ATTRIBUTION + VIDEO POSTS (Atlas, 2026-09-30 — video-routing-
+// personal-accounts task). Two gaps closed here:
+//
+//   1. ZERNIO_ACCOUNTS used to be 4 hardcoded Dossie-brand account IDs.
+//      Heath's personal accounts (zernio_accounts owner='heath-realtor':
+//      facebook/instagram/youtube) and Rust's (owner='rust') were never
+//      scanned at all — their engagement was invisible here regardless of
+//      platform. Now loaded live from zernio_accounts (is_active=true),
+//      with owner + account_handle carried through onto every
+//      post_analytics row so a personal-account post's engagement can
+//      finally be told apart from a brand post's on the SAME platform
+//      (e.g. two 'facebook' rows, one @MeetDossie, one
+//      @HeathShepardRealtor).
+//   2. post_analytics.social_post_id is a hard FK to social_posts ONLY.
+//      video_library posts (cron-post-videos.js, Pipeline B — the pipeline
+//      the personal-account routing change actually runs through) have
+//      NEVER been able to land a row here, on ANY account. Confirmed live
+//      2026-09-30: zero post_analytics rows reference a video post. This
+//      file's per-account Zernio pull already returns every post under an
+//      account regardless of which pipeline made it — matchVideoRow()
+//      below matches it against video_library.zernio_deliveries[].
+//      zernio_post_id the same way byZernioId already matches social_posts.
+//
+// REQUIRES supabase/migrations/20260930_post_analytics_owner_attribution.sql
+// (api/admin-migrate-post-analytics-owner.js) to have been run FIRST —
+// post_analytics.owner/account_handle/video_library_id do not exist until
+// then, and every upsert below that sets them will 400 on a DB that hasn't
+// been migrated yet. NOT applied as part of this branch/PR; see that
+// migration file's header.
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -34,14 +64,53 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 const ZERNIO_BASE = 'https://zernio.com/api/v1';
 
-// Account IDs from CLAUDE.md section 22
-const ZERNIO_ACCOUNTS = [
-  { platform: 'facebook',  accountId: '69f253c3985e734bf3d8f9bc' },
-  { platform: 'instagram', accountId: '69f25431985e734bf3d8fcbe' },
-  { platform: 'twitter',   accountId: '69f255c6985e734bf3d90ba1' },
-  { platform: 'linkedin',  accountId: '69fccd7392b3d8e85f8f12be' },
-  // TikTok omitted — inactive
+// Fail-safe fallback ONLY (Atlas, 2026-09-30) — used if the live
+// zernio_accounts read below fails. Was the hard-coded account list this
+// whole file used to run on; kept as-is (4 Dossie-brand accounts, "TikTok
+// omitted — inactive") for exact backward compatibility on a DB-read
+// failure. That "inactive" note is now known STALE — probed live 2026-09-30
+// via GET /v1/analytics?accountId=<dossie tiktok>: hasAnalyticsAccess:true,
+// 7 real posts, 24-100 views each (measurably BETTER than the 0-2 views
+// FB/IG/LinkedIn brand posts got over the same window) — TikTok was simply
+// never being scanned, not actually broken. Fixed for the live path below;
+// left alone here since this is a frozen fail-safe snapshot, not the
+// current behavior.
+const ZERNIO_ACCOUNTS_FALLBACK = [
+  { platform: 'facebook',  accountId: '69f253c3985e734bf3d8f9bc', owner: 'dossie', accountHandle: '@meetdossie' },
+  { platform: 'instagram', accountId: '69f25431985e734bf3d8fcbe', owner: 'dossie', accountHandle: '@meetdossie' },
+  { platform: 'twitter',   accountId: '69f255c6985e734bf3d90ba1', owner: 'dossie', accountHandle: '@meetdossie' },
+  { platform: 'linkedin',  accountId: '69fccd7392b3d8e85f8f12be', owner: 'dossie', accountHandle: 'meetdossie' },
 ];
+
+// Live-loaded account list (Atlas, 2026-09-30 — video-routing-personal-
+// accounts task). Replaces the hardcoded 4-Dossie-account list above with
+// every actively-connected zernio_accounts row, across every owner
+// ('dossie' | 'heath-realtor' | 'rust'). This is the ONLY reason Heath's
+// personal accounts (facebook/instagram/youtube, owner='heath-realtor')
+// and Rust's (instagram/twitter, owner='rust') were never scanned for
+// engagement before — they simply weren't in this list, regardless of
+// platform. owner + accountHandle are carried onto every post_analytics row
+// this sync writes (REQUIRES the 20260930_post_analytics_owner_attribution
+// migration — see this file's header).
+async function loadZernioAccounts() {
+  try {
+    const { data, ok } = await supabaseFetch(
+      '/rest/v1/zernio_accounts?is_active=eq.true&select=platform,zernio_account_id,owner,account_handle',
+    );
+    if (ok && Array.isArray(data) && data.length > 0) {
+      return data.map((r) => ({
+        platform: r.platform,
+        accountId: r.zernio_account_id,
+        owner: r.owner || 'dossie',
+        accountHandle: r.account_handle || null,
+      }));
+    }
+  } catch (err) {
+    console.error('[analytics-sync] zernio_accounts load failed, using fallback list:', err && err.message);
+  }
+  console.warn('[analytics-sync] zernio_accounts table read returned nothing usable — falling back to the frozen 4-account list');
+  return ZERNIO_ACCOUNTS_FALLBACK;
+}
 
 // Max Vercel Hobby function duration is 60s for crons. We set maxDuration:60
 // in vercel.json. The Zernio calls are paginated and bounded so this is safe.
@@ -282,7 +351,39 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
     }
   }
 
+  // Video-library (Pipeline B) match map (Atlas, 2026-09-30). video_library
+  // has no zernio_account_id/posted_at columns to fuzzy-match on like
+  // social_posts does — only the exact zernio_post_id recorded per-platform
+  // in zernio_deliveries[] (api/_lib/video-delivery-verify.js) at post
+  // time. Exact-match only; a video row with no zernio_post_id (Zernio gave
+  // us nothing to poll — 'unconfirmable' in that module's terms) simply
+  // can't be attributed here, same as it can't be verified as delivered
+  // elsewhere in the pipeline.
+  const byZernioIdVideo = new Map(); // zernio_post_id -> { id, target_owner, platform }
+  const { data: videoRows, ok: videoLoadOk } = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.posted&zernio_deliveries=not.is.null&select=id,target_owner,zernio_deliveries&order=posted_date.desc&limit=500',
+  );
+  if (videoLoadOk && Array.isArray(videoRows)) {
+    for (const row of videoRows) {
+      for (const delivery of (Array.isArray(row.zernio_deliveries) ? row.zernio_deliveries : [])) {
+        if (delivery && delivery.zernio_post_id) {
+          byZernioIdVideo.set(String(delivery.zernio_post_id), {
+            id: row.id,
+            target_owner: row.target_owner || 'dossie',
+            platform: delivery.platform,
+          });
+        }
+      }
+    }
+    console.log(`[analytics-sync] loaded ${videoRows.length} posted video_library rows, ${byZernioIdVideo.size} zernio_post_id(s) indexed`);
+  } else {
+    console.warn('[analytics-sync] video_library load failed — video posts will not be attributed this run (social_posts matching is unaffected)');
+  }
+
   // Process each account
+  const ZERNIO_ACCOUNTS = await loadZernioAccounts();
+  console.log(`[analytics-sync] scanning ${ZERNIO_ACCOUNTS.length} zernio_accounts row(s): ${ZERNIO_ACCOUNTS.map((a) => `${a.platform}/${a.owner}`).join(', ')}`);
+  let totalVideoMatched = 0;
   for (const account of ZERNIO_ACCOUNTS) {
     console.log(`[analytics-sync] fetching ${account.platform} (${account.accountId})`);
     let zPosts;
@@ -333,17 +434,57 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
         }
       }
 
-      if (!matchedRow) continue; // Zernio post we didn't publish (scheduled from Zernio UI, etc.)
-      totalMatched++;
+      // Video-library (Pipeline B) match — exact zernio_post_id only, tried
+      // whenever the social_posts match above missed. A given zId can only
+      // ever be EITHER a social_posts post OR a video_library post (Zernio
+      // post IDs are unique per real post), so checking both maps is safe —
+      // never double-attributed.
+      const matchedVideoRow = !matchedRow && zId ? byZernioIdVideo.get(zId) : null;
+
+      if (!matchedRow && !matchedVideoRow) continue; // Zernio post we didn't publish (scheduled from Zernio UI, etc.)
 
       // engagement_score is a generated column in Postgres — do NOT include it in the
       // insert payload. Postgres computes it automatically from likes/comments/shares/saves/clicks.
+
+      if (matchedVideoRow) {
+        totalMatched++;
+        totalVideoMatched++;
+        const videoAnalyticsRow = {
+          video_library_id: matchedVideoRow.id,
+          zernio_post_id: zId,
+          platform: account.platform,
+          owner: account.owner,
+          account_handle: account.accountHandle,
+          synced_at: new Date().toISOString(),
+          sync_date: syncDate,
+          ...metrics,
+        };
+        const videoUpsertRes = await supabaseFetch(
+          '/rest/v1/post_analytics?on_conflict=video_library_id,sync_date',
+          {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+            body: JSON.stringify(videoAnalyticsRow),
+          },
+        );
+        if (videoUpsertRes.ok) {
+          totalUpserted++;
+        } else {
+          console.error(`[analytics-sync] video upsert failed for ${matchedVideoRow.id}:`, videoUpsertRes.status, JSON.stringify(videoUpsertRes.data).slice(0, 200));
+          errors.push({ video_library_id: matchedVideoRow.id, error: `upsert HTTP ${videoUpsertRes.status}` });
+        }
+        continue; // never falls through to the social_posts branch below
+      }
+
+      totalMatched++;
 
       // Upsert into post_analytics (one row per social_post per sync_date)
       const analyticsRow = {
         social_post_id: matchedRow.id,
         zernio_post_id: zId || matchedRow.zernio_post_id || null,
         platform: account.platform,
+        owner: account.owner,
+        account_handle: account.accountHandle,
         persona: matchedRow.persona || null,
         topic: matchedRow.topic || null,
         hook: matchedRow.hook || null,
@@ -389,18 +530,22 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
       }
     }
   }
+  console.log(`[analytics-sync] ${totalVideoMatched} Zernio analytics row(s) matched to a video_library post this run`);
 
   // ─── Recompute top_performer flags ────────────────────────────────────────
   // 1. Compute 80th-percentile threshold across all synced rows
   const threshold = await computeTopPerformerThreshold();
   console.log(`[analytics-sync] top_performer threshold (p80 engagement_score): ${threshold}`);
 
-  // 2. Get all social_post IDs above threshold
+  // 2. Get all social_post IDs above threshold. top_performer only exists on
+  // social_posts, so a video_library_id-sourced row (2026-09-30) is
+  // filtered out here rather than generating a no-op PATCH against
+  // social_posts for an id that will never match.
   const { data: topRows, ok: topOk } = await supabaseFetch(
     `/rest/v1/post_analytics?engagement_score=gt.${threshold}&select=social_post_id`,
   );
   const topIds = topOk && Array.isArray(topRows)
-    ? [...new Set(topRows.map((r) => r.social_post_id))]
+    ? [...new Set(topRows.map((r) => r.social_post_id).filter(Boolean))]
     : [];
 
   // 3. Reset all top_performer flags, then set them for top performers
