@@ -275,17 +275,174 @@ function checkNoSpokenLists(chunks) {
   return { pass: true, note: '' };
 }
 
+// ── Closing clause delivered (added 2026-10-01) ──────────────────────────────
+//
+// founder-video-production-standard.md §5: "The agent cut Heath's closing
+// benefit clause for runtime and left it off its own drop list, so there was
+// nothing to check against. Heath caught it as 'the last sentence gets cut
+// off.'" Everything above this point grades the SCRIPT DOCUMENT's own shape;
+// this is the one check in this file that reaches past the document and
+// compares it to what was actually DELIVERED — the finished render's own
+// transcript (the same `{stem}.transcript.json` / ElevenLabs scribe_v1 shape
+// api/_lib/verify-video-quality.js's loadWordTimestampsSidecar() already
+// reads, and the same word-recall technique
+// scripts/video-engine/quality-gate.js's gateWordBoundaries() already proved
+// against real footage — re-derived here rather than imported, because this
+// file ships to Vercel and that one pulls in `sharp`).
+//
+// Deliberately generic about WHICH line is "closing" — it takes whatever the
+// script's own LAST spoken chunk is, not a hardcoded tag name, because the
+// real incident was the stake line; a future script's true final line could
+// legitimately be the CTA/keyword sentence instead (as v7c_script.md's is).
+// Either way, "the last sentence gets cut off" is the same failure mode:
+// the SCRIPT's actual last words never showed up in the DELIVERED tail.
+
+const CLOSING_CLAUSE_TAIL_WORDS = 14; // how many of the script's final words to require
+const CLOSING_CLAUSE_DELIVERED_WINDOW = 40; // how far into the delivered transcript's tail to search
+const CLOSING_CLAUSE_MIN_RECALL = 0.7; // tolerant of ASR noise/minor rewording; not tolerant of an outright drop (which recalls ~0)
+
+function normWordForRecall(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9']/g, ''); }
+
+// Longest-common-subsequence recall: what fraction of `expected`'s words
+// appear, in order, in `actual` — tolerant of ASR substitutions/insertions
+// without requiring an exact match. Same algorithm as
+// scripts/video-engine/quality-gate.js's wordRecall(), re-derived locally
+// (see file-header note on why this isn't a cross-import).
+function lcsWordRecall(expected, actual) {
+  const e = expected.map(normWordForRecall).filter(Boolean);
+  const a = actual.map(normWordForRecall).filter(Boolean);
+  const n = e.length;
+  const m = a.length;
+  if (n === 0) return 1;
+  if (m === 0) return 0;
+  const dp = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      dp[i][j] = e[i - 1] === a[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[n][m] / n;
+}
+
+/**
+ * The script section's own final spoken chunk — whatever it is (stake line,
+ * CTA/keyword line, etc.) — as both raw text and a normalized word list.
+ * @returns {{raw:string, words:string[]}|null} null if the script has no
+ *   spoken chunks at all (a different, already-caught defect).
+ */
+function extractScriptFinalLine(chunks) {
+  const spoken = chunks.filter((c) => c.type === 'spoken');
+  if (!spoken.length) return null;
+  const last = spoken[spoken.length - 1];
+  return { raw: last.raw, words: last.words };
+}
+
+/**
+ * Compares a script section's own final spoken line against the TAIL of a
+ * delivered transcript's words. Pass = the script's last
+ * CLOSING_CLAUSE_TAIL_WORDS words are recoverable (LCS recall, tolerant of
+ * ASR noise) from the last CLOSING_CLAUSE_DELIVERED_WINDOW words actually
+ * delivered. Fail-closed on missing input, same posture as every other rule
+ * in this file.
+ * @param {string} sectionText - one script section (see parseScriptSections())
+ * @param {Array<{text:string, type?:string}>} deliveredWords - the finished
+ *   render's transcript words (ElevenLabs scribe_v1 shape: `.type==='word'`
+ *   entries are real words, others are spacing/punctuation)
+ * @returns {{pass:boolean, note:string, scriptFinalLine:string|null, recall:number|null}}
+ */
+function checkClosingClauseDelivered(sectionText, deliveredWords) {
+  const chunks = splitScriptBody(sectionText);
+  const finalLine = extractScriptFinalLine(chunks);
+  if (!finalLine) {
+    return { pass: false, note: 'script has no spoken chunks — nothing to compare against the delivered transcript', scriptFinalLine: null, recall: null };
+  }
+  if (!Array.isArray(deliveredWords) || !deliveredWords.length) {
+    return { pass: false, note: 'no delivered transcript words supplied (fail-closed)', scriptFinalLine: finalLine.raw, recall: null };
+  }
+
+  const expectedTail = finalLine.words.slice(-CLOSING_CLAUSE_TAIL_WORDS);
+  const deliveredWordTexts = deliveredWords
+    .filter((w) => !w.type || w.type === 'word')
+    .map((w) => w.text);
+  const deliveredTail = deliveredWordTexts.slice(-CLOSING_CLAUSE_DELIVERED_WINDOW);
+
+  const recall = lcsWordRecall(expectedTail, deliveredTail);
+  const pass = recall >= CLOSING_CLAUSE_MIN_RECALL;
+  return {
+    pass,
+    note: pass
+      ? `script's final line recovered in the delivered transcript's tail (recall ${(recall * 100).toFixed(0)}%): "${finalLine.raw.slice(-80)}"`
+      : `script's final line is NOT in the delivered transcript's tail (recall only ${(recall * 100).toFixed(0)}%, need ${CLOSING_CLAUSE_MIN_RECALL * 100}%) — the closing clause was likely cut and never reported. Script said: "${finalLine.raw}" | delivered tail: "${deliveredTail.join(' ')}"`,
+    scriptFinalLine: finalLine.raw,
+    recall,
+  };
+}
+
+// ── Dropped-lines disclosure (added 2026-10-01) ──────────────────────────────
+//
+// founder-video-production-standard.md §5: "Every omitted line goes in the
+// drop list and into the script-of-record. No exceptions." Determining
+// mechanically whether a SPECIFIC omission was legitimate (a genuine
+// redundancy cut at a measured pause) vs. a silent drop is a content
+// judgement this file cannot make — see docs/VIDEO-PRODUCTION-RECIPE.md's
+// own "Known gaps" precedent for naming a limit instead of faking a check.
+// What IS mechanical: if the delivered transcript is MEANINGFULLY SHORTER
+// than the script (word-count coverage, not per-line diffing), the
+// script-of-record is REQUIRED to carry a non-empty `**Dropped lines:**`
+// field explaining why. A script that's short on delivered words AND silent
+// about why fails here — exactly the incident this check exists for (cut
+// for runtime, omitted from the drop list).
+const DROPPED_LINES_COVERAGE_MIN = 0.85; // delivered/script word-count ratio below this requires disclosure
+
+/**
+ * @param {string} sectionText
+ * @param {Array<{text:string, type?:string}>} deliveredWords
+ * @returns {{pass:boolean, note:string, coverage:number|null}}
+ */
+function checkDroppedLinesDisclosed(sectionText, deliveredWords) {
+  const chunks = splitScriptBody(sectionText);
+  const scriptWordCount = totalSpokenWordCount(chunks);
+  if (!scriptWordCount) {
+    return { pass: false, note: 'script has no spoken words to compute coverage against', coverage: null };
+  }
+  if (!Array.isArray(deliveredWords) || !deliveredWords.length) {
+    return { pass: false, note: 'no delivered transcript words supplied (fail-closed)', coverage: null };
+  }
+  const deliveredWordCount = deliveredWords.filter((w) => !w.type || w.type === 'word').length;
+  const coverage = deliveredWordCount / scriptWordCount;
+
+  if (coverage >= DROPPED_LINES_COVERAGE_MIN) {
+    return { pass: true, note: `delivered word coverage ${(coverage * 100).toFixed(0)}% — no disclosure required`, coverage };
+  }
+  const dropped = extractField(sectionText, 'Dropped lines');
+  if (dropped && dropped.trim()) {
+    return { pass: true, note: `delivered word coverage only ${(coverage * 100).toFixed(0)}%, but disclosed: "${dropped}"`, coverage };
+  }
+  return {
+    pass: false,
+    note: `delivered word coverage only ${(coverage * 100).toFixed(0)}% (min ${DROPPED_LINES_COVERAGE_MIN * 100}% without disclosure) and no \`**Dropped lines:**\` field explains what was cut — this is the exact incident the rule exists for: cut for runtime, never reported`,
+    coverage,
+  };
+}
+
 // ── Main entry point ─────────────────────────────────────────────────────
 
 /**
  * Validates one script section against every rule in docs/SCRIPT-SPEC.md.
  * @param {string} sectionText - the full text of one script's section
  *   (heading through the next heading), as returned by parseScriptSections().
+ * @param {object} [opts]
+ * @param {Array<{text:string, type?:string}>} [opts.deliveredWords] - the
+ *   FINISHED RENDER's own transcript words (ElevenLabs scribe_v1 shape).
+ *   Optional and backward-compatible — when omitted (grading a script before
+ *   it's ever recorded, or a caller that doesn't have one), the two
+ *   delivery-comparison rules below are skipped (non-blocking), not failed.
+ *   When supplied, they run for real against what was actually delivered.
  * @returns {{pass:boolean, rules:object, failedRules:string[], detail:object}}
  */
-function validateScript(sectionText) {
+function validateScript(sectionText, opts = {}) {
   const rules = {};
-  const addRule = (name, { pass, note = '' }) => { rules[name] = { pass: !!pass, blocking: true, note }; };
+  const addRule = (name, { pass, note = '', blocking = true }) => { rules[name] = { pass: !!pass, blocking, note }; };
 
   const chunks = splitScriptBody(sectionText);
 
@@ -296,6 +453,14 @@ function validateScript(sectionText) {
   addRule('cta_present_near_end', checkCtaPlacement(chunks));
   addRule('keyword_trigger_natural', checkKeywordTrigger(chunks));
   addRule('no_spoken_lists', checkNoSpokenLists(chunks));
+
+  if (opts.deliveredWords) {
+    addRule('closing_clause_delivered', checkClosingClauseDelivered(sectionText, opts.deliveredWords));
+    addRule('dropped_lines_disclosed', checkDroppedLinesDisclosed(sectionText, opts.deliveredWords));
+  } else {
+    addRule('closing_clause_delivered', { pass: true, blocking: false, note: 'skipped — no deliveredWords supplied (grading the script document only, not a finished render)' });
+    addRule('dropped_lines_disclosed', { pass: true, blocking: false, note: 'skipped — no deliveredWords supplied (grading the script document only, not a finished render)' });
+  }
 
   const failedRules = Object.entries(rules).filter(([, r]) => r.blocking && !r.pass).map(([name]) => name);
   return {
@@ -314,9 +479,13 @@ function validateScript(sectionText) {
  * markdown file. Fails closed if the file contains zero recognizable script
  * sections — a file that was supposed to hold a script but doesn't parse as
  * one is a defect, not a pass.
+ * @param {string} fileText
+ * @param {object} [opts] - see validateScript()'s opts.deliveredWords. Applied
+ *   to every section found (this file's convention is one script section per
+ *   file in practice — see docs/SCRIPT-SPEC.md).
  * @returns {{pass:boolean, sections:Array<{title:string, result:object}>}}
  */
-function validateScriptFile(fileText) {
+function validateScriptFile(fileText, opts = {}) {
   const sections = parseScriptSections(fileText);
   if (!sections.length) {
     return {
@@ -324,7 +493,7 @@ function validateScriptFile(fileText) {
       sections: [{ title: '(no script sections found)', result: { pass: false, rules: {}, failedRules: ['no_script_sections_found'], detail: {} } }],
     };
   }
-  const graded = sections.map((s) => ({ title: s.title, result: validateScript(s.text) }));
+  const graded = sections.map((s) => ({ title: s.title, result: validateScript(s.text, opts) }));
   return { pass: graded.every((s) => s.result.pass), sections: graded };
 }
 
@@ -341,4 +510,14 @@ module.exports = {
   KEYWORD_MIN_LEN,
   KEYWORD_MAX_LEN,
   STAKE_KEYWORDS,
+  // Closing clause / dropped-lines disclosure (2026-10-01), exported for
+  // scripts/regression-video-closing-clause.js.
+  checkClosingClauseDelivered,
+  checkDroppedLinesDisclosed,
+  extractScriptFinalLine,
+  lcsWordRecall,
+  CLOSING_CLAUSE_TAIL_WORDS,
+  CLOSING_CLAUSE_DELIVERED_WINDOW,
+  CLOSING_CLAUSE_MIN_RECALL,
+  DROPPED_LINES_COVERAGE_MIN,
 };

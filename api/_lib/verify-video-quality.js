@@ -201,6 +201,13 @@ const HARD_MAX_RUNTIME_S = 45;
 const VERTICAL_LONG_RUNTIME_RANGE = [40, 90];
 const VERTICAL_LONG_HARD_MAX_RUNTIME_S = 90;
 
+// speed_applied_once — see the rule's own comment at its call site for the
+// full rationale. Calibrated against v7_FINAL/v7b_SPLICED/v7c_SPLICED:
+// video/audio stream duration drift measured 0.07-0.10s on all three real
+// known-good files (container rounding); the real defect this catches was
+// an 18s drift.
+const AV_DURATION_DRIFT_MAX_S = 0.75;
+
 // The exact sample point the 9 rejected Rust videos were frozen through
 // (playbook §6: "frame 0 and frame 1.5s are pixel-identical in every video
 // checked").
@@ -211,6 +218,27 @@ const MOTION_SAMPLE_T = 1.5;
 const MOTION_SSIM_FAIL_THRESHOLD = 0.999;
 
 const HOOK_CLEAR_SAMPLE_T = 3.0;
+
+// NOTE on frame0 "no fade" / "not stacked over another large-type card"
+// (founder-video-production-standard.md §6): a pixel-SSIM check comparing
+// frame 0.0s to a frame a fraction of a second later was prototyped here and
+// DROPPED — it false-failed both real approved fixtures (v7b_SPLICED.mp4
+// SSIM 0.87, v7c_SPLICED.mp4 SSIM 0.86, well under any reasonable "stable"
+// threshold) because the caption/hook style's own intentional pop-in
+// animation (`\t(0,90,\fscx105...)`, ~90-160ms) makes the hook region
+// legitimately still changing in that exact window — the same signature a
+// genuine fade-in bug would produce. The two are not reliably
+// distinguishable from pixels alone without knowing the pop-in's own
+// timing, which varies per build. "Blank frame 0" (the actual historical
+// defect — a still PNG fed into a `fade` filter never animated, so it just
+// stayed invisible) is already caught by first_frame_not_uniform below and
+// hook_visible_frame0 in the vision section — both pass on the real
+// fixtures, which is the behavior that matters. "Not stacked over another
+// large-type card" is a composition/design judgement (a legitimate 2-line
+// hook, like v7c's own "SENDING THE NOTICE MONDAY? / IT WAS DUE SATURDAY.",
+// looks exactly like two stacked large-type elements) — see
+// founder-video-production-standard.md §7's own mandatory human-equivalent
+// frame inspection for this one; it is called out, not silently dropped.
 
 // ── captions_present sampling (rewritten 2026-09-26 — see file header) ──────
 // Fallback fractions ONLY — used when no word-timestamp sidecar exists.
@@ -489,6 +517,29 @@ async function ffprobeResolution(localPath) {
   return { width: w, height: h };
 }
 
+// Per-stream (not container-format) durations — the video and audio streams
+// of one finished file, read independently. See speed_applied_once below for
+// why this matters.
+async function ffprobeStreamDurations(localPath) {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'compact=p=0',
+    localPath,
+  ]);
+  let videoDuration = null;
+  let audioDuration = null;
+  for (const line of String(stdout).split('\n')) {
+    const m = line.match(/codec_type=(\w+)\|duration=([\d.]+)/);
+    if (!m) continue;
+    const d = parseFloat(m[2]);
+    if (m[1] === 'video' && videoDuration === null) videoDuration = d;
+    if (m[1] === 'audio' && audioDuration === null) audioDuration = d;
+  }
+  if (videoDuration === null || audioDuration === null) {
+    throw new Error(`could not read both stream durations: video=${videoDuration} audio=${audioDuration}`);
+  }
+  return { videoDuration, audioDuration };
+}
+
 // Decodes one frame, forced to a CONTENT_COVERAGE_GRID square of 8-bit
 // grayscale, straight to a Buffer (no temp file, no image decoder dependency).
 //
@@ -570,6 +621,202 @@ async function frameLumaSpread(localVideoPath, atSeconds) {
   let mn = 255; let mx = 0;
   for (let i = 0; i < grid.length; i++) { const v = grid[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
   return { min: mn, max: mx, spread: mx - mn };
+}
+
+// ── Caption box contrast/opacity/position (added 2026-10-01) ────────────────
+//
+// WHY: captions_present (below, in the vision section) asks a model "is
+// there legible, changing caption text in this frame" — which a model
+// reading pixels directly answers correctly even when a HUMAN reading a
+// phone screen cannot, because a low-contrast or crowded-position caption
+// blends into a busy background in a way a model's pixel-level read doesn't
+// struggle with the way human foveal reading does. v7b_SPLICED.mp4
+// (2026-09-30 — Heath: "I can't read it") scored captions_present 3/3
+// while genuinely being hard to read. This rule replaces "does a model see
+// text" with a direct pixel measurement of what actually determines human
+// readability: contrast between the caption's text and its immediate
+// background, whether that background is a flat opaque fill (not bleeding
+// the underlying footage through it), and WHERE on screen it sits — see
+// founder-video-production-standard.md §4/§7: top-aligned (Alignment 8,
+// MarginV 175) sits in the part of a scrolling-document video that's
+// busiest with body text; bottom-centre (Alignment 2, MarginV 1005) does
+// not. Runs independently of vision-transport availability — it's pure
+// ffmpeg/pixel math, same style as detectBars()/frameLumaSpread() above.
+//
+// CALIBRATED against the real fixtures (scripts/regression-video-caption-box.js):
+// v7b_SPLICED.mp4's top-aligned captions measure vertical centre 9-18% of
+// frame height; v7c_SPLICED.mp4's bottom-centre captions measure 43-57%.
+// CAPTION_BOX_MIN_CENTER_FRAC sits at 0.30, comfortably between the two
+// clusters with margin on both sides.
+//
+// Contrast and opacity ARE measured too — median "text ink" luma minus
+// median "box fill" luma for contrast; std-dev of the box-fill luma as the
+// opacity signal (a translucent box bleeding the video through it reads as
+// HIGH local variance; a flat opaque fill reads as near-zero) — because
+// they are the direct, general-purpose defect this rule exists to catch.
+// On these two specific fixtures both already measure opaque/high-contrast:
+// the ffmpeg/libass build this pipeline renders with fills a BorderStyle=3
+// box from OutlineColour, not BackColour's alpha, so neither fixture is
+// actually translucent at the pixel level — the real defect in v7b was
+// POSITION, not alpha, confirmed by direct measurement against both files
+// and a synthetic ASS render. Both sub-metrics stay in this rule as a real
+// regression guard for any future caption-burn path (different ffmpeg
+// build, different tool) where BackColour's alpha DOES control the fill.
+const CAPTION_BOX_DARK_LUMA = 50; // "box fill" candidate pixel, row-scan pass
+const CAPTION_BOX_ROW_DARK_FRACTION = 0.35; // row counts as "box" at >=35% dark
+const CAPTION_BOX_MIN_HEIGHT_FRAC = 0.015; // excludes 1-2px noise rows
+const CAPTION_BOX_MAX_HEIGHT_FRAC = 0.10; // excludes CTA/hook cards (measured 0.12 on both fixtures)
+const CAPTION_BOX_MIN_CENTER_FRAC = 0.30; // top-band cutoff — see header note
+const CAPTION_TEXT_LUMA_MIN = 190; // "text ink" candidate pixel (bright caption glyphs)
+const CAPTION_FILL_LUMA_MAX = 70; // "box fill" candidate pixel for contrast/opacity stats
+const CAPTION_MIN_TEXT_CONTRAST = 100; // median text luma - median fill luma, out of 255
+const CAPTION_MAX_FILL_STD = 35; // std-dev of box-fill luma — opacity/bleed-through signal
+const CAPTION_BOX_MIN_PASS = 4; // same 4-of-5 tolerance as CAPTION_MIN_PASS above
+
+// Full-resolution grayscale raw buffer for one frame — same ffmpeg shape as
+// grayGridAt() above, but NOT forced to a fixed grid, because the
+// contrast/opacity measurement needs native-resolution pixels to be
+// meaningful (a downscaled grid would average text and box fill together).
+async function grayFrameBuffer(localVideoPath, atSeconds, width, height) {
+  const { stdout } = await execFileAsync(
+    'ffmpeg',
+    ['-v', 'error', '-ss', String(Math.max(0, atSeconds)), '-i', localVideoPath,
+      '-frames:v', '1', '-vf', 'format=gray', '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+    { encoding: 'buffer', maxBuffer: 1 << 24 },
+  );
+  if (!stdout || stdout.length < width * height) {
+    throw new Error(`ffmpeg returned ${stdout ? stdout.length : 0} bytes, expected ${width * height}`);
+  }
+  return stdout;
+}
+
+// Finds the tallest contiguous run of "mostly dark" rows sized like a
+// single caption line/chunk (not a CTA/hook card, which is much taller) —
+// a caption's opaque/near-opaque box reads as a horizontal band where a
+// large fraction of pixels are near-black. Returns null if nothing in the
+// caption-sized height range is found (no caption visible at this instant —
+// not itself a failure, see call site).
+function locateCaptionBox(buf, w, h) {
+  const rows = new Float64Array(h);
+  for (let y = 0; y < h; y++) {
+    let dark = 0;
+    let n = 0;
+    for (let x = 0; x < w; x += 2) { if (buf[y * w + x] < CAPTION_BOX_DARK_LUMA) dark++; n++; }
+    rows[y] = n ? dark / n : 0;
+  }
+  let bestStart = -1;
+  let bestEnd = -1;
+  let curStart = -1;
+  const closeRun = (end) => {
+    if (curStart === -1) return;
+    const heightFrac = (end - curStart + 1) / h;
+    if (heightFrac >= CAPTION_BOX_MIN_HEIGHT_FRAC && heightFrac <= CAPTION_BOX_MAX_HEIGHT_FRAC) {
+      if (bestStart === -1 || (end - curStart) > (bestEnd - bestStart)) { bestStart = curStart; bestEnd = end; }
+    }
+    curStart = -1;
+  };
+  for (let y = 0; y < h; y++) {
+    if (rows[y] >= CAPTION_BOX_ROW_DARK_FRACTION) {
+      if (curStart === -1) curStart = y;
+    } else {
+      closeRun(y - 1);
+    }
+  }
+  closeRun(h - 1);
+  if (bestStart === -1) return null;
+  return { top: bestStart, bottom: bestEnd };
+}
+
+// Within the located box: (a) contrast = median "text ink" luma minus
+// median "box fill" luma; (b) opacity = std-dev of the box-fill luma
+// (near-zero = flat opaque colour; high = the underlying footage is
+// bleeding through a translucent fill).
+function measureCaptionBoxReadability(buf, w, box) {
+  const textVals = [];
+  const fillVals = [];
+  for (let y = box.top; y <= box.bottom; y++) {
+    for (let x = 0; x < w; x += 2) {
+      const v = buf[y * w + x];
+      if (v >= CAPTION_TEXT_LUMA_MIN) textVals.push(v);
+      else if (v <= CAPTION_FILL_LUMA_MAX) fillVals.push(v);
+    }
+  }
+  const median = (arr) => {
+    if (!arr.length) return null;
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)];
+  };
+  const textMedian = median(textVals);
+  const fillMedian = median(fillVals);
+  let fillStd = null;
+  if (fillVals.length) {
+    const mean = fillVals.reduce((a, b) => a + b, 0) / fillVals.length;
+    fillStd = Math.sqrt(fillVals.reduce((s, v) => s + (v - mean) ** 2, 0) / fillVals.length);
+  }
+  const contrast = (textMedian != null && fillMedian != null) ? textMedian - fillMedian : null;
+  return { textMedian, textN: textVals.length, fillMedian, fillN: fillVals.length, fillStd, contrast };
+}
+
+// ── End decay tail (added 2026-10-01) ────────────────────────────────────────
+//
+// founder-video-production-standard.md §6: "End of video needs a real decay
+// tail (~0.33s); a cut from −34 dB to digital silence in one frame reads as
+// truncation." Measured on v7c_SPLICED.mp4's real audio tail: level sits
+// around -33dB at t=33.13s, decays steadily (not a cliff) to true digital
+// silence (-120dB, the floor of 16-bit PCM) by t=33.43s — a 0.30s decay,
+// matching the standard almost exactly. This rule re-derives that same
+// measurement from the finished file's own audio, frame-by-frame (one
+// "frame" = 1/30s, matching the standard's own unit), independent of
+// whatever rendering approach produced it.
+const END_DECAY_FRAME_S = 1 / 30;
+const END_DECAY_LOUD_DB = -34; // the standard's own reference point
+const END_DECAY_MIN_S = 0.15; // real margin below the ~0.33s target; still well above a single-frame (0.033s) cliff
+const END_DECAY_SEARCH_WINDOW_S = 3.0; // how far back from the end to look for the last loud frame
+
+async function decodeMonoPcm(localPath, sr) {
+  const { stdout } = await execFileAsync('ffmpeg', [
+    '-nostdin', '-v', 'error', '-i', localPath,
+    '-ac', '1', '-ar', String(sr), '-f', 's16le', '-',
+  ], { encoding: 'buffer', maxBuffer: 1 << 28 });
+  const n = Math.floor(stdout.length / 2);
+  const samples = new Int16Array(n);
+  for (let i = 0; i < n; i++) samples[i] = stdout.readInt16LE(i * 2);
+  return samples;
+}
+
+function pcmRmsDb(samples, i, j) {
+  const jj = Math.min(j, samples.length);
+  const ii = Math.max(0, i);
+  if (jj <= ii) return -120;
+  let s = 0;
+  for (let k = ii; k < jj; k++) s += samples[k] * samples[k];
+  const r = Math.sqrt(s / (jj - ii));
+  return r > 0 ? 20 * Math.log10(r / 32768.0) : -120;
+}
+
+/**
+ * Measures how long the audio takes to decay from "still audible"
+ * (>= END_DECAY_LOUD_DB) to the end of the file. A real fade/natural decay
+ * spans multiple frames; an abrupt truncation has its last loud frame
+ * immediately adjacent to the file's end.
+ * @returns {{decaySeconds:number|null, lastLoudFrameT:number|null, finalFrameDb:number, totalDurationS:number}}
+ */
+async function measureEndDecayTail(localPath) {
+  const SR = 8000;
+  const samples = await decodeMonoPcm(localPath, SR);
+  const totalDurationS = samples.length / SR;
+  const F = Math.round(END_DECAY_FRAME_S * SR);
+  const searchStart = Math.max(0, totalDurationS - END_DECAY_SEARCH_WINDOW_S);
+
+  let lastLoudFrameT = null;
+  for (let t = totalDurationS - END_DECAY_FRAME_S; t >= searchStart; t -= END_DECAY_FRAME_S) {
+    const c = Math.round(t * SR);
+    const level = pcmRmsDb(samples, c, c + F);
+    if (level >= END_DECAY_LOUD_DB) { lastLoudFrameT = t; break; }
+  }
+  const finalFrameDb = pcmRmsDb(samples, samples.length - F, samples.length);
+  const decaySeconds = lastLoudFrameT === null ? null : totalDurationS - lastLoudFrameT;
+  return { decaySeconds, lastLoudFrameT, finalFrameDb, totalDurationS };
 }
 
 async function extractFrame(localVideoPath, atSeconds, outPngPath) {
@@ -865,6 +1112,7 @@ async function checkVideoQuality(opts = {}) {
         first_frame_luma_spread: detail.first_frame_luma_spread ?? null,
         opening_disqualifier: detail.opening_disqualifier ?? null,
         orientation: detail.orientation ?? null,
+        caption_box_samples: detail.caption_box_samples ?? null,
       },
     };
   };
@@ -951,6 +1199,53 @@ async function checkVideoQuality(opts = {}) {
     addRule('runtime_in_platform_range', { pass: false, note: `ffprobe duration failed (fail-closed): ${err.message}` });
   }
 
+  // 1b. Speed applied exactly once — founder-video-production-standard.md
+  // §3: "Speed is applied in exactly ONE place... Twice caused an
+  // 18-second A/V drift." This gate never sees the build's internal speed
+  // stage, so it checks the one thing a double-application always leaves
+  // behind in the FINISHED file: the video stream and audio stream no
+  // longer agree on how long the render is. Calibrated against the three
+  // known-good fixtures, whose video/audio streams differ by 0.07-0.10s
+  // (container/keyframe rounding, not a defect) — AV_DURATION_DRIFT_MAX_S
+  // sits at 0.75s, comfortably above that noise floor and light years below
+  // the 18s real defect this exists to catch.
+  try {
+    const { videoDuration, audioDuration } = await ffprobeStreamDurations(localVideo);
+    const driftS = Math.abs(videoDuration - audioDuration);
+    const pass = driftS <= AV_DURATION_DRIFT_MAX_S;
+    addRule('speed_applied_once', {
+      pass,
+      note: pass
+        ? `video/audio stream durations agree within ${driftS.toFixed(2)}s (video ${videoDuration.toFixed(2)}s, audio ${audioDuration.toFixed(2)}s)`
+        : `video stream (${videoDuration.toFixed(2)}s) and audio stream (${audioDuration.toFixed(2)}s) differ by ${driftS.toFixed(2)}s — exceeds ${AV_DURATION_DRIFT_MAX_S}s tolerance, the signature of a speed-change filter applied to one track but not the other (or twice to one of them)`,
+    });
+  } catch (err) {
+    addRule('speed_applied_once', { pass: false, note: `stream-duration check failed (fail-closed): ${err.message}` });
+  }
+
+  // 1c. End decay tail — founder-video-production-standard.md §6: a real
+  // decay (~0.33s), not a cliff from ~-34dB to digital silence in one
+  // frame.
+  try {
+    const { decaySeconds, lastLoudFrameT, finalFrameDb, totalDurationS } = await measureEndDecayTail(localVideo);
+    if (lastLoudFrameT === null) {
+      addRule('end_decay_tail', {
+        pass: true,
+        note: `no frame at or above ${END_DECAY_LOUD_DB}dB found in the final ${END_DECAY_SEARCH_WINDOW_S}s — audio was already quiet well before the end, nothing to check a cliff against (final frame ${finalFrameDb.toFixed(1)}dB)`,
+      });
+    } else {
+      const pass = decaySeconds >= END_DECAY_MIN_S;
+      addRule('end_decay_tail', {
+        pass,
+        note: pass
+          ? `${decaySeconds.toFixed(2)}s decay from ${END_DECAY_LOUD_DB}dB (last loud frame at ${lastLoudFrameT.toFixed(2)}s) to end (${totalDurationS.toFixed(2)}s, final frame ${finalFrameDb.toFixed(1)}dB) — real tail, not a cliff`
+          : `only ${decaySeconds.toFixed(2)}s between the last loud frame (${lastLoudFrameT.toFixed(2)}s, ${END_DECAY_LOUD_DB}dB) and the end (${totalDurationS.toFixed(2)}s) — reads as a truncation, not a fade (min ${END_DECAY_MIN_S}s)`,
+      });
+    }
+  } catch (err) {
+    addRule('end_decay_tail', { pass: false, note: `end-decay check failed (fail-closed): ${err.message}` });
+  }
+
   // 2. Real motion between frame 0.0s and frame 1.5s.
   let frame0Path = null;
   try {
@@ -976,8 +1271,12 @@ async function checkVideoQuality(opts = {}) {
 
   // 3. Resolution sanity (corrupt-file guard) + 3b. the frame is actually 9:16.
   let resolutionOk = false;
+  let frameWidth = null;
+  let frameHeight = null;
   try {
     const { width, height } = await ffprobeResolution(localVideo);
+    frameWidth = width;
+    frameHeight = height;
     detail.resolution = `${width}x${height}`;
     resolutionOk = true;
     addRule('resolution_readable', { pass: true, note: detail.resolution });
@@ -1067,6 +1366,63 @@ async function checkVideoQuality(opts = {}) {
       });
     } catch (err) {
       addRule('cover_asset_present', { pass: false, note: `cover asset unreachable (fail-closed): ${err.message}` });
+    }
+  }
+
+  // 4b. Caption box readability — measured contrast + opacity + on-screen
+  // position, not a vision-model judgement (see the block comment above
+  // locateCaptionBox() for the full rationale). Runs independently of
+  // vision-transport availability. Vertical lane only — this pipeline does
+  // not burn captions into the horizontal desktop cut (same assumption
+  // captions_present below already makes).
+  if (!isVertical) {
+    addRule('captions_box_readable', { pass: true, blocking: false, note: 'skipped — horizontal lane does not burn captions into this pipeline\'s desktop cut' });
+  } else if (!duration || !resolutionOk || !frameWidth || !frameHeight) {
+    addRule('captions_box_readable', { pass: false, note: 'duration or resolution unknown — cannot sample caption frames (fail-closed)' });
+  } else {
+    try {
+      const words = loadWordTimestampsSidecar(opts.videoPath);
+      const { times, source } = pickCaptionSampleTimes(duration, words);
+      const samples = [];
+      for (const t of times) {
+        const tClamped = Math.max(0.1, Math.min(duration - 0.1, t));
+        // eslint-disable-next-line no-await-in-loop
+        const buf = await grayFrameBuffer(localVideo, tClamped, frameWidth, frameHeight);
+        const box = locateCaptionBox(buf, frameWidth, frameHeight);
+        if (!box) { samples.push({ t: tClamped, box: null }); continue; }
+        const centerFrac = ((box.top + box.bottom) / 2) / frameHeight;
+        const r = measureCaptionBoxReadability(buf, frameWidth, box);
+        samples.push({ t: tClamped, box, centerFrac, ...r });
+      }
+      const withBox = samples.filter((s) => s.box);
+      if (withBox.length < 3) {
+        addRule('captions_box_readable', {
+          pass: false,
+          note: `could not locate a caption box in enough samples (${withBox.length}/${samples.length}, sample source: ${source}) — cannot verify legibility (fail-closed)`,
+        });
+      } else {
+        const okSamples = samples.filter((s) => s.box
+          && s.centerFrac >= CAPTION_BOX_MIN_CENTER_FRAC
+          && s.contrast != null && s.contrast >= CAPTION_MIN_TEXT_CONTRAST
+          && s.fillStd != null && s.fillStd <= CAPTION_MAX_FILL_STD);
+        const pass = okSamples.length >= CAPTION_BOX_MIN_PASS;
+        const worstCenter = withBox.reduce((m, s) => Math.min(m, s.centerFrac), 1);
+        const worstContrast = withBox.reduce((m, s) => (s.contrast != null ? Math.min(m, s.contrast) : m), Infinity);
+        const worstFillStd = withBox.reduce((m, s) => (s.fillStd != null ? Math.max(m, s.fillStd) : m), 0);
+        addRule('captions_box_readable', {
+          pass,
+          note: `${okSamples.length}/${samples.length} samples pass (sample source: ${source}) — worst vertical position ${(worstCenter * 100).toFixed(0)}% of frame height (min ${(CAPTION_BOX_MIN_CENTER_FRAC * 100).toFixed(0)}%), worst contrast ${worstContrast === Infinity ? 'n/a' : worstContrast.toFixed(0)} (min ${CAPTION_MIN_TEXT_CONTRAST}), worst box-fill std-dev ${worstFillStd.toFixed(1)} (max ${CAPTION_MAX_FILL_STD})${pass ? '' : ' — caption box sits too high on screen and/or has insufficient contrast/opacity to read on a phone'}`,
+        });
+        detail.caption_box_samples = samples.map((s) => ({
+          t: Math.round(s.t * 100) / 100,
+          box: s.box,
+          centerFrac: s.centerFrac != null ? Math.round(s.centerFrac * 1000) / 1000 : null,
+          contrast: s.contrast != null ? s.contrast : null,
+          fillStd: s.fillStd != null ? Math.round(s.fillStd * 10) / 10 : null,
+        }));
+      }
+    } catch (err) {
+      addRule('captions_box_readable', { pass: false, note: `caption box check failed (fail-closed): ${err.message}` });
     }
   }
 
@@ -1310,6 +1666,22 @@ module.exports = {
   // Measurement primitives, exported for the regression fixtures.
   analyzePersistentCoverage,
   frameLumaSpread,
+  // Caption box contrast/opacity/position (2026-10-01), exported for
+  // scripts/regression-video-caption-box.js.
+  grayFrameBuffer,
+  locateCaptionBox,
+  measureCaptionBoxReadability,
+  CAPTION_BOX_MIN_CENTER_FRAC,
+  CAPTION_MIN_TEXT_CONTRAST,
+  CAPTION_MAX_FILL_STD,
+  CAPTION_BOX_MIN_PASS,
+  // Speed-applied-once / end-decay-tail (2026-10-01), exported for
+  // scripts/regression-video-structural-assertions.js.
+  ffprobeStreamDurations,
+  AV_DURATION_DRIFT_MAX_S,
+  measureEndDecayTail,
+  END_DECAY_LOUD_DB,
+  END_DECAY_MIN_S,
   // Vision transport (2026-09-16), exported for
   // scripts/regression-video-quality-vision-transport.js.
   VIDEO_QUALITY_VISION_URL,

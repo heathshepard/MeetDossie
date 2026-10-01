@@ -1,5 +1,30 @@
 # Video Rules
 
+## FOUNDER-VOICE VIDEOS — MULTI-TAKE SPLICING IS THE STANDARD (2026-10-01)
+
+Applies to talking-head/document-explainer founder videos (the `scripts/video-engine/` pipeline),
+not the Creatomate/screen-recording lifestyle-video pipeline the rest of this file covers.
+
+**This reverses the 2026-09-25 "splice nothing if a take is already clean" exception** —
+Heath records multiple takes specifically so the best piece of each can be spliced together, not
+as a fallback for a flawed take: *"That's why I take multiple videos — so you don't have to take
+the best single video."* The 2026-09-25 rule came from a choppy 9-join video — a **join-quality**
+problem, since fixed by measuring every join instead of trusting the pad math (see below), not a
+reason to avoid splicing. Full standard + gates: `docs/VIDEO-PRODUCTION-RECIPE.md` §20,
+`founder-video-production-standard.md` memory.
+
+New enforcement, all added 2026-10-01: `api/_lib/verify-video-quality.js`'s
+`captions_box_readable` (caption contrast/opacity/on-screen position — catches the exact defect
+that scored 3/3 on a vision check while being unreadable on a phone), `speed_applied_once` (video/
+audio stream-duration drift — catches a speed filter applied twice), `end_decay_tail` (no audio
+cut-to-silence inside one frame); `api/_lib/verify-video-script.js`'s `closing_clause_delivered`
+and `dropped_lines_disclosed` (a script's own final line, and any large cut, must show up in the
+delivered transcript or be disclosed); `scripts/video-engine/check-join-audibility.js` (run
+per-build against the splice's own join timestamps — every join must sit below the 99th percentile
+of the render's own non-join moments).
+
+---
+
 ## SCREEN RECORDING NAMING CONVENTION
 
 ```
