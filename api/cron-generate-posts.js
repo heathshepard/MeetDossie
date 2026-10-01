@@ -239,7 +239,12 @@ function isExcludedFoundingEmail(email) {
 }
 
 async function getFoundingMemberCount() {
-  const FOUNDING_TOTAL = 50;
+  // 25, not 50 — cohort cap was cut 2026-07-09 (see api/founding-count.js,
+  // api/_lib/caption-sanitizer.js STALE_COUNT_MARKERS). `remaining` here is
+  // log-only (__FOUNDING_REMAINING__ is defined but never substituted into
+  // any generated prompt — spot-count language is banned for prospects, see
+  // BRAND_VOICE_FORMATS_ENFORCED below) but keep it correct anyway.
+  const FOUNDING_TOTAL = 25;
   // Corrected 2026-08-25 to match docs/CUSTOMERS.md's live methodology (7 x
   // $29/mo founding + Suzanne's $1 friend rate excluded below = 7 taken).
   const FALLBACK = 7;

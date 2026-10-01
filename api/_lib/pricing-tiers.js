@@ -50,4 +50,34 @@ function tierForPriceId(priceId) {
   return { tier: 'founding', recognized: false };
 }
 
-module.exports = { FOUNDING_PRICE_ID, PRICE_TIERS, CHECKOUT_PRICE_IDS, tierForPriceId };
+// DISPLAY_PRICING — authoritative numbers for any prompt/fact-block/UI copy
+// that states a price in words (not just a Stripe price ID). Mirrors
+// CLAUDE.md Section 5 exactly; CLAUDE.md is still the source of truth —
+// update both together. Added 2026-10-01 after stale $39/$119 annual
+// figures (a pre-2026-08-23 wrong basis) were found hand-copied into
+// api/jarvis-context-load.js and api/_lib/sage-verified-facts.js with no
+// shared constant to catch the drift. New pricing copy should read from
+// this object instead of hardcoding numbers again.
+const DISPLAY_PRICING = {
+  solo: {
+    monthly: 149,
+    annualMonthlyEquivalent: 126.65,
+    annualTotal: 1519.80,
+  },
+  team: {
+    monthly: 349,
+    seatsIncluded: 3,
+    maxSeats: 8,
+    extraSeatPrice: 79.99,
+    annualMonthlyEquivalent: 296.65,
+    annualTotal: 3559.80,
+  },
+  founding: {
+    monthly: 29,
+    status: 'closed',
+    closedDate: '2026-08-04',
+    existingMembersLockedForLife: 8,
+  },
+};
+
+module.exports = { FOUNDING_PRICE_ID, PRICE_TIERS, CHECKOUT_PRICE_IDS, tierForPriceId, DISPLAY_PRICING };

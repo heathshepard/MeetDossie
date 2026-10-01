@@ -108,7 +108,7 @@ WHERE t.slug = 'heath'
 
 -- 14: carter | Founding price is $29/mo — NEVER change without explicit instruction
 INSERT INTO public.agent_role_memory (tenant_id, agent_role, title, content, category, validation_status, tags, usage_count)
-SELECT t.id, 'carter', 'Founding price is $29/mo — NEVER change without explicit instruction', 'CLAUDE.md Section 5 locks pricing. Founding Members = $29/mo, 50 spots, currently 12 taken. Solo monthly $79 / annual $39. Team $199. NEVER modify these values when refactoring pricing displays. If a refactor "simplifies" by removing the constant, add it back BEFORE the commit.',
+SELECT t.id, 'carter', 'Founding price is $29/mo — NEVER change without explicit instruction', 'CLAUDE.md Section 5 locks pricing. Founding Members = $29/mo — CLOSED 2026-08-04, no new signups, 8 existing members locked for life. Solo monthly $149 (new signups) / annual $126.65-equivalent ($1,519.80/yr). Team $349 / annual $296.65-equivalent ($3,559.80/yr). NEVER modify these values when refactoring pricing displays. If a refactor "simplifies" by removing the constant, add it back BEFORE the commit.',
        'heath_preference', 'auto', '["pricing","founding","locked"]'::jsonb, 0
 FROM public.tenants t
 WHERE t.slug = 'heath'
