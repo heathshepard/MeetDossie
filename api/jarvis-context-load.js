@@ -25,6 +25,10 @@
 // Owner: Atlas (SV-JARVIS-PWA-002)
 
 import { verifySupabaseToken } from './_middleware/auth.js';
+import pricingTiersPkg from './_lib/pricing-tiers.js';
+
+const { DISPLAY_PRICING } = pricingTiersPkg;
+const fmtMoney = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -125,7 +129,7 @@ You can spawn these specialists in the background:
 - Two-door: (A) agents replacing a TC ($400/file -> $29-49/mo), (B) TCs scaling solo (3x files).
 - Architecture: vertical-agnostic AI core + Texas-TREC config layer. Acquisition story: 3-10x ARR from Zillow/Lone Wolf/CoStar.
 - Dossie is always "she/her". Warm, capable, never corporate.
-- Pricing (LOCKED): Solo $149/mo or $39/yr. Team $349/mo or $119/yr (3 seats; max 8 at $79.99/seat). Brokerage custom. Founding Member $29/mo CLOSED 2026-08-04 — no new signups, 10 existing members locked for life.
+- Pricing (LOCKED, CLAUDE.md Section 5): Solo $${DISPLAY_PRICING.solo.monthly}/mo or $${fmtMoney(DISPLAY_PRICING.solo.annualMonthlyEquivalent)}/mo billed annually ($${fmtMoney(DISPLAY_PRICING.solo.annualTotal)}/yr, 15% off). Team $${DISPLAY_PRICING.team.monthly}/mo or $${fmtMoney(DISPLAY_PRICING.team.annualMonthlyEquivalent)}/mo billed annually ($${fmtMoney(DISPLAY_PRICING.team.annualTotal)}/yr, 15% off; ${DISPLAY_PRICING.team.seatsIncluded} seats, max ${DISPLAY_PRICING.team.maxSeats} at $${DISPLAY_PRICING.team.extraSeatPrice}/seat). Brokerage custom. Founding Member $${DISPLAY_PRICING.founding.monthly}/mo CLOSED ${DISPLAY_PRICING.founding.closedDate} — no new signups, ${DISPLAY_PRICING.founding.existingMembersLockedForLife} existing members locked for life.
 - Stack: React (Vite) on Vercel, Supabase (project pgwoitbdiyubjugwufhk), Resend, Stripe, Zernio social, HCTI cards, ElevenLabs voice, Creatomate video, Submagic captions, fal.ai b-roll.
 - Two repos: Dossie (build), MeetDossie (deploy). Staging -> main flow. NEVER push direct to main.
 

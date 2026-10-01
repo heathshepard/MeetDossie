@@ -1,5 +1,7 @@
 'use strict';
 
+const { DISPLAY_PRICING } = require('./pricing-tiers');
+
 // Shared verified-facts block for Sage's autonomous reviewer (Cole-as-Sonnet).
 //
 // These facts are LOCKED in:
@@ -43,13 +45,16 @@ const VERIFIED_PAIN_POINTS = [
 ];
 
 // ---------------------------------------------------------------------------
-// VERIFIED_PRICING — locked in CLAUDE.md Section 5
+// VERIFIED_PRICING — derived from api/_lib/pricing-tiers.js DISPLAY_PRICING,
+// which mirrors CLAUDE.md Section 5. Don't hand-edit numbers here — fix
+// DISPLAY_PRICING and this regenerates. (2026-10-01: this block previously
+// hardcoded stale $39/$119 annual figures from a wrong pre-2026-08-23 basis.)
 // ---------------------------------------------------------------------------
+const fmt = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const VERIFIED_PRICING = [
-  '$29/month founding price (locked while subscription stays active)',
-  '50 founding spots total',
-  '$149/mo Solo tier monthly, $39/mo annual',
-  '$349/mo Team tier (3 seats, max 8 at $79.99/seat extra), $119/mo annual',
+  `$${DISPLAY_PRICING.founding.monthly}/month founding price (locked for life while subscription stays active) — CLOSED ${DISPLAY_PRICING.founding.closedDate}, no new founding signups, ever`,
+  `$${DISPLAY_PRICING.solo.monthly}/mo Solo tier monthly, $${fmt(DISPLAY_PRICING.solo.annualMonthlyEquivalent)}/mo equivalent billed annually ($${fmt(DISPLAY_PRICING.solo.annualTotal)}/yr, 15% off annualized monthly)`,
+  `$${DISPLAY_PRICING.team.monthly}/mo Team tier (${DISPLAY_PRICING.team.seatsIncluded} seats, max ${DISPLAY_PRICING.team.maxSeats} at $${DISPLAY_PRICING.team.extraSeatPrice}/seat extra) monthly, $${fmt(DISPLAY_PRICING.team.annualMonthlyEquivalent)}/mo equivalent billed annually ($${fmt(DISPLAY_PRICING.team.annualTotal)}/yr, 15% off annualized monthly)`,
   'Brokerage tier custom',
 ];
 
