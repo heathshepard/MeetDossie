@@ -17,6 +17,7 @@
 //   TELEGRAM_CHAT_ID
 
 const crypto = require('crypto');
+const { stampCompletedDocument } = require('./_lib/signature-stamp');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -249,8 +250,29 @@ async function storeSignedArtifacts(sr, submission) {
         console.error(`[esign-webhook] signed PDF download failed (${pdfRes.status}) for doc ${i}`);
         continue;
       }
-      const buffer = Buffer.from(await pdfRes.arrayBuffer());
+      let buffer = Buffer.from(await pdfRes.arrayBuffer());
       const baseName = d.name ? `${d.name}.pdf`.replace(/\.pdf(\.pdf)+$/i, '.pdf') : `document-${i + 1}.pdf`;
+
+      // 2026-10-01 CARTER — inline verification stamp (self-evidencing PDF,
+      // dotloop/DocuSign-style). Widget positions come from the DocuSeal
+      // template record, timestamp/IDs from THIS submission — never
+      // generated locally. Failure here must not block completion: on any
+      // problem stampCompletedDocument returns the ORIGINAL buffer
+      // untouched. See api/_lib/signature-stamp.js.
+      const stampResult = await stampCompletedDocument({
+        pdfBuffer: buffer,
+        docName: d.name,
+        templateId: sr.docuseal_template_id,
+        submission,
+        apiKey: DOCUSEAL_API_KEY,
+      });
+      buffer = stampResult.buffer;
+      if (stampResult.stamped > 0) {
+        console.log(`[esign-webhook] inline-stamped ${stampResult.stamped} mark(s) on "${baseName}"`);
+      } else if (stampResult.skippedReason) {
+        console.warn(`[esign-webhook] inline stamp skipped for "${baseName}": ${stampResult.skippedReason}`);
+      }
+
       const id = await storePdfAsDocument({
         sr,
         fileName: baseName,
