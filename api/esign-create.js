@@ -1138,7 +1138,7 @@ function pickIabsTemplateForSigners(signers) {
 // supervising_broker_license (no _number suffix); prior draft mismatched
 // and silently dropped supervisor prefill fields.
 async function getIabsDefaults(userId) {
-  const res = await supa(`profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,broker_address_street,broker_address_city,broker_address_state,broker_address_zip,supervising_broker_name,supervising_broker_license,supervising_broker_phone,full_name,agent_license_number,agent_phone,email,iabs_defaults_completed&limit=1`);
+  const res = await supa(`profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,broker_address_street,broker_address_city,broker_address_state,broker_address_zip,supervising_broker_name,supervising_broker_license,supervising_broker_phone,supervising_broker_email,full_name,agent_license_number,agent_phone,email,iabs_defaults_completed&limit=1`);
   if (!res.ok) return null;
   const rows = await res.json().catch(() => []);
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -1166,6 +1166,7 @@ function buildIabsPrefill(iabsDefaults) {
   if (iabsDefaults.supervising_broker_name) prefill.supervisor_name = iabsDefaults.supervising_broker_name;
   if (iabsDefaults.supervising_broker_license) prefill.supervisor_license_no = iabsDefaults.supervising_broker_license;
   if (iabsDefaults.supervising_broker_phone) prefill.supervisor_phone = iabsDefaults.supervising_broker_phone;
+  if (iabsDefaults.supervising_broker_email) prefill.supervisor_email = iabsDefaults.supervising_broker_email;
 
   // Map sales agent (the agent themselves)
   if (iabsDefaults.full_name) prefill.sales_agent_name = iabsDefaults.full_name;

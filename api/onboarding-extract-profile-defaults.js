@@ -98,7 +98,7 @@ const FIELD_KEYS = [
   'broker_name', 'broker_license_number', 'broker_phone', 'broker_email',
   'broker_address_street', 'broker_address_city', 'broker_address_state', 'broker_address_zip',
   'designated_broker_name', 'designated_broker_license',
-  'supervising_broker_name', 'supervising_broker_license', 'supervising_broker_phone',
+  'supervising_broker_name', 'supervising_broker_license', 'supervising_broker_phone', 'supervising_broker_email',
   'team_name',
 ];
 
@@ -109,7 +109,7 @@ has exactly four role lines — do NOT conflate them, they are four different
 TREC-licensed roles:
   1. "Licensed Broker /Broker Firm Name" + "License No." — the BROKERAGE/FIRM itself -> broker_name, broker_license_number
   2. "Designated Broker of Firm" + "License No." — the INDIVIDUAL who is the firm's designated broker (may or may not be the same PERSON named in line 1, and is almost never the same as line 3) -> designated_broker_name, designated_broker_license
-  3. "Licensed Supervisor of Sales Agent/Associate" + "License No." — the individual who DIRECTLY SUPERVISES the sales agent day to day. This is frequently a DIFFERENT person than the Designated Broker of Firm (a large brokerage has one designated broker and many supervisors). -> supervising_broker_name, supervising_broker_license
+  3. "Licensed Supervisor of Sales Agent/Associate" + "License No." — the individual who DIRECTLY SUPERVISES the sales agent day to day. This is frequently a DIFFERENT person than the Designated Broker of Firm (a large brokerage has one designated broker and many supervisors). -> supervising_broker_name, supervising_broker_license. If an Email or Phone column is printed on this same row, extract those too -> supervising_broker_email, supervising_broker_phone
   4. "Sales Agent/Associate's Name" + "License No." — the agent themself -> agent_full_name, agent_license_number
 Also extract the broker's phone/email and office address if printed, and any "Team Name" if present.`
     : `This is the Broker Information / Broker Contact Information page of a
@@ -119,7 +119,7 @@ whichever block matches the account holder (see matching instructions
 below), the labels map as:
   - "(Broker Firm)" or "Broker/Firm Name" -> broker_name
   - "License No." next to the firm -> broker_license_number
-  - "Licensed Supervisor of Associate" + its "License No." -> supervising_broker_name, supervising_broker_license (this is a DIFFERENT role than any "Designated Broker" language — if the page does not separately label a "Designated Broker of Firm," leave designated_broker_name/designated_broker_license null rather than guessing)
+  - "Licensed Supervisor of Associate" + its "License No." -> supervising_broker_name, supervising_broker_license (this is a DIFFERENT role than any "Designated Broker" language — if the page does not separately label a "Designated Broker of Firm," leave designated_broker_name/designated_broker_license null rather than guessing). If an Email or Phone is printed on this same row -> supervising_broker_email, supervising_broker_phone
   - "Associate's Name" -> agent_full_name
   - "Associate's License No." or a license number printed next to the associate -> agent_license_number
   - "Associate's Email" -> agent_email
@@ -174,6 +174,7 @@ Return ONLY a JSON object, no markdown, in this exact shape:
     "supervising_broker_name": { "value": string|null, "confidence": 0-1 },
     "supervising_broker_license": { "value": string|null, "confidence": 0-1 },
     "supervising_broker_phone": { "value": string|null, "confidence": 0-1 },
+    "supervising_broker_email": { "value": string|null, "confidence": 0-1 },
     "team_name": { "value": string|null, "confidence": 0-1 }
   }
 }

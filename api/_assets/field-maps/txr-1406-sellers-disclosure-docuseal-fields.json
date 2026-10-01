@@ -1,5 +1,5 @@
 {
- "_readme": "TXR-1406 Seller's Disclosure Notice -- DocuSeal-ready widget list for the disclosure content grid + seller signing widgets. Coordinates are absolute PDF points (612x792, bottom-left origin, matching pdf-lib convention) measured against api/_assets/txr-1406-sellers-disclosure-base64.js via pdftotext -bbox on the rendered page, per the acroform-field-names-lie method -- never guessed from AcroForm field names (this PDF has none; it is a flat/0-AcroForm-field form). role is a generic slot token (\"Seller 1\"/\"Seller 2\") resolved to a real signer at send time by scripts/build-txr-1406-packet.js -- NOT a specific person's name, so this map is reusable across deals. Built 2026-09-29 fixing two defects found on the completed test PDF: (1) missing per-page seller initials -- OLD generator (gen-fields.py, 2026-09-25) placed them a full row above the real \"Seller:\" footer line; SELLER_LINE below is the verified real line position. (2) property address never appearing on pages 2-7 -- NOT a DocuSeal field at all; fixed separately by baking real PDF text via api/_assets/field-maps/txr-1406-address-coords.json before the PDF reaches DocuSeal. Also carries two pre-existing cosmetic fixes verified the same session: Section 11 report-count field no longer overlaps the printed word \"attached:\"; page 6 seller signature/date/printed-name boxes no longer overlap their own captions.",
+ "_readme": "TXR-1406 Seller's Disclosure Notice -- DocuSeal-ready widget list for the disclosure content grid + seller signing widgets. Coordinates are absolute PDF points (612x792, TOP-LEFT origin -- x/y is the top-left corner, y increases DOWNWARD, w/h extend right/down -- matching pdftotext -bbox and scripts/build-txr-1406-packet.js toArea()/bakeAddress() conventions) measured against api/_assets/txr-1406-sellers-disclosure-base64.js via pdftotext -bbox on the rendered page, per the acroform-field-names-lie method -- never guessed from AcroForm field names (this PDF has none; it is a flat/0-AcroForm-field form). role is a generic slot token (\"Seller 1\"/\"Seller 2\") resolved to a real signer at send time by scripts/build-txr-1406-packet.js -- NOT a specific person's name, so this map is reusable across deals. Built 2026-09-29 fixing two defects found on the completed test PDF: (1) missing per-page seller initials -- OLD generator (gen-fields.py, 2026-09-25) placed them a full row above the real \"Seller:\" footer line; SELLER_LINE below is the verified real line position. (2) property address never appearing on pages 2-7 -- NOT a DocuSeal field at all; fixed separately by baking real PDF text via api/_assets/field-maps/txr-1406-address-coords.json before the PDF reaches DocuSeal. Also carries two pre-existing cosmetic fixes verified the same session: Section 11 report-count field no longer overlaps the printed word \"attached:\"; page 6 seller signature/date/printed-name boxes no longer overlap their own captions. 2026-10-01 (702 Fawndale): full overlay-collision pass per scripts/regression-txr-1406-field-overlay.js -- every field/radio-option rectangle checked against both the printed form text (api/_assets/field-maps/txr-1406-printed-text-bbox.json, from pdftotext -bbox) and every other field on the same page. Fixed 202 collisions: every \"Additional Information\" choice row (electric/gas/other, owned/leased from, attached/not attached, automatic/manual, wood/gas logs/mock/other) now has a real checkbox per printed blank instead of one oversized free-text box sitting on top of the printed choice words; Section 2 and Section 3 explain areas are now one field per printed ruled line instead of one tall box; HOA, Sec4/6/7/9/11 yes/no pairs, and page-7 utility phone fields no longer sit on their own printed labels.",
  "page_count": 7,
  "fields": [
   {
@@ -31,9 +31,9 @@
    "name": "If unoccupied - approximate date last occupied",
    "role": "Seller 1",
    "page": 1,
-   "x": 220,
-   "y": 222,
-   "w": 110,
+   "x": 108,
+   "y": 224,
+   "w": 218,
    "h": 11
   },
   {
@@ -42,8 +42,8 @@
    "name": "Never occupied the Property",
    "role": "Seller 1",
    "page": 1,
-   "x": 462,
-   "y": 222,
+   "x": 449,
+   "y": 224,
    "w": 11,
    "h": 10
   },
@@ -1339,13 +1339,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Central A/C - additional info",
+   "type": "checkbox",
+   "name": "Central A/C - electric",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 258,
+   "y": 557,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Central A/C - gas",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 305,
+   "y": 557,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Central A/C - number of units",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 419,
    "y": 558,
-   "w": 205,
+   "w": 157,
    "h": 11
   },
   {
@@ -1503,13 +1525,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Central Heat - additional info",
+   "type": "checkbox",
+   "name": "Central Heat - electric",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 258,
+   "y": 609,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Central Heat - gas",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 305,
+   "y": 609,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Central Heat - number of units",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 419,
    "y": 610,
-   "w": 205,
+   "w": 157,
    "h": 11
   },
   {
@@ -1586,12 +1630,56 @@
   {
    "doc": "1406",
    "type": "text",
-   "name": "Oven - additional info",
+   "name": "Oven - number of ovens",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 338,
    "y": 636,
-   "w": 205,
+   "w": 32,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Oven - electric",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 373,
+   "y": 635,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Oven - gas",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 422,
+   "y": 635,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Oven - other",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 455,
+   "y": 635,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Oven - other fuel describe",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 497,
+   "y": 636,
+   "w": 79,
    "h": 11
   },
   {
@@ -1626,13 +1714,57 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Fireplace & Chimney - additional info",
+   "type": "checkbox",
+   "name": "Fireplace & Chimney - wood",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 258,
+   "y": 648,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Fireplace & Chimney - gas logs",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 298,
+   "y": 648,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Fireplace & Chimney - mock",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 352,
+   "y": 648,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Fireplace & Chimney - other",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 392,
+   "y": 648,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Fireplace & Chimney - other describe",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 432,
    "y": 649,
-   "w": 205,
+   "w": 144,
    "h": 11
   },
   {
@@ -1667,14 +1799,25 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Carport - additional info",
+   "type": "checkbox",
+   "name": "Carport - attached",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
-   "y": 662,
-   "w": 205,
-   "h": 11
+   "x": 258,
+   "y": 661,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Carport - not attached",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 313,
+   "y": 661,
+   "w": 11,
+   "h": 10
   },
   {
    "doc": "1406",
@@ -1708,14 +1851,25 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Garage - additional info",
+   "type": "checkbox",
+   "name": "Garage - attached",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
-   "y": 675,
-   "w": 205,
-   "h": 11
+   "x": 258,
+   "y": 674,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Garage - not attached",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 313,
+   "y": 674,
+   "w": 11,
+   "h": 10
   },
   {
    "doc": "1406",
@@ -1750,12 +1904,23 @@
   {
    "doc": "1406",
    "type": "text",
-   "name": "Garage Door Openers - additional info",
+   "name": "Garage Door Openers - number of units",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 333,
    "y": 688,
-   "w": 205,
+   "w": 70,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Garage Door Openers - number of remotes",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 497,
+   "y": 688,
+   "w": 79,
    "h": 11
   },
   {
@@ -1790,13 +1955,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Satellite Dish & Controls - additional info",
+   "type": "checkbox",
+   "name": "Satellite Dish & Controls - owned",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 258,
    "y": 700,
-   "w": 205,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Satellite Dish & Controls - leased",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 304,
+   "y": 700,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Satellite Dish & Controls - leased from",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 376,
+   "y": 700,
+   "w": 200,
    "h": 11
   },
   {
@@ -1831,13 +2018,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Security System - additional info",
+   "type": "checkbox",
+   "name": "Security System - owned",
    "role": "Seller 1",
    "page": 1,
-   "x": 371,
+   "x": 258,
    "y": 713,
-   "w": 205,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Security System - leased",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 304,
+   "y": 713,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Security System - leased from",
+   "role": "Seller 1",
+   "page": 1,
+   "x": 376,
+   "y": 713,
+   "w": 200,
    "h": 11
   },
   {
@@ -1872,13 +2081,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Solar Panels - additional info",
+   "type": "checkbox",
+   "name": "Solar Panels - owned",
    "role": "Seller 1",
    "page": 2,
-   "x": 307,
+   "x": 258,
+   "y": 78,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Solar Panels - leased",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 304,
+   "y": 78,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Solar Panels - leased from",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 376,
    "y": 79,
-   "w": 268,
+   "w": 199,
    "h": 11
   },
   {
@@ -1913,13 +2144,57 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Water Heater - additional info",
+   "type": "checkbox",
+   "name": "Water Heater - electric",
    "role": "Seller 1",
    "page": 2,
-   "x": 307,
+   "x": 258,
+   "y": 91,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Water Heater - gas",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 305,
+   "y": 91,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Water Heater - other",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 339,
+   "y": 91,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water Heater - other fuel describe",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 381,
    "y": 92,
-   "w": 268,
+   "w": 66,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water Heater - number of units",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 525,
+   "y": 92,
+   "w": 50,
    "h": 11
   },
   {
@@ -1954,13 +2229,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Water Softener - additional info",
+   "type": "checkbox",
+   "name": "Water Softener - owned",
    "role": "Seller 1",
    "page": 2,
-   "x": 307,
+   "x": 258,
+   "y": 104,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Water Softener - leased",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 304,
+   "y": 104,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Water Softener - leased from",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 376,
    "y": 105,
-   "w": 268,
+   "w": 199,
    "h": 11
   },
   {
@@ -1999,9 +2296,9 @@
    "name": "Other Leased Items(s) - additional info",
    "role": "Seller 1",
    "page": 2,
-   "x": 307,
+   "x": 330,
    "y": 119,
-   "w": 268,
+   "w": 245,
    "h": 11
   },
   {
@@ -2036,13 +2333,35 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Underground Lawn Sprinkler - additional info",
+   "type": "checkbox",
+   "name": "Underground Lawn Sprinkler - automatic",
    "role": "Seller 1",
    "page": 2,
-   "x": 307,
+   "x": 258,
+   "y": 135,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Underground Lawn Sprinkler - manual",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 318,
+   "y": 135,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Underground Lawn Sprinkler - areas covered",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 439,
    "y": 136,
-   "w": 268,
+   "w": 136,
    "h": 11
   },
   {
@@ -2077,17 +2396,6 @@
   },
   {
    "doc": "1406",
-   "type": "text",
-   "name": "Septic / On-Site Sewer Facility - additional info",
-   "role": "Seller 1",
-   "page": 2,
-   "x": 307,
-   "y": 151,
-   "w": 268,
-   "h": 11
-  },
-  {
-   "doc": "1406",
    "type": "radio",
    "name": "Water supply provided by",
    "role": "Seller 1",
@@ -2095,38 +2403,38 @@
    "options": [
     {
      "value": "city",
-     "x": 163,
-     "y": 169,
-     "w": 10,
-     "h": 10
+     "x": 154,
+     "y": 168,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "well",
-     "x": 195,
-     "y": 169,
-     "w": 10,
-     "h": 10
+     "x": 186,
+     "y": 168,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "MUD",
-     "x": 229,
-     "y": 169,
-     "w": 10,
-     "h": 10
+     "x": 220,
+     "y": 168,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "co-op",
-     "x": 268,
-     "y": 169,
-     "w": 10,
-     "h": 10
+     "x": 259,
+     "y": 168,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "unknown",
-     "x": 310,
-     "y": 169,
-     "w": 10,
-     "h": 10
+     "x": 301,
+     "y": 168,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -2136,9 +2444,9 @@
    "name": "Water supply - other",
    "role": "Seller 1",
    "page": 2,
-   "x": 393,
+   "x": 400,
    "y": 169,
-   "w": 175,
+   "w": 176,
    "h": 11
   },
   {
@@ -2150,24 +2458,24 @@
    "options": [
     {
      "value": "yes",
-     "x": 229,
+     "x": 220,
      "y": 181,
-     "w": 10,
-     "h": 10
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 268,
+     "x": 256,
      "y": 181,
-     "w": 10,
-     "h": 10
+     "w": 11,
+     "h": 11
     },
     {
      "value": "unknown",
-     "x": 303,
+     "x": 290,
      "y": 181,
-     "w": 10,
-     "h": 10
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -2202,24 +2510,24 @@
    "options": [
     {
      "value": "yes",
-     "x": 94,
-     "y": 234,
-     "w": 10,
-     "h": 10
+     "x": 85,
+     "y": 235,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 127,
-     "y": 234,
-     "w": 10,
-     "h": 10
+     "x": 117,
+     "y": 235,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "unknown",
-     "x": 154,
-     "y": 234,
-     "w": 10,
-     "h": 10
+     "x": 145,
+     "y": 235,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -2232,17 +2540,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 182,
-     "y": 263,
-     "w": 10,
-     "h": 10
+     "x": 172,
+     "y": 264,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 214,
-     "y": 263,
-     "w": 10,
-     "h": 10
+     "x": 205,
+     "y": 264,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -2253,8 +2561,8 @@
    "role": "Seller 1",
    "page": 2,
    "x": 36,
-   "y": 273,
-   "w": 545,
+   "y": 276,
+   "w": 543,
    "h": 34
   },
   {
@@ -2628,13 +2936,46 @@
   {
    "doc": "1406",
    "type": "text",
-   "name": "Section 2 - explain",
+   "name": "Section 2 - explain (line 1)",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 475,
+   "y": 443,
+   "w": 101,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 2 - explain (line 2)",
    "role": "Seller 1",
    "page": 2,
    "x": 36,
-   "y": 453,
-   "w": 545,
-   "h": 34
+   "y": 455,
+   "w": 543,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 2 - explain (line 3)",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 36,
+   "y": 467,
+   "w": 543,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 2 - explain (line 4)",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 36,
+   "y": 479,
+   "w": 543,
+   "h": 11
   },
   {
    "doc": "1406",
@@ -2937,13 +3278,35 @@
   },
   {
    "doc": "1406",
+   "type": "checkbox",
+   "name": "Diseased Trees - oak wilt",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 112,
+   "y": 563,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
+   "type": "checkbox",
+   "name": "Diseased Trees - other",
+   "role": "Seller 1",
+   "page": 2,
+   "x": 162,
+   "y": 563,
+   "w": 11,
+   "h": 10
+  },
+  {
+   "doc": "1406",
    "type": "text",
    "name": "Diseased Trees - other describe",
    "role": "Seller 1",
    "page": 2,
-   "x": 185,
+   "x": 207,
    "y": 564,
-   "w": 130,
+   "w": 58,
    "h": 11
   },
   {
@@ -3570,13 +3933,46 @@
   {
    "doc": "1406",
    "type": "text",
-   "name": "Section 3 - explain",
+   "name": "Section 3 - explain (line 1)",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 512,
+   "y": 225,
+   "w": 64,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 3 - explain (line 2)",
    "role": "Seller 1",
    "page": 3,
    "x": 36,
-   "y": 233,
-   "w": 545,
-   "h": 34
+   "y": 236,
+   "w": 543,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 3 - explain (line 3)",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 36,
+   "y": 248,
+   "w": 543,
+   "h": 11
+  },
+  {
+   "doc": "1406",
+   "type": "text",
+   "name": "Section 3 - explain (line 4)",
+   "role": "Seller 1",
+   "page": 3,
+   "x": 36,
+   "y": 260,
+   "w": 543,
+   "h": 11
   },
   {
    "doc": "1406",
@@ -3587,17 +3983,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 347,
-     "y": 344,
-     "w": 10,
-     "h": 10
+     "x": 327,
+     "y": 345,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 388,
-     "y": 344,
-     "w": 10,
-     "h": 10
+     "x": 366,
+     "y": 345,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -3608,8 +4004,8 @@
    "role": "Seller 1",
    "page": 3,
    "x": 36,
-   "y": 364,
-   "w": 545,
+   "y": 368,
+   "w": 543,
    "h": 34
   },
   {
@@ -3711,8 +4107,8 @@
    "role": "Seller 1",
    "page": 3,
    "x": 36,
-   "y": 545,
-   "w": 545,
+   "y": 547,
+   "w": 543,
    "h": 34
   },
   {
@@ -3724,17 +4120,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 92,
-     "y": 612,
-     "w": 10,
-     "h": 10
+     "x": 78,
+     "y": 611,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 124,
-     "y": 612,
-     "w": 10,
-     "h": 10
+     "x": 110,
+     "y": 611,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -3744,9 +4140,9 @@
    "name": "Section 6 - explain",
    "role": "Seller 1",
    "page": 3,
-   "x": 195,
+   "x": 205,
    "y": 612,
-   "w": 380,
+   "w": 370,
    "h": 11
   },
   {
@@ -3758,17 +4154,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 200,
-     "y": 677,
-     "w": 10,
-     "h": 10
+     "x": 186,
+     "y": 676,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 233,
-     "y": 677,
-     "w": 10,
-     "h": 10
+     "x": 219,
+     "y": 676,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -3778,9 +4174,9 @@
    "name": "Section 7 - explain",
    "role": "Seller 1",
    "page": 3,
-   "x": 305,
+   "x": 314,
    "y": 677,
-   "w": 270,
+   "w": 261,
    "h": 11
   },
   {
@@ -4089,7 +4485,7 @@
    "role": "Seller 1",
    "page": 4,
    "x": 36,
-   "y": 299,
+   "y": 301,
    "w": 545,
    "h": 34
   },
@@ -4102,17 +4498,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 347,
+     "x": 328,
      "y": 618,
-     "w": 10,
-     "h": 10
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 387,
+     "x": 366,
      "y": 618,
-     "w": 10,
-     "h": 10
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -4123,7 +4519,7 @@
    "role": "Seller 1",
    "page": 4,
    "x": 36,
-   "y": 640,
+   "y": 643,
    "w": 545,
    "h": 22
   },
@@ -4374,9 +4770,9 @@
    "name": "HOA - Name of association",
    "role": "Seller 1",
    "page": 5,
-   "x": 165,
+   "x": 204,
    "y": 531,
-   "w": 380,
+   "w": 341,
    "h": 11
   },
   {
@@ -4385,9 +4781,9 @@
    "name": "HOA - Manager's name",
    "role": "Seller 1",
    "page": 5,
-   "x": 165,
+   "x": 188,
    "y": 543,
-   "w": 250,
+   "w": 227,
    "h": 11
   },
   {
@@ -4418,9 +4814,9 @@
    "name": "HOA - Fees/assessments per (period)",
    "role": "Seller 1",
    "page": 5,
-   "x": 325,
+   "x": 338,
    "y": 555,
-   "w": 80,
+   "w": 67,
    "h": 11
   },
   {
@@ -4432,17 +4828,17 @@
    "options": [
     {
      "value": "mandatory",
-     "x": 456,
-     "y": 555,
+     "x": 452,
+     "y": 554,
      "w": 11,
-     "h": 10
+     "h": 11
     },
     {
      "value": "voluntary",
-     "x": 520,
-     "y": 555,
+     "x": 516,
+     "y": 554,
      "w": 11,
-     "h": 10
+     "h": 11
     }
    ]
   },
@@ -4455,17 +4851,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 336,
-     "y": 567,
-     "w": 10,
-     "h": 10
+     "x": 328,
+     "y": 566,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 472,
-     "y": 567,
-     "w": 10,
-     "h": 10
+     "x": 464,
+     "y": 566,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -4475,9 +4871,9 @@
    "name": "HOA - unpaid amount ($)",
    "role": "Seller 1",
    "page": 5,
-   "x": 366,
+   "x": 372,
    "y": 567,
-   "w": 85,
+   "w": 83,
    "h": 11
   },
   {
@@ -4487,7 +4883,7 @@
    "role": "Seller 1",
    "page": 5,
    "x": 36,
-   "y": 601,
+   "y": 604,
    "w": 545,
    "h": 22
   },
@@ -4523,17 +4919,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 356,
-     "y": 663,
-     "w": 10,
-     "h": 10
+     "x": 349,
+     "y": 662,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 388,
-     "y": 663,
-     "w": 10,
-     "h": 10
+     "x": 381,
+     "y": 662,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -4543,9 +4939,9 @@
    "name": "Common area - describe fees",
    "role": "Seller 1",
    "page": 5,
-   "x": 438,
+   "x": 481,
    "y": 663,
-   "w": 143,
+   "w": 100,
    "h": 11
   },
   {
@@ -4557,17 +4953,17 @@
    "options": [
     {
      "value": "yes",
-     "x": 410,
-     "y": 122,
-     "w": 10,
-     "h": 10
+     "x": 393,
+     "y": 121,
+     "w": 11,
+     "h": 11
     },
     {
      "value": "no",
-     "x": 453,
-     "y": 122,
-     "w": 10,
-     "h": 10
+     "x": 435,
+     "y": 121,
+     "w": 11,
+     "h": 11
     }
    ]
   },
@@ -4741,7 +5137,7 @@
    "page": 6,
    "x": 262,
    "y": 501,
-   "w": 60,
+   "w": 40,
    "h": 21
   },
   {
@@ -4805,9 +5201,9 @@
    "name": "Electric phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 290,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4827,9 +5223,9 @@
    "name": "Sewer phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 308,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4849,9 +5245,9 @@
    "name": "Water phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 326,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4871,9 +5267,9 @@
    "name": "Cable phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 344,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4893,9 +5289,9 @@
    "name": "Trash phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 362,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4915,9 +5311,9 @@
    "name": "Natural Gas phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 380,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4926,9 +5322,9 @@
    "name": "Phone Company",
    "role": "Seller 1",
    "page": 7,
-   "x": 130,
+   "x": 135,
    "y": 398,
-   "w": 230,
+   "w": 225,
    "h": 11
   },
   {
@@ -4937,9 +5333,9 @@
    "name": "Phone Company phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 398,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4959,9 +5355,9 @@
    "name": "Propane phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 416,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -4981,9 +5377,9 @@
    "name": "Internet phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 434,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {
@@ -5003,9 +5399,9 @@
    "name": "Security System phone#",
    "role": "Seller 1",
    "page": 7,
-   "x": 411,
+   "x": 420,
    "y": 452,
-   "w": 150,
+   "w": 141,
    "h": 11
   },
   {

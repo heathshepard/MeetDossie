@@ -8,7 +8,7 @@
 //   broker_address_street, broker_address_city, broker_address_state,
 //   broker_address_zip, designated_broker_name, designated_broker_license,
 //   supervising_broker_name, supervising_broker_license,
-//   supervising_broker_phone, agent_license_number, agent_phone,
+//   supervising_broker_phone, supervising_broker_email, agent_license_number, agent_phone,
 //   agent_relationship_type, team_name,
 //   license_validation_status, license_validation_notes  -- written by the
 //     onboarding extraction flow (api/onboarding-extract-profile-defaults.js)
@@ -84,6 +84,7 @@ async function handler(req, res) {
       supervising_broker_name: sanitize(body.supervising_broker_name, 200),
       supervising_broker_license: sanitize(body.supervising_broker_license, 50),
       supervising_broker_phone: sanitize(body.supervising_broker_phone, 20),
+      supervising_broker_email: sanitize(body.supervising_broker_email, 255),
       agent_license_number: sanitize(body.agent_license_number, 50),
       agent_phone: sanitize(body.agent_phone, 20),
       agent_relationship_type: validateRelationshipType(body.agent_relationship_type),
