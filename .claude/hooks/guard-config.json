@@ -7,5 +7,11 @@
     "worktree_isolation_required": true,
     "browser_preflight_required": true,
     "no_unverified_send_retry": true
+  },
+  "memory_capture": {
+    "_comment": "Cost-control gate for .claude/hooks/memory-capture.js, rebuilt 2026-10-01 after the 2026-09-28 token-drain incident (memory/memory-capture-hook-token-drain-2026-09-28.md). Machine-wide (per-cwd, not per-session) — see lib/memory-capture-lib.js acquireCaptureSlot().",
+    "rate_limit_minutes": 30,
+    "daily_ceiling": 12,
+    "stale_lock_minutes": 3
   }
 }

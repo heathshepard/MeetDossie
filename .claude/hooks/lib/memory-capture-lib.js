@@ -495,6 +495,174 @@ function writeCaptureSessionLog({ sessionId, event, trigger, live, accepted, rej
   return fname;
 }
 
+/**
+ * ===========================================================================
+ * GLOBAL COST-CONTROL GATE — added 2026-10-01 after a real incident.
+ * ===========================================================================
+ *
+ * Background: the first version of this hook gated per-`session_id`. On
+ * 2026-09-28, within ~2.5 minutes, 5 DISTINCT session_ids fired the hook
+ * from a single active worktree (this is a multi-agent dispatch environment
+ * — every subagent/worktree-internal dispatch gets its own session_id, so a
+ * per-session lock provides no bound across them at all), 2 concurrent
+ * `claude -p` extraction processes had to be `kill -9`'d, and the hook was
+ * hotfixed out of settings.json entirely (see
+ * memory/memory-capture-hook-token-drain-2026-09-28.md).
+ *
+ * Heath's explicit rebuild spec (memory/feedback_memory-capture-cost-control-
+ * requirements.md): a MACHINE-WIDE lock (not per-session), stale-lock
+ * recoverable, a real rate limit independent of the lock (30 min default), a
+ * hard daily ceiling (12/day default, rolling 24h), both numbers
+ * configurable in guard-config.json, and — critically — the gate must sit in
+ * front of the EXPENSIVE `claude -p` spawn itself, not just the write, so
+ * report mode becomes genuinely cheap (log that it would have extracted,
+ * don't actually extract) instead of costing the same as a live run.
+ *
+ * "Machine-wide" here means: one shared state per cwd/worktree, keyed by
+ * nothing session-specific, so every firing from every session_id in that
+ * worktree contends for the exact same lock/rate-limit/daily-budget. (A
+ * worktree's hook state directory is not visible to other worktrees anyway —
+ * see hook-utils.js's hooksDir(cwd) — so "machine-wide" in practice means
+ * "worktree-wide," which is exactly the scope the incident needed bounded.)
+ *
+ * Order of checks (cheapest/least-stateful first): rate limit -> daily
+ * ceiling -> lock. Only once the lock is actually acquired does this record
+ * the firing (consuming the rate-limit slot and the daily budget) — so a
+ * rejected attempt never falsely consumes budget meant for a real run.
+ */
+
+const GLOBAL_LOCK_FILE = 'memory-capture-global-lock.txt';
+const GLOBAL_LAST_FIRED_FILE = 'memory-capture-global-last-fired.txt';
+const GLOBAL_DAILY_LOG_FILE = 'memory-capture-global-daily-log.json';
+const GUARD_CONFIG_DEFAULTS = Object.freeze({
+  rateLimitMinutes: 30,
+  dailyCeiling: 12,
+  staleLockMinutes: 3,
+});
+
+function hooksStateDir(cwd) {
+  return path.join(cwd, '.claude', 'hooks', 'state');
+}
+
+function ensureStateDir(cwd) {
+  try { fs.mkdirSync(hooksStateDir(cwd), { recursive: true }); } catch (e) { /* ignore */ }
+}
+
+/**
+ * Reads `.claude/hooks/guard-config.json`'s `memory_capture` section. Never
+ * throws — any missing file, missing key, or bad value silently falls back
+ * to GUARD_CONFIG_DEFAULTS, because a malformed config must never be the
+ * reason this hook fails open into unbounded spawning.
+ */
+function readMemoryCaptureConfig(cwd) {
+  try {
+    const raw = fs.readFileSync(path.join(cwd, '.claude', 'hooks', 'guard-config.json'), 'utf-8');
+    const parsed = JSON.parse(raw);
+    const mc = (parsed && parsed.memory_capture) || {};
+    const num = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : fallback);
+    return {
+      rateLimitMinutes: num(mc.rate_limit_minutes, GUARD_CONFIG_DEFAULTS.rateLimitMinutes),
+      dailyCeiling: num(mc.daily_ceiling, GUARD_CONFIG_DEFAULTS.dailyCeiling),
+      staleLockMinutes: num(mc.stale_lock_minutes, GUARD_CONFIG_DEFAULTS.staleLockMinutes),
+    };
+  } catch (e) {
+    return { ...GUARD_CONFIG_DEFAULTS };
+  }
+}
+
+/** Rolling-window rate limit, independent of (checked before) the lock. */
+function checkGlobalRateLimit(cwd, nowMs, rateLimitMinutes) {
+  let lastFired = 0;
+  try {
+    lastFired = Number(fs.readFileSync(path.join(hooksStateDir(cwd), GLOBAL_LAST_FIRED_FILE), 'utf-8').trim()) || 0;
+  } catch (e) { /* no prior firing recorded = allowed */ }
+  const sinceMs = nowMs - lastFired;
+  return { allowed: sinceMs >= rateLimitMinutes * 60000, sinceMs, lastFired };
+}
+
+/** Hard ceiling on firings in the trailing 24h, independent of calendar day. */
+function checkGlobalDailyCeiling(cwd, nowMs, dailyCeiling) {
+  let timestamps = [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(hooksStateDir(cwd), GLOBAL_DAILY_LOG_FILE), 'utf-8'));
+    if (Array.isArray(parsed)) timestamps = parsed;
+  } catch (e) { /* no log yet = empty */ }
+  const cutoff = nowMs - 24 * 60 * 60 * 1000;
+  const recent = timestamps.filter((t) => typeof t === 'number' && t > cutoff);
+  return { allowed: recent.length < dailyCeiling, countLast24h: recent.length, recent };
+}
+
+/**
+ * Machine-wide (per-cwd, NOT per-session) mutex. Uses an atomic exclusive
+ * create (`flag: 'wx'`) for the uncontended case — true OS-level atomicity,
+ * closing the TOCTOU race a plain read-then-write would have under the
+ * exact multi-process conditions that caused the original incident. The
+ * stale-lock steal path (lock exists but is older than staleLockMinutes)
+ * has a small residual race window; worst case under genuine staleness is
+ * two processes proceeding together once every staleLockMinutes, not the
+ * original unbounded pileup.
+ */
+function tryAcquireGlobalLock(cwd, nowMs, staleLockMinutes) {
+  ensureStateDir(cwd);
+  const p = path.join(hooksStateDir(cwd), GLOBAL_LOCK_FILE);
+  try {
+    fs.writeFileSync(p, String(nowMs), { flag: 'wx' });
+    return true;
+  } catch (e) {
+    // EEXIST (or any other write failure) — fall through to the stale check.
+  }
+  try {
+    const existing = Number(fs.readFileSync(p, 'utf-8').trim());
+    const age = nowMs - existing;
+    if (Number.isFinite(age) && age < staleLockMinutes * 60000) return false;
+  } catch (e2) {
+    // Unreadable lock file — treat as stale/corrupt and steal it below.
+  }
+  try {
+    fs.writeFileSync(p, String(nowMs));
+    return true;
+  } catch (e3) {
+    return false;
+  }
+}
+
+function releaseGlobalLock(cwd) {
+  try { fs.unlinkSync(path.join(hooksStateDir(cwd), GLOBAL_LOCK_FILE)); } catch (e) { /* ignore */ }
+}
+
+/**
+ * Single entry point for "may this firing proceed at all" — rate limit,
+ * then daily ceiling, then lock, in that order. Only on a true `allowed`
+ * does it record the firing (rate-limit timestamp + daily log entry),
+ * consuming budget. Applies uniformly to REPORT and LIVE firings: the
+ * original incident did not distinguish between them, and splitting the
+ * gate by mode would just be a second, less-tested bound.
+ *
+ * Returns { allowed, reason, detail }. `reason` is one of 'RATE_LIMIT',
+ * 'DAILY_CEILING', 'LOCKED', or null when allowed.
+ */
+function acquireCaptureSlot(cwd, nowMs, config) {
+  const rate = checkGlobalRateLimit(cwd, nowMs, config.rateLimitMinutes);
+  if (!rate.allowed) return { allowed: false, reason: 'RATE_LIMIT', detail: rate };
+
+  const daily = checkGlobalDailyCeiling(cwd, nowMs, config.dailyCeiling);
+  if (!daily.allowed) return { allowed: false, reason: 'DAILY_CEILING', detail: daily };
+
+  if (!tryAcquireGlobalLock(cwd, nowMs, config.staleLockMinutes)) {
+    return { allowed: false, reason: 'LOCKED', detail: null };
+  }
+
+  ensureStateDir(cwd);
+  try { fs.writeFileSync(path.join(hooksStateDir(cwd), GLOBAL_LAST_FIRED_FILE), String(nowMs)); } catch (e) { /* best effort */ }
+  try { fs.writeFileSync(path.join(hooksStateDir(cwd), GLOBAL_DAILY_LOG_FILE), JSON.stringify([...daily.recent, nowMs])); } catch (e) { /* best effort */ }
+
+  return { allowed: true, reason: null, detail: { rate, daily } };
+}
+
+function releaseCaptureSlot(cwd) {
+  releaseGlobalLock(cwd);
+}
+
 module.exports = {
   MEMORY_DIR,
   MEMORY_INDEX_PATH,
@@ -514,4 +682,13 @@ module.exports = {
   applyCaptures,
   updateMemoryIndex,
   writeCaptureSessionLog,
+  // Global cost-control gate (2026-10-01 rebuild)
+  GUARD_CONFIG_DEFAULTS,
+  readMemoryCaptureConfig,
+  checkGlobalRateLimit,
+  checkGlobalDailyCeiling,
+  tryAcquireGlobalLock,
+  releaseGlobalLock,
+  acquireCaptureSlot,
+  releaseCaptureSlot,
 };
