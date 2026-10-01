@@ -38,6 +38,9 @@ const { isInternalSender } = require('./support-ticket-classify.js');
 // Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
 // api/_lib/google-token-health.js header for the incident this closes.
 const { checkGoogleTokenHealth } = require('./google-token-health.js');
+// SMS/Phone Link import gone silent (Atlas, 2026-10-01) -- see
+// api/_lib/sms-import-health.js header for the incident this closes.
+const { checkSmsImportStale } = require('./sms-import-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1021,7 +1024,7 @@ async function runAllChecks(opts = {}) {
   // Promise.all below, or a detector's results are silently attributed to the
   // wrong condition. dealWatch, telegramGateSuppressed, and googleToken were
   // added by separate changes (2026-09-20, 2026-09-28); all are present.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken] = await Promise.all([
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken, smsImportStale] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1041,9 +1044,10 @@ async function runAllChecks(opts = {}) {
     checkCronSanity(opts.cronSanityScanOpts),
     checkTelegramGateSuppressionSilence(opts.telegramSuppressionLookbackDays, opts.telegramSuppressionMinCount, opts.telegramSuppressionMinSpanDays),
     checkGoogleTokenHealth(opts.googleTokenOpts),
+    checkSmsImportStale(opts.smsImportStaleHours),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken, ...smsImportStale];
   const fired = [];
   const suppressed = [];
 
