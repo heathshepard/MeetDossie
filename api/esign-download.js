@@ -21,9 +21,13 @@
 
 const { applyCorsHeaders } = require('./_middleware/cors');
 
+// 2026-10-01 Carter — per-member DocuSeal accounts. This endpoint has no
+// end-user JWT (CRON_SECRET-only), so it resolves the owning member's key
+// from the signature_requests row's own user_id instead of an auth header.
+const { getDocusealApiKey, activateDocusealApiKeyForRequest, resolveDocusealApiKeyForUser } = require('./_lib/docuseal-client');
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const BUCKET = 'documents';
@@ -133,15 +137,17 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, note: 'Already downloaded.', signedDocumentId: sr.signed_document_id });
     }
 
-    if (!DOCUSEAL_API_KEY) {
-      // TODO: remove this stub once DOCUSEAL_API_KEY is set in Vercel.
-      console.warn('[esign-download] DOCUSEAL_API_KEY not set — cannot download signed PDF.');
-      return res.status(200).json({ ok: false, error: 'DOCUSEAL_API_KEY not configured. Add it to Vercel env vars.' });
+    const { apiKey: resolvedDocusealApiKey } = await resolveDocusealApiKeyForUser(sr.user_id);
+    activateDocusealApiKeyForRequest(resolvedDocusealApiKey);
+
+    if (!getDocusealApiKey()) {
+      console.warn('[esign-download] No DocuSeal API key available — cannot download signed PDF.');
+      return res.status(200).json({ ok: false, error: 'DocuSeal not configured. Add DOCUSEAL_API_KEY to Vercel env vars.' });
     }
 
     // Fetch submission details from DocuSeal.
     const detailRes = await fetch(`${DOCUSEAL_BASE}/submissions/${encodeURIComponent(submissionId)}`, {
-      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+      headers: { 'X-Auth-Token': getDocusealApiKey() },
     });
     if (!detailRes.ok) {
       const text = await detailRes.text().catch(() => '');

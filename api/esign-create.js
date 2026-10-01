@@ -75,10 +75,16 @@ const {
   formCodeForFormType,
 } = require('./_lib/contract-election-gate');
 const { verifySigningPageLive } = require('./_lib/docuseal-signing-verify');
+// 2026-10-01 Carter — per-member DocuSeal accounts. getDocusealApiKey()
+// replaces the old flat env-only module constant everywhere below;
+// activateDocusealApiKeyForRequest() is called once in the handler, right
+// after userId is resolved, to scope it to THIS request (see
+// api/_lib/docuseal-client.js header for why AsyncLocalStorage instead of
+// a mutable module variable).
+const { getDocusealApiKey, activateDocusealApiKeyForRequest, resolveDocusealApiKeyForUser } = require('./_lib/docuseal-client');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const BUCKET = 'documents';
@@ -781,8 +787,8 @@ function computePacketFieldCounts({ documents, signers, callerFields }) {
 // local + 1-indexed per document; roles are shared submitters across all
 // documents. One submission = one signing session = one email per signer.
 async function docusealCreateFromPacket({ packetName, documents, signers, message }) {
-  if (!DOCUSEAL_API_KEY) {
-    console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub packet submission.');
+  if (!getDocusealApiKey()) {
+    console.warn('[esign-create] No DocuSeal API key available — returning stub packet submission.');
     return {
       id: `stub-packet-${Date.now()}`,
       templateId: null,
@@ -813,7 +819,7 @@ async function docusealCreateFromPacket({ packetName, documents, signers, messag
   const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(tmplBody),
@@ -1190,9 +1196,9 @@ async function generateSignedUrl(storagePath, expiresIn = 300) {
 }
 
 async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, fileName, signers, message, fields, fieldMap, formType }) {
-  // TODO: Replace stub with real call once DOCUSEAL_API_KEY is added to Vercel.
-  if (!DOCUSEAL_API_KEY) {
-    console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub submission.');
+  // Falls back to a stub submission only if neither a member key nor the shared env fallback is configured.
+  if (!getDocusealApiKey()) {
+    console.warn('[esign-create] No DocuSeal API key available — returning stub submission.');
     return {
       id: `stub-${Date.now()}`,
       submitters: signers.map((s, i) => ({
@@ -1303,7 +1309,7 @@ async function docusealCreateFromPdf({ documentUrl, pdfBuffer: providedBuffer, f
   const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(tmplBody),
@@ -1383,7 +1389,7 @@ async function createSubmissionFromTransientTemplate(tmplData, signers, message)
   const submRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(submBody),
@@ -1435,7 +1441,7 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   const cloneRes = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}/clone`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ name: `TREC 20-18 Envelope ${Date.now()}` }),
@@ -1464,7 +1470,7 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
   const putRes = await fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
     method: 'PUT',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ fields: patchedFields }),
@@ -1474,7 +1480,7 @@ async function docusealCloneTemplateWithDefaults(templateId, defaults) {
     // Best-effort delete clone before throwing
     fetch(`${DOCUSEAL_BASE}/templates/${cloneId}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+      headers: { 'X-Auth-Token': getDocusealApiKey() },
     }).catch(() => {});
     throw new ValidationError(`DocuSeal template defaults PUT failed (${putRes.status}): ${text.slice(0, 200)}`, 502);
   }
@@ -1487,7 +1493,7 @@ async function docusealDeleteTemplate(templateId) {
   try {
     const r = await fetch(`${DOCUSEAL_BASE}/templates/${templateId}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+      headers: { 'X-Auth-Token': getDocusealApiKey() },
     });
     if (!r.ok) {
       const text = await r.text().catch(() => '');
@@ -1511,7 +1517,7 @@ async function docusealArchiveSubmission(submissionId) {
   try {
     const r = await fetch(`${DOCUSEAL_BASE}/submissions/${submissionId}`, {
       method: 'DELETE',
-      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+      headers: { 'X-Auth-Token': getDocusealApiKey() },
     });
     if (!r.ok) {
       const text = await r.text().catch(() => '');
@@ -1562,8 +1568,8 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
   //   "Seller Broker" role owns all broker/agent fields; without a completed
   //   broker row, the consumer signer sees a blank PDF even when the clone
   //   has default_value set. Mirrors the pattern in esign-templates.js.
-  if (!DOCUSEAL_API_KEY) {
-    console.warn('[esign-create] DOCUSEAL_API_KEY not set — returning stub template submission.');
+  if (!getDocusealApiKey()) {
+    console.warn('[esign-create] No DocuSeal API key available — returning stub template submission.');
     return {
       id: `stub-tmpl-${Date.now()}`,
       submitters: signers.map((s, i) => ({
@@ -1637,7 +1643,7 @@ async function docusealCreateFromTemplate({ templateId, signers, message, prefil
   const res = await fetch(`${DOCUSEAL_BASE}/submissions`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -1746,7 +1752,7 @@ async function sendSigningEmail({ signerName, signerEmail, documentName, propert
 // Supports 1 or 2 buyers.
 // ---------------------------------------------------------------------------
 async function sendForAcknowledgment({ doc, userId, transactionId, formType, buyerEmail, buyerName, buyerEmail2, buyerName2, message }) {
-  if (!DOCUSEAL_API_KEY) {
+  if (!getDocusealApiKey()) {
     throw new ValidationError('DocuSeal not configured.', 500);
   }
 
@@ -1779,7 +1785,7 @@ async function sendForAcknowledgment({ doc, userId, transactionId, formType, buy
   const tmplRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(tmplBody),
@@ -1846,7 +1852,7 @@ async function sendForAcknowledgment({ doc, userId, transactionId, formType, buy
   const submRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(submBody),
@@ -1992,6 +1998,14 @@ module.exports = async function handler(req, res) {
     await checkRateLimit(ip, 'esign-create', 20, 60 * 60 * 1000);
 
     const { userId } = await verifySupabaseToken(req);
+
+    // Per-member DocuSeal — resolve THIS member's own connected account if
+    // they have one, else fall back to the shared DOCUSEAL_API_KEY (Heath's
+    // account). Scoped to this request only via AsyncLocalStorage; every
+    // getDocusealApiKey() call below (and in the DocuSeal helper functions
+    // further down this file) reads from this context.
+    const { apiKey: resolvedDocusealApiKey } = await resolveDocusealApiKeyForUser(userId);
+    activateDocusealApiKeyForRequest(resolvedDocusealApiKey);
 
     const body = req.body || {};
 

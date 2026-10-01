@@ -16,12 +16,12 @@ const {
   RateLimitError,
   clientIpFromReq,
 } = require('./_middleware/rateLimit');
+// 2026-10-01 Carter — per-member DocuSeal accounts (see api/_lib/docuseal-client.js).
+const { getDocusealApiKey, activateDocusealApiKeyForRequest, resolveDocusealApiKeyForUser } = require('./_lib/docuseal-client');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET = 'documents';
-
-const DOCUSEAL_API_KEY = process.env.DOCUSEAL_API_KEY;
 const DOCUSEAL_BASE = 'https://api.docuseal.com';
 const DOCUSEAL_TEMPLATE_RESALE_ID = Number(process.env.DOCUSEAL_TEMPLATE_RESALE_ID) || 4018208;
 
@@ -111,7 +111,7 @@ async function docusealCreateSubmission(templateId, submitters, fields) {
   const response = await fetch(`${DOCUSEAL_BASE}/submissions`, {
     method: 'POST',
     headers: {
-      'X-Auth-Token': DOCUSEAL_API_KEY,
+      'X-Auth-Token': getDocusealApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
@@ -139,7 +139,7 @@ async function docusealGetSubmissionPdf(submissionId) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt));
     const response = await fetch(`${DOCUSEAL_BASE}/submissions/${submissionId}/documents`, {
       method: 'GET',
-      headers: { 'X-Auth-Token': DOCUSEAL_API_KEY },
+      headers: { 'X-Auth-Token': getDocusealApiKey() },
     });
     if (!response.ok) {
       const text = await response.text().catch(() => '');
@@ -319,6 +319,11 @@ module.exports = async (req, res) => {
     }
 
     const { userId } = await verifySupabaseToken(req);
+
+    // Per-member DocuSeal — resolve this member's own key, falling back to
+    // the shared DOCUSEAL_API_KEY. See api/_lib/docuseal-client.js.
+    const { apiKey: resolvedDocusealApiKey } = await resolveDocusealApiKeyForUser(userId);
+    activateDocusealApiKeyForRequest(resolvedDocusealApiKey);
 
     // Rate limit
     const clientIp = clientIpFromReq(req);

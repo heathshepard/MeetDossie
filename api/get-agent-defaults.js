@@ -66,7 +66,7 @@ async function handler(req, res) {
 
     // Fetch agent's profile with IABS defaults
     const fetchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,broker_address_street,broker_address_city,broker_address_state,broker_address_zip,designated_broker_name,designated_broker_license,supervising_broker_name,supervising_broker_license,supervising_broker_phone,agent_license_number,agent_phone,agent_relationship_type,team_name,iabs_defaults_completed,license_validation_status,license_validation_checked_at,license_validation_notes&limit=1`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=broker_name,broker_license_number,broker_phone,broker_email,broker_address_street,broker_address_city,broker_address_state,broker_address_zip,designated_broker_name,designated_broker_license,supervising_broker_name,supervising_broker_license,supervising_broker_phone,agent_license_number,agent_phone,agent_relationship_type,team_name,iabs_defaults_completed,license_validation_status,license_validation_checked_at,license_validation_notes,connections_wizard_completed&limit=1`,
       {
         method: 'GET',
         headers: {
