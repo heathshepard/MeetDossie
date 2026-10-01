@@ -19,7 +19,7 @@ import json, sys, array, subprocess, math
 
 SR = 8000
 FR = 0.02
-PADMAX = 0.10
+PADMAX = 0.09
 PADFRAC = 0.45
 HOLD_DEF = 0.30
 
@@ -70,13 +70,25 @@ def vad(env, floor, thr_db=15.0, min_speech=0.06, min_sil=0.10):
 
 
 print('building voice-activity maps...', file=sys.stderr)
-VADS = {}
+VADS, ENVS = {}, {}
 for t in TAKES:
     env = envelope(pcm('/home/heath/mw/v7/wav/%s.wav' % t))
+    ENVS[t] = env
     s = sorted(env)
     floor = s[int(len(s) * 0.10)]
     VADS[t] = vad(env, floor)
     print('  %s floor=%.1f dB regions=%d' % (t, floor, len(VADS[t])), file=sys.stderr)
+
+
+def envelope_min(take, t0, t1):
+    """Time of the quietest 20ms frame in [t0,t1] -- the best place to cut when
+    two words are run together and the VAD cannot separate them."""
+    env = ENVS[take]
+    i0, i1 = max(0, int(t0 / FR)), min(len(env) - 1, int(t1 / FR))
+    if i1 <= i0:
+        return None
+    best = min(range(i0, i1 + 1), key=lambda i: env[i])
+    return best * FR
 
 U = json.load(open('/home/heath/mw/v7/units.json'))
 WORDS = {}
@@ -90,17 +102,51 @@ SPEEDS = [1.10, 1.14, 1.18, 1.22]
 
 segs, seg_words, rows = [], [], []
 
-for uid, take, th, tt in PLAN:
+
+def unit_words(uid, take, th, tt):
     r = U[take][uid]
-    ws = WORDS[take][r['a']:r['b'] + 1]
-    if th: ws = ws[th:]
-    if tt: ws = ws[:-tt]
+    w = WORDS[take][r['a']:r['b'] + 1]
+    if th: w = w[th:]
+    if tt: w = w[:-tt]
+    return w
+
+
+for pi, (uid, take, th, tt) in enumerate(PLAN):
+    ws = unit_words(uid, take, th, tt)
     regs = [x for x in VADS[take] if x[1] > ws[0]['start'] - 0.02 and x[0] < ws[-1]['end'] + 0.02]
     if not regs:
         regs = [[ws[0]['start'], ws[-1]['end']]]
     a_on, a_off = regs[0][0], regs[-1][1]
+
+    # A VAD region only splits on >=100ms of silence, so when Heath runs two
+    # phrases together the region can extend past the line we are keeping and
+    # into the first syllable of a line we are dropping. That shipped an
+    # audible "they-" fragment: "...they call you. [they-]" before the cut.
+    # When the word that follows this unit in the take is NOT the word the
+    # next planned segment starts with, the tail is pulled back to the
+    # quietest frame between the two words instead of the region edge.
+    r = U[take][uid]
+    nxt_idx = r['b'] + 1 - (tt or 0)
+    nxt = WORDS[take][nxt_idx] if nxt_idx < len(WORDS[take]) else None
+    nxt_planned = None
+    if pi + 1 < len(PLAN) and PLAN[pi + 1][1] == take:
+        nxt_planned = unit_words(*PLAN[pi + 1])[0]
+    carries_next = nxt is not None and nxt_planned is not None and \
+        abs(nxt['start'] - nxt_planned['start']) < 0.001
+    trimmed = False
+    if nxt is not None and not carries_next and a_off > nxt['start'] - 0.02:
+        m = envelope_min(take, ws[-1]['end'] - 0.08, nxt['start'] + 0.12)
+        if m is not None and m > ws[-1]['end'] - 0.12:
+            a_off = m
+            trimmed = True
     prev_end = max([x[1] for x in VADS[take] if x[1] <= a_on + 0.001], default=0.0)
     next_start = min([x[0] for x in VADS[take] if x[0] >= a_off - 0.001], default=a_off + 5.0)
+    # A trimmed tail sits INSIDE a VAD region, so the next region edge is far
+    # away and the proportional pad would happily run into the very word the
+    # trim just removed -- 0.09s of pad put the -16dB onset of "to" back on the
+    # end of "...the end of Monday". Clamp the pad against the dropped word.
+    if trimmed:
+        next_start = min(next_start, nxt['start'])
     gb, ga = a_on - prev_end, next_start - a_off
     head_pad = min(PADMAX, max(0.02, gb * PADFRAC))
     tail_pad = min(PADMAX, max(0.02, ga * PADFRAC))

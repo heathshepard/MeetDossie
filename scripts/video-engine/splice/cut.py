@@ -33,16 +33,22 @@ VF = 'crop=1080:1920:180:340,setsar=1,format=yuv420p'
 
 parts = []
 n = len(segs)
-# every pad must exceed the crossfade half-width, or the bleed would reach past
-# the silence and pull in the neighbouring word (that bug ate the reveal's "5").
-minpad = min(min(s[3], s[4]) for s in segs)
-assert minpad >= BLEED + 0.01, 'pad %.3f too small for %.3f bleed' % (minpad, BLEED)
+# Each join's crossfade is sized to the silence that join actually has. The
+# bleed must never reach past the retained silence, or it pulls in the
+# neighbouring word -- the bug that ate the reveal's "5". A fixed 30ms bleed
+# fails wherever a pad is tighter than that (acoustic-minimum tail trims can
+# produce a 36ms pad), so the half-width is capped at 80% of the smaller pad
+# at that join.
+bleed = [0.0] * n            # bleed[i] = half-width of the crossfade at join i
+for i in range(1, n):
+    bleed[i] = min(BLEED, 0.8 * min(segs[i - 1][4], segs[i][3]))
+    assert bleed[i] >= 0.012, 'join %d has only %.3fs of silence' % (i, bleed[i])
 for i, (take, b, e, _hp, _tp) in enumerate(segs):
     src = IDX[take]
     if not AUDIO_ONLY:
         parts.append('[%d:v]trim=start=%.3f:end=%.3f,setpts=PTS-STARTPTS,%s[v%d]' % (src, b, e, VF, i))
-    hb = BLEED if i > 0 else 0.0
-    tb = BLEED if i < n - 1 else 0.0
+    hb = bleed[i]
+    tb = bleed[i + 1] if i < n - 1 else 0.0
     parts.append('[%d:a]atrim=start=%.3f:end=%.3f,asetpts=PTS-STARTPTS,'
                  'aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a%d]'
                  % (src, max(0.0, b - hb), e + tb, i))
@@ -51,7 +57,7 @@ for i, (take, b, e, _hp, _tp) in enumerate(segs):
 acc = 'a0'
 for i in range(1, n):
     out = 'x%d' % i
-    parts.append('[%s][a%d]acrossfade=d=%.3f:c1=tri:c2=tri[%s]' % (acc, i, XF, out))
+    parts.append('[%s][a%d]acrossfade=d=%.4f:c1=tri:c2=tri[%s]' % (acc, i, 2 * bleed[i], out))
     acc = out
 parts.append('[%s]highpass=f=75,atempo=%.5f,aresample=48000[ao]' % (acc, SPEED))
 

@@ -37,13 +37,33 @@ about, reintroduced by a different route.
 
 computed per side, per segment, from that take's own VAD map.
 
+### 2b. When the VAD cannot separate two words, cut at the envelope minimum
+
+A VAD region only splits on >=100ms of silence. Where Heath runs two phrases
+together, the region for the line being KEPT extends into the first syllable of
+a line being DROPPED. That shipped an audible "they-" fragment at -23dB:
+*"...they call you. [they-]"* before the cut.
+
+So when the word following a unit is not the word the next planned segment
+starts with, `sel2.py` pulls the tail back to the quietest 20ms frame between
+the two words instead of using the region edge. **The pad must be clamped
+against that dropped word too** — a tail trimmed to an envelope minimum sits
+*inside* a VAD region, so the next region edge is far away and the
+proportional pad happily puts the syllable straight back. 0.09s of pad
+restored the -16dB onset of "to" onto the end of "...the end of Monday".
+
 ### 3. Crossfade with bleed, so audio and video stay the same length (`cut.py`)
 
 A plain `acrossfade` chain shortens audio by `d * (n-1)`. With 13 joins that is
-0.78s of A/V drift by the end. Instead each internal edge is pulled with 30ms
-of extra bleed, so the crossfades consume exactly the material they were given:
+0.78s of A/V drift by the end. Instead each internal edge is pulled with extra
+bleed, so the crossfades consume exactly the material they were given:
 
-    sum = S + 0.06*(n-1)  ->  after n-1 crossfades of 0.06  ->  S
+    sum = S + 2*sum(b_i)  ->  after crossfades of 2*b_i each  ->  S
+
+The half-width `b_i` is **per join**, capped at 80% of the smaller pad at that
+join. A fixed 30ms bleed fails wherever a pad is tighter than that — an
+envelope-minimum tail trim can leave 20ms — and the bleed then reaches past the
+retained silence into the neighbouring word, which is the original bug.
 
 Video is hard-concatenated at the nominal timestamps. Visible cuts are wanted;
 audible ones are not.
@@ -80,10 +100,40 @@ concat, inside `cut.py`. A second speed stage once caused 18s of A/V drift.
 | `align.py` | locates each script phrase in every take, scores it (disfluencies, doubled words, sum/min logprob, internal hesitation, words-per-second) |
 | `sel2.py` | VAD map per take, acoustic edge snapping, gap-proportional pads, emits the segment plan |
 | `cut.py` | bleed-compensated crossfade splice + the single speed stage |
-| `caps2.py` | burned-in captions built from a transcript of the FINISHED audio, so a caption/audio mismatch is structurally impossible |
+| `caps3.py` | burned-in captions built from a transcript of the FINISHED audio, so a caption/audio mismatch is structurally impossible (`caps2.py` is the superseded top-band version) |
 | `an.py` | pure-python PCM analysis (no numpy on this box): f0, RMS, envelope |
 | `joins2.py` | the join-vs-baseline audibility test |
 | `matte2.js` | RVM alpha matte streamed through ffmpeg pipes, with no `sharp` dependency (sharp is missing from this repo's node_modules; onnxruntime-node is present). Needs `NODE_PATH=<repo>/node_modules`. |
 
 `align.py`'s `UNITS` list is per-script and must be edited for a new video.
 Everything else is script-agnostic.
+
+## Caption placement (learned on video 7, the hard way)
+
+Heath watched the first spliced cut and said *"there's no transcriptions."*
+They were there, and the quality gate had scored captions 3/3. They were
+simply invisible:
+
+- **Opacity.** `BackColour &HC0000000` is alpha 0xC0 — about **25% opaque**,
+  not 75%. Over a full-bleed page of 11px contract body text, the document
+  read straight through the box. Fully opaque (`&H00101010`) is the only
+  setting that survives a dense background.
+- **Position.** `Alignment 8` put captions in the top band of a 1920px frame,
+  while the face sat bottom-right and every callout was mid-frame. The eye
+  never travelled there. `Alignment 2` with `MarginV 1005` puts the caption
+  baseline at ~y915 — lower-centre, above the CTA card, clear of his head.
+- **Hierarchy.** Callout chips at font 46 were louder than the captions. The
+  element carrying the actual words must win: chips went to font 40 and the
+  document window moved ~400px so the highlighted clauses sit ABOVE the
+  caption band instead of competing with it.
+
+Everything else in the locked Style line is unchanged — typeface, weight,
+size 80, colours, `BorderStyle 3`, `Outline 20`, the pop-in, and the
+3-words / 19-chars / 0.4s-gap chunking.
+
+**The gate's `captions_present` check passed this.** It samples frames and
+asks a vision model whether caption text is visible — which it was, to a model
+reading pixels directly. It does not measure contrast between the caption fill
+and what is behind it. That check is worth tightening to assert the caption
+box is opaque, or to measure local contrast, otherwise it will keep passing
+captions a human cannot read.
