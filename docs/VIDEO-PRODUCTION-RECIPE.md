@@ -275,6 +275,14 @@ eq=brightness=-0.34:contrast=0.94
 
 ## 9. Captions
 
+> **SUPERSEDED 2026-10-01 — see §20.** The style line below (top-centre, `BackColour &HC0000000`)
+> is what `trec-7i` shipped with and is kept here as the historical record, but it is **not** what
+> new videos should use. Heath could not read captions built this way on `v7b_SPLICED.mp4` — read
+> §20 before copying anything from this section. The "75% black box" line below is also a
+> misread worth not repeating: in this pipeline's `ffmpeg`/`libass` build, `BorderStyle=3`'s box
+> fill comes from **`OutlineColour`**, not `BackColour`'s alpha — `BackColour` had no visible
+> effect here at all. The real defect was position (top-centre, §20 covers why), not opacity.
+
 Final file: `scripts/video-engine/recipes/trec-7i/captions/caps4h.ass` (70 lines). The style line
 ships verbatim — do not re-derive it:
 
@@ -534,3 +542,151 @@ viewer:
 
 Plus two that were caught in review: the circle firing 15s before the words it annotated (§7), and
 white CTA text on a light contract (§13).
+
+---
+
+## 20. 2026-10-01 standard update — `v7c_SPLICED.mp4`, supersedes §3's single-take exception
+
+Heath on `v7c_SPLICED.mp4`: *"The video is great and ready for posting."* Full writeup:
+`.claude/projects/.../memory/founder-video-production-standard.md` — that memory file is the
+source of truth; this section is its pointer from the tracked doc set. Working files:
+`/home/heath/mw/v7/` (not checked in — large derived media, same convention as `recipes/trec-7i/`).
+
+### 20.1 Multi-take splicing is the standard again — explicit reversal
+
+`multi-take-splice-workflow`'s "EXCEPTION 2026-09-25" rule said: if the best whole take scores
+clean (0 disfluencies, no word below `logprob -0.35`), use it alone — splicing only adds seams.
+**That rule is reversed.** Heath, 2026-09-30: *"That's why I take multiple videos — so you don't
+have to take the best single video."* He records 3+ takes specifically so the best piece of each
+can be used, even when one take would have stood alone.
+
+**Why the reversal is safe:** the 2026-09-25 rule was a reaction to video 2 sounding choppy across
+9 joins — a **join-quality** problem, not evidence against splicing itself. §20.2 is the real fix:
+measure every join, not just trust the pad math. On `v7c_SPLICED.mp4`'s 13 joins (2 cross-take),
+**0 scored above the 99th percentile of ordinary (non-join) moments in the same render** — solved,
+not avoided.
+
+- Score each **act/section** per take on `(disfluencies + doubled_words, -sum(logprob))` **and**
+  delivery (pace, emphasis, no sigh/false start) — not just the transcript-level score §3.3 uses.
+- Don't buy a seam for a trivial gain — on `v7c_SPLICED.mp4`, keeping a whole act in one take saved
+  4 seams for a 0.07 logprob difference, nowhere near the ~0.35 threshold that matters.
+- Visual cuts may be visible (Heath wants it to look edited); **audio joins must not be.**
+
+### 20.2 Joins are measured, not trusted — the new gate
+
+`scripts/video-engine/check-join-audibility.js` (added 2026-10-01, Node port of the proven
+`/home/heath/mw/v7/joins2.py`): for each join, compare the max short-time (5ms-frame) level jump
+within ±60ms of the cut against the same metric at ~300+ non-join points spread through the same
+render (excluding ±0.25s of any join). **Fail if any join sits above the 99th percentile of that
+baseline.** Needs the build's own join timestamps (a `{joins:[...], cross_take:[...]}` list) —
+it does not run against a bare finished mp4, so it is not wired into
+`api/_lib/verify-video-quality.js`; run it explicitly per build:
+
+```bash
+node scripts/video-engine/check-join-audibility.js --audio <take-voice.wav> --joins <plan.json>
+```
+
+Two upstream bugs this depends on staying fixed (both cost a round building `v7c_SPLICED.mp4`):
+snap every cut edge to a real speech-region edge from a per-take VAD map, never a transcript label
+(Scribe once labelled a punchline's final word over pure noise floor, silently deleting it); and
+pad each side from that take's own silence (`min(0.10, gap × 0.45)`), never a flat pad — a flat
+0.12s pad once ran into the next word's onset.
+
+### 20.3 Speed: 1.18x, applied in exactly one place
+
+Re-transcribe each candidate speed and compare transcription confidence — 1.18 scored the best of
+anything tested; 1.22 nearly doubled errors (the real ceiling is intelligibility, not pitch;
+`atempo` holds pitch flat through 1.22+). **Speed is applied in exactly ONE place** —
+`setpts=PTS/{speed}` + `atempo={speed}` after concat. Applying it twice (once to video, once again
+to audio, or vice versa) desynced `v7b_SPLICED.mp4`'s predecessor by 18 seconds — the exact defect
+§19 item 1 already names for `trec-7i`. `api/_lib/verify-video-quality.js`'s `speed_applied_once`
+rule (added 2026-10-01) now catches this on every finished render: the video and audio STREAM
+durations (not the container duration) must agree within 0.75s, a tolerance picked from the
+~0.07-0.10s drift real good renders show (container rounding) versus the 18s real defect.
+
+### 20.4 Captions — position, not opacity, was the defect
+
+**This reverses §9's top-centre placement.** Heath, after `v7b_SPLICED.mp4`: *"I can't read it."*
+The style line's `Alignment`/`MarginV` changed; everything else in §9's locked style stays —
+same font (Plus Jakarta Sans ExtraBold), size 80, `BorderStyle 3`, `Outline 20`, the pop-in, the
+3-word/19-char/0.4s-gap chunking.
+
+| Field | §9 (`trec-7i`, superseded) | New standard |
+|---|---|---|
+| `Alignment` | `8` (top-centre) | `2` (bottom-centre) |
+| `MarginV` | `175` | `1005` |
+| `BackColour` | `&HC0000000` | `&H00101010` |
+
+Measured directly against both real files (`scripts/regression-video-caption-box.js`): on
+`v7b_SPLICED.mp4` every caption's vertical centre sits at 9-18% of frame height; on
+`v7c_SPLICED.mp4`, 43-57%. **`BackColour` turned out not to be the actual mechanism** — in this
+pipeline's `ffmpeg`/`libass` build, a `BorderStyle=3` box fills from `OutlineColour`, not
+`BackColour`'s alpha, so both files render an equally opaque box (confirmed by direct pixel
+measurement, both ~195/255 text-vs-fill contrast). The real defect was the TOP band sitting
+directly in a scrolling document's busiest body-text region — §9's own stated reason for choosing
+top-centre (clearing Instagram's bottom-35% UI zone) turned out to lose more than it saved. The
+`BackColour` correction is kept anyway as a genuine future-proofing fix for any caption-burn path
+where `BackColour`'s alpha DOES control the fill.
+
+New measurable gate: `api/_lib/verify-video-quality.js`'s `captions_box_readable` rule (added
+2026-10-01) locates the caption box per sampled frame by pixel row-scan and asserts vertical
+position (≥30% of frame height), text-vs-fill contrast (≥100/255), and fill opacity (std-dev
+≤35) — 4-of-5 sampled frames must pass. Replaces trusting a vision model's "is text visible"
+judgement, which scored `v7b_SPLICED.mp4`'s unreadable captions 3/3.
+
+### 20.5 End decay tail
+
+A real ~0.3-0.4s decay from audible (~-34dB) down to true digital silence, not a cut cliff. New
+gate: `end_decay_tail` in `api/_lib/verify-video-quality.js` — finds the last audio frame (1/30s
+windows) at or above -34dB in the final 3s, requires ≥0.15s before the file ends. Both
+`v7b_SPLICED.mp4` and `v7c_SPLICED.mp4` already measured real decays (~0.3-0.4s) — this is a
+forward-looking regression guard, not something either file was failing.
+
+### 20.6 Closing clause — never dropped silently
+
+The one incident that mattered most today: a closing benefit clause got cut for runtime and left
+off its own drop list, so nothing could check against it — Heath caught it as *"the last sentence
+gets cut off."* Two new rules in `api/_lib/verify-video-script.js`, run against a script section
+plus the finished render's own transcript:
+
+- `closing_clause_delivered` — the script-of-record's own final spoken line must be recoverable
+  (word-recall ≥70%, tolerant of ASR noise) from the delivered transcript's tail.
+- `dropped_lines_disclosed` — if delivered word coverage falls under 85% of the script's word
+  count, a non-empty `**Dropped lines:**` field is REQUIRED in the script-of-record or the rule
+  fails. Disclosure doesn't un-cut a closing clause (`closing_clause_delivered` still fails on its
+  own) — it only satisfies the separate "was this reported" requirement.
+
+Both are optional add-ons to `validateScript()`/`validateScriptFile()` (pass `{deliveredWords}`) —
+they don't run, and don't block, grading a script before it's ever recorded.
+
+### 20.7 Other locked numbers from this build
+
+- **Music ducking:** sidechain to ~18-19dB under the voice (a different technique from §12's
+  static -6dB — that recipe's VO has no gap longer than 0.45s in 51s, so a sidechain had nothing
+  to release into; `v7c_SPLICED.mp4`'s script has real pauses between acts, so a real sidechain
+  ducker works). Final mix ≈ -14 LUFS / -1.5 dBTP. Licence-clean sources only (`Media/Music/`,
+  Pixabay Content License — same restriction as §12).
+- **Covers:** 1080x1920 poster, **and** a true 1:1 square keeping `y=418..1498` of the 1920-tall
+  frame — the old "1080x1350" square figure elsewhere in this doc set is wrong; the crop must stay
+  within the actual safe content band.
+- **No fade-in on the hook card** — fully visible in frame 0 (same defect class as §19 item 2,
+  re-confirmed on this build). **Frame 0** must not stack the hook over another large-type card —
+  a real failure mode, but one a pixel check could not be built for without false-failing
+  `v7c_SPLICED.mp4`'s own legitimate 2-line hook (see
+  `api/_lib/verify-video-quality.js`'s dropped-prototype note next to `HOOK_CLEAR_SAMPLE_T`); this
+  stays a human-equivalent frame-inspection item (§7 of the memory standard), not an automated gate.
+
+### 20.8 Gate summary
+
+| Rule | File | Catches |
+|---|---|---|
+| `captions_box_readable` | `api/_lib/verify-video-quality.js` | low-contrast / translucent / top-band captions |
+| `speed_applied_once` | `api/_lib/verify-video-quality.js` | double speed-change application (A/V stream-duration drift) |
+| `end_decay_tail` | `api/_lib/verify-video-quality.js` | audio cut to silence inside one frame |
+| `closing_clause_delivered` | `api/_lib/verify-video-script.js` | script's own final line missing from the delivered transcript |
+| `dropped_lines_disclosed` | `api/_lib/verify-video-script.js` | a large cut from script to delivered with no disclosure |
+| `check-join-audibility.js` | `scripts/video-engine/` | an audible splice join (manual/per-build, needs join timestamps) |
+
+Not automated — stay manual, per §20.7's own note and
+`founder-video-production-standard.md` §7: frame-0 hook-vs-card stacking, and the general "does
+this actually read on a phone" pass.
