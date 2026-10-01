@@ -220,6 +220,71 @@ console.log(`Credits used: ${costs.usedThisSession} / 1000`);
 
 ---
 
+## Accounts browser profile (Heath's personal financial/service logins)
+
+Dedicated Chrome profile for Heath's personal accounts — RBFCU, Toyota
+Financial, Allstate, USAA, and similar — so Cole/Atlas can check or operate
+these logins the same way the Brokerage persona already operates
+connectMLS/zipForm. Lives at `scripts/_lib/accounts-browser.js`.
+
+**Profile directory:** `C:\Users\Heath\.accounts-browser-profile` (override
+with `ACCOUNTS_PROFILE_DIR`). This is a brand-new, dedicated profile — it
+must never collide with any of:
+- `~/.brokerage-browser-profile` (Brokerage persona — connectMLS/zipForm)
+- `.brokerage-command-profile` (Brokerage CDP-attach flows)
+- the DossieBot-Sage profile (`AppData\Local\DossieBot-Sage` — FB/IG/LinkedIn)
+- the shared MCP `playwright` server's profile (`.jarvis-browser-profile`)
+
+**Who may use it:** any agent operating Heath's personal financial/service
+accounts on his behalf (Atlas built it; Cole dispatches work against it).
+Not for Dossie product work, not for marketing/social automation — those
+have their own profiles above.
+
+**One holder at a time — same rule as every other profile here.** Chrome's
+ProcessSingleton lock means only one Playwright context may have this
+profile directory open at once. `launchAccountsContext()` waits
+cooperatively for a live holder to release (via the shared
+`chrome-profile-unlock.js` helper) rather than killing it — never pass
+`forceUnlock` unless you are deliberately reclaiming the profile from a job
+you know is dead. **Always close the context when done**
+(`await context.close()`) — an unclosed context blocks every subsequent
+script, including your own next run.
+
+**WSL note:** real Chrome does not exist under WSL (`channel: 'chrome'`
+resolves to a Linux path that isn't there — this is the same failure the
+shared MCP playwright server hits). `accounts-browser.js` detects WSL and
+re-execs the calling script through the real Windows `node.exe`
+automatically; callers don't need to do anything special, but output will
+show a one-line `[accounts-browser] WSL detected — ...` notice first. This
+mirrors `scripts/_lib/brokerage-browser.js`'s existing WSL guard. Verified
+working 2026-10-01: `node scripts/accounts-login.js rbfcu` launches a real
+Windows Chrome window, lands on `https://www.rbfcu.org/`, and closes
+cleanly.
+
+**Scripts:**
+- `scripts/accounts-login.js <url-or-site-key>` — one-time interactive
+  login. Opens the site headful in the Accounts profile, waits for Heath to
+  log in by hand (password, 2FA, everything), then closes on Enter so the
+  session persists to disk. Known keys: `rbfcu`, `toyota`, `allstate`,
+  `usaa`. Anything else is treated as a URL.
+- `scripts/accounts-session-check.js` — read-only. Opens each known site
+  headless and reports SIGNED IN / SIGNED OUT / ERROR with the evidence used
+  (final URL + whether a login redirect or password field was found). Never
+  logs a credential or cookie value.
+
+**No `storageState`, ever.** `accounts-browser.js` does not accept a
+`storageState` option at all (brokerage-browser.js's own attempt at this
+corrupted a live persistent profile's cookies and was reverted 2026-09-10 —
+see that file's header comment). The persistent profile directory is the
+only session-persistence mechanism for Accounts.
+
+**No secrets in any script here.** Login is always typed by Heath's own
+hands in the headful window — nothing in this repo reads, stores, or logs a
+password, PIN, security answer, or OTP for these accounts. This is a PUBLIC
+repo.
+
+---
+
 ## Dedup files
 
 The `.json` dedup files in `scripts/` are gitignored (or should be — add them
