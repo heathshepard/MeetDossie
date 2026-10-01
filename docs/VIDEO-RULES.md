@@ -93,6 +93,8 @@ Source of truth: `RENDER_RULES` block in `scripts/generate-lifestyle-video.py` +
 - Voice from `LIBRARY.md`; never hardcode Bill/Luna.
 - Pexels: blocklist sad/stressed/worried/sleeping/down/hunched, min width 1080.
 - Screen-rec trim: `max(freeze_end, silence_end)`.
+- **Owned b-roll beats Pexels.** `Media/b-roll/boerne/LIBRARY.md` indexes Heath's own Boerne/Hill Country GoPro + drone footage, read by `select_local_broll()`. No match → `[]` → Pexels fallback, unchanged. Realtor-brand market content, not Dossie product video.
+- B-roll `Privacy` column is a **gate**: only `clear` rows are auto-selected. Clearing a `flagged:` row means blurring the face/plate and re-cutting, not editing the column.
 
 ---
 
@@ -152,7 +154,7 @@ MeetDossie\Media\
 ├── screen-recordings\   (+ LIBRARY.md — always read before touching recordings)
 ├── finished-videos\
 ├── voiceovers\
-├── b-roll\[topic]\
+├── b-roll\[topic]\        (Pexels cache; `boerne\` is owned footage + LIBRARY.md)
 ├── instagram-cards\
 ├── music\
 └── screen-shots\

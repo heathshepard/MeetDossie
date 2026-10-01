@@ -1793,6 +1793,150 @@ def select_screen_recording(topic: str, persona: Optional[str],
     return None
 
 
+# --------------------------------------------------------------------------------------
+# Local b-roll library (Heath's own footage)
+# --------------------------------------------------------------------------------------
+#
+# Until 2026-10-01 b-roll had no index at all: fetch_broll() hit Pexels on
+# every render and cached the result under BROLL_DIR/<topic>/. That is still
+# the fallback, but footage Heath shot himself beats any stock clip for
+# market-specific content (and carries no licensing question), so owned
+# footage gets a real index the selector can read.
+#
+# This is deliberately NOT the screen-recordings LIBRARY.md. A row in that
+# table is returned by select_screen_recording_entry() and dropped into the
+# *screen recording* segment, which is supposed to show the product UI. A
+# drone shot of Cibolo Creek landing there would ship a video that promises
+# an app demo and delivers scenery — the same failure mode the
+# composite-backgrounds section of that file is quarantined to avoid.
+#
+# Naming convention is identical to the screen-recording library, because
+# derive_aspect_and_platforms_from_filename() is the single source of truth
+# for platform routing in both:
+#     <scene-slug>-mobile-<YYYY-MM-DD>.mp4   → portrait  → instagram, tiktok
+#     <scene-slug>-desktop-<YYYY-MM-DD>.mp4  → landscape → facebook, twitter, linkedin
+
+LOCAL_BROLL_COLLECTION = "boerne"
+
+
+def local_broll_dir(collection: str = LOCAL_BROLL_COLLECTION) -> Path:
+    return BROLL_DIR / collection
+
+
+def parse_local_broll_library(collection: str = LOCAL_BROLL_COLLECTION,
+                              library_dir: Optional[Path] = None) -> list[dict]:
+    """Parse the markdown table in Media/b-roll/<collection>/LIBRARY.md.
+
+    Returns a list of dicts:
+      {filename, scene, motion, privacy, notes, aspect, platforms}
+
+    Schema: | Filename | Scene | Motion | Privacy | Notes |
+
+    `privacy` is a gate, not a note. Only rows marked `clear` are selectable
+    by default — see select_local_broll_entries().
+
+    Returns [] if LIBRARY.md is missing, so callers fall through to Pexels.
+    """
+    base = Path(library_dir) if library_dir else local_broll_dir(collection)
+    library_path = base / "LIBRARY.md"
+    if not library_path.exists():
+        return []
+    entries: list[dict] = []
+    in_table = False
+    for raw in library_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("|") and "Filename" in line and "Scene" in line:
+            in_table = True
+            continue
+        if in_table and line.startswith("|---"):
+            continue
+        if in_table and line.startswith("|"):
+            cols = [c.strip() for c in line.strip("|").split("|")]
+            if len(cols) < 4:
+                continue
+            filename = cols[0]
+            aspect, platforms = derive_aspect_and_platforms_from_filename(filename)
+            entries.append({
+                "filename": filename,
+                "scene": cols[1],
+                "motion": cols[2],
+                "privacy": cols[3].lower(),
+                "notes": cols[4] if len(cols) > 4 else "",
+                "aspect": aspect,
+                "platforms": platforms,
+            })
+        elif in_table and not line.startswith("|"):
+            in_table = False
+    return entries
+
+
+def select_local_broll_entries(topic: str, platform: Optional[str] = None,
+                               count: int = BROLL_PICK_COUNT,
+                               collection: str = LOCAL_BROLL_COLLECTION,
+                               library_dir: Optional[Path] = None,
+                               allow_flagged: bool = False) -> list[dict]:
+    """Pick up to `count` local b-roll rows for (topic, platform).
+
+    Match logic mirrors select_screen_recording_entry():
+      1. Filename prefix == topic.replace("_", "-") — so topic "boerne"
+         matches every boerne-* scene, and "boerne-main-plaza-gazebo" matches
+         just that one.
+      2. Platform is in the row's derived platform list (when given), which
+         keeps portrait clips out of a Facebook square render and vice versa.
+      3. Privacy must be `clear` unless allow_flagged=True.
+      4. The file must actually exist on disk.
+
+    Returns [] when nothing matches — the caller falls back to Pexels rather
+    than shipping a cross-aspect or privacy-flagged clip.
+    """
+    library = parse_local_broll_library(collection, library_dir)
+    if not library:
+        return []
+
+    base = Path(library_dir) if library_dir else local_broll_dir(collection)
+    topic_slug = topic.replace("_", "-")
+    candidates = [e for e in library if e["filename"].startswith(topic_slug + "-")]
+    if platform:
+        platform_lower = platform.lower()
+        candidates = [e for e in candidates if platform_lower in e["platforms"]]
+    if not allow_flagged:
+        candidates = [e for e in candidates if e["privacy"] == "clear"]
+
+    resolved: list[dict] = []
+    for e in candidates:
+        path = base / e["filename"]
+        if not path.exists():
+            print(f"[local-broll] WARN: LIBRARY.md lists {e['filename']} but the file is missing - skipping")
+            continue
+        e = dict(e)
+        e["path"] = path
+        resolved.append(e)
+
+    if not resolved:
+        print(f"[local-broll] no LIBRARY.md match for topic={topic} platform={platform} - falling back to Pexels")
+        return []
+
+    resolved.sort(key=lambda e: e["filename"])
+    chosen = resolved[:count]
+    print(f"[local-broll] {len(chosen)} clip(s) for topic={topic} platform={platform}: "
+          + ", ".join(c["filename"] for c in chosen))
+    return chosen
+
+
+def select_local_broll(topic: str, platform: Optional[str] = None,
+                       count: int = BROLL_PICK_COUNT,
+                       collection: str = LOCAL_BROLL_COLLECTION,
+                       library_dir: Optional[Path] = None) -> list[Path]:
+    """Path-only wrapper around select_local_broll_entries().
+
+    Feeds render_broll_segment() directly: the clips are already normalised
+    to the target aspect, so its scale-to-fill crop is a no-op on them.
+    """
+    return [e["path"] for e in select_local_broll_entries(
+        topic, platform=platform, count=count,
+        collection=collection, library_dir=library_dir)]
+
+
 def voice_for(entry: Optional[dict], persona: Optional[str]) -> str:
     """Pick the ElevenLabs voice key.
 
