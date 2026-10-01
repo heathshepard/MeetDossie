@@ -7,7 +7,6 @@ const { validatePdfBase64, ValidationError } = require('./_middleware/validate')
 const {
   checkRateLimit,
   RateLimitError,
-  clientIpFromReq,
 } = require('./_middleware/rateLimit');
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { logAnthropic } = require('./_lib/usage-logger.js');
@@ -2197,9 +2196,20 @@ async function handler(req, res) {
       return res.status(500).json({ ok: false, error: 'Server configuration error.' });
     }
 
-    // Rate limit by IP — 10 req/hour for scan-contract (heavy/expensive call).
-    const ip = clientIpFromReq(req);
-    await checkRateLimit(ip, 'scan-contract', 10, 60 * 60 * 1000);
+    // Rate limit by USER, not IP (2026-10-01 fix). IP-based limiting is
+    // wrong for multi-tenant: any two members filing from the same office
+    // NAT would share one bucket. Two windows:
+    //  - hourly burst cap sized to a REAL single-sitting transaction filing.
+    //    A contract + addenda + amendments + disclosures + inspections +
+    //    title docs commonly runs 15-25 documents; the old 10/hr IP cap cut
+    //    Heath off mid-batch on document #11 while filing a real deal.
+    //  - daily cap as the actual cost-containment lever. Each scan runs
+    //    2-3 Anthropic calls (Haiku identify + Sonnet audit + optional
+    //    Sonnet extract, ~8000 tokens/scan per the usage estimate below) —
+    //    that per-document model cost, not the hourly burst, is what needs
+    //    bounding against runaway/abusive use of one account.
+    await checkRateLimit(jwtUserId, 'scan-contract-hourly', 40, 60 * 60 * 1000);
+    await checkRateLimit(jwtUserId, 'scan-contract-daily', 120, 24 * 60 * 60 * 1000);
 
     const body = req.body || {};
     const { pdfBase64, storagePath, transactionId, fileName } = body;
@@ -2444,7 +2454,15 @@ async function handler(req, res) {
       if (error.retryAfterSeconds) {
         res.setHeader('Retry-After', String(error.retryAfterSeconds));
       }
-      return res.status(429).json({ ok: false, error: 'Rate limit exceeded. Please try again later.' });
+      // Match api/chat.js's pattern: state the limit, the window, and the
+      // real reset time — never a bare "try again later" with no numbers.
+      const limit = error.limit;
+      const windowLabel = error.windowLabel || 'hour';
+      const resetAt = error.resetAt || null;
+      const message = (limit && resetAt)
+        ? `You've used your ${limit} document scans per ${windowLabel}. Resets at ${resetAt}. Any documents already uploaded are saved — they just haven't been auto-scanned yet.`
+        : 'Rate limit exceeded. Please try again later.';
+      return res.status(429).json({ ok: false, error: message, limit, remaining: 0, resetAt, rateLimited: true });
     }
 
     // Anthropic API upstream errors: surface a slightly more useful hint
