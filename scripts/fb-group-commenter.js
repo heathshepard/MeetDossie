@@ -100,6 +100,11 @@ const TC_KEYWORDS = [
 // because the name/URL merely look plausible. See
 // scripts/_lib/group-resolvability-check.js for why.
 const { filterResolvableGroups } = require('./_lib/group-resolvability-check');
+const {
+  looksLikeHarvestArtifactName,
+  extractCommentAnchorId,
+  chooseReplyTarget,
+} = require('./_lib/fb-comment-identity');
 
 function loadGroups() {
   if (!fs.existsSync(GROUPS_FILE)) {
@@ -400,6 +405,13 @@ const HEATH_FB_NAMES = ['Heath Shepard'];
 const TC_BUDGET = 'facebook_reply';
 const TC_ROW_PLATFORM = 'facebook';
 
+// Pre-submit retries (2026-10-01). A failure raised BEFORE any keystroke
+// typed nothing, and postReplyToComment() re-checks the thread for an existing
+// reply from our own account on every attempt — so retrying cannot double-post.
+// Bounded so a genuine DOM change parks the row instead of hammering Facebook.
+const PRESUBMIT_MAX_ATTEMPTS = 3;
+const PRESUBMIT_RETRY_BACKOFF_MS = 4000;
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const normText = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
@@ -534,11 +546,206 @@ async function expandRepliesReadOnly(page) {
 }
 
 /**
+ * Extract every comment article on the page as a plain descriptor, then pick
+ * the reply target with the pure chooser. Optionally click its Reply button.
+ *
+ * Handles BOTH a top-level comment and a nested reply-to-a-reply:
+ *  - anchors on the exact comment id from the permalink (a nested reply's
+ *    permalink carries reply_comment_id — that, not comment_id, is the target);
+ *  - attributes anchors / text / buttons to their OWN article via closest(),
+ *    because Facebook nests a reply's article INSIDE its parent's;
+ *  - picks the DEEPEST matching article, so a parent can never be mistaken for
+ *    the child whose text it contains;
+ *  - treats commenter_name as a tiebreak, never a gate (it used to be a gate,
+ *    and a harvested name of "2w" made the target unreachable).
+ *
+ * @param {object} page   Playwright page, already on the comment permalink
+ * @param {object} row    tc_discovery_responses row
+ * @param {object} opts   { dryRun } — dryRun locates and reports, clicks nothing
+ * @returns {Promise<object>} chooser result + { clicked }
+ */
+async function locateReplyTarget(page, row, opts = {}) {
+  const dryRun = !!opts.dryRun;
+  const anchorId = extractCommentAnchorId(row.comment_permalink);
+  const snippet = normText(row.comment_text).slice(0, 80);
+  const commenterName = row.commenter_name || '';
+
+  // ── In-page extraction (thin + mechanical) + an INLINE COPY of
+  // chooseReplyTarget from scripts/_lib/fb-comment-identity.js. The copy
+  // exists because a page.evaluate() callback cannot close over Node scope and
+  // Facebook's CSP forbids eval'ing the function source. The canonical,
+  // unit-tested version lives in that lib — keep the two in sync.
+  const result = await page.evaluate(({ anchorId: aid, snippet: snip, commenterName: cname, dryRun: dry }) => {
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    const articles = Array.from(document.querySelectorAll('div[role="article"]'));
+    const ownerOf = (el) => el.closest('div[role="article"]');
+
+    const idxOf = new Map(articles.map((a, i) => [a, i]));
+    const candidates = [];
+    articles.forEach((art, idx) => {
+      const ariaLabel = art.getAttribute('aria-label') || '';
+      if (!/^(?:Comment|Reply) by /i.test(ariaLabel)) return;
+
+      let depth = 0;
+      const ancestorArticleIdxs = [];
+      for (let p = art.parentElement; p; p = p.parentElement) {
+        if (p.getAttribute && p.getAttribute('role') === 'article') {
+          depth++;
+          if (idxOf.has(p)) ancestorArticleIdxs.push(idxOf.get(p));
+        }
+      }
+
+      // Each permalink anchor identifies exactly ONE comment: the DEEPEST id in
+      // it. A nested reply's own permalink carries comment_id=<parent> AND
+      // reply_comment_id=<self>, so collecting every id would make the child
+      // match on its parent's id too and make tier-1 ambiguous.
+      const ownAnchorIds = Array.from(art.querySelectorAll('a[href*="comment_id"]'))
+        .filter((a) => ownerOf(a) === art)
+        .map((a) => {
+          const reply = a.href.match(/[?&]reply_comment_id=(\d+)/);
+          if (reply) return reply[1];
+          const top = a.href.match(/[?&]comment_id=(\d+)/);
+          return top ? top[1] : null;
+        })
+        .filter(Boolean);
+
+      const ownText = norm(
+        Array.from(art.querySelectorAll('div[dir="auto"]'))
+          .filter((el) => ownerOf(el) === art)
+          .map((el) => el.innerText)
+          .join(' '),
+      );
+
+      const hasOwnReplyButton = Array.from(art.querySelectorAll('div[role="button"], span[role="button"]'))
+        .filter((b) => ownerOf(b) === art)
+        .some((b) => norm(b.innerText) === 'Reply');
+
+      candidates.push({
+        idx,
+        depth,
+        ariaLabel,
+        ownAnchorIds,
+        ownText,
+        articleText: norm(art.innerText),
+        hasOwnReplyButton,
+        ancestorArticleIdxs,
+      });
+    });
+
+    // ── INLINE COPY of chooseReplyTarget (see note above) ──
+    const RELATIVE_TS_RE = new RegExp('^(?:just now|now|yesterday|\\d+\\s*(?:s|m|h|d|w|y|min|mins|hr|hrs|sec|secs)|\\d+\\s*(?:second|minute|hour|day|week|month|year)s?(?:\\s+ago)?|(?:about\\s+)?(?:an?|\\d+)\\s+(?:second|minute|hour|day|week|month|year)s?\\s+ago)$', 'i');
+    const UI_CHROME_RE = new RegExp('^(?:like|reply|replies|share|follow|edited|author|top contributor|most relevant|all comments|newest|see more|see translation|admin|moderator|group member|view \\d+ repl(?:y|ies))$', 'i');
+    const untrustworthyName = (n) => {
+      const t = norm(n);
+      if (!t) return true;
+      if (RELATIVE_TS_RE.test(t)) return true;
+      if (UI_CHROME_RE.test(t)) return true;
+      if (!/[a-z]/i.test(t)) return true;
+      return false;
+    };
+
+    const list = candidates;
+    const name = norm(cname);
+    const nameTrusted = !!name && !untrustworthyName(name);
+    if (list.length === 0) return { ok: false, reason: 'no_comment_articles', tier: null, candidateCount: 0, nameTrusted };
+
+    let tier = null;
+    let matches = [];
+    if (aid) {
+      matches = list.filter((c) => c.ownAnchorIds.map(String).includes(String(aid)));
+      if (matches.length) tier = 'comment_id';
+    }
+    if (!matches.length && snip) {
+      matches = list.filter((c) => norm(c.ownText).includes(snip));
+      if (matches.length) tier = 'own_text';
+    }
+    if (!matches.length && snip) {
+      matches = list.filter((c) => norm(c.articleText).includes(snip));
+      if (matches.length) tier = 'article_text';
+    }
+    if (!matches.length) return { ok: false, reason: 'no_article_match', tier: null, candidateCount: list.length, nameTrusted };
+
+    let narrowedByName = false;
+    if (matches.length > 1 && nameTrusted) {
+      const byName = matches.filter((c) => c.ariaLabel.toLowerCase().includes(name.toLowerCase()));
+      if (byName.length) { matches = byName; narrowedByName = true; }
+    }
+
+    matches = matches.slice().sort((a, b) => (b.depth - a.depth) || (a.idx - b.idx));
+    const chosen = matches[0];
+
+    let replyButtonFrom = null;
+    let buttonSource = null;
+    if (chosen.hasOwnReplyButton) { replyButtonFrom = chosen.idx; buttonSource = 'own'; } else {
+      const byIdx = new Map(list.map((c) => [c.idx, c]));
+      for (const ancIdx of chosen.ancestorArticleIdxs) {
+        const anc = byIdx.get(ancIdx);
+        if (anc && anc.hasOwnReplyButton) { replyButtonFrom = anc.idx; buttonSource = 'ancestor'; break; }
+      }
+    }
+    if (replyButtonFrom === null) {
+      return { ok: false, reason: 'no_reply_button', tier, idx: chosen.idx, depth: chosen.depth, ariaLabel: chosen.ariaLabel, candidateCount: list.length, nameTrusted };
+    }
+
+    const out = {
+      ok: true,
+      tier,
+      idx: chosen.idx,
+      depth: chosen.depth,
+      ariaLabel: chosen.ariaLabel,
+      replyButtonFrom,
+      buttonSource,
+      matchCount: matches.length,
+      narrowedByName,
+      nameTrusted,
+      candidateCount: list.length,
+      clicked: false,
+    };
+
+    if (!dry) {
+      const host = articles[replyButtonFrom];
+      const btn = Array.from(host.querySelectorAll('div[role="button"], span[role="button"]'))
+        .filter((b) => ownerOf(b) === host)
+        .find((b) => norm(b.innerText) === 'Reply');
+      if (!btn) return { ok: false, reason: 'reply_button_vanished', tier, idx: chosen.idx, candidateCount: list.length, nameTrusted };
+      btn.click();
+      out.clicked = true;
+    }
+    return out;
+  }, { anchorId, snippet, commenterName, dryRun }).catch((err) => ({ ok: false, reason: `evaluate_failed: ${err.message}`, tier: null }));
+
+  return { ...result, anchorId, snippet, commenterNameTrusted: !looksLikeHarvestArtifactName(commenterName) };
+}
+
+/**
+ * PRE-SUBMIT IDEMPOTENCY GUARD.
+ *
+ * Returns true when a reply from our OWN account already carries `replyText`
+ * anywhere in this thread. Checked BEFORE any keystroke so that re-arming a
+ * row that previously failed can never double-post — the hazard behind
+ * "never retry an unverified send". A reply that actually landed but was
+ * recorded as failed is detected here and reconciled instead of repeated.
+ */
+async function findExistingOwnReply(page, replyText) {
+  const wanted = normText(replyText);
+  return page.evaluate(({ names, wanted: w }) => {
+    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+    for (const art of Array.from(document.querySelectorAll('div[role="article"]'))) {
+      const label = art.getAttribute('aria-label') || '';
+      if (!/^(?:Comment|Reply) by /i.test(label)) continue;
+      if (!names.some((n) => label.toLowerCase().includes(n.toLowerCase()))) continue;
+      if (norm(art.innerText).includes(w)) return { found: true, ariaLabel: label };
+    }
+    return { found: false };
+  }, { names: HEATH_FB_NAMES, wanted }).catch(() => ({ found: false }));
+}
+
+/**
  * Post `replyText` THREADED UNDER the specific comment described by `row`
  * (commenter_name + comment_text). This is the capability postComment() above
  * lacks. Throws with submitted=false semantics before any keystroke lands.
  *
- * @returns {Promise<{submitted: boolean}>}
+ * @returns {Promise<{submitted: boolean, alreadyPosted?: boolean}>}
  */
 async function postReplyToComment(page, row, replyText) {
   const targetUrl = row.comment_permalink || row.post_url;
@@ -551,27 +758,29 @@ async function postReplyToComment(page, row, replyText) {
   }
   await expandRepliesReadOnly(page);
 
-  // Find the target comment's article and click ITS Reply button.
-  const commentSnippet = normText(row.comment_text).slice(0, 80);
-  const clicked = await page.evaluate(({ name, snippet }) => {
-    const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
-    const articles = Array.from(document.querySelectorAll('div[role="article"]'));
-    for (const art of articles) {
-      const label = art.getAttribute('aria-label') || '';
-      if (!/^(Comment|Reply) by /i.test(label)) continue;
-      if (!label.toLowerCase().includes(name.toLowerCase())) continue;
-      if (!norm(art.innerText).includes(snippet)) continue;
-      const btns = Array.from(art.querySelectorAll('div[role="button"], span[role="button"]'));
-      for (const b of btns) {
-        if ((b.innerText || '').trim() === 'Reply') { b.click(); return true; }
-      }
-    }
-    return false;
-  }, { name: row.commenter_name, snippet: commentSnippet }).catch(() => false);
-
-  if (!clicked) {
-    throw new Error(`could not locate Reply button for comment by ${row.commenter_name}`);
+  // IDEMPOTENCY FIRST — before any keystroke. If this reply is already live
+  // (e.g. a previous attempt reported failure but actually posted), stop here
+  // rather than posting it twice.
+  const existing = await findExistingOwnReply(page, replyText);
+  if (existing.found) {
+    return { submitted: false, alreadyPosted: true, ariaLabel: existing.ariaLabel };
   }
+
+  // Locate the target comment and click ITS Reply button. Works for a
+  // top-level comment and a nested reply-to-a-reply alike — see
+  // locateReplyTarget() for why the old name-gated locator could not.
+  const loc = await locateReplyTarget(page, row, { dryRun: false });
+  if (!loc.ok) {
+    throw new Error(
+      `could not locate Reply button for comment ${loc.anchorId ? `id=${loc.anchorId}` : `by ${row.commenter_name}`} `
+      + `(reason=${loc.reason}, tier=${loc.tier || 'none'}, comment_articles=${loc.candidateCount}, `
+      + `name_trusted=${loc.nameTrusted})`,
+    );
+  }
+  console.log(
+    `[tc-reply-queue] reply target matched via ${loc.tier} `
+    + `(article #${loc.idx}, depth=${loc.depth}, button=${loc.buttonSource}, label="${loc.ariaLabel}")`,
+  );
   await sleep(2500);
 
   // The reply composer: a contenteditable textbox whose aria-label starts
@@ -694,14 +903,68 @@ async function runTcReplyQueue(deps = {}) {
     }
 
     let submitted = false;
-    try {
-      const postRes = await poster(row, replyText);
-      submitted = !!(postRes && postRes.submitted);
-    } catch (err) {
-      // Nothing was typed/submitted — but do NOT auto-retry (a repeating DOM
-      // failure would hammer the thread). Park it and hand Heath the text.
-      await finalizeReply(sbFetch, row.id, { reply_status: 'post_failed', reply_error: `not_submitted: ${String(err.message).slice(0, 300)}` });
-      await notify(`TC reply FAILED (nothing was posted) for ${row.commenter_name}.\nError: ${err.message}\n\nPost it manually:\n${replyText}\n\n${row.comment_permalink || row.post_url || ''}`);
+    let alreadyPosted = false;
+    // A pre-submit failure typed NOTHING, so retrying it cannot double-post —
+    // and postReplyToComment() re-checks the thread for an existing reply from
+    // our own account before every attempt. So these ARE safe to retry, which
+    // is why a transient DOM/timing hiccup must never become a human task.
+    // (A failure AFTER keystrokes is a different animal and stays terminal
+    // below — that one may be live on Facebook.)
+    let lastErr = null;
+    for (let attempt = 1; attempt <= PRESUBMIT_MAX_ATTEMPTS; attempt++) {
+      try {
+        const postRes = await poster(row, replyText);
+        submitted = !!(postRes && postRes.submitted);
+        alreadyPosted = !!(postRes && postRes.alreadyPosted);
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        log.log(`[tc-reply-queue] pre-submit attempt ${attempt}/${PRESUBMIT_MAX_ATTEMPTS} failed: ${err.message}`);
+        if (attempt < PRESUBMIT_MAX_ATTEMPTS) await sleep(PRESUBMIT_RETRY_BACKOFF_MS * attempt);
+      }
+    }
+
+    // Reconciliation: the reply was already live (a previous run reported
+    // failure but had actually posted). Record reality, post nothing.
+    if (alreadyPosted) {
+      await finalizeReply(sbFetch, row.id, {
+        reply_status: 'posted',
+        replied: true,
+        reply_posted_at: new Date().toISOString(),
+        reply_error: null,
+      });
+      out.posted++;
+      log.log(`[tc-reply-queue] reply to ${row.commenter_name} was ALREADY live — reconciled, nothing posted`);
+      continue;
+    }
+
+    if (lastErr) {
+      // Exhausted the safe retries. Park in the 'not_submitted:' shape, which
+      // api/_lib/silence-alarm.js deliberately classifies as
+      // safe-to-retry-or-already-actioned (NOT "may have posted"), so every
+      // existing watcher keeps its current semantics.
+      //
+      // ESCALATION (2026-10-01): this used to end with "Post it manually:" and
+      // the reply text — turning a mechanical selector failure into a chore for
+      // Heath. Daily social ops are Cole's job. The message now names Cole as
+      // owner and hands over the one command that re-arms the row, so the fix
+      // path is mechanical. Heath is only involved if the CONTENT needs a
+      // judgement call, which a DOM failure never is.
+      await finalizeReply(sbFetch, row.id, {
+        reply_status: 'post_failed',
+        reply_error: `not_submitted: ${String(lastErr.message).slice(0, 300)}`,
+      });
+      await notify(
+        `TC reply could not be posted after ${PRESUBMIT_MAX_ATTEMPTS} attempts — nothing was submitted.\n`
+        + `COLE OWNS THIS. No action needed from Heath.\n\n`
+        + `Row: ${row.id}\n`
+        + `Thread: ${row.comment_permalink || row.post_url || ''}\n`
+        + `Diagnostic: ${lastErr.message}\n\n`
+        + `Cole: re-arm after fixing the locator with\n`
+        + `  node scripts/rearm-tc-reply.js --row ${row.id}\n`
+        + `The queue then reposts it automatically; it re-checks the thread first, so re-arming cannot double-post.`,
+      );
       out.failed++;
       continue;
     }
@@ -729,7 +992,16 @@ async function runTcReplyQueue(deps = {}) {
         reply_status: 'post_failed',
         reply_error: 'submitted but verification could not find the reply in the re-rendered thread',
       });
-      await notify(`TC reply to ${row.commenter_name} was submitted but could NOT be verified in the thread. Check manually before re-posting (it may be live):\n${row.comment_permalink || row.post_url || ''}`);
+      await notify(
+        `TC reply was submitted but could NOT be verified in the thread — it may be LIVE.\n`
+        + `COLE OWNS THIS. No action needed from Heath.\n\n`
+        + `Row: ${row.id}\n`
+        + `Thread: ${row.comment_permalink || row.post_url || ''}\n\n`
+        + `Terminal by design — the queue will NOT auto-retry, because re-posting a reply that `
+        + `actually landed is a double-reply. Cole: open the thread, confirm whether it is live, `
+        + `then either mark it posted or re-arm with\n`
+        + `  node scripts/rearm-tc-reply.js --row ${row.id}`,
+      );
       out.failed++;
     }
 

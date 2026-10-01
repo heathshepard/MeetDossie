@@ -120,6 +120,7 @@ const DAY = 24 * HOUR;
 const CAMPAIGN_WINDOW_MS = 45 * DAY;
 
 const { isJunkText } = require('./_lib/junk-text-guard');
+const { pickAuthorName, extractCommentAnchorId } = require('./_lib/fb-comment-identity');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const md5 = (s) => crypto.createHash('md5').update(s, 'utf8').digest('hex');
@@ -258,10 +259,25 @@ function inferQuestionId(post) {
 async function upsertComments(post, comments, nowIso = new Date().toISOString()) {
   const questionId = inferQuestionId(post);
   const { ok, data, status } = await supabaseFetch(
-    `/rest/v1/tc_discovery_responses?post_url=eq.${encodeURIComponent(post.post_url)}&select=id,commenter_name,comment_hash`,
+    `/rest/v1/tc_discovery_responses?post_url=eq.${encodeURIComponent(post.post_url)}&select=id,commenter_name,comment_hash,comment_permalink`,
   );
   if (!ok) throw new Error(`existing-rows fetch failed (${status}): ${JSON.stringify(data).slice(0, 200)}`);
   const existing = new Map((data || []).map((r) => [`${r.commenter_name}::${r.comment_hash}`, r.id]));
+
+  // SECOND DEDUPE AXIS — Facebook's own comment id, taken from the stored
+  // permalink (2026-10-01). The author::hash key alone is not stable across a
+  // change in how we extract the author: six rows were harvested with the
+  // relative timestamp as commenter_name ("2w", "1d", "22h", "23h", "1w",
+  // "2d"), and fixing that extraction would otherwise make every one of them
+  // look like a brand-new comment — re-inserting duplicates, re-notifying
+  // Heath, and risking a second reply to a comment already answered. A comment
+  // id identifies the comment itself and never changes, so it is the stable
+  // axis. Rows with a null permalink simply aren't in this map.
+  const existingByCommentId = new Map();
+  for (const r of data || []) {
+    const cid = extractCommentAnchorId(r.comment_permalink);
+    if (cid && !existingByCommentId.has(cid)) existingByCommentId.set(cid, r.id);
+  }
 
   const inserts = [];
   const seenIds = [];
@@ -283,12 +299,16 @@ async function upsertComments(post, comments, nowIso = new Date().toISOString())
     // Nested replies carry BOTH ids (?comment_id=PARENT&reply_comment_id=CHILD).
     // Dedupe on the reply's own id when present — matching the parent id here
     // silently discarded EVERY nested reply as a duplicate (bug found 2026-09-08).
-    const cidMatch = c.permalink
-      ? (String(c.permalink).match(/reply_comment_id=(\d+)/) || String(c.permalink).match(/[?&]comment_id=(\d+)/))
-      : null;
-    if (cidMatch) {
-      if (localCommentIds.has(cidMatch[1])) { skipped++; continue; }
-      localCommentIds.add(cidMatch[1]);
+    const cid = extractCommentAnchorId(c.permalink);
+    if (cid) {
+      if (localCommentIds.has(cid)) { skipped++; continue; }
+      localCommentIds.add(cid);
+      // Already stored under ANY commenter_name — treat as seen, never insert
+      // a second row for the same Facebook comment.
+      if (existingByCommentId.has(cid)) {
+        seenIds.push(existingByCommentId.get(cid));
+        continue;
+      }
     }
     const key = `${author}::${normHash(text)}`;
     if (localKeys.has(key)) { skipped++; continue; }
@@ -457,12 +477,24 @@ async function scrapeComments(page, postUrl) {
       if (!m) continue; // the original post's article has no "Comment by" label
       // Live labels look like "Comment by Chaska Wilkinson about an hour ago"
       // / "... 36 minutes ago" — strip the trailing relative-time phrase.
-      let author = m[1].replace(/\s+(?:about\s+)?(?:an?|\d+)\s+(?:second|minute|hour|day|week|month|year)s?\s+ago$/i, '').trim();
-      // Prefer the first profile link's text when present (cleaner than aria-label parsing)
-      const authorLink = art.querySelector('a[role="link"] span, a[role="link"] strong');
-      if (authorLink && authorLink.innerText && authorLink.innerText.trim()) {
-        author = authorLink.innerText.trim();
-      }
+      const author = m[1]
+        .replace(/\s+(?:about\s+)?(?:an?|\d+)\s+(?:second|minute|hour|day|week|month|year)s?\s+ago$/i, '')
+        .replace(/\s+\d+\s*(?:s|m|h|d|w|y)$/i, '')
+        .trim();
+      // Profile-link candidate, scoped to THIS article (querySelector would
+      // otherwise descend into a nested reply's article and grab ITS author).
+      //
+      // 2026-10-01: this used to unconditionally OVERWRITE `author` with the
+      // first `a[role="link"] span` text. On a NESTED reply that first link is
+      // the timestamp permalink, so commenter_name was stored as "2w" — and
+      // fb-group-commenter.js then required that name to match the aria-label,
+      // so the Reply button could never be found. Six rows carry timestamp
+      // names from this bug. The candidate is now returned alongside the
+      // aria-label and the choice is made by pickAuthorName() in Node, which
+      // only lets the link win when it is plausibly a name.
+      const authorLinkEl = Array.from(art.querySelectorAll('a[role="link"] span, a[role="link"] strong'))
+        .find((el) => el.closest('div[role="article"]') === art);
+      const authorLinkText = authorLinkEl && authorLinkEl.innerText ? authorLinkEl.innerText.trim() : null;
       // Comment body: FB nests the message in div[dir="auto"] blocks.
       const blocks = Array.from(art.querySelectorAll('div[dir="auto"]'))
         .map((el) => el.innerText)
@@ -492,12 +524,18 @@ async function scrapeComments(page, postUrl) {
         if (permId !== targetPostId) continue;
       }
 
-      if (author && text) out.push({ author, text, permalink, atRaw });
+      if (author && text) out.push({ author, ariaLabel: label, authorLinkText, text, permalink, atRaw });
     }
     return out;
   }, extractPostId(postUrl)).catch(() => []);
 
-  return raw.map((c) => ({ ...c, at: parseRelativeTimestamp(c.atRaw) }));
+  // Author choice happens HERE, in Node, against the canonical pure helper —
+  // not inside page.evaluate() where it cannot be unit tested.
+  return raw.map((c) => ({
+    ...c,
+    author: pickAuthorName(c.ariaLabel, c.authorLinkText) || c.author,
+    at: parseRelativeTimestamp(c.atRaw),
+  }));
 }
 
 async function launchContext(headless) {
