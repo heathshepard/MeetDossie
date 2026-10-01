@@ -10,7 +10,12 @@
 //      posting_schedule row (time_slots + max_per_day + max_per_slot).
 //   2. Skip the platform until the next slot's clock-time has arrived
 //      (compares now-in-platform-tz against time_slots).
-//   3. Skip the platform once max_per_day is reached for today.
+//   3. Skip the platform once max_per_day is reached for today — a pending
+//      video_library row (heath_approved / pending_heath_review, targeting
+//      this platform+owner today) RESERVES part of that cap first, so a
+//      video can never lose its slot to a text post that merely ran
+//      earlier in the day (Carter 2026-10-01 — see api/_lib/
+//      video-reservation.js for the mechanism and incident history).
 //   4. tiktok rows are flipped to status='pending_video' (Zernio rejects
 //      text-only TikTok); they'll be picked up when a video is attached
 //      via the DONE pipeline. TikTok is ACTIVE at 1/day (cap in posting_schedule).
@@ -45,6 +50,11 @@ const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 const { tagOutboundLinks } = require('./_lib/content-tag.js');
 const { logAutonomousAction } = require('./_lib/ops-policy.js');
+// VIDEO-PRIORITY RESERVATION (Carter, 2026-10-01) — see api/_lib/
+// video-reservation.js file header for the full incident history and
+// mechanism rationale. isDueForPublish() below uses this to refuse a text
+// post's slot when a pending video needs it today.
+const { countReservedForVideo } = require('./_lib/video-reservation.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -733,13 +743,59 @@ async function countPostedToday(platform, tz, owner) {
   const { data: publishingData, ok: publishingOk } = await supabaseFetch(`/rest/v1/social_posts?${publishingFilter}`);
   const publishingCount = publishingOk && Array.isArray(publishingData) ? publishingData.length : 0;
 
-  const count = postedCount + publishingCount;
+  // Count video_library rows already posted today on this platform/owner
+  // (Carter 2026-10-01 — VIDEO-PRIORITY). Previously this function counted
+  // ONLY social_posts, while cron-post-videos.js's own getPostCountsToday()
+  // counts BOTH social_posts AND video_library into the SAME shared
+  // posting_schedule cap. That let text's own gate under-count real usage
+  // on any day a video had already posted first — text could then publish
+  // past the platform's real max_per_day. Mirrors getPostCountsToday()'s
+  // gate_skipped-aware logic exactly: a platform a video row TARGETED but
+  // never actually reached Zernio for (gated out, recorded as a
+  // 'gate_skipped' zernio_deliveries entry) must not inflate this count —
+  // only genuinely-attempted platforms count as real usage.
+  const videoFilter = `status=in.(posted,posted_partial)${ownerFilter}` +
+    `&posted_date=gte.${encodeURIComponent(startOfDayUtc)}` +
+    `&posted_date=lte.${encodeURIComponent(endOfDayUtc)}` +
+    `&select=id,platforms,zernio_deliveries`;
+  const { data: videoData, ok: videoOk } = await supabaseFetch(`/rest/v1/video_library?${videoFilter}`);
+  let videoCount = 0;
+  if (videoOk && Array.isArray(videoData)) {
+    for (const row of videoData) {
+      if (!Array.isArray(row.platforms) || !row.platforms.includes(platform)) continue;
+      const skipped = new Set(
+        (Array.isArray(row.zernio_deliveries) ? row.zernio_deliveries : [])
+          .filter((e) => e && e.status === 'gate_skipped')
+          .map((e) => e.platform),
+      );
+      if (!skipped.has(platform)) videoCount += 1;
+    }
+  }
+
+  const count = postedCount + publishingCount + videoCount;
   if (count > 0) {
     const postedIds = postedOk && Array.isArray(postedData) ? postedData.map(p => `${p.post_id}(posted)`) : [];
     const publishingIds = publishingOk && Array.isArray(publishingData) ? publishingData.map(p => `${p.post_id}(publishing)`) : [];
-    console.log(`[countPostedToday] ${platform}/${owner || 'any'}: found ${count} (${postedCount} posted + ${publishingCount} publishing):`, [...postedIds, ...publishingIds].join(', '));
+    console.log(`[countPostedToday] ${platform}/${owner || 'any'}: found ${count} (${postedCount} posted + ${publishingCount} publishing + ${videoCount} video):`, [...postedIds, ...publishingIds].join(', '));
   }
   return count;
+}
+
+// Load today's pending (not-yet-posted) video_library rows for `owner` that
+// could reserve a platform slot today — see api/_lib/video-reservation.js
+// for the full mechanism/rationale. Fetched fresh per isDueForPublish() call
+// (same no-cache style as countPostedToday, immediately above) so a video
+// that gets Heath-approved mid-run is reserved for on the very next
+// iteration, not just the next cron invocation.
+async function loadPendingVideoRowsForReservation(owner) {
+  const ownerVal = owner || 'dossie';
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(heath_approved,pending_heath_review)` +
+    `&target_owner=eq.${encodeURIComponent(ownerVal)}` +
+    `&select=id,status,target_owner,platforms,scheduled_for`,
+  );
+  if (!ok || !Array.isArray(data)) return null; // null = query failed, caller fails closed
+  return data;
 }
 
 // Decide if `platform` should publish right now: needs schedule row,
@@ -772,8 +828,34 @@ async function isDueForPublish(platform, schedules, owner) {
   const cap = row.max_per_day ?? null;
   if (cap != null) {
     const already = await countPostedToday(platform, tz, owner);
-    if (already >= cap) {
-      return { due: false, reason: `daily cap reached for owner=${owner || 'dossie'} (${already}/${cap})` };
+
+    // VIDEO-PRIORITY RESERVATION (Carter, 2026-10-01 — Heath: "Video is the
+    // priority. We should always be doing video moving forward."). Text
+    // must not consume a slot a pending video needs TODAY. Evaluated here,
+    // at text's own run time — not in cron-post-videos.js — because text
+    // runs earlier in the day and by the time the video batch scans, the
+    // slot text took is already gone. See api/_lib/video-reservation.js for
+    // which video rows count as "reserved" and the full incident history.
+    //
+    // Fails CLOSED (refuses the text post) if the reservation query itself
+    // fails: we cannot prove a slot is safe to hand to text without it, and
+    // the stated priority is video, not text — same fail-closed posture
+    // this file already uses for an unreadable schedule/cap.
+    const pendingVideoRows = await loadPendingVideoRowsForReservation(owner);
+    if (pendingVideoRows === null) {
+      return { due: false, reason: `video-reservation query failed — failing closed for owner=${owner || 'dossie'} (video priority)` };
+    }
+    const startOfDayIso = DateTime.now().setZone(tz).startOf('day').toUTC().toISO();
+    const endOfDayIso = DateTime.now().setZone(tz).endOf('day').toUTC().toISO();
+    const reservedForVideo = countReservedForVideo(pendingVideoRows, {
+      platform, owner, startOfDayIso, endOfDayIso,
+    });
+
+    if (already + reservedForVideo >= cap) {
+      return {
+        due: false,
+        reason: `daily cap reached for owner=${owner || 'dossie'} (${already}/${cap} used, ${reservedForVideo} reserved for pending video today)`,
+      };
     }
   }
   return { due: true, reason: `slot ${passedSlots[passedSlots.length - 1]} passed` };
