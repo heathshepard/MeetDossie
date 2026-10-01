@@ -58,11 +58,10 @@ const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
 
 const IDENTIFY_PROMPT = `You are a Texas real estate document expert. Identify this document type precisely using the TREC form number, title, and key distinguishing features.
 
-Return ONLY a JSON object with no markdown:
+Return ONLY a JSON object with no markdown — exactly these two keys, nothing else:
 {
   "documentType": "<type>",
-  "confidence": <0-1>,
-  "reasoning": "<one sentence explaining what you saw that led to this identification>"
+  "confidence": <0-1>
 }
 
 Document types and their KEY IDENTIFIERS:
@@ -458,14 +457,26 @@ Return compliance JSON:
   "summary": ""
 }`,
 
-  'other': `You are a Texas TC reviewing a real estate document. Extract any relevant fields you can find including names, dates, addresses, amounts, and contact information. Note the document type and purpose.
+  // 2026-10-01: this branch used to hardcode "passed": true and omit all
+  // four compliance array keys — Dossie could not identify the document,
+  // ran no audit against it at all, and still rendered a green "Verified /
+  // Everything looks good — no missing signatures" card on a contract
+  // whose signature lines were blank. Unknown document type must render as
+  // UNKNOWN, never as a pass. auditNotPerformed:true is read by the
+  // frontend (ComplianceReportCard) to suppress the "no issues found"
+  // claim for every category entirely, since none of them were checked.
+  'other': `You are a Texas TC reviewing a real estate document that could not be confidently classified into a known TREC/TAR form type. Extract any relevant fields you can find. Note the document type and purpose. Do NOT attempt to judge whether signatures, initials, or required fields are complete — you do not know what this document requires, so do not claim it passed or failed.
 
-Return JSON:
+Use these exact flat key names in extractedFields (omit any key you found nothing for — do not nest, do not invent new key names):
+propertyAddress, cityStateZip, buyerName, sellerName, buyerEmail, buyerPhone, sellerEmail, sellerPhone, salePrice, earnestMoney, optionFee, closingDate, contractEffectiveDate, titleCompany, lenderName, loanOfficerName, loanOfficerEmail, loanOfficerPhone, hoaName, hoaPhone, hoaManagementCompany.
+
+Return ONLY this JSON — "passed" must always be false and "auditNotPerformed" must always be true, because no compliance check was run:
 {
-  "passed": true,
+  "passed": false,
+  "auditNotPerformed": true,
   "documentDescription": "description of what this document is",
   "extractedFields": {},
-  "warnings": [],
+  "warnings": ["This document type wasn't automatically recognized, so Dossie did not run a compliance check on it. Review it manually."],
   "summary": "brief description of document contents"
 }`,
 };
@@ -1952,9 +1963,18 @@ async function identifyDocument(pdfBase64) {
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
   const modelToUse = isLargePdf ? MODEL : IDENTIFY_MODEL;
 
+  // 2026-10-01: was max_tokens:200 against a 35-entry enum + a free-text
+  // "reasoning" sentence — that reasoning field had no length cap, and on
+  // 3 of 7 real production runs (specimen TREC 20-17) the response
+  // truncated mid-JSON, safeParseJson failed, and this silently fell back
+  // to documentType:'other', confidence:0. Dropped the free-text field
+  // (prompt above now asks for only documentType + confidence, which
+  // cannot meaningfully overflow 300 tokens) and raised the budget as a
+  // second line of defense. Parse failure is now logged loudly instead of
+  // silently degrading — see console.error below.
   const response = await anthropic.messages.create({
     model: modelToUse,
-    max_tokens: 200,
+    max_tokens: 300,
     messages: [{
       role: 'user',
       content: [
@@ -1964,18 +1984,28 @@ async function identifyDocument(pdfBase64) {
     }],
   });
   const textBlock = (response.content || []).find((b) => b.type === 'text');
-  const parsed = safeParseJson(textBlock ? textBlock.text : '') || {};
-  const rawType = typeof parsed.documentType === 'string' ? parsed.documentType : 'other';
+  const rawText = textBlock ? textBlock.text : '';
+  const parsed = safeParseJson(rawText);
+  if (!parsed || typeof parsed !== 'object') {
+    console.error('[identifyDocument] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
+      response.stop_reason, rawText.length, rawText.slice(0, 400));
+  }
+  const safeParsed = parsed || {};
+  const rawType = typeof safeParsed.documentType === 'string' ? safeParsed.documentType : 'other';
   const documentType = DOCUMENT_LABELS[rawType] ? rawType : 'other';
+  if (documentType === 'other' && rawType !== 'other') {
+    console.error('[identifyDocument] model returned unrecognized documentType=%s, falling back to other', rawType);
+  }
   return {
     documentType,
-    confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+    confidence: typeof safeParsed.confidence === 'number' ? safeParsed.confidence : 0,
   };
 }
 
 function emptyComplianceReport(docLabel) {
   return {
     passed: false,
+    auditNotPerformed: true,
     missingSignatures: [],
     missingInitials: [],
     blankRequiredFields: [],
@@ -2026,15 +2056,26 @@ async function auditCompliance(pdfBase64, documentType) {
     return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
   }
   const arr = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
+  // documentType === 'other' means Dossie could not confidently classify
+  // this document — enforced server-side (not just via the prompt) so a
+  // model that ignores its instructions can never make an unaudited
+  // document render as "passed". See 2026-10-01 fix comment above
+  // COMPLIANCE_PROMPTS.other.
+  const isUnclassified = documentType === 'other' || !COMPLIANCE_PROMPTS[documentType];
+  const warnings = arr(parsed.warnings);
+  if (isUnclassified && !warnings.some((w) => /did not run a compliance check|could not be classified|wasn.t automatically recognized/i.test(w))) {
+    warnings.push("This document type wasn't automatically recognized, so Dossie did not run a compliance check on it. Review it manually.");
+  }
   return {
-    passed: parsed.passed === true,
+    passed: isUnclassified ? false : parsed.passed === true,
+    auditNotPerformed: isUnclassified ? true : parsed.auditNotPerformed === true,
     missingSignatures: arr(parsed.missingSignatures),
     missingInitials: arr(parsed.missingInitials),
     blankRequiredFields: arr(parsed.blankRequiredFields),
     checkedAddenda: arr(parsed.checkedAddenda),
     missingAddenda: arr(parsed.missingAddenda),
     extractedFields: (parsed.extractedFields && typeof parsed.extractedFields === 'object') ? parsed.extractedFields : {},
-    warnings: arr(parsed.warnings),
+    warnings,
     summary: typeof parsed.summary === 'string' ? parsed.summary : '',
     documentDescription: typeof parsed.documentDescription === 'string' ? parsed.documentDescription : null,
   };
