@@ -67,6 +67,7 @@ const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { applyCorsHeaders } = require('./_middleware/cors');
 const { mergeContractFieldDrafts } = require('./_lib/merge-contract-field-drafts');
 const { findNotarizationRequirement, notarizationRefusalMessage } = require('./_lib/notarization-required-forms');
+const { gateOutboundRecipient } = require('./_lib/transaction-send-gate');
 const {
   evaluateElections,
   summarize: summarizeElections,
@@ -1963,6 +1964,19 @@ module.exports = async function handler(req, res) {
         throw new ValidationError('Document has no storage path — cannot send for acknowledgment.', 422);
       }
 
+      // Gate 2/3 (docs/DOSSIE-TRANSACTION-AGENT-SPEC.md §3) — an
+      // acknowledgment signer is only ever supposed to be the member's OWN
+      // buyer client. If this transaction's side is the listing side,
+      // "buyer" IS the other side's represented client, and this refuses
+      // exactly the same as a hand-typed address would.
+      const ackTransactionId = transactionId || doc.transaction_id || null;
+      for (const addr of [buyerEmail, buyerEmail2].filter(Boolean)) {
+        const gate = await gateOutboundRecipient({ userId, transactionId: ackTransactionId, email: addr });
+        if (!gate.ok) {
+          return res.status(gate.status || 403).json({ ok: false, error: gate.error, blocked: gate.blocked || null });
+        }
+      }
+
       const { submissionId, signerRows, templateId: createdTemplateId } = await sendForAcknowledgment({
         doc,
         userId,
@@ -2124,6 +2138,17 @@ module.exports = async function handler(req, res) {
         ? [...signers, { name: agentSignerName, email: agentSignerEmail, role: 'Agent' }]
         : signers;
 
+      // Gate 2/3 (docs/DOSSIE-TRANSACTION-AGENT-SPEC.md §3) — never invite
+      // the other side's represented client into an e-sign envelope.
+      // Checked server-side on every signer BEFORE any PDF/field work runs,
+      // so a refusal here never has a half-built packet behind it.
+      for (const s of packetSigners) {
+        const gate = await gateOutboundRecipient({ userId, transactionId: packetTransactionId, email: s.email, tx: packetTx });
+        if (!gate.ok) {
+          return res.status(gate.status || 403).json({ ok: false, error: gate.error, blocked: gate.blocked || null });
+        }
+      }
+
       // Build every document entry: PDF bytes + gated field placement.
       // Signer→slot assignment is deterministic from the same signers array
       // on every document, so Buyer 1 is the same person on every form.
@@ -2279,6 +2304,17 @@ module.exports = async function handler(req, res) {
           { name: agentSignerName, email: agentSignerEmail, role: 'Agent' },
         ]
       : signers;
+
+    // Gate 2/3 (docs/DOSSIE-TRANSACTION-AGENT-SPEC.md §3) — never invite the
+    // other side's represented client into an e-sign envelope. Same gate as
+    // the packet path above, checked on every signer before any field
+    // placement / election evaluation runs.
+    for (const s of allSigners) {
+      const gate = await gateOutboundRecipient({ userId, transactionId, email: s.email, tx });
+      if (!gate.ok) {
+        return res.status(gate.status || 403).json({ ok: false, error: gate.error, blocked: gate.blocked || null });
+      }
+    }
 
     // Election gate on the single-document path. This is the most common send
     // of all — one resale contract — and until 2026-09-17 it reached DocuSeal

@@ -15,6 +15,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY — service-role JWT (for email_queue logging)
 
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
+const { gateOutboundRecipient } = require('./_lib/transaction-send-gate');
 
 const ALLOWED_ORIGINS = new Set([
   'https://meetdossie.com',
@@ -88,6 +89,23 @@ module.exports = async function handler(req, res) {
 
   if (!process.env.RESEND_API_KEY) {
     return res.status(500).json({ ok: false, error: 'Email service not configured' });
+  }
+
+  // Gate 2 (docs/DOSSIE-TRANSACTION-AGENT-SPEC.md §3) — never contact the
+  // other side's represented clients directly. Checked server-side, after
+  // the model has already committed to this recipient list — unbypassable
+  // by conversation because it never runs inside the conversation at all.
+  // transactionId is optional on this endpoint (a non-deal email has no
+  // represented party to protect), so every address is only checked when one
+  // is present. ALL addresses are gated before ANYTHING is sent.
+  const cleanTransactionId = typeof transactionId === 'string' && transactionId.trim() ? transactionId.trim() : null;
+  if (cleanTransactionId) {
+    for (const addr of uniqueToList) {
+      const gate = await gateOutboundRecipient({ userId, transactionId: cleanTransactionId, email: addr });
+      if (!gate.ok) {
+        return res.status(gate.status || 403).json({ ok: false, error: gate.error, blocked: gate.blocked || null });
+      }
+    }
   }
 
   const trimmedTo = uniqueToList.join(', ');
