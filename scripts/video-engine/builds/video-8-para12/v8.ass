@@ -1,0 +1,51 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cap,Plus Jakarta Sans ExtraBold,80,&H00FFFFFF,&H00FFFFFF,&H00101010,&H00101010,-1,0,0,0,100,100,1,0,3,20,0,2,80,80,1005,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:02.55,0:00:03.28,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}BROKER COMPENSATION.
+Dialogue: 0,0:00:03.30,0:00:03.54,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}IT'S IN THE
+Dialogue: 0,0:00:03.56,0:00:04.36,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}CONTRACT, PARAGRAPH
+Dialogue: 0,0:00:04.38,0:00:05.74,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}{\c&H43C5F5&}12B.{\c&HFFFFFF&} YOUR BUYER'S
+Dialogue: 0,0:00:05.76,0:00:06.68,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}REP AGREEMENT SAYS
+Dialogue: 0,0:00:06.74,0:00:07.62,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}{\c&H43C5F5&}3%,{\c&HFFFFFF&} SO YOU'RE
+Dialogue: 0,0:00:07.64,0:00:08.68,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}COVERED, RIGHT? READ
+Dialogue: 0,0:00:08.70,0:00:09.44,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}THE SENTENCE RIGHT
+Dialogue: 0,0:00:09.46,0:00:10.42,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}ABOVE THOSE BOXES.
+Dialogue: 0,0:00:10.44,0:00:11.34,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}THE CONTRIBUTION GETS
+Dialogue: 0,0:00:11.36,0:00:12.24,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}APPLIED TO WHAT
+Dialogue: 0,0:00:12.26,0:00:13.10,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}YOUR CLIENT ALREADY
+Dialogue: 0,0:00:13.12,0:00:13.86,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}AGREED TO PAY
+Dialogue: 0,0:00:13.88,0:00:14.46,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}YOU. THOSE ARE
+Dialogue: 0,0:00:14.48,0:00:15.26,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}THE CONTRACT'S WORDS,
+Dialogue: 0,0:00:15.28,0:00:16.68,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}SHALL NOT CHANGE.
+Dialogue: 0,0:00:16.72,0:00:17.34,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}SO THE SELLER'S
+Dialogue: 0,0:00:17.36,0:00:18.14,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}{\c&H43C5F5&}2%{\c&HFFFFFF&} COMES IN,
+Dialogue: 0,0:00:18.16,0:00:18.80,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}AND YOUR BUYER
+Dialogue: 0,0:00:18.82,0:00:19.46,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}STILL OWES YOU
+Dialogue: 0,0:00:19.48,0:00:20.22,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}THE OTHER {\c&H43C5F5&}1%{\c&HFFFFFF&}
+Dialogue: 0,0:00:20.24,0:00:20.96,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}AT CLOSING. AND
+Dialogue: 0,0:00:20.98,0:00:21.32,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}IF YOUR BUYER
+Dialogue: 0,0:00:21.34,0:00:21.74,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}DIDN'T KNOW THAT
+Dialogue: 0,0:00:21.76,0:00:22.38,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}WAS COMING, YOU'RE
+Dialogue: 0,0:00:22.40,0:00:23.42,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}HAVING THAT CONVERSATION
+Dialogue: 0,0:00:23.44,0:00:24.08,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}AT THE CLOSING
+Dialogue: 0,0:00:24.10,0:00:25.28,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}TABLE. THE CONTRACT
+Dialogue: 0,0:00:25.40,0:00:26.48,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}ISN'T DECIDING WHAT
+Dialogue: 0,0:00:26.50,0:00:27.18,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}YOU GET PAID,
+Dialogue: 0,0:00:27.20,0:00:27.94,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}THE BUYER'S REP
+Dialogue: 0,0:00:27.96,0:00:29.02,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}AGREEMENT DECIDES THAT.
+Dialogue: 0,0:00:29.04,0:00:29.64,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}COMMENT 'PAID', AND
+Dialogue: 0,0:00:29.66,0:00:30.20,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}I'LL SEND YOU
+Dialogue: 0,0:00:30.22,0:00:30.98,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}A PLAIN ENGLISH
+Dialogue: 0,0:00:31.00,0:00:32.08,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}BREAKDOWN OF PARAGRAPH
+Dialogue: 0,0:00:32.10,0:00:33.02,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}12, BOX BY
+Dialogue: 0,0:00:33.04,0:00:33.46,Cap,,0,0,0,,{\fad(40,60)\t(0,90,\fscx105\fscy105)\t(90,160,\fscx100\fscy100)}BOX.
