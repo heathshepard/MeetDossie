@@ -17,6 +17,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="/assets/posthog-loader.js"></script>
+<!-- 2026-10-02 (Pierce, lead-attribution-1002): first/last-touch capture so
+     "which post drove this lead-magnet signup" is answerable the same way
+     it already is on index.html/signup.html. See assets/dossie-acquisition.js
+     and api/_lib/attribution.js's lead_magnet_signups_* fields. -->
+<script src="/assets/dossie-acquisition.js"></script>
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"TREC Deadline Checklist — Every Date-Driven Obligation in the 20-19 Contract","description":"Every deadline in TREC 20-19, in order — what's printed, what's a blank, who owes it, and what it costs when missed.","author":{"@type":"Person","name":"Heath Shepard","jobTitle":"Texas REALTOR®"},"publisher":{"@type":"Organization","name":"Dossie","url":"https://meetdossie.com"},"mainEntityOfPage":"https://meetdossie.com/marketing/trec-deadline-checklist.html","datePublished":"2026-09-30","dateModified":"2026-09-30"}</script>
 
@@ -397,8 +402,24 @@ h1.title em { font-style: italic; color: var(--blush-deep); }
     }
     btn.disabled = true;
     btn.textContent = 'Sending…';
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/waitlist', {
+
+    // 2026-10-02 (Pierce, lead-attribution-1002): attach first/last-touch so
+    // "which post drove this lead-magnet signup" is answerable — see
+    // assets/dossie-acquisition.js and api/_lib/attribution.js's
+    // lead_magnet_signups_* fields. The columns may not be migrated in this
+    // environment yet (supabase/migrations/20261002_waitlist_first_last_touch.sql,
+    // NOT applied — Heath's call). postWaitlist() retries once WITHOUT the
+    // touch fields on any non-OK response so the actual email capture never
+    // breaks because an attribution column isn't live yet.
+    var firstTouch = (window.DossieAcquisition && window.DossieAcquisition.getFirstTouch) ? window.DossieAcquisition.getFirstTouch() : null;
+    var lastTouch = (window.DossieAcquisition && window.DossieAcquisition.getLastTouch) ? window.DossieAcquisition.getLastTouch() : null;
+    function postWaitlist(withTouch) {
+      var payload = { email: email, source: 'trec-deadline-checklist' };
+      if (withTouch) {
+        payload.first_touch = firstTouch;
+        payload.last_touch = lastTouch;
+      }
+      return fetch(SUPABASE_URL + '/rest/v1/waitlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -406,8 +427,15 @@ h1.title em { font-style: italic; color: var(--blush-deep); }
           'Authorization': 'Bearer ' + ANON_KEY,
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ email: email, source: 'trec-deadline-checklist' })
+        body: JSON.stringify(payload)
       });
+    }
+
+    try {
+      var res = await postWaitlist(!!(firstTouch || lastTouch));
+      if (!res.ok && (firstTouch || lastTouch)) {
+        res = await postWaitlist(false);
+      }
       if (res.ok) {
         result.classList.add('ok');
         result.textContent = "Sent — check your inbox.";

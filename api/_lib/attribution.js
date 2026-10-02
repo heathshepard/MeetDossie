@@ -36,7 +36,41 @@
 // forever unless a link-in-bio tool is added. Surfaced in every summary so
 // it's never mistaken for "no interest."
 //
-// Owner: Carter, 2026-09-17
+// 2026-10-02 ADDITION (Pierce, feat/lead-attribution-1002 — lead-attribution
+// instrumentation task): founding_applications has been STRUCTURALLY DEAD as
+// a "signup" event since founding closed 2026-08-04 — no current Solo/Team
+// signup ever creates a row there (there is no application step in that
+// flow), so signupBucket/totals.signups_total below silently read zero for
+// ALL current acquisition and have since the closure. Left in place
+// unmodified (silence-alarm.js and scripts/regression-attribution.js already
+// depend on its exact field names/semantics) for historical/legacy
+// reporting only — it is not evidence the funnel is dead, just that this
+// particular table stopped being the entry point 2026-08-04.
+//
+// Two NEW, PURELY ADDITIVE buckets measure what actually happens today:
+//   - trial starts: subscriptions.status === 'trialing' (the real signup-
+//     equivalent event for the current 14-day card-required Solo/Team trial,
+//     api/create-checkout-session.js TRIAL_DAYS, schema in
+//     supabase/migrations/20260926_trial_fields.sql).
+//   - lead-magnet signups: the `waitlist` table, which is what the two new
+//     lead magnets (source='trec-deadline-checklist',
+//     source='trec-para12-breakdown') and the TREC calculator write to.
+//     Degrades EXPLICITLY (never a silent zero) if waitlist.first_touch/
+//     last_touch don't exist yet — see
+//     supabase/migrations/20261002_waitlist_first_last_touch.sql (NOT
+//     applied; Heath's call, same pattern as the post_analytics owner
+//     migration).
+//
+// Also NOTE on the existing `paid` bucket below: its paidPredicate counts
+// ANY subscriptions row with plan !== 'design_partner' as "paid" —
+// regardless of status, so a 'trialing', 'past_due', or 'cancelled' row all
+// count today. Left untouched (same backward-compatibility reason as
+// above), but `paid_active_total`/`per_brand[].paid_active` (new, below) is
+// the number that actually means "collecting revenue right now"
+// (status === 'active') and should be trusted over `paid` for any real
+// business decision.
+//
+// Owner: Carter, 2026-09-17. Extended: Pierce, 2026-10-02.
 
 const { parseContentTag, PLATFORMS_WITHOUT_CAPTION_LINKS } = require('./content-tag.js');
 const { runHogQL } = require('./posthog-query.js');
@@ -165,7 +199,7 @@ async function enrichWithPostContext(tags, supabaseFetch) {
 async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabaseFetch, hogqlRunner = runHogQL } = {}) {
   const cutoff = daysAgoIso(days);
 
-  const [postsRes, applicationsRes, subscriptionsRes, clicksRes] = await Promise.all([
+  const [postsRes, applicationsRes, subscriptionsRes, clicksRes, waitlistRes] = await Promise.all([
     supabaseFetch(`/rest/v1/social_posts?status=eq.posted&posted_at=gte.${encodeURIComponent(cutoff)}` +
       `&content_tag=not.is.null&select=id,platform,target_owner,content_tag,posted_at`),
     supabaseFetch(`/rest/v1/founding_applications?created_at=gte.${encodeURIComponent(cutoff)}` +
@@ -173,14 +207,31 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
     supabaseFetch(`/rest/v1/subscriptions?created_at=gte.${encodeURIComponent(cutoff)}` +
       `&select=id,plan,status,first_touch,last_touch,created_at`),
     getClicksByTag(days, hogqlRunner),
+    // NEW 2026-10-02: the waitlist table backs the two new lead magnets
+    // (source='trec-deadline-checklist'/'trec-para12-breakdown') and the
+    // TREC calculator. first_touch/last_touch do not exist on this table in
+    // production yet (migration drafted, not applied — see header comment)
+    // — a column-not-found 400 here is EXPECTED until Heath applies it, and
+    // is handled as an explicit "unavailable" state below, never a crash and
+    // never a silent zero.
+    supabaseFetch(`/rest/v1/waitlist?created_at=gte.${encodeURIComponent(cutoff)}` +
+      `&select=id,source,first_touch,last_touch,created_at`),
   ]);
 
   const published = (postsRes.ok && Array.isArray(postsRes.data)) ? postsRes.data : [];
   const applications = (applicationsRes.ok && Array.isArray(applicationsRes.data)) ? applicationsRes.data : [];
   const subscriptions = (subscriptionsRes.ok && Array.isArray(subscriptionsRes.data)) ? subscriptionsRes.data : [];
+  const waitlistTrackingAvailable = !!waitlistRes.ok;
+  const waitlistRows = (waitlistRes.ok && Array.isArray(waitlistRes.data)) ? waitlistRes.data : [];
 
   const signupBucket = bucketByTag(applications, {});
   const paidBucket = bucketByTag(subscriptions, { paidPredicate: (row) => row.plan !== 'design_partner' });
+
+  // NEW 2026-10-02, purely additive (see header comment for why these exist
+  // and why the two buckets above are left untouched):
+  const trialBucket = bucketByTag(subscriptions, { paidPredicate: (row) => row.status === 'trialing' });
+  const paidActiveBucket = bucketByTag(subscriptions, { paidPredicate: (row) => row.status === 'active' });
+  const leadMagnetBucket = bucketByTag(waitlistRows, {});
 
   // Merge clicks/signups/paid onto one row per content_tag so "top/bottom
   // performing content" is a single sortable list, not three.
@@ -188,12 +239,16 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
     ...published.map((p) => p.content_tag).filter(Boolean),
     ...signupBucket.by_tag.map((t) => t.tag),
     ...paidBucket.by_tag.map((t) => t.tag),
+    ...trialBucket.by_tag.map((t) => t.tag),
+    ...leadMagnetBucket.by_tag.map((t) => t.tag),
     ...(clicksRes.ok ? [...clicksRes.byTag.keys()] : []),
   ]);
 
   const postContext = await enrichWithPostContext([...allTags], supabaseFetch);
   const signupByTag = new Map(signupBucket.by_tag.map((t) => [t.tag, t.total]));
   const paidByTag = new Map(paidBucket.by_tag.map((t) => [t.tag, t.paid]));
+  const trialByTag = new Map(trialBucket.by_tag.map((t) => [t.tag, t.paid]));
+  const leadMagnetByTag = new Map(leadMagnetBucket.by_tag.map((t) => [t.tag, t.total]));
 
   const perContent = [...allTags].map((tag) => {
     const parsed = parseContentTag(tag);
@@ -207,6 +262,11 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
       clicks: clicksRes.ok ? (clicksRes.byTag.get(tag) || 0) : null,
       signups: signupByTag.get(tag) || 0,
       paid: paidByTag.get(tag) || 0,
+      // NEW — see header comment. lead_magnet_signups is null (not 0) when
+      // waitlist tracking itself is unavailable, same "explicit, never
+      // fabricated" rule as `clicks` above.
+      trial_starts: trialByTag.get(tag) || 0,
+      lead_magnet_signups: waitlistTrackingAvailable ? (leadMagnetByTag.get(tag) || 0) : null,
       hook_type: ctx.hook_type || null,
       cta_type: ctx.cta_type || null,
       hook_variant: ctx.hook_variant || null,
@@ -216,12 +276,26 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
 
   // Rank by paid > signups > clicks, so a real dollar always outranks a
   // click. Content with zero of everything still appears (never dropped),
-  // just at the bottom.
+  // just at the bottom. Unchanged by the 2026-10-02 additions — trial_starts/
+  // lead_magnet_signups are visible on every row but don't change ranking,
+  // to avoid altering what silence-alarm.js's consumers already expect from
+  // top_content/bottom_content ordering.
   const rank = (c) => c.paid * 1000000 + c.signups * 1000 + (c.clicks || 0);
   perContent.sort((a, b) => rank(b) - rank(a));
 
   const perBrand = {};
   for (const brand of ['dossie', 'heath-realtor']) {
+    // content-tag.js's buildContentTag() runs brand through slug(), which
+    // strips non-alphanumerics (NON_ALNUM_RE) — so 'heath-realtor' is
+    // ENCODED into every tag as 'heathrealtor' (no hyphen) and
+    // parseContentTag() decodes it back the same way. Comparing a decoded
+    // tag's brand against the literal hyphenated label here always failed
+    // silently and zeroed out every heath-realtor bucket below (found while
+    // testing the 2026-10-02 trial_starts/paid_active/lead_magnet_signups
+    // additions — same bug already existed for signups/paid, just never
+    // caught because both legacy numbers happened to be 0 anyway). Strip the
+    // same way before comparing so either brand's real activity shows up.
+    const tagBrand = brand.replace(/[^a-z0-9]/g, '');
     const brandPublished = published.filter((p) => (p.target_owner || 'dossie') === brand);
     const brandTagged = new Set(brandPublished.map((p) => p.content_tag).filter(Boolean));
     perBrand[brand] = {
@@ -237,9 +311,20 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
       // content doesn't link to Dossie signup) — a real, honest 0, not a
       // capability gap, and distinguished below from the tables not
       // existing at all for a brand like rust.
-      signups: signupBucket.by_tag.filter((t) => t.brand === brand).reduce((s, t) => s + t.total, 0),
-      paid: paidBucket.by_tag.filter((t) => t.brand === brand).reduce((s, t) => s + t.paid, 0),
-      outcome_tables: 'founding_applications (signup), subscriptions (paid) — shared with dossie, decoded by tag',
+      signups: signupBucket.by_tag.filter((t) => t.brand === tagBrand).reduce((s, t) => s + t.total, 0),
+      paid: paidBucket.by_tag.filter((t) => t.brand === tagBrand).reduce((s, t) => s + t.paid, 0),
+      // NEW 2026-10-02 — the current, non-legacy numbers. heath-realtor
+      // trial_starts/lead_magnet_signups being >0 is the one thing this repo
+      // can show in Supabase that Heath's personal content actually drove
+      // someone into the DOSSIE funnel (as opposed to his own brokerage
+      // funnel, which this table cannot see at all — comment_dm_leads /
+      // api/_lib/brokerage-funnel.js is the closest thing to that).
+      trial_starts: trialBucket.by_tag.filter((t) => t.brand === tagBrand).reduce((s, t) => s + t.paid, 0),
+      paid_active: paidActiveBucket.by_tag.filter((t) => t.brand === tagBrand).reduce((s, t) => s + t.paid, 0),
+      lead_magnet_signups: waitlistTrackingAvailable
+        ? leadMagnetBucket.by_tag.filter((t) => t.brand === tagBrand).reduce((s, t) => s + t.total, 0)
+        : null,
+      outcome_tables: 'founding_applications (legacy signup, dead since 2026-08-04), subscriptions (trial_starts/paid/paid_active), waitlist (lead_magnet_signups) — shared with dossie, decoded by tag',
     };
   }
 
@@ -253,14 +338,33 @@ async function getAttributionSummary({ days = 30, supabaseFetch = defaultSupabas
       paid_total: subscriptions.length,
       paid_attributed: paidBucket.paid_attributed,
       paid_unattributed: paidBucket.paid_unattributed,
+      // NEW 2026-10-02 — see header comment for exactly why these, not the
+      // fields above, are the ones to trust for a current business decision.
+      trial_starts_total: trialBucket.paid_attributed + trialBucket.paid_unattributed,
+      trial_starts_attributed: trialBucket.paid_attributed,
+      trial_starts_unattributed: trialBucket.paid_unattributed,
+      paid_active_total: paidActiveBucket.paid_attributed + paidActiveBucket.paid_unattributed,
+      paid_active_attributed: paidActiveBucket.paid_attributed,
+      paid_active_unattributed: paidActiveBucket.paid_unattributed,
+      lead_magnet_signups_total: waitlistTrackingAvailable ? leadMagnetBucket.total : null,
+      lead_magnet_signups_attributed: waitlistTrackingAvailable ? leadMagnetBucket.total_attributed : null,
+      lead_magnet_signups_unattributed: waitlistTrackingAvailable ? leadMagnetBucket.total_unattributed : null,
     },
     clicks_tracking: clicksRes.ok ? 'ok' : `FAILED: ${clicksRes.error}`,
+    waitlist_tracking: waitlistTrackingAvailable
+      ? 'ok'
+      : 'unavailable — waitlist.first_touch/last_touch columns are not migrated in this environment yet ' +
+        '(supabase/migrations/20261002_waitlist_first_last_touch.sql exists but is NOT applied — Heath\'s call). ' +
+        'lead_magnet_signups_* read null, not a fabricated 0, until applied.',
     per_brand: perBrand,
     top_content: perContent.slice(0, 5),
     bottom_content: perContent.slice(-5).reverse(),
     platform_caveat: `Instagram and TikTok captions are never clickable — clicks for those platforms ` +
       `will always read 0 or untracked regardless of engagement. That is the platform, not the content. ` +
       `See api/_lib/content-tag.js PLATFORMS_WITHOUT_CAPTION_LINKS.`,
+    founding_funnel_dead_note: 'signups_total/signups_unattributed above measure founding_applications only, ' +
+      'which has had zero new rows possible since founding closed 2026-08-04. Use trial_starts_* for the ' +
+      'current Solo/Team funnel instead.',
     rust: getRustAttributionStatus(),
   };
 }

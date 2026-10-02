@@ -14,6 +14,10 @@
  *      resolves all four to one content_tag, one brand.
  *   2. An UNTAGGED post/outcome is never silently dropped: it's counted in
  *      the "total" bucket AND flagged in "unattributed" — never invisible.
+ *   3. (2026-10-02, Pierce) The POST-FOUNDING-CLOSURE additions: trial
+ *      starts and lead-magnet (waitlist) signups resolve by tag the same
+ *      way, and waitlist tracking degrades to an explicit "unavailable"
+ *      state (never a silent 0) when the table lacks first_touch/last_touch.
  *
  * In-memory PostgREST-shaped mock + a mock PostHog HogQL runner, injected
  * via getAttributionSummary()'s dependency parameters. ZERO production
@@ -43,12 +47,13 @@ function matchFilter(row, key, expr) {
   return true;
 }
 
-function makeMockSupabaseFetch(seed) {
-  const db = {
-    social_posts: (seed.social_posts || []).map((r) => ({ ...r })),
-    founding_applications: (seed.founding_applications || []).map((r) => ({ ...r })),
-    subscriptions: (seed.subscriptions || []).map((r) => ({ ...r })),
-  };
+// `tables` names which keys in `seed` are recognized — anything NOT in this
+// list 404s (mockSupabaseFetch's "table doesn't exist in this environment"
+// case), which is exactly what lets test 4 below simulate the real,
+// un-migrated waitlist table by simply omitting 'waitlist' from the list.
+function makeMockSupabaseFetch(seed, { tables = ['social_posts', 'founding_applications', 'subscriptions', 'waitlist'] } = {}) {
+  const db = {};
+  for (const t of tables) db[t] = (seed[t] || []).map((r) => ({ ...r }));
   return async function mockSupabaseFetch(pathAndQuery) {
     const [tablePath, queryString] = pathAndQuery.replace('/rest/v1/', '').split('?');
     const rows = db[tablePath];
@@ -200,6 +205,72 @@ async function run() {
   await check('clicks_tracking reports the real failure, not "ok"', () => {
     assert.ok(/FAILED/.test(outageSummary.clicks_tracking));
     assert.ok(/PostHog 500/.test(outageSummary.clicks_tracking));
+  });
+
+  console.log('\n=== 4. POST-FOUNDING-CLOSURE additions (2026-10-02): trial starts + lead-magnet signups ===');
+  const TAG2 = buildContentTag({
+    brand: 'heath-realtor', platform: 'facebook', format: 'video',
+    contentId: 'e5f6a7b8-0000-0000-0000-000000000000', postedAt: now,
+  });
+  const currentFunnelSupabaseFetch = makeMockSupabaseFetch({
+    social_posts: [
+      { id: 'e5f6a7b8-real-uuid', platform: 'facebook', target_owner: 'heath-realtor', content_tag: TAG2, posted_at: now },
+    ],
+    founding_applications: [], // dead since 2026-08-04 — deliberately empty
+    subscriptions: [
+      { id: 'sub-trial-1', plan: 'solo', status: 'trialing', created_at: now, first_touch: { content_tag: TAG2 }, last_touch: { content_tag: TAG2 } },
+      { id: 'sub-active-1', plan: 'solo', status: 'active', created_at: now, first_touch: { content_tag: TAG2 }, last_touch: { content_tag: TAG2 } },
+      { id: 'sub-pastdue-1', plan: 'solo', status: 'past_due', created_at: now, first_touch: { content_tag: TAG2 }, last_touch: { content_tag: TAG2 } },
+    ],
+    waitlist: [
+      { id: 'wl-1', source: 'trec-deadline-checklist', created_at: now, first_touch: { content_tag: TAG2 }, last_touch: { content_tag: TAG2 } },
+      { id: 'wl-2', source: 'trec-para12-breakdown', created_at: now, first_touch: null, last_touch: null },
+    ],
+  });
+  const currentFunnelSummary = await getAttributionSummary({ days: 30, supabaseFetch: currentFunnelSupabaseFetch, hogqlRunner: makeMockHogqlRunner({}) });
+
+  await check('trial_starts_total counts only status=trialing, not active/past_due', () => {
+    assert.strictEqual(currentFunnelSummary.totals.trial_starts_total, 1);
+    assert.strictEqual(currentFunnelSummary.totals.trial_starts_attributed, 1);
+  });
+  await check('paid_active_total counts only status=active, excluding trialing/past_due — the fix for the known paid-bucket inflation', () => {
+    assert.strictEqual(currentFunnelSummary.totals.paid_active_total, 1);
+    assert.strictEqual(currentFunnelSummary.totals.paid_active_attributed, 1);
+  });
+  await check('legacy paid_total still counts all 3 non-design_partner rows (unchanged, deliberately inflated) — proves backward compatibility', () => {
+    assert.strictEqual(currentFunnelSummary.totals.paid_total, 3);
+  });
+  await check('legacy signups_total reads zero — founding_applications really is dead post-closure', () => {
+    assert.strictEqual(currentFunnelSummary.totals.signups_total, 0);
+  });
+  await check('waitlist_tracking reports ok when the table/columns ARE present', () => {
+    assert.strictEqual(currentFunnelSummary.waitlist_tracking, 'ok');
+  });
+  await check('lead_magnet_signups_total counts both rows, attributed only counts the tagged one', () => {
+    assert.strictEqual(currentFunnelSummary.totals.lead_magnet_signups_total, 2);
+    assert.strictEqual(currentFunnelSummary.totals.lead_magnet_signups_attributed, 1);
+    assert.strictEqual(currentFunnelSummary.totals.lead_magnet_signups_unattributed, 1);
+  });
+  await check('per_brand[heath-realtor] shows the trial start + lead magnet signup his content actually drove into the DOSSIE funnel', () => {
+    assert.strictEqual(currentFunnelSummary.per_brand['heath-realtor'].trial_starts, 1);
+    assert.strictEqual(currentFunnelSummary.per_brand['heath-realtor'].paid_active, 1);
+    assert.strictEqual(currentFunnelSummary.per_brand['heath-realtor'].lead_magnet_signups, 1);
+  });
+
+  console.log('\n=== 5. waitlist tracking degrades EXPLICITLY (never a silent 0) when the table is not migrated yet ===');
+  const noWaitlistSupabaseFetch = makeMockSupabaseFetch(
+    { social_posts: [], founding_applications: [], subscriptions: [] },
+    { tables: ['social_posts', 'founding_applications', 'subscriptions'] }, // 'waitlist' deliberately NOT a recognized table — simulates production today
+  );
+  const noWaitlistSummary = await getAttributionSummary({ days: 30, supabaseFetch: noWaitlistSupabaseFetch, hogqlRunner: makeMockHogqlRunner({}) });
+  await check('waitlist_tracking reports "unavailable", not "ok"', () => {
+    assert.ok(/unavailable/.test(noWaitlistSummary.waitlist_tracking));
+  });
+  await check('lead_magnet_signups_total is null, not a fabricated 0', () => {
+    assert.strictEqual(noWaitlistSummary.totals.lead_magnet_signups_total, null);
+  });
+  await check('per_brand lead_magnet_signups is also null in this state', () => {
+    assert.strictEqual(noWaitlistSummary.per_brand.dossie.lead_magnet_signups, null);
   });
 
   console.log(`\n${pass} passed, ${fail} failed\n`);
