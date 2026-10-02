@@ -1,0 +1,11 @@
+{
+  "id": "dossie-trec-p21-notices-2026-09-30",
+  "video": "Media/finished-videos/dossie-trec-p21-notices-2026-09-30.mp4",
+  "face-ts": "15.6",
+  "face-rect": "690:300:1195:520",
+  "head-box": "30:185:115:285",
+  "mask": "210:570:0.55",
+  "hook": "IT GOES TO THE AGENT",
+  "kicker": "TEXAS AGENTS",
+  "out": "Media/finished-videos/dossie-trec-p21-notices-2026-09-30.cover.png"
+}

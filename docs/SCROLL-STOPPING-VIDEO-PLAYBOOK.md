@@ -54,9 +54,16 @@ A static slide, however well-written, only ever clears layer 2 of 3.
 
 ### 1.2 Covers / thumbnails per platform
 
-- **IG Reels cover:** 1080×1920 canvas, but only the **center ~1080×1350 px block survives every
-  crop** the cover gets shown in (9:16 in Reels tab, 4:5 in main feed, 3:4 on profile grid). Keep
-  text/face dead-center, 3-5 words max.
+- **IG Reels cover:** 1080×1920 canvas. The **profile grid tile is a TRUE 1:1 SQUARE keeping
+  y=418..1498** — Heath measured that off a live reel on 2026-10-02, and it supersedes the
+  ~1080×1350 figure the third-party cheat-sheets below quote (those were wrong, and the covers
+  built to them lost their bottom third on the grid). Everything load-bearing — his face and the
+  hook — must sit inside that square, because the grid is the only surface most people ever
+  browse. Keep text/face dead-center, 3-5 words max.
+  `scripts/generate-video-cover.js` encodes this as `GRID_SAFE_TOP = 418` / `GRID_SAFE_H = 1080`
+  and writes a `_square.png` of exactly this crop next to every cover so it can be eyeballed.
+  **Judge it at 150px** — that is the real on-screen tile size on a phone, and it is the only
+  test that matters.
   [Instagram Reel Cover Size 2026 — JW Toolbox](https://www.jwtoolbox.com/blog/instagram-reel-cover-size-cheat-sheet-2026)
   [socialk.it Reel Size 2026](https://socialk.it/en/sizes/instagram-reel-size)
 - **TikTok cover:** same 1080×1920 canvas. TikTok's own UI reserves the **top ~130-200px** (tabs/
@@ -80,6 +87,37 @@ A static slide, however well-written, only ever clears layer 2 of 3.
 **What the cover should carry, every platform:** the specific claim from the hook (not the brand
 name, not a logo-only card), 3-5 words, high contrast, centered. "HEATH — BUILT THIS" (the current
 Rust label) is a byline, not a hook — it says nothing about the video itself.
+
+### 1.2a Which platforms actually ACCEPT a cover through Zernio
+
+Probed against docs.zernio.com on 2026-10-02 (not assumed — CLAUDE.md §17: never guess an API
+response shape). Zernio mirrors each platform's own API rather than normalising them, so a cover
+travels by three different routes. `api/cron-post-videos.js` sends all three.
+
+| Platform | Field | Accepted at publish? | Updatable after publish? |
+|---|---|---|---|
+| Instagram | `platformSpecificData.instagramThumbnail` (alias `reelCover`) | **yes** — beats `thumbOffset` | **no** |
+| TikTok | `platformSpecificData.tiktokSettings.video_cover_image_url` | **yes** — beats `video_cover_timestamp_ms` | **no** |
+| Facebook | `mediaItems[].thumbnail` | **yes** — video posts and Reels | **no** |
+| LinkedIn | `mediaItems[].thumbnail` | **yes** — video posts | **no** |
+| YouTube | `mediaItems[].thumbnail` | **yes, with caveats** | **yes** — `POST /posts/{id}/update-metadata`, `thumbnailUrl` |
+| X / Twitter | — | **no such field** | **no** |
+
+Caveats that matter:
+
+- **YouTube custom thumbnails need a PHONE-VERIFIED channel**, and apply to regular videos
+  **only — never to Shorts**. Our vertical sub-60s cuts are Shorts, so the thumbnail is skipped on
+  the Shorts surface regardless of what we send. JPEG/PNG/GIF, 2 MB max.
+- `mediaItems[].thumbnail` is **not** a generic field. It is honoured by Facebook, YouTube and
+  LinkedIn, and ignored elsewhere. JPG/PNG, 10 MB max.
+- **X has no cover upload for native video at all.** It uses the first meaningful frame, so the
+  only lever there is making frame 1 of the export itself cover-quality.
+- `platforms[].customMedia` exists for sending a *different file* to one platform. It takes the
+  same `{url, type, thumbnail}` shape and overrides `mediaItems` for that entry only. We do not
+  use it yet; it is the hook for per-platform cover crops later.
+
+**Net: five of six platforms take a supplied cover at publish time; only YouTube can be changed
+afterwards, and for Shorts even that is cosmetic.** Get the cover right before publishing.
 
 ### 1.3 "Screen recording of a chat with an AI" — how this sub-genre is actually made
 
@@ -232,7 +270,7 @@ static quote card standing in for footage that doesn't exist in the edit yet.
 
 | Platform | Canvas | Safe text zone | Cover text |
 |---|---|---|---|
-| IG Reels / FB Reels | 1080×1920 | Center ~1080×1350 block (survives 9:16/4:5/3:4 crops) | 3-5 words, dead-center, high contrast |
+| IG Reels / FB Reels | 1080×1920 | **Grid tile = 1:1 square, y=418..1498** (measured 2026-10-02) | 3-5 words, dead-center, high contrast, legible at 150px |
 | TikTok | 1080×1920 | Avoid top ~200px, bottom ~334-484px, right ~140px, left ~44px | 3-5 words in the 20%-65% vertical band |
 | YouTube Shorts | 1080×1920, key element centered | Minimal/no dense text — auto-crop risk to 4:5 | Pick an actual striking frame from the footage over adding a text card |
 | X | No separate cover upload for native video | N/A | Make export frame 1 the cover-quality frame directly |
