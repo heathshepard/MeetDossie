@@ -37,6 +37,10 @@ const { isInternalSender } = require('./support-ticket-classify.js');
 // Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
 // api/_lib/google-token-health.js header for the incident this closes.
 const { checkGoogleTokenHealth } = require('./google-token-health.js');
+// DossieMarketingBot webhook self-heal + alarm (Atlas, 2026-10-02) -- see
+// api/_lib/telegram-webhook-health.js header for the incident this closes
+// (two group_posts Approve taps did nothing -- webhook was unregistered).
+const { checkTelegramWebhookHealth } = require('./telegram-webhook-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1176,7 +1180,9 @@ async function runAllChecks(opts = {}) {
   // incident) — same reason, same rule: append only.
   // partialVideoDeliveries appended 2026-09-30 (Atlas, video
   // partial-delivery investigation) — same rule, appended at the end.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries] = await Promise.all([
+  // telegramWebhookHealth appended 2026-10-02 (Atlas, group-post Approve
+  // silent-tap incident) — same rule, appended at the end.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, telegramWebhookHealth] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1198,9 +1204,10 @@ async function runAllChecks(opts = {}) {
     checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
     checkStructurallyUnpublishablePosts(opts.structuralUnpublishableStaleMinutes),
     checkPartialVideoDeliveries(opts.partialVideoDeliveryStaleMinutes),
+    checkTelegramWebhookHealth(opts.telegramWebhookOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...telegramWebhookHealth];
   const fired = [];
   const suppressed = [];
 
@@ -1564,6 +1571,7 @@ module.exports = {
   STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES,
   checkPartialVideoDeliveries,
   PARTIAL_VIDEO_DELIVERY_STALE_MINUTES,
+  checkTelegramWebhookHealth,
   shouldFire,
   markFired,
   runAllChecks,
