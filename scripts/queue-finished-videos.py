@@ -52,6 +52,7 @@ set in production):
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -631,13 +632,40 @@ COVER_STORAGE_PREFIX = "video-covers"
 QUALITY_GATE_CLI = REPO / "scripts" / "check-video-quality-cli.js"
 
 
-def extract_cover_frame(video_path: Path) -> Path | None:
+def resolve_cover(video_path: Path) -> Path | None:
     """
-    Extract the frame at t=0 as the video's explicit cover asset via ffmpeg.
-    Every video needs one (playbook §3) -- the quality gate fails outright
-    without it. Returns a temp PNG path (caller cleans it up), or None if
-    ffmpeg can't produce one.
+    Return the video's cover asset as a throwaway temp PNG (the caller unlinks
+    whatever comes back, so we never hand it a file we want to keep).
+
+    Order of preference:
+      1. `{stem}.cover.png` sitting next to the mp4 -- the DESIGNED cover, the
+         one the generator rendered on purpose.
+      2. frame 0 of the mp4, as a last resort.
+
+    THE BUG THIS FIXES (2026-10-02): this function used to go straight to
+    ffmpeg and grab frame 0 unconditionally. Generators have been writing a
+    real `{stem}.cover.png` next to the mp4 for weeks (see Media/finished-
+    videos/*.cover.png) and every one of them was silently discarded. On a
+    document-explainer, frame 0 is a full page of TREC body text, so the
+    whole Instagram grid rendered as identical unreadable grey tiles.
     """
+    sidecar = video_path.with_suffix("")
+    sidecar = sidecar.with_name(sidecar.name + ".cover.png")
+    if sidecar.exists() and sidecar.stat().st_size > 0:
+        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+        tmp_path = Path(tmp.name)
+        tmp.close()
+        try:
+            # COPY -- never return the sidecar itself, the caller unlinks it.
+            shutil.copyfile(sidecar, tmp_path)
+            print(f"  cover: using designed cover {sidecar.name} ({sidecar.stat().st_size // 1024}KB)")
+            return tmp_path
+        except Exception as ex:
+            print(f"  WARN: could not copy designed cover {sidecar.name}: {ex} — falling back to frame 0")
+            tmp_path.unlink(missing_ok=True)
+
+    print(f"  WARN: no {sidecar.name} on disk — falling back to a frame-0 grab, "
+          f"which is what made every tile look identical. Render a real cover.")
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
     tmp_path = Path(tmp.name)
     tmp.close()
@@ -1036,7 +1064,7 @@ def main():
         # rule 2026-09-15). Cover frame extracted + gate run against the
         # ORIGINAL file, before any lossy compression. A missing/failed cover
         # or gate CLI failure is fail-closed, never a silent pass.
-        cover_local = extract_cover_frame(video_path)
+        cover_local = resolve_cover(video_path)
         # Ground-truth orientation from the file's own pixels (Atlas,
         # 2026-09-30 — see detect_orientation_from_pixels()'s docstring):
         # avoids a false 'orientation_determined' hold on any row whose

@@ -554,9 +554,67 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     };
   }
 
+  // ── Cover / thumbnail (Carter, 2026-10-02) ────────────────────────────────
+  // THE BUG THIS FIXES: video_library.cover_url has been a write-only column
+  // since 20260915_video_library_quality_gate.sql. scripts/queue-finished-
+  // videos.py renders a cover, uploads it to the public social-cards bucket
+  // and stores the URL on the row — and nothing ever read it back. This
+  // function sent `mediaItems: [{ url, type: 'video' }]` and nothing else, so
+  // every platform fell back to deriving its own thumbnail from frame 0 of
+  // the MP4. Frame 0 of a document-explainer is a wall of contract body text,
+  // which is why Heath's Instagram grid was a page of identical grey tiles.
+  //
+  // Field names verified against docs.zernio.com on 2026-10-02 (never guess an
+  // API shape). Three different mechanisms, because Zernio mirrors each
+  // platform's own API rather than normalising them:
+  //   mediaItems[].thumbnail                        -> Facebook video + Reels,
+  //                                                    YouTube videos, LinkedIn
+  //                                                    video  (JPG/PNG, <=10MB)
+  //   platformSpecificData.instagramThumbnail       -> Instagram Reels
+  //                                                    (aka `reelCover`; takes
+  //                                                    priority over thumbOffset)
+  //   tiktokSettings.video_cover_image_url          -> TikTok (overrides
+  //                                                    video_cover_timestamp_ms)
+  // Twitter/X has no cover field at all — it uses the first meaningful frame,
+  // so for X the only lever is the video's own frame 0. Noted, not fixable here.
+  //
+  // Caveat recorded from the docs rather than discovered in production:
+  // YouTube only honours a custom thumbnail on a PHONE-VERIFIED channel, and
+  // only on regular videos — never on Shorts. We send it regardless; YouTube
+  // silently skips it when unsupported, which is the same no-op as today.
+  const coverUrl = typeof opts.coverUrl === 'string' && /^https:\/\//.test(opts.coverUrl)
+    ? opts.coverUrl
+    : null;
+
+  const mediaItem = { url: videoUrl, type: 'video' };
+  if (coverUrl) {
+    // Covers facebook / youtube / linkedin in one field.
+    mediaItem.thumbnail = coverUrl;
+
+    if (platform === 'instagram') {
+      platformBlock.platformSpecificData = {
+        ...(platformBlock.platformSpecificData || {}),
+        instagramThumbnail: coverUrl,
+      };
+    }
+    if (platform === 'tiktok') {
+      platformBlock.platformSpecificData = {
+        ...(platformBlock.platformSpecificData || {}),
+        tiktokSettings: {
+          ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+          video_cover_image_url: coverUrl,
+        },
+      };
+    }
+  } else {
+    // Loud, because a silent fallback to frame 0 is exactly the failure that
+    // went unnoticed for weeks. feedback_silent-failure-is-the-enemy.md.
+    console.warn(`[cron-post-videos] ${platform}: no cover_url on this row — platform will fall back to a frame grab`);
+  }
+
   const payload = {
     content: caption,
-    mediaItems: [{ url: videoUrl, type: 'video' }],
+    mediaItems: [mediaItem],
     platforms: [platformBlock],
   };
   if (opts.scheduledFor) {
@@ -926,7 +984,13 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           for (const t of targets) {
             const result = await postToZernio(
               t.platform, video.supabase_url, caption, video.topic,
-              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true }, owner,
+              {
+                scheduledFor: t.scheduledFor,
+                usesClonedVoice: video.uses_cloned_voice === true,
+                // The row is fetched with no `select=`, so cover_url has always
+                // been present in memory here — it was simply never passed on.
+                coverUrl: video.cover_url,
+              }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
             deliveryEntries.push(buildDeliveryEntry({
