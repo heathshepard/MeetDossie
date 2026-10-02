@@ -93,8 +93,8 @@ const PROCESS_OBSERVATION_SCAFFOLDS = [
     text: `Something I see mixed up a lot: terminating during the option period and terminating under a specific contract provision later on are not the same animal. During the option period you can walk for any reason and it costs you the option fee, nothing else has to be proven. Later on, whether it's the financing addendum or a repair dispute, you need an actual contractual basis, not just a change of mind. Worth walking a buyer through that difference before they're staring at a deadline instead of after.`,
   },
   {
-    id: 'earnest_money_vs_option_fee',
-    text: `Earnest money and the option fee get treated as basically the same thing and they're not. The option fee buys the unrestricted right to walk during the option period, full stop, and it's usually non-refundable no matter why you leave. Earnest money is a good-faith deposit toward the purchase that's refundable in a lot more scenarios later in the contract, financing falling through, an unmet contingency, whatever the contract actually allows. Clients hear "deposit" for both and assume they work the same way. They really don't, and the difference matters most exactly when someone's trying to figure out what they get back.`,
+    id: 'seller_contribution_buyer_rep_shortfall',
+    text: `Paragraph 12B seller contributions toward buyer-broker compensation are whatever box gets checked, dollar figure or percentage, but the contract language is explicit that a contribution doesn't change what the buyer agreed to pay their own broker under the buyer-rep agreement, it just gets applied toward it. I've seen a buyer assume the seller's 12B number WAS the number and get a surprise at the settlement statement when there's still a gap owed. Anyone found a clean way to flag that at the offer stage instead of it surfacing at the closing table?`,
   },
   {
     id: 'buyer_rep_agreement_scope',
@@ -108,8 +108,8 @@ const TRACKING_QUESTION_SCAFFOLDS = [
     text: `Curious what everyone's actual system is for tracking the dates you can't afford to miss. Not the software name, the real workflow behind it. I'm always tightening mine up. What's actually working for you?`,
   },
   {
-    id: 'disclosure_review_habit',
-    text: `Genuine question, how thoroughly do you actually read a seller's disclosure notice before you write an offer for a buyer versus after it's already executed and you're in option period? I go back and forth on whether reading it cover to cover upfront saves more headaches than it costs in time. What's your actual habit here, not the textbook answer?`,
+    id: 'disclosure_contradicts_inspection',
+    text: `When the seller's disclosure says one thing and the inspection turns up something that flatly contradicts it, and you're already past the option period, what's actually left on the table? Amendment leverage, a straight repair-cost negotiation, or is the buyer just stuck living with the gap at that point? Curious how people are actually handling it when it happens, not the theoretical answer from a CE class.`,
   },
   {
     id: 'multiple_offer_communication',
