@@ -41,6 +41,10 @@ const { checkGoogleTokenHealth } = require('./google-token-health.js');
 // already a hard dependency of api/_lib/video-schedule.js for the exact
 // same America/Chicago day-boundary math, so this is not a new dependency.
 const { DateTime } = require('luxon');
+// DossieMarketingBot webhook self-heal + alarm (Atlas, 2026-10-02) -- see
+// api/_lib/telegram-webhook-health.js header for the incident this closes
+// (two group_posts Approve taps did nothing -- webhook was unregistered).
+const { checkTelegramWebhookHealth } = require('./telegram-webhook-health.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1396,7 +1400,10 @@ async function runAllChecks(opts = {}) {
   // noVideoToday / videoRunwayLow appended 2026-10-02 (Atlas, "I had to
   // catch you not posting anything today" incident) — same rule, appended
   // at the end of both this destructure and the Promise.all below.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow] = await Promise.all([
+  // telegramWebhookHealth appended 2026-10-02 (Atlas, group-post Approve
+  // silent-tap incident) — same rule, appended at the end, after noVideoToday
+  // / videoRunwayLow.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow, telegramWebhookHealth] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1420,9 +1427,10 @@ async function runAllChecks(opts = {}) {
     checkPartialVideoDeliveries(opts.partialVideoDeliveryStaleMinutes),
     checkNoVideoScheduledToday(opts.noVideoTodayNow),
     checkVideoRunwayLow(opts.videoRunwayMinReady),
+    checkTelegramWebhookHealth(opts.telegramWebhookOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow, ...telegramWebhookHealth];
   const fired = [];
   const suppressed = [];
 
@@ -1790,6 +1798,7 @@ module.exports = {
   NO_VIDEO_TODAY_TZ,
   checkVideoRunwayLow,
   VIDEO_RUNWAY_MIN_READY,
+  checkTelegramWebhookHealth,
   shouldFire,
   markFired,
   runAllChecks,
