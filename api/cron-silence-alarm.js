@@ -65,6 +65,20 @@
 //      no row exists at all — see api/_lib/google-token-health.js. Closes
 //      the incident where the token died 3x, 7 days apart, and nothing
 //      said so until Heath asked.
+//  11. (2026-10-02) NO VIDEO SCHEDULED OR POSTED TODAY — the daily
+//      one-video cadence going completely silent for a whole calendar day
+//      (America/Chicago), which every other condition above answers "did
+//      something go wrong" but none of them answer "did NOTHING happen at
+//      all." SELF-HEALS first: if a heath_approved+quality-passed video
+//      exists but its scheduled_for drifted past today, this pulls the
+//      earliest one back to now() so the existing every-20-min
+//      cron-post-videos.js run posts it today — the exact fix a reschedule
+//      was supposed to make, done directly, instead of trusting an agent's
+//      unverified "done." Only alerts when nothing postable exists at all.
+//      A sibling check (checkVideoRunwayLow) separately flags the
+//      heath_approved+ready buffer dropping below 2 — a leading indicator
+//      before a day goes fully empty. See api/_lib/silence-alarm.js
+//      checkNoVideoScheduledToday() / checkVideoRunwayLow() headers.
 //
 // Dedup: api/_lib/silence-alarm.js's alert_state table — each ALARM
 // condition alerts once per ~20h regardless of how often this cron runs.

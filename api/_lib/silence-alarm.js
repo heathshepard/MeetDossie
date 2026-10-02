@@ -37,6 +37,10 @@ const { isInternalSender } = require('./support-ticket-classify.js');
 // Google OAuth refresh-token self-heal + alarm (Atlas, 2026-09-28) -- see
 // api/_lib/google-token-health.js header for the incident this closes.
 const { checkGoogleTokenHealth } = require('./google-token-health.js');
+// Timezone-correct "today" boundary for checkNoVideoScheduledToday() below --
+// already a hard dependency of api/_lib/video-schedule.js for the exact
+// same America/Chicago day-boundary math, so this is not a new dependency.
+const { DateTime } = require('luxon');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1134,6 +1138,219 @@ async function checkPartialVideoDeliveries(staleMinutes = PARTIAL_VIDEO_DELIVERY
   return results;
 }
 
+// ─── no video scheduled or posted today ────────────────────────────────────
+//
+// THE INCIDENT THIS CLOSES (Atlas, 2026-10-02): video 7 published
+// 2026-10-01. Video 8 was built and ready. Cole stopped a publishing agent
+// mid-task (a SEPARATE video that day was wrong) and told it to reschedule
+// video 8 for 2026-10-02 -- it halted before creating any video_library row
+// at all, so nothing was scheduled. Heath found the empty day himself the
+// next morning: "I really don't like how I had to catch you not posting
+// anything today... Where was the breakdown?"
+//
+// Two failures stacked: a reschedule was reported done without being
+// verified, AND nothing in the system ever asks "is a video going out
+// today?" -- an empty day was completely silent. Every other check in this
+// file answers "did something go WRONG"; none of them answer "did NOTHING
+// happen at all today", which is exactly the shape that let this slide.
+//
+// WHY "TODAY" IS America/Chicago, NOT UTC: the daily cadence is framed
+// around Heath's first posting slot, 07:00-08:00 CT (docs/VIDEO-RULES.md /
+// posting_schedule). A UTC calendar day would clip or extend that window by
+// 5-6h depending on DST and make "today" mean something Heath never framed
+// it as.
+//
+// SELF-HEALS (Heath's own framing: "the right behaviour may be to schedule
+// it automatically... err toward scheduling a heath_approved video that's
+// sitting idle"). Mirrors api/_lib/google-token-health.js's shape: try to
+// fix it first, only alert on what the fix couldn't reach. Exactly ONE
+// write path exists here, and it is narrow by design --
+// PATCH video_library.scheduled_for on a row that is ALREADY
+// status='heath_approved' AND quality_status='passed'. This can only ever
+// change WHEN an already-approved video posts, never WHETHER -- it never
+// creates a row, never flips status, never touches an unapproved row. That
+// is the same approval boundary cron-post-videos.js itself already trusts
+// (STEP 2 only ever acts on heath_approved rows); this just corrects a
+// scheduled_for that drifted past today back onto today, which is the
+// literal shape of today's incident ("reschedule video 8 for 10-02").
+//
+// THREE independent outcomes, each its own alert_state key so one doesn't
+// suppress a different, newer failure's cooldown (same reasoning as
+// checkGoogleTokenHealth):
+//   1. Something already posted today, something heath_approved+passed is
+//      already due today (scheduled_for null or <= end of today), or
+//      something still earlier in the pipeline (approved /
+//      pending_heath_review) already carries a real scheduled_for inside
+//      today -- HEALTHY, silent. A row in the last case still has to clear
+//      the normal approval steps, but it is a genuine commitment to post
+//      today, which is the thing this check actually cares about.
+//   2. Nothing is queued for today at all, but a heath_approved+passed row exists with
+//      scheduled_for pushed past today -- SELF-HEAL: pull the earliest one
+//      back to now() so the next cron-post-videos.js pass (within 20 min)
+//      posts it today instead of waiting on its deferred date.
+//   3. Nothing postable exists ANYWHERE for today and there is nothing to
+//      pull forward -- genuinely nothing to post. ALERT, naming whatever IS
+//      sitting in the pipeline (ready/pending_approval/pending_heath_review/
+//      quality_hold) so the human fix is "build or approve one today", not
+//      a guess.
+const NO_VIDEO_TODAY_TZ = 'America/Chicago';
+
+async function checkNoVideoScheduledToday(now = new Date()) {
+  const today = DateTime.fromJSDate(now).setZone(NO_VIDEO_TODAY_TZ);
+  const startOfDayUtc = today.startOf('day').toUTC().toISO();
+  const endOfDayUtc = today.endOf('day').toUTC().toISO();
+
+  // 1a. Already posted (or posted_partial -- still "a video went out") today.
+  const posted = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(posted,posted_partial)`
+    + `&posted_date=gte.${encodeURIComponent(startOfDayUtc)}&posted_date=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id&limit=1',
+  );
+  if (!posted.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `Could not read video_library to check today's (${today.toFormat('yyyy-LL-dd')} CT) posting status (status ${posted.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(posted.data) && posted.data.length > 0) return [];
+
+  // 1b. Something heath_approved+quality-passed is already due today (NULL
+  // scheduled_for is immediately due per cron-post-videos.js's own isDue()).
+  // That cron runs every 20 min (cron-dispatch-every20.js) -- it will reach
+  // this row on its own well within today; nothing for this check to do.
+  const dueToday = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed'
+    + `&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(endOfDayUtc)})`
+    + '&select=id,scheduled_for&limit=1',
+  );
+  if (!dueToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted-today check passed, but the heath_approved/due-today query failed (status ${dueToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(dueToday.data) && dueToday.data.length > 0) return [];
+
+  // 1c. Something is QUEUED for today even if it hasn't reached
+  // heath_approved yet. "Scheduled counts, not just posted" (Heath's own
+  // framing) -- a row sitting at status='approved' or 'pending_heath_review'
+  // with a real scheduled_for inside today's CT window is a genuine
+  // commitment to post today (api/register-video.js / video-schedule.js
+  // already stamped it there), even though it still has to clear the
+  // approved -> pending_heath_review -> heath_approved steps in
+  // cron-post-videos.js before it can actually publish. This is exactly the
+  // state a video sits in moments after it's built and scheduled -- the
+  // live run that proved this check (2026-10-02) caught video 8 in exactly
+  // this shape (status='approved', scheduled_for=today). Deliberately
+  // excludes 'pending_approval' -- that status is a dead end nothing
+  // re-reads on its own (see checkVideoLibraryPendingApprovalStale's
+  // header) and should not read as "queued" just because a scheduled_for
+  // happens to be set on it. Bounded to TODAY specifically (not "any time
+  // in the past") so a long-stale leftover scheduled_for from a different
+  // day can't masquerade as covering today.
+  const queuedToday = await supabaseFetch(
+    '/rest/v1/video_library?status=in.(approved,pending_heath_review,heath_approved)&quality_status=eq.passed'
+    + `&scheduled_for=gte.${encodeURIComponent(startOfDayUtc)}&scheduled_for=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,status,scheduled_for&limit=1',
+  );
+  if (!queuedToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted/due-today checks passed, but the queued-today query failed (status ${queuedToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(queuedToday.data) && queuedToday.data.length > 0) return [];
+
+  // 2. SELF-HEAL: a ready, already-approved video exists but is deferred
+  // past today -- pull the EARLIEST deferred one back to now().
+  const deferred = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed'
+    + `&scheduled_for=gt.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,topic,target_owner,scheduled_for&order=scheduled_for.asc&limit=1',
+  );
+  if (deferred.ok && Array.isArray(deferred.data) && deferred.data.length > 0) {
+    const row = deferred.data[0];
+    const patch = await supabaseFetch(
+      // status=eq.heath_approved in the PATCH filter itself (not just the
+      // earlier SELECT) so a row that moved on (e.g. another process just
+      // posted/rejected it) between the read and the write is never
+      // touched -- PostgREST matches zero rows and the PATCH is a silent
+      // no-op rather than a stale overwrite.
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.heath_approved`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ scheduled_for: new Date().toISOString() }),
+      },
+    );
+    if (patch.ok && Array.isArray(patch.data) && patch.data.length > 0) {
+      // Self-healed -- silent, same convention as checkGoogleTokenHealth's
+      // 'healthy' outcome. Nothing for Heath to do, so nothing to say.
+      return [];
+    }
+    return [{
+      key: 'no_video_today_selfheal_failed',
+      message: `No video posted or due today (${today.toFormat('yyyy-LL-dd')} CT), and video_library "${row.id}" (${row.topic || 'untitled'}`
+        + `${row.target_owner && row.target_owner !== 'dossie' ? `, ${row.target_owner}` : ''}) is heath_approved+ready but deferred to ${row.scheduled_for} -- `
+        + `tried to pull it forward to post today but the PATCH did not confirm (status ${patch.status}). Set scheduled_for on that row manually.`,
+    }];
+  }
+
+  // 3. Genuinely nothing postable exists for today, and nothing to pull
+  // forward. Name whatever IS sitting in the pipeline so the fix is
+  // actionable, not a guess.
+  const pipeline = await supabaseFetch(
+    '/rest/v1/video_library?status=in.(ready,pending_approval,pending_heath_review,quality_hold)&select=status',
+  );
+  const counts = {};
+  if (pipeline.ok && Array.isArray(pipeline.data)) {
+    for (const row of pipeline.data) counts[row.status] = (counts[row.status] || 0) + 1;
+  }
+  const reasonParts = Object.entries(counts).map(([status, n]) => `${n} ${status}`);
+  const reason = reasonParts.length ? reasonParts.join(', ') : 'nothing anywhere in the video pipeline (not even a draft/ready row)';
+
+  return [{
+    key: 'no_video_today',
+    message: `No video has posted today (${today.toFormat('yyyy-LL-dd')} CT) and nothing is heath_approved+ready to post today -- the daily video cadence breaks today unless someone builds/approves one. Pipeline right now: ${reason}.`,
+  }];
+}
+
+// ─── video content runway ───────────────────────────────────────────────────
+//
+// Cheap, separate signal from checkNoVideoScheduledToday() above: that check
+// only answers "is today covered" and can go quiet for days while the ready
+// buffer quietly shrinks toward zero one video at a time. This answers "how
+// many days of runway are actually left" so a shrinking buffer surfaces
+// BEFORE the morning it finally hits zero -- which is what already happened
+// once (Heath, 2026-10-02: "after video 8 there's roughly one unfinished
+// take left"). Deliberately scoped to video_library's own
+// heath_approved+quality_status='passed' count (the same "ready to post"
+// definition buildHeartbeatSnapshot() already reports as video_ready_to_post)
+// -- NOT raw/unedited footage sitting on Heath's PC, which this table has no
+// column for and which would need new filesystem-scanning infra to track
+// (same category of gap as local_video_orphans, but genuinely a separate,
+// bigger build -- skipped here as speculative rather than guessed at).
+const VIDEO_RUNWAY_MIN_READY = 2;
+
+async function checkVideoRunwayLow(minReady = VIDEO_RUNWAY_MIN_READY) {
+  const res = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed&select=id',
+  );
+  if (!res.ok) {
+    return [{
+      key: 'video_runway_query_failed',
+      message: `Could not read video_library to check the ready-to-post buffer (status ${res.status}). Treat video content runway as unverified until this query works.`,
+    }];
+  }
+  const count = Array.isArray(res.data) ? res.data.length : 0;
+  if (count >= minReady) return [];
+  return [{
+    key: 'video_runway_low',
+    count,
+    message: `Only ${count} video(s) are heath_approved+ready to post (buffer < ${minReady}) -- at roughly one video/day this runs out in under ${minReady} day(s) unless more footage gets built and approved soon.`,
+  }];
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -1176,7 +1393,10 @@ async function runAllChecks(opts = {}) {
   // incident) — same reason, same rule: append only.
   // partialVideoDeliveries appended 2026-09-30 (Atlas, video
   // partial-delivery investigation) — same rule, appended at the end.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries] = await Promise.all([
+  // noVideoToday / videoRunwayLow appended 2026-10-02 (Atlas, "I had to
+  // catch you not posting anything today" incident) — same rule, appended
+  // at the end of both this destructure and the Promise.all below.
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, googleToken, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1198,9 +1418,11 @@ async function runAllChecks(opts = {}) {
     checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
     checkStructurallyUnpublishablePosts(opts.structuralUnpublishableStaleMinutes),
     checkPartialVideoDeliveries(opts.partialVideoDeliveryStaleMinutes),
+    checkNoVideoScheduledToday(opts.noVideoTodayNow),
+    checkVideoRunwayLow(opts.videoRunwayMinReady),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...googleToken, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow];
   const fired = [];
   const suppressed = [];
 
@@ -1564,6 +1786,10 @@ module.exports = {
   STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES,
   checkPartialVideoDeliveries,
   PARTIAL_VIDEO_DELIVERY_STALE_MINUTES,
+  checkNoVideoScheduledToday,
+  NO_VIDEO_TODAY_TZ,
+  checkVideoRunwayLow,
+  VIDEO_RUNWAY_MIN_READY,
   shouldFire,
   markFired,
   runAllChecks,
