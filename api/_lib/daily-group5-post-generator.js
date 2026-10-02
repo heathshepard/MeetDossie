@@ -60,6 +60,7 @@ const { FORMATS, pickFormat, pickScaffold, pickStory, effectiveHookType, baseHoo
 const { eligibleStories } = require('./verified-story-library');
 const { checkFabrication } = require('./fabrication-guard');
 const { checkPractitionerTest } = require('./practitioner-test-guard');
+const { checkPersonaAltitude } = require('./persona-altitude-guard');
 const { checkGroupContentGate } = require('../../scripts/_lib/group-post-content-gate');
 const { checkDuplicate, withinDedupeWindow } = require('../../scripts/_lib/group-post-dedup');
 const { wasSuppressed } = require('./telegram-gate');
@@ -405,6 +406,19 @@ async function generateCleanPost({
     const practitionerCheck = checkPractitionerTest(postBody, { formatId: format.id });
     if (!practitionerCheck.ok) {
       log(`[daily-group5] PRACTITIONER-TEST GUARD BLOCKED "${group.name}" (attempt ${attempt + 1}): ${practitionerCheck.violations.join(', ')}`);
+      lastHookType = format.id; // force a different format on the retry
+      continue;
+    }
+
+    // Persona-altitude guard — Heath 2026-10-02, after rejecting both of
+    // that day's drafts as rookie-level (memory/heath-group-poster-
+    // persona.md). An expert never asks "what is X" or explains a basic
+    // term pair -- the gap a veteran genuinely has is in SYSTEMS. Force a
+    // different format on retry, same as dedup/practitioner-test -- this is
+    // a "produce something else" failure.
+    const altitudeCheck = checkPersonaAltitude(postBody);
+    if (!altitudeCheck.pass) {
+      log(`[daily-group5] PERSONA-ALTITUDE GUARD BLOCKED "${group.name}" (attempt ${attempt + 1}): ${altitudeCheck.failedRules.map((r) => `${r}: ${altitudeCheck.rules[r].note}`).join(' | ')}`);
       lastHookType = format.id; // force a different format on the retry
       continue;
     }
