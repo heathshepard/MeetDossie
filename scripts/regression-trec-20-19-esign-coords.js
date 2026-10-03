@@ -111,8 +111,11 @@ function testBuildPlacesAllRequiredWidgets() {
   const entry = resaleFormEntry();
   const { fieldMap } = buildMappedFieldMap(entry, BUYER_SELLER_SIGNERS);
   const total = Object.values(fieldMap).reduce((a, arr) => a + arr.length, 0);
-  // 2 signers x (9 initials + 1 signature + 1 date) = 22.
-  assert.strictEqual(total, 22, `expected 22 widgets for 1 buyer + 1 seller, got ${total}`);
+  // 2 signers x (9 initials + 1 signature + 1 date) = 22, plus 3 EXECUTED
+  // (Effective Date) day/month/year fields on whichever signer is LAST in
+  // BUYER_SELLER_SIGNERS (Seller 1) — api/_lib/executed-date-field-gate.js,
+  // 2026-10-02. = 25.
+  assert.strictEqual(total, 25, `expected 25 widgets for 1 buyer + 1 seller (22 + 3 EXECUTED), got ${total}`);
   for (const role of ['Buyer 1', 'Seller 1']) {
     const roleFields = fieldMap[role];
     const initialPages = roleFields
@@ -123,7 +126,7 @@ function testBuildPlacesAllRequiredWidgets() {
     const sigField = roleFields.find((f) => f.type === 'signature');
     assert.strictEqual(sigField.areas[0].page, SIGNATURE_PAGE, `${role} signature must land on page 10`);
   }
-  console.log('  PASS: resale field map places all 22 required widgets (9 initial pages + page-10 signature + date per signer)');
+  console.log('  PASS: resale field map places all 25 required widgets (9 initial pages + page-10 signature + date per signer + 3 EXECUTED on last signer)');
 }
 
 function testGateAcceptsTheFixedFieldMap() {
@@ -131,7 +134,7 @@ function testGateAcceptsTheFixedFieldMap() {
   const { fieldMap } = buildMappedFieldMap(entry, BUYER_SELLER_SIGNERS);
   assert.doesNotThrow(
     () => assertPlausibleMappedFieldCount(entry, fieldMap, BUYER_SELLER_SIGNERS),
-    'the gate must NOT block a correctly-built 22-widget field map'
+    'the gate must NOT block a correctly-built 25-widget field map'
   );
   console.log('  PASS: generalized gate accepts the correct (post-fix) field map');
 }
@@ -177,7 +180,7 @@ async function main() {
     ['esign-create.js exposes __testing internals', testTestingSurfaceExists],
     ['trec-20-19-esign-coords.json covers exactly the 9 printed initial pages + page-10 signature', testCurrentCoordFileIsThe2019Map],
     ['built field map has NO widget on pages 11/12 (floating-initials defect)', testBuiltFieldMapHasNoWidgetOnPages11Or12],
-    ['resale field map places all 22 required widgets', testBuildPlacesAllRequiredWidgets],
+    ['resale field map places all 25 required widgets', testBuildPlacesAllRequiredWidgets],
     ['generalized gate accepts the correct field map', testGateAcceptsTheFixedFieldMap],
     ['generalized gate BLOCKS the pre-fix 20-18-on-20-19 shape (proves the suite is not a no-op)', testGateBlocksThePreFixShape],
   ];

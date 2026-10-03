@@ -41,10 +41,20 @@
 // rendered form before adding.
 const INITIALS_REQUIRED_FORMS = new Set(['unimproved-property', 'sellers-disclosure-txr-1406']);
 
-function dsFieldRequired(type, formType) {
+// 2026-10-02 CARTER — the EXECUTED-date gate (api/_lib/executed-date-field-gate.js).
+// A field naming the EXECUTED/final-acceptance paragraph is required on every
+// form it appears on, period — there is no form where leaving the date of
+// final acceptance blank is acceptable. Matched by fieldName, same
+// EXECUTED_FIELD_NAME_RE convention the gate itself uses, so the two can
+// never drift apart. Optional 3rd arg — every existing call site that only
+// passes (type, formType) is unaffected.
+const EXECUTED_FIELD_NAME_RE = /execut|final[\s_-]*acceptance|effective[\s_-]*date/i;
+
+function dsFieldRequired(type, formType, fieldName) {
   if (type === 'signature' || type === 'date') return true;
   if (type === 'initials' && formType && INITIALS_REQUIRED_FORMS.has(formType)) return true;
+  if (fieldName && EXECUTED_FIELD_NAME_RE.test(fieldName)) return true;
   return false;
 }
 
-module.exports = { INITIALS_REQUIRED_FORMS, dsFieldRequired };
+module.exports = { INITIALS_REQUIRED_FORMS, EXECUTED_FIELD_NAME_RE, dsFieldRequired };

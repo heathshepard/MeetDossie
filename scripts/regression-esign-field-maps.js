@@ -282,7 +282,14 @@ check('8. no non-signature/date field is ever required:true (Barry Whyte gate)',
     const { fieldMap } = T.buildMappedFieldMap(entry, runtimeSigners);
     for (const [role, fields] of Object.entries(fieldMap)) {
       for (const f of fields) {
-        const expected = T.dsFieldRequired(f.type, formSlug);
+        // f.name passed through 2026-10-02 — the EXECUTED-date gate's
+        // required:true rule is name-sensitive (api/_lib/
+        // esign-field-required-policy.js's EXECUTED_FIELD_NAME_RE), the
+        // same way buildMappedFieldMap itself computes it at runtime. Not
+        // passing it here would make this check assert a DIFFERENT policy
+        // than the one that actually ran — the exact drift this gate exists
+        // to prevent.
+        const expected = T.dsFieldRequired(f.type, formSlug, f.name);
         assert(f.required === expected,
           `buildMappedFieldMap(${formSlug}).${role}.${f.name} (type=${f.type}) required=${f.required}, expected ${expected}`);
       }

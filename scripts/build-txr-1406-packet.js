@@ -53,9 +53,28 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 const { dsFieldRequired } = require('../api/_lib/esign-field-required-policy');
+const {
+  hasExecutedBlock,
+  checkExecutedDateFieldAssignment,
+} = require('../api/_lib/executed-date-field-gate');
+
+// pdftotext on the actual baked PDF bytes about to be sent — "detect from
+// the document itself" (api/_lib/executed-date-field-gate.js), not a
+// hardcoded form-number check.
+function extractPdfText(pdfBytes) {
+  const tmp = path.join(os.tmpdir(), `txr-1406-executed-scan-${process.pid}.pdf`);
+  fs.writeFileSync(tmp, pdfBytes);
+  try {
+    return execFileSync('pdftotext', [tmp, '-'], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 20 });
+  } finally {
+    fs.unlinkSync(tmp);
+  }
+}
 
 const DOCUSEAL_API_KEY =
   process.env.DOCUSEAL_API_KEY ||
@@ -177,6 +196,29 @@ async function main() {
   const initialsRequired = dsFieldRequired('initials', FORM_TYPE);
   console.log(`[txr-1406] ${docFields.length} DocuSeal fields built. initials required=${initialsRequired}`);
 
+  const submitters = [{ role: 'Seller 1', name: opts.seller1Name, email: opts.seller1Email }];
+  if (opts.seller2Name && opts.seller2Email) {
+    submitters.push({ role: 'Seller 2', name: opts.seller2Name, email: opts.seller2Email });
+  }
+
+  // EXECUTED (Effective Date) gate — api/_lib/executed-date-field-gate.js.
+  // TXR-1406 is a disclosure notice, not an agreement — it has no acceptance
+  // to date and should pass through untouched (confirmed by scanning the
+  // real baked PDF text, not assumed). Runs here anyway, on every build, so
+  // the day this form (or a future one this script is adapted to build)
+  // actually does carry the paragraph, the gate catches it instead of
+  // silently shipping blank.
+  const execCheck = checkExecutedDateFieldAssignment({
+    formLabel: `TXR-1406 Seller's Disclosure — ${opts.address}`,
+    hasExecutedBlock: hasExecutedBlock(extractPdfText(bakedBytes)),
+    fields: docFields,
+    signers: submitters,
+    signingOrder: 'preserved',
+  });
+  if (!execCheck.ok) {
+    throw new Error(execCheck.error);
+  }
+
   const H = { 'X-Auth-Token': DOCUSEAL_API_KEY, 'Content-Type': 'application/json' };
   const tRes = await fetch(`${DOCUSEAL_BASE}/templates/pdf`, {
     method: 'POST',
@@ -193,11 +235,6 @@ async function main() {
   const template = await tRes.json();
   if (!template.id) throw new Error(`template create failed ${tRes.status}: ${JSON.stringify(template).slice(0, 2000)}`);
   console.log(`[txr-1406] template id ${template.id}`);
-
-  const submitters = [{ role: 'Seller 1', name: opts.seller1Name, email: opts.seller1Email }];
-  if (opts.seller2Name && opts.seller2Email) {
-    submitters.push({ role: 'Seller 2', name: opts.seller2Name, email: opts.seller2Email });
-  }
 
   const sRes = await fetch(`${DOCUSEAL_BASE}/submissions`, {
     method: 'POST',
@@ -225,4 +262,4 @@ if (require.main === module) {
   main().catch((e) => { console.error('FAILED', (e && e.stack) || e); process.exit(1); });
 }
 
-module.exports = { bakeAddress, buildDsFields, FORM_TYPE };
+module.exports = { bakeAddress, buildDsFields, FORM_TYPE, extractPdfText };

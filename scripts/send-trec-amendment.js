@@ -17,11 +17,35 @@
  *   "fields": { "Street Address and City": "507 Ridge Blf    San Antonio", "date 5": "October 9" },
  *   "checks": ["3 The date in Paragraph 9 of the contract is changed to"],
  *   "signers": [
- *     { "role": "Buyer 1", "name": "Kanika Jain",   "email": "strkanjain@gmail.com",   "sig": [36,168,260,32] },
- *     { "role": "Buyer 2", "name": "Ketan Thakkar", "email": "ketanhthakkar@gmail.com", "sig": [35,125,262,32] }
+ *     { "role": "Buyer 1", "name": "Nadia Kapoor",   "email": "nkapoor@mail.example",   "sig": [36,168,260,32] },
+ *     { "role": "Buyer 2", "name": "Rohan Desai", "email": "rohandesai@mail.example", "sig": [35,125,262,32] }
  *   ],
  *   "subject": "507 Ridge Blf - Amendment",
- *   "body": "Hey Kanika and Ketan,\n\n...\n\nPlease sign here: {{submitter.link}}\n\nThanks,\nHeath",
+ *   "body": "Hey Nadia and Rohan,\n\n...\n\nPlease sign here: {{submitter.link}}\n\nThanks,\nHeath",
+ *
+ *   // EXECUTED (Effective Date) gate — api/_lib/executed-date-field-gate.js.
+ *   // REQUIRED whenever the form carries the printed paragraph "EXECUTED the
+ *   // ___ day of ______________, 20___ (Effective Date)." — every TREC
+ *   // contract/amendment does. The send REFUSES without this (2026-10-02,
+ *   // after the exact 39-11 buyer-name amendment shipped twice with the
+ *   // paragraph left blank — no field, no send).
+ *   // Same [x,y,w,h] point convention as `sig` (see --map). Assigned to the
+ *   // LAST entry in `signers` — the date of final acceptance belongs to
+ *   // whoever actually signs last, never the first signer, never pre-typed.
+ *   "executedDate": {
+ *     "day":   [349, 549, 26, 13],
+ *     "month": [396, 549, 170, 13],
+ *     "year":  [567, 549, 24, 13]
+ *   },
+ *
+ *   // Optional — DocuSeal submitter signing order. Defaults to "random"
+ *   // (unchanged historical behavior: co-signers on the same side can sign
+ *   // in either order). If the form carries an EXECUTED block, "random"
+ *   // order has no deterministic last signer, so the gate requires a signer
+ *   // whose role names "agent"/"broker" to fall back to (the member's own
+ *   // side) — add one or set "order": "preserved" (signers sign in the
+ *   // listed array order; the LAST entry becomes the real last signer).
+ *   "order": "preserved",
  *
  *   // Optional, both for the Dossie write-back only — neither affects the send.
  *   "transaction_id": "<dossier uuid>",   // REQUIRED for the signed PDF + completion
@@ -45,6 +69,10 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { PDFDocument } = require('pdf-lib');
+const {
+  hasExecutedBlock,
+  checkExecutedDateFieldAssignment,
+} = require('../api/_lib/executed-date-field-gate');
 
 const REPO = path.resolve(__dirname, '..');
 
@@ -97,17 +125,71 @@ function render(pdfPath) {
     .sort();
 }
 
-async function docuseal(spec, pdfPath) {
-  loadEnv();
-  const key = process.env.DOCUSEAL_API_KEY;
-  if (!key) throw new Error('DOCUSEAL_API_KEY missing from .env.local');
-  const H = { 'X-Auth-Token': key, 'Content-Type': 'application/json' };
-  // DocuSeal wants a top-origin fraction; the form's own widgets are bottom-origin.
+// pdftotext on the ACTUAL filled PDF about to be sent — this is "detect from
+// the document itself" (api/_lib/executed-date-field-gate.js), not a
+// hardcoded form-number check. Any TREC form run through this script gets
+// the same real scan, including ones nobody's special-cased yet.
+function extractPdfText(pdfPath) {
+  return execFileSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 20 });
+}
+
+// Build the signature + EXECUTED-date DocuSeal fields for a spec/pdf pair
+// and run the EXECUTED-date gate against them. Separated from docuseal() so
+// it can run (and be tested) without a DocuSeal credential — the gate must
+// never depend on reaching the network to refuse a bad send.
+function buildFieldsAndGate(spec, pdfPath) {
   const area = ([x, y, w, h]) => ({
     x: +(x / 612).toFixed(6), y: +((792 - (y + h)) / 792).toFixed(6),
     w: +(w / 612).toFixed(6), h: +(h / 792).toFixed(6), page: 1,
   });
   const name = spec.subject || path.basename(pdfPath, '.pdf');
+  const signingOrder = spec.order || 'random'; // unchanged historical default
+
+  const sigFields = spec.signers.map((s) => ({
+    name: `${s.role} Signature`, type: 'signature', role: s.role, required: true, areas: [area(s.sig)],
+  }));
+
+  // EXECUTED (Effective Date) gate — api/_lib/executed-date-field-gate.js.
+  // REFUSES the send outright (never a warning) rather than let the
+  // paragraph go out blank — see the spec docstring above and the module's
+  // own header for the full rationale (two live-client misses in 3 days).
+  const execFields = spec.executedDate ? (() => {
+    const lastSigner = spec.signers[spec.signers.length - 1];
+    const lastRole = lastSigner ? lastSigner.role : null;
+    return ['day', 'month', 'year']
+      .filter((part) => spec.executedDate[part])
+      .map((part) => ({
+        name: `${lastRole} Executed ${part[0].toUpperCase()}${part.slice(1)}`,
+        type: 'text',
+        role: lastRole,
+        required: true,
+        areas: [area(spec.executedDate[part])],
+      }));
+  })() : [];
+
+  const execCheck = checkExecutedDateFieldAssignment({
+    formLabel: name,
+    hasExecutedBlock: hasExecutedBlock(extractPdfText(pdfPath)),
+    fields: [...sigFields, ...execFields],
+    signers: spec.signers,
+    signingOrder,
+  });
+  if (!execCheck.ok) {
+    throw new Error(execCheck.error);
+  }
+
+  return { name, signingOrder, fields: [...sigFields, ...execFields], area };
+}
+
+async function docuseal(spec, pdfPath) {
+  // Gate FIRST — refuse before touching credentials or the network. A spec
+  // can be validated with no DOCUSEAL_API_KEY present at all.
+  const { name, signingOrder, fields } = buildFieldsAndGate(spec, pdfPath);
+
+  loadEnv();
+  const key = process.env.DOCUSEAL_API_KEY;
+  if (!key) throw new Error('DOCUSEAL_API_KEY missing from .env.local');
+  const H = { 'X-Auth-Token': key, 'Content-Type': 'application/json' };
 
   const tRes = await fetch('https://api.docuseal.com/templates/pdf', {
     method: 'POST', headers: H,
@@ -116,9 +198,7 @@ async function docuseal(spec, pdfPath) {
       documents: [{
         name,
         file: fs.readFileSync(pdfPath).toString('base64'),
-        fields: spec.signers.map((s) => ({
-          name: `${s.role} Signature`, type: 'signature', role: s.role, required: true, areas: [area(s.sig)],
-        })),
+        fields,
       }],
       submitters: spec.signers.map((s) => ({ name: s.role })),
     }),
@@ -130,7 +210,7 @@ async function docuseal(spec, pdfPath) {
   const sRes = await fetch('https://api.docuseal.com/submissions', {
     method: 'POST', headers: H,
     body: JSON.stringify({
-      template_id: template.id, send_email: true, order: 'random',
+      template_id: template.id, send_email: true, order: signingOrder,
       message: { subject: spec.subject, body: spec.body },
       submitters: spec.signers.map((s) => ({ role: s.role, name: s.name, email: s.email })),
     }),
@@ -189,7 +269,7 @@ async function docuseal(spec, pdfPath) {
   return submissionId;
 }
 
-(async () => {
+async function main() {
   const args = process.argv.slice(2);
   const mapIdx = args.indexOf('--map');
   if (mapIdx !== -1) return dumpMap(path.resolve(REPO, args[mapIdx + 1]));
@@ -210,4 +290,10 @@ async function docuseal(spec, pdfPath) {
     return;
   }
   await docuseal(spec, pdfPath);
-})().catch((err) => { console.error(err.message); process.exit(1); });
+}
+
+if (require.main === module) {
+  main().catch((err) => { console.error(err.message); process.exit(1); });
+}
+
+module.exports = { fill, render, dumpMap, docuseal, buildFieldsAndGate, extractPdfText };
