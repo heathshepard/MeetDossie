@@ -2,18 +2,18 @@ $envContent = Get-Content "C:\Users\Heath Shepard\Desktop\MeetDossie\.env.local"
 $resend = if ($envContent -match 'RESEND_API_KEY="?([^"\r\n]+)') { $matches[1] } else { $null }
 
 $recipients = @(
-  'tiffanygillrealtor@gmail.com',
-  'lisanilssontx@gmail.com',
-  'jenn.casamiateam@gmail.com',
+  'ti****************@gmail.com',
+  'li***********@gmail.com',
+  'je**************@gmail.com',
   'natalie@localchoicegroup.com',
-  'michellesellshouston@gmail.com',
+  'mi******************@gmail.com',
   'amanda@amandanuckles.com',
   'cecilia@sterlingassociatesre.com',
   'kimberlyherrera@kw.com',
-  'mikirgvrealtor@gmail.com',
+  'mi************@gmail.com',
   'tgill@phyllisbrowning.com',
   'brittney@setxrealty.com',
-  'k.suzanne.page@gmail.com',
+  'k.************@gmail.com',
   'heath@meetdossie.com'
 )
 

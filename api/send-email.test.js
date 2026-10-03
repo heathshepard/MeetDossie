@@ -35,7 +35,7 @@ const LISTING_SIDE_TX = {
   seller_name: 'Barry Whyte',
   seller_email: 'barry@example.com',
   buyer_name: 'Christopher Bryan',
-  buyer_email: 'cwb03@hotmail.com',
+  buyer_email: 'buyercontact2@example.net',
   buyer2_email: null,
   seller2_email: null,
   parties: {},
@@ -94,7 +94,7 @@ test('REFUSES an email to the other side\'s represented client — Resend is nev
 
   const res = makeRes();
   await handler(req({
-    to: 'cwb03@hotmail.com', // the buyer — the OTHER side's client on this listing-side dossier
+    to: 'buyercontact2@example.net', // the buyer — the OTHER side's client on this listing-side dossier
     subject: 'Your contract',
     body: 'Here is the fully executed contract.',
     transactionId: TX_ID,
@@ -114,7 +114,7 @@ test('"just send it anyway" has no server-side effect — resending the same req
   for (let i = 0; i < 2; i += 1) {
     const res = makeRes();
     await handler(req({
-      to: 'cwb03@hotmail.com',
+      to: 'buyercontact2@example.net',
       subject: 'Your contract',
       body: 'Sending this now regardless.',
       transactionId: TX_ID,
@@ -186,7 +186,7 @@ test('multiple recipients — EVERY address is gated before ANYTHING is sent', a
   await handler(req({
     // First address is fine (own client), second is the opposing principal —
     // the whole send must refuse, not partially send to the first address.
-    to: ['barry@example.com', 'cwb03@hotmail.com'],
+    to: ['barry@example.com', 'buyercontact2@example.net'],
     subject: 'Update',
     body: 'Body text.',
     transactionId: TX_ID,

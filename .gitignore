@@ -324,3 +324,19 @@ node_modules
 # could not save them). May transiently contain real conversation content
 # before this hook's secret-scan gate runs — must never be committed.
 .memory-capture-tmp/
+
+# Lead/scrape working data — thousands of real Texas realtors' names, emails,
+# phones and TREC license numbers, plus a do-not-call opt-out list. Never
+# belongs in a PUBLIC repo (CLAUDE.md §15). Untracked 2026-10-03 PII triage.
+# Files stay on disk; scripts that generate/read them locally still work.
+# EXCEPTIONS: sa-realtor-leads-final-v2.csv, kw-only-thursday-2026-07-10.csv,
+# and kw-only-friday-2026-07-11.csv stay TRACKED — vercel.json bundles them
+# via includeFiles for api/cron-cold-email-daily-batch.js and
+# api/cron-warm-touch-populate.js/cron-warm-touch-queue.js, which read them
+# at runtime via path.join(process.cwd(), 'data/...'). Untracking those three
+# would silently break a live Vercel-scheduled cron. Real fix: move the lead
+# source into Supabase/Blob storage instead of a bundled CSV (unresolved).
+data/*.csv
+!data/sa-realtor-leads-final-v2.csv
+!data/kw-only-thursday-2026-07-10.csv
+!data/kw-only-friday-2026-07-11.csv

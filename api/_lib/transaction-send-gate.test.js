@@ -39,7 +39,7 @@ const LISTING_SIDE_TX = {
   seller_name: 'Barry Whyte',
   seller_email: 'barry@example.com',
   buyer_name: 'Christopher Bryan',
-  buyer_email: 'cwb03@hotmail.com',
+  buyer_email: 'buyercontact2@example.net',
   buyer2_name: 'Monica Bryan',
   buyer2_email: 'monica.bryan@example.com',
   parties: {},
@@ -58,7 +58,7 @@ const SIDE_UNKNOWN_TX = {
   seller_name: 'Barry Whyte',
   seller_email: 'barry@example.com',
   buyer_name: 'Christopher Bryan',
-  buyer_email: 'cwb03@hotmail.com',
+  buyer_email: 'buyercontact2@example.net',
   parties: {},
 };
 
@@ -112,7 +112,7 @@ test('no email — nothing to classify, always allowed', async () => {
 
 test('REFUSES the other side\'s principal — listing agent, buyer is the opposing client', async () => {
   stubFetch({ documents: oneExecutedContractDoc(), tx: LISTING_SIDE_TX });
-  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'cwb03@hotmail.com' });
+  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'buyercontact2@example.net' });
   assert.equal(result.ok, false);
   assert.equal(result.status, 403);
   assert.equal(result.blocked, 'opposing_principal');
@@ -144,13 +144,13 @@ test('side flips correctly on a buyer-side dossier — now the SELLER is blocked
   assert.equal(blocked.ok, false);
   assert.equal(blocked.blocked, 'opposing_principal');
 
-  const allowed = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'cwb03@hotmail.com' });
+  const allowed = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'buyercontact2@example.net' });
   assert.equal(allowed.ok, true);
 });
 
 test('AMBIGUOUS IDENTITY fails closed — side unknown AND parties are on file', async () => {
   stubFetch({ documents: oneExecutedContractDoc(), tx: SIDE_UNKNOWN_TX });
-  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'cwb03@hotmail.com' });
+  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'buyercontact2@example.net' });
   assert.equal(result.ok, false);
   assert.equal(result.status, 422);
   assert.equal(result.blocked, 'side_unknown');
@@ -208,7 +208,7 @@ test('an already-loaded tx row (passed by the caller) is reused, no transactions
       if (url.includes('/rest/v1/transactions')) throw new Error('must not re-fetch transactions — tx was provided');
     },
   });
-  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'cwb03@hotmail.com', tx: LISTING_SIDE_TX });
+  const result = await gateOutboundRecipient({ userId: USER, transactionId: TX_ID, email: 'buyercontact2@example.net', tx: LISTING_SIDE_TX });
   assert.equal(result.ok, false);
   assert.equal(result.blocked, 'opposing_principal');
 });
@@ -220,7 +220,7 @@ test('"just send it anyway" has no effect — the gate takes only userId/transac
   const result = await gateOutboundRecipient({
     userId: USER,
     transactionId: TX_ID,
-    email: 'cwb03@hotmail.com',
+    email: 'buyercontact2@example.net',
     override: true,
     force: true,
     confirmed_by_member: true,

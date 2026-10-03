@@ -20,12 +20,12 @@ const recipients = [
   { name: 'Kimberly', email: 'kimberlyherrera@kw.com' },
   { name: 'Tiffany', email: 'tgill@phyllisbrowning.com' },
   { name: 'Brittney', email: 'brittney@setxrealty.com' },
-  { name: 'Suzanne', email: 'k.suzanne.page@gmail.com' },
-  { name: 'Miki', email: 'mikirgvrealtor@gmail.com' },
+  { name: 'Suzanne', email: 'k.************@gmail.com' },
+  { name: 'Miki', email: 'mi************@gmail.com' },
   { name: 'Cecilia', email: 'cecilia@sterlingassociatesre.com' },
-  { name: 'Terry', email: 'michellesellshouston@gmail.com' },
+  { name: 'Terry', email: 'mi******************@gmail.com' },
   { name: 'Natalie', email: 'natalie@localchoicegroup.com' },
-  { name: 'Lisa', email: 'lisanilssontx@gmail.com' },
+  { name: 'Lisa', email: 'li***********@gmail.com' },
 ];
 
 function buildEmailText(firstName) {

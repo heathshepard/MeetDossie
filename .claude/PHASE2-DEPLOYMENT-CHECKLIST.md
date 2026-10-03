@@ -73,7 +73,7 @@ Phase 2 requires React component changes that Carter will complete:
 - [ ] Do NOT auto-send these; Heath approves each manually
   - Cecilia Whitley (cecilia@sterlingassociatesre.com) — 23 days, never logged in
   - Kim Herrera (kimberlyherrera@kw.com) — 24 days, never logged in (KW-to-KW angle)
-  - Tiffany Gill (tiffanygillrealtor@gmail.com) — 3 days, never logged in (fresh warm welcome)
+  - Tiffany Gill (ti****************@gmail.com) — 3 days, never logged in (fresh warm welcome)
 - [ ] Create draft rows in email_drafts table OR send Telegram digest to Heath with "tap to send" buttons
 
 **Priority 6 — In-app tooltips (12+ buttons):**

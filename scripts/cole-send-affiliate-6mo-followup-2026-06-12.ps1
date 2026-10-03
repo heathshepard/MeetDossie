@@ -3,18 +3,18 @@ $resend = if ($envContent -match 'RESEND_API_KEY="?([^"\r\n]+)') { $matches[1] }
 
 $recipients = @(
   @{ email='kimberlyherrera@kw.com'; first_name='Kimberly'; tier='founding' },
-  @{ email='tiffanygillrealtor@gmail.com'; first_name='Tiffany'; tier='founding' },
+  @{ email='ti****************@gmail.com'; first_name='Tiffany'; tier='founding' },
   @{ email='tgill@phyllisbrowning.com'; first_name='Tiffany'; tier='founding' },
   @{ email='brittney@setxrealty.com'; first_name='Brittney'; tier='founding' },
-  @{ email='k.suzanne.page@gmail.com'; first_name='Suzanne'; tier='founding' },
-  @{ email='mikirgvrealtor@gmail.com'; first_name='Miki'; tier='founding' },
+  @{ email='k.************@gmail.com'; first_name='Suzanne'; tier='founding' },
+  @{ email='mi************@gmail.com'; first_name='Miki'; tier='founding' },
   @{ email='cecilia@sterlingassociatesre.com'; first_name='Cecilia'; tier='founding' },
-  @{ email='michellesellshouston@gmail.com'; first_name='Terry'; tier='founding' },
+  @{ email='mi******************@gmail.com'; first_name='Terry'; tier='founding' },
   @{ email='amanda@amandanuckles.com'; first_name='Amanda'; tier='founding' },
   @{ email='zelda@a2zrealestateconsultants.com'; first_name='Zelda'; tier='founding' },
   @{ email='natalie@localchoicegroup.com'; first_name='Natalie'; tier='founding' },
-  @{ email='jenn.casamiateam@gmail.com'; first_name='Jennifer'; tier='founding' },
-  @{ email='lisanilssontx@gmail.com'; first_name='Lisa'; tier='founding' }
+  @{ email='je**************@gmail.com'; first_name='Jennifer'; tier='founding' },
+  @{ email='li***********@gmail.com'; first_name='Lisa'; tier='founding' }
 )
 
 $sent = 0

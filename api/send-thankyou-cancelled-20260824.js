@@ -16,7 +16,7 @@ const TARGET_DATE_UTC = '2026-08-24'; // YYYY-MM-DD
 const emails = [
   {
     key: 'miki',
-    to: 'mikirgvrealtor@gmail.com',
+    to: 'mi************@gmail.com',
     subject: 'Thank you, Miki',
     text: `Hey Miki,
 
