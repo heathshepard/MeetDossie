@@ -1,0 +1,84 @@
+{
+  "slug": "heath-realtor-trec-5e-time-of-essence-2026-10-03",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.3,
+    "similarity_boost": 0.75,
+    "style": 0.4,
+    "use_speaker_boost": true
+  },
+
+  "_why_this_clause": "Of the four TREC clause recordings we hold, three are already spoken for: 7.I is shot and published (dossie_water_FINAL_V8.mp4 + variants.json), 12.B is video 8, and 5.B has a built cut in /home/heath/mw/option-period/. 5.E was only ever a supporting fact inside video 9, never the subject of its own piece.",
+
+  "_fact_verification": [
+    "Primary source: pdftotext -layout scripts/trec-forms/20-19.pdf (TREC No. 20-19, footer rev 05-04-2026, 12 pages). Read 2026-10-03.",
+    "VERBATIM 5.E: 'E. TIME: Time is of the essence for this paragraph and strict compliance with the time for performance is required.'",
+    "PROVEN NEGATIVE: 'of the essence' occurs exactly 1 time in the whole 12-page form; 'strict compliance' exactly 1; 'essence' exactly 1 -- all three inside 5.E. So 'it says that once' is measured, not asserted.",
+    "Paragraph 5 heading VERBATIM: '5. EARNEST MONEY AND TERMINATION OPTION:' -- subsections A (delivery of earnest money and option fee), B (termination option), C (failure to timely deliver earnest money), D (failure to timely deliver option fee), E (time).",
+    "'Three days to deliver' -- 5.A: 'Within 3 days after the Effective Date, Buyer must deliver...'. The 3 is printed form text, not a blank.",
+    "'Option notice by 5 p.m. local time' -- 5.B: 'Notices under this paragraph must be given by 5:00 p.m. (local time where the Property is located) by the date specified.'",
+    "DELIBERATELY NOT CLAIMED: that deadlines in other paragraphs are soft, flexible, or unenforceable. The rehook beat says the opposite out loud ('Other deadlines still bind you') precisely so a length trim cannot turn this into a false and dangerous statement. 5.E's 'for this paragraph' is also not stretched to any other paragraph, per memory feedback_triple-check-public-facing-facts.md."
+  ],
+
+  "music": "documentary-trust-piano.mp3",
+  "music_gain_db": -7,
+  "_music_why": "Measured at drive 0.159 (2nd highest of 12 tracks) by measure_music_tempo.py, and it is the track docs/VIDEO-PRODUCTION-RECIPE.md fixes for the TREC 20-19 series, so the series stays sonically consistent. 176s long, so no loop seam. Licence-clean (Pixabay Content License, Media/Music/LICENSE.md).",
+
+  "default_gap": 0.14,
+  "speed": 1.12,
+  "_speed_why": "atempo preserves pitch. founder-video-production-standard.md §3 settled 1.18 for Heath's own teleprompter read and found 1.22 degraded intelligibility; 1.12 sits well under that ceiling and is what pulls the read from 38.2s (first build, over the 34s TikTok ceiling) into the window while adding forward motion.",
+
+  "hook_card": {
+    "lines": ["\"TIME IS OF", "THE ESSENCE\"", "APPEARS ONCE."],
+    "until": 2.75
+  },
+  "caption_suppress_until": 2.75,
+  "cta_card": {
+    "lines": ["COMMENT \"FIVE\"", "FOR THE ¶5 TIMELINE"],
+    "from_end": 3.1
+  },
+
+  "accent_words": ["5.E", "5", "5.A", "5.B"],
+  "caption_rewrite": [
+    ["paragraph five E", "¶5.E"],
+    ["Paragraph five is", "¶5 IS"],
+    ["paragraph five", "¶5"],
+    ["five p.m.", "5 P.M."]
+  ],
+
+  "beats": [
+    { "id": "HOOK",   "text": "Agents say this whole contract is time is of the essence. It says that once." },
+    { "id": "SETUP",  "text": "Paragraph five E." },
+    { "id": "QUOTE",  "text": "Time is of the essence for this paragraph, and strict compliance with the time for performance is required." },
+    { "id": "TURN",   "text": "For this paragraph. Not the contract." },
+    { "id": "DETAIL", "text": "Paragraph five is earnest money, the option fee, your termination option." },
+    { "id": "STAKE",  "text": "Three days to deliver. Option notice by five p.m. local time." },
+    { "id": "REHOOK", "text": "Other deadlines still bind you. This is the only place the form says it." },
+    { "id": "CTA",    "text": "Comment FIVE for the paragraph five timeline." }
+  ],
+
+  "_shot_rhythm": "Target 1.6-2.1s per cut. The document is EVIDENCE, not reading material -- at 9:16 a full contract page's body text is ~10px and no amount of punching in fixes that without cutting lines in half, so the captions carry every word and the page carries the authority. That is the same division of labour as the approved v8/v9 cuts. Clause in-points are all >= 3.4s because the gold highlight box and the bottom label card only come up after the establishing shot; the first build used in=1.2 and showed an unmarked wide page. Both clause recordings are legitimately in frame because both ARE paragraph 5 -- 5e carries the TIME sentence, 5b carries the 5:00 p.m. local-time line.",
+  "_broll_note": "First build leaned on creek/lake clips and the frames read as murky pond water -- thematically irrelevant to a TIME clause and visually weak. Replaced with the clips that carry motion and recognisable place: the hero ridge opens (sun flare, forward push), then downtown, bridge approach, gazebo, flags.",
+
+  "shots": [
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4","in": 0.5, "dur": 1.7, "motion": "none", "label": "HERO ridge (open)" },
+    { "clip": "trec-5e-time-of-essence-mobile-2026-09-30.mp4",         "in": 5.0, "dur": 1.9, "motion": "none", "label": "5.E highlighted" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.6,"dur": 1.7, "motion": "none", "label": "main street aerial" },
+    { "clip": "trec-5e-time-of-essence-mobile-2026-09-30.mp4",         "in": 7.4, "dur": 2.0, "motion": "none", "label": "5.E + label card" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 0.4,"dur": 1.7, "motion": "none", "label": "bridge approach" },
+    { "clip": "trec-5b-option-period-mobile-2026-09-30.mp4",           "in": 5.4, "dur": 2.0, "motion": "none", "label": "5.B 5pm line" },
+    { "clip": "boerne-main-plaza-gazebo-mobile-2024-12-17.mp4",        "in": 0.5, "dur": 1.7, "motion": "none", "label": "gazebo landmark" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",         "in": 0.6, "dur": 1.6, "motion": "push", "label": "TX flags (static)" },
+    { "clip": "trec-5b-option-period-mobile-2026-09-30.mp4",           "in": 7.6, "dur": 1.9, "motion": "none", "label": "5.B option days" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4", "in": 2.2, "dur": 1.7, "motion": "none", "label": "underbridge FPV" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",     "in": 0.5, "dur": 1.8, "motion": "none", "label": "town overview" },
+    { "clip": "trec-5e-time-of-essence-mobile-2026-09-30.mp4",         "in": 3.4, "dur": 1.9, "motion": "none", "label": "5.E reprise" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",   "in": 0.5, "dur": 1.7, "motion": "none", "label": "Main St storefront" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4","in": 3.2, "dur": 2.0, "motion": "none", "label": "HERO close" }
+  ],
+
+  "cover_t": 2.7,
+  "verify_frames": [0.0, 0.5, 1.4, 2.6, 2.9, 3.2, 8.0, 14.0, 20.0, 26.0]
+}

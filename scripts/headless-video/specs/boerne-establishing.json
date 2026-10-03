@@ -1,0 +1,75 @@
+{
+  "slug": "heath-realtor-boerne-establishing-2026-10-03",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.3,
+    "similarity_boost": 0.75,
+    "style": 0.4,
+    "use_speaker_boost": true
+  },
+
+  "_no_statistics": "Deliberately contains ZERO market statistics -- no median price, no days-on-market, no appreciation, no inventory. The Boerne numbers are being pulled from connectMLS by another agent and were not available when this was built. A place-and-feel piece works without them; an invented median price is a licensed agent publishing a false market claim. If numbers arrive later they belong in a SEPARATE video, not retrofitted into this script.",
+
+  "_claims_check": [
+    "Every concrete noun in this script is something I confirmed by looking at the footage or at Media/b-roll/boerne/LIBRARY.md, not from general knowledge of Boerne.",
+    "'a bandstand on the plaza' -- boerne-main-plaza-gazebo-*: 'The Main Plaza bandstand/gazebo with its clock cupola'.",
+    "'ducks in the pond' -- boerne-plaza-duck-pond-*: 'Main Plaza duck pond, white ducks on the limestone rim'.",
+    "'the creek runs right through it' -- boerne-cibolo-creek-* and boerne-downtown-* show Cibolo Creek and the downtown block in the same set.",
+    "NOT CLAIMED: that Heath lives in Boerne. He practises at KW Boerne / KW City View and is San Antonio-based (CLAUDE.md §23), so the CTA says 'I sell the Hill Country', never 'I live here'.",
+    "NOT CLAIMED: drive time to San Antonio as a specific number -- phrased as commutable rather than '30 minutes', which I did not measure."
+  ],
+
+  "music": "inspiring-uplifting-cinematic.mp3",
+  "music_gain_db": -11,
+  "_music_gain_why": "Tuned by measurement, not by ear-guess. The bed is loudnorm'd to -26 LUFS and the voice to -18, so the nominal separation is (26 + |gain| - 18) dB before the sidechain adds anything. At -7 this track measured a median 13.5 dB under the voice -- short of the 18-19 dB standard, because this bed is denser than the TREC series' piano and the sidechain was contributing little. -11 puts nominal at 19 dB.",
+  "_music_why": "Highest measured drive of the 12 tracks (0.161 via measure_music_tempo.py) and 132s long, so no loop seam under a 30s cut. Cinematic bed suits drone. Licence-clean (Pixabay Content License).",
+
+  "default_gap": 0.16,
+  "speed": 1.08,
+
+  "hook_card": {
+    "lines": ["WHAT BOERNE", "IS ACTUALLY LIKE"],
+    "until": 2.6
+  },
+  "caption_suppress_until": 2.6,
+  "cta_card": {
+    "lines": ["HEATH SHEPARD", "HILL COUNTRY REAL ESTATE"],
+    "from_end": 3.2
+  },
+
+  "accent_words": [],
+
+  "beats": [
+    { "id": "HOOK",   "text": "Everybody asks me what Boerne is actually like." },
+    { "id": "BEAT",   "text": "Close enough to San Antonio to commute. Far enough that it doesn't feel like it." },
+    { "id": "DETAIL", "text": "There's a bandstand on the plaza. Ducks in the pond. The creek runs right through it." },
+    { "id": "TURN",   "text": "That's the whole pitch." },
+    { "id": "PAYOFF", "text": "Nobody moves to the Hill Country for a number. They drive through once, and they can't stop thinking about it." },
+    { "id": "CTA",    "text": "I'm Heath Shepard. I sell the Hill Country. Follow along." }
+  ],
+
+  "_shot_rhythm": "This one is pure showcase -- the footage IS the content, so the cut list is the best 15 shots in the library, ordered hero -> town -> landmark -> detail -> hero. 1.7-2.1s cuts. Static subjects (ducks close-up, flags, storefront) get a push; everything shot from the drone already moves.",
+
+  "shots": [
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4","in": 1.2, "dur": 1.9, "motion": "none", "label": "HERO ridge" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",     "in": 0.6, "dur": 1.8, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8,"dur": 1.9, "motion": "none", "label": "Main St aerial" },
+    { "clip": "boerne-main-plaza-gazebo-mobile-2024-12-17.mp4",        "in": 0.6, "dur": 1.8, "motion": "none", "label": "bandstand" },
+    { "clip": "boerne-main-plaza-gazebo-orbit-mobile-2024-12-17.mp4",  "in": 0.4, "dur": 1.8, "motion": "none", "label": "bandstand orbit" },
+    { "clip": "boerne-plaza-duck-pond-mobile-2024-12-17.mp4",          "in": 0.8, "dur": 1.8, "motion": "none", "label": "duck pond" },
+    { "clip": "boerne-plaza-ducks-closeup-mobile-2024-12-17.mp4",      "in": 0.6, "dur": 1.7, "motion": "push", "label": "ducks closeup" },
+    { "clip": "boerne-cibolo-creek-cypress-aerial-mobile-2024-12-18.mp4","in": 0.6,"dur": 1.9, "motion": "none", "label": "creek cypress" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4", "in": 2.0, "dur": 1.8, "motion": "none", "label": "underbridge FPV" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",   "in": 0.8, "dur": 1.8, "motion": "push", "label": "storefront" },
+    { "clip": "boerne-old-town-mural-reveal-mobile-2024-12-17.mp4",    "in": 3.0, "dur": 1.8, "motion": "none", "label": "mural reveal (tail)" },
+    { "clip": "boerne-city-lake-aerial-mobile-2024-12-18.mp4",         "in": 0.8, "dur": 1.8, "motion": "none", "label": "city lake" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",         "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4", "in": 0.6, "dur": 1.8, "motion": "none", "label": "rooftops" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4","in": 3.4, "dur": 2.1, "motion": "none", "label": "HERO close" }
+  ],
+
+  "cover_t": 1.1,
+  "verify_frames": [0.0, 1.0, 2.4, 2.7, 3.1, 9.0, 15.0, 21.0, 27.0]
+}
