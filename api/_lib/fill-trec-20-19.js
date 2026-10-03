@@ -186,7 +186,7 @@ async function fillTrec2019(pdfDoc, fv) {
   // Email(s) (page 8) -- two real buyer emails joined with "; " measured
   // ~222pt at the field's own 10pt default, ~42pt past its declared 180pt
   // maxWidth, and ran straight into the Seller's "Email(s):" label with no
-  // gap ("...ketanhthakkar@gmail.comEmail(s):"). Found via
+  // gap ("...buyertwo01@mail.exampleEmail(s):"). Found via
   // .tmp/ridgebluff-offer -- see build-offer.js's manual per-build
   // workaround, which this generic fix replaces.
   //

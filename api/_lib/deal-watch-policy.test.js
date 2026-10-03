@@ -183,7 +183,7 @@ const WILD_CHERRY = {
   property_address: '104 Wild Cherry Ln',
   status: 'active',
   stage: 'financing',
-  seller_email: 'tomlintontx@gmail.com',
+  seller_email: 'sellercontact1@example.com',
   updated_at: '2026-09-17T21:40:09Z',
   closing_date: '2026-09-30',
   notes_log: [
@@ -192,11 +192,11 @@ const WILD_CHERRY = {
       createdAt: '2026-09-01T14:49:20.000Z', gmailMessageId: '1a05d726033ce2db',
       text: 'Heather Mutz has sent disclosure documents from zipForm for the transaction.' },
     { id: 'email-1a045e038c9850e6', read: false, source: 'email', subject: 'Re: 8/27/2026 - well shock by buyer',
-      fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+      fromName: 'Tom Linton', fromEmail: 'sellercontact1@example.com',
       createdAt: '2026-08-28T00:58:26.000Z', gmailMessageId: '1a045e038c9850e6',
       text: 'Seller Tom Linton is documenting that the home inspector performed an unsolicited well shock treatment...' },
     { id: 'email-1a025f363f090b4b', read: false, source: 'email', subject: 'Re: GF 70378 / 104 Wild Cherry Lane',
-      fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+      fromName: 'Tom Linton', fromEmail: 'sellercontact1@example.com',
       createdAt: '2026-08-21T20:11:28.000Z', gmailMessageId: '1a025f363f090b4b',
       text: 'Tom is questioning whether the seller needs to provide the current mortgage payoff information now...' },
   ],
@@ -316,7 +316,7 @@ test('REAL DATA: a NEW reply on a live file, arriving after baseline, does speak
   fresh.notes_log.unshift({
     id: 'email-newreply001', read: false, source: 'email',
     subject: 'Re: tax exemptions at closing',
-    fromName: 'Tom Linton', fromEmail: 'tomlintontx@gmail.com',
+    fromName: 'Tom Linton', fromEmail: 'sellercontact1@example.com',
     createdAt: '2026-09-19T15:02:00.000Z', gmailMessageId: 'newreply001',
     text: 'Confirming the homestead and over-65 exemptions were never transferred, so the buyer should expect the higher assessed amount at closing.',
   });

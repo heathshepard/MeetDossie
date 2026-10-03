@@ -350,15 +350,15 @@ test('the gmail query always carries a date bound and the folder exclusions', ()
 // 7b. Sent mail is reachable; spam/trash/drafts/chats are not.
 //
 //     Most of an agent's client addresses only ever appear as a RECIPIENT of
-//     mail they sent (Barry Whyte: no inbound message inside a year, but on
+//     mail they sent (Marcus Thorne: no inbound message inside a year, but on
 //     the To: line of a dozen sent ones). Excluding the sent folder made
 //     "what is this person's address" unanswerable at any setting.
 // ==========================================================================
 test('sent mail is searchable', () => {
   assert.ok(!GMAIL_FOLDER_SCOPE.includes('-in:sent'), 'sent mail is excluded again');
   for (const q of [
-    buildGmailQuery({ text: 'whyte', from: '', days: 30, hasAttachment: false }),
-    buildGmailContactQuery({ variants: ['whyte'], days: 730 }),
+    buildGmailQuery({ text: 'thorne', from: '', days: 30, hasAttachment: false }),
+    buildGmailContactQuery({ variants: ['thorne'], days: 730 }),
   ]) {
     assert.ok(!q.includes('-in:sent'), `query still excludes sent mail: ${q}`);
   }
@@ -368,8 +368,8 @@ test('spam, trash, chats and drafts stay excluded from every gmail query', () =>
   const queries = [
     buildGmailQuery({ text: 'nopalito', from: '', days: 14, hasAttachment: false }),
     buildGmailQuery({ text: '', from: 'a@b.com', days: 730, hasAttachment: true }),
-    buildGmailContactQuery({ variants: ['whyte', 'barry'], days: 730 }),
-    buildGmailContactQuery({ variants: ['whyte'], days: 1 }),
+    buildGmailContactQuery({ variants: ['thorne', 'marcus'], days: 730 }),
+    buildGmailContactQuery({ variants: ['thorne'], days: 1 }),
   ];
   for (const q of queries) {
     for (const excluded of ['-in:spam', '-in:trash', '-in:chats', '-in:drafts']) {
@@ -509,26 +509,26 @@ test('read_email returns an attachment manifest, never attachment content', asyn
 // 9. find_contact_email — header parsing.
 // ==========================================================================
 test('a bare address keeps its first character', () => {
-  // parseFromHeader used to parse "bwhyte@hotmail.com" as
-  // {name:'b', email:'whyte@hotmail.com'} — an address that does not exist.
+  // parseFromHeader used to parse "thorne1@example.net" as
+  // {name:'b', email:'thorne4@example.net'} — an address that does not exist.
   // Every sender without a display name was silently corrupted, here and in
   // the three watcher crons.
-  const [barry] = parseAddressList('bwhyte@hotmail.com');
-  assert.equal(barry.email, 'bwhyte@hotmail.com');
-  assert.equal(barry.name, '');
+  const [marcus] = parseAddressList('thorne1@example.net');
+  assert.equal(marcus.email, 'thorne1@example.net');
+  assert.equal(marcus.name, '');
 
   const [heath] = parseAddressList('heath.shepard@kw.com');
   assert.equal(heath.email, 'heath.shepard@kw.com');
 });
 
 test('an address list splits on real separators only', () => {
-  const list = parseAddressList('Jenny Whyte <jwhyte5590@gmail.com>, DAD <bwhyte@hotmail.com>');
-  assert.deepEqual(list.map((p) => p.email), ['jwhyte5590@gmail.com', 'bwhyte@hotmail.com']);
-  assert.deepEqual(list.map((p) => p.name), ['Jenny Whyte', 'DAD']);
+  const list = parseAddressList('Cathy Thorne <thorne3@example.com>, DAD <thorne1@example.net>');
+  assert.deepEqual(list.map((p) => p.email), ['thorne3@example.com', 'thorne1@example.net']);
+  assert.deepEqual(list.map((p) => p.name), ['Cathy Thorne', 'DAD']);
 
   // A comma inside a quoted display name is not a separator.
-  const quoted = parseAddressList('"Whyte, Barry" <bwhyte@hotmail.com>, jwhyte5590@gmail.com');
-  assert.deepEqual(quoted.map((p) => p.email), ['bwhyte@hotmail.com', 'jwhyte5590@gmail.com']);
+  const quoted = parseAddressList('"Thorne, Marcus" <thorne1@example.net>, thorne3@example.com');
+  assert.deepEqual(quoted.map((p) => p.email), ['thorne1@example.net', 'thorne3@example.com']);
 
   assert.deepEqual(parseAddressList(''), []);
   assert.deepEqual(parseAddressList(undefined), []);
@@ -537,19 +537,19 @@ test('an address list splits on real separators only', () => {
 });
 
 test('a pluralised surname still matches the singular', () => {
-  // "get me the Whytes' email addresses" is how this is actually spoken.
-  const variants = contactNameVariants("the Whytes'");
-  assert.ok(variants.includes('whyte'), `expected a singular variant, got ${JSON.stringify(variants)}`);
+  // "get me the Thornes' email addresses" is how this is actually spoken.
+  const variants = contactNameVariants("the Thornes'");
+  assert.ok(variants.includes('thorne'), `expected a singular variant, got ${JSON.stringify(variants)}`);
 });
 
 test('speech filler is dropped from the name so it cannot flood the result', () => {
   // A stopword inside the OR group matches nearly every message; live, "the
-  // Whytes'" pulled back Vercel, LinkedIn and a games newsletter.
-  const variants = contactNameVariants("the Whytes' email address");
+  // Thornes'" pulled back Vercel, LinkedIn and a games newsletter.
+  const variants = contactNameVariants("the Thornes' email address");
   for (const junk of ['the', 'email', 'address']) {
     assert.ok(!variants.includes(junk), `"${junk}" survived into the query: ${JSON.stringify(variants)}`);
   }
-  assert.ok(variants.includes('whyte'));
+  assert.ok(variants.includes('thorne'));
   // A name made only of filler is not a search.
   assert.equal(contactNameVariants('the email address for my client').length, 0);
 });
@@ -600,14 +600,14 @@ function contactHarness({ messages, provider = 'google' } = {}) {
   return log;
 }
 
-const SENT_TO_BARRY = {
+const SENT_TO_THORNE = {
   id: 'sent-1',
   labelIds: ['SENT'],
   snippet: 'NEVER-A-SNIPPET',
   payload: {
     headers: [
       { name: 'From', value: 'heath.shepard@kw.com' },
-      { name: 'To', value: 'bwhyte@hotmail.com, jwhyte5590@gmail.com' },
+      { name: 'To', value: 'thorne1@example.net, thorne3@example.com' },
       { name: 'Subject', value: '23 Nopalito - Full Price Offer + Net Sheet' },
       { name: 'Date', value: 'Sat, 19 Sep 2026 13:07:31 -0500' },
     ],
@@ -615,13 +615,13 @@ const SENT_TO_BARRY = {
   },
 };
 
-const OLD_INBOUND_FROM_BARRY = {
+const OLD_INBOUND_FROM_THORNE = {
   id: 'in-1',
   labelIds: ['INBOX'],
   snippet: 'NEVER-A-SNIPPET',
   payload: {
     headers: [
-      { name: 'From', value: 'Barry Whyte <bwhyte@hotmail.com>' },
+      { name: 'From', value: 'Marcus Thorne <thorne1@example.net>' },
       { name: 'To', value: 'Heath Shepard <heath.shepard@kw.com>' },
       { name: 'Subject', value: 'Re: Nopalito Strategy Update' },
       { name: 'Date', value: 'Thu, 11 Jun 2026 22:25:55 +0000' },
@@ -631,34 +631,34 @@ const OLD_INBOUND_FROM_BARRY = {
 };
 
 test('find_contact_email surfaces an address that only ever appears on a To: line', async () => {
-  contactHarness({ messages: [SENT_TO_BARRY] });
-  const res = await executeInboxTool('find_contact_email', { name: "the Whytes'" }, { userId: ATTACKER });
+  contactHarness({ messages: [SENT_TO_THORNE] });
+  const res = await executeInboxTool('find_contact_email', { name: "the Thornes'" }, { userId: ATTACKER });
 
   assert.equal(res.ok, true);
-  const barry = res.contacts.find((c) => c.email === 'bwhyte@hotmail.com');
-  assert.ok(barry, `Barry was not found: ${JSON.stringify(res.contacts)}`);
-  assert.equal(barry.direction, 'sent');
-  assert.equal(barry.matched_name, true);
-  // The other Whyte comes back too — "the Whytes" is two people.
-  assert.ok(res.contacts.some((c) => c.email === 'jwhyte5590@gmail.com'));
+  const marcus = res.contacts.find((c) => c.email === 'thorne1@example.net');
+  assert.ok(marcus, `Marcus was not found: ${JSON.stringify(res.contacts)}`);
+  assert.equal(marcus.direction, 'sent');
+  assert.equal(marcus.matched_name, true);
+  // The other Thorne comes back too — "the Thornes" is two people.
+  assert.ok(res.contacts.some((c) => c.email === 'thorne3@example.com'));
 });
 
 test('find_contact_email reaches a message older than the old 90-day ceiling', async () => {
-  const log = contactHarness({ messages: [OLD_INBOUND_FROM_BARRY] });
-  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  const log = contactHarness({ messages: [OLD_INBOUND_FROM_THORNE] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Thorne' }, { userId: ATTACKER });
 
   assert.equal(res.ok, true);
   assert.equal(res.searched_days, LIMITS.CONTACT_DEFAULT_DAYS);
   assert.ok(res.searched_days > 101, 'the default window must reach the 101-day-old message');
   assert.ok(log.queries[0].includes(`newer_than:${LIMITS.CONTACT_DEFAULT_DAYS}d`));
-  assert.equal(res.contacts[0].email, 'bwhyte@hotmail.com');
-  assert.equal(res.contacts[0].name, 'Barry Whyte');
+  assert.equal(res.contacts[0].email, 'thorne1@example.net');
+  assert.equal(res.contacts[0].name, 'Marcus Thorne');
   assert.equal(res.contacts[0].direction, 'received');
 });
 
 test('find_contact_email returns addresses and never message content', async () => {
-  const log = contactHarness({ messages: [SENT_TO_BARRY, OLD_INBOUND_FROM_BARRY] });
-  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  const log = contactHarness({ messages: [SENT_TO_THORNE, OLD_INBOUND_FROM_THORNE] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Thorne' }, { userId: ATTACKER });
 
   const blob = JSON.stringify(res);
   assert.ok(!blob.includes('NEVER-A-BODY'), 'a message body reached the contact result');
@@ -675,8 +675,8 @@ test('find_contact_email returns addresses and never message content', async () 
 });
 
 test('find_contact_email never hands back the member their own address', async () => {
-  contactHarness({ messages: [SENT_TO_BARRY, OLD_INBOUND_FROM_BARRY] });
-  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  contactHarness({ messages: [SENT_TO_THORNE, OLD_INBOUND_FROM_THORNE] });
+  const res = await executeInboxTool('find_contact_email', { name: 'Thorne' }, { userId: ATTACKER });
   assert.ok(!res.contacts.some((c) => c.email === MAILBOX), 'returned the mailbox owner as a contact');
 });
 
@@ -686,8 +686,8 @@ test('find_contact_email caps what it returns and what it scans', async () => {
     labelIds: ['INBOX'],
     payload: {
       headers: [
-        { name: 'From', value: `Person ${i} <person${i}@whyte-partners.com>` },
-        { name: 'To', value: `heath.shepard@kw.com, extra${i}@whyte-partners.com` },
+        { name: 'From', value: `Person ${i} <person${i}@thorne-partners.com>` },
+        { name: 'To', value: `heath.shepard@kw.com, extra${i}@thorne-partners.com` },
         { name: 'Subject', value: `subject ${i}` },
         { name: 'Date', value: 'Thu, 11 Jun 2026 22:25:55 +0000' },
       ],
@@ -695,7 +695,7 @@ test('find_contact_email caps what it returns and what it scans', async () => {
   }));
   const log = contactHarness({ messages: many });
 
-  const res = await executeInboxTool('find_contact_email', { name: 'whyte', max_results: 9999 }, { userId: ATTACKER });
+  const res = await executeInboxTool('find_contact_email', { name: 'thorne', max_results: 9999 }, { userId: ATTACKER });
   assert.equal(res.ok, true);
   assert.ok(res.contacts.length <= LIMITS.MAX_MAX_CONTACTS, `returned ${res.contacts.length} contacts`);
   assert.ok(log.formats.length <= LIMITS.MAX_CONTACT_MESSAGES, `scanned ${log.formats.length} messages`);
@@ -703,7 +703,7 @@ test('find_contact_email caps what it returns and what it scans', async () => {
 });
 
 test('find_contact_email refuses an empty name', async () => {
-  contactHarness({ messages: [SENT_TO_BARRY] });
+  contactHarness({ messages: [SENT_TO_THORNE] });
   for (const bad of [{ name: '' }, { name: '   ' }, {}, { name: 'a' }]) {
     const res = await executeInboxTool('find_contact_email', bad, { userId: ATTACKER });
     assert.equal(res.ok, false, `accepted ${JSON.stringify(bad)}`);
@@ -712,10 +712,10 @@ test('find_contact_email refuses an empty name', async () => {
 });
 
 test('find_contact_email cannot smuggle gmail operators through the name', async () => {
-  const log = contactHarness({ messages: [SENT_TO_BARRY] });
+  const log = contactHarness({ messages: [SENT_TO_THORNE] });
   await executeInboxTool(
     'find_contact_email',
-    { name: 'whyte in:anywhere -in:drafts label:secret has:attachment' },
+    { name: 'thorne in:anywhere -in:drafts label:secret has:attachment' },
     { userId: ATTACKER },
   );
   const q = log.queries[0];
@@ -727,29 +727,29 @@ test('find_contact_email cannot smuggle gmail operators through the name', async
 test('find_contact_email refuses on Microsoft rather than dumping the mailbox', async () => {
   // Graph drops free text, so running this there would become "every message
   // in the last two years", and it reshapes no To:/Cc: headers to harvest.
-  contactHarness({ messages: [SENT_TO_BARRY], provider: 'microsoft' });
-  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  contactHarness({ messages: [SENT_TO_THORNE], provider: 'microsoft' });
+  const res = await executeInboxTool('find_contact_email', { name: 'Thorne' }, { userId: ATTACKER });
   assert.equal(res.ok, false);
   assert.equal(res.reason, 'unsupported_query_for_provider');
 });
 
 test('find_contact_email is subject to the same identity and access gates', async () => {
   // Identity injection.
-  contactHarness({ messages: [SENT_TO_BARRY] });
+  contactHarness({ messages: [SENT_TO_THORNE] });
   for (const inj of [{ user_id: VICTIM }, { email: 'victim@example.com' }, { mailbox: 'victim@example.com' }]) {
     await assert.rejects(
-      () => executeInboxTool('find_contact_email', { name: 'Whyte', ...inj }, { userId: ATTACKER }),
+      () => executeInboxTool('find_contact_email', { name: 'Thorne', ...inj }, { userId: ATTACKER }),
       (err) => err instanceof InboxSecurityError && /identity_param_not_allowed/.test(err.message),
     );
   }
   // No session.
   await assert.rejects(
-    () => executeInboxTool('find_contact_email', { name: 'Whyte' }, {}),
+    () => executeInboxTool('find_contact_email', { name: 'Thorne' }, {}),
     (err) => err instanceof InboxSecurityError && /missing_session_user/.test(err.message),
   );
   // Not entitled — the mailbox is never touched.
   const log = harness({ entitled: [], connected: [ATTACKER] });
-  const res = await executeInboxTool('find_contact_email', { name: 'Whyte' }, { userId: ATTACKER });
+  const res = await executeInboxTool('find_contact_email', { name: 'Thorne' }, { userId: ATTACKER });
   assert.equal(res.ok, false);
   assert.equal(res.reason, 'not_entitled');
   assert.deepEqual(log.mailClientUserIds, []);
@@ -762,9 +762,9 @@ test('find_contact_email logs no address, name or subject', async () => {
     ok: true,
     count: 2,
     mailbox: MAILBOX,
-    contacts: [{ name: 'Barry Whyte', email: 'bwhyte@hotmail.com', last_subject: '23 Nopalito - Full Price Offer' }],
+    contacts: [{ name: 'Marcus Thorne', email: 'thorne1@example.net', last_subject: '23 Nopalito - Full Price Offer' }],
   }));
-  for (const secret of ['bwhyte@hotmail.com', 'Barry Whyte', 'Nopalito', MAILBOX]) {
+  for (const secret of ['thorne1@example.net', 'Marcus Thorne', 'Nopalito', MAILBOX]) {
     assert.ok(!line.includes(secret), `log leaked: ${secret}`);
   }
   assert.ok(line.includes('find_contact_email'));

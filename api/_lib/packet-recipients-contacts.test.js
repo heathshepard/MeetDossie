@@ -24,7 +24,7 @@ const EXTRACTED = {
   sellerName: 'Barry Whyte, Jennifer Whyte',
   buyerAgent: 'Clyde Johnson',
   listingAgent: 'Heath Shepard',
-  buyerNoticeEmail: 'cwb03@hotmail.com',
+  buyerNoticeEmail: 'buyercontact2@example.net',
   buyerNoticePhone: '(210)467-2232',
   titleCompany: 'Upward Title and Closing',
   titleOfficerName: 'Lauren Lugo',
@@ -90,11 +90,11 @@ test('AFTER: the buyers are still unreachable by role', () => {
 
 test("AFTER: the buyer's address typed by hand is refused", () => {
   // This is the case the scan CREATED the risk for: before it ran, Dossie had
-  // never seen cwb03@hotmail.com and could not have blocked it. The address is
+  // never seen buyercontact2@example.net and could not have blocked it. The address is
   // deliberately kept out of buyer_email and put in parties.buyer instead, so
   // the blocklist has to read there — otherwise persisting it would have made
   // the member MORE able to reach the other side's client, not less.
-  const r = assertNotOpposingPrincipal({ tx: afterScan(), email: 'cwb03@hotmail.com' });
+  const r = assertNotOpposingPrincipal({ tx: afterScan(), email: 'buyercontact2@example.net' });
   assert.equal(r.ok, false);
   assert.equal(r.blocked, 'opposing_principal');
 });
@@ -137,7 +137,7 @@ test('the browser cannot promote a blocked address into a send column', () => {
   // route this module does not control. It goes under contact_blocked instead.
   const after = afterScan();
   assert.equal(after.parties.buyer.email, undefined);
-  assert.equal(after.parties.buyer.contact_blocked.email, 'cwb03@hotmail.com');
+  assert.equal(after.parties.buyer.contact_blocked.email, 'buyercontact2@example.net');
 
   // Simulate the UI round-trip and confirm buyer_email is still empty.
   const promoted = after.buyer_email || after.parties?.buyer?.email || null;

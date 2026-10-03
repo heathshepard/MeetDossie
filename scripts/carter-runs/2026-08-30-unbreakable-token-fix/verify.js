@@ -65,7 +65,7 @@ const CASES = [
   ['case1-140char-unbroken', TOKEN_140],
   ['case2-34a-boundary', TOKEN_34A],
   ['case3-empty', ''],
-  ['case4-normal-two-email', 'strkanjain@gmail.com; ketanhthakkar@gmail.com'],
+  ['case4-normal-two-email', 'buyer01@mail.example; buyertwo01@mail.example'],
 ];
 
 async function run() {

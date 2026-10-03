@@ -36,7 +36,7 @@ const LISTING_SIDE_TX = {
   seller_name: 'Barry Whyte',
   seller_email: 'barry@example.com',
   buyer_name: 'Christopher Bryan',
-  buyer_email: 'cwb03@hotmail.com',
+  buyer_email: 'buyercontact2@example.net',
   buyer2_email: null,
   seller2_email: null,
   parties: {},
@@ -134,7 +134,7 @@ test('REFUSES send_for_acknowledgment to the other side\'s buyer — DocuSeal is
     transaction_id: TX_ID,
     // This dossier's member represents the SELLER (listing side) — the
     // buyer is the other side's represented client, never a direct signer.
-    buyer_email: 'cwb03@hotmail.com',
+    buyer_email: 'buyercontact2@example.net',
     buyer_name: 'Christopher Bryan',
   }), res);
 
@@ -155,7 +155,7 @@ test('REFUSES even when a second buyer slot is the one that matches the opposing
     transaction_id: TX_ID,
     buyer_email: 'unrelated@example.com', // not on file at all — not itself a match
     buyer_name: 'Someone Else',
-    buyer_email_2: 'cwb03@hotmail.com', // IS the deal's actual buyer — the other side's client
+    buyer_email_2: 'buyercontact2@example.net', // IS the deal's actual buyer — the other side's client
     buyer_name_2: 'Christopher Bryan',
   }), res);
 
@@ -256,7 +256,7 @@ test('single-document path (documentId + signers[]) REFUSES a signer who is the 
     documentId: DOC_ID,
     // The buyer is the OTHER side's represented client on this listing-side
     // dossier — never a direct e-sign signer.
-    signers: [{ name: 'Christopher Bryan', email: 'cwb03@hotmail.com', role: 'Buyer 1' }],
+    signers: [{ name: 'Christopher Bryan', email: 'buyercontact2@example.net', role: 'Buyer 1' }],
   }), res);
 
   assert.equal(res.statusCode, 403);

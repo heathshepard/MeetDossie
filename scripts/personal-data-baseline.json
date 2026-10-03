@@ -1,0 +1,52 @@
+{
+  "comment": [
+    "Baseline for scripts/check-no-personal-data.js.",
+    "",
+    "This is a TO-DO LIST, not an exemption list. Every path below already",
+    "carried a personal email address in a PUBLIC repo before the guard",
+    "existed, and every one of them needs a decision from Heath that a script",
+    "cannot make for him:",
+    "",
+    "  - the send scripts hold LIVE customer recipient lists. Deleting an",
+    "    address there does not protect anybody (it is already in history) and",
+    "    does break the send. The real fix is to read recipients from the",
+    "    `subscriptions` table instead of hardcoding them.",
+    "  - the docs and audit notes are business records. Rewriting them",
+    "    destroys the record; that is Heath's call, not an agent's.",
+    "",
+    "Nothing may be ADDED here without a reason on the entry. New code must",
+    "use a reserved domain (someone@mail.example) instead."
+  ],
+  "ignorePaths": [
+    { "path": "api/send-customer-update.js", "reason": "live founding-member recipient list; fix = read from `subscriptions`" },
+    { "path": "api/send-founding-outreach-20260824.js", "reason": "one-off campaign recipient list, already sent" },
+    { "path": "api/send-thankyou-cancelled-20260824.js", "reason": "one-off campaign recipient list, already sent" },
+    { "path": "api/admin-fix-stripe-billing.js", "reason": "admin repair script keyed by customer email + Stripe customer id" },
+    { "path": "api/fix-billing-recurring.js", "reason": "admin repair script keyed by customer email" },
+    { "path": "api/founding-count.js", "reason": "FOUNDING_FRIEND_EMAILS — excludes the $1 friend from the paid count" },
+    { "path": "api/cron-generate-posts.js", "reason": "FOUNDING_FRIEND_EMAILS — same exclusion, duplicated constant" },
+    { "path": "api/cron-cold-email-daily-batch.js", "reason": "FOUNDING_FRIEND_EMAILS — same exclusion, duplicated constant" },
+    { "path": "api/cron-stripe-reconcile.js", "reason": "skips Heath's own test customer during reconcile" },
+    { "path": "api/temp-activation-evidence-check.js", "reason": "temporary forensics endpoint; delete the file instead of editing it" },
+    { "path": "scripts/fix-stripe-billing-standalone.js", "reason": "admin repair script keyed by customer email" },
+    { "path": "scripts/cole-send-correction-2026-06-12.ps1", "reason": "one-off campaign recipient list, already sent" },
+    { "path": "scripts/cole-send-affiliate-6mo-followup-2026-06-12.ps1", "reason": "one-off campaign recipient list, already sent" },
+    { "path": "scripts/send-friday-weekly-update.js", "reason": "Heath's own test recipients" },
+    { "path": "scripts/.sage-mobile-groups.json", "reason": "FB group admin contact captured by the group scraper" },
+    { "path": "docs/CUSTOMERS.md", "reason": "customer roster business record — retention is Heath's call" },
+    { "path": "docs/BACKLOG-BUSINESS.md", "reason": "backlog business record — retention is Heath's call" },
+    { "path": "docs/site-content/seo-plan/FIX-PRIORITY.md", "reason": "Heath's own address in an SEO note" },
+    { "path": "stripe-billing-audit-2026-06-14.md", "reason": "billing audit business record — retention is Heath's call" },
+    { "path": "SYSTEM-AUDIT-2026-05-21.md", "reason": "audit business record — retention is Heath's call" },
+    { "path": "RUN-STRIPE-FIX.txt", "reason": "one-off runbook naming the customers it repaired" },
+    { "path": ".claude/PHASE2-DEPLOYMENT-CHECKLIST.md", "reason": "internal checklist naming customers" },
+    { "path": ".claude/affiliate-founder-email-draft.md", "reason": "draft campaign recipient list" }
+  ],
+  "allowAddresses": [
+    { "address": "heath.shepard@gmail.com", "reason": "repo owner's own address; used as an auth allowlist entry in api/ventures/*" },
+    { "address": "heath.shepard+test3@gmail.com", "reason": "repo owner's own test alias" },
+    { "address": "heath.shepard+test4@gmail.com", "reason": "repo owner's own test alias" },
+    { "address": "heathtestaccount@gmail.com", "reason": "repo owner's own test account" },
+    { "address": "atlasopslab@gmail.com", "reason": "repo owner's own ops account" }
+  ]
+}

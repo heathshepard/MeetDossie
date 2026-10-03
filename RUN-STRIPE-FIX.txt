@@ -34,7 +34,7 @@ Group A (2 customers):
     - If past_due: retry invoice
     - If active: skip (already charges)
 
-  ✓ Suzanne Page (k.suzanne.page@gmail.com)
+  ✓ Suzanne Page (k.************@gmail.com)
     - Same as above
 
 Group B (7 customers):
@@ -42,7 +42,7 @@ Group B (7 customers):
   ✓ Zelda Cain (zelda@a2zrealestateconsultants.com)
   ✓ Amanda Nuckles (amanda@amandanuckles.com)
   ✓ Cecilia Whitley (cecilia@sterlingassociatesre.com)
-  ✓ Miki Mccarthy (mikirgvrealtor@gmail.com)
+  ✓ Miki Mccarthy (mi************@gmail.com)
   ✓ Kim Herrera (kimberlyherrera@kw.com)
   ✓ Tiffany Gill (tgill@phyllisbrowning.com)
 

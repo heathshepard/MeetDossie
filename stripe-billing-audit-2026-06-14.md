@@ -44,7 +44,7 @@ All 7 have Stripe customer records AND have paid their initial $29 (via checkout
 - Stripe Subscription ID: **NULL** ← PROBLEM
 - Action: Create subscription
 
-### 5. **Miki Mccarthy** — `mikirgvrealtor@gmail.com`
+### 5. **Miki Mccarthy** — `mi************@gmail.com`
 - Stripe Customer ID: `cus_UYMCvH2WrDxGy2`
 - Subscription Status: active (current_period_end: 2026-06-20)
 - Stripe Subscription ID: **NULL** ← PROBLEM
@@ -69,11 +69,11 @@ All 7 have Stripe customer records AND have paid their initial $29 (via checkout
 These 8 have proper Stripe subscription IDs and are recurring correctly:
 
 1. **Brittney YBarbo** — `brittney@setxrealty.com` — sub_1TU6PEL920SKTEEim9a1rKoR — expires 2026-06-06 ⚠️ PAST DUE
-2. **Kay Suzanne Page** — `k.suzanne.page@gmail.com` — sub_1TSOeFL920SKTEEiTkMJOiaF — expires 2026-06-01 ⚠️ PAST DUE
-3. **Terry Katz** — `michellesellshouston@gmail.com` — sub_1TZFtxL920SKTEEi3lutifH8 — expires 2026-06-20 ✅
-4. **Jennifer Beltran** — `jenn.casamiateam@gmail.com` — sub_1TZyjUL920SKTEEitnzGZVfd — expires 2026-06-22 ✅
-5. **Lisa Nilsson** — `lisanilssontx@gmail.com` — sub_1TbsGbL920SKTEEiy1KWatM1 — expires NULL (new)
-6. **Tiffany Gill** (primary) — `tiffanygillrealtor@gmail.com` — sub_1TXiJRL920SKTEEi9DzVpx0F — expires 2026-06-16 ✅
+2. **Kay Suzanne Page** — `k.************@gmail.com` — sub_1TSOeFL920SKTEEiTkMJOiaF — expires 2026-06-01 ⚠️ PAST DUE
+3. **Terry Katz** — `mi******************@gmail.com` — sub_1TZFtxL920SKTEEi3lutifH8 — expires 2026-06-20 ✅
+4. **Jennifer Beltran** — `je**************@gmail.com` — sub_1TZyjUL920SKTEEitnzGZVfd — expires 2026-06-22 ✅
+5. **Lisa Nilsson** — `li***********@gmail.com` — sub_1TbsGbL920SKTEEiy1KWatM1 — expires NULL (new)
+6. **Tiffany Gill** (primary) — `ti****************@gmail.com` — sub_1TXiJRL920SKTEEi9DzVpx0F — expires 2026-06-16 ✅
 
 ---
 

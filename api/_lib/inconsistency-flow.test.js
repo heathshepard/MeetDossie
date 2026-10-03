@@ -396,8 +396,8 @@ test('worst first, and multiple conflicts collapse into one line', () => {
 test('a structural conflict has no "which is right" and is not answerable', () => {
   const d = describeConflict({
     kind: 'agent_block_ambiguous',
-    detail: 'Both broker blocks came back as andyramz90@gmail.com.',
-    parsed: 'andyramz90@gmail.com',
+    detail: 'Both broker blocks came back as buyersample90@example.com.',
+    parsed: 'buyersample90@example.com',
   }, {});
   assert.strictEqual(d.answerable, false);
   assert.deepStrictEqual(d.choices, []);

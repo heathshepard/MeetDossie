@@ -40,15 +40,15 @@ This email should be sent to all 13 current founders who already have affiliate 
 1. Kimberly Herrera
 2. Tiffany Gill
 3. Brittney YBarbo (brittney@setxrealty.com)
-4. Suzanne Page (k.suzanne.page@gmail.com)
-5. Miki Mccarthy (mikirgvrealtor@gmail.com)
+4. Suzanne Page (k.************@gmail.com)
+5. Miki Mccarthy (mi************@gmail.com)
 6. Cecilia Whitley (cecilia@sterlingassociatesre.com)
-7. Terry Katz (michellesellshouston@gmail.com)
+7. Terry Katz (mi******************@gmail.com)
 8. Amanda Nuckles (amanda@amandanuckles.com)
 9. Zelda Cain (zelda@a2zrealestateconsultants.com)
 10. Natalie Megerson (natalie@localchoicegroup.com)
-11. Jennifer Beltrán (jenn.casamiateam@gmail.com)
-12. Lisa Nilsson (lisanilssontx@gmail.com)
+11. Jennifer Beltrán (je**************@gmail.com)
+12. Lisa Nilsson (li***********@gmail.com)
 13. [any others not in this list]
 
 Use Resend to send via heath@meetdossie.com with BCC to health.shepard@kw.com for record.

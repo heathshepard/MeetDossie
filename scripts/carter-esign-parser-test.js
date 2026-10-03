@@ -26,7 +26,7 @@ function check(name, cond, extra) {
 check('authentisign sender detected', detectProvider('secure@authentisign.com') === 'authentisign');
 check('docusign sender detected', detectProvider('dse@docusign.net') === 'docusign');
 check('docuseal sender detected', detectProvider('noreply@docuseal.com') === 'docuseal');
-check('random sender is not an e-sign email', detectProvider('tom@gmail.com') === null);
+check('random sender is not an e-sign email', detectProvider('tom@example.com') === null);
 check('lookalike domain rejected', detectProvider('a@notauthentisign.com.evil.com') === null);
 
 // --- CONFIRMED case 1: participant action ----------------------------------

@@ -1,0 +1,29 @@
+name: Personal data guard
+
+# heathshepard/MeetDossie is PUBLIC. Two commits in September 2026 put real
+# client names, addresses, phone numbers and personal email addresses into
+# test fixtures and one production module. Anything pushed here is readable by
+# anyone, immediately, and a later edit does not un-publish it.
+#
+# No path filter on purpose: the point is that it runs on EVERY file, every
+# time. The scan is a regex over tracked text files and takes about a second.
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  no-personal-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: No personal email addresses in tracked source
+        run: node scripts/check-no-personal-data.js

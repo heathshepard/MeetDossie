@@ -18,7 +18,7 @@
 //             as Seller's agent" / Heath Shepard / heath.shepard@kw.com
 //   page 10  Buyer Christopher Bryan, Buyer Monica Bryan
 //            Seller Barry Whyte, Seller Jennifer Whyte
-//   page 9   ¶21 To Buyer at: Phone (210)467-2232  E-mail cwb03@hotmail.com
+//   page 9   ¶21 To Buyer at: Phone (210)467-2232  E-mail buyercontact2@example.net
 //   ¶5A      "must deliver to Upward Title and Closing (Lauren Lugo) (Escrow Agent)"
 //   ¶6A      title insurance issued by Upward Title and Closing
 //
@@ -51,7 +51,7 @@ const EXTRACTED_NOPALITO = {
   sellerName: 'Barry Whyte, Jennifer Whyte',
   buyerAgent: 'Clyde Johnson',
   listingAgent: 'Heath Shepard',
-  buyerNoticeEmail: 'cwb03@hotmail.com',
+  buyerNoticeEmail: 'buyercontact2@example.net',
   buyerNoticePhone: '(210)467-2232',
   sellerNoticeEmail: null,
   sellerNoticePhone: null,
@@ -128,12 +128,12 @@ test('validateEmail refuses form boilerplate that is not a party', () => {
 });
 
 test('validateEmail keeps a short local part — it is a real address shape', () => {
-  // memory: parseFromHeader once turned bwhyte@hotmail.com into name "b" +
-  // address whyte@hotmail.com. The lesson is to validate, NOT to start
+  // memory: parseFromHeader once turned buyercontact1@example.net into name "b" +
+  // address buyercontact4@example.net. The lesson is to validate, NOT to start
   // rejecting short local parts — j@kw.com is a legitimate address and
   // dropping it would invent a second bug to cover the first.
   assert.equal(validateEmail('j@kw.com'), 'j@kw.com');
-  assert.equal(validateEmail('cwb03@hotmail.com'), 'cwb03@hotmail.com');
+  assert.equal(validateEmail('buyercontact2@example.net'), 'buyercontact2@example.net');
 });
 
 test('validatePhone normalises one number to one spelling', () => {
@@ -190,7 +190,7 @@ test("listing side: the buyers' names are recorded, their contact details are no
   assert.equal(p.updates.buyer_phone, undefined);
 
   // They are recorded, flagged, and explained.
-  assert.equal(p.parties.buyer.contact_blocked.email, "cwb03@hotmail.com");
+  assert.equal(p.parties.buyer.contact_blocked.email, "buyercontact2@example.net");
   assert.equal(p.parties.buyer.email, undefined); // never under a key the UI promotes
   assert.equal(p.parties.buyer.contactable, false);
   assert.ok(p.blocked.some((b) => b.party === 'buyer' && b.kind === 'email'));
@@ -198,7 +198,7 @@ test("listing side: the buyers' names are recorded, their contact details are no
 
 test('buyer side: the same buyer IS the member’s own client and becomes sendable', () => {
   const p = plan({ tx: { role: 'buyer', seller_name: null } });
-  assert.equal(p.updates.buyer_email, 'cwb03@hotmail.com');
+  assert.equal(p.updates.buyer_email, 'buyercontact2@example.net');
   assert.equal(p.updates.buyer_phone, '(210) 467-2232');
   assert.ok(!p.blocked.some((b) => b.party === 'buyer'));
 });
