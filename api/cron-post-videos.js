@@ -64,6 +64,7 @@ const { buildDeliveryEntry, buildSkipEntry, mergeDeliveryEntries } = require('./
 // Fails CLOSED to the old per-item send if the flag can't be read — a
 // notification Heath never sees is worse than one too many.
 const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
+const { checkVideoQueueRunway } = require('./_lib/video-queue-runway.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1098,6 +1099,21 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // has no approved_at column, so created_at is the best available proxy
   // for "how long has this been sitting."
   summary.stale_approved = await alertStaleApprovedVideos();
+
+  // --- STEP 5: content-calendar runway check (Atlas 2026-10-03) ---
+  // Rides this already-firing cron (no new cron-job.org registration) so
+  // "nothing queued for tomorrow" surfaces on jarvis_todos BEFORE the queue
+  // actually goes empty, not after. See api/_lib/video-queue-runway.js.
+  // Skipped under a manual single-row/platform debug scope, same reasoning
+  // as Steps 1 and 3 — a targeted run must not also mutate the todo list.
+  if (!onlyVideoId && !onlyPlatform) {
+    try {
+      summary.queue_runway = await checkVideoQueueRunway({ supabaseFetch });
+    } catch (err) {
+      console.warn('[cron-post-videos] checkVideoQueueRunway threw (non-fatal):', err && err.message);
+      summary.queue_runway = { ok: false, error: err && err.message };
+    }
+  }
 
   return res.status(200).json({
     ok: libraryOk,
