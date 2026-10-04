@@ -696,6 +696,47 @@ async function grayFrameBuffer(localVideoPath, atSeconds, width, height) {
 // large fraction of pixels are near-black. Returns null if nothing in the
 // caption-sized height range is found (no caption visible at this instant —
 // not itself a failure, see call site).
+//
+// SOLIDITY FILTER (Atlas 2026-10-03): CAPTION_BOX_ROW_DARK_FRACTION alone
+// (>=35% of a row's sampled pixels are dark, scanned across the FULL frame
+// width) does not distinguish a real rendered caption box from scattered
+// natural-scene darkness — e.g. tree canopy against bright sky in b-roll
+// aerials/establishing shots, which can cover well over 35% of a row's
+// pixels while being scattered in many small blobs rather than one solid
+// rectangle. Measured directly against heath-realtor-boerne-establishing-
+// 2026-10-03.mp4 (dark treeline band, rows 105-161, real caption at rows
+// 815-860): the treeline band is TALLER (57px vs 46px) so the old
+// tallest-wins selection picked it, reported centerFrac 0.07 (top-band,
+// would fail-closed a video whose actual caption sits at ~45%), and neither
+// row-dark-fraction (both ~0.38-0.42, statistically indistinguishable) nor
+// bright-pixel content (treeline scores HIGHER than the real box, because
+// sky gaps between branches read as bright — a worse discriminator, not a
+// better one) separates the two.
+//
+// What does separate them, measured on the same fixture: the LONGEST
+// contiguous horizontal run of dark pixels within a row, averaged across
+// the candidate band. A rendered caption box is one solid rectangle, so its
+// rows have one long unbroken dark span (treeline band 0.166 of frame
+// width; real caption box 0.361-0.456; both regression fixtures'
+// genuine — if badly positioned — caption boxes in scripts/
+// regression-video-caption-box.js's BAD fixture score 0.434-0.456, GOOD
+// fixture 0.361-0.456, i.e. this filter does not merely prefer bottom-half
+// boxes — it rejects non-rectangular clutter at ANY vertical position,
+// leaving the existing CAPTION_BOX_MIN_CENTER_FRAC position check as the
+// sole arbiter of top-vs-bottom, exactly as before). Threshold set at 0.25:
+// comfortable margin above the measured clutter case (0.166) and below
+// every measured real-box case (0.36+).
+const CAPTION_BOX_MIN_SOLIDITY_FRAC = 0.25;
+
+function longestDarkRunFraction(buf, w, y) {
+  let longest = 0;
+  let cur = 0;
+  for (let x = 0; x < w; x++) {
+    if (buf[y * w + x] < CAPTION_BOX_DARK_LUMA) { cur++; if (cur > longest) longest = cur; } else cur = 0;
+  }
+  return longest / w;
+}
+
 function locateCaptionBox(buf, w, h) {
   const rows = new Float64Array(h);
   for (let y = 0; y < h; y++) {
@@ -711,7 +752,15 @@ function locateCaptionBox(buf, w, h) {
     if (curStart === -1) return;
     const heightFrac = (end - curStart + 1) / h;
     if (heightFrac >= CAPTION_BOX_MIN_HEIGHT_FRAC && heightFrac <= CAPTION_BOX_MAX_HEIGHT_FRAC) {
-      if (bestStart === -1 || (end - curStart) > (bestEnd - bestStart)) { bestStart = curStart; bestEnd = end; }
+      // Reject scattered non-rectangular darkness (e.g. tree canopy against
+      // sky) before it can ever compete on height — see SOLIDITY FILTER above.
+      let solidity = 0;
+      for (let y = curStart; y <= end; y++) solidity += longestDarkRunFraction(buf, w, y);
+      solidity /= (end - curStart + 1);
+      if (solidity >= CAPTION_BOX_MIN_SOLIDITY_FRAC
+        && (bestStart === -1 || (end - curStart) > (bestEnd - bestStart))) {
+        bestStart = curStart; bestEnd = end;
+      }
     }
     curStart = -1;
   };
