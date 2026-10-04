@@ -45,6 +45,10 @@ const { DateTime } = require('luxon');
 // api/_lib/telegram-webhook-health.js header for the incident this closes
 // (two group_posts Approve taps did nothing -- webhook was unregistered).
 const { checkTelegramWebhookHealth } = require('./telegram-webhook-health.js');
+// FAILED-RETRYABLE self-heal (Atlas, 2026-10-02/03 -- "three days and no
+// video" incident, video 8). See that file's header for the full model;
+// used by checkNoVideoScheduledToday() below.
+const { MAX_VIDEO_RETRIES, isRetryPreconditionMet } = require('./video-retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1264,6 +1268,110 @@ async function checkNoVideoScheduledToday(now = new Date()) {
     }];
   }
   if (Array.isArray(queuedToday.data) && queuedToday.data.length > 0) return [];
+
+  // 1d. FAILED-RETRYABLE (Atlas 2026-10-03 -- "three days and no video"
+  // incident, video 8): a row that failed TODAY (failed_at inside today's
+  // CT window) for a purely caption-shaped reason -- see api/_lib/
+  // video-retry.js -- is still today's obligation, not an absence. It must
+  // not fall through to the "genuinely nothing" branch below just because
+  // status='failed_retryable' isn't a status the posted/due/queued checks
+  // above look at.
+  //
+  // Before ever re-arming a row, re-check the EXACT precondition that
+  // failed (the row's CURRENT caption) via isRetryPreconditionMet() -- the
+  // same gate cron-post-videos.js itself enforces at publish time. A row
+  // whose caption is STILL bad would just reproduce the identical failure
+  // on the very next cron-post-videos.js pass if re-armed blindly, which is
+  // worse than staying quiet: it would burn a retry for nothing and loop.
+  // Such a row is ALERTED instead, naming exactly what's still wrong, so
+  // the human fix (rewrite the caption) is obvious.
+  //
+  // Capped at MAX_VIDEO_RETRIES: a row that has already been re-armed that
+  // many times is flipped to terminal 'failed' instead of retried again --
+  // this is the only path in this file that ever MOVES a row OUT of
+  // failed_retryable without the caption having been fixed, and it only
+  // fires the dedicated 'video_failed_retryable_exhausted' key, never the
+  // generic 'video_failed_retryable_today' one, so exhaustion is visible as
+  // its own distinct condition rather than silently blending into "still
+  // broken, will keep trying."
+  const failedRetryableToday = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.failed_retryable'
+    + `&failed_at=gte.${encodeURIComponent(startOfDayUtc)}&failed_at=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,topic,target_owner,caption,failure_reason,failed_at,retry_count&order=failed_at.asc',
+  );
+  if (!failedRetryableToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted/due/queued-today checks passed, but the failed_retryable-today query failed (status ${failedRetryableToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  const failedRetryableRows = Array.isArray(failedRetryableToday.data) ? failedRetryableToday.data : [];
+  if (failedRetryableRows.length > 0) {
+    const stillBroken = [];
+    const exhausted = [];
+    for (const row of failedRetryableRows) {
+      const retryCount = row.retry_count || 0;
+
+      if (retryCount >= MAX_VIDEO_RETRIES) {
+        // Exhausted -- move to terminal 'failed' rather than try again.
+        // status filter in the PATCH itself (not just the earlier SELECT)
+        // so a row another process already touched between read and write
+        // is never double-handled.
+        await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.failed_retryable`,
+          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+        );
+        exhausted.push(row);
+        continue;
+      }
+
+      if (isRetryPreconditionMet(row)) {
+        const patch = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.failed_retryable`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({ status: 'heath_approved', scheduled_for: new Date().toISOString(), retry_count: retryCount + 1 }),
+          },
+        );
+        if (patch.ok && Array.isArray(patch.data) && patch.data.length > 0) {
+          // Self-healed -- silent, same convention as the deferred
+          // self-heal below: nothing for Heath to do, so nothing to say.
+          continue;
+        }
+        stillBroken.push({ ...row, selfHealPatchFailed: true });
+        continue;
+      }
+
+      // Precondition not met -- caption is still whatever made this row
+      // fail in the first place. Do NOT re-arm; alert instead.
+      stillBroken.push(row);
+    }
+
+    if (stillBroken.length === 0 && exhausted.length === 0) return [];
+
+    const conditions = [];
+    if (stillBroken.length > 0) {
+      conditions.push({
+        key: 'video_failed_retryable_today',
+        message: `${stillBroken.length} video(s) failed today (${today.toFormat('yyyy-LL-dd')} CT) and are not safe to auto-retry yet: `
+          + stillBroken.map((r) => `${r.id} (${r.topic || 'untitled'}`
+            + `${r.target_owner && r.target_owner !== 'dossie' ? `, ${r.target_owner}` : ''}) -- ${r.failure_reason || 'unknown reason'}, `
+            + (r.selfHealPatchFailed ? 'caption now looks valid but the re-arm PATCH did not confirm' : 'caption still fails the same check')
+            + ` (retry ${r.retry_count || 0}/${MAX_VIDEO_RETRIES})`).join('; ')
+          + '. Fix the caption on each row (or rebuild the video) -- it will be retried automatically once it passes.',
+      });
+    }
+    if (exhausted.length > 0) {
+      conditions.push({
+        key: 'video_failed_retryable_exhausted',
+        message: `${exhausted.length} video(s) hit the ${MAX_VIDEO_RETRIES}-retry cap and were moved to terminal 'failed' instead of being retried again: `
+          + exhausted.map((r) => `${r.id} (${r.topic || 'untitled'})`).join(', ')
+          + '. This needs a human fix (rewrite the caption and manually re-approve) -- it will not be auto-retried again.',
+      });
+    }
+    return conditions;
+  }
 
   // 2. SELF-HEAL: a ready, already-approved video exists but is deferred
   // past today -- pull the EARLIEST deferred one back to now().

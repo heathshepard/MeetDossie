@@ -80,8 +80,30 @@
 
 const RESERVE_STATUSES = new Set(['heath_approved', 'pending_heath_review']);
 
+// FAILED-RETRYABLE RESERVATION (Atlas, 2026-10-03 — "three days and no
+// video" incident). video 8's two rows were flipped to status='failed' by
+// cron-post-videos.js's caption check and instantly dropped OUT of this
+// reservation (status='failed' was never in RESERVE_STATUSES), so text took
+// the Facebook slot the retry needed on the very next pipeline run. A row
+// that failed TODAY for a purely caption-shaped reason (status=
+// 'failed_retryable' — see api/_lib/video-retry.js) is still an obligation
+// for today, not a non-event: the silence alarm may re-arm it back to
+// heath_approved the moment its caption looks valid again, and that retry
+// needs the same platform slot a brand-new heath_approved row would need.
+// Scoped to retry_count < MAX_VIDEO_RETRIES so an exhausted row (already
+// flipped to terminal 'failed' once the cap is hit) stops reserving —
+// nothing is ever retried past the cap, so nothing should hold capacity for
+// it past the cap either.
+//
+// "Failed TODAY" is measured off failed_at, not scheduled_for — a stale
+// failed_retryable row from a prior day (one the alarm hasn't gotten to
+// yet, or that a human deliberately parked) must not reserve capacity
+// forever just because its original scheduled_for happened to fall inside
+// an earlier today.
+const { MAX_VIDEO_RETRIES } = require('./video-retry.js');
+
 /**
- * @param {object} row  a video_library row (id, status, target_owner, platforms, scheduled_for)
+ * @param {object} row  a video_library row (id, status, target_owner, platforms, scheduled_for, failed_at, retry_count)
  * @param {object} o
  * @param {string} o.platform
  * @param {string} [o.owner]          default 'dossie'
@@ -91,11 +113,21 @@ const RESERVE_STATUSES = new Set(['heath_approved', 'pending_heath_review']);
  */
 function isReservedToday(row, { platform, owner, startOfDayIso, endOfDayIso }) {
   if (!row) return false;
-  if (!RESERVE_STATUSES.has(row.status)) return false;
   if ((row.target_owner || 'dossie') !== (owner || 'dossie')) return false;
   if (!Array.isArray(row.platforms) || !row.platforms.includes(platform)) return false;
-  if (!row.scheduled_for) return true; // NULL = due now (video-schedule.js / cron-post-videos.js isDue())
-  return row.scheduled_for >= startOfDayIso && row.scheduled_for <= endOfDayIso;
+
+  if (RESERVE_STATUSES.has(row.status)) {
+    if (!row.scheduled_for) return true; // NULL = due now (video-schedule.js / cron-post-videos.js isDue())
+    return row.scheduled_for >= startOfDayIso && row.scheduled_for <= endOfDayIso;
+  }
+
+  if (row.status === 'failed_retryable') {
+    if ((row.retry_count || 0) >= MAX_VIDEO_RETRIES) return false; // exhausted — never held open
+    if (!row.failed_at) return false; // can't prove "today" without it — fail closed on reserving
+    return row.failed_at >= startOfDayIso && row.failed_at <= endOfDayIso;
+  }
+
+  return false;
 }
 
 /**

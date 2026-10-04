@@ -65,6 +65,12 @@ const { buildDeliveryEntry, buildSkipEntry, mergeDeliveryEntries } = require('./
 // notification Heath never sees is worse than one too many.
 const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
 const { checkVideoQueueRunway } = require('./_lib/video-queue-runway.js');
+// FAILED-RETRYABLE classification (Atlas 2026-10-03 — "three days and no
+// video" incident, video 8). isCaptionValid/hasRustStoreCta are the exact
+// checks below; extracted so api/_lib/silence-alarm.js's self-heal
+// precondition check can never drift from what this file enforces at
+// publish time. See api/_lib/video-retry.js file header for the full model.
+const { isCaptionValid, hasRustStoreCta } = require('./_lib/video-retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -881,14 +887,21 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           continue;
         }
 
-        const captionCheck = (candidate.caption || '').trim().toLowerCase();
-        if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+        // FAILED-RETRYABLE (Atlas 2026-10-03, video 8 incident): an invalid
+        // caption is purely a property of this row's own `caption` column —
+        // a human/script rewriting it makes the row postable again with no
+        // other state change. status='failed_retryable' (not plain
+        // 'failed') keeps the row visible to checkNoVideoScheduledToday()'s
+        // "owed today" check and the video-priority reservation, both of
+        // which would otherwise treat a 'failed' row as if it never
+        // existed — see api/_lib/video-retry.js for the full model.
+        if (!isCaptionValid(candidate.caption)) {
           const warn = `Video ${candidate.id} has an invalid caption ("${(candidate.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
           console.warn(`[cron-post-videos] ${warn}`);
           await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
           await supabaseFetch(
             `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
-            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed_retryable', failure_reason: 'invalid_caption', failed_at: new Date().toISOString() }) },
           );
           summary.skipped.push({ id: candidate.id, reason: 'invalid caption' });
           continue;
@@ -899,15 +912,17 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         // now" language while iOS/Android aren't both live yet. The CTA is
         // always the waitlist at rustfitness.app. Caught here so a caption
         // slipping past generation still can't ship a broken/premature CTA.
+        // Also failed_retryable (same reasoning as invalid_caption above) —
+        // this too is purely a caption-content problem, fixed the moment
+        // the caption is rewritten without the CTA language.
         if ((candidate.target_owner || 'dossie') === 'rust') {
-          const rustCta = captionCheck;
-          if (/\b(download( it)? now|get it on|app store|google play|available now on)\b/.test(rustCta)) {
+          if (hasRustStoreCta(candidate.caption)) {
             const warn = `Video ${candidate.id} (owner=rust) caption references a store/download CTA before iOS/Android are live: "${(candidate.caption || '').slice(0, 80)}"`;
             console.warn(`[cron-post-videos] ${warn}`);
             await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
-              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed_retryable', failure_reason: 'rust_store_cta', failed_at: new Date().toISOString() }) },
             );
             summary.skipped.push({ id: candidate.id, reason: 'rust store-link CTA before launch' });
             continue;
@@ -1068,12 +1083,17 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
             }
           } else {
             const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+            // Terminal 'failed', never 'failed_retryable' — an actual Zernio
+            // post attempt was made and rejected. There is no cheap way to
+            // tell a transient Zernio hiccup apart from a genuinely broken
+            // video file from here, and a genuinely broken video must never
+            // be auto-retried (api/_lib/video-retry.js file header).
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries }),
+                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries, failure_reason: 'zernio_delivery_error', failed_at: new Date().toISOString() }),
               },
             );
             await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
