@@ -789,10 +789,16 @@ async function countPostedToday(platform, tz, owner) {
 // iteration, not just the next cron invocation.
 async function loadPendingVideoRowsForReservation(owner) {
   const ownerVal = owner || 'dossie';
+  // failed_retryable included (Atlas 2026-10-03, video 8 incident) — a row
+  // that failed today for a purely caption-shaped reason is still today's
+  // obligation, not a non-event. See api/_lib/video-reservation.js's
+  // isReservedToday() for how retry_count/failed_at scope this so an
+  // exhausted or stale row never reserves. failed_at/retry_count selected
+  // alongside the columns isReservedToday() already used.
   const { data, ok } = await supabaseFetch(
-    `/rest/v1/video_library?status=in.(heath_approved,pending_heath_review)` +
+    `/rest/v1/video_library?status=in.(heath_approved,pending_heath_review,failed_retryable)` +
     `&target_owner=eq.${encodeURIComponent(ownerVal)}` +
-    `&select=id,status,target_owner,platforms,scheduled_for`,
+    `&select=id,status,target_owner,platforms,scheduled_for,failed_at,retry_count`,
   );
   if (!ok || !Array.isArray(data)) return null; // null = query failed, caller fails closed
   return data;
