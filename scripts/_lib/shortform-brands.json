@@ -128,9 +128,9 @@
         "forbidden_reason": "Two separate hard rules. (1) listing-copy-never-signal-weakness.md: no hint of a price cut, motivated seller, or DOM emphasis - Heath represents the seller and copy that invites lowballs is a fiduciary problem, not a style problem. (2) docs/CONTENT-DO-NOT-WRITE-LIST.md: fair-housing steering language is a HARD_BLOCK."
       },
       "trec": {
-        "attribution": "Heath Shepard, REALTOR (R) | Keller Williams City View | TX Lic #751964",
-        "broker_name": "Keller Williams City View",
-        "note": "TREC 535.154/535.155 - social media and video ARE advertisements. The broker name must appear at >= half the size of the largest agent/team contact info and be readily noticeable. OPEN VERIFICATION ITEM (CONTENT-FORMAT-LIBRARY.md §10.1): the rendered type sizes on the closing card have never been measured against the rule. cta-realtor.html sets broker at 0.62x the agent line to clear it with margin, but that ratio has not been checked against a TREC reviewer's reading of 'largest contact info'.",
+        "attribution": "Heath Shepard, REALTOR (R) | Keller Willis San Antonio Inc | TX Lic #751964",
+        "broker_name": "Keller Willis San Antonio Inc",
+        "note": "TREC 535.154/535.155 - social media and video ARE advertisements. The broker name must appear at >= half the size of the largest agent/team contact info and be readily noticeable. Broker corrected 2026-10-05 (fix/trec-video-attribution-1004): this is the SPONSORING broker on Heath's TREC license record (license #751964-SA, broker license #547594-BB, verified via trec.texas.gov 2026-09-17 -- memory heath-trec-license-record.md), which is the entity that belongs in advertising attribution. 'Keller Williams City View' is a real, correctly-spelled, different entity -- it is the Designated Broker line on the IABS, not the TREC-advertising sponsoring broker, and was wrongly substituted here. Measured 2026-10-05: cta-realtor.html renders the broker line LARGER than the agent line (ratio 1.13x, see that file's own header comment), so this correction does not touch the sizing margin.",
         "min_broker_to_agent_size_ratio": 0.5
       },
       "voices": {

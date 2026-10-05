@@ -146,6 +146,33 @@ cases.push({
   expect: 'pass-copy-check',
 });
 
+// --- TREC attribution: heath-realtor must carry the broker/license card ---
+// 2026-10-05: requires_trec_attribution sat on the brand config unenforced —
+// a spec could skip the cta-realtor.html card entirely and still build.
+refuses('heath-realtor refuses a build with NO attribution card declared at all',
+  spec('heath-realtor', { cards: { hook: { html_inline: '<body><h1>Welcome home</h1></body>' } } }),
+  'requires TREC attribution');
+
+refuses('heath-realtor refuses when the attribution card is declared but never placed in a segment',
+  spec('heath-realtor', {
+    cards: {
+      cta: {
+        template: 'cta-realtor.html',
+        vars: { KICKER: 'Boerne, TX', HEADLINE: 'Come see it in person', PHONE: '(830) 446-3847' },
+      },
+    },
+    segments: [{ name: 'hook', kind: 'card', pngs: [] }],
+  }),
+  'actually places it on screen');
+
+// A brand with no requires_trec_attribution flag (dossie) must NOT be gated
+// by this rule at all — it has no broker to attribute.
+cases.push({
+  name: 'dossie is NOT gated by the TREC attribution rule',
+  s: spec('dossie', {}),
+  expect: 'pass-copy-check',
+});
+
 // --- Caption typeface: a serif is an automatic §5a check-12 FAIL -----------
 refuses('refuses Cormorant Garamond as a CAPTION face',
   spec('dossie', { captions: { font: 'Cormorant Garamond' } }),

@@ -61,7 +61,7 @@ const REAL_LISTING_POST = {
 
 4 bed, 3 bath, 2,334 sqft, no HOA, built 1966. Make-ready is in progress, showings start as soon as it's done. Message me and I'll let you know the day it's ready.
 
-Heath Shepard, REALTOR | Keller Williams City View | TX Lic #751964`,
+Heath Shepard, REALTOR | Keller Willis San Antonio Inc | TX Lic #751964`,
 };
 
 (async () => {
@@ -119,7 +119,7 @@ Heath Shepard, REALTOR | Keller Williams City View | TX Lic #751964`,
 
   const withBrokerName = checkBrokerageCompliance(REAL_LISTING_POST.content);
   check(
-    'compliance gate: ALLOWS a post that includes "Keller Williams"',
+    'compliance gate: ALLOWS a post that includes "Keller Willis"',
     withBrokerName.allowed === true,
     withBrokerName,
   );

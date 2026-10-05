@@ -97,6 +97,33 @@ plates, or identifiable private residences.
 A clip that is on disk but **not indexed** also aborts — unindexed footage is
 never postable.
 
+**TREC attribution.** `brand: "realtor"` unconditionally burns a persistent
+broker/agent/license line (`build_trec_attribution()`) for the FULL duration
+of the video — this is not a spec key a script can omit, unlike hook_card/
+cta_card below. 22 TAC §535.154/§535.155 treat this video as advertising by a
+license holder. Broker name is "Keller Willis San Antonio Inc" — the
+SPONSORING broker on Heath's TREC license record (#751964-SA, sponsor
+#547594-BB), per memory `heath-trec-license-record.md`, NOT "Keller Williams
+City View" (a real, different entity — the Designated Broker line on the
+IABS). `brand: "dossie"` renders nothing: Dossie is a software product, not a
+brokerage, and its own CTA names the product, not Heath. Open question flagged
+to Hadley (compliance), not decided here: `dossie_founder_selfie` in
+`config/video-routing.json` cross-posts Dossie-brand founder content to
+Heath's personal realtor accounts as its PRIMARY target — whether that
+specific distribution act makes an otherwise-non-real-estate video into
+regulated advertising on a licensee's professional page is a legal judgment
+call, not an engineering one.
+
+> Verified 2026-10-05 by rendering the real attribution layer over real
+> footage and extracting a frame: all three lines render on one line each (no
+> overflow), sit clear of both the caption band and the hook/CTA cards, and
+> are legible over a busy background. All three lines share one font
+> size/weight, so the broker name is never smaller than the agent-name line —
+> the §535.155 "broker >= half the size of the largest contact info" rule is
+> satisfied by construction rather than by a judgment call, which matters
+> here because these specs carry no phone number or handle anywhere else on
+> screen.
+
 ### Relationship to `select_local_broll_entries()`
 
 That selector exists, on unmerged branch `feat/boerne-broll-catalog-1001`
@@ -136,7 +163,7 @@ Measured medians as shipped: video 1 ≈ 17.8 dB, video 2 ≈ 17.5 dB, video 3 �
 
 | Key | Notes |
 |---|---|
-| `brand` | `realtor` or `dossie`. Drives the voice guard. |
+| `brand` | `realtor` or `dossie`. Drives the voice guard AND the TREC attribution layer (`realtor` only, mandatory, no spec key to set). |
 | `voice_id` / `model_id` / `voice_settings` | Clone settings are LOCKED at 0.3 / 0.75 / 0.4 + speaker_boost on `eleven_v4`. Do not re-tune. |
 | `speed` | `atempo`, pitch-preserving, applied in exactly one place. Keep ≤ 1.18. |
 | `default_gap` / `gap_after` | Inter-beat silence. Tight gaps (0.14-0.17) read as energy. |

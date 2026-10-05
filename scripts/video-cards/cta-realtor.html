@@ -7,10 +7,19 @@
   at >= half the size of the largest agent/team contact info, and be "readily
   noticeable." Sizes here:
       .agent  (largest agent contact info) .... 46px
-      .broker (Keller Williams City View) ..... 52px   -> ratio 1.13x
+      .broker (Keller Willis San Antonio Inc) . 52px   -> ratio 1.13x
   The broker line is deliberately LARGER than the agent line, which clears the
   >=0.5 rule with a wide margin and removes the judgment call about what counts
   as "largest contact info."
+
+  BROKER NAME corrected 2026-10-05 (fix/trec-video-attribution-1004): this card
+  previously rendered "Keller Williams City View," which is a real entity but
+  the wrong one for this purpose -- it is the Designated Broker line on the
+  IABS, not Heath's TREC sponsoring broker. The sponsoring broker on his
+  license record (#751964-SA, sponsor #547594-BB, verified via trec.texas.gov
+  2026-09-17 -- memory heath-trec-license-record.md) is "Keller Willis San
+  Antonio Inc." Do not "fix" that string back to Keller Williams; it is
+  correct.
 
   OPEN VERIFICATION ITEM (docs/CONTENT-FORMAT-LIBRARY.md §10.1): the rendered
   type sizes on the listing closing card have never been measured against the
@@ -44,7 +53,7 @@
   <div class="phone">{{PHONE}}</div>
   <div class="trecwrap">
     <div class="agent">Heath Shepard, REALTOR&reg;</div>
-    <div class="broker">Keller Williams City View</div>
+    <div class="broker">Keller Willis San Antonio Inc</div>
     <div class="lic">TX Lic #751964</div>
   </div>
 </div>

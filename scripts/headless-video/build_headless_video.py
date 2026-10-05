@@ -118,6 +118,33 @@ CTA_STYLE = ("Style: Cta,Plus Jakarta Sans ExtraBold,66,&H00FFFFFF,&H00FFFFFF,"
 STAT_STYLE = ("Style: Stat,Plus Jakarta Sans ExtraBold,128,&H00FFFFFF,&H00FFFFFF,"
               "&H00101010,&H00101010,-1,0,0,0,100,100,1,0,3,20,0,8,70,70,430,1")
 
+# TREC advertising attribution (22 TAC §535.154/§535.155). Persistent for the
+# WHOLE video, not just a closing card -- "readily noticeable" is a weak
+# guarantee if it only exists for the last 3s of a 30s clip nobody rewinds.
+#
+# Alignment 2 (bottom-centre), MarginV 620 sits in the one band nothing else
+# in this file uses: the caption box occupies roughly y 860-1000 (MarginV
+# 1005 above) and the TikTok-reserved UI zone starts at y ~1436 (MarginV 484
+# from the bottom -- see shortform-brands.json's own comment on the same
+# number). A 3-line block anchored at MarginV 620 spans roughly y 1160-1300,
+# centred in the ~436px gap between the two, so it can never collide with
+# either.
+#
+# All three lines share this ONE style/size on purpose: TREC requires the
+# broker name to appear at >= half the size of the largest agent/team contact
+# info on screen. These `realtor`-brand headless specs carry no phone number
+# or handle anywhere else in frame (hook_card/cta_card are short hooks, not
+# contact cards), so the agent-name line IS the largest other contact-
+# identifying text. Giving every line identical size makes the ratio exactly
+# 1.0 by construction rather than leaving it a judgment call -- the same
+# "over-satisfy rather than sit near the line" approach cta-realtor.html uses
+# (ratio 1.13x there; see that file's own header comment).
+TREC_STYLE = ("Style: Trec,Plus Jakarta Sans ExtraBold,36,&H00FFFFFF,&H00FFFFFF,"
+              "&H00101010,&H00101010,-1,0,0,0,100,100,1,0,3,16,0,2,70,70,620,1")
+
+TREC_BROKER = "KELLER WILLIS SAN ANTONIO INC"
+TREC_LINES = ("HEATH SHEPARD, REALTOR®", TREC_BROKER, "TX LIC #751964")
+
 
 def die(msg):
     sys.stderr.write("FATAL: %s\n" % msg)
@@ -550,6 +577,36 @@ def build_cards(spec, total, out_ass):
     return ev
 
 
+def build_trec_attribution(spec, total, out_ass):
+    """TREC advertising attribution (22 TAC §535.154/§535.155), MANDATORY and
+    NON-OPTIONAL for every brand="realtor" spec -- this is not a spec flag a
+    future script can leave unset.
+
+    2026-10-05: this lane shipped three realtor-brand videos
+    (heath-realtor-boerne-establishing, heath-realtor-trec-5e-time-of-essence,
+    heath-realtor-trec-autopsy-four-errors, boerne-market-correction) with NO
+    broker name, agent name or license number anywhere on screen -- the engine
+    had hook_card/cta_card but no attribution concept at all. Two of those
+    were already `heath_approved` in video_library, one step from posting,
+    when this was found. This function makes that structurally impossible
+    going forward: it is called unconditionally for brand="realtor" in
+    main(), not behind a spec key that a new script could omit.
+
+    brand="dossie" renders nothing -- Dossie is a software product, not a
+    brokerage, and the one open question (Dossie content cross-posted to
+    Heath's personal realtor accounts as the PRIMARY target of the
+    dossie_founder_selfie lane in config/video-routing.json) is flagged for
+    Hadley (compliance) rather than decided here. See this file's README.
+    """
+    if spec.get("brand") != "realtor":
+        return None
+    txt = r"\N".join(TREC_LINES)
+    ev = ["Dialogue: 0,%s,%s,Trec,,0,0,0,,%s" % (ts(0.0), ts(total), txt)]
+    open(out_ass, "w", encoding="utf-8").write(
+        (ASS_HDR % (TREC_STYLE, "")) + "\n".join(ev) + "\n")
+    return ev
+
+
 # --------------------------------------------------------------------------
 # picture
 # --------------------------------------------------------------------------
@@ -640,7 +697,7 @@ def build_picture(spec, total, work):
     return pic, plan, total_cut
 
 
-def burn(pic, cap_ass, card_ass, total, work, stat_ass=None):
+def burn(pic, cap_ass, card_ass, total, work, stat_ass=None, trec_ass=None):
     out = os.path.join(work, "burned.mp4")
     fonts = "/home/heath/.local/share/fonts"
     layers = [cap_ass, card_ass]
@@ -649,6 +706,11 @@ def burn(pic, cap_ass, card_ass, total, work, stat_ass=None):
     # but ordering is the cheap guarantee.
     if stat_ass:
         layers.append(stat_ass)
+    # TREC attribution occupies its own band (TREC_STYLE comment) and does not
+    # overlap captions, cards or stats, so burn order relative to them does not
+    # matter -- it is listed last purely so it is never silently painted over.
+    if trec_ass:
+        layers.append(trec_ass)
     vf = ",".join("subtitles=%s:fontsdir=%s" % (l, fonts) for l in layers)
     run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", pic,
          "-t", "%.3f" % total, "-vf", vf, "-c:v", "libx264", "-preset", "medium",
@@ -878,6 +940,12 @@ def main():
     cards = base + ".cards.ass"
     build_cards(spec, total, cards)
 
+    trec_ass = None
+    if spec.get("brand") == "realtor":
+        trec_ass = base + ".trec.ass"
+        build_trec_attribution(spec, total, trec_ass)
+        print("-- trec attribution: %s, on screen 0.00-%.2fs (full duration)" % (TREC_BROKER, total))
+
     stats_ass = None
     if spec.get("stat_cards"):
         stats_ass = base + ".stats.ass"
@@ -893,7 +961,7 @@ def main():
     pic, plan, cutdur = build_picture(spec, total, work)
 
     print("-- burn")
-    burned = burn(pic, cap, cards, total, work, stats_ass)
+    burned = burn(pic, cap, cards, total, work, stats_ass, trec_ass)
 
     print("-- mix")
     master = base + ".mp4"
@@ -919,6 +987,7 @@ def main():
         "duck_db": [round(r[3], 1) for r in duck],
         "script": [{"id": b.get("id"), "text": b["text"]} for b in spec["beats"]],
         "spec_path": sp,
+        "trec_attribution": (TREC_LINES if trec_ass else None),
     }
     json.dump(meta, open(base + ".meta.json", "w"), indent=2)
 

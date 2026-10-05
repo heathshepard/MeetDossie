@@ -44,7 +44,15 @@ function isBrokeragePost(post) {
 // TREC §535.155 requires the broker's name on advertising. A listing post
 // missing it must never go out under Heath's license -- this is checked
 // deterministically (no LLM) so it can never be talked out of blocking.
-const BROKERAGE_NAME_PATTERN = /Keller Williams/i;
+//
+// Pattern corrected 2026-10-05 (fix/trec-video-attribution-1004): this
+// matched "Keller Williams", which is the Designated Broker on the IABS, not
+// the entity that belongs in TREC advertising attribution. The real
+// SPONSORING broker on Heath's license record (#751964-SA, sponsor
+// #547594-BB, verified via trec.texas.gov 2026-09-17 -- memory
+// heath-trec-license-record.md) is "Keller Willis San Antonio Inc". Matches
+// "Keller Willis" so a post need not spell out the full legal suffix to pass.
+const BROKERAGE_NAME_PATTERN = /Keller Willis/i;
 
 function checkBrokerageCompliance(content) {
   const body = String(content || '');
