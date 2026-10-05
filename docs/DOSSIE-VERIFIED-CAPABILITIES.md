@@ -29,8 +29,8 @@ BROKEN · UNVERIFIED (not tested this pass, state explicitly instead of guessing
 |---|---|---|---|
 | 1 | Login | WORKS | Real Supabase auth, demo account signs in cleanly. |
 | 2 | New Dossier modal (Open New Dossier) | WORKS | 6-step guided intake, "Scan Contract PDF" entry point. |
-| 3 | Contract upload + field extraction | PARTIAL | **Corrected 2026-10-01** — ~50 fields was overstated. Measured across 11 real production/preview scans of the same specimen TREC 20-17: form identification now reliable (0/7 misclassified post-fix, down from 3/7 pre-fix), but client-side pre-fill is 8–9 of 41 form fields per clean run, 55–70s. Extraction values themselves verified accurate against source PDF — nothing hallucinated — just fewer fields land on the form than "~50" implied. |
-| 4 | Compliance / pre-fill audit on scan | PARTIAL | **Corrected 2026-10-01** — do not claim this as a reliable audit. The compliance-array call (separate from field extraction) itself intermittently truncates on this specimen — empty in 3 of 7 fresh runs, populated in the other 4 — a pre-existing, still-open issue independent of the 2026-10-01 misclassification fix. As of 2026-10-01, Dossie no longer claims "everything looks good / no issues found" on a run where the audit didn't actually complete (previously a false pass); she now shows "Needs review" with only the categories actually checked. Still do not market this as "catches every missing signature" — it catches them only on the runs where the audit call itself succeeds. |
+| 3 | Contract upload + field extraction | PARTIAL | **Corrected 2026-10-05** — ~50 fields was overstated, and the prior "41 form fields" denominator was also wrong; the real total is **38**. Measured across 11 real production/preview scans of the same specimen TREC 20-17 (2026-10-01): form identification now reliable (0/7 misclassified post-fix, down from 3/7 pre-fix), client-side pre-fill is 8–9 of 38 form fields per clean run, 55–70s. Extraction values themselves verified accurate against source PDF — nothing hallucinated — just fewer fields land on the form than "~50" implied. |
+| 4 | Compliance / pre-fill audit on scan | PARTIAL — fix verified, **not yet merged** | **Corrected 2026-10-05.** Root cause found: `auditCompliance()`'s trec-20-17 call never disabled Claude's extended thinking, so it could burn its whole token budget reasoning and emit zero characters of the compliance JSON — the identical pathology already fixed in the field-extraction call on 2026-09-29, just never mirrored here. Measured live against production before the fix: **2 of 5 runs truncated** (2026-10-05 sample) and **3 of 7 runs truncated** (2026-10-01 sample, cited in the prior version of this row) — consistent with an open, unfixed bug, not sampling noise. Fix (`thinking: {type:'disabled'}` + budget 6144→8192 + a truncation-repair fallback that still forces `auditNotPerformed:true`/`passed:false` on any partial response) is built and verified **0/10 truncations** on a live Vercel preview deployment of branch `fix/compliance-audit-truncation-1005` (commit `842a4206`) — but that branch has **not been merged to staging or main** as of this writing, so **production (`meetdossie.com`) still carries the old ~40% truncation rate** until Heath says "merge it" per CLAUDE.md §3. Do not claim this capability as fixed/reliable in any marketing until the merge lands and is re-verified on `meetdossie.com` itself. On both the broken and fixed path, Dossie never renders a false "everything looks good" pass on a truncated or unparseable audit — confirmed 0 false passes across 15 real runs (5 pre-fix + 10 post-fix). |
 | 5 | Dossier detail view (per-transaction) | WORKS | Rich multi-section record: Deal, Land, Title, Key dates, Option, Inspection, Appraisal, Closing, Post-Close. |
 | 6 | TREC deadline calculator | WORKS | Deadlines shown with real TREC paragraph citations (¶5A, ¶5B, ¶6A, ¶9A), recomputed live when a date field is edited. |
 | 7 | Stage checklist | WORKS | Per-stage checklist (Pre-Contract → Closed), real check/uncheck state, tied to the dossier's actual stage. |
@@ -93,17 +93,31 @@ specimen TREC 20-17 (before the 2026-10-01 fix) found:
   false "verified" can no longer render. Re-verified 7/7 runs post-fix: 0 misclassified, 0
   false passes, including 3 runs where the (separate) compliance-array call itself still
   truncated — those now correctly show "Needs review, not checked" instead of a false pass.
-- The 4 runs that scanned cleanly: 55–70s, **8–9 of 41 form fields auto-filled** (address,
+- The 4 runs that scanned cleanly: 55–70s, **8–9 of 38 form fields auto-filled** (address,
   city/state/zip, buyer, seller, closing date, earnest money, option fee, title company) — not
-  "~50." Extraction accuracy on the fields it does fill is good: verified against the source
-  PDF, nothing hallucinated.
+  "~50," and not the "41" this file previously claimed as the denominator (corrected
+  2026-10-05 — the real total is 38). Extraction accuracy on the fields it does fill is good:
+  verified against the source PDF, nothing hallucinated.
 - Compliance arrays (missing signatures/initials/blank fields/addenda) came back populated in
   only 2 of those 4 clean trials and **empty in the other 2** — the compliance-audit call
   (separate Sonnet call from field extraction) intermittently truncates on this specimen. This
-  is a pre-existing, still-open issue, not fixed by the 2026-10-01 branch above — what that fix
-  guarantees is that when it does truncate, the UI is honest about it instead of claiming a pass.
-**Do NOT claim** "catches every missing signature" or "~50 fields" anywhere in marketing until
-the compliance-array truncation itself is fixed and re-measured.
+  was a pre-existing, still-open issue, not fixed by the 2026-10-01 branch above — what that fix
+  guaranteed is that when it does truncate, the UI is honest about it instead of claiming a pass.
+
+**2026-10-05 — root cause found and fixed, verified 0/10, not yet merged.** The compliance-audit
+truncation above traced to the exact same bug already fixed in field extraction on 2026-09-29:
+`auditCompliance()`'s trec-20-17 call never disabled Claude's extended thinking, so the model
+could spend its entire `max_tokens` budget reasoning and emit zero characters of JSON. Confirmed
+live: **2 of 5 real production scans truncated** (2026-10-05 baseline, same pattern as the 3/7
+cited above). Fix: `thinking: {type:'disabled'}`, budget raised 6144→8192, and a
+truncation-repair fallback that recovers findings emitted before a cutoff while still forcing
+`auditNotPerformed:true`/`passed:false` — a truncated audit can never render as a pass, same
+guarantee as the 2026-10-01 fix. **Verified 0/10 truncations** on a live Vercel preview of branch
+`fix/compliance-audit-truncation-1005` (commit `842a4206`). **This fix is not yet on staging or
+main** — per CLAUDE.md §3, Heath has not said "merge it" — so `meetdossie.com` production still
+carries the ~40% truncation rate measured above until the merge lands and is re-verified live.
+**Do NOT claim** "catches every missing signature" or reliable compliance auditing in any
+marketing until that merge happens and this section is updated with a production re-measurement.
 
 ### 5–9. Dossier detail view, deadlines, checklist, required docs, documents — WORKS
 Opened a real seeded dossier (789 Ranch Rd). Confirmed live, in one continuous render:
