@@ -1,0 +1,89 @@
+{
+  "slug": "heath-realtor-trec-autopsy-four-errors-2026-10-04",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.3,
+    "similarity_boost": 0.75,
+    "style": 0.4,
+    "use_speaker_boost": true
+  },
+
+  "_format": "Hunt-the-error. The viewer is shown four filled-in regions of a TREC 20-19 with no highlight, told to pause, given a real silent window to look, and then each error is revealed with a gold box. Built to drive COMMENTS -- the measured gap is near-zero comments and zero shares across every published video -- so the CTA is a question with a countable answer rather than a keyword magnet.",
+
+  "_document_safety": "The on-screen document is the BLANK promulgated TREC 20-19 (scripts/trec-forms/20-19.pdf) with every filled value drawn as an overlay by scripts/video-engine/build-autopsy-specimen.py. Nothing is written into the PDF, so scripts/video-engine/assert-blessed-pdf.js still sees the blessed blank form. Every page carries a SPECIMEN - NOT A REAL CONTRACT watermark. There is NO PII anywhere: no property address, no party name, no escrow agent, no title company, no phone, no email, no file number. Those blanks are deliberately left blank. The 2026-09-30 incident this guards against was an agent reaching for a FILLED contract (real address, real earnest money figure) as a video background.",
+
+  "_errors_verified": [
+    "All four verified against `pdftotext -layout scripts/trec-forms/20-19.pdf` (rev 05-04-2026), reading the paragraph, not from memory or a docs/ summary. feedback_triple-check-public-facing-facts.md.",
+    "ERROR 1 -- para 5. An option period is written in 5.B (7 days) while the option fee blank in 5.A is left EMPTY. Operative text, 5.D verbatim: 'FAILURE TO TIMELY DELIVER OPTION FEE: If no dollar amount is stated as the option fee or if Buyer fails to deliver the option fee within the time required, Buyer shall not have the unrestricted right to terminate this contract under this paragraph 5.' So the option period on the face of the contract is void by the form's own terms. Non-obvious: the blank LOOKS incomplete rather than wrong.",
+    "ERROR 2 -- para 6.A(8). Both sub-elections ticked. Verbatim: '(i) will not be amended or deleted from the title policy; or (ii) will be amended to read, \"shortages in area\" at the expense of [ ] Buyer [ ] Seller.' The printed '; or' is the proof they are mutually exclusive -- this is a box that contradicts another box, and 6.A(8) is a line most agents skim.",
+    "ERROR 3 -- para 11. A repair obligation and an option-period extension typed into Special Provisions. Verbatim: '(This paragraph is intended to be used only for additional informational items. An informational item is a statement that completes a blank in a contract form, discloses factual information, or provides instructions. Real estate brokers and sales agents are prohibited from practicing law and shall not add to, delete, or modify any provision of this contract unless drafted by a party to this contract or a party's attorney.)' The repair belongs in 7.D(2); the option extension modifies 5.B. A blank that cannot legally hold what is in it.",
+    "ERROR 4 -- para 12. $9,000 written into 12.A(1)(b) intending to cover the buyer's broker, with the 12.B(1) box left unticked. 12.A(1)(b) verbatim: 'an amount not to exceed $_____ to be applied to Buyer's Expenses other than brokerage compensation or contributions under Paragraph 12B below.' The printed words exclude the exact thing the money was meant for; 12.B(1) is the election that would actually do it. This is the post-settlement compensation error and it is the one that bites at volume.",
+    "PROVEN NEGATIVE: 'Saturday, Sunday, or Legal Holiday' occurs exactly twice in the 12-page form, both inside 5.A(2), which extends delivery of the earnest money, option fee and additional earnest money ONLY. Nothing in this script claims that extension reaches any other deadline.",
+    "EXPERT BAR: heath-group-poster-persona.md -- an expert never asks 'what is X', and beginner content gets punished by this audience. None of these four is a typo or a missing signature. Each requires knowing what a printed provision does to a blank somewhere else on the form."
+  ],
+
+  "music": "documentary-trust-piano.mp3",
+  "music_gain_db": -4,
+  "_music_why": "Fixed by docs/VIDEO-PRODUCTION-RECIPE.md for the whole TREC 20-19 series, so this video sits sonically with the existing clause explainers. 176s long -- no loop seam under a ~32s cut. Measured at -7 this bed sat 20.9 dB under the voice, quieter than the 18-19 standard, so it was raised to -4. Licence-clean (Pixabay Content License). The bed also has to carry the silent hunt window alone, which is what a sparse piano does well and a dense cinematic bed would not.",
+
+  "default_gap": 0.16,
+  "speed": 1.12,
+
+  "hook_card": {
+    "lines": ["FOUR THINGS HERE", "ARE FILLED IN WRONG"],
+    "until": 2.6
+  },
+  "caption_suppress_until": 2.6,
+
+  "cta_card": {
+    "lines": ["HOW MANY", "DID YOU CATCH?"],
+    "from_end": 3.2
+  },
+  "_cta_why": "The engagement ask IS the CTA. 'How many did you catch' has a countable answer, which is the lowest-friction comment there is -- a viewer can reply with a single digit. Deliberately not a keyword magnet ('comment FOUR and I'll send you...'), which trains the audience to transact rather than discuss and reads as a funnel to the practitioner audience this is aimed at.",
+
+  "accent_words": ["FOUR", "EMPTY", "BOTH", "OR", "WRONG"],
+
+  "caption_rewrite": [
+    ["Six A, item eight", "¶6.A(8)"],
+    ["Paragraph eleven", "¶11"],
+    ["Paragraph twelve", "¶12"],
+    ["Paragraph five", "¶5"],
+    ["Five D", "¶5.D"],
+    ["twelve A one B", "¶12.A(1)(b)"],
+    ["twelve B one", "¶12.B(1)"],
+    ["nine thousand", "$9,000"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",  "text": "Four things here are wrong. Not typos." },
+    { "id": "PAUSE", "text": "Pause it. I'll wait.", "gap_after": 2.2 },
+    { "id": "R1",    "text": "Paragraph five. An option period, but no option fee. Five D voids it." },
+    { "id": "R2",    "text": "Six A, item eight. Both boxes ticked. The form says or." },
+    { "id": "R3",    "text": "Paragraph eleven. A repair and an option extension in special provisions. That's practicing law." },
+    { "id": "R4",    "text": "Paragraph twelve. Nine thousand in a blank that excludes brokerage compensation." },
+    { "id": "CTA",   "text": "And twelve B one is empty. How many did you catch?" }
+  ],
+  "_runtime_cut": "First build ran 41.25s against a 21-34s ceiling. Every beat was tightened; NOTHING was dropped -- all four errors are still named and explained, and the closing clause survives intact. The runtime came out of wordiness, not content.",
+  "_pause_why": "gap_after 2.2 on the PAUSE beat is a REAL silent window with music only -- the hunt. Without it the instruction to pause is a lie the video tells and nobody pauses. 2.2s is short enough not to read as dead air on a platform that measures watch-through, and all four regions are on screen together through it (trec-autopsy-hunt-4up) rather than cycling one at a time, which at about 0.9s each would not have been long enough to look at anything.",
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "shots": [
+    { "clip": "trec-autopsy-establishing-mobile-2026-10-04.mp4",              "in": 0.2, "dur": 3.09, "motion": "push", "label": "establishing page 2 (HOOK)" },
+    { "clip": "trec-autopsy-hunt-4up-mobile-2026-10-04.mp4",                  "in": 0.2, "dur": 3.64, "motion": "none", "label": "HUNT all four, no highlight" },
+    { "clip": "trec-autopsy-e1-option-fee-mobile-2026-10-04.mp4",             "in": 4.0, "dur": 2.90, "motion": "push", "label": "REVEAL e1 a" },
+    { "clip": "trec-autopsy-e1-option-fee-mobile-2026-10-04.mp4",             "in": 7.0, "dur": 2.98, "motion": "none", "label": "REVEAL e1 b" },
+    { "clip": "trec-autopsy-e2-both-boxes-mobile-2026-10-04.mp4",             "in": 4.0, "dur": 2.70, "motion": "push", "label": "REVEAL e2 a" },
+    { "clip": "trec-autopsy-e2-both-boxes-mobile-2026-10-04.mp4",             "in": 7.0, "dur": 2.61, "motion": "none", "label": "REVEAL e2 b" },
+    { "clip": "trec-autopsy-e3-special-provisions-mobile-2026-10-04.mp4",     "in": 4.0, "dur": 3.30, "motion": "push", "label": "REVEAL e3 a" },
+    { "clip": "trec-autopsy-e3-special-provisions-mobile-2026-10-04.mp4",     "in": 7.5, "dur": 3.22, "motion": "none", "label": "REVEAL e3 b" },
+    { "clip": "trec-autopsy-e4-brokerage-contribution-mobile-2026-10-04.mp4", "in": 4.0, "dur": 2.80, "motion": "push", "label": "REVEAL e4 a" },
+    { "clip": "trec-autopsy-e4-brokerage-contribution-mobile-2026-10-04.mp4", "in": 7.0, "dur": 2.73, "motion": "none", "label": "REVEAL e4 b" },
+    { "clip": "trec-autopsy-establishing-mobile-2026-10-04.mp4",              "in": 3.0, "dur": 3.67, "motion": "push", "label": "close on the page (CTA)" }
+  ],
+  "_shot_timing": "Each error clip is 12s and carries BOTH phases -- no highlight before 3.5s, gold highlight after. So a HUNT shot is an in-point of 0.3 and a REVEAL shot is an in-point of 4.0 into the SAME file, which guarantees the reveal is framed identically to the hunt. If the framing changed between the two the viewer could find the error by the cut rather than by looking, which would defeat the format. Durations are hand-timed to this build's OWN measured beat timeline and sum to exactly 33.64s, so the engine never cycles the list: establishing 0-3.09 (HOOK), hunt 3.09-6.73 (PAUSE plus its 2.2s silent gap), e1 6.73-12.61 (R1), e2 12.61-17.92 (R2), e3 17.92-24.44 (R3), e4 24.44-29.97 (R4), close 29.97-33.64 (CTA). Each reveal is split into two shots off the same clip so a 5-6s explanation is never one static frame -- docs/VIDEO-PRODUCTION-RECIPE.md flags long static stretches. Re-derive all of this if the script changes.",
+
+  "cover_t": 1.0,
+  "verify_frames": [0.0, 1.0, 2.4, 2.8, 4.5, 6.0, 7.5, 9.5, 13.0, 18.0, 23.0, 28.0]
+}

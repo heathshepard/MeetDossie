@@ -239,6 +239,67 @@ def assert_cta_url_resolves(brand, brand_name):
             "exists to catch.")
 
 
+def assert_trec_attribution_present(brand, brand_name, spec):
+    """Render-time REFUSAL if a brand that requires TREC attribution
+    (brand.cta.requires_trec_attribution) would ship without its attribution
+    card actually appearing on screen.
+
+    2026-10-05: `requires_trec_attribution: true` has sat on the heath-realtor
+    brand since this flag was introduced, and cta-realtor.html (which carries
+    the broker/agent/license line) has existed the whole time too — but
+    nothing in this file ever READ the flag. A spec could declare
+    brand="heath-realtor", skip the "cta" card entirely (or swap in a
+    different template), and build cleanly: the flag was documentation, not
+    an enforced rule. 22 TAC §535.154/§535.155 treat this video as
+    advertising by a license holder: the file must not be able to ship
+    without the broker/license line once a brand says it requires one.
+
+    This checks TWO things, both required:
+      1. The brand's designated attribution card (brand.cta.card) is declared
+         in spec["cards"] under the template the brand names.
+      2. That card name actually appears in spec["segments"] with a non-zero
+         total "pngs" duration — a card that is declared but never placed in
+         a segment never reaches a frame of output.
+    """
+    cta = (brand or {}).get("cta") or {}
+    if not cta.get("requires_trec_attribution"):
+        return
+    card_tpl = cta.get("card")
+    if not card_tpl:
+        raise SystemExit(
+            f"REFUSING to build: brand={brand_name!r} sets "
+            "cta.requires_trec_attribution=true but has no cta.card configured "
+            f"in {BRANDS_JSON}. There is no attribution template to render.")
+
+    declared = None
+    for name, card in (spec.get("cards") or {}).items():
+        if card.get("template") == card_tpl:
+            declared = name
+            break
+    if declared is None:
+        raise SystemExit(
+            f"REFUSING to build: brand={brand_name!r} requires TREC attribution "
+            f"(cta.requires_trec_attribution=true) but this spec declares no card "
+            f"using template {card_tpl!r}. Add a card block using that template — "
+            "see any existing heath-realtor spec for the shape.")
+
+    placed_secs = 0.0
+    for seg in spec.get("segments") or []:
+        if seg.get("kind") != "card":
+            continue
+        for png_ref, dur in seg.get("pngs") or []:
+            if png_ref == declared:
+                placed_secs += float(dur)
+    if placed_secs <= 0:
+        raise SystemExit(
+            f"REFUSING to build: brand={brand_name!r} requires TREC attribution "
+            f"and declares card {declared!r} (template {card_tpl!r}), but no "
+            "segment in this spec actually places it on screen — a declared-but-"
+            "unused card renders zero attribution frames. Add it to a 'kind': "
+            "'card' segment's \"pngs\" list.")
+    print(f"[trec] attribution card {declared!r} on screen for {placed_secs:.2f}s")
+
+
 def assert_caption_font_allowed(cfg, style):
     """§5a check 12 — caption typeface must be a heavy sans. A serif is an
     automatic gate FAIL, and Cormorant Garamond is a Dossie brand/heading face
@@ -678,6 +739,7 @@ def main():
     if spec.get("post_caption"):
         copy_texts.append(("post_caption", spec["post_caption"]))
     assert_copy_allowed(brand, brand_name, copy_texts)
+    assert_trec_attribution_present(brand, brand_name, spec)
 
     # §5a check 9: a bed is required unless the spec explicitly carries
     # "music": null WITH a written reason. An absent key falls back to the

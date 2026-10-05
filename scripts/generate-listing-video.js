@@ -229,7 +229,6 @@ function closingCardHtml({ w, h, showPrice, price, addressLine1, addressLine2, a
     <div class="agent">${escapeHtml(agentName)}</div>
     <div class="brokerage">${escapeHtml(brokerage)}</div>
     <div class="phone">${escapeHtml(phone)}</div>
-    <div class="kw-badge">Keller Williams</div>
   </div>
   </body></html>`;
 }

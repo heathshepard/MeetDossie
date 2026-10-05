@@ -236,7 +236,14 @@ const ANGLES = [
   'showing_availability',
 ];
 
-const TREC_ATTRIBUTION = 'Heath Shepard, REALTOR (R) | Keller Williams City View | TX Lic #751964';
+// Broker corrected 2026-10-05 (fix/trec-video-attribution-1004): this is the
+// SPONSORING broker on Heath's TREC license record (#751964-SA, sponsor
+// #547594-BB, verified via trec.texas.gov 2026-09-17 -- memory
+// heath-trec-license-record.md). "Keller Williams City View" is a real,
+// correctly-spelled, different entity (the Designated Broker line on the
+// IABS, not the TREC-advertising sponsoring broker) that was wrongly
+// substituted here. Do not "fix" this back -- see that memory.
+const TREC_ATTRIBUTION = 'Heath Shepard, REALTOR (R) | Keller Willis San Antonio Inc | TX Lic #751964';
 
 const OWNER_DISCLOSURE = 'Seller/Owner is a licensed Texas real estate broker/sales agent.';
 
