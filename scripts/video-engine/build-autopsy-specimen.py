@@ -60,11 +60,11 @@ FILLS = {
     ],
     6: [
         # 11 Special Provisions carrying a repair + a modification       <<< ERROR 3
-        (905, 1518, 26, 0, "Seller to replace roof prior to"),
-        (172, 1554, 26, 0, "closing; option period extended to 14 days; sale contingent"),
-        (172, 1588, 26, 0, "on buyer closing on current home."),
+        (905, 1503, 26, 0, "Seller to replace roof"),
+        (172, 1538, 26, 0, "prior to closing; option period extended to 14 days;"),
+        (172, 1571, 26, 0, "sale contingent on buyer closing current home."),
         # 12.A(1)(b) concession                                          <<< ERROR 4 (part 1)
-        (700, 1755, 30, 0, "9,000"),
+        (740, 1788, 30, 0, "9,000"),
     ],
     # page 7: 12.B(1) is left UNTICKED on purpose                        <<< ERROR 4 (part 2)
     7: [],
