@@ -107,6 +107,17 @@ HOOK_STYLE = ("Style: Hook,Plus Jakarta Sans ExtraBold,86,&H00FFFFFF,&H00FFFFFF,
 CTA_STYLE = ("Style: Cta,Plus Jakarta Sans ExtraBold,66,&H00FFFFFF,&H00FFFFFF,"
              "&H002E1A1A,&H002E1A1A,-1,0,0,0,100,100,1,0,3,20,0,8,90,90,300,1")
 
+# Stat plate -- the motion-graphic number layer (`stat_cards` in the spec).
+#
+# Alignment 8 (top-centre) at MarginV 430 puts the plate in the upper-middle
+# band: clear of the caption box (Alignment 2 / MarginV 1005, which occupies
+# roughly y 860-1000) and clear of the hook card (MarginV 170), so a stat can
+# never land on either. Opaque box (BorderStyle 3) because these sit over drone
+# footage -- white text straight onto a bright sky is the exact contrast failure
+# docs/VIDEO-PRODUCTION-RECIPE.md §13 records for the CTA panel.
+STAT_STYLE = ("Style: Stat,Plus Jakarta Sans ExtraBold,128,&H00FFFFFF,&H00FFFFFF,"
+              "&H00101010,&H00101010,-1,0,0,0,100,100,1,0,3,20,0,8,70,70,430,1")
+
 
 def die(msg):
     sys.stderr.write("FATAL: %s\n" % msg)
@@ -424,6 +435,101 @@ def ts(t):
     return "%d:%02d:%05.2f" % (int(t // 3600), int(t % 3600 // 60), t % 60)
 
 
+def _fmt_num(v, prefix="", suffix="", decimals=0):
+    """Format a stat value with thousands separators.
+
+    `decimals` is NOT cosmetic. An early build rendered a -17.3% YoY figure
+    through an int() round and put "-17%" on screen under a voiceover saying
+    "seventeen point three" -- a licensed agent publishing a market number that
+    does not match what he said. Any value with a fractional part MUST declare
+    its decimals in the spec.
+    """
+    if decimals:
+        s = format(abs(float(v)), ",.%df" % decimals)
+        sign = "-" if float(v) < 0 else ""
+    else:
+        s = format(abs(int(round(v))), ",")
+        sign = "-" if round(v) < 0 else ""
+    return "%s%s%s%s%s" % (sign, prefix, s, suffix, "")
+
+
+def build_stats(spec, total, out_ass):
+    """The motion-graphic number layer: a value that ANIMATES to its figure.
+
+    Why this exists rather than a static stat card: a number that counts is the
+    only moving thing in a drone cut that is otherwise all slow aerial push, and
+    `feedback_video-only-no-static-cards.md` is explicit that a static plate is
+    not an acceptable visual. More importantly it carries meaning -- a `from`
+    above `to` makes the figure visibly FALL, which is the entire story of a
+    market-correction video. The viewer sees the drop before they hear it.
+
+    A tick is one Dialogue event per interpolated value (ASS has no tweening for
+    text content), so 0.8s at 15 ticks/sec is 12 events. That is the same
+    mechanism build_captions() already uses, and it burns in the same libass
+    pass -- no new dependency, no drawtext (this ffmpeg has none).
+
+    Spec shape:
+      {"at": 4.2, "dur": 2.8, "label": "BOERNE AVG SALE PRICE",
+       "from": 755770, "to": 625022, "prefix": "$", "suffix": "",
+       "count_sec": 0.9, "sub": "SEPT 2025  ->  SEPT 2026"}
+
+    `from` is optional; without it the value simply pops in at `to`.
+    """
+    stats = spec.get("stat_cards") or []
+    ev = []
+    TICK = 1.0 / 15.0
+    for sc in stats:
+        at = float(sc["at"])
+        dur = float(sc.get("dur", 2.6))
+        end = min(at + dur, total)
+        if at >= total:
+            die("stat_card at %.2fs starts after the video ends (%.2fs)" % (at, total))
+        label = str(sc.get("label", "")).upper()
+        sub = str(sc.get("sub", "")).upper()
+        prefix = sc.get("prefix", "")
+        suffix = sc.get("suffix", "")
+        dec = int(sc.get("decimals", 0))
+        to = float(sc["to"])
+        frm = sc.get("from")
+        csec = float(sc.get("count_sec", 0.0)) if frm is not None else 0.0
+
+        def plate(valtxt, pop):
+            parts = []
+            if label:
+                parts.append(r"{\fs46\c&H43C5F5&}" + label)
+            parts.append(r"{\fs128\c&HFFFFFF&}" + valtxt)
+            if sub:
+                parts.append(r"{\fs50\c&H43C5F5&}" + sub)
+            return (pop or "") + r"\N".join(parts)
+
+        if csec > 0:
+            n = max(2, int(round(csec / TICK)))
+            for i in range(n):
+                p = (i + 1) / float(n)
+                # ease-out cubic: fast at first, settling onto the real figure,
+                # so the final value is legible rather than whipping past it.
+                e = 1 - pow(1 - p, 3)
+                v = float(frm) + (to - float(frm)) * e
+                s0 = at + i * (csec / n)
+                s1 = min(at + (i + 1) * (csec / n), end)
+                if s1 <= s0:
+                    continue
+                ev.append("Dialogue: 0,%s,%s,Stat,,0,0,0,,%s"
+                          % (ts(s0), ts(s1), plate(_fmt_num(v, prefix, suffix, dec), None)))
+            rest_from = at + csec
+        else:
+            rest_from = at
+        if end > rest_from:
+            # The settled figure gets the pop so the eye lands on the real number.
+            ev.append("Dialogue: 0,%s,%s,Stat,,0,0,0,,%s"
+                      % (ts(rest_from), ts(end),
+                         plate(_fmt_num(to, prefix, suffix, dec), POP)))
+
+    open(out_ass, "w", encoding="utf-8").write(
+        (ASS_HDR % (STAT_STYLE, "")) + "\n".join(ev) + "\n")
+    return ev
+
+
 def build_cards(spec, total, out_ass):
     """Hook card (frame 0, no fade) + CTA card, both in libass."""
     ev = []
@@ -534,11 +640,16 @@ def build_picture(spec, total, work):
     return pic, plan, total_cut
 
 
-def burn(pic, cap_ass, card_ass, total, work):
+def burn(pic, cap_ass, card_ass, total, work, stat_ass=None):
     out = os.path.join(work, "burned.mp4")
     fonts = "/home/heath/.local/share/fonts"
-    vf = ("subtitles=%s:fontsdir=%s,subtitles=%s:fontsdir=%s"
-          % (cap_ass, fonts, card_ass, fonts))
+    layers = [cap_ass, card_ass]
+    # Stats burn LAST so an overlapping plate sits above the caption box rather
+    # than under it. They are positioned not to overlap at all (see STAT_STYLE),
+    # but ordering is the cheap guarantee.
+    if stat_ass:
+        layers.append(stat_ass)
+    vf = ",".join("subtitles=%s:fontsdir=%s" % (l, fonts) for l in layers)
     run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", pic,
          "-t", "%.3f" % total, "-vf", vf, "-c:v", "libx264", "-preset", "medium",
          "-crf", "18", "-pix_fmt", "yuv420p", "-an", out])
@@ -767,11 +878,22 @@ def main():
     cards = base + ".cards.ass"
     build_cards(spec, total, cards)
 
+    stats_ass = None
+    if spec.get("stat_cards"):
+        stats_ass = base + ".stats.ass"
+        sev = build_stats(spec, total, stats_ass)
+        print("-- stats: %d plates, %d events"
+              % (len(spec["stat_cards"]), len(sev)))
+        for sc in spec["stat_cards"]:
+            print("     %6.2f  %s %s" % (float(sc["at"]),
+                  _fmt_num(float(sc["to"]), sc.get("prefix", ""), sc.get("suffix", ""), int(sc.get("decimals", 0))),
+                  sc.get("label", "")))
+
     print("-- picture")
     pic, plan, cutdur = build_picture(spec, total, work)
 
     print("-- burn")
-    burned = burn(pic, cap, cards, total, work)
+    burned = burn(pic, cap, cards, total, work, stats_ass)
 
     print("-- mix")
     master = base + ".mp4"
@@ -793,6 +915,7 @@ def main():
         "shots": [{"clip": s["clip"], "in": round(tin, 2), "dur": round(d, 2),
                    "motion": m, "privacy": s["_priv"]} for s, tin, d, m in plan],
         "caption_chunks": len(chunks),
+        "stat_cards": spec.get("stat_cards", []),
         "duck_db": [round(r[3], 1) for r in duck],
         "script": [{"id": b.get("id"), "text": b["text"]} for b in spec["beats"]],
         "spec_path": sp,
