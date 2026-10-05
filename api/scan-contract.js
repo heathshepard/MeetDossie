@@ -2034,11 +2034,25 @@ async function auditCompliance(pdfBase64, documentType) {
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
   const isTrec2017 = documentType === 'trec-20-17';
   const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : (isTrec2017 ? 'claude-sonnet-5' : MODEL);
-  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 6144 : 2048);
+  // 2026-10-05 — root cause of the ~2/5 production truncation rate: this
+  // call never disabled extended thinking. claude-sonnet-5 (and opus-4-5)
+  // auto-enable it, and thinking tokens draw from the SAME max_tokens
+  // budget as the visible JSON — the identical pathology already fixed in
+  // scanContract() (see EXTRACT_MAX_TOKENS comment above) and documented in
+  // scripts/regression-scan-contract-truncation.js, just never mirrored
+  // here. Reproduced live against production 2026-10-05: 2 of 5 real scans
+  // of generated-docs/sample-resale-contract.pdf came back with a response
+  // safeParseJson couldn't parse, falling through to emptyComplianceReport()
+  // below. `thinking: { type: 'disabled' }` plus a larger trec-20-17 budget
+  // (8192, matching the proven-safe extraction budget) is the fix — this is
+  // a bounded classification/judgment task, not something that benefits
+  // from chain-of-thought, same rationale as the extraction call.
+  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 8192 : 2048);
 
   const response = await anthropic.messages.create({
     model: modelToUse,
     max_tokens: maxTokensToUse,
+    thinking: { type: 'disabled' },
     messages: [{
       role: 'user',
       content: [
@@ -2049,11 +2063,26 @@ async function auditCompliance(pdfBase64, documentType) {
   });
   const textBlock = (response.content || []).find((b) => b.type === 'text');
   const rawText = textBlock ? textBlock.text : '';
-  const parsed = safeParseJson(rawText);
+  let parsed = safeParseJson(rawText);
+  let truncated = false;
   if (!parsed || typeof parsed !== 'object') {
-    console.error('[auditCompliance] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
-      response.stop_reason, rawText.length, rawText.slice(0, 400));
-    return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
+    // Direct parse failed — most commonly a response cut off mid-object by
+    // max_tokens. Try to salvage whatever findings were fully emitted
+    // before the cutoff (repairTruncatedJson(), shared with scanContract())
+    // rather than discarding the whole audit. Whatever is recovered is
+    // still only PARTIAL — never trusted as a complete, passing audit (see
+    // the auditNotPerformed override below) — but surfacing the findings
+    // that did make it through beats showing nothing at all, same "silent
+    // failure is the enemy" fix already applied to extraction.
+    const repaired = repairTruncatedJson(rawText);
+    if (repaired && typeof repaired === 'object') {
+      parsed = repaired;
+      truncated = true;
+    } else {
+      console.error('[auditCompliance] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
+        response.stop_reason, rawText.length, rawText.slice(0, 400));
+      return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
+    }
   }
   const arr = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
   // documentType === 'other' means Dossie could not confidently classify
@@ -2066,9 +2095,18 @@ async function auditCompliance(pdfBase64, documentType) {
   if (isUnclassified && !warnings.some((w) => /did not run a compliance check|could not be classified|wasn.t automatically recognized/i.test(w))) {
     warnings.push("This document type wasn't automatically recognized, so Dossie did not run a compliance check on it. Review it manually.");
   }
+  if (truncated) {
+    console.error('[auditCompliance] response truncated mid-JSON, stop_reason=%s, recovered partial result, len=%d',
+      response.stop_reason, rawText.length);
+    warnings.push('This compliance check was cut short before it finished — some findings below may be incomplete. Review the document manually.');
+  }
   return {
-    passed: isUnclassified ? false : parsed.passed === true,
-    auditNotPerformed: isUnclassified ? true : parsed.auditNotPerformed === true,
+    // A truncated/repaired response is NEVER allowed to render as a pass,
+    // regardless of what the model emitted for "passed" before the cutoff —
+    // the 2026-10-01 incident (unknown doc type rendering a false "no
+    // issues found" pass) must not reappear through this path either.
+    passed: (isUnclassified || truncated) ? false : parsed.passed === true,
+    auditNotPerformed: (isUnclassified || truncated) ? true : parsed.auditNotPerformed === true,
     missingSignatures: arr(parsed.missingSignatures),
     missingInitials: arr(parsed.missingInitials),
     blankRequiredFields: arr(parsed.blankRequiredFields),
