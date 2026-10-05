@@ -501,6 +501,28 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     }
   }
 
+  // Instagram Trial Reels (Atlas, 2026-10-05). Per memory
+  // social-growth-research-2026-09-26.md, Instagram's Reels ranking
+  // explicitly weights follower count — a documented headwind for the
+  // Dossie brand account (10 followers, zernio_accounts owner='dossie').
+  // Trial Reels bypass that: shown only to non-followers, 24h insights,
+  // auto-graduating to the normal follower-feed Reel if it performs within
+  // 72h. Field names verified against docs.zernio.com/platforms/instagram
+  // (2026-10-05) — Zernio exposes Meta's `trial_params.graduation_strategy`
+  // as platformSpecificData.trialParams.graduationStrategy. Default ON for
+  // target_owner='dossie' only — per-row escape hatch is
+  // video_library.ig_trial_reel_opt_out (20261005 migration). Heath's own
+  // realtor account (owner='heath-realtor', 982 followers) never gets this
+  // — it doesn't have the cold-start problem Trial Reels solve, and an
+  // opted-in personal post should reach its real followers immediately.
+  const trialReelOptedOut = opts.trialReelOptOut === true;
+  if (platform === 'instagram' && owner === 'dossie' && !trialReelOptedOut) {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      trialParams: { graduationStrategy: 'SS_PERFORMANCE' },
+    };
+  }
+
   // YouTube requires a title in platformSpecificData.
   // Use topic as title (max 100 chars), fall back to first line of caption.
   if (platform === 'youtube') {
@@ -1006,6 +1028,7 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
                 // The row is fetched with no `select=`, so cover_url has always
                 // been present in memory here — it was simply never passed on.
                 coverUrl: video.cover_url,
+                trialReelOptOut: video.ig_trial_reel_opt_out === true,
               }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
