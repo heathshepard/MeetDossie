@@ -108,8 +108,19 @@ function die(msg) {
 /** Visible-only locator - the app renders hidden desktop duplicates of the tab bar. */
 const vis = (page, sel) => page.locator(sel).locator('visible=true');
 
-async function tapTab(page, emoji) {
-  await vis(page, 'button').filter({ hasText: emoji }).first().click();
+async function tapTab(page, emoji, label) {
+  // 2026-10-05: the bottom tab bar no longer renders its emoji as button TEXT —
+  // the icons became SVGs and the only stable handle is the aria-label
+  // ("Morning Brief", "Pipeline", ...). Filtering by emoji therefore matched
+  // nothing and every flow silently filmed whatever tab happened to be open.
+  // Prefer the accessible name, keep the emoji as a fallback for older builds.
+  if (label) {
+    const byLabel = vis(page, `button[aria-label="${label}"]`).first();
+    if (await byLabel.count()) { await byLabel.click(); return; }
+  }
+  const byEmoji = vis(page, 'button').filter({ hasText: emoji }).first();
+  if (await byEmoji.count()) { await byEmoji.click(); return; }
+  throw new Error(`tapTab: no tab matched aria-label "${label}" or emoji "${emoji}"`);
 }
 
 /**
@@ -265,7 +276,7 @@ async function visibleText(page) {
 
   // ------------------------------------------------------------- flows ----
   async function flowBrief() {
-    await tapTab(page, '☀️'); // sun / Today
+    await tapTab(page, '☀️', 'Morning Brief'); // sun / Today
     await page.waitForTimeout(1200);
     await page.evaluate(() => window.scrollTo(0, 0));
     await mark('Today tab, top. Hero + the DOSSIE ASKS summary card.');
@@ -278,7 +289,7 @@ async function visibleText(page) {
   }
 
   async function flowPipeline() {
-    await tapTab(page, '🗂️'); // card index / Pipeline
+    await tapTab(page, '🗂️', 'Pipeline'); // card index / Pipeline
     await page.waitForTimeout(1800);
     await page.evaluate(() => window.scrollTo(0, 0));
     await mark('Pipeline tab opens at the top: "Pipeline Dashboard".');
@@ -390,7 +401,7 @@ async function visibleText(page) {
   let askGeom = null;
 
   async function flowAskDossie() {
-    await tapTab(page, '☀️');
+    await tapTab(page, '☀️', 'Morning Brief');
     await page.waitForTimeout(1200);
     await page.evaluate(() => window.scrollTo(0, 0));
     await mark('Signed-in Today tab, top of the Morning Brief.');
@@ -416,9 +427,14 @@ async function visibleText(page) {
     await page.keyboard.type(QUESTION, { delay: 55 });
     // The Send button is disabled until React sees the input event; waiting on
     // it is what proves the text actually landed in component state.
+    // 2026-10-05: the panel's Send control became an ICON button — empty
+    // innerText, accessible name only on aria-label — so matching on innerText
+    // alone found nothing and this wait timed out on every run. Match either,
+    // and ignore the unrelated text "Send" button in the Morning Brief card.
     await page.waitForFunction(() => {
-      const b = [...document.querySelectorAll('button')].find((x) => /^send$/i.test((x.innerText || '').trim()));
-      return b && !b.disabled;
+      const name = (x) => ((x.getAttribute('aria-label') || x.innerText || '').trim());
+      const b = [...document.querySelectorAll('button')].filter((x) => /^send$/i.test(name(x)));
+      return b.length > 0 && b.some((x) => !x.disabled);
     }, null, { timeout: 15000 });
     await mark('Question typed in full: "' + QUESTION + '"');
     await sleep(1300);
@@ -426,7 +442,12 @@ async function visibleText(page) {
     const bodyLines = () => page.evaluate(() =>
       (document.body.innerText || '').split('\n').map((s) => s.trim()).filter(Boolean));
     const askedAt = Date.now() - t0;
-    await page.getByRole('button', { name: /^send$/i }).first().click();
+    // Scope to the Talk-to-Dossie panel's own Send (an icon button carrying
+    // aria-label="Send"). getByRole matched the Morning Brief card's unrelated
+    // text "Send" button first, which is permanently disabled until that card
+    // has an update typed into it — so the click sat retrying until timeout.
+    const sendBtn = vis(page, 'button[aria-label="Send"]:not([disabled])').first();
+    await sendBtn.click();
     await mark('Send tapped - the question is now in the thread.');
 
     // Wait for the REAL answer. The thread grows the page rather than an inner
@@ -628,7 +649,12 @@ async function assertSignedIn(page) {
   const body = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
 
   // 3. Signed-in-only chrome.
-  if (!/Open New Dossier/i.test(body)) die('"Open New Dossier" not found - not on the signed-in app shell. URL: ' + url);
+  // 2026-10-05: the control was relabelled "+ New dossier". Accept either so
+  // the gate keeps testing "are we on the signed-in shell" rather than failing
+  // on a copy change, which is what it actually exists to catch.
+  if (!/Open New Dossier|\+?\s*New dossier/i.test(body)) {
+    die('neither "Open New Dossier" nor "New dossier" found - not on the signed-in app shell. URL: ' + url);
+  }
 
   // 4. REAL SEEDED DATA, not an empty state or a skeleton. The demo profile
   //    carries 6+ transactions, so we require several concrete addresses.
