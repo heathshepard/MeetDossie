@@ -52,7 +52,7 @@ Before recommending any tool/library/service install, check: (1) CLAUDE.md Secti
 | Payments | Stripe | Founding price `price_1TPxxNL920SKTEEiN7Gphq8T` ($29/mo) |
 | Social posting | Zernio | $18/mo, 4 accounts, unlimited posts |
 | Card renderer | HCTI | `HCTI_USER_ID`+`HCTI_API_KEY`. Free 50/mo; $14/mo at 1k. |
-| Voice TTS | ElevenLabs | Bill `pqHfZKP75CvOlQylNhV4`, Luna `lxYfHSkYm1EzQzGhdbfc`. Creator $18.33/mo, 30k credits. |
+| Voice TTS | ElevenLabs | Bill `pqHfZKP75CvOlQylNhV4`, Luna `6rOxfAnZpbM3VIEhFaeV`. Creator $18.33/mo, 30k credits. |
 | Stock video | Pexels API | portrait→vertical, landscape→square |
 | Video assembly | Creatomate | Template `791117d0-665c-4cd0-ba5f-a767f8921f9b`. Fields: Image-K8V, Persona-Name, Caption, Voiceover (Bill). |
 | Selfie video | Submagic | $12/mo Starter. Manual upload (API needs $60/mo Business). Doc: `scripts/SELFIE-VIDEO-WORKFLOW.md`. |
