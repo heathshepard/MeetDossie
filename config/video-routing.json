@@ -49,9 +49,9 @@
 
   "lanes": {
     "dossie_founder_selfie": {
-      "_doc": "Heath on camera, vertical, talking about Dossie (classify_video()'s 'selfie' type, owner=dossie). PRIMARY reach target is now Heath's own personal accounts; the Dossie brand accounts still get it too ('also'), just no longer the only destination.",
+      "_doc": "Heath on camera, vertical, talking about Dossie (classify_video()'s 'selfie' type, owner=dossie). PRIMARY reach target is now Heath's own personal accounts; the Dossie brand accounts still get it too ('also'), just no longer the only destination. 'tiktok' added to the heath-realtor target 2026-10-06 (Atlas -- TIKTOK-ROUTING): Dossie's own TikTok pulls 104-152 views/video, above its Facebook and YouTube, and Heath's personal accounts already outperform brand on every other surface per this file's header research -- same vertical/selfie content, matches the dossie target's own platform list. SAFE WHILE NO ACCOUNT EXISTS: api/cron-post-videos.js's filterPlatformsByAccount() drops any platform here that has no active zernio_accounts row for that owner before it ever reaches gating/posting, so this entry is a no-op (today's exact 3-platform behavior) until Heath connects a personal TikTok in Zernio -- see that function's header.",
       "targets": [
-        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary" },
+        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "primary" },
         { "owner": "dossie", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "also" }
       ]
     },
@@ -74,9 +74,9 @@
       ]
     },
     "realtor_selfie": {
-      "_doc": "Heath on camera in Media/finished-videos/realtor/ -- his own real-estate-practice content, no Dossie CTA. 'youtube' added here 2026-09-30: the heath-realtor YouTube channel ('Shepard Real Estate Solutions') has been connected in zernio_accounts since 2026-08-25 but this lane never included it, so it went unrouted.",
+      "_doc": "Heath on camera in Media/finished-videos/realtor/ -- his own real-estate-practice content, no Dossie CTA. 'youtube' added here 2026-09-30: the heath-realtor YouTube channel ('Shepard Real Estate Solutions') has been connected in zernio_accounts since 2026-08-25 but this lane never included it, so it went unrouted. 'tiktok' added 2026-10-06 (Atlas -- TIKTOK-ROUTING), same rationale as dossie_founder_selfie's heath-realtor target above: every file in this folder is vertical selfie content (queue-finished-videos.py's classify_video() hardcodes this lane for every heath-realtor clip -- 'every realtor clip today is a selfie script'). No heath-realtor/tiktok zernio_accounts row exists as of 2026-10-06, so filterPlatformsByAccount() in api/cron-post-videos.js drops this platform (today's exact 3-platform behavior, no gate-skip noise) until Heath connects one in Zernio -- see that function's header. posting_schedule has no heath-realtor-specific tiktok row either; it will inherit the shared (owner=null) row -- max_per_day=1, slots 07:00/19:00 America/Chicago -- counted separately from dossie's tiktok usage (getPostCountsToday() buckets by owner). Heath, confirm that 1/day cap is what you want for this owner once the account is live; no posting_schedule row was created or changed by this pass.",
       "targets": [
-        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary" }
+        { "owner": "heath-realtor", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "primary" }
       ]
     },
     "rust_coach_conversation": {

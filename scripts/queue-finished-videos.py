@@ -166,7 +166,12 @@ STORAGE_PREFIX = "video-library"
 # the full rationale.
 _ROUTING_FALLBACK = {
     "dossie_founder_selfie": {"targets": [
-        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary"},
+        # 'tiktok' added to heath-realtor 2026-10-06 (Atlas -- TIKTOK-ROUTING)
+        # to mirror config/video-routing.json exactly. Safe while no
+        # heath-realtor/tiktok zernio_accounts row exists:
+        # api/cron-post-videos.js's filterPlatformsByAccount() drops it
+        # before posting until Heath connects one.
+        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "primary"},
         {"owner": "dossie", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "also"},
     ]},
     "dossie_skit": {"targets": [
@@ -179,7 +184,8 @@ _ROUTING_FALLBACK = {
         {"owner": "dossie", "platforms": ["facebook", "twitter"], "role": "primary"},
     ]},
     "realtor_selfie": {"targets": [
-        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "youtube"], "role": "primary"},
+        # 'tiktok' added 2026-10-06 (Atlas -- TIKTOK-ROUTING), same note as above.
+        {"owner": "heath-realtor", "platforms": ["facebook", "instagram", "tiktok", "youtube"], "role": "primary"},
     ]},
     "rust_coach_conversation": {"targets": [
         {"owner": "rust", "platforms": ["instagram", "twitter"], "role": "primary"},

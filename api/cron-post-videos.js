@@ -366,6 +366,48 @@ async function resolveZernioAccountId(platform, owner) {
   return null;
 }
 
+// Drops any platform from a requested list that would NOT resolve to a
+// real Zernio account right now (Atlas 2026-10-06 — TIKTOK-ROUTING).
+//
+// WHY THIS EXISTS: video.platforms (set at ingestion time by
+// scripts/queue-finished-videos.py from config/video-routing.json) is a
+// STATIC list baked into the row — it encodes "this lane is ALLOWED to
+// reach this platform," not "an account exists today." gatePlatform()
+// above only checks posting_schedule (cap/slot/is_active); it has no idea
+// whether zernio_accounts has a matching row. Without this filter, adding
+// 'tiktok' to the heath-realtor lanes in config/video-routing.json (done
+// same commit) would sail every realtor video's 'tiktok' entry through
+// resolvePlatformTargets() unskipped, straight into postToZernio(), which
+// would then fail with "No Zernio account ID for platform: tiktok" —
+// and because that failure happens AFTER facebook/instagram/youtube may
+// have already posted for real in the same loop, libraryOk=false flips
+// the WHOLE row to status='failed' (posted_date cleared), not merely
+// posted_partial — a worse bug than noise, since a retry pass could
+// re-post the platforms that already succeeded.
+//
+// Calling this BEFORE resolvePlatformTargets() means an unconnected
+// platform is dropped silently, with zero trace in platformSkips/
+// zernio_deliveries — reproducing EXACTLY today's 3-platform behavior for
+// heath-realtor until Heath connects a TikTok account in Zernio. No code
+// change is needed when he does: the very next cron tick that reads this
+// video row will see the new zernio_accounts row and start including
+// 'tiktok'. For owner='dossie' this is always a no-op (ZERNIO_ACCOUNTS
+// hardcoded fallback map guarantees resolveZernioAccountId() never
+// returns null for a known platform), so no existing Dossie routing
+// changes behavior.
+async function filterPlatformsByAccount(platforms, owner) {
+  const kept = [];
+  for (const platform of platforms) {
+    const accountId = await resolveZernioAccountId(platform, owner);
+    if (accountId) {
+      kept.push(platform);
+    } else {
+      console.log(`[cron-post-videos] filterPlatformsByAccount: dropping ${platform} for owner=${owner} — no active zernio_accounts row (not connected in Zernio yet)`);
+    }
+  }
+  return kept;
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -438,9 +480,14 @@ async function sendForHeathReview(video, { batched = false } = {}) {
   }
 
   const owner = video.target_owner || 'dossie';
-  const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
+  const rawPlatforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
     ? video.platforms
     : await defaultPlatformsFor(owner);
+  // Show Heath the platforms this will ACTUALLY reach, not the lane's full
+  // allow-list — filterPlatformsByAccount() header explains why a
+  // configured-but-unconnected platform (e.g. heath-realtor/tiktok before
+  // he connects it in Zernio) must not appear here as if it'll post.
+  const platforms = await filterPlatformsByAccount(rawPlatforms, owner);
 
   const text = [
     `Video ready for review: ${video.topic || video.id}${owner === 'heath-realtor' ? ' [REALTOR]' : ''}`,
@@ -961,6 +1008,14 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         let requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
           : await defaultPlatformsFor(owner);
+        // Drop any platform with no live zernio_accounts row for this owner
+        // BEFORE it ever reaches resolvePlatformTargets()/gatePlatform() —
+        // see filterPlatformsByAccount()'s header. This must run ahead of
+        // gating, not just ahead of postToZernio(), or an unconnected
+        // platform would already be "targeted" and a hard Zernio failure on
+        // it would flip the whole row to status='failed' even after other
+        // platforms genuinely posted.
+        requested = await filterPlatformsByAccount(requested, owner);
         // Manual ?platform= narrows to one of the row's OWN platforms. It can
         // never add a platform the row wasn't already configured for.
         if (onlyPlatform) {
