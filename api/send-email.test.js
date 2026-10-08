@@ -15,7 +15,7 @@
 //   - a legitimate send to the member's own client still goes through.
 //
 // Stubs global.fetch for every downstream call (Supabase auth/documents/
-// transactions/email_queue, Resend) — never touches a real service.
+// transactions/outbound_email_queue, Resend) — never touches a real service.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -69,7 +69,7 @@ function stubFetch({ documents, tx, resendCalled }) {
     if (u.pathname.includes('/rest/v1/transactions')) {
       return { ok: true, json: async () => (tx ? [tx] : []) };
     }
-    if (u.pathname.includes('/rest/v1/email_queue')) {
+    if (u.pathname.includes('/rest/v1/outbound_email_queue')) {
       return { ok: true, json: async () => ({}) };
     }
     if (u.hostname === 'api.resend.com') {

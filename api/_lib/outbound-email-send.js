@@ -49,10 +49,21 @@ async function sendOutboundEmailRow(row) {
     return { ok: false, status: 0, transient: false, errorText: 'suppressed_send_blocked: recipient on suppression list' };
   }
 
+  // kind='member_transaction' (2026-10-08 email_queue migration) is a
+  // customer-file operational email from a MEMBER's own dossier, not one of
+  // Heath's own cold-outreach/marketing sends. It must never carry Heath's
+  // "Heath at Dossie" identity or BCC him — same rule send-email.js always
+  // enforced ("No BCC: customer-file operational email per
+  // feedback_bcc_heath_on_all_emails.md"). Every other kind (including the
+  // default/unset 'cold_outreach') is completely unchanged below.
+  const isMemberTransaction = row.kind === 'member_transaction';
+
   const payload = {
-    from: row.from_email
-      ? `Heath at Dossie <${row.from_email}>`
-      : 'Heath at Dossie <heath@meetdossie.com>',
+    from: isMemberTransaction
+      ? `${row.from_display_name ? `${row.from_display_name} via Dossie` : 'Dossie'} <dossie@meetdossie.com>`
+      : (row.from_email
+        ? `Heath at Dossie <${row.from_email}>`
+        : 'Heath at Dossie <heath@meetdossie.com>'),
     to: [String(row.to_email).trim()],
     subject: String(row.subject).trim(),
     html: row.body_html && row.body_html.trim().length > 0
@@ -63,11 +74,11 @@ async function sendOutboundEmailRow(row) {
       : (row.from_email || 'heath@meetdossie.com'),
   };
 
-  // Same BCC rule as the batch cron: strip on marketing batches, keep on
-  // everything else so Heath has an archive copy.
+  // Same BCC rule as the batch cron: strip on marketing batches and member
+  // transaction email, keep on everything else so Heath has an archive copy.
   const queuedBy = row && row.metadata && row.metadata.queued_by;
   const isMarketingBatch = queuedBy === 'cron-cold-email-daily-batch' || queuedBy === 'cron-cold-email-followup';
-  if (!isMarketingBatch) {
+  if (!isMarketingBatch && !isMemberTransaction) {
     payload.bcc = ['heath@meetdossie.com'];
   }
 

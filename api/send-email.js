@@ -1,6 +1,6 @@
 // Vercel Serverless Function: /api/send-email
 // Sends an email via Resend on behalf of the agent and (optionally) logs the
-// send to the `email_queue` table.
+// send to the `outbound_email_queue` table.
 //
 // POST { to, subject, body, agentName?, agentEmail?, transactionId?, replyTo? }
 // `to` accepts a single email string, a comma-separated string of emails, or
@@ -9,10 +9,24 @@
 // happened to be on file.
 // Authorization: Bearer <supabase user JWT>
 //
+// 2026-10-08 (email_queue -> outbound_email_queue migration): this endpoint
+// used to log to `email_queue` with a hardcoded status:'sent' row. That
+// table has no real draft/pending lifecycle — nothing ever reads a 'sent'
+// row from it except an internal admin-dashboard.js engagement count — so
+// it was a dead-end audit log with its own table, duplicating the real
+// send-log infrastructure `outbound_email_queue` already has (838 real
+// sends, proven lifecycle). Logging now goes there instead, tagged
+// kind='member_transaction' so it's never confused with Heath's own
+// cold-outreach rows and never auto-sent by cron-send-outbound-emails.js
+// (status is written as 'sent' directly here — this already sent via
+// Resend above; nothing downstream reprocesses it). The actual SEND path
+// (the fetch to Resend below) is UNCHANGED — only where the after-the-fact
+// log row goes.
+//
 // Environment:
 //   RESEND_API_KEY            — Resend API key
-//   SUPABASE_URL              — Supabase project URL (for email_queue logging)
-//   SUPABASE_SERVICE_ROLE_KEY — service-role JWT (for email_queue logging)
+//   SUPABASE_URL              — Supabase project URL (for outbound_email_queue logging)
+//   SUPABASE_SERVICE_ROLE_KEY — service-role JWT (for outbound_email_queue logging)
 
 const { verifySupabaseToken, AuthError } = require('./_middleware/auth');
 const { gateOutboundRecipient } = require('./_lib/transaction-send-gate');
@@ -164,7 +178,7 @@ module.exports = async function handler(req, res) {
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/email_queue`, {
+        const logResp = await fetch(`${SUPABASE_URL}/rest/v1/outbound_email_queue`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -173,18 +187,26 @@ module.exports = async function handler(req, res) {
             Prefer: 'return=minimal',
           },
           body: JSON.stringify({
+            kind: 'member_transaction',
             user_id: userId,
             transaction_id: String(transactionId),
             to_email: trimmedTo,
-            from_name: fromName,
+            from_display_name: cleanAgentName || null,
+            reply_to: isValidEmail(replyToCandidate) ? replyToCandidate.trim() : null,
             subject: trimmedSubject,
-            body: trimmedBody,
-            status: 'sent',
+            body_text: trimmedBody,
+            body_html: htmlBody,
+            status: 'sent', // already sent via Resend above — this is a post-hoc log row, never claimed by cron-send-outbound-emails.js
             sent_at: new Date().toISOString(),
+            resend_message_id: (result && result.id) || null,
           }),
         });
+        if (!logResp.ok) {
+          const text = await logResp.text().catch(() => '');
+          console.warn('[send-email] outbound_email_queue log failed:', logResp.status, text.slice(0, 300));
+        }
       } catch (err) {
-        console.warn('[send-email] email_queue log failed:', err && err.message);
+        console.warn('[send-email] outbound_email_queue log failed:', err && err.message);
       }
     }
   }

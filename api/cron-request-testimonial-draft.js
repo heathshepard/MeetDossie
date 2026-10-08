@@ -29,11 +29,15 @@
 //
 // Auth:     Authorization: Bearer ${CRON_SECRET}  OR  x-vercel-cron: 1
 //
-// NOT YET registered in vercel.json: the repo's cron cap is 100/100
-// (commit hook enforces this -- see docs/TECH-DEBT.md). Needs either an
-// existing cron slot freed up or external scheduling (cron-job.org, per the
-// hook's own remediation note) before this runs unattended. Until then,
-// trigger manually:
+// Registered 2026-10-08 (CARTER, email_queue/outbound_email_queue migration
+// task): this is the ONLY code path in the whole app that ever writes a real
+// 'pending' draft row into email_queue. Before this, it was flagged "NOT YET
+// registered -- repo's cron cap is 100/100 on main" and only ever ran via
+// manual curl -- staging's vercel.json was actually at 55/100, nowhere near
+// the cap, so the real blocker was staging/main having diverged, not an
+// actual slot shortage. Now scheduled daily at 13:35 UTC (30 min after the
+// digest/deadline-reminder batch at 13:00-13:30). Manual trigger still works
+// unchanged if a one-off re-run is ever needed:
 //   curl -H "Authorization: Bearer $CRON_SECRET" \
 //     https://<preview-url>/api/cron-request-testimonial-draft
 
