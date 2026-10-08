@@ -36,6 +36,33 @@ const RULES_BLOCK = `[end-of-turn rules — read this last, it overrides drift f
 4. Never fabricate a story, number, customer event, or product capability.
 5. No episode N of a series ships to a surface where episode N-1 hasn't.`;
 
+// Live clock, computed fresh every invocation — never trust a remembered
+// date from earlier context. Fixed to America/Chicago regardless of the
+// host system's TZ env var, since this runs under whatever shell invoked it.
+function computeNowLine() {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      weekday: 'long',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZoneName: 'short',
+    });
+    const parts = dtf.formatToParts(new Date());
+    const map = {};
+    for (const p of parts) map[p.type] = p.value;
+    let hour = map.hour;
+    if (hour === '24') hour = '00'; // some ICU builds emit "24" for midnight under hour12:false
+    return `NOW: ${map.weekday} ${map.year}-${map.month}-${map.day} ${hour}:${map.minute} ${map.timeZoneName} (America/Chicago) — all day/time claims use this, never a remembered date.`;
+  } catch (e) {
+    return `NOW: unavailable (${e.message}) — do not guess the date/time.`;
+  }
+}
+
 function main() {
   let input = {};
   try {
@@ -43,7 +70,7 @@ function main() {
   } catch (e) {
     // Can't read our own stdin — still emit the rules block so the turn
     // isn't silently missing it, just skip the cwd-scoped logging below.
-    process.stdout.write(RULES_BLOCK);
+    process.stdout.write(computeNowLine() + '\n' + RULES_BLOCK);
     return;
   }
 
@@ -59,17 +86,17 @@ function main() {
   } catch (e) {
     // Logging failed but the rules block itself must still reach Claude —
     // this is exactly the "never silently empty" requirement.
-    process.stdout.write(RULES_BLOCK + `\n[end-of-turn-rules: logging failed (${e.message}) — investigate .claude/hooks/logs/${LOG_FILE}]`);
+    process.stdout.write(computeNowLine() + '\n' + RULES_BLOCK + `\n[end-of-turn-rules: logging failed (${e.message}) — investigate .claude/hooks/logs/${LOG_FILE}]`);
     return;
   }
 
-  process.stdout.write(RULES_BLOCK);
+  process.stdout.write(computeNowLine() + '\n' + RULES_BLOCK);
 }
 
 try {
   main();
 } catch (e) {
   // Absolute last resort — still surface something rather than nothing.
-  process.stdout.write(RULES_BLOCK + `\n[end-of-turn-rules: internal error (${e.message})]`);
+  process.stdout.write(computeNowLine() + '\n' + RULES_BLOCK + `\n[end-of-turn-rules: internal error (${e.message})]`);
 }
 process.exit(0);
