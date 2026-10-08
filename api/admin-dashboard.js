@@ -162,9 +162,14 @@ export default async function handler(req, res) {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', weekAgo.toISOString());
 
+    // 2026-10-08: repointed from email_queue (dead end — member transaction
+    // email now logs to outbound_email_queue, kind='member_transaction').
+    // Historical rows written before this migration are NOT counted here —
+    // acceptable for a rolling "this week" metric.
     const { count: emailsThisWeek } = await supabase
-      .from('email_queue')
+      .from('outbound_email_queue')
       .select('id', { count: 'exact', head: true })
+      .eq('kind', 'member_transaction')
       .gte('created_at', weekAgo.toISOString());
 
     // Morning Brief and Talk to Dossie sessions - these aren't tracked yet, show 0
@@ -342,10 +347,11 @@ export default async function handler(req, res) {
         .eq('user_id', profile.id)
         .eq('status', 'completed');
 
-      // Count drafted emails
+      // Count drafted emails (2026-10-08: outbound_email_queue, see note above)
       const { count: emailsCount } = await supabase
-        .from('email_queue')
+        .from('outbound_email_queue')
         .select('id', { count: 'exact', head: true })
+        .eq('kind', 'member_transaction')
         .eq('user_id', profile.id);
 
       // Count transactions
@@ -403,10 +409,11 @@ export default async function handler(req, res) {
       .not('user_id', 'is', null);
     const uniqueActionsUsers = new Set(actionsUsers?.map(d => d.user_id)).size;
 
-    // Users who've drafted emails
+    // Users who've drafted emails (2026-10-08: outbound_email_queue, see note above)
     const { data: emailsUsers } = await supabase
-      .from('email_queue')
+      .from('outbound_email_queue')
       .select('user_id')
+      .eq('kind', 'member_transaction')
       .not('user_id', 'is', null);
     const uniqueEmailsUsers = new Set(emailsUsers?.map(d => d.user_id)).size;
 
@@ -439,9 +446,11 @@ export default async function handler(req, res) {
       .from('action_items')
       .select('id', { count: 'exact', head: true });
 
+    // 2026-10-08: outbound_email_queue, see note above
     const { count: totalEmails } = await supabase
-      .from('email_queue')
-      .select('id', { count: 'exact', head: true });
+      .from('outbound_email_queue')
+      .select('id', { count: 'exact', head: true })
+      .eq('kind', 'member_transaction');
 
     const { count: totalTransactions } = await supabase
       .from('transactions')

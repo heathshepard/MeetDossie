@@ -15,8 +15,34 @@
 // complains we add a daily-fire log table).
 //
 // Customer filter mirrors cron-morning-brief.js.
+//
+// 2026-10-08 SILENT-FAILURE ALARM (email_queue migration task, per
+// feedback_silent-failure-is-the-enemy.md): this cron ran daily for ~5
+// months matching ZERO drafts for every single customer, every single day
+// (SYSTEM-AUDIT-2026-05-21.md flagged 3 email_queue rows total back then;
+// 13 now, 10 to test addresses) — and reported ok:true the entire time,
+// because "nobody had a draft today" and "the draft pipeline is broken"
+// are indistinguishable from this cron's own result alone. Root cause was
+// the one real draft writer (cron-request-testimonial-draft.js) never
+// being scheduled; now fixed (vercel.json, 2026-10-08) separately from this
+// alarm. The alarm itself stays regardless, because "nobody drafted
+// anything in days" will keep happening legitimately (testimonial requests
+// are bursty — one per closing, not daily) and still needs to be
+// distinguishable from "the writer broke again."
+//
+// Mechanism: track a running zero-streak counter in cron_runs, under its
+// OWN row ('cron-email-digest-zero-streak') rather than piggybacking on
+// this cron's own telemetry row — withTelemetry's auto-record always
+// overwrites cron_runs.last_meta with just {duration_ms, http_status} on
+// every response, which would clobber a streak value written earlier in
+// the same handler. A dedicated row sidesteps that entirely with the same
+// proven recordCronRun()/cron_runs upsert pattern used everywhere else.
+// ALARM_ZERO_STREAK_DAYS=7 is deliberately generous — long enough that one
+// quiet week (plausible, closings aren't daily for every member) doesn't
+// cry wolf, short enough that a second multi-month silent outage can't
+// happen again.
 
-const { withTelemetry } = require('./_lib/cron-telemetry.js');
+const { withTelemetry, recordCronRun } = require('./_lib/cron-telemetry.js');
 const { customerFirstName } = require('./_lib/personalization.js');
 const { isSuppressed } = require('./_lib/check-suppression.js');
 
@@ -26,6 +52,8 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 
 const FROM_ADDRESS = 'Dossie <dossie@meetdossie.com>';
+const ZERO_STREAK_CRON_NAME = 'cron-email-digest-zero-streak';
+const ALARM_ZERO_STREAK_DAYS = 7;
 
 const BRAND_BG = '#FDFCFA';
 const BRAND_NAVY = '#1C2B3A';
@@ -54,6 +82,25 @@ function isExcludedEmail(email) {
   if (e.startsWith('heath.shepard@')) return true;
   if (e.includes('demo')) return true;
   return false;
+}
+
+// Previous zero-streak value, read from its own dedicated cron_runs row
+// (see ZERO_STREAK_CRON_NAME comment above — never shares a row with this
+// cron's own withTelemetry-managed one). Missing row or bad shape -> 0,
+// never throws (a telemetry read failure must not block the real digest).
+async function loadZeroStreak() {
+  try {
+    const r = await supabaseFetch(
+      `/rest/v1/cron_runs?cron_name=eq.${encodeURIComponent(ZERO_STREAK_CRON_NAME)}&select=last_meta&limit=1`,
+    );
+    const n = r.ok && Array.isArray(r.data) && r.data[0] && r.data[0].last_meta
+      ? r.data[0].last_meta.streak_days
+      : 0;
+    return (typeof n === 'number' && Number.isFinite(n)) ? n : 0;
+  } catch (err) {
+    console.warn('[cron-email-digest] loadZeroStreak failed:', err && err.message);
+    return 0;
+  }
 }
 
 function ageLabel(createdAt) {
@@ -238,7 +285,30 @@ module.exports = withTelemetry('cron-email-digest', async function handler(req, 
       summary.digests_sent++;
     }
 
-    return res.status(200).json(summary);
+    // Silent-failure alarm — see the 2026-10-08 comment near the top of this
+    // file. Only tracked when there was actually someone to check (an empty
+    // active-customer roster is a different, already-visible problem).
+    if (summary.customers_scanned > 0) {
+      const allZeroToday = summary.customers_with_no_drafts === summary.customers_scanned;
+      const prevStreak = await loadZeroStreak();
+      const newStreak = allZeroToday ? prevStreak + 1 : 0;
+      summary.zero_draft_streak_days = newStreak;
+      await recordCronRun(ZERO_STREAK_CRON_NAME, 'ok', {
+        streak_days: newStreak,
+        customers_scanned: summary.customers_scanned,
+      });
+      if (newStreak >= ALARM_ZERO_STREAK_DAYS) {
+        summary.ok = false;
+        summary.silent_failure_alert =
+          `Every active customer (${summary.customers_scanned}) has had zero email drafts for ` +
+          `${newStreak} consecutive runs. Either that's genuinely a quiet stretch across the ` +
+          `whole customer base, or the draft pipeline (email_queue writers — currently just ` +
+          `cron-request-testimonial-draft.js) stopped producing anything. Check that cron's own ` +
+          `telemetry before assuming the former.`;
+      }
+    }
+
+    return res.status(summary.ok ? 200 : 500).json(summary);
   } catch (err) {
     console.error('[cron-email-digest] uncaught error:', err);
     return res.status(500).json({ ok: false, error: err && err.message ? err.message : String(err) });
