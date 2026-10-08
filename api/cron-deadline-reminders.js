@@ -32,6 +32,31 @@
 //   - earnest_money_due_date    → "Earnest money delivery (TREC ¶5.A)" — T-3/T-1/T-0, suppressed once earnest_money_confirmed_at is set
 //   - expected_completion_date  → "Expected completion (new construction)" — T-7 if CO not received
 //   - builder_warranty_expiration → "Builder warranty expiration" — T-30
+//   - final_walkthrough (closing_date, buyer-side only) → T-7 schedule it /
+//     T-3 confirm it's booked / T-1 the walkthrough itself. Same column as
+//     the standard closing_date reminder but a distinct deadline_type so the
+//     two never collide in the unique constraint.
+//
+// 2026-10-08 CARTER (stale-reminder fix, 507 Ridge Bluff incident): nothing
+// invalidated a sent reminder when the date it was computed from changed —
+// an executed TREC 39-11 extension moved closing from 2026-09-24 to
+// 2026-10-09, the T-7/T-1 reminders had already fired (and were marked
+// sent) against the OLD date, and the chain never re-fired for the new one.
+// Fix: deadline_reminders rows now carry the deadline_date they were
+// actually computed against (the column already existed, just wasn't read
+// back). Every lookup compares that stored date to the field's CURRENT
+// value; a mismatch means the source date moved, so the stale row is
+// deleted in-run and the slot is treated as not-yet-sent — regenerating
+// against the new date on the very next cron run with no write path (API,
+// DB trigger, or a client upsert that bypasses both) needing to remember to
+// call an invalidation helper. A date moving EARLIER does not retroactively
+// spam: the existing T±N-vs-today matching already only fires when today
+// equals one of the milestone targets, so a deadline that's already in the
+// past for every milestone simply produces no reminder, same as it always
+// has. See isAlreadySentForCurrentDate() below and the window-health check
+// that alarms when a tracked deadline is inside its reminder window with
+// zero reminders ever recorded for it (the silent-failure mode that let
+// Ridge Bluff go seven days unnoticed).
 //
 // 2026-09-03 CARTER (Deadline Guardian checklist #1): the two ¶5.A funds
 // delivery deadlines use a T-3/T-1/T-0 schedule instead of the default
@@ -53,6 +78,7 @@
 const { withTelemetry } = require('./_lib/cron-telemetry.js');
 const { customerFirstName } = require('./_lib/personalization.js');
 const { computeFundsDeliveryDueDates } = require('./_lib/business-calendar.js');
+const { memberSide } = require('./_lib/packet-recipients.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -117,6 +143,29 @@ const DEADLINE_FIELDS = [
     milestones: [3, 1, 0],
     suppressWhen: (tx) => Boolean(tx.earnest_money_confirmed_at),
     deriveFrom: (tx) => computeFundsDeliveryDueDates(tx.contract_effective_date).earnest_money_due_date,
+  },
+  // Final walkthrough — buyer-side only, derived from the SAME closing_date
+  // column as the standard closing reminder above but tracked under its own
+  // `deadlineType` so the two never collide on (transaction_id, days_out) in
+  // the unique constraint (both use days_out=1, among others).
+  //   T-7 — booking needs lead time (ShowingTime, listing agent, sometimes
+  //         a tenant); a reminder the day you need to book it is too late.
+  //   T-3 — confirm it's actually on the calendar.
+  //   T-1 — the walkthrough itself, day before closing (not morning-of), so
+  //         there's time to cure anything found before the table.
+  // Listing-side transactions never get this — the buyer's agent runs the
+  // walkthrough, not the seller's.
+  {
+    col: 'closing_date',
+    deadlineType: 'final_walkthrough',
+    label: 'Final walkthrough',
+    milestones: [7, 3, 1],
+    suppressWhen: (tx) => memberSide(tx) !== 'buyer',
+    noteFor: (daysOut) => {
+      if (daysOut === 7) return 'Booking usually needs lead time — ShowingTime, the listing agent, sometimes a tenant. Get it on the calendar now.';
+      if (daysOut === 3) return "If it isn't booked yet, today is the day to lock it in.";
+      return 'The walkthrough is tomorrow, not the morning of closing, so there is still time to fix anything it turns up.';
+    },
   },
 ];
 
@@ -194,6 +243,15 @@ function addDaysYMD(ymd, n) {
   return `${yy}-${mm}-${dd}`;
 }
 
+// Whole calendar days from `fromYmd` to `toYmd` (positive = toYmd is later).
+function daysBetweenYMD(fromYmd, toYmd) {
+  const [y1, m1, d1] = fromYmd.split('-').map(Number);
+  const [y2, m2, d2] = toYmd.split('-').map(Number);
+  const a = Date.UTC(y1, m1 - 1, d1);
+  const b = Date.UTC(y2, m2 - 1, d2);
+  return Math.round((b - a) / 86400000);
+}
+
 function friendlyDate(ymd) {
   if (!ymd) return '';
   const [y, m, d] = ymd.split('-').map(Number);
@@ -210,7 +268,7 @@ function toneFor(daysOut) {
   return { eyebrow: 'HEADS UP', headline: `A deadline is ${daysOut} days away.` };
 }
 
-function buildEmailHtml({ firstName, propertyAddress, deadlineLabel, deadlineDateYMD, daysOut }) {
+function buildEmailHtml({ firstName, propertyAddress, deadlineLabel, deadlineDateYMD, daysOut, note }) {
   const tone = toneFor(daysOut);
   const name = (firstName || '').trim() || 'there';
   const niceDate = friendlyDate(deadlineDateYMD);
@@ -218,11 +276,15 @@ function buildEmailHtml({ firstName, propertyAddress, deadlineLabel, deadlineDat
     ? 'today'
     : daysOut === 1 ? 'tomorrow' : `in ${daysOut} days`;
   const property = propertyAddress || 'your active dossier';
+  const noteHtml = note
+    ? `<p style="font-size: 15px; color: ${BRAND_NAVY}; line-height: 1.7; margin: 0 0 18px;">${note}</p>`
+    : '';
 
   return `<div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: ${BRAND_BG}; color: ${BRAND_NAVY};">
   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: ${BRAND_CORAL}; text-transform: uppercase; font-weight: 700; margin-bottom: 18px;">DOSSIE &middot; ${tone.eyebrow}</div>
   <h1 style="font-family: 'Cormorant Garamond', Georgia, serif; font-size: 32px; line-height: 1.2; margin: 0 0 22px; color: ${BRAND_NAVY};">Hi ${name},</h1>
   <p style="font-size: 17px; color: ${BRAND_NAVY}; line-height: 1.6; margin: 0 0 18px;">The <strong>${deadlineLabel}</strong> for <strong>${property}</strong> is ${daysCopy} (${niceDate}).</p>
+  ${noteHtml}
   <p style="font-size: 15px; color: ${BRAND_TEXT_SOFT}; line-height: 1.7; margin: 0 0 28px;">Open the dossier to review what is left to do, send the queued drafts, or update the deadline if anything has changed.</p>
   <div style="margin: 28px 0;">
     <a href="https://meetdossie.com/app" style="display: inline-block; padding: 16px 32px; background: ${BRAND_CORAL}; color: white; text-decoration: none; border-radius: 999px; font-weight: 700; font-size: 15px; font-family: 'Plus Jakarta Sans', Arial, sans-serif; letter-spacing: 0.2px;">Open dossier</a>
@@ -293,6 +355,7 @@ async function loadOpenTransactions(userId) {
     // baseFields — they're DEADLINE_FIELDS columns. Requires the 20260903
     // migration; option_fee_confirmed_at requires the 20260917 one.)
     'contract_effective_date',
+    'role', // memberSide(tx) — gates final_walkthrough to buyer-side transactions only
     ...SUPPRESSION_FIELDS,
     'inspection_scheduled_at',
     'inspection_completed_at',
@@ -350,21 +413,59 @@ async function loadOpenTransactions(userId) {
   return r.data || [];
 }
 
-// Already-fired reminders for one transaction (so we can skip them in this run).
+// Already-fired reminders for one transaction, keyed by `${deadline_type}|
+// ${days_out}` -> { id, deadline_date }. The deadline_date is what makes the
+// 2026-10-08 staleness fix possible: it's the date THIS row was actually
+// computed against, so a later comparison against the field's live value
+// can tell "still valid" apart from "source date moved, this is stale."
 async function loadFiredReminders(transactionId) {
   const r = await supabaseFetch(
-    `/rest/v1/deadline_reminders?transaction_id=eq.${encodeURIComponent(transactionId)}&select=deadline_type,days_out`,
+    `/rest/v1/deadline_reminders?transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,deadline_type,days_out,deadline_date`,
   );
   // Failing open here would re-send every reminder already delivered for this
   // transaction. Throw instead of guessing "nothing sent yet".
   if (!r.ok) {
     throw new Error(`deadline_reminders fetch failed (${r.status}) for transaction ${transactionId}`);
   }
-  const set = new Set();
+  const map = new Map();
   for (const row of (r.data || [])) {
-    set.add(`${row.deadline_type}|${row.days_out}`);
+    map.set(`${row.deadline_type}|${row.days_out}`, {
+      id: row.id,
+      deadline_date: row.deadline_date ? String(row.deadline_date).slice(0, 10) : null,
+    });
   }
-  return set;
+  return map;
+}
+
+// Returns true when `key` was already sent AND is still valid for
+// `currentYmd` — the caller should skip it. Returns false when it has never
+// been sent, OR when it was sent against a DIFFERENT date than currentYmd
+// (the source field changed since — e.g. an extension amendment moved
+// closing_date). In the stale case this deletes the old row itself, so:
+//   - the unique (transaction_id, deadline_type, days_out) constraint
+//     doesn't block the fresh insert the caller is about to make, and
+//   - the chain regenerates against the new date on THIS run, with no
+//     write path required to remember to call anything.
+// If the delete fails, fails closed (treats it as still-sent) rather than
+// risking a double-send, and records the failure so the run reports
+// non-ok instead of looking clean.
+async function isAlreadySentForCurrentDate(fired, key, currentYmd, summary) {
+  const entry = fired.get(key);
+  if (!entry) return false;
+  if (entry.deadline_date === currentYmd) return true;
+
+  const del = await supabaseFetch(
+    `/rest/v1/deadline_reminders?id=eq.${encodeURIComponent(entry.id)}`,
+    { method: 'DELETE', headers: { Prefer: 'return=minimal' } },
+  );
+  if (!del.ok) {
+    console.error('[deadline-reminders] failed to invalidate stale reminder', entry.id, key, del.status, del.data);
+    summary.errors.push({ reminder_id: entry.id, key, error: `invalidate failed (${del.status})` });
+    return true; // fail closed — don't double-send while the stale row still exists
+  }
+  summary.reminders_invalidated_stale++;
+  fired.delete(key);
+  return false;
 }
 
 // Belt-and-suspenders existence check — same fix applied in cron-followup.js
@@ -423,6 +524,18 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
       transactions_scanned: 0,
       reminders_sent: 0,
       reminders_skipped_already_sent: 0,
+      // 2026-10-08: rows deleted because their deadline_date no longer
+      // matches the field's live value (the source date moved — see
+      // isAlreadySentForCurrentDate). Non-zero is expected and healthy any
+      // time an amendment lands; it's informational, not an error.
+      reminders_invalidated_stale: 0,
+      // Silent-failure alarm (feedback_silent-failure-is-the-enemy.md): a
+      // tracked deadline is inside its own reminder window (closer than the
+      // field's longest milestone) with ZERO reminders ever recorded for
+      // it — the exact "agent went silent-blind" failure mode. Non-empty
+      // flips summary.ok to false so this surfaces instead of looking like
+      // a clean run.
+      silent_failure_alerts: [],
       errors: [],
     };
 
@@ -437,8 +550,10 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
         const fired = await loadFiredReminders(tx.id);
 
         for (const field of DEADLINE_FIELDS) {
-          // Funds already confirmed received -> no reminder (never nag after
-          // receipt).
+          const deadlineType = field.deadlineType || field.col;
+
+          // Funds already confirmed received, listing-side on a buyer-only
+          // field, etc. -> no reminder.
           if (field.suppressWhen && field.suppressWhen(tx)) continue;
 
           // Column value wins; otherwise derive in-memory (read-only) so rows
@@ -446,49 +561,75 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           let ymd = tx[field.col];
           if (!ymd && field.deriveFrom) ymd = field.deriveFrom(tx);
           if (!ymd) continue;
+          ymd = String(ymd).slice(0, 10);
 
           // Find which (if any) of THIS field's milestones matches today.
           const fieldMilestones = field.milestones || REMINDER_MILESTONES;
-          const match = targets.find((t) => fieldMilestones.includes(t.daysOut) && t.date === String(ymd).slice(0, 10));
-          if (!match) continue;
+          const match = targets.find((t) => fieldMilestones.includes(t.daysOut) && t.date === ymd);
 
-          const key = `${field.col}|${match.daysOut}`;
-          if (fired.has(key)) {
-            summary.reminders_skipped_already_sent++;
-            continue;
+          if (match) {
+            const key = `${deadlineType}|${match.daysOut}`;
+            if (await isAlreadySentForCurrentDate(fired, key, ymd, summary)) {
+              summary.reminders_skipped_already_sent++;
+            } else {
+              const subject = match.daysOut === 0
+                ? `Today: ${field.label} for ${tx.property_address || 'your dossier'}`
+                : match.daysOut === 1
+                  ? `Tomorrow: ${field.label} for ${tx.property_address || 'your dossier'}`
+                  : `Heads up: ${field.label} in ${match.daysOut} days for ${tx.property_address || 'your dossier'}`;
+
+              const html = buildEmailHtml({
+                firstName: cust.first_name,
+                propertyAddress: tx.property_address,
+                deadlineLabel: field.label,
+                deadlineDateYMD: ymd,
+                daysOut: match.daysOut,
+                note: field.noteFor ? field.noteFor(match.daysOut) : undefined,
+              });
+
+              const send = await sendResend(cust.email, subject, html);
+              if (!send.ok) {
+                console.error('[deadline-reminders] resend failed', cust.email, send.status, (send.raw || '').slice(0, 200));
+                summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: deadlineType, status: send.status, error: (send.raw || '').slice(0, 200) });
+              } else {
+                await recordReminder({
+                  transaction_id: tx.id,
+                  user_id: cust.user_id,
+                  deadline_type: deadlineType,
+                  deadline_date: ymd,
+                  days_out: match.daysOut,
+                  email_to: cust.email,
+                });
+                // Keep the in-memory map current so the window-health check
+                // below (same run) sees this reminder as recorded.
+                fired.set(key, { id: null, deadline_date: ymd });
+                summary.reminders_sent++;
+              }
+            }
           }
 
-          const subject = match.daysOut === 0
-            ? `Today: ${field.label} for ${tx.property_address || 'your dossier'}`
-            : match.daysOut === 1
-              ? `Tomorrow: ${field.label} for ${tx.property_address || 'your dossier'}`
-              : `Heads up: ${field.label} in ${match.daysOut} days for ${tx.property_address || 'your dossier'}`;
-
-          const html = buildEmailHtml({
-            firstName: cust.first_name,
-            propertyAddress: tx.property_address,
-            deadlineLabel: field.label,
-            deadlineDateYMD: String(ymd).slice(0, 10),
-            daysOut: match.daysOut,
-          });
-
-          const send = await sendResend(cust.email, subject, html);
-          if (!send.ok) {
-            console.error('[deadline-reminders] resend failed', cust.email, send.status, (send.raw || '').slice(0, 200));
-            summary.errors.push({ user_id: cust.user_id, tx_id: tx.id, field: field.col, status: send.status, error: (send.raw || '').slice(0, 200) });
-            continue;
+          // Silent-failure alarm: this deadline is inside its own reminder
+          // window (closer than the field's longest milestone, not yet past)
+          // and NOT one single reminder has ever been recorded for it. On a
+          // healthy file this never fires — either a reminder already went
+          // out on an earlier day, or today's match above just sent one. If
+          // it fires, a day was missed somewhere (the exact "silent-blind"
+          // mode that let Ridge Bluff run dark for a week).
+          const daysUntil = daysBetweenYMD(today, ymd);
+          const maxMilestone = Math.max(...fieldMilestones);
+          if (daysUntil >= 0 && daysUntil < maxMilestone) {
+            const everRecorded = fieldMilestones.some((d) => fired.has(`${deadlineType}|${d}`));
+            if (!everRecorded) {
+              summary.silent_failure_alerts.push({
+                tx_id: tx.id,
+                user_id: cust.user_id,
+                property_address: tx.property_address || null,
+                deadline_type: deadlineType,
+                deadline_date: ymd,
+                days_until: daysUntil,
+              });
+            }
           }
-
-          await recordReminder({
-            transaction_id: tx.id,
-            user_id: cust.user_id,
-            deadline_type: field.col,
-            deadline_date: String(ymd).slice(0, 10),
-            days_out: match.daysOut,
-            email_to: cust.email,
-          });
-
-          summary.reminders_sent++;
         }
 
         // -----------------------------------------------------------------------
@@ -503,7 +644,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const matchDaysOut = optYmd === t2Date ? 2 : optYmd === t1Date ? 1 : null;
           if (matchDaysOut !== null) {
             const condKey = `earnest_money_not_confirmed|${matchDaysOut}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, optYmd, summary))) {
               const condSubject = `Action needed: earnest money not confirmed for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -541,7 +682,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const t3Date = addDaysYMD(today, 3);
           if (optYmd === t3Date) {
             const condKey = `inspection_not_completed|3`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, optYmd, summary))) {
               const condSubject = `Heads up: inspection not yet complete — option expires in 3 days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -579,7 +720,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const t2Date = addDaysYMD(today, 2);
           if (apprYmd === t2Date) {
             const condKey = `appraisal_not_received|2`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, apprYmd, summary))) {
               const condSubject = `Action needed: no appraisal received — deadline in 2 days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -619,7 +760,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const loanDaysOut = loanYmd === t1Date ? 1 : loanYmd === t3Date ? 3 : null;
           if (loanDaysOut !== null) {
             const condKey = `loan_approval_not_received|${loanDaysOut}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, loanYmd, summary))) {
               const condSubject = `Action needed: loan approval not confirmed — deadline in ${loanDaysOut} days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -657,7 +798,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const t3Date = addDaysYMD(today, 3);
           if (hoaYmd === t3Date) {
             const condKey = `hoa_docs_not_received|3`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, hoaYmd, summary))) {
               const condSubject = `Action needed: HOA documents not received — deadline in 3 days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -696,7 +837,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const t1Date = addDaysYMD(today, 1);
           if (inspScheduledYmd === t1Date) {
             const condKey = `inspection_scheduled_tomorrow|1`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, inspScheduledYmd, summary))) {
               const inspectorInfo = tx.inspector_name
                 ? `${tx.inspector_name}${tx.inspector_phone ? ' (' + tx.inspector_phone + ')' : ''}`
                 : 'your inspector';
@@ -734,6 +875,14 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
         // Uses a synthetic deadline_type so the dedup table catches repeats.
         // Only fires for transactions that have a property_address (i.e., are real
         // deals with a contract), not bare pre-contract stubs.
+        //
+        // Deliberately NOT run through isAlreadySentForCurrentDate(): this
+        // isn't derived from a date that can move (its deadline_date is just
+        // "the day we sent it," not a source field), it's a one-time "has
+        // this ever gone out" check. Running the staleness comparison here
+        // would treat every new day as a date mismatch and resend the
+        // warning on a loop — exactly the spam the staleness fix elsewhere
+        // exists to prevent.
         // -----------------------------------------------------------------------
         if (tx.property_address && tx.status !== 'pre_contract') {
           const wfdKey = `wire_fraud_not_sent|0`;
@@ -785,7 +934,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const compDaysOut = compYmd === t7Date ? 7 : compYmd === t3Date ? 3 : compYmd === t1Date ? 1 : null;
           if (compDaysOut !== null) {
             const condKey = `new_construction_completion_no_co|${compDaysOut}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, compYmd, summary))) {
               const condSubject = `Action needed: expected completion in ${compDaysOut === 1 ? '1 day' : `${compDaysOut} days`} — CO not received for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -827,7 +976,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
             const t3Date = addDaysYMD(today, 3);
             if (surveyDeadlineYmd === t3Date) {
               const condKey = `land_survey_not_received|3`;
-              if (!fired.has(condKey)) {
+              if (!(await isAlreadySentForCurrentDate(fired, condKey, surveyDeadlineYmd, summary))) {
                 const condSubject = `Action needed: land survey not received — deadline in 3 days for ${tx.property_address || 'your dossier'}`;
                 const condHtml = buildEmailHtml({
                   firstName: cust.first_name,
@@ -868,7 +1017,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const warrantyDaysOut = warrantyYmd === t30Date ? 30 : warrantyYmd === t7Date ? 7 : null;
           if (warrantyDaysOut !== null) {
             const condKey = `builder_warranty_expiring|${warrantyDaysOut}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, warrantyYmd, summary))) {
               const condSubject = `Heads up: builder warranty expires in ${warrantyDaysOut} days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -908,7 +1057,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const renewDaysOut = renewYmd === t30Date ? 30 : renewYmd === t7Date ? 7 : null;
           if (renewDaysOut !== null) {
             const condKey = `lease_renewal_deadline|${renewDaysOut}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, renewYmd, summary))) {
               const condSubject = `Lease renewal deadline in ${renewDaysOut} days for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -945,7 +1094,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const t1Date = addDaysYMD(today, 1);
           if (moveInYmd === t1Date) {
             const condKey = `lease_move_in_tomorrow|1`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, moveInYmd, summary))) {
               const condSubject = `Tomorrow: tenant moves in — confirm keys and access for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
                 firstName: cust.first_name,
@@ -982,7 +1131,7 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
           const daysToStart = Math.round((new Date(startYmd) - new Date(today)) / 86400000);
           if (daysToStart <= 7 && daysToStart >= 0) {
             const condKey = `lease_hoa_approval_not_received|${daysToStart}`;
-            if (!fired.has(condKey)) {
+            if (!(await isAlreadySentForCurrentDate(fired, condKey, startYmd, summary))) {
               const daysCopy = daysToStart === 0 ? 'today' : daysToStart === 1 ? '1 day' : `${daysToStart} days`;
               const condSubject = `Urgent: HOA approval not received — lease starts in ${daysCopy} for ${tx.property_address || 'your dossier'}`;
               const condHtml = buildEmailHtml({
@@ -1024,8 +1173,10 @@ module.exports = withTelemetry('cron-deadline-reminders', async function handler
 
     // ok reflects whether the run actually did its job. Reporting ok:true while
     // customers were skipped by read failures is how a missed option deadline
-    // gets logged as a healthy night.
-    if (summary.errors.length) summary.ok = false;
+    // gets logged as a healthy night. A silent-failure alert is the same
+    // class of problem — a deadline sitting inside its reminder window with
+    // nothing ever recorded for it — so it flips ok to false too.
+    if (summary.errors.length || summary.silent_failure_alerts.length) summary.ok = false;
 
     return res.status(summary.ok ? 200 : 500).json(summary);
   } catch (err) {
@@ -1042,4 +1193,6 @@ module.exports.__test = {
   ALL_MILESTONES,
   SUPPRESSION_FIELDS,
   SELECT_OPTIONAL,
+  daysBetweenYMD,
+  isAlreadySentForCurrentDate,
 };
