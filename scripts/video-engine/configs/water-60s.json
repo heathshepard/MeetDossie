@@ -1,0 +1,67 @@
+{
+  "src": "/mnt/c/Users/Heath/Downloads/water.mp4",
+  "transcript": "<path to the scribe transcript for the take>",
+  "pdf": "scripts/trec-forms/20-19.pdf",
+  "pdfFirst": 3,
+  "pdfLast": 5,
+  "targetY": 4600,
+  "durationSec": 59.82,
+  "fps": 30,
+  "speed": 1.08,
+  "matteWidth": 640,
+  "crop": "756:1344:318:300",
+  "captionMode": "fragment",
+  "emphasisWords": [
+    "july",
+    "1st",
+    "terminate",
+    "closing",
+    "not",
+    "never",
+    "seven",
+    "days",
+    "all",
+    "five",
+    "gone",
+    "deleted",
+    "still",
+    "owes",
+    "both",
+    "directions",
+    "any",
+    "time",
+    "prior",
+    "money",
+    "refunded",
+    "week",
+    "only"
+  ],
+  "emphasisWindows": [
+    {
+      "startSec": 14.0,
+      "endSec": 30.0
+    }
+  ],
+  "annotate": {
+    "at": 14.5,
+    "holdSec": 10.0,
+    "cx": 530,
+    "cy": 1330,
+    "rx": 495,
+    "ry": 265
+  },
+  "snip": {
+    "at": 31.0,
+    "holdSec": 5.0,
+    "page": 5,
+    "crop": "2280:262:158:2082",
+    "hl": "8:62:1014:30"
+  },
+  "hookText": "TEXAS CONTRACTS CHANGED ON JULY 1ST",
+  "hookSec": 2.6,
+  "ctaVariant": "comment",
+  "ctaSec": 4.0,
+  "workdir": "~/.cache/docexp/work   # native disk, NOT /tmp (tmpfs) and NOT /mnt/c",
+  "cutlist": "scripts/video-engine/configs/water-60s.cutlist.json",
+  "precutScale": "1216:2160"
+}

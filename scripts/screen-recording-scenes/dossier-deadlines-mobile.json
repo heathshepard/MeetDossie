@@ -1,0 +1,26 @@
+{
+  "name": "dossier-deadlines",
+  "form_factor": "mobile",
+  "viewport": { "width": 540, "height": 960 },
+  "device_scale_factor": 2,
+  "is_mobile": true,
+  "has_touch": true,
+  "demo_account": "demo@meetdossie.com",
+  "filename": "dossier-deadlines-mobile-2026-09-30.mp4",
+  "topic": "dossier_deadlines",
+  "type": "screen_recording",
+  "platforms": ["instagram", "tiktok"],
+  "slowmo_ms": 450,
+  "scenes": [
+    { "action": "navigate", "url": "https://meetdossie.com/app", "wait_until": "domcontentloaded", "pause": 1200 },
+    { "action": "login_if_visible", "email_selector": "input[type='email']", "password_selector": "input[type='password']", "submit_selector": "button[type='submit']", "pause": 2200 },
+    { "action": "wait_for_text", "text": "Open file", "timeout": 20000, "pause": 1500 },
+    { "action": "click_text", "text": "Open file", "exact": true, "pause": 2200 },
+    { "action": "wait_for_text", "text": "Deadlines", "timeout": 10000, "pause": 1500 },
+    { "action": "scroll_to_deadlines", "pause": 2200 },
+    { "action": "hover_first_deadline", "pause": 2500 },
+    { "action": "scroll_by", "y": 350, "pause": 2200 },
+    { "action": "scroll_by", "y": 350, "pause": 2200 },
+    { "action": "final_pause", "pause": 1800 }
+  ]
+}

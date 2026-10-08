@@ -173,6 +173,7 @@ click-through, this path is built but unproven end-to-end.
 | facebook | `6a8469f177555aae01775798` | ✅ (in `zernio_accounts`) |
 | instagram | `6a8469d677555aae017735a1` | ✅ (in `zernio_accounts`) |
 | youtube | `6a846a0c77555aae017776e3` | ✅ (in `zernio_accounts` since 2026-08-25) — destination wired, no content plan |
+| tiktok | — none yet | ⏳ not connected — `dossie_founder_selfie`/`realtor_selfie` lanes in `config/video-routing.json` added `tiktok` for this owner 2026-10-06 (Atlas, TIKTOK-ROUTING), but `filterPlatformsByAccount()` in `api/cron-post-videos.js` drops it pre-posting until a `zernio_accounts` row exists — today's 3-platform behavior is unchanged. Connect Heath's personal TikTok in Zernio to activate; no code change needed after that. |
 
 ---
 

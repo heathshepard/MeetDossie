@@ -100,7 +100,14 @@ const HOOKS = {
   8: { headline: 'I asked Dossie\n[[hl]]what I am missing.[[/hl]]', sub: 'She checks the file, not my memory.' },
   9: { headline: 'I asked Dossie\n[[hl]]what is on file.[[/hl]]', sub: 'Every document, one answer.' },
   10: { headline: 'I asked Dossie\n[[hl]]where every deal stands.[[/hl]]', sub: 'The whole pipeline, one question.' },
-  11: { headline: 'I asked Dossie\n[[hl]]what is urgent today.[[/hl]]', sub: 'Typed it. Read the answer.' },
+  // A capability may carry SEVERAL pre-approved hooks, because the hook must
+  // describe the QUESTION that was actually asked and one capability answers
+  // more than one question. Still a closed set — pick with --hook-variant,
+  // never improvise. Added 2026-10-05.
+  11: [
+    { headline: 'I asked Dossie\n[[hl]]what is urgent today.[[/hl]]', sub: 'Typed it. Read the answer.' },
+    { headline: 'I asked Dossie\n[[hl]]where one file stands.[[/hl]]', sub: 'Typed it. This is her answer.' },
+  ],
   13: { headline: 'I asked Dossie\n[[hl]]what needs me today.[[/hl]]', sub: 'Before the first coffee.' },
   14: { headline: 'I asked Dossie\n[[hl]]to draft the email.[[/hl]]', sub: 'I still send it myself.' },
 };
@@ -188,8 +195,20 @@ function ttsDuration(timingPath) {
   if (!answer.answer_verbatim || answer.answer_verbatim.trim().length < 20) {
     die('answer.json has no usable answer_verbatim — the capture did not record a real answer.');
   }
-  const capNum = Number(answer.capability_number);
-  const hook = HOOKS[capNum];
+  // record-dossie-shortform-frames.js writes `capability` as a human string
+  // ("#11 Talk to Dossie (typed command, text answer) - WORKS"), not a bare
+  // `capability_number`. Accept either rather than failing with "#NaN".
+  const capNum = Number.isFinite(Number(answer.capability_number))
+    ? Number(answer.capability_number)
+    : Number((String(answer.capability || '').match(/#(\d+)/) || [])[1]);
+  const hookEntry = HOOKS[capNum];
+  const hookVariants = Array.isArray(hookEntry) ? hookEntry : (hookEntry ? [hookEntry] : null);
+  const hookIdx = Number(arg('hook-variant', 0));
+  if (hookVariants && !hookVariants[hookIdx]) {
+    die(`--hook-variant ${hookIdx} does not exist for capability #${capNum} `
+      + `(${hookVariants.length} pre-approved hook(s)).`);
+  }
+  const hook = hookVariants ? hookVariants[hookIdx] : null;
   if (!hook) {
     die(`no pre-approved hook copy for capability #${capNum} (${answer.capability_name || '?'}). `
       + 'Add one to HOOKS in this file after checking it against '

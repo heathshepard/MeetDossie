@@ -17,7 +17,7 @@
 //
 //      HARD-WON DETAIL: pdf-lib CANNOT LOAD the real executed Authentisign PDF
 //      at all. Verified 2026-08-14 against the genuine executed
-//      "Amendment #1 - 104 Wild Cherry Ln" — PDFDocument.load() throws
+//      "Amendment #1 - 88 Amberwood Ln" — PDFDocument.load() throws
 //      "Expected instance of PDFDict, but got instance of undefined" on
 //      Authentisign's incremental-update/xref structure, and getForm() reports
 //      0 fields. A verifier built on pdf-lib's form API alone would CRASH on
@@ -399,9 +399,9 @@ async function verifyExecutedPdf({ buffer, expectedSigners = [], apiKey, provide
         if (!e) return false;
         // Require EVERY significant name token to appear in the same seen name.
         // Matching on surname alone is wrong here: co-sellers are usually
-        // married and share one — "Thomas Linton" would satisfy a check for
-        // "Carol Linton" and a missing co-signer would go undetected, which is
-        // exactly the Wild Cherry shape.
+        // married and share one — "Gregory Hale" would satisfy a check for
+        // "Carol Hale" and a missing co-signer would go undetected, which is
+        // exactly the Amberwood shape.
         const tokens = e.split(' ').filter((t) => t.length > 1);
         if (!tokens.length) return false;
         return !seen.some((s) => tokens.every((t) => s.includes(t)));

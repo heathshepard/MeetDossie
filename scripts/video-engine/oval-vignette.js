@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 /**
+ * !!! DO NOT PUT THIS IN THE RENDER PATH !!!
+ *
+ * Heath rejected the oval vignette outright on a trial cut — his word was
+ * "scary". It is deliberately NOT called by edit.js, and edit.js's quality
+ * gate asserts `vignette: false` and refuses `brief.vignette = true` rather
+ * than silently honouring it. This file is kept only so nobody rebuilds the
+ * same idea from scratch and rediscovers the same rejection.
+ *
  * oval-vignette.js — non-ML fallback for shots where the ONNX matte bands
  * (fast hand motion). Instead of a clean cutout, this pushes a tighter
  * punch-in then heavily blurs + darkens everything OUTSIDE a face-centered

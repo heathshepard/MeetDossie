@@ -152,7 +152,7 @@ check('weakness copy is BLOCKED (price-change reference, future-cut hint, DOM, m
     '287 days on market and back on the market.',
   ]) {
     const g = G.checkReelCopy({
-      surfaces: [{ name: 'voiceover_script', text: bad }, { name: 'closing_card', text: 'Keller Williams City View' }],
+      surfaces: [{ name: 'voiceover_script', text: bad }, { name: 'closing_card', text: 'Keller Willis San Antonio Inc' }],
       status: row, showPrice: false,
     });
     assert.strictEqual(g.allowed, false, `should have blocked: ${bad}`);
@@ -162,7 +162,7 @@ check('weakness copy is BLOCKED (price-change reference, future-cut hint, DOM, m
 
 check('fair-housing steering language is a HARD_BLOCK', () => {
   const g = G.checkReelCopy({
-    surfaces: [{ name: 'voiceover_script', text: 'Great schools, a safe neighborhood, perfect for families.' }, { name: 'closing_card', text: 'Keller Williams City View' }],
+    surfaces: [{ name: 'voiceover_script', text: 'Great schools, a safe neighborhood, perfect for families.' }, { name: 'closing_card', text: 'Keller Willis San Antonio Inc' }],
     status: freshRow(), showPrice: false,
   });
   assert.strictEqual(g.allowed, false);
@@ -172,7 +172,7 @@ check('fair-housing steering language is a HARD_BLOCK', () => {
 check('a price that does not match the LIVE list price is BLOCKED', () => {
   const row = freshRow(); // live $999,000
   const g = G.checkReelCopy({
-    surfaces: [{ name: 'price_pill', text: '$1,195,000' }, { name: 'closing_card', text: 'Keller Williams City View' }],
+    surfaces: [{ name: 'price_pill', text: '$1,195,000' }, { name: 'closing_card', text: 'Keller Willis San Antonio Inc' }],
     status: row, showPrice: true,
   });
   assert.strictEqual(g.allowed, false);
@@ -192,10 +192,10 @@ check('the TREC broker name must be on the closing card', () => {
   const row = freshRow();
   const b = T.buildReelSpec({ row, listing: LISTINGS[row.mls_number], angle: 'price_value', kind: 'listing_reel', reelId: 'r', photo: photoStub });
   const card = b.surfaces.find((s) => s.name === 'closing_card');
-  assert.ok(card.text.includes('Keller Williams City View'), 'broker name missing from the card');
-  assert.ok(TREC_ATTRIBUTION.includes('Keller Williams City View'), 'broker name must come from TREC_ATTRIBUTION, not a literal');
+  assert.ok(card.text.includes('Keller Willis San Antonio Inc'), 'broker name missing from the card');
+  assert.ok(TREC_ATTRIBUTION.includes('Keller Willis San Antonio Inc'), 'broker name must come from TREC_ATTRIBUTION, not a literal');
   // strip it and the gate must refuse
-  const stripped = b.surfaces.map((s) => (s.name === 'closing_card' ? { ...s, text: s.text.replace('Keller Williams City View', '') } : s));
+  const stripped = b.surfaces.map((s) => (s.name === 'closing_card' ? { ...s, text: s.text.replace('Keller Willis San Antonio Inc', '') } : s));
   const g = G.checkReelCopy({ surfaces: stripped, status: row, listing: LISTINGS[row.mls_number], showPrice: b.showPrice });
   assert.strictEqual(g.allowed, false);
   assert.ok(g.reasons.some((r) => r.startsWith('missing_trec_broker_name')));
@@ -225,7 +225,7 @@ check('a present-condition claim is blocked on a listing with an active conditio
     surfaces: [
       { name: 'voiceover_script', text: '702 Fawndale Ln is move-in ready and immaculate.' },
       { name: 'caption', text: OWNER_DISCLOSURE },
-      { name: 'closing_card', text: 'Keller Williams City View' },
+      { name: 'closing_card', text: 'Keller Willis San Antonio Inc' },
     ],
     status: row, listing, showPrice: false,
   });

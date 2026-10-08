@@ -36,13 +36,13 @@ require.cache[rlPath].exports = {
 
 // --- fixtures ---
 const LISTING_TX = {
-  id: 'tx-1', property_address: '23 Nopalito', city_state_zip: 'Boerne, TX',
+  id: 'tx-1', property_address: '14 Sablewood', city_state_zip: 'Boerne, TX',
   role: 'listing', transaction_type: 'seller_listing', closing_date: '2026-10-15',
-  seller_name: 'Linton', seller_email: 'seller@example.com',
+  seller_name: 'Hale', seller_email: 'seller@example.com',
   seller2_name: null, seller2_email: null,
-  buyer_name: 'Christopher Bryan', buyer_email: 'chris.bryan@example.com',
-  buyer2_name: 'Monica Bryan', buyer2_email: 'monica.bryan@example.com',
-  other_agent_name: 'Craig Browning', other_agent_email_addr: 'craig@example.com',
+  buyer_name: 'Nathan Corliss', buyer_email: 'nathan.corliss@example.com',
+  buyer2_name: 'Priya Corliss', buyer2_email: 'priya.corliss@example.com',
+  other_agent_name: 'Dana Reed', other_agent_email_addr: 'dana.reed@example.com',
   title_officer_email: 'title@example.com',
   sale_price: 999000, commission_rate: '5.5', option_fee: 500,
 };
@@ -148,7 +148,7 @@ async function call(body) {
   ok(resendCalls.length === 0, "NO EMAIL to the other side's client");
 
   // hand-typed address for the buyer is refused too
-  const typed = await call({ transaction_id: 'tx-1', recipient_role: 'title', recipient_email: 'monica.bryan@example.com' });
+  const typed = await call({ transaction_id: 'tx-1', recipient_role: 'title', recipient_email: 'priya.corliss@example.com' });
   ok(typed.statusCode === 403, 'typed buyer address refused, got ' + typed.statusCode);
   ok(resendCalls.length === 0, 'NO EMAIL via a hand-typed opposing address');
 

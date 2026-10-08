@@ -40,10 +40,22 @@ function hhmmToMin(t) {
 }
 
 async function countPostedToday(platform, tz) {
-  const today = nowInTz(tz).dateKey;
-  const startOfDayUtc = new Date(`${today}T00:00:00`).toISOString();
-  const endOfDayUtc = new Date(`${today}T23:59:59.999`).toISOString();
-  const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted` +
+  // Atlas 2026-09-30 — found while auditing posted_at/scheduled_for for a
+  // different bug. `new Date(`${today}T00:00:00`)` has no offset, so JS
+  // parses it in the CALLING PROCESS's local TZ, not `tz` (America/Chicago).
+  // On a box where TZ is unset/UTC (the common Vercel/CI default) this
+  // silently shifts the "today" window by 5h — this script is diagnostic-
+  // only (never writes), so it never corrupted data, but its own cap-count
+  // output could be wrong by up to 5h of posts in either direction. Luxon
+  // does the same tz-correct day-boundary math already proven in
+  // api/cron-publish-approved.js's countPostedToday(). Also widened to
+  // include posted_unverified (20260930d_social_posts_posted_unverified_status.sql)
+  // so this diagnostic's counts stay consistent with the live cap logic.
+  const { DateTime } = require('luxon');
+  const now = DateTime.now().setZone(tz);
+  const startOfDayUtc = now.startOf('day').toUTC().toISO();
+  const endOfDayUtc = now.endOf('day').toUTC().toISO();
+  const filter = `platform=eq.${encodeURIComponent(platform)}&status=in.(posted,posted_unverified)` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id`;

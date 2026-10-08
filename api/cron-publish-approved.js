@@ -10,7 +10,12 @@
 //      posting_schedule row (time_slots + max_per_day + max_per_slot).
 //   2. Skip the platform until the next slot's clock-time has arrived
 //      (compares now-in-platform-tz against time_slots).
-//   3. Skip the platform once max_per_day is reached for today.
+//   3. Skip the platform once max_per_day is reached for today — a pending
+//      video_library row (heath_approved / pending_heath_review, targeting
+//      this platform+owner today) RESERVES part of that cap first, so a
+//      video can never lose its slot to a text post that merely ran
+//      earlier in the day (Carter 2026-10-01 — see api/_lib/
+//      video-reservation.js for the mechanism and incident history).
 //   4. tiktok rows are flipped to status='pending_video' (Zernio rejects
 //      text-only TikTok); they'll be picked up when a video is attached
 //      via the DONE pipeline. TikTok is ACTIVE at 1/day (cap in posting_schedule).
@@ -38,10 +43,18 @@ require('./_lib/telegram-gate').install('cron-publish-approved');
 const { retryFetch } = require('./_lib/retry.js');
 const { DateTime } = require('luxon');
 const { recordCronRun } = require('./_lib/cron-telemetry.js');
+const {
+  effectiveLength, clampForTwitter, assertTwitterFits,
+} = require('./_lib/twitter-length.js');
 const { isPaused } = require('./_lib/paused-crons.js');
 const { checkPost: sanitizerCheckPost } = require('./_lib/caption-sanitizer.js');
 const { tagOutboundLinks } = require('./_lib/content-tag.js');
 const { logAutonomousAction } = require('./_lib/ops-policy.js');
+// VIDEO-PRIORITY RESERVATION (Carter, 2026-10-01) — see api/_lib/
+// video-reservation.js file header for the full incident history and
+// mechanism rationale. isDueForPublish() below uses this to refuse a text
+// post's slot when a pending video needs it today.
+const { countReservedForVideo } = require('./_lib/video-reservation.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -155,10 +168,19 @@ async function sendFailureAlert(post, errorMsg) {
   await sendTelegramNotification(lines.join('\n'), [retryButton]);
 }
 
+// LENGTH IS MEASURED WITH effectiveLength(), NOT .length (Atlas 2026-09-25).
+//
+// Two counters have to clear 280 and they disagree: Twitter counts a URL as
+// 23 whatever its length, Zernio's pre-flight counts raw characters. The four
+// "Tweet text is too long (306/310/312)" rejections on 09-22, 09-24 x2 and
+// 09-25 were all Zernio's raw counter reading a body whose CTA link had
+// ~120 characters of UTM parameters attached by buildPostBody(). Measuring
+// with .length alone is what let every one of them through.
+// See api/_lib/twitter-length.js.
 function splitForTwitter(body) {
   const text = String(body || '').trim();
   if (!text) return [];
-  if (text.length <= TWITTER_LIMIT) return [text];
+  if (effectiveLength(text) <= TWITTER_LIMIT) return [text];
 
   // 1. Paragraph split, drop bare-numbering markers ("1/", "2/", etc.).
   let paragraphs = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
@@ -167,16 +189,53 @@ function splitForTwitter(body) {
   // 2. Any paragraph longer than HARD_LIMIT splits on sentence boundaries.
   const splitLong = [];
   for (const para of paragraphs) {
-    if (para.length <= TWITTER_HARD_LIMIT) { splitLong.push(para); continue; }
-    const sentences = para.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [para];
+    if (effectiveLength(para) <= TWITTER_HARD_LIMIT) { splitLong.push(para); continue; }
+
+    // MASK URLS BEFORE THE SENTENCE SPLIT (Atlas 2026-09-25).
+    //
+    // The sentence regex below breaks on every '.', and buildPostBody()'s
+    // tagged links are FULL OF dots:
+    //
+    //   meetdossie.com/signup?...&utm_content=dossie.twitter.video.a1b2c3d4.20260925
+    //
+    // Split naively, that one link becomes five "sentences", which then get
+    // merged, reordered and partly dropped by steps 3 and 4 — the thread
+    // ships with a mangled or missing CTA link. It is a separate defect from
+    // the length one and it destroys the only clickable thing in the post.
+    // Masking each URL to a dot-free token keeps it atomic through the split.
+    // Sentinel is intentionally NOT space-delimited (Sage, 2026-09-28,
+    // fixing a regression this same investigation found): the sentence
+    // splitter below is greedy on \s+, so a space-delimited placeholder
+    // (` URL0 `) gets its own leading space swallowed into the PRECEDING
+    // sentence's trailing whitespace whenever the source text already had a
+    // natural space on the other side of the URL (i.e. almost always) —
+    // unmask() then never matches and the literal token "URL0" ships in the
+    // post. `@@URL0@@` has no whitespace for \s+ to eat, so the sentence
+    // boundary can't cut through it.
+    const urlStore = [];
+    const masked = para.replace(
+      /\b(?:https?:\/\/)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s<>"')\]]*)?/gi,
+      (u) => { urlStore.push(u); return `@@URL${urlStore.length - 1}@@`; },
+    );
+    const unmask = (s) => s.replace(/@@URL(\d+)@@/g, (_, i) => urlStore[Number(i)]);
+
+    const sentences = (masked.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [masked]).map(unmask);
     let cur = '';
     for (const raw of sentences) {
       const s = raw.trim();
       if (!s) continue;
       const cand = cur ? cur + ' ' + s : s;
-      if (cand.length <= TWITTER_HARD_LIMIT) { cur = cand; continue; }
+      if (effectiveLength(cand) <= TWITTER_HARD_LIMIT) { cur = cand; continue; }
       if (cur) splitLong.push(cur);
-      cur = s;
+      // THE BUG: `s` was pushed on the next iteration without ever being
+      // re-measured, so a SINGLE sentence longer than the limit shipped
+      // whole. The sentence carrying the UTM-tagged CTA link is exactly that
+      // sentence — that is the 306/310/312. Clamp it here; a sentence that
+      // cannot fit gets trimmed on a word boundary with its link intact
+      // rather than rejected by the platform.
+      cur = effectiveLength(s) <= TWITTER_HARD_LIMIT
+        ? s
+        : clampForTwitter(s, { limit: TWITTER_HARD_LIMIT }).text;
     }
     if (cur) splitLong.push(cur);
   }
@@ -197,7 +256,7 @@ function splitForTwitter(body) {
       }
       if (i + 1 < paragraphs.length) {
         const fwd = cur + ' ' + paragraphs[i + 1];
-        if (fwd.length <= TWITTER_HARD_LIMIT) {
+        if (effectiveLength(fwd) <= TWITTER_HARD_LIMIT) {
           paragraphs[i + 1] = fwd;
           continue;
         }
@@ -213,7 +272,7 @@ function splitForTwitter(body) {
     let bestIdx = -1;
     let bestSum = Infinity;
     for (let i = 0; i < paragraphs.length - 1; i++) {
-      const sum = paragraphs[i].length + 1 + paragraphs[i + 1].length;
+      const sum = effectiveLength(`${paragraphs[i]} ${paragraphs[i + 1]}`);
       if (sum <= TWITTER_HARD_LIMIT && sum < bestSum) {
         bestSum = sum;
         bestIdx = i;
@@ -230,20 +289,39 @@ function splitForTwitter(body) {
     paragraphs = paragraphs.slice(0, TWITTER_MAX_CHUNKS);
   }
 
-  // Return chunks as-is — no thread numbering
-  for (const c of paragraphs) {
-    if (c.length > TWITTER_LIMIT) {
-      console.warn(`[twitter-split] WARN chunk exceeds ${TWITTER_LIMIT}: ${c.length} chars — ${c.slice(0, 60)}…`);
-    }
+  // FINAL GUARANTEE — no chunk leaves this function over the limit.
+  //
+  // This used to be a console.warn and nothing else, which is precisely how
+  // four rejections stacked up with nobody noticing (see
+  // feedback_silent-failure-is-the-enemy). A warning that does not change the
+  // outcome is not a check.
+  const out = paragraphs.map((c) => {
+    if (effectiveLength(c) <= TWITTER_LIMIT) return c;
+    const fixed = clampForTwitter(c, { limit: TWITTER_LIMIT });
+    console.warn(`[twitter-split] chunk was ${fixed.before} (limit ${TWITTER_LIMIT}) — clamped to ${fixed.after}${fixed.keptTrailingUrl ? ', CTA link preserved' : ''}`);
+    return fixed.text;
+  });
+
+  const check = assertTwitterFits(out);
+  if (!check.ok) {
+    // Unreachable after the clamp above; if it ever fires the clamp itself is
+    // broken and that must surface as an error, never as a silent send.
+    throw new Error(`[twitter-split] chunks still over ${TWITTER_LIMIT} after clamping: ${JSON.stringify(check.over)}`);
   }
-  return paragraphs;
+  return out;
 }
 
 // Map a media URL to the Zernio docs' mediaItems entry shape.
+// .pdf/.ppt/.pptx/.doc/.docx -> 'document' (Sage, 2026-09-28): LinkedIn
+// native document posts (docs.zernio.com/platforms/linkedin) need
+// mediaItems: [{ type: 'document', url }] + platformSpecificData.documentTitle
+// (added just below, in pushToZernio). Before this, any PDF media_url was
+// silently sent as type: 'image', which Zernio's LinkedIn endpoint rejects.
 function inferMediaItem(url) {
   const u = String(url || '').toLowerCase();
   let type = 'image';
   if (/\.(mp4|mov|avi|webm|mkv)(?:$|\?)/i.test(u)) type = 'video';
+  else if (/\.(pdf|ppt|pptx|doc|docx)(?:$|\?)/i.test(u)) type = 'document';
   return { url, type };
 }
 
@@ -432,6 +510,19 @@ async function pushToZernio(post) {
     const rawTitle = post.hook || text.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       title: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
+    };
+  }
+
+  // LinkedIn native document posts require documentTitle in
+  // platformSpecificData (docs.zernio.com/platforms/linkedin) — the first
+  // page of the PDF is the cover, but the carousel's title bar is this
+  // field, not derived from the file. Only set for document media; a plain
+  // LinkedIn image/video post has no such field.
+  if (post.platform === 'linkedin' && topMediaItems && topMediaItems[0] && topMediaItems[0].type === 'document') {
+    const rawTitle = post.hook || text.split('\n')[0] || 'TREC 20-19 Contract Changes';
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      documentTitle: String(rawTitle).replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
     };
   }
 
@@ -631,8 +722,12 @@ async function countPostedToday(platform, tz, owner) {
 
   console.log(`[countPostedToday] ${platform}/${owner || 'any'} in ${tz}: checking ${startOfDayUtc} to ${endOfDayUtc}`);
 
-  // Count 'posted' rows: use posted_at timestamp (accurate).
-  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted${ownerFilter}` +
+  // Count 'posted' AND 'posted_unverified' rows: use posted_at timestamp
+  // (accurate). posted_unverified included (Atlas 2026-09-30) — a
+  // genuinely-sent-but-unverified post must still count toward today's cap,
+  // otherwise this cron would undercount and publish past the real daily
+  // limit for that platform.
+  const postedFilter = `platform=eq.${encodeURIComponent(platform)}&status=in.(posted,posted_unverified)${ownerFilter}` +
     `&posted_at=gte.${encodeURIComponent(startOfDayUtc)}` +
     `&posted_at=lte.${encodeURIComponent(endOfDayUtc)}` +
     `&select=id,post_id,posted_at`;
@@ -648,13 +743,65 @@ async function countPostedToday(platform, tz, owner) {
   const { data: publishingData, ok: publishingOk } = await supabaseFetch(`/rest/v1/social_posts?${publishingFilter}`);
   const publishingCount = publishingOk && Array.isArray(publishingData) ? publishingData.length : 0;
 
-  const count = postedCount + publishingCount;
+  // Count video_library rows already posted today on this platform/owner
+  // (Carter 2026-10-01 — VIDEO-PRIORITY). Previously this function counted
+  // ONLY social_posts, while cron-post-videos.js's own getPostCountsToday()
+  // counts BOTH social_posts AND video_library into the SAME shared
+  // posting_schedule cap. That let text's own gate under-count real usage
+  // on any day a video had already posted first — text could then publish
+  // past the platform's real max_per_day. Mirrors getPostCountsToday()'s
+  // gate_skipped-aware logic exactly: a platform a video row TARGETED but
+  // never actually reached Zernio for (gated out, recorded as a
+  // 'gate_skipped' zernio_deliveries entry) must not inflate this count —
+  // only genuinely-attempted platforms count as real usage.
+  const videoFilter = `status=in.(posted,posted_partial)${ownerFilter}` +
+    `&posted_date=gte.${encodeURIComponent(startOfDayUtc)}` +
+    `&posted_date=lte.${encodeURIComponent(endOfDayUtc)}` +
+    `&select=id,platforms,zernio_deliveries`;
+  const { data: videoData, ok: videoOk } = await supabaseFetch(`/rest/v1/video_library?${videoFilter}`);
+  let videoCount = 0;
+  if (videoOk && Array.isArray(videoData)) {
+    for (const row of videoData) {
+      if (!Array.isArray(row.platforms) || !row.platforms.includes(platform)) continue;
+      const skipped = new Set(
+        (Array.isArray(row.zernio_deliveries) ? row.zernio_deliveries : [])
+          .filter((e) => e && e.status === 'gate_skipped')
+          .map((e) => e.platform),
+      );
+      if (!skipped.has(platform)) videoCount += 1;
+    }
+  }
+
+  const count = postedCount + publishingCount + videoCount;
   if (count > 0) {
     const postedIds = postedOk && Array.isArray(postedData) ? postedData.map(p => `${p.post_id}(posted)`) : [];
     const publishingIds = publishingOk && Array.isArray(publishingData) ? publishingData.map(p => `${p.post_id}(publishing)`) : [];
-    console.log(`[countPostedToday] ${platform}/${owner || 'any'}: found ${count} (${postedCount} posted + ${publishingCount} publishing):`, [...postedIds, ...publishingIds].join(', '));
+    console.log(`[countPostedToday] ${platform}/${owner || 'any'}: found ${count} (${postedCount} posted + ${publishingCount} publishing + ${videoCount} video):`, [...postedIds, ...publishingIds].join(', '));
   }
   return count;
+}
+
+// Load today's pending (not-yet-posted) video_library rows for `owner` that
+// could reserve a platform slot today — see api/_lib/video-reservation.js
+// for the full mechanism/rationale. Fetched fresh per isDueForPublish() call
+// (same no-cache style as countPostedToday, immediately above) so a video
+// that gets Heath-approved mid-run is reserved for on the very next
+// iteration, not just the next cron invocation.
+async function loadPendingVideoRowsForReservation(owner) {
+  const ownerVal = owner || 'dossie';
+  // failed_retryable included (Atlas 2026-10-03, video 8 incident) — a row
+  // that failed today for a purely caption-shaped reason is still today's
+  // obligation, not a non-event. See api/_lib/video-reservation.js's
+  // isReservedToday() for how retry_count/failed_at scope this so an
+  // exhausted or stale row never reserves. failed_at/retry_count selected
+  // alongside the columns isReservedToday() already used.
+  const { data, ok } = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(heath_approved,pending_heath_review,failed_retryable)` +
+    `&target_owner=eq.${encodeURIComponent(ownerVal)}` +
+    `&select=id,status,target_owner,platforms,scheduled_for,failed_at,retry_count`,
+  );
+  if (!ok || !Array.isArray(data)) return null; // null = query failed, caller fails closed
+  return data;
 }
 
 // Decide if `platform` should publish right now: needs schedule row,
@@ -687,11 +834,86 @@ async function isDueForPublish(platform, schedules, owner) {
   const cap = row.max_per_day ?? null;
   if (cap != null) {
     const already = await countPostedToday(platform, tz, owner);
-    if (already >= cap) {
-      return { due: false, reason: `daily cap reached for owner=${owner || 'dossie'} (${already}/${cap})` };
+
+    // VIDEO-PRIORITY RESERVATION (Carter, 2026-10-01 — Heath: "Video is the
+    // priority. We should always be doing video moving forward."). Text
+    // must not consume a slot a pending video needs TODAY. Evaluated here,
+    // at text's own run time — not in cron-post-videos.js — because text
+    // runs earlier in the day and by the time the video batch scans, the
+    // slot text took is already gone. See api/_lib/video-reservation.js for
+    // which video rows count as "reserved" and the full incident history.
+    //
+    // Fails CLOSED (refuses the text post) if the reservation query itself
+    // fails: we cannot prove a slot is safe to hand to text without it, and
+    // the stated priority is video, not text — same fail-closed posture
+    // this file already uses for an unreadable schedule/cap.
+    const pendingVideoRows = await loadPendingVideoRowsForReservation(owner);
+    if (pendingVideoRows === null) {
+      return { due: false, reason: `video-reservation query failed — failing closed for owner=${owner || 'dossie'} (video priority)` };
+    }
+    const startOfDayIso = DateTime.now().setZone(tz).startOf('day').toUTC().toISO();
+    const endOfDayIso = DateTime.now().setZone(tz).endOf('day').toUTC().toISO();
+    const reservedForVideo = countReservedForVideo(pendingVideoRows, {
+      platform, owner, startOfDayIso, endOfDayIso,
+    });
+
+    if (already + reservedForVideo >= cap) {
+      return {
+        due: false,
+        reason: `daily cap reached for owner=${owner || 'dossie'} (${already}/${cap} used, ${reservedForVideo} reserved for pending video today)`,
+      };
     }
   }
   return { due: true, reason: `slot ${passedSlots[passedSlots.length - 1]} passed` };
+}
+
+// ─── structural-skip visibility (Atlas 2026-09-30, linkedin_personal) ────
+//
+// isDueForPublish()'s reason string is per-day — "no schedule row for X/Y
+// on day N" is EXPECTED and fine for a platform that just doesn't post on
+// Sundays. It cannot distinguish that from "this platform/owner has no
+// schedule row on ANY day, ever" — the actually-broken case, where a row
+// will sit 'approved' forever. The linkedin_personal incident: 7 rows sat
+// silently skipped for weeks with zero write-back to the row itself; the
+// only visibility was a counter (`skipped_schedule`) inside this cron's
+// JSON response body, which nobody reads. This checks the precise
+// structural condition and writes it to social_posts.error_message so the
+// state is visible in the table, not only in a response nobody polls.
+//
+// Fetched once per cron run (not per row) and cached — same rationale as
+// loadSchedules() itself.
+let zernioAccountRowsCache = null;
+async function loadZernioAccountRows() {
+  if (zernioAccountRowsCache) return zernioAccountRowsCache;
+  const { data, ok } = await supabaseFetch('/rest/v1/zernio_accounts?select=platform,owner,is_active');
+  zernioAccountRowsCache = ok && Array.isArray(data) ? data : [];
+  return zernioAccountRowsCache;
+}
+
+// Mirrors findScheduleRow()'s fallback (owner-specific row OR the shared
+// owner-IS-NULL row counts as "wired") but ignores day_of_week — this asks
+// "does ANY day have an active row for this platform/owner", not "does
+// today."
+function hasAnyActiveSchedule(schedules, platform, owner) {
+  return schedules.some((r) => r.platform === platform && r.is_active && (r.owner === owner || !r.owner));
+}
+
+// Returns a ready-to-store error_message string when (platform, owner) has
+// no active posting_schedule row on any day and/or no active zernio_accounts
+// row — i.e. the destination doesn't exist, not just "hasn't hit its slot
+// yet." Returns null when the destination is wired (even if today's slot/cap
+// isn't met — that is normal and must stay silent).
+async function structuralSkipReason(platform, owner, schedules) {
+  const scheduleOk = hasAnyActiveSchedule(schedules, platform, owner);
+  const zernioRows = await loadZernioAccountRows();
+  // Mirrors lookupZernioAccountId()'s exact-owner match — no shared-row
+  // fallback for zernio_accounts.
+  const zernioOk = zernioRows.some((r) => r.platform === platform && r.is_active && r.owner === owner);
+  if (scheduleOk && zernioOk) return null;
+  const missing = [];
+  if (!scheduleOk) missing.push('no active posting_schedule row for this platform/owner on any day');
+  if (!zernioOk) missing.push('no active zernio_accounts row for this platform/owner');
+  return `STRUCTURALLY_UNPUBLISHABLE: ${missing.join(' and ')} — this post can never publish as configured.`;
 }
 
 // Soft lock: atomically flip status approved→publishing for this row.
@@ -846,8 +1068,11 @@ async function recoverStuckPublishing() {
 async function isDuplicateRecentPost(post) {
   if (!post.content_hash || !post.platform) return false;
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // status IN (posted, posted_unverified) — Atlas 2026-09-30. An unverified
+  // send is still a real send; excluding it here would let the exact-same
+  // content_hash re-publish within 24h of a send we simply couldn't confirm.
   const filter = `platform=eq.${encodeURIComponent(post.platform)}` +
-    `&status=eq.posted` +
+    `&status=in.(posted,posted_unverified)` +
     `&content_hash=eq.${encodeURIComponent(post.content_hash)}` +
     `&posted_at=gte.${encodeURIComponent(cutoff)}` +
     `&id=neq.${encodeURIComponent(post.id)}` +
@@ -1060,6 +1285,20 @@ module.exports = async function handler(req, res) {
     if (!decision.due) {
       skippedSchedule++;
       skips.push({ id: post.id, platform: post.platform, reason: decision.reason });
+
+      // Structural case: write it to the row itself so it's visible without
+      // reading this cron's response body. Only PATCH when the message
+      // actually changed, so a healthy-but-not-yet-due row (which hits this
+      // branch every 30 min forever, correctly) doesn't get re-written on
+      // every run.
+      const structReason = await structuralSkipReason(post.platform, post.target_owner || 'dossie', schedules);
+      if (structReason && post.error_message !== structReason) {
+        await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
+          method: 'PATCH',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify({ error_message: structReason }),
+        });
+      }
       continue;
     }
 
@@ -1181,21 +1420,23 @@ module.exports = async function handler(req, res) {
     }
 
     if (result.ok) {
-      // FIX #3 (Atlas 2026-06-11): if zernio_post_id is null even on a 2xx,
-      // mark posted with an error_message flagging unverified. The watchdog
-      // and morning digest both filter on zernio_post_id IS NOT NULL so an
-      // unverified row will appear as "behind pace" and the watchdog will
-      // route around. Don't auto-republish from this lane — that risks
-      // double-posting if Zernio actually fired.
+      // FIX #3 (Atlas 2026-06-11), UPGRADED 2026-09-30: if zernio_post_id is
+      // null even on a 2xx, this used to still write status='posted' with
+      // only an error_message flagging it — indistinguishable from a
+      // verified post to anything that just checks status. Now it lands in
+      // 'posted_unverified' instead (20260930d migration) so "posted" means
+      // "we have a verifiable identifier," full stop. Never auto-republish
+      // from this lane — that risks double-posting if Zernio actually fired
+      // (feedback_never-retry-an-unverified-send.md).
       const unverified = !!result.unverified || !result.zernio_post_id;
       const patch = await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
-          status: 'posted',
+          status: unverified ? 'posted_unverified' : 'posted',
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
-          zernio_post_id: result.zernio_post_id,
+          zernio_post_id: result.zernio_post_id || null,
           content_tag: result.content_tag || null,
           error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
@@ -1309,3 +1550,10 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ ok: false, error: e.message });
   }
 };
+
+// Exported for scripts/regression-twitter-length.js — the four 2026-09-22/24/25
+// "Tweet text is too long" rejections are locked by a test that calls this
+// directly. A pure function that decides what gets sent should be testable
+// without standing up the whole handler.
+module.exports.splitForTwitter = splitForTwitter;
+module.exports.buildPostBody = buildPostBody;

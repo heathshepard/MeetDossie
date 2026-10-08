@@ -1,5 +1,51 @@
 # Incident Log
 
+## 2026-09-30 — near-miss: real contract almost rendered into video background
+
+**What happened:** while building a video, an agent reached for
+`.tmp/quinn-downloaded-20-19.pdf` as the on-screen contract background. That
+file was a FILLED contract — real property address (987 Magnolia Creek Dr,
+San Antonio, TX 78230), a title company, and a $7,200 earnest money figure.
+Caught on visual inspection before anything shipped; the agent rebuilt from
+the correct blank specimen at `scripts/trec-forms/20-19.pdf`. Nothing was
+published. This came within one step of rendering a real client's contract
+into a public video on Heath's licensed-agent accounts.
+
+**Root cause:** no structural separation between the video pipeline's
+document source and the working directories where real client transaction
+PDFs accumulate (`.tmp/`, deal-specific folders). `doc-scroll.js` and
+`doc-snip.js` accepted any `--pdf` path with zero validation beyond
+`fs.existsSync`. The near-miss filename (`quinn-downloaded-20-19.pdf`) closely
+resembled a legitimate blessed-form filename (`20-19.pdf`), sitting one `ls`
+away in the same working tree.
+
+**Fix (same day):**
+1. Quarantined every filled/executed document found at the top level of
+   `.tmp/` (49 files — sellers' disclosures, surveys, T-47s, offer packets,
+   executed contracts) plus 6 filled test fixtures that had been sitting in
+   `scripts/trec-forms/` itself, into `.private-transaction-docs/` at the repo
+   root — gitignored, outside every pipeline's reach. Files were moved, never
+   deleted. Nested per-deal working folders inside `.tmp/` were left in place
+   (active brokerage files; not globbed by any video script; the guard below
+   makes their location irrelevant to video-pipeline safety).
+2. Confirmed `scripts/trec-forms/` (the pre-existing forms directory) now
+   contains only genuinely blank promulgated TREC forms — verified by
+   `pdftotext` + regex scan against every file, zero false positives.
+3. Added `scripts/video-engine/assert-blessed-pdf.js` — a path-allowlist +
+   content-check guard, called from `doc-scroll.js`, `doc-snip.js`, and
+   `capture-screen-recording-trec-clause.js` before any `pdftoppm` call.
+   Rejects any path outside `scripts/trec-forms/`, and separately rejects a
+   blessed-path file whose content looks filled (real address or completed
+   dollar figure) even if the path check passes. Tested against the actual
+   incident file (correctly rejected on the path check) and against a blessed
+   blank form (renders successfully).
+
+Full detail, the guard's two layers, and the "never point `--pdf` outside
+`scripts/trec-forms/`" rule → `docs/VIDEO-RULES.md` "Document source of
+truth."
+
+---
+
 ## 2026-07-12 — content engine emergency shutdown (reconstructed 2026-07-28)
 
 **Reconstructed after the fact. No contemporaneous record was written — see

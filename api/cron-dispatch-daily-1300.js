@@ -16,6 +16,8 @@
 //   - /api/cron-render-skits
 //   - /api/cron-morning-ops-digest
 //   - /api/cron-pierce-activation   (added 2026-09-18)
+//   - /api/cron-account-invite-autoresend   (added 2026-09-26)
+//   - /api/cron-trial-conversion-watch   (added 2026-09-26)
 //
 // cron-pierce-activation was never registered ANYWHERE before 2026-09-18 — its
 // own header claimed an external cron-job.org trigger that does not exist, so
@@ -26,11 +28,34 @@
 // group rather than consuming another of vercel.json's 100 cron slots.
 // It notifies Heath on Telegram only and never emails a customer.
 //
+// cron-account-invite-autoresend is the follow-through on that same forensics
+// doc: it auto re-issues a durable 30-day invite (api/_lib/account-invites.js)
+// to any paying customer who has never held a session, once they are past
+// ACCOUNT_INVITE_AUTORESEND_HOURS (default 48h). Ships inert
+// (ACCOUNT_INVITE_AUTORESEND_MODE default 'report' — counts candidates, emails
+// nobody) until Heath flips the mode to 'send', same pattern as
+// cron-activation-drip's ACTIVATION_DRIP_BACKFILL_MODE. Same cadence as
+// cron-pierce-activation on purpose — it watches the same population.
+//
+// cron-trial-conversion-watch is the free-trial rollout's alarm (2026-09-26,
+// api/create-checkout-session.js's TRIAL_DAYS): Telegram-only, same
+// fingerprint/dedup shape as cron-pierce-activation, watching for (a) a trial
+// that ended without converting to 'active' and (b) a trialing subscription
+// with zero auth sessions past TRIAL_STUCK_HOURS (default 48h). Same cadence
+// as Pierce on purpose — same underlying population, same reason it matters.
+//
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
 // dispatcher that gates money/data-writing jobs).
 
 const { runGroup, isAuthorizedDispatch } = require('./_lib/cron-multiplex.js');
+
+// Single source of truth for this dispatcher's time budget -- used for BOTH
+// the per-member deadline default (runGroup's budgetMs below) and Vercel's
+// own maxDuration a few lines down, so the two can never drift apart (Atlas,
+// 2026-09-29 -- a flat per-member default previously killed 300s-budget
+// members like cron-post-videos at 20s; see api/_lib/cron-multiplex.js).
+const MAX_DURATION_S = 40;
 
 const HANDLERS = [
   { name: 'cron-calculator-deadline-reminders', mod: require('./cron-calculator-deadline-reminders.js') },
@@ -39,6 +64,8 @@ const HANDLERS = [
   { name: 'cron-render-skits', mod: require('./cron-render-skits.js') },
   { name: 'cron-morning-ops-digest', mod: require('./cron-morning-ops-digest.js') },
   { name: 'cron-pierce-activation', mod: require('./cron-pierce-activation.js') },
+  { name: 'cron-account-invite-autoresend', mod: require('./cron-account-invite-autoresend.js') },
+  { name: 'cron-trial-conversion-watch', mod: require('./cron-trial-conversion-watch.js') },
 ];
 
 module.exports = async function handler(req, res) {
@@ -49,7 +76,7 @@ module.exports = async function handler(req, res) {
   if (!isAuthorizedDispatch(req)) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
-  const results = await runGroup(req, HANDLERS);
+  const results = await runGroup(req, HANDLERS, { budgetMs: MAX_DURATION_S * 1000 });
   const anyFail = results.some((r) => r.status >= 400);
   return res.status(anyFail ? 207 : 200).json({
     ok: !anyFail,
@@ -60,4 +87,4 @@ module.exports = async function handler(req, res) {
   });
 };
 
-module.exports.config = { maxDuration: 40 };
+module.exports.config = { maxDuration: MAX_DURATION_S };

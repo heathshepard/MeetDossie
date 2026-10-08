@@ -1,0 +1,47 @@
+{
+  "id": "trec-7i-water",
+  "topic": "TREC 20-19 paragraph 7.I — the Seller's Water Disclosure termination right",
+  "owner": "dossie",
+  "master": "/mnt/c/Users/Heath/Downloads/dossie_water_FINAL_V8.mp4",
+  "cover": "/mnt/c/Users/Heath/Downloads/dossie_cover_water.png",
+  "fps": 30,
+  "framesDir": "/home/heath/mw/o4/rgba",
+  "captions": "scripts/video-engine/recipes/trec-7i/captions/caps4h.ass",
+  "shotPlan": {
+    "w": "scripts/video-engine/recipes/trec-7i/shot-plan/w4b.txt",
+    "x": "scripts/video-engine/recipes/trec-7i/shot-plan/x4b.txt"
+  },
+  "cues": [
+    { "name": "circle-annotation", "t": 19.1 },
+    { "name": "scroll-settle", "t0": 15.57, "d": 4.0 }
+  ],
+  "headTrim": 0.25,
+  "_headTrimWhy": "The hook card FADES IN, so master frame 0 carries no hook text and the gate's blocking hook_visible_frame0 rule fails on a card that is really there (verified by rendering frames 0.000 / 0.250 on 2026-09-25: 0.000 is bare contract, 0.250 is the full 'TEXAS AGENTS / TWO DAYS OUT. / THEY CAN STILL WALK.' slab). Starting 250ms in puts frame 0 on the opaque card and pulls the card's clear point under the gate's 3.0s hook_cleared_by_3s sample. It trims a fade, not content.",
+  "_segmentsWhy": "Boundaries derived from captions/caps4h.ass by scripts/video-engine/variants.js segmentsFromAss(), which interpolates each cut to the terminal-punctuation character inside its caption event. The master predates CORE/OPTIONAL tagging, so tags were assigned afterwards against docs/SCRIPTS-TREC-20-19-SERIES.md's accuracy discipline: CORE carries the hook, the form and its effective date, the paragraph, the rule WITH all of its conditions, and the CTA. Nothing in CORE states a rule without its condition.",
+  "segments": [
+    { "start": 0.0,    "end": 4.02,    "tag": "CORE",     "text": "[hook card + opening line — captions suppressed under the card, recipe §9]" },
+    { "start": 4.02,   "end": 4.37,    "tag": "CORE",     "text": "AGO." },
+    { "start": 4.37,   "end": 9.56,    "tag": "CORE",     "text": "INSPECTIONS ARE BEHIND YOU, AND YOUR BUYER CAN STILL WALK AND TAKE THE EARNEST MONEY." },
+    { "start": 9.56,   "end": 10.83,   "tag": "OPTIONAL", "text": "HERE'S HOW." },
+    { "start": 10.83,  "end": 15.55,   "tag": "CORE",     "text": "ON JULY FIRST, TEXAS GOT A NEW CONTRACT, TREC TWENTY DASH NINETEEN." },
+    { "start": 15.55,  "end": 20.68,   "tag": "CORE",     "text": "IT ADDED A PARAGRAPH THAT DIDN'T EXIST BEFORE, PARAGRAPH SEVEN I, THE SELLER'S WATER DISCLOSURE." },
+    { "start": 20.68,  "end": 25.65,   "tag": "OPTIONAL", "text": "YOU'LL FIND IT UNDER PROPERTY CONDITION, NOT WITH THE TITLE NOTICES, WHICH IS WHERE EVERYONE LOOKS FIRST." },
+    { "start": 25.65,  "end": 27.29,   "tag": "OPTIONAL", "text": "NOW, HERE'S WHAT MATTERS." },
+    { "start": 27.29,  "end": 40.15,   "tag": "CORE",     "text": "IF THE SELLER OWES YOUR BUYER THAT DISCLOSURE AND IT NEVER GETS DELIVERED, THE BUYER CAN TERMINATE, NOT JUST DURING THE OPTION PERIOD, AT ANY TIME BEFORE CLOSING, DAY TWENTY, DAY TWENTY-EIGHT, THE MORNING YOU'RE SUPPOSED TO FUND, AND THE EARNEST MONEY GOES BACK TO THEM." },
+    { "start": 40.15,  "end": 43.07,   "tag": "OPTIONAL", "text": "SO ON YOUR NEXT CONTRACT, DO ONE THING FIRST." },
+    { "start": 43.07,  "end": 45.95,   "tag": "OPTIONAL", "text": "TURN TO SEVEN I AND MAKE SURE SOMEBODY CHECKED THAT BOX." },
+    { "start": 45.95,  "end": 46.92,   "tag": "OPTIONAL", "text": "THAT'S ONE CHANGE." },
+    { "start": 46.92,  "end": 48.28,   "tag": "OPTIONAL", "text": "THERE ARE FIVE MORE." },
+    { "start": 48.28,  "end": 51.1667, "tag": "CORE",     "text": "FOLLOW ALONG AND SAVE THIS ONE BEFORE YOU WRITE YOUR NEXT CONTRACT." }
+  ],
+  "variants": {
+    "core": {
+      "platforms": ["tiktok", "instagram"],
+      "caption": "Two days from closing and your buyer can still walk.\n\nTREC 20-19 took effect July 1 and added paragraph 7.I, the Seller's Water Disclosure. If the seller owes it and it never gets delivered, the buyer can terminate at any time before closing - not just during the option period - and the earnest money goes back to them.\n\nCheck 7.I on your next contract.\n\n#txrealestate #realtorlife #trec"
+    },
+    "full": {
+      "platforms": ["youtube", "facebook", "linkedin"],
+      "caption": "Two days from closing. Inspections behind you. Your buyer can still walk and take the earnest money.\n\nTREC 20-19 took effect July 1, 2026 and added a paragraph that did not exist in 20-18: paragraph 7.I, Seller's Disclosure About Groundwater and Surface Water Rights. It sits under PROPERTY CONDITION, not with the title notices, which is where most agents look for it first.\n\nHere is what matters. If the seller owes your buyer that disclosure and it never gets delivered, the buyer can terminate - not just during the option period, but at any time prior to the closing - and the earnest money is refunded.\n\nSo on your next contract, turn to 7.I and make sure somebody checked a box.\n\nThat is one change out of six. More coming."
+    }
+  }
+}

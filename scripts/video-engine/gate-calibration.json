@@ -1,0 +1,9 @@
+{
+  "_source": "Measured from ONE real run of this exact engine on Heath's own footage (22054.mp4, a 6s slice, 2026-09-21) — the only real-footage sample available in this session. NOT calibrated across multiple takes/lighting/rooms yet; treat these as a reasonable first pass, not a final number, and re-tighten after a few more real trial cuts land.",
+  "faceBoxRatioBand": [0.35, 0.65],
+  "_faceBoxRatioBand_note": "measured meanFaceBoxHRatioOfCropH = 0.5189 on this footage (a close/tight selfie recording) — band is +/-0.15 around that.",
+  "scaleVarianceThreshold": 0.01,
+  "_scaleVarianceThreshold_note": "measured scaleVarianceBaseFrames = 0.002312 (very stable, single continuous take) — threshold set ~4x that to leave room for a real second take before flagging.",
+  "roomBandThresholdDb": -5,
+  "_roomBandThresholdDb_note": "measured roomBandRatioDb = -5.75dB on this footage AFTER the note-3 EQ chain (HPF80 + -4dB@330Hz) already ran. Threshold set at -5dB (looser than the measured -5.75) so this exact chain passes with a small margin; a future untreated/boxier room would need to actually beat -5dB to pass."
+}

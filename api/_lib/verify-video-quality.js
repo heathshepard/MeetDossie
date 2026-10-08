@@ -69,8 +69,35 @@
 //                                 legible text — exactly what Heath's
 //                                 scroll-stopping-hook rule asks for) is
 //                                 never treated as a dead opening.
-//   - captions_present            burned-in captions legible across 3
-//                                 sample points through the runtime.
+//   - captions_present            burned-in captions legible AND CHANGING
+//                                 across 5 speech-timed sample pairs
+//                                 (>= 4/5 required). Rewritten 2026-09-26
+//                                 (Cole relay) after dossie_trec_p22_
+//                                 district_notice.mp4 was held on this rule
+//                                 despite using the IDENTICAL caption
+//                                 pipeline as dossie_trec_p8_disclosure.mp4,
+//                                 which passed — a gate reliability defect,
+//                                 not a content one. Two fixes: (1) sample
+//                                 times are no longer arbitrary fractions of
+//                                 runtime (25/50/75%, which could land inside
+//                                 the hook window, a CTA card, or a ~20ms gap
+//                                 between caption events) — they now come
+//                                 from real word timestamps when a
+//                                 `{stem}.transcript.json` sidecar exists
+//                                 (scripts/video-engine/transcribe.js's own
+//                                 output), always at least 1.5s after the
+//                                 hook clears and before any CTA card;
+//                                 falling back to fixed 25/40/55/70/85%
+//                                 fractions (never before 3.5s) only when no
+//                                 sidecar is present. (2) the vision prompt
+//                                 no longer rejects on font/box style — a
+//                                 short, boxed, word-synced caption chunk IS
+//                                 what synced captions look like in this
+//                                 format. Each sample pairs with a frame 1s
+//                                 later; the discriminator is whether the
+//                                 text CHANGES between them — static text
+//                                 across the pair means a title card, not a
+//                                 caption, regardless of font weight.
 //
 // IMPORTANT — Vercel cannot run ffmpeg (see api/cron-render-videos.js's own
 // note: "Vercel serverless cannot run ffmpeg"). checkVideoQuality() is
@@ -146,6 +173,41 @@ const TIKTOK_RANGE = [21, 34];
 const IG_LOOP_RANGE = [7, 15];
 const HARD_MAX_RUNTIME_S = 45;
 
+// The LONG vertical lane (Atlas 2026-09-25 — the dual-cut production process,
+// scripts/video-engine/variants.js).
+//
+// One recording now produces two cuts from the same master. Both are 9:16
+// 1080x1920 — aspect ratio is NOT the variable, length is:
+//
+//   CORE only        ~30s  -> tiktok, instagram          (the 'vertical' lane)
+//   CORE + OPTIONAL  ~50-60s -> youtube, facebook, linkedin
+//
+// The long cut had nowhere to be graded before this. Passing
+// orientation='vertical' capped it at HARD_MAX_RUNTIME_S=45 and failed every
+// 50-60s cut; passing platforms ['youtube','facebook','linkedin'] classified
+// it HORIZONTAL (see HORIZONTAL_PLATFORMS below) and demanded a 16:9 frame
+// this pipeline deliberately does not produce for it.
+//
+// 90s is the binding real ceiling across the three surfaces, not a guess:
+// Facebook Reels caps at 90s, YouTube Shorts at 3 minutes, LinkedIn native
+// video far longer. The floor is 40s because below that the core-only cut is
+// the correct product and a "long" cut that short means the CORE/OPTIONAL
+// tagging produced two near-identical videos — a script-time defect worth
+// failing on.
+//
+// This lane is EXPLICIT-ONLY: no platform array maps to it. Existing callers
+// (queue-finished-videos.py, cron-post-videos.js, the regression fixtures)
+// never pass it, so none of them change shape.
+const VERTICAL_LONG_RUNTIME_RANGE = [40, 90];
+const VERTICAL_LONG_HARD_MAX_RUNTIME_S = 90;
+
+// speed_applied_once — see the rule's own comment at its call site for the
+// full rationale. Calibrated against v7_FINAL/v7b_SPLICED/v7c_SPLICED:
+// video/audio stream duration drift measured 0.07-0.10s on all three real
+// known-good files (container rounding); the real defect this catches was
+// an 18s drift.
+const AV_DURATION_DRIFT_MAX_S = 0.75;
+
 // The exact sample point the 9 rejected Rust videos were frozen through
 // (playbook §6: "frame 0 and frame 1.5s are pixel-identical in every video
 // checked").
@@ -156,7 +218,118 @@ const MOTION_SAMPLE_T = 1.5;
 const MOTION_SSIM_FAIL_THRESHOLD = 0.999;
 
 const HOOK_CLEAR_SAMPLE_T = 3.0;
-const CAPTION_SAMPLE_FRACTIONS = [0.25, 0.5, 0.75];
+
+// NOTE on frame0 "no fade" / "not stacked over another large-type card"
+// (founder-video-production-standard.md §6): a pixel-SSIM check comparing
+// frame 0.0s to a frame a fraction of a second later was prototyped here and
+// DROPPED — it false-failed both real approved fixtures (v7b_SPLICED.mp4
+// SSIM 0.87, v7c_SPLICED.mp4 SSIM 0.86, well under any reasonable "stable"
+// threshold) because the caption/hook style's own intentional pop-in
+// animation (`\t(0,90,\fscx105...)`, ~90-160ms) makes the hook region
+// legitimately still changing in that exact window — the same signature a
+// genuine fade-in bug would produce. The two are not reliably
+// distinguishable from pixels alone without knowing the pop-in's own
+// timing, which varies per build. "Blank frame 0" (the actual historical
+// defect — a still PNG fed into a `fade` filter never animated, so it just
+// stayed invisible) is already caught by first_frame_not_uniform below and
+// hook_visible_frame0 in the vision section — both pass on the real
+// fixtures, which is the behavior that matters. "Not stacked over another
+// large-type card" is a composition/design judgement (a legitimate 2-line
+// hook, like v7c's own "SENDING THE NOTICE MONDAY? / IT WAS DUE SATURDAY.",
+// looks exactly like two stacked large-type elements) — see
+// founder-video-production-standard.md §7's own mandatory human-equivalent
+// frame inspection for this one; it is called out, not silently dropped.
+
+// ── captions_present sampling (rewritten 2026-09-26 — see file header) ──────
+// Fallback fractions ONLY — used when no word-timestamp sidecar exists.
+// 5 points, deliberately never landing in the hook window (see
+// CAPTION_MIN_START_S below) or past CAPTION_END_MARGIN_FRACTION of runtime.
+const CAPTION_SAMPLE_FRACTIONS = [0.25, 0.40, 0.55, 0.70, 0.85];
+// Absolute floor regardless of source: never sample inside the first 3.5s —
+// that's the hook card's window (hook_visible_frame0/hook_cleared_by_3s).
+const CAPTION_MIN_START_S = 3.5;
+// "At least 1.5s after the hook window ends" — HOOK_CLEAR_SAMPLE_T (3.0) is
+// this pipeline's own definition of when the hook has cleared.
+const CAPTION_HOOK_CLEAR_MARGIN_S = 1.5;
+// Stay before any CTA card — this pipeline puts the CTA in the final stretch
+// of runtime, so cap sampling at this fraction rather than guess a fixed
+// second count that would be wrong for a 20s clip and a 90s one alike.
+const CAPTION_END_MARGIN_FRACTION = 0.90;
+// The changed-text discriminator's companion offset: does the caption differ
+// 1s later? A static title card never changes; a 3-word word-synced chunk
+// almost always has moved on by then.
+const CAPTION_PAIR_GAP_S = 1.0;
+// >= 4 of 5 pairs must show a legible, CHANGING caption. Not 5/5 — a synced
+// chunk occasionally spans slightly more than 1s, so one pair coincidentally
+// landing inside the same chunk is tolerated; systemic staticness is not.
+const CAPTION_MIN_PASS = 4;
+
+/**
+ * Word-level timestamps for a video, from the SAME sidecar
+ * scripts/video-engine/transcribe.js already writes
+ * (`{stem}.transcript.json`, ElevenLabs scribe_v1 shape: {words:[{text,
+ * start,end,type}]}) — never re-transcribed here. Only checked next to a
+ * LOCAL video path; a downloaded/remote video has no local sibling to check,
+ * which is fine — pickCaptionSampleTimes() falls back cleanly.
+ * @returns {Array<{start:number,end:number}>|null}
+ */
+function loadWordTimestampsSidecar(originalVideoPath) {
+  if (!originalVideoPath) return null;
+  try {
+    const p = originalVideoPath.replace(/\.[^./\\]+$/, '') + '.transcript.json';
+    if (!fs.existsSync(p)) return null;
+    const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const words = (data.words || [])
+      .filter((w) => w && w.type === 'word' && Number.isFinite(w.start) && Number.isFinite(w.end))
+      .map((w) => ({ start: w.start, end: w.end }))
+      .sort((a, b) => a.start - b.start);
+    return words.length ? words : null;
+  } catch {
+    return null; // malformed/unreadable sidecar — treat as absent, never throw
+  }
+}
+
+/**
+ * Picks 5 sample times for captions_present. Prefers real word timestamps
+ * (known speech times) inside the safe window; falls back to fixed fractions
+ * of runtime, also clamped to the safe window, when no sidecar is usable.
+ * @returns {{times:number[], source:string, windowStart:number, windowEnd:number}}
+ */
+function pickCaptionSampleTimes(duration, words) {
+  const windowStart = Math.max(CAPTION_MIN_START_S, HOOK_CLEAR_SAMPLE_T + CAPTION_HOOK_CLEAR_MARGIN_S);
+  const windowEnd = Math.max(windowStart + 0.5, duration * CAPTION_END_MARGIN_FRACTION);
+
+  if (words && words.length) {
+    const eligible = words.filter((w) => w.start >= windowStart && w.end <= windowEnd);
+    if (eligible.length >= 5) {
+      const times = [];
+      for (let i = 0; i < 5; i++) {
+        const idx = Math.min(eligible.length - 1, Math.round((i / 4) * (eligible.length - 1)));
+        const w = eligible[idx];
+        times.push((w.start + w.end) / 2);
+      }
+      return { times, source: 'word_timestamps', windowStart, windowEnd };
+    }
+  }
+
+  const times = CAPTION_SAMPLE_FRACTIONS.map((f) => Math.min(windowEnd, Math.max(windowStart, duration * f)));
+  return { times, source: 'fallback_fractions', windowStart, windowEnd };
+}
+
+/**
+ * The companion time for the changed-text discriminator: 1s later, unless
+ * that would leave the safe window, in which case 1s earlier (still clamped
+ * inside the window). Always at least ~0.3s from `t` so a real transition has
+ * a chance to show — if the window is too narrow even for that, returns null
+ * and the caller skips the "changed" half of that pair's judgement.
+ */
+function pickCaptionPairCompanion(t, windowStart, windowEnd) {
+  const forward = t + CAPTION_PAIR_GAP_S;
+  if (forward <= windowEnd) return forward;
+  const backward = t - CAPTION_PAIR_GAP_S;
+  if (backward >= windowStart) return backward;
+  return null;
+}
 
 // ── Full-bleed framing rules (added 2026-09-16 after the stage-checklist incident) ──
 //
@@ -253,7 +426,8 @@ const ASPECT_RATIO_TOLERANCE_HORIZONTAL = 0.02;
  *   mixing vertical and horizontal platforms) — fail-closed, never guessed.
  */
 function classifyOrientation(explicitOrientation, platforms) {
-  if (explicitOrientation === 'vertical' || explicitOrientation === 'horizontal') {
+  if (explicitOrientation === 'vertical' || explicitOrientation === 'horizontal'
+    || explicitOrientation === 'vertical_long') {
     return explicitOrientation;
   }
   const list = Array.isArray(platforms) ? platforms.map((p) => String(p).toLowerCase()) : [];
@@ -343,6 +517,29 @@ async function ffprobeResolution(localPath) {
   return { width: w, height: h };
 }
 
+// Per-stream (not container-format) durations — the video and audio streams
+// of one finished file, read independently. See speed_applied_once below for
+// why this matters.
+async function ffprobeStreamDurations(localPath) {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'compact=p=0',
+    localPath,
+  ]);
+  let videoDuration = null;
+  let audioDuration = null;
+  for (const line of String(stdout).split('\n')) {
+    const m = line.match(/codec_type=(\w+)\|duration=([\d.]+)/);
+    if (!m) continue;
+    const d = parseFloat(m[2]);
+    if (m[1] === 'video' && videoDuration === null) videoDuration = d;
+    if (m[1] === 'audio' && audioDuration === null) audioDuration = d;
+  }
+  if (videoDuration === null || audioDuration === null) {
+    throw new Error(`could not read both stream durations: video=${videoDuration} audio=${audioDuration}`);
+  }
+  return { videoDuration, audioDuration };
+}
+
 // Decodes one frame, forced to a CONTENT_COVERAGE_GRID square of 8-bit
 // grayscale, straight to a Buffer (no temp file, no image decoder dependency).
 //
@@ -426,6 +623,251 @@ async function frameLumaSpread(localVideoPath, atSeconds) {
   return { min: mn, max: mx, spread: mx - mn };
 }
 
+// ── Caption box contrast/opacity/position (added 2026-10-01) ────────────────
+//
+// WHY: captions_present (below, in the vision section) asks a model "is
+// there legible, changing caption text in this frame" — which a model
+// reading pixels directly answers correctly even when a HUMAN reading a
+// phone screen cannot, because a low-contrast or crowded-position caption
+// blends into a busy background in a way a model's pixel-level read doesn't
+// struggle with the way human foveal reading does. v7b_SPLICED.mp4
+// (2026-09-30 — Heath: "I can't read it") scored captions_present 3/3
+// while genuinely being hard to read. This rule replaces "does a model see
+// text" with a direct pixel measurement of what actually determines human
+// readability: contrast between the caption's text and its immediate
+// background, whether that background is a flat opaque fill (not bleeding
+// the underlying footage through it), and WHERE on screen it sits — see
+// founder-video-production-standard.md §4/§7: top-aligned (Alignment 8,
+// MarginV 175) sits in the part of a scrolling-document video that's
+// busiest with body text; bottom-centre (Alignment 2, MarginV 1005) does
+// not. Runs independently of vision-transport availability — it's pure
+// ffmpeg/pixel math, same style as detectBars()/frameLumaSpread() above.
+//
+// CALIBRATED against the real fixtures (scripts/regression-video-caption-box.js):
+// v7b_SPLICED.mp4's top-aligned captions measure vertical centre 9-18% of
+// frame height; v7c_SPLICED.mp4's bottom-centre captions measure 43-57%.
+// CAPTION_BOX_MIN_CENTER_FRAC sits at 0.30, comfortably between the two
+// clusters with margin on both sides.
+//
+// Contrast and opacity ARE measured too — median "text ink" luma minus
+// median "box fill" luma for contrast; std-dev of the box-fill luma as the
+// opacity signal (a translucent box bleeding the video through it reads as
+// HIGH local variance; a flat opaque fill reads as near-zero) — because
+// they are the direct, general-purpose defect this rule exists to catch.
+// On these two specific fixtures both already measure opaque/high-contrast:
+// the ffmpeg/libass build this pipeline renders with fills a BorderStyle=3
+// box from OutlineColour, not BackColour's alpha, so neither fixture is
+// actually translucent at the pixel level — the real defect in v7b was
+// POSITION, not alpha, confirmed by direct measurement against both files
+// and a synthetic ASS render. Both sub-metrics stay in this rule as a real
+// regression guard for any future caption-burn path (different ffmpeg
+// build, different tool) where BackColour's alpha DOES control the fill.
+const CAPTION_BOX_DARK_LUMA = 50; // "box fill" candidate pixel, row-scan pass
+const CAPTION_BOX_ROW_DARK_FRACTION = 0.35; // row counts as "box" at >=35% dark
+const CAPTION_BOX_MIN_HEIGHT_FRAC = 0.015; // excludes 1-2px noise rows
+const CAPTION_BOX_MAX_HEIGHT_FRAC = 0.10; // excludes CTA/hook cards (measured 0.12 on both fixtures)
+const CAPTION_BOX_MIN_CENTER_FRAC = 0.30; // top-band cutoff — see header note
+const CAPTION_TEXT_LUMA_MIN = 190; // "text ink" candidate pixel (bright caption glyphs)
+const CAPTION_FILL_LUMA_MAX = 70; // "box fill" candidate pixel for contrast/opacity stats
+const CAPTION_MIN_TEXT_CONTRAST = 100; // median text luma - median fill luma, out of 255
+const CAPTION_MAX_FILL_STD = 35; // std-dev of box-fill luma — opacity/bleed-through signal
+const CAPTION_BOX_MIN_PASS = 4; // same 4-of-5 tolerance as CAPTION_MIN_PASS above
+
+// Full-resolution grayscale raw buffer for one frame — same ffmpeg shape as
+// grayGridAt() above, but NOT forced to a fixed grid, because the
+// contrast/opacity measurement needs native-resolution pixels to be
+// meaningful (a downscaled grid would average text and box fill together).
+async function grayFrameBuffer(localVideoPath, atSeconds, width, height) {
+  const { stdout } = await execFileAsync(
+    'ffmpeg',
+    ['-v', 'error', '-ss', String(Math.max(0, atSeconds)), '-i', localVideoPath,
+      '-frames:v', '1', '-vf', 'format=gray', '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+    { encoding: 'buffer', maxBuffer: 1 << 24 },
+  );
+  if (!stdout || stdout.length < width * height) {
+    throw new Error(`ffmpeg returned ${stdout ? stdout.length : 0} bytes, expected ${width * height}`);
+  }
+  return stdout;
+}
+
+// Finds the tallest contiguous run of "mostly dark" rows sized like a
+// single caption line/chunk (not a CTA/hook card, which is much taller) —
+// a caption's opaque/near-opaque box reads as a horizontal band where a
+// large fraction of pixels are near-black. Returns null if nothing in the
+// caption-sized height range is found (no caption visible at this instant —
+// not itself a failure, see call site).
+//
+// SOLIDITY FILTER (Atlas 2026-10-03): CAPTION_BOX_ROW_DARK_FRACTION alone
+// (>=35% of a row's sampled pixels are dark, scanned across the FULL frame
+// width) does not distinguish a real rendered caption box from scattered
+// natural-scene darkness — e.g. tree canopy against bright sky in b-roll
+// aerials/establishing shots, which can cover well over 35% of a row's
+// pixels while being scattered in many small blobs rather than one solid
+// rectangle. Measured directly against heath-realtor-boerne-establishing-
+// 2026-10-03.mp4 (dark treeline band, rows 105-161, real caption at rows
+// 815-860): the treeline band is TALLER (57px vs 46px) so the old
+// tallest-wins selection picked it, reported centerFrac 0.07 (top-band,
+// would fail-closed a video whose actual caption sits at ~45%), and neither
+// row-dark-fraction (both ~0.38-0.42, statistically indistinguishable) nor
+// bright-pixel content (treeline scores HIGHER than the real box, because
+// sky gaps between branches read as bright — a worse discriminator, not a
+// better one) separates the two.
+//
+// What does separate them, measured on the same fixture: the LONGEST
+// contiguous horizontal run of dark pixels within a row, averaged across
+// the candidate band. A rendered caption box is one solid rectangle, so its
+// rows have one long unbroken dark span (treeline band 0.166 of frame
+// width; real caption box 0.361-0.456; both regression fixtures'
+// genuine — if badly positioned — caption boxes in scripts/
+// regression-video-caption-box.js's BAD fixture score 0.434-0.456, GOOD
+// fixture 0.361-0.456, i.e. this filter does not merely prefer bottom-half
+// boxes — it rejects non-rectangular clutter at ANY vertical position,
+// leaving the existing CAPTION_BOX_MIN_CENTER_FRAC position check as the
+// sole arbiter of top-vs-bottom, exactly as before). Threshold set at 0.25:
+// comfortable margin above the measured clutter case (0.166) and below
+// every measured real-box case (0.36+).
+const CAPTION_BOX_MIN_SOLIDITY_FRAC = 0.25;
+
+function longestDarkRunFraction(buf, w, y) {
+  let longest = 0;
+  let cur = 0;
+  for (let x = 0; x < w; x++) {
+    if (buf[y * w + x] < CAPTION_BOX_DARK_LUMA) { cur++; if (cur > longest) longest = cur; } else cur = 0;
+  }
+  return longest / w;
+}
+
+function locateCaptionBox(buf, w, h) {
+  const rows = new Float64Array(h);
+  for (let y = 0; y < h; y++) {
+    let dark = 0;
+    let n = 0;
+    for (let x = 0; x < w; x += 2) { if (buf[y * w + x] < CAPTION_BOX_DARK_LUMA) dark++; n++; }
+    rows[y] = n ? dark / n : 0;
+  }
+  let bestStart = -1;
+  let bestEnd = -1;
+  let curStart = -1;
+  const closeRun = (end) => {
+    if (curStart === -1) return;
+    const heightFrac = (end - curStart + 1) / h;
+    if (heightFrac >= CAPTION_BOX_MIN_HEIGHT_FRAC && heightFrac <= CAPTION_BOX_MAX_HEIGHT_FRAC) {
+      // Reject scattered non-rectangular darkness (e.g. tree canopy against
+      // sky) before it can ever compete on height — see SOLIDITY FILTER above.
+      let solidity = 0;
+      for (let y = curStart; y <= end; y++) solidity += longestDarkRunFraction(buf, w, y);
+      solidity /= (end - curStart + 1);
+      if (solidity >= CAPTION_BOX_MIN_SOLIDITY_FRAC
+        && (bestStart === -1 || (end - curStart) > (bestEnd - bestStart))) {
+        bestStart = curStart; bestEnd = end;
+      }
+    }
+    curStart = -1;
+  };
+  for (let y = 0; y < h; y++) {
+    if (rows[y] >= CAPTION_BOX_ROW_DARK_FRACTION) {
+      if (curStart === -1) curStart = y;
+    } else {
+      closeRun(y - 1);
+    }
+  }
+  closeRun(h - 1);
+  if (bestStart === -1) return null;
+  return { top: bestStart, bottom: bestEnd };
+}
+
+// Within the located box: (a) contrast = median "text ink" luma minus
+// median "box fill" luma; (b) opacity = std-dev of the box-fill luma
+// (near-zero = flat opaque colour; high = the underlying footage is
+// bleeding through a translucent fill).
+function measureCaptionBoxReadability(buf, w, box) {
+  const textVals = [];
+  const fillVals = [];
+  for (let y = box.top; y <= box.bottom; y++) {
+    for (let x = 0; x < w; x += 2) {
+      const v = buf[y * w + x];
+      if (v >= CAPTION_TEXT_LUMA_MIN) textVals.push(v);
+      else if (v <= CAPTION_FILL_LUMA_MAX) fillVals.push(v);
+    }
+  }
+  const median = (arr) => {
+    if (!arr.length) return null;
+    const s = [...arr].sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)];
+  };
+  const textMedian = median(textVals);
+  const fillMedian = median(fillVals);
+  let fillStd = null;
+  if (fillVals.length) {
+    const mean = fillVals.reduce((a, b) => a + b, 0) / fillVals.length;
+    fillStd = Math.sqrt(fillVals.reduce((s, v) => s + (v - mean) ** 2, 0) / fillVals.length);
+  }
+  const contrast = (textMedian != null && fillMedian != null) ? textMedian - fillMedian : null;
+  return { textMedian, textN: textVals.length, fillMedian, fillN: fillVals.length, fillStd, contrast };
+}
+
+// ── End decay tail (added 2026-10-01) ────────────────────────────────────────
+//
+// founder-video-production-standard.md §6: "End of video needs a real decay
+// tail (~0.33s); a cut from −34 dB to digital silence in one frame reads as
+// truncation." Measured on v7c_SPLICED.mp4's real audio tail: level sits
+// around -33dB at t=33.13s, decays steadily (not a cliff) to true digital
+// silence (-120dB, the floor of 16-bit PCM) by t=33.43s — a 0.30s decay,
+// matching the standard almost exactly. This rule re-derives that same
+// measurement from the finished file's own audio, frame-by-frame (one
+// "frame" = 1/30s, matching the standard's own unit), independent of
+// whatever rendering approach produced it.
+const END_DECAY_FRAME_S = 1 / 30;
+const END_DECAY_LOUD_DB = -34; // the standard's own reference point
+const END_DECAY_MIN_S = 0.15; // real margin below the ~0.33s target; still well above a single-frame (0.033s) cliff
+const END_DECAY_SEARCH_WINDOW_S = 3.0; // how far back from the end to look for the last loud frame
+
+async function decodeMonoPcm(localPath, sr) {
+  const { stdout } = await execFileAsync('ffmpeg', [
+    '-nostdin', '-v', 'error', '-i', localPath,
+    '-ac', '1', '-ar', String(sr), '-f', 's16le', '-',
+  ], { encoding: 'buffer', maxBuffer: 1 << 28 });
+  const n = Math.floor(stdout.length / 2);
+  const samples = new Int16Array(n);
+  for (let i = 0; i < n; i++) samples[i] = stdout.readInt16LE(i * 2);
+  return samples;
+}
+
+function pcmRmsDb(samples, i, j) {
+  const jj = Math.min(j, samples.length);
+  const ii = Math.max(0, i);
+  if (jj <= ii) return -120;
+  let s = 0;
+  for (let k = ii; k < jj; k++) s += samples[k] * samples[k];
+  const r = Math.sqrt(s / (jj - ii));
+  return r > 0 ? 20 * Math.log10(r / 32768.0) : -120;
+}
+
+/**
+ * Measures how long the audio takes to decay from "still audible"
+ * (>= END_DECAY_LOUD_DB) to the end of the file. A real fade/natural decay
+ * spans multiple frames; an abrupt truncation has its last loud frame
+ * immediately adjacent to the file's end.
+ * @returns {{decaySeconds:number|null, lastLoudFrameT:number|null, finalFrameDb:number, totalDurationS:number}}
+ */
+async function measureEndDecayTail(localPath) {
+  const SR = 8000;
+  const samples = await decodeMonoPcm(localPath, SR);
+  const totalDurationS = samples.length / SR;
+  const F = Math.round(END_DECAY_FRAME_S * SR);
+  const searchStart = Math.max(0, totalDurationS - END_DECAY_SEARCH_WINDOW_S);
+
+  let lastLoudFrameT = null;
+  for (let t = totalDurationS - END_DECAY_FRAME_S; t >= searchStart; t -= END_DECAY_FRAME_S) {
+    const c = Math.round(t * SR);
+    const level = pcmRmsDb(samples, c, c + F);
+    if (level >= END_DECAY_LOUD_DB) { lastLoudFrameT = t; break; }
+  }
+  const finalFrameDb = pcmRmsDb(samples, samples.length - F, samples.length);
+  const decaySeconds = lastLoudFrameT === null ? null : totalDurationS - lastLoudFrameT;
+  return { decaySeconds, lastLoudFrameT, finalFrameDb, totalDurationS };
+}
+
 async function extractFrame(localVideoPath, atSeconds, outPngPath) {
   await execFileAsync('ffmpeg', [
     '-y', '-ss', String(Math.max(0, atSeconds)), '-i', localVideoPath,
@@ -473,10 +915,28 @@ const VISION_FRAME_ATTEMPTS = [
 // largest call) stays comfortably under MAX_VISION_REQUEST_BYTES below.
 const MAX_VISION_FRAME_BASE64 = 900_000;
 
-async function compressFrameForVision(localPngPath) {
+// Smaller ladder + tighter per-frame budget for calls that send MANY frames
+// in one request (captions_present sends 10 — 5 pairs — since 2026-09-26).
+// A caption bar is a few words of large bold text; it doesn't need
+// VISION_FRAME_ATTEMPTS' full-detail sizes to stay legible. Budget: 10
+// frames x 300,000 base64 chars = 3,000,000, leaving ~500,000 of
+// MAX_VISION_REQUEST_BYTES headroom for the prompt + JSON overhead — found
+// live 2026-09-26 when the default 900,000/frame budget produced a real
+// "vision request too large (4,910,231 bytes, budget 3,500,000)" failure on
+// dossie_trec_p8_disclosure.mp4's 10-frame captions_present call.
+const VISION_FRAME_ATTEMPTS_MANY = [
+  { width: 480, q: 7 },
+  { width: 360, q: 8 },
+  { width: 240, q: 10 },
+];
+const MAX_VISION_FRAME_BASE64_MANY = 300_000;
+
+async function compressFrameForVision(localPngPath, opts = {}) {
+  const attempts = opts.attempts || VISION_FRAME_ATTEMPTS;
+  const budget = opts.maxBase64 || MAX_VISION_FRAME_BASE64;
   const outPath = `${localPngPath}.vision.jpg`;
   let lastErr = null;
-  for (const { width, q } of VISION_FRAME_ATTEMPTS) {
+  for (const { width, q } of attempts) {
     try {
       await execFileAsync('ffmpeg', [
         '-y', '-i', localPngPath,
@@ -486,10 +946,10 @@ async function compressFrameForVision(localPngPath) {
       ]);
       const buf = await fs.promises.readFile(outPath);
       const base64 = buf.toString('base64');
-      if (base64.length <= MAX_VISION_FRAME_BASE64) {
+      if (base64.length <= budget) {
         return { base64, mimeType: 'image/jpeg' };
       }
-      lastErr = new Error(`compressed frame still ${base64.length} base64 chars at width=${width}/q=${q} (budget ${MAX_VISION_FRAME_BASE64})`);
+      lastErr = new Error(`compressed frame still ${base64.length} base64 chars at width=${width}/q=${q} (budget ${budget})`);
     } catch (err) {
       lastErr = err;
     } finally {
@@ -630,12 +1090,22 @@ Is real, readable application UI clearly visible in this frame — legible text,
 Respond with JSON only, no markdown fences:
 {"legible": true or false, "reason": "one sentence"}`;
 
-const CAPTIONS_PRESENT_PROMPT = `These are 3 frames sampled across a short-form video's runtime (roughly 25%, 50%, and 75% of the way through), in that order.
+// Rewritten 2026-09-26 (Cole relay — see file header for the p22 defect this
+// closes). The discriminator is CHANGE, not appearance: a short, boxed,
+// word-synced caption chunk (2-4 words, bold, top- or bottom-aligned) IS what
+// synced captions look like in this pipeline's format — do not reject it for
+// looking like a "title card". A real title card and a real caption can look
+// nearly identical in a single frame; the only reliable tell is whether the
+// text is the SAME 1 second later. Static across the pair = a card. Changed
+// = a caption.
+const CAPTIONS_PRESENT_PROMPT = `You are shown 5 PAIRS of frames (10 images total, in order: pair 1 frame A, pair 1 frame B, pair 2 frame A, pair 2 frame B, ...). Within each pair, frame A and frame B are about 1 second apart in the same video.
 
-For EACH frame, is there a legible burned-in caption/subtitle (word-level or line-level on-screen text synced to speech, NOT a title card, NOT a logo/watermark) visible on screen?
+For EACH pair, answer two questions:
+1. caption_present: is there a legible burned-in caption bar/box (any number of words, synced to speech) visible in frame A? A short 2-4 word bold boxed caption chunk counts as a caption — do NOT reject it for being short, bold, or boxed. Only reject if there is genuinely no on-screen text, or the only text is a logo/watermark/permanent UI chrome that never changes across the whole video.
+2. text_changed: does the caption TEXT in frame B differ from the caption text in frame A? (Different words, or one has text and the other doesn't.) This is the real discriminator: a static title card shows IDENTICAL text a second later; a genuine synced caption has usually moved to the next word or phrase.
 
 Respond with JSON only, no markdown fences:
-{"frames_with_captions": <integer count 0-3>, "reason": "one sentence"}`;
+{"pairs": [{"caption_present": true or false, "text_changed": true or false}, ... exactly 5 entries, one per pair, in order], "reason": "one sentence summary"}`;
 
 // ── Main check ────────────────────────────────────────────────────────────
 
@@ -653,8 +1123,10 @@ Respond with JSON only, no markdown fences:
  * @param {string[]} [opts.platforms] - the video_library row's real platforms
  *   array (preferred way to select vertical vs horizontal rules — see
  *   classifyOrientation()).
- * @param {'vertical'|'horizontal'} [opts.orientation] - explicit override,
- *   only when platforms isn't available.
+ * @param {'vertical'|'horizontal'|'vertical_long'} [opts.orientation] - explicit
+ *   override, only when platforms isn't available. 'vertical_long' is the
+ *   EXPLICIT-ONLY long 9:16 lane (see VERTICAL_LONG_RUNTIME_RANGE) — no
+ *   platforms array maps to it.
  * @returns {Promise<{pass: boolean, rules: object, failedRules: string[], detail: object}>}
  */
 async function checkVideoQuality(opts = {}) {
@@ -689,6 +1161,7 @@ async function checkVideoQuality(opts = {}) {
         first_frame_luma_spread: detail.first_frame_luma_spread ?? null,
         opening_disqualifier: detail.opening_disqualifier ?? null,
         orientation: detail.orientation ?? null,
+        caption_box_samples: detail.caption_box_samples ?? null,
       },
     };
   };
@@ -733,14 +1206,26 @@ async function checkVideoQuality(opts = {}) {
       return finalize();
     }
   }
-  const isVertical = orientation === 'vertical';
+  // Both vertical lanes are graded against the SAME frame rules (9:16,
+  // full-bleed, top-aligned captions). Only the runtime window differs.
+  const isVerticalLong = orientation === 'vertical_long';
+  const isVertical = orientation === 'vertical' || isVerticalLong;
 
   // 1. Runtime.
   let duration = null;
   try {
     duration = await ffprobeDuration(localVideo);
     detail.duration_seconds = Math.round(duration * 10) / 10;
-    if (isVertical) {
+    if (isVerticalLong) {
+      const pass = duration >= VERTICAL_LONG_RUNTIME_RANGE[0]
+        && duration <= VERTICAL_LONG_HARD_MAX_RUNTIME_S;
+      addRule('runtime_in_platform_range', {
+        pass,
+        note: pass
+          ? `${detail.duration_seconds}s fits the long vertical window (${VERTICAL_LONG_RUNTIME_RANGE.join('-')}s — YouTube Shorts / Facebook Reels / LinkedIn)`
+          : `${detail.duration_seconds}s is outside the long vertical window (${VERTICAL_LONG_RUNTIME_RANGE.join('-')}s, hard ceiling ${VERTICAL_LONG_HARD_MAX_RUNTIME_S}s = Facebook Reels' cap). ${duration < VERTICAL_LONG_RUNTIME_RANGE[0] ? 'Under the floor means CORE+OPTIONAL is barely longer than CORE — the script tagging, not the edit, is what needs fixing.' : 'Over the ceiling means Facebook Reels will refuse it.'}`,
+      });
+    } else if (isVertical) {
       const inTikTok = duration >= TIKTOK_RANGE[0] && duration <= TIKTOK_RANGE[1];
       const inIgLoop = duration >= IG_LOOP_RANGE[0] && duration <= IG_LOOP_RANGE[1];
       const pass = duration <= HARD_MAX_RUNTIME_S && (inTikTok || inIgLoop);
@@ -761,6 +1246,53 @@ async function checkVideoQuality(opts = {}) {
     }
   } catch (err) {
     addRule('runtime_in_platform_range', { pass: false, note: `ffprobe duration failed (fail-closed): ${err.message}` });
+  }
+
+  // 1b. Speed applied exactly once — founder-video-production-standard.md
+  // §3: "Speed is applied in exactly ONE place... Twice caused an
+  // 18-second A/V drift." This gate never sees the build's internal speed
+  // stage, so it checks the one thing a double-application always leaves
+  // behind in the FINISHED file: the video stream and audio stream no
+  // longer agree on how long the render is. Calibrated against the three
+  // known-good fixtures, whose video/audio streams differ by 0.07-0.10s
+  // (container/keyframe rounding, not a defect) — AV_DURATION_DRIFT_MAX_S
+  // sits at 0.75s, comfortably above that noise floor and light years below
+  // the 18s real defect this exists to catch.
+  try {
+    const { videoDuration, audioDuration } = await ffprobeStreamDurations(localVideo);
+    const driftS = Math.abs(videoDuration - audioDuration);
+    const pass = driftS <= AV_DURATION_DRIFT_MAX_S;
+    addRule('speed_applied_once', {
+      pass,
+      note: pass
+        ? `video/audio stream durations agree within ${driftS.toFixed(2)}s (video ${videoDuration.toFixed(2)}s, audio ${audioDuration.toFixed(2)}s)`
+        : `video stream (${videoDuration.toFixed(2)}s) and audio stream (${audioDuration.toFixed(2)}s) differ by ${driftS.toFixed(2)}s — exceeds ${AV_DURATION_DRIFT_MAX_S}s tolerance, the signature of a speed-change filter applied to one track but not the other (or twice to one of them)`,
+    });
+  } catch (err) {
+    addRule('speed_applied_once', { pass: false, note: `stream-duration check failed (fail-closed): ${err.message}` });
+  }
+
+  // 1c. End decay tail — founder-video-production-standard.md §6: a real
+  // decay (~0.33s), not a cliff from ~-34dB to digital silence in one
+  // frame.
+  try {
+    const { decaySeconds, lastLoudFrameT, finalFrameDb, totalDurationS } = await measureEndDecayTail(localVideo);
+    if (lastLoudFrameT === null) {
+      addRule('end_decay_tail', {
+        pass: true,
+        note: `no frame at or above ${END_DECAY_LOUD_DB}dB found in the final ${END_DECAY_SEARCH_WINDOW_S}s — audio was already quiet well before the end, nothing to check a cliff against (final frame ${finalFrameDb.toFixed(1)}dB)`,
+      });
+    } else {
+      const pass = decaySeconds >= END_DECAY_MIN_S;
+      addRule('end_decay_tail', {
+        pass,
+        note: pass
+          ? `${decaySeconds.toFixed(2)}s decay from ${END_DECAY_LOUD_DB}dB (last loud frame at ${lastLoudFrameT.toFixed(2)}s) to end (${totalDurationS.toFixed(2)}s, final frame ${finalFrameDb.toFixed(1)}dB) — real tail, not a cliff`
+          : `only ${decaySeconds.toFixed(2)}s between the last loud frame (${lastLoudFrameT.toFixed(2)}s, ${END_DECAY_LOUD_DB}dB) and the end (${totalDurationS.toFixed(2)}s) — reads as a truncation, not a fade (min ${END_DECAY_MIN_S}s)`,
+      });
+    }
+  } catch (err) {
+    addRule('end_decay_tail', { pass: false, note: `end-decay check failed (fail-closed): ${err.message}` });
   }
 
   // 2. Real motion between frame 0.0s and frame 1.5s.
@@ -788,8 +1320,12 @@ async function checkVideoQuality(opts = {}) {
 
   // 3. Resolution sanity (corrupt-file guard) + 3b. the frame is actually 9:16.
   let resolutionOk = false;
+  let frameWidth = null;
+  let frameHeight = null;
   try {
     const { width, height } = await ffprobeResolution(localVideo);
+    frameWidth = width;
+    frameHeight = height;
     detail.resolution = `${width}x${height}`;
     resolutionOk = true;
     addRule('resolution_readable', { pass: true, note: detail.resolution });
@@ -879,6 +1415,63 @@ async function checkVideoQuality(opts = {}) {
       });
     } catch (err) {
       addRule('cover_asset_present', { pass: false, note: `cover asset unreachable (fail-closed): ${err.message}` });
+    }
+  }
+
+  // 4b. Caption box readability — measured contrast + opacity + on-screen
+  // position, not a vision-model judgement (see the block comment above
+  // locateCaptionBox() for the full rationale). Runs independently of
+  // vision-transport availability. Vertical lane only — this pipeline does
+  // not burn captions into the horizontal desktop cut (same assumption
+  // captions_present below already makes).
+  if (!isVertical) {
+    addRule('captions_box_readable', { pass: true, blocking: false, note: 'skipped — horizontal lane does not burn captions into this pipeline\'s desktop cut' });
+  } else if (!duration || !resolutionOk || !frameWidth || !frameHeight) {
+    addRule('captions_box_readable', { pass: false, note: 'duration or resolution unknown — cannot sample caption frames (fail-closed)' });
+  } else {
+    try {
+      const words = loadWordTimestampsSidecar(opts.videoPath);
+      const { times, source } = pickCaptionSampleTimes(duration, words);
+      const samples = [];
+      for (const t of times) {
+        const tClamped = Math.max(0.1, Math.min(duration - 0.1, t));
+        // eslint-disable-next-line no-await-in-loop
+        const buf = await grayFrameBuffer(localVideo, tClamped, frameWidth, frameHeight);
+        const box = locateCaptionBox(buf, frameWidth, frameHeight);
+        if (!box) { samples.push({ t: tClamped, box: null }); continue; }
+        const centerFrac = ((box.top + box.bottom) / 2) / frameHeight;
+        const r = measureCaptionBoxReadability(buf, frameWidth, box);
+        samples.push({ t: tClamped, box, centerFrac, ...r });
+      }
+      const withBox = samples.filter((s) => s.box);
+      if (withBox.length < 3) {
+        addRule('captions_box_readable', {
+          pass: false,
+          note: `could not locate a caption box in enough samples (${withBox.length}/${samples.length}, sample source: ${source}) — cannot verify legibility (fail-closed)`,
+        });
+      } else {
+        const okSamples = samples.filter((s) => s.box
+          && s.centerFrac >= CAPTION_BOX_MIN_CENTER_FRAC
+          && s.contrast != null && s.contrast >= CAPTION_MIN_TEXT_CONTRAST
+          && s.fillStd != null && s.fillStd <= CAPTION_MAX_FILL_STD);
+        const pass = okSamples.length >= CAPTION_BOX_MIN_PASS;
+        const worstCenter = withBox.reduce((m, s) => Math.min(m, s.centerFrac), 1);
+        const worstContrast = withBox.reduce((m, s) => (s.contrast != null ? Math.min(m, s.contrast) : m), Infinity);
+        const worstFillStd = withBox.reduce((m, s) => (s.fillStd != null ? Math.max(m, s.fillStd) : m), 0);
+        addRule('captions_box_readable', {
+          pass,
+          note: `${okSamples.length}/${samples.length} samples pass (sample source: ${source}) — worst vertical position ${(worstCenter * 100).toFixed(0)}% of frame height (min ${(CAPTION_BOX_MIN_CENTER_FRAC * 100).toFixed(0)}%), worst contrast ${worstContrast === Infinity ? 'n/a' : worstContrast.toFixed(0)} (min ${CAPTION_MIN_TEXT_CONTRAST}), worst box-fill std-dev ${worstFillStd.toFixed(1)} (max ${CAPTION_MAX_FILL_STD})${pass ? '' : ' — caption box sits too high on screen and/or has insufficient contrast/opacity to read on a phone'}`,
+        });
+        detail.caption_box_samples = samples.map((s) => ({
+          t: Math.round(s.t * 100) / 100,
+          box: s.box,
+          centerFrac: s.centerFrac != null ? Math.round(s.centerFrac * 1000) / 1000 : null,
+          contrast: s.contrast != null ? s.contrast : null,
+          fillStd: s.fillStd != null ? Math.round(s.fillStd * 10) / 10 : null,
+        }));
+      }
+    } catch (err) {
+      addRule('captions_box_readable', { pass: false, note: `caption box check failed (fail-closed): ${err.message}` });
     }
   }
 
@@ -991,29 +1584,53 @@ async function checkVideoQuality(opts = {}) {
       addRule('opening_not_login_or_empty', { pass: false, note: `vision check failed (fail-closed): ${err.message}` });
     }
 
-    // Captions present across the runtime.
+    // Captions present AND changing, sampled at known-safe speech times.
+    // See file header + pickCaptionSampleTimes()/pickCaptionPairCompanion()
+    // for the 2026-09-26 rewrite (Cole relay, p22 gate-reliability defect).
     try {
       if (!duration) throw new Error('duration unknown — cannot sample runtime');
-      const framePaths = [];
-      for (const frac of CAPTION_SAMPLE_FRACTIONS) {
-        const t = Math.max(0.1, Math.min(duration - 0.1, duration * frac));
-        const fp = path.join(tmpDir, `qgate-cap-${Math.round(frac * 100)}-${process.pid}-${Date.now()}.png`);
-        cleanupFns.push(async () => fs.promises.unlink(fp).catch(() => {}));
-        // eslint-disable-next-line no-await-in-loop
-        await extractFrame(localVideo, t, fp);
-        framePaths.push(fp);
+      const words = loadWordTimestampsSidecar(opts.videoPath);
+      const { times, source, windowStart, windowEnd } = pickCaptionSampleTimes(duration, words);
+
+      const pairs = []; // { tA, tB|null }
+      for (const t of times) {
+        const tA = Math.max(0.1, Math.min(duration - 0.1, t));
+        const companion = pickCaptionPairCompanion(tA, windowStart, windowEnd);
+        const tB = companion === null ? null : Math.max(0.1, Math.min(duration - 0.1, companion));
+        pairs.push({ tA, tB });
       }
+
       const images = [];
-      for (const fp of framePaths) {
+      for (let i = 0; i < pairs.length; i++) {
+        const { tA, tB } = pairs[i];
+        const fpA = path.join(tmpDir, `qgate-cap-${i}a-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(fpA).catch(() => {}));
         // eslint-disable-next-line no-await-in-loop
-        images.push(await compressFrameForVision(fp));
+        await extractFrame(localVideo, tA, fpA);
+        // eslint-disable-next-line no-await-in-loop
+        images.push(await compressFrameForVision(fpA, { attempts: VISION_FRAME_ATTEMPTS_MANY, maxBase64: MAX_VISION_FRAME_BASE64_MANY }));
+
+        // No safe companion time (a very short clip) — reuse frame A as
+        // frame B so the model still gets a pair; text_changed will
+        // correctly read false (same frame), which is the honest answer
+        // when we couldn't actually sample 1s away.
+        const bTime = tB === null ? tA : tB;
+        const fpB = path.join(tmpDir, `qgate-cap-${i}b-${process.pid}-${Date.now()}.png`);
+        cleanupFns.push(async () => fs.promises.unlink(fpB).catch(() => {}));
+        // eslint-disable-next-line no-await-in-loop
+        await extractFrame(localVideo, bTime, fpB);
+        // eslint-disable-next-line no-await-in-loop
+        images.push(await compressFrameForVision(fpB, { attempts: VISION_FRAME_ATTEMPTS_MANY, maxBase64: MAX_VISION_FRAME_BASE64_MANY }));
       }
+
       const result = await callVisionModel(images, CAPTIONS_PRESENT_PROMPT);
-      const count = Number(result.frames_with_captions) || 0;
+      const resultPairs = Array.isArray(result.pairs) ? result.pairs : [];
+      const passCount = resultPairs.filter((p) => p && p.caption_present === true && p.text_changed === true).length;
+      const presentCount = resultPairs.filter((p) => p && p.caption_present === true).length;
       addRule('captions_present', {
-        pass: count >= 2, // majority of the 3 sample points
+        pass: passCount >= CAPTION_MIN_PASS,
         blocking: isVertical,
-        note: `${count}/3 sampled frames showed captions — ${result.reason || ''}${isVertical ? '' : ' (advisory only on the horizontal lane — this pipeline does not burn captions into the desktop cut)'}`,
+        note: `${passCount}/5 pairs showed a legible, CHANGING caption (${presentCount}/5 had any legible caption) — sample source: ${source} — ${result.reason || ''}${isVertical ? '' : ' (advisory only on the horizontal lane — this pipeline does not burn captions into the desktop cut)'}`,
       });
     } catch (err) {
       addRule('captions_present', { pass: false, blocking: isVertical, note: `vision check failed (fail-closed): ${err.message}` });
@@ -1098,6 +1715,22 @@ module.exports = {
   // Measurement primitives, exported for the regression fixtures.
   analyzePersistentCoverage,
   frameLumaSpread,
+  // Caption box contrast/opacity/position (2026-10-01), exported for
+  // scripts/regression-video-caption-box.js.
+  grayFrameBuffer,
+  locateCaptionBox,
+  measureCaptionBoxReadability,
+  CAPTION_BOX_MIN_CENTER_FRAC,
+  CAPTION_MIN_TEXT_CONTRAST,
+  CAPTION_MAX_FILL_STD,
+  CAPTION_BOX_MIN_PASS,
+  // Speed-applied-once / end-decay-tail (2026-10-01), exported for
+  // scripts/regression-video-structural-assertions.js.
+  ffprobeStreamDurations,
+  AV_DURATION_DRIFT_MAX_S,
+  measureEndDecayTail,
+  END_DECAY_LOUD_DB,
+  END_DECAY_MIN_S,
   // Vision transport (2026-09-16), exported for
   // scripts/regression-video-quality-vision-transport.js.
   VIDEO_QUALITY_VISION_URL,

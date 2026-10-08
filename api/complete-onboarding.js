@@ -156,11 +156,21 @@ async function updateSubscriptionByCustomerId(stripeCustomerId, patch) {
 
 // Upsert the subscription row keyed on stripe_subscription_id.
 // Used as a safety net when complete-onboarding runs before (or instead of)
-// the webhook — ensures the row always exists and is 'active' when the customer
-// completes their onboarding form.
+// the webhook — ensures the row always exists and is provisioned when the
+// customer completes their onboarding form.
+//
+// BUG FIX 2026-09-26 (free trial rollout): `status` used to be hardcoded
+// 'active' here regardless of what Stripe actually reported. That was
+// harmless before trials existed (every checkout charged immediately, so
+// 'active' was always true) but became WRONG the moment TRIAL_DAYS shipped —
+// a customer mid-trial would get a subscriptions row lying about being
+// 'active' today. Now takes the real Stripe status ('trialing' stays
+// 'trialing'). Login access is unaffected either way — that has never been
+// gated on this field, only on the credential email sent further down this
+// file.
 async function upsertSubscriptionBySubId({
   userId, stripeCustomerId, stripeSubscriptionId, stripePriceId, plan,
-  currentPeriodStart, currentPeriodEnd,
+  status, currentPeriodStart, currentPeriodEnd, trialStart, trialEnd,
 }) {
   await supabaseFetch('/rest/v1/subscriptions?on_conflict=stripe_subscription_id', {
     method: 'POST',
@@ -171,9 +181,11 @@ async function upsertSubscriptionBySubId({
       stripe_subscription_id: stripeSubscriptionId,
       stripe_price_id: stripePriceId || null,
       plan: plan || 'founding',
-      status: 'active',
+      status: status || 'active',
       current_period_start: currentPeriodStart || null,
       current_period_end: currentPeriodEnd || null,
+      trial_start: trialStart || null,
+      trial_end: trialEnd || null,
     }),
   });
 }
@@ -402,6 +414,13 @@ module.exports = async function handler(req, res) {
     let currentPeriodStart = null;
     let currentPeriodEnd = null;
     let stripePriceId = null;
+    let trialStart = null;
+    let trialEnd = null;
+    // Real Stripe status, not assumed — a trial subscription is 'trialing'
+    // here, never 'active', until it actually converts. Defaults to 'active'
+    // only if the retrieve below fails (matches pre-trial behavior exactly
+    // for the no-trial / non-Stripe-failure case).
+    let subStatus = 'active';
     if (stripeSubscriptionId) {
       try {
         const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
@@ -412,6 +431,9 @@ module.exports = async function handler(req, res) {
           currentPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
         }
         stripePriceId = sub?.items?.data?.[0]?.price?.id || null;
+        if (sub && sub.trial_start) trialStart = new Date(sub.trial_start * 1000).toISOString();
+        if (sub && sub.trial_end) trialEnd = new Date(sub.trial_end * 1000).toISOString();
+        if (sub && sub.status) subStatus = sub.status === 'trialing' ? 'trialing' : 'active';
       } catch (err) {
         console.warn('[complete-onboarding] subscriptions.retrieve failed:', err && err.message);
       }
@@ -441,7 +463,7 @@ module.exports = async function handler(req, res) {
       market,
       heard_from: heardFrom,
       subscription_tier: plan,
-      subscription_status: 'active',
+      subscription_status: subStatus,
       plan,
       stripe_customer_id: stripeCustomerId,
     });
@@ -491,16 +513,19 @@ module.exports = async function handler(req, res) {
         stripeSubscriptionId,
         stripePriceId,
         plan,
+        status: subStatus,
         currentPeriodStart,
         currentPeriodEnd,
+        trialStart,
+        trialEnd,
       });
-      console.log('[complete-onboarding] subscription upserted by stripe_subscription_id for', email, 'sub=', stripeSubscriptionId, 'plan=', plan);
+      console.log('[complete-onboarding] subscription upserted by stripe_subscription_id for', email, 'sub=', stripeSubscriptionId, 'plan=', plan, 'status=', subStatus);
     } else {
       // Fallback: patch by customer ID (works if webhook created the row).
       // If no row exists, this silently does nothing — the reconcile cron will catch it.
       await updateSubscriptionByCustomerId(stripeCustomerId, {
         user_id: userId,
-        status: 'active',
+        status: subStatus,
       });
       console.warn('[complete-onboarding] no stripe_subscription_id on session — fell back to PATCH by customer_id for', email);
     }

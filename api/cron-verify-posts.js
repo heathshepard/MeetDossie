@@ -80,10 +80,15 @@ async function sendTelegram(text) {
   }
 }
 
-// Count posts with status='posted' for a platform in the last 90 minutes.
+// Count posts with status IN (posted, posted_unverified) for a platform in
+// the last 90 minutes. Includes posted_unverified (Atlas 2026-09-30) so a
+// genuinely-sent-but-unverified post still counts as "published recently" —
+// otherwise this cron would see 0 and fire a duplicate retry against
+// Zernio for content that already went out, the exact double-post risk
+// feedback_never-retry-an-unverified-send.md warns about.
 async function countPostedRecently(platform) {
   const cutoff = new Date(Date.now() - 90 * 60 * 1000).toISOString();
-  const filter = `platform=eq.${encodeURIComponent(platform)}&status=eq.posted&posted_at=gte.${encodeURIComponent(cutoff)}&select=id`;
+  const filter = `platform=eq.${encodeURIComponent(platform)}&status=in.(posted,posted_unverified)&posted_at=gte.${encodeURIComponent(cutoff)}&select=id`;
   const { data, ok } = await supabaseFetch(`/rest/v1/social_posts?${filter}`);
   if (!ok || !Array.isArray(data)) return 0;
   return data.length;
@@ -165,7 +170,34 @@ async function pushToZernio(post) {
     if (!res.ok) {
       return { ok: false, status: res.status, error: `Zernio API ${res.status}: ${respText.slice(0, 300)}` };
     }
-    const zernioPostId = data?.id || data?.post_id || data?.postId || data?.data?.id || null;
+    // Atlas 2026-09-30 — root cause of the zernio_post_id write-back gap.
+    // This fallback chain used to check only data.id/post_id/postId/data.id
+    // and NEVER checked data.post._id — but that is the actual shape Zernio
+    // returns (verified against real production logs for post
+    // a277a0cb-0dd0-48b7-aaa0-0602390fbdaa: `{"post":{"_id":"6abd1263..."}}`
+    // for a linkedin retry, and 819c86d1-f6ab-478b-b15f-e6be715ff5bb for a
+    // facebook retry). Every match attempt here below returned null despite
+    // Zernio having genuinely published both — a write-back failure, not a
+    // delivery failure. Mirrors api/cron-publish-approved.js's pushToZernio()
+    // extraction list so both callers of the same API agree on every known
+    // response shape.
+    const zernioPostId =
+      data?.id ||
+      data?.post_id ||
+      data?.postId ||
+      data?.post?._id ||
+      data?.data?.id ||
+      data?.data?.post_id ||
+      data?.data?.postId ||
+      (Array.isArray(data?.posts) && data.posts[0]?.id) ||
+      (Array.isArray(data?.results) && data.results[0]?.id) ||
+      (Array.isArray(data?.data?.posts) && data.data.posts[0]?.id) ||
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?._id) ||
+      null;
+    if (!zernioPostId) {
+      console.warn(`[cron-verify-posts] post ${post.id} (${post.platform}): NO post_id in 2xx response — treating as unverified. Full response: ${respText.slice(0, 600)}`);
+      return { ok: true, zernio_post_id: null, unverified: true };
+    }
     return { ok: true, zernio_post_id: zernioPostId };
   } catch (err) {
     return { ok: false, error: `Zernio exception: ${err && err.message}` };
@@ -284,16 +316,21 @@ module.exports = withTelemetry('cron-verify-posts', async function handler(req, 
     const result = await pushToZernio(post);
 
     if (result.ok) {
-      // Mark posted.
+      // Mark posted — but only as verified 'posted' when we have an
+      // identifier to prove it. Atlas 2026-09-30: a 2xx with no id used to
+      // still write status='posted' with zernio_post_id null and
+      // error_message null — byte-for-byte identical to a genuinely
+      // verified post. See 20260930d_social_posts_posted_unverified_status.sql.
+      const unverified = !!result.unverified || !result.zernio_post_id;
       await supabaseFetch(`/rest/v1/social_posts?id=eq.${encodeURIComponent(post.id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
         body: JSON.stringify({
-          status: 'posted',
+          status: unverified ? 'posted_unverified' : 'posted',
           posted_at: new Date().toISOString(),
           publishing_started_at: null,
-          zernio_post_id: result.zernio_post_id,
-          error_message: null,
+          zernio_post_id: result.zernio_post_id || null,
+          error_message: unverified ? 'Zernio returned 2xx but no post_id — unverified survival' : null,
         }),
       });
       console.log(`[cron-verify-posts] ${platform}: retry SUCCESS for post ${post.id}`);

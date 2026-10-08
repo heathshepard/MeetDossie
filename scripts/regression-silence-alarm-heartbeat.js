@@ -160,9 +160,16 @@ async function run() {
       { id: 'tc-2', reply_status: 'notified', commenter_name: 'Bob', created_at: hoursAgo(2) }, // fresh, not stale
       { id: 'tc-3', reply_status: 'approved', commenter_name: 'Already handled', created_at: hoursAgo(40) }, // not awaiting
     ],
+    // Real column/value names (2026-09-29 fix — the query in
+    // checkCommentsAwaitingReplyStale/buildHeartbeatSnapshot previously read
+    // reply_status='draft'/created_at, neither of which exists on this
+    // table; the real enum value is 'drafted' and the real timestamp column
+    // is drafted_at). This fixture was pinned to the BUG's shape before the
+    // fix — updated to match the real schema so it actually exercises the
+    // fixed query instead of silently passing on values nothing ever sets.
     social_comment_replies: [
-      { id: 'sc-1', reply_status: 'draft', created_at: hoursAgo(30) }, // stale
-      { id: 'sc-2', reply_status: 'posted', created_at: hoursAgo(50) }, // already posted, not awaiting
+      { id: 'sc-1', reply_status: 'drafted', drafted_at: hoursAgo(30) }, // stale
+      { id: 'sc-2', reply_status: 'posted', drafted_at: hoursAgo(50) }, // already posted, not awaiting
     ],
     alert_state: [],
   };

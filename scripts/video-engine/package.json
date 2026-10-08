@@ -1,0 +1,13 @@
+{
+  "name": "meetdossie-video-engine",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local video engine deps. Deliberately NOT in the repo-root package.json: sharp and onnxruntime-node are ~300MB of native binaries used only by these local scripts, never by anything under api/, and the root manifest is what Vercel installs on every deploy. Node resolves scripts/video-engine/node_modules before walking up, so `npm install` in THIS directory is all that is needed. Run it once per machine, alongside download-models.sh.",
+  "scripts": {
+    "setup": "npm install && bash ./download-models.sh"
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.20.0",
+    "sharp": "^0.34.0"
+  }
+}

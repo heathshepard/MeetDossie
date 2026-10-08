@@ -1,0 +1,125 @@
+{
+  "slug": "heath-realtor-boerne-market-correction-2026-10-04",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.3,
+    "similarity_boost": 0.75,
+    "style": 0.4,
+    "use_speaker_boost": true
+  },
+
+  "_this_is_the_separate_numbers_video": "boerne-establishing.json carries a _no_statistics block saying the connectMLS figures, when they arrived, belonged in a SEPARATE video rather than being retrofitted into the place-and-feel script. This is that video.",
+
+  "_fact_verification": [
+    "SOURCE: connectMLS, pulled by Heath 2026-10-03. Filters: Single Residential, City = Boerne, closed sales. San Antonio contrast row uses the same filters.",
+    "AVERAGES, NOT MEDIANS. connectMLS's built-in report outputs averages only; the custom-view option crashed twice. The word 'average' appears in the spoken script AND on every stat plate. Never say or write 'median' about these figures.",
+    "Sept 2026 Boerne: 50 closings, average sale price $625,022, average CDOM 107 days, SP:LP 96%.",
+    "Sept 2025 Boerne: 64 closings, average sale price $755,770.",
+    "YoY on average price: 625022/755770 - 1 = -0.173000 exactly. Verified by arithmetic, not by trusting the report's own percentage. -17.3% is exact to 4 decimal places, not rounded.",
+    "Dollar drop: 755770 - 625022 = 130,748. Verified by arithmetic. This is the figure the hook plate counts down to.",
+    "San Antonio Sept 2026, same filters: $337,087 average, -1.2% YoY, 96 days, 99% SP:LP.",
+    "UNVERIFIABLE BY ME: the San Antonio -1.2% YoY. I have SA's current average but not SA's prior-year average, so I could not re-derive it the way I re-derived Boerne's -17.3%. It comes from the same connectMLS report as every other figure here and is stated as 'about one percent' in the voiceover rather than to a decimal. Flagged to Heath.",
+    "DELIBERATELY OMITTED: the 272 active listings and the ~5.4 months of inventory. 272/50 = 5.44, but that months-figure is OUR OWN calculation (actives divided by one month's closings), not a connectMLS output. feedback_triple-check-public-facing-facts.md: if a number cannot be stated cleanly, leave it out. Cutting it also buys runtime.",
+    "DELIBERATELY OMITTED: CDOM 107 vs 96 and SP:LP 96% vs 99%. Real and verified, but price IS the story and four more figures would dilute it past the 34s ceiling.",
+    "SAMPLE-SIZE HONESTY IS IN THE SCRIPT, not just in this file. The CAVEAT beat says one month and fifty sales out loud. A single month at n=50 is not a trend and the video must not imply it is.",
+    "SCOPE: all single-family closings in the city of Boerne. NOT isolated to resale, and the script does not claim it is."
+  ],
+
+  "_fiduciary_note": "Heath is a listing agent with an active Boerne-area listing. listing-copy-never-signal-weakness.md bans conceding weakness in LISTING copy because he represents the seller. This is a market report, not listing copy for a property he represents, so the rule does not literally reach it -- but publishing a 17.3% decline in his own farm area is still a real consideration and is flagged to Heath in the handoff rather than decided here. Nothing in this script mentions any specific property, his own listings, or invites an offer.",
+
+  "music": "inspiring-uplifting-cinematic.mp3",
+  "music_gain_db": -8,
+  "_music_why": "Same track and same measured gain as boerne-establishing.json -- highest drive of the 12 tracks (0.161), 132s so no loop seam under a ~32s cut, and -11 is the value already measured to put nominal separation at 19 dB for this denser bed. Licence-clean (Pixabay Content License). Reusing it also keeps the Boerne drone pieces sonically a set.",
+
+  "default_gap": 0.16,
+  "speed": 1.12,
+
+  "hook_card": {
+    "lines": ["BOERNE JUST GAVE", "BACK $130,748"],
+    "until": 2.7
+  },
+  "caption_suppress_until": 2.7,
+
+  "cta_card": {
+    "lines": ["SEND THIS TO SOMEONE", "WHO OWNS IN BOERNE"],
+    "from_end": 3.3
+  },
+  "_cta_why": "The measured problem is zero shares and near-zero comments across every published video. So the CTA is a forwarding instruction plus a question, not a follow ask. 'Send this to someone who owns in Boerne' gives the viewer a specific person to think of; the spoken line then asks what their own numbers show, which is answerable by any agent in the comments.",
+
+  "accent_words": ["17.3", "130,748", "AVERAGE", "BOERNE", "ONE", "MONTH"],
+
+  "caption_rewrite": [
+    ["a hundred thirty thousand seven hundred forty eight dollars", "$130,748"],
+    ["six hundred twenty five thousand", "$625,022"],
+    ["seven hundred fifty five thousand", "$755,770"],
+    ["seventeen point three percent", "17.3%"],
+    ["three hundred thirty seven thousand", "$337,087"],
+    ["about one percent", "ABOUT 1%"],
+    ["fifty", "50"]
+  ],
+
+  "stat_cards": [
+    {
+      "at": 2.8, "dur": 2.6,
+      "label": "BOERNE AVERAGE SALE PRICE",
+      "from": 755770, "to": 625022, "prefix": "$",
+      "count_sec": 1.2,
+      "sub": "SEPT 2025  TO  SEPT 2026"
+    },
+    {
+      "at": 12.4, "dur": 2.5,
+      "label": "YEAR OVER YEAR",
+      "to": -17.3, "suffix": "%", "decimals": 1,
+      "sub": "AVERAGE PRICE, 50 CLOSINGS"
+    },
+    {
+      "at": 15.1, "dur": 3.5,
+      "label": "SAN ANTONIO, SAME FILTERS",
+      "to": 337087, "prefix": "$",
+      "sub": "DOWN ABOUT 1% YEAR OVER YEAR"
+    }
+  ],
+  "_stat_timing": "Timed to the WORD, not to the clock -- docs/VIDEO-PRODUCTION-RECIPE.md §7 records an annotation that fired at 4s for a clause not named until 19s and so pointed at the wrong moment. Measured against this build's own caption timeline at speed 1.12: the drop is spoken 2.14-4.21 (plate 1 runs 2.8-5.4, starting after the hook card clears at 2.70 so two large-type layers never stack); '17.3%' lands 12.32-14.99 (plate 2 runs 12.4-14.9); 'San Antonio, same filters, down about 1%' runs 15.07-18.73 (plate 3 runs 15.1-18.6). Re-derive these if the script changes.",
+  "_sa_precision": "Plate 3's sub says 'DOWN ABOUT 1%', not '-1.2%'. The -1.2% is the one figure in this spec I could not re-derive by arithmetic (no SA prior-year average on hand), so the precise number is kept off screen and out of the voiceover and the hedge is used in both.",
+  "_stat_why": "Three plates, not six. The first COUNTS DOWN from last September's average to this one, so the viewer watches the money come off before Heath says a word about it -- that fall is the whole point of the piece and it is the one thing a static card cannot do. The second holds the percentage. The third is the contrast that makes it forwardable: the same filters in San Antonio barely moved. Plates sit at MarginV 430 (upper-middle), clear of the caption box at MarginV 1005 and of the hook at 170.",
+
+  "beats": [
+    { "id": "HOOK",    "text": "Boerne's average sale price dropped over a hundred thirty thousand dollars in one year." },
+    { "id": "NUMBERS", "text": "Fifty closings last month averaged six hundred twenty five thousand. A year ago, seven hundred fifty five thousand." },
+    { "id": "YOY",     "text": "Down seventeen point three percent." },
+    { "id": "CONTRAST","text": "San Antonio, same filters, down about one percent." },
+    { "id": "POINT",   "text": "This is a Boerne correction, not a Texas one." },
+    { "id": "CAVEAT",  "text": "One month, fifty sales, and these are averages, not medians." },
+    { "id": "PAYOFF",  "text": "But if you own in Boerne, that changes your spring plan." },
+    { "id": "CTA",     "text": "Send this to someone who owns here. What are your numbers showing?" }
+  ],
+  "_runtime_cut": "First build of this script ran 45.40s against a 21-34s ceiling, so every beat was tightened. NOTHING was dropped -- all eight beats survive, including the closing benefit clause and the caveat, which are the two lines founder-video-production-standard.md §5 says must never be the thing you cut. The runtime came out of redundancy ('So this is a Boerne correction. It is not a Texas one.' -> 'This is a Boerne correction, not a Texas one.'), not out of content. The hook now says 'over a hundred thirty thousand' where it used to say the exact 130,748; the exact figure is still on the hook card and is still true -- 130,748 is over 130,000.",
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Evergreen clips only. The library is December 2024 footage and roughly a third of it carries Christmas decoration (tree, nutcrackers, SEASONS GREETINGS lettering, the Hickok bronze in a Santa hat) -- holiday decor under an October market report dates the video instantly and reads as stock. Every clip below is an aerial or an undecorated exterior. Cuts 1.7-2.1s, hero open and hero close.",
+
+  "shots": [
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 1.2, "dur": 2.0, "motion": "none", "label": "HERO ridge (open)" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 2.0, "motion": "none", "label": "Main St aerial" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 0.6, "dur": 1.8, "motion": "none", "label": "rooftops" },
+    { "clip": "boerne-cibolo-creek-cypress-aerial-mobile-2024-12-18.mp4","in": 0.6, "dur": 1.9, "motion": "none", "label": "creek cypress" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 1.0,"dur": 1.8, "motion": "none", "label": "bridge approach" },
+    { "clip": "boerne-old-town-mural-reveal-mobile-2024-12-17.mp4",      "in": 3.0, "dur": 1.8, "motion": "none", "label": "BOERNE mural reveal" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 2.0, "dur": 1.8, "motion": "none", "label": "underbridge" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags (static)" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.8, "motion": "none", "label": "plaza approach" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 2.2, "dur": 1.8, "motion": "none", "label": "rooftops b" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.8, "motion": "push", "label": "storefront" },
+    { "clip": "boerne-creek-cypress-tree-aerial-mobile-2024-12-18.mp4",  "in": 0.8, "dur": 1.8, "motion": "none", "label": "lone cypress" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.4, "dur": 2.1, "motion": "none", "label": "HERO close" }
+  ],
+  "_water_clip_cut": "First build put city-lake and creek-mirror clips in the rotation and the 13.0s verification frame came back as murky green pond water with floating debris -- the exact failure trec-5e-time-of-essence.json already logged (\"frames read as murky pond water\"). LIBRARY.md also warns the 9:16 crops of the creek clips keep only water and sky. Replaced with clips that carry recognisable PLACE: the BOERNE mural reveal (the word is legible), the plaza approach to the bandstand, and a second rooftops angle. The remaining water shots are the cypress-lined creek and the bridge approach, which read as landscape rather than pond.", "_broll_gate": "Every clip above is marked 'clear' in Media/b-roll/boerne/LIBRARY.md. The 6 flagged clips (main-street-shops x2 faces, main-street-shops-b x2 plates, neighborhood-aerial x2 private property) are not referenced and resolve_clip() would refuse them anyway. The neighbourhood aerial is the tempting one for a housing-market video and it is exactly the one that is gated -- individual private residences, identifiable and locatable.",
+
+  "cover_t": 4.0,
+  "_cover_t_why": "4.0s lands after the hook card clears (2.7s) and inside the first stat plate's settled figure, so the poster frame carries the $625,022 plate over the Main Street aerial rather than a bare landscape.",
+
+  "verify_frames": [0.0, 1.2, 2.5, 2.9, 3.6, 5.0, 8.0, 13.0, 16.5, 22.0, 28.0, 31.5]
+}

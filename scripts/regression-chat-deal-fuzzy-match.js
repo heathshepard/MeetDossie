@@ -37,9 +37,9 @@ const UTIL_PATH = path.join(DOSSIE_REPO, 'src', 'utils', 'find-deal-by-identifie
 const DEALS = [
   { id: 't1', propertyAddress: '999 Financial Sanity Test Ln', cityStateZip: 'Boerne, TX 78006', buyerName: 'Pat Example', sellerName: 'Sam Example', status: 'active' },
   { id: 't2', propertyAddress: '789 Ranch Rd', cityStateZip: 'San Antonio, TX 78230', buyerName: 'Maya Rivera', sellerName: 'Jake Lawson', status: 'active' },
-  { id: 't3', propertyAddress: '456 Builder Blvd', cityStateZip: 'San Antonio, TX 78250', buyerName: 'Kanika Jain', sellerName: 'DR Horton', status: 'active' },
-  { id: 't4', propertyAddress: '104 Wild Cherry', cityStateZip: 'San Antonio, TX 78230', buyerName: 'Chris Champie', sellerName: 'Dana Linton', status: 'active' },
-  { id: 't5', propertyAddress: '104 Wild Cherry', cityStateZip: 'San Antonio, TX 78230', buyerName: 'Old Buyer', sellerName: 'Old Seller', status: 'closed' },
+  { id: 't3', propertyAddress: '456 Builder Blvd', cityStateZip: 'San Antonio, TX 78250', buyerName: 'Nadia Kapoor', sellerName: 'DR Horton', status: 'active' },
+  { id: 't4', propertyAddress: '88 Amberwood', cityStateZip: 'San Antonio, TX 78230', buyerName: 'Chris Kendrick', sellerName: 'Dana Hale', status: 'active' },
+  { id: 't5', propertyAddress: '88 Amberwood', cityStateZip: 'San Antonio, TX 78230', buyerName: 'Old Buyer', sellerName: 'Old Seller', status: 'closed' },
 ];
 
 async function main() {
@@ -62,15 +62,15 @@ async function main() {
       () => assert.strictEqual(findDealByIdentifier(DEALS, '790 Ranch Rd'), null)],
     // --- Legitimate matches still resolve.
     ['exact partial address resolves (substring tier)',
-      () => assert.strictEqual(findDealByIdentifier(DEALS, '104 Wild Cherry').id, 't4')],
+      () => assert.strictEqual(findDealByIdentifier(DEALS, '88 Amberwood').id, 't4')],
     ['buyer first name resolves',
-      () => assert.strictEqual(findDealByIdentifier(DEALS, 'Kanika').id, 't3')],
+      () => assert.strictEqual(findDealByIdentifier(DEALS, 'Nadia').id, 't3')],
     ['minor typo in a full identifier still resolves (whole-identifier fuzzy)',
       () => assert.strictEqual(findDealByIdentifier(DEALS, '104 Wild Chery').id, 't4')],
     ['street-name-only reference (no number) resolves to the only plausible deal',
       () => assert.strictEqual(findDealByIdentifier(DEALS, 'Financial Sanity').id, 't1')],
     ['active deal preferred over closed duplicate of the same address',
-      () => assert.strictEqual(findDealByIdentifier(DEALS, '104 Wild Cherry').status, 'active')],
+      () => assert.strictEqual(findDealByIdentifier(DEALS, '88 Amberwood').status, 'active')],
     // --- Ambiguity: two active deals at the same address -> refuse to guess.
     ['two equally plausible fuzzy candidates -> null (refuse to guess)',
       () => {
@@ -84,7 +84,7 @@ async function main() {
       () => {
         assert.strictEqual(findDealByIdentifier(DEALS, ''), null);
         assert.strictEqual(findDealByIdentifier(DEALS, '   '), null);
-        assert.strictEqual(findDealByIdentifier([], '104 Wild Cherry'), null);
+        assert.strictEqual(findDealByIdentifier([], '88 Amberwood'), null);
       }],
   ];
 

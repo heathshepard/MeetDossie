@@ -590,6 +590,13 @@ const EDIT_PROMPT_SUFFIX = '. Reply to this message with the new content.';
 const TCREPLY_EDIT_PROMPT_PREFIX = '✏️ Editing TC reply ';
 const TCREPLY_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised reply — it posts as-is once the local poster runs.';
 
+// Inbound-comment reply edit flow (cron-comment-reply-draft /
+// social_comment_replies). These are comments on OUR OWN posts, ingested from
+// the Zernio API rather than scraped through a browser profile. Same
+// edit-is-approval pattern as the TC flow above.
+const ZCR_EDIT_PROMPT_PREFIX = '✏️ Editing comment reply ';
+const ZCR_EDIT_PROMPT_SUFFIX = '. Reply to this message with the revised text — it becomes the reply and is approved in the same step.';
+
 // Daily comment-opportunity edit flow (cron-comment-opp-approval /
 // comment_opportunities). Same pattern as the TC reply edit flow above —
 // Heath's revised text becomes comment_final and the row is approved in the
@@ -1586,6 +1593,91 @@ async function handleCallbackQuery(cb) {
     return;
   }
 
+  // Inbound-comment reply approval (cron-comment-reply-draft).
+  // callback_data: zcr_approve:<uuid> / zcr_edit:<uuid> / zcr_skip:<uuid>
+  // Rows live in social_comment_replies — comments people left on OUR posts,
+  // read through the Zernio API instead of a browser profile.
+  //
+  // NOTHING posts without an explicit Approve. There is no veto window and no
+  // approve-by-default on this path, and an `escalated` row (a pricing
+  // question or a demo request, per fb-engagement-thread-close-policy) is
+  // refused here outright even if a button somehow reaches it — those are
+  // Heath's to answer himself. The actual post happens in
+  // api/cron-post-comment-replies.js, which is additionally gated on
+  // ops_flags.zernio_comment_replies.
+  const zcrMatch = data.match(/^zcr_(approve|edit|skip):([\w-]+)$/);
+  if (zcrMatch) {
+    const action = zcrMatch[1];
+    const rowId = zcrMatch[2];
+    const originalBody = String(message?.text || '');
+    const nowIso = new Date().toISOString();
+
+    const { data: rows } = await supabaseFetch(
+      `/rest/v1/social_comment_replies?id=eq.${encodeURIComponent(rowId)}&limit=1`
+      + '&select=id,reply_status,reply_text,commenter_name,escalated,platform',
+    );
+    const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (!row) {
+      if (callbackId) await answerCallback(callbackId, 'Comment not found');
+      return;
+    }
+
+    if (row.escalated === true && action === 'approve') {
+      if (callbackId) await answerCallback(callbackId, 'Escalated — answer this one yourself');
+      return;
+    }
+
+    if (action === 'edit') {
+      if (row.reply_status !== 'drafted' && row.reply_status !== 'held' && row.reply_status !== 'approved') {
+        if (callbackId) await answerCallback(callbackId, `Too late — already ${row.reply_status}`);
+        return;
+      }
+      await sendMessage(chatId, `${ZCR_EDIT_PROMPT_PREFIX}${rowId}${ZCR_EDIT_PROMPT_SUFFIX}`, messageId, true);
+      if (callbackId) await answerCallback(callbackId, 'Reply with the revised text');
+      return;
+    }
+
+    if (action === 'approve') {
+      // Guarded on the exact status read, so a double-tap can't re-approve
+      // and a row already claimed by the poster can't be pulled back.
+      const patch = await supabaseFetch(
+        `/rest/v1/social_comment_replies?id=eq.${encodeURIComponent(rowId)}&reply_status=eq.drafted&escalated=is.false`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({ reply_status: 'approved', approved_at: nowIso, approved_by: 'heath' }),
+        },
+      );
+      const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+      const tail = won
+        ? 'Approved — queued. It posts via the Zernio API once ops_flags.zernio_comment_replies is on (20/day, 5-min spacing).'
+        : 'Already handled.';
+      if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\n${tail}`);
+      if (callbackId) await answerCallback(callbackId, won ? 'Approved' : 'Already handled');
+      return;
+    }
+
+    // skip — a closed thread must actually LEAVE the outstanding list, and the
+    // reason goes on its own column rather than into an error field (which is
+    // how 6 manually-answered rows read as falsely outstanding on 2026-09-08).
+    await supabaseFetch(
+      `/rest/v1/social_comment_replies?id=eq.${encodeURIComponent(rowId)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          reply_status: 'skipped',
+          thread_status: 'closed',
+          thread_closed_at: nowIso,
+          thread_close_reason: 'heath_skipped',
+        }),
+      },
+    );
+    if (chatId && messageId) await editMessage(chatId, messageId, `${originalBody}\n\nSkipped — thread closed, no reply will post.`);
+    if (callbackId) await answerCallback(callbackId, 'Skipped');
+    return;
+  }
+
   // Daily comment-opportunity approval flow (cron-comment-opp-approval).
   // callback_data: oppc_approve:<uuid> / oppc_edit:<uuid> / oppc_skip:<uuid>
   // Rows live in comment_opportunities. NOTHING posts without an explicit
@@ -2150,6 +2242,48 @@ async function handleTextMessage(msg, logStep) {
           msg.message_id, null, logStep,
         );
         if (logStep) logStep({ step: 'tcreply_edit_saved', rowId, won });
+        return;
+      }
+    }
+
+    // Inbound-comment reply edit: Heath's revised text becomes reply_text and
+    // the row is APPROVED in the same step (his edit is his approval).
+    // Guarded so a row already claimed by the poster can't be mutated
+    // mid-flight, and so an escalated row can never be approved this way
+    // either — the edit path must not become a side door around the
+    // pricing/demo escalation rule.
+    if (replyText.startsWith(ZCR_EDIT_PROMPT_PREFIX)) {
+      if (logStep) logStep({ step: 'processing_zcr_edit' });
+      const after = replyText.slice(ZCR_EDIT_PROMPT_PREFIX.length);
+      const cut = after.indexOf(ZCR_EDIT_PROMPT_SUFFIX);
+      const rowId = cut > 0 ? after.slice(0, cut).trim() : after.split(/\s/)[0].replace(/\.$/, '').trim();
+      const newText = messageText.trim();
+      if (rowId && newText) {
+        const nowIso = new Date().toISOString();
+        const patch = await supabaseFetch(
+          `/rest/v1/social_comment_replies?id=eq.${encodeURIComponent(rowId)}&reply_status=in.(drafted,held,approved)&escalated=is.false`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+              reply_text: newText,
+              reply_status: 'approved',
+              approved_at: nowIso,
+              approved_by: 'heath',
+              // His text supersedes the gate verdict on the model's draft.
+              gate_failures: null,
+            }),
+          },
+        );
+        const won = patch.ok && Array.isArray(patch.data) && patch.data.length > 0;
+        await sendMessage(
+          chatId,
+          won
+            ? '✏️ Saved and approved — it posts on the next poster run once ops_flags.zernio_comment_replies is on.'
+            : 'Could not save — that reply is no longer editable (escalated, already posting/posted, or skipped).',
+          msg.message_id, null, logStep,
+        );
+        if (logStep) logStep({ step: 'zcr_edit_saved', rowId, won });
         return;
       }
     }

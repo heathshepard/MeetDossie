@@ -196,8 +196,11 @@ function startMockSupabase() {
   console.log(out1);
 
   console.log('Test 1: watch-folder ingest (no TARGET_STEMS allowlist)');
-  check('all 4 dropped files got upserted on first run', () => {
-    assert.strictEqual(state.upserts.length, 4, `expected 4 upserts, got ${state.upserts.length}: ${JSON.stringify(state.upserts.map((u) => u.id))}`);
+  // 7, not 4 (2026-09-30): each of the 3 dossie SELFIE clips now also
+  // registers a heath-realtor cross-post row (see Test 7 below) — the
+  // realtor clip itself gets no cross-post (only dossie-owned selfies do).
+  check('all 4 dropped files got upserted, 3 selfies cross-posted (7 total rows)', () => {
+    assert.strictEqual(state.upserts.length, 7, `expected 7 upserts, got ${state.upserts.length}: ${JSON.stringify(state.upserts.map((u) => u.id))}`);
   });
   check('regr-unmatched-topic-selfie (never in any allowlist) was queued', () => {
     assert.ok(state.ids.has('regr-unmatched-topic-selfie-2026-09-10'),
@@ -227,8 +230,12 @@ function startMockSupabase() {
     assert.strictEqual(row.caption, '', `expected empty caption, got: "${row.caption}"`);
   });
   check('scanner printed a flag/WARN for the unmatched topic', () => {
-    assert.ok(/no matching script/i.test(out1) && /regr-unmatched-topic-selfie/.test(out1),
-      'expected a WARN mentioning "no matching script" and the filename in stdout');
+    // Regex was out of sync with the real WARN wording (queue-finished-
+    // videos.py has always printed "no matching caption in", never "no
+    // matching script" — pre-existing test/code drift, unrelated to the
+    // 2026-09-30 routing change; fixed here since it was a 1-line drive-by).
+    assert.ok(/no matching caption in/i.test(out1) && /regr-unmatched-topic-selfie/.test(out1),
+      'expected a WARN mentioning "no matching caption in" and the filename in stdout');
   });
 
   console.log('\nTest 5: selfie platform default includes facebook');
@@ -245,19 +252,61 @@ function startMockSupabase() {
     assert.ok(row, 'row not found');
     assert.strictEqual(row.target_owner, 'heath-realtor', `got: ${row.target_owner}`);
   });
-  check('realtor clip platform default is facebook+instagram, no tiktok', () => {
+  // 'youtube' added 2026-09-30 — the heath-realtor YouTube channel has been
+  // connected in zernio_accounts since 2026-08-25 but this lane never
+  // routed to it (see config/video-routing.json).
+  check('realtor clip platform default is facebook+instagram+youtube, no tiktok', () => {
     const row = state.upserts.find((u) => u.id === 'regr-trec-explainer-realtor-selfie-2026-09-10');
     assert.ok(row, 'row not found');
-    assert.deepStrictEqual([...row.platforms].sort(), ['facebook', 'instagram'], `got: ${JSON.stringify(row.platforms)}`);
+    assert.deepStrictEqual([...row.platforms].sort(), ['facebook', 'instagram', 'youtube'], `got: ${JSON.stringify(row.platforms)}`);
   });
   check('realtor clip caption carries the brokerage name (kit caption, untouched)', () => {
     const row = state.upserts.find((u) => u.id === 'regr-trec-explainer-realtor-selfie-2026-09-10');
     assert.ok(row, 'row not found');
     assert.ok(/Keller Williams City-View/.test(row.caption), `got: ${row.caption}`);
   });
-  check('Dossie rows are all target_owner=dossie', () => {
-    const dossieRows = state.upserts.filter((u) => u.id !== 'regr-trec-explainer-realtor-selfie-2026-09-10');
+  check('every non-cross-post, non-realtor row is target_owner=dossie', () => {
+    const dossieRows = state.upserts.filter((u) => u.id !== 'regr-trec-explainer-realtor-selfie-2026-09-10' && !u.id.endsWith('-heath'));
+    assert.strictEqual(dossieRows.length, 3, `expected 3 dossie-owned primary rows, got ${dossieRows.length}: ${JSON.stringify(dossieRows.map((r) => r.id))}`);
     assert.ok(dossieRows.every((r) => r.target_owner === 'dossie'), `got: ${JSON.stringify(dossieRows.map((r) => r.target_owner))}`);
+  });
+
+  console.log('\nTest 7: dossie selfie clips cross-post to Heath\'s personal (heath-realtor) accounts');
+  for (const primaryId of ['regr-story-selfie-2026-09-10', 'regr-cost-math-selfie-2026-09-10', 'regr-unmatched-topic-selfie-2026-09-10']) {
+    const cpId = `${primaryId}-heath`;
+    check(`${primaryId} produced a cross-post row (${cpId})`, () => {
+      const row = state.upserts.find((u) => u.id === cpId);
+      assert.ok(row, `cross-post row not found among: ${JSON.stringify(state.upserts.map((u) => u.id))}`);
+    });
+    check(`${cpId} targets owner=heath-realtor`, () => {
+      const row = state.upserts.find((u) => u.id === cpId);
+      assert.ok(row, 'row not found');
+      assert.strictEqual(row.target_owner, 'heath-realtor', `got: ${row.target_owner}`);
+    });
+    check(`${cpId} platforms are facebook+instagram+youtube (no tiktok — not connected for heath-realtor)`, () => {
+      const row = state.upserts.find((u) => u.id === cpId);
+      assert.ok(row, 'row not found');
+      assert.deepStrictEqual([...row.platforms].sort(), ['facebook', 'instagram', 'youtube'], `got: ${JSON.stringify(row.platforms)}`);
+    });
+    check(`${cpId} caption matches its primary row's caption exactly (no new content)`, () => {
+      const primary = state.upserts.find((u) => u.id === primaryId);
+      const cp = state.upserts.find((u) => u.id === cpId);
+      assert.ok(primary && cp, 'row(s) not found');
+      assert.strictEqual(cp.caption, primary.caption, `primary="${primary.caption}" cross-post="${cp.caption}"`);
+    });
+    check(`${cpId} supabase_url matches its primary row's (same uploaded asset, not re-uploaded)`, () => {
+      const primary = state.upserts.find((u) => u.id === primaryId);
+      const cp = state.upserts.find((u) => u.id === cpId);
+      assert.ok(primary && cp, 'row(s) not found');
+      assert.strictEqual(cp.supabase_url, primary.supabase_url);
+    });
+  }
+  check('the realtor-owned clip (already heath-realtor) got NO cross-post row of its own', () => {
+    const row = state.upserts.find((u) => u.id === 'regr-trec-explainer-realtor-selfie-2026-09-10-heath');
+    assert.ok(!row, `unexpected cross-post row for an already-heath-realtor clip: ${JSON.stringify(row)}`);
+  });
+  check('exactly one upload per PHYSICAL FILE (3 dossie + 1 realtor = 4), not one per row (7)', () => {
+    assert.strictEqual(state.uploads.length, 4, `expected 4 storage uploads (cross-posts reuse the primary upload), got ${state.uploads.length}: ${JSON.stringify(state.uploads)}`);
   });
 
   console.log('\nTest 2: idempotency — second run must not re-upsert anything');
@@ -268,7 +317,7 @@ function startMockSupabase() {
     assert.strictEqual(state.upserts.length, upsertsBeforeRerun,
       `expected no new upserts on re-run, upserts went from ${upsertsBeforeRerun} to ${state.upserts.length}`);
   });
-  check('second run reports all 4 files already in DB', () => {
+  check('second run reports all 4 source files already in DB (cross-post rows ride the same stem check)', () => {
     const skipCount = (out2.match(/SKIP \(already in DB\)/g) || []).length;
     assert.strictEqual(skipCount, 4, `expected 4 SKIP lines, got ${skipCount}:\n${out2}`);
   });

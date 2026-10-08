@@ -17,11 +17,11 @@
 // anything it could not pull out. Confirmed-by-observation patterns are marked
 // CONFIRMED; the rest are best-effort and explicitly allowed to return null.
 //
-// CONFIRMED (Heath's live 104 Wild Cherry signing, 2026-08-13, Authentisign):
+// CONFIRMED (Heath's live 88 Amberwood signing, 2026-08-13, Authentisign):
 //   From:    secure@authentisign.com
 //   Subject: "Signing updated ..."   body carries
-//              "Action: Document Accepted"  and  "Participant: Thomas Linton"
-//   Subject: "Signing complete: Amendment #1 - 104 Wild Cherry Ln"
+//              "Action: Document Accepted"  and  "Participant: Gregory Hale"
+//   Subject: "Signing complete: Amendment #1 - 88 Amberwood Ln"
 //
 // Everything returned here is a CLAIM by the provider. Nothing in this file
 // proves a document was actually signed — that is signature-verifier.js's job.
@@ -128,7 +128,7 @@ function extractParticipantEmail(body) {
 
 /**
  * Document / signing name.
- * CONFIRMED: "Signing complete: Amendment #1 - 104 Wild Cherry Ln"
+ * CONFIRMED: "Signing complete: Amendment #1 - 88 Amberwood Ln"
  */
 function extractDocumentName(subject, body) {
   const subj = String(subject || '').trim();
@@ -252,8 +252,8 @@ function matchToDeal(parsed, deals) {
   const hits = [];
   for (const deal of list) {
     if (!deal || !deal.address) continue;
-    // Street line only — "104 Wild Cherry Ln, Boerne, TX 78006" appears in the
-    // signing name as "104 Wild Cherry Ln". Split on the comma BEFORE
+    // Street line only — "88 Amberwood Ln, Boerne, TX 78006" appears in the
+    // signing name as "88 Amberwood Ln". Split on the comma BEFORE
     // normalizing, because norm() strips the comma that marks the boundary.
     const street = norm(String(deal.address).split(',')[0]);
     if (!street) continue;

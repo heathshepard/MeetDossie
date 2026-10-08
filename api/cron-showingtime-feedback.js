@@ -145,8 +145,8 @@ async function appendNote(listing, entry) {
 //     3. Your (and your client's) opinion of the price: Just right
 //     4. Please rate this listing (5=Best; 1=Worst): 5(Best)
 //     5. COMMENTS / RECOMMENDATIONS: <free text> Publish to Seller ...
-//     ...Buyer's Agent Details Craig Browning Phyllis Browning Company
-//     (210) 316-7842 ... teambrowning@phyllisbrowning.com
+//     ...Buyer's Agent Details Dana Reed Redstone Realty Group
+//     (210) 555-0163 ... team@redstonerealty.example
 //     ...Showing Thu, August 20, 2026 3:15 PM - 4:15 PM..."
 // "FEEDBACK REQUESTED" subjects are a distinct, earlier email (asking the
 // showing agent to submit feedback) and legitimately carry no rating/comments
@@ -171,7 +171,7 @@ function parseShowingTimeFeedback({ subject, body }) {
   // Buyer's agent name + brokerage — real format has "Buyer's Agent Details"
   // as its own label, then a LARGE whitespace gap (Gmail preserves the
   // original HTML table's indentation as literal newlines/spaces), THEN
-  // "Craig Browning   Phyllis Browning Company   tel:2103167842 (210)...".
+  // "Dana Reed   Redstone Realty Group   tel:2105550163 (210)...".
   // Capture everything up to the first "tel:" or "mailto:" marker (reliable
   // — always precedes contact info) rather than trying to bound on a phone
   // number directly, and collapse the captured whitespace afterward.

@@ -128,6 +128,18 @@ const check = (name, fn) => {
   catch (err) { failures.push(name); console.error(`  FAIL  ${name}\n        ${err.message}`); }
 };
 
+// captions_present's real shape since the 2026-09-26 rewrite (file header,
+// api/_lib/verify-video-quality.js) is 5 PAIRS, not a `frames_with_captions`
+// count — a mock still returning the old shape silently fails every one of
+// these fixtures' captions_present (0/5 pairs, since `.pairs` is undefined),
+// which was masked everywhere below because none of these tests used to
+// assert on captions_present specifically. Caught 2026-10-01 while wiring in
+// captions_box_readable/speed_applied_once/end_decay_tail, which made the
+// stale `failedRules` arrays visible for the first time.
+function passingCaptionsVerdict(reason = 'mock') {
+  return { pairs: Array.from({ length: 5 }, () => ({ caption_present: true, text_changed: true })), reason };
+}
+
 // Route by URL — mock Anthropic + Supabase + Telegram, pass everything else
 // (there shouldn't be anything else) straight through.
 function installFetchMock({ visionResponder, supabaseState, telegramSent }) {
@@ -164,9 +176,30 @@ function installFetchMock({ visionResponder, supabaseState, telegramSent }) {
 async function makeGoodFixture(tmpDir) {
   const videoPath = path.join(tmpDir, 'good-fixture.mp4');
   const coverPath = path.join(tmpDir, 'good-fixture-cover.png');
+  // Real audio + a genuine ~0.7s decay-to-silence tail, added 2026-10-01
+  // alongside speed_applied_once/end_decay_tail — a real finished video
+  // always has an audio track; the old video-only fixture couldn't
+  // meaningfully exercise either rule (both correctly fail-closed with no
+  // audio stream at all, which is right for a file that has none, but
+  // wasn't testing anything about THESE two rules either way).
+  //
+  // Deliberately NOT burning captions into this fixture to also chase
+  // captions_box_readable — tried it (a `[CAP]`-style ASS box over
+  // testsrc2) and testsrc2's own colour bars/checkerboard dip below the
+  // dark-row luma threshold in places (pure blue ≈ luma 29), confusing
+  // locateCaptionBox()'s scan with unrelated "dark" content; giving the
+  // caption's row-band a plain solid backdrop to avoid that then tripped
+  // content_fills_frame instead (a big static solid patch reads exactly
+  // like a letterbox bar — correctly). Chasing a synthetic fixture through
+  // that is the wrong effort: captions_box_readable has its own dedicated,
+  // far more meaningful regression test against the REAL approved/rejected
+  // production files — scripts/regression-video-caption-box.js. See the
+  // explicit exemption + comment on each assertion below.
   await execFileAsync('ffmpeg', [
     '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1080x1920:rate=30:duration=24',
-    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', videoPath,
+    '-f', 'lavfi', '-i', 'sine=frequency=220:duration=24',
+    '-af', 'afade=t=out:st=23.3:d=0.6',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-c:a', 'aac', videoPath,
   ]);
   await execFileAsync('ffmpeg', ['-y', '-ss', '0', '-i', videoPath, '-frames:v', '1', coverPath]);
   return { videoPath, coverPath };
@@ -206,7 +239,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mocked', reason: 'mock' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
       if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
-      return { frames_with_captions: 3, reason: 'mock' };
+      return passingCaptionsVerdict();
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -242,7 +275,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'ONE GUY BUILT THIS', reason: 'clear bold hook text' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'text gone by frame 2' };
       if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'populated dashboard', disqualifier: 'none', reason: 'opens on real content' };
-      return { frames_with_captions: 3, reason: 'captions visible in all 3 samples' };
+      return passingCaptionsVerdict('captions visible and changing in all 5 pairs');
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -250,11 +283,20 @@ async function makeGoodFixture(tmpDir) {
   const goodResult = await checkVideoQuality({ videoPath: goodVideo, coverPath: goodCover });
   restoreGoodVision();
 
-  check('GOOD fixture: overall pass=true', () => {
-    assert.strictEqual(goodResult.pass, true, `failedRules: ${JSON.stringify(goodResult.failedRules)}`);
+  // captions_box_readable is the one DOCUMENTED exception below (see
+  // makeGoodFixture()'s comment) — this fixture carries no burned-in
+  // captions at all, so it correctly fails-closed ("could not locate a
+  // caption box in enough samples"), same as any real caption-less video
+  // would. Real positive/negative coverage for that rule lives in
+  // scripts/regression-video-caption-box.js against the actual approved
+  // (v7c_SPLICED.mp4) and rejected (v7b_SPLICED.mp4) production files.
+  const EXPECTED_EXEMPT_RULES = ['captions_box_readable'];
+  check('GOOD fixture: overall pass=true once the documented caption-less exemption is excluded', () => {
+    const unexpected = goodResult.failedRules.filter((r) => !EXPECTED_EXEMPT_RULES.includes(r));
+    assert.deepStrictEqual(unexpected, [], `unexpected failures beyond the documented exemption: ${JSON.stringify(unexpected)} (full failedRules: ${JSON.stringify(goodResult.failedRules)})`);
   });
-  check('GOOD fixture: zero failed rules', () => {
-    assert.deepStrictEqual(goodResult.failedRules, []);
+  check('GOOD fixture: failedRules is exactly the documented exemption, nothing else', () => {
+    assert.deepStrictEqual(goodResult.failedRules, EXPECTED_EXEMPT_RULES);
   });
   check('GOOD fixture: real motion measured (SSIM well below the 0.999 fail threshold)', () => {
     assert.ok(goodResult.detail.motion_ssim < 0.99, `expected clear motion, got SSIM ${goodResult.detail.motion_ssim}`);
@@ -271,7 +313,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('hook_visible')) return { hook_visible: false, text_seen: '', reason: 'no legible hook text' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
       if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
-      return { frames_with_captions: 3, reason: 'mock' };
+      return passingCaptionsVerdict();
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -282,8 +324,11 @@ async function makeGoodFixture(tmpDir) {
   check('overall pass=false when vision says no hook text at frame 0', () => {
     assert.strictEqual(noHookResult.pass, false);
   });
-  check('failedRules contains exactly hook_visible_frame0', () => {
-    assert.deepStrictEqual(noHookResult.failedRules, ['hook_visible_frame0']);
+  check('failedRules contains exactly hook_visible_frame0 (plus the documented caption-less exemption)', () => {
+    // captions_box_readable sorts before hook_visible_frame0 in rule
+    // insertion order (see checkVideoQuality()) — see EXPECTED_EXEMPT_RULES
+    // above for why this fixture never passes it.
+    assert.deepStrictEqual(noHookResult.failedRules, ['captions_box_readable', 'hook_visible_frame0']);
   });
 
   // ── Test 6-9: full-bleed framing rules (2026-09-16 stage-checklist incident) ──
@@ -338,7 +383,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('hook_visible')) return { hook_visible: true, text_seen: 'mock', reason: 'mock' };
       if (promptText.includes('hook_cleared')) return { hook_cleared: true, reason: 'mock' };
       if (promptText.includes('opening_meaningful')) return { opening_meaningful: true, screen_seen: 'mock', disqualifier: 'none', reason: 'mock' };
-      return { frames_with_captions: 3, reason: 'mock' };
+      return passingCaptionsVerdict();
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -491,7 +536,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('opening_meaningful')) {
         return { opening_meaningful: false, screen_seen: 'Frame A blank white; Frame B the Dossie sign-in page', disqualifier: 'login', reason: 'opens on the login screen' };
       }
-      return { frames_with_captions: 3, reason: 'mock' };
+      return passingCaptionsVerdict();
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -499,9 +544,9 @@ async function makeGoodFixture(tmpDir) {
   const loginOpenResult = await checkVideoQuality({ videoPath: goodVideo, coverPath: goodCover });
   restoreLoginVision();
 
-  check('vision reporting a login opening fails the gate and is the only failed rule', () => {
+  check('vision reporting a login opening fails the gate and is the only OTHER failed rule (plus the documented caption-less exemption)', () => {
     assert.strictEqual(loginOpenResult.pass, false);
-    assert.deepStrictEqual(loginOpenResult.failedRules, ['opening_not_login_or_empty']);
+    assert.deepStrictEqual(loginOpenResult.failedRules, ['captions_box_readable', 'opening_not_login_or_empty']);
   });
   check('the disqualifier is surfaced in detail for the Telegram alert', () => {
     assert.strictEqual(loginOpenResult.detail.opening_disqualifier, 'login');
@@ -519,7 +564,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('opening_meaningful')) {
         return { opening_meaningful: true, screen_seen: 'solid-colour hook card with large title text', disqualifier: 'none', reason: 'designed hook/title card, not a dead frame' };
       }
-      return { frames_with_captions: 3, reason: 'mock' };
+      return passingCaptionsVerdict();
     },
     supabaseState: { patches: [] },
     telegramSent: [],
@@ -572,7 +617,7 @@ async function makeGoodFixture(tmpDir) {
       if (promptText.includes('opening_meaningful')) {
         return { opening_meaningful: false, screen_seen: 'Frame A blank white; Frame B the Dossie sign-in page with email/password fields', disqualifier: 'login', reason: 'real auth screen, not a hook card' };
       }
-      return { frames_with_captions: 0, reason: 'mock' };
+      return { pairs: Array.from({ length: 5 }, () => ({ caption_present: false, text_changed: false })), reason: 'mock' };
     },
     supabaseState: { patches: [] },
     telegramSent: [],

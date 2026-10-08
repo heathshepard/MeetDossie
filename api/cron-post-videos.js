@@ -1,5 +1,9 @@
 // Vercel Serverless Function: /api/cron-post-videos
-// Runs at 13:30 UTC (8:30am CT) daily — see vercel.json "30 13 * * *".
+// Dispatched every 15 minutes via api/cron-dispatch-every15.js (moved off
+// the once-daily 13:30 UTC / 8:30am CT slot 2026-09-28 — that cadence let a
+// Heath Telegram approval sit up to ~21h before it could post). No-ops
+// unless a row is status='heath_approved' AND scheduled_for<=now(); daily
+// caps still apply every run (see Step 2 below and getPostCountsToday()).
 //
 // SCHEDULE + CAP GATING (Carter 2026-09-07 — FEATURE-VIDEO-DAILY-PLAN §3):
 //   Every platform posts through the live `posting_schedule` table:
@@ -8,6 +12,14 @@
 //     posted today, America/Chicago day)                 → platform skipped.
 //   - Otherwise the Zernio call targets the platform's next slot today
 //     (scheduledFor); if every slot has already passed, it publishes now.
+//
+// ROW-LEVEL scheduled_for GATE (Atlas 2026-09-25): separate from the
+// per-platform gate above. video_library.scheduled_for is a coarse "don't
+// even consider this row yet" cutoff set at REGISTRATION time (see
+// api/_lib/video-schedule.js) — Step 2's query below only selects
+// heath_approved rows whose scheduled_for is NULL or already <= now. NULL
+// (every pre-2026-09-25 row) is unconditionally eligible, so the existing
+// queue's behavior is unchanged.
 //
 // REVIEW GATE FLOW (added 2026-05-27):
 //   1. Videos with status='approved' are sent to Heath via Telegram for review.
@@ -20,7 +32,7 @@
 // via the /api/video-review-callback endpoint (see bottom of this file — separate handler).
 //
 // Auth: Vercel cron header OR Authorization: Bearer ${CRON_SECRET}
-// Schedule: vercel.json — "30 11 * * *"
+// Schedule: */15 * * * * via api/cron-dispatch-every15.js (see top-of-file note).
 
 // Scheduled-Telegram kill switch (Atlas 2026-08-16). Gates unattended pushes
 // to Heath behind TELEGRAM_CRON_NOTIFICATIONS. Two-way chat is unaffected.
@@ -41,7 +53,7 @@ const { gateBeforePublish: gateVideoQuality } = require('./_lib/verify-video-qua
 // gap where a video_library post's per-platform Zernio result was logged
 // and thrown away, leaving nothing for cron-verify-zernio-deliveries.js to
 // later confirm. See api/_lib/video-delivery-verify.js file header.
-const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
+const { buildDeliveryEntry, buildSkipEntry, mergeDeliveryEntries } = require('./_lib/video-delivery-verify.js');
 // Routine-approval batching (Heath, 2026-09-17: "batched into the morning
 // brief rather than pinging per item"). Same capability and same mechanism
 // api/cron-comment-opp-approval.js already uses: when 'batch_routine_approvals'
@@ -52,6 +64,13 @@ const { buildDeliveryEntry, mergeDeliveryEntries } = require('./_lib/video-deliv
 // Fails CLOSED to the old per-item send if the flag can't be read — a
 // notification Heath never sees is worse than one too many.
 const { checkCapability, logAutonomousAction } = require('./_lib/ops-policy.js');
+const { checkVideoQueueRunway } = require('./_lib/video-queue-runway.js');
+// FAILED-RETRYABLE classification (Atlas 2026-10-03 — "three days and no
+// video" incident, video 8). isCaptionValid/hasRustStoreCta are the exact
+// checks below; extracted so api/_lib/silence-alarm.js's self-heal
+// precondition check can never drift from what this file enforces at
+// publish time. See api/_lib/video-retry.js file header for the full model.
+const { isCaptionValid, hasRustStoreCta } = require('./_lib/video-retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -88,16 +107,33 @@ const ZERNIO_ACCOUNTS = {
 
 // Default: post video to all connected platforms unless overridden by video.platforms row.
 // YouTube is included — videos are the only thing YouTube accepts, which matches our video_library content.
-const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'linkedin', 'youtube'];
+// 'linkedin' removed 2026-09-30 (was ['tiktok','instagram','facebook','twitter','linkedin','youtube']):
+// LinkedIn's content path is the carousel/document post (api/cron-publish-
+// approved.js, social_posts table), which measurably outperforms video on
+// that platform (docs/CONTENT-FORMAT-LIBRARY.md §6 item 2 — LinkedIn video
+// views fell 36% YoY, carousels median 21.8% engagement vs 7.4% for video).
+// This constant is a legacy-row fail-safe only (see defaultPlatformsFor()
+// below) — no live queue-finished-videos.py row has ever set an empty
+// platforms array, so this had zero live effect either way, but a legacy
+// row should default to the same policy real rows now follow.
+const DEFAULT_PLATFORMS = ['tiktok', 'instagram', 'facebook', 'twitter', 'youtube'];
 
-// Heath's realtor "Brokerage" Zernio profile only has facebook + instagram
-// (+ youtube, no content plan) connected today (docs/PIPELINE.md) — no
+// Heath's realtor "Brokerage" Zernio profile has facebook + instagram +
+// youtube connected today (zernio_accounts, docs/PIPELINE.md) — no
 // tiktok/twitter/linkedin row exists under owner='heath-realtor'. Falling
 // back to the Dossie DEFAULT_PLATFORMS list for a heath-realtor row would
-// just generate loud, expected failures on those three. Used only when a
+// just generate loud, expected failures on those. Used only when a
 // heath-realtor row ships with an empty platforms array (queue-finished-
 // videos.py always sets one explicitly, so this is a legacy-row fallback).
-const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram'];
+// 'youtube' added 2026-09-30 (was ['facebook', 'instagram']) — the
+// heath-realtor YouTube channel ("Shepard Real Estate Solutions") has been
+// connected in zernio_accounts since 2026-08-25
+// (20260825_zernio_accounts_youtube_heath_realtor.sql) but this fail-safe
+// constant never matched that — unrouted, not unconnected. The live path
+// (defaultPlatformsFor()'s zernio_accounts read, below) already resolved
+// youtube correctly for any real heath-realtor row; this only fixes what
+// happens if that DB read itself fails.
+const REALTOR_DEFAULT_PLATFORMS = ['facebook', 'instagram', 'youtube'];
 
 // Default platforms for a video whose row shipped with an empty/missing
 // `platforms` array — a legacy-row fallback (queue-finished-videos.py
@@ -190,8 +226,12 @@ async function getPostCountsToday() {
   const { data: socialRows, ok: socialOk } = await supabaseFetch(
     `/rest/v1/social_posts?or=(and(status.eq.posted,posted_at.gte.${startIso}),and(status.eq.publishing,publishing_started_at.gte.${startIso}))&select=platform,target_owner`,
   );
+  // status=in.(posted,posted_partial) (Atlas 2026-09-30 — partial-delivery
+  // fix): a posted_partial row DID really deliver to some of its platforms
+  // and that real usage must still count against today's cap, same as a
+  // fully-posted row always has.
   const { data: videoRows, ok: videoOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.posted&posted_date=gte.${startIso}&select=platforms,target_owner`,
+    `/rest/v1/video_library?status=in.(posted,posted_partial)&posted_date=gte.${startIso}&select=platforms,target_owner,zernio_deliveries`,
   );
   if (!socialOk || !videoOk) return null;
 
@@ -201,7 +241,26 @@ async function getPostCountsToday() {
   if (Array.isArray(socialRows)) socialRows.forEach((r) => r.platform && bump(r.target_owner, r.platform));
   if (Array.isArray(videoRows)) {
     videoRows.forEach((r) => {
-      if (Array.isArray(r.platforms)) r.platforms.forEach((p) => bump(r.target_owner, p));
+      if (!Array.isArray(r.platforms)) return;
+      // PHANTOM-CAP FIX (Atlas 2026-09-30). Previously every platform
+      // LISTED on a posted row bumped its cap count, even platforms that
+      // row never actually attempted (gated out by gatePlatform() before
+      // reaching postToZernio() — see cron-post-videos.js's gate-skip
+      // handling below). Measured live, 2026-09-28: a 5-platform row that
+      // only ever called Zernio for 2 of them still inflated the OTHER 3
+      // platforms' same-day counts for every later candidate this cron
+      // considered — a row that never touched facebook was still spending
+      // facebook's daily cap. Skip any platform this row's own
+      // zernio_deliveries marks 'gate_skipped' (see buildSkipEntry()) —
+      // count only platforms that were genuinely attempted.
+      const skipped = new Set(
+        (Array.isArray(r.zernio_deliveries) ? r.zernio_deliveries : [])
+          .filter((e) => e && e.status === 'gate_skipped')
+          .map((e) => e.platform),
+      );
+      r.platforms.forEach((p) => {
+        if (!skipped.has(p)) bump(r.target_owner, p);
+      });
     });
   }
   return counts;
@@ -307,6 +366,48 @@ async function resolveZernioAccountId(platform, owner) {
   return null;
 }
 
+// Drops any platform from a requested list that would NOT resolve to a
+// real Zernio account right now (Atlas 2026-10-06 — TIKTOK-ROUTING).
+//
+// WHY THIS EXISTS: video.platforms (set at ingestion time by
+// scripts/queue-finished-videos.py from config/video-routing.json) is a
+// STATIC list baked into the row — it encodes "this lane is ALLOWED to
+// reach this platform," not "an account exists today." gatePlatform()
+// above only checks posting_schedule (cap/slot/is_active); it has no idea
+// whether zernio_accounts has a matching row. Without this filter, adding
+// 'tiktok' to the heath-realtor lanes in config/video-routing.json (done
+// same commit) would sail every realtor video's 'tiktok' entry through
+// resolvePlatformTargets() unskipped, straight into postToZernio(), which
+// would then fail with "No Zernio account ID for platform: tiktok" —
+// and because that failure happens AFTER facebook/instagram/youtube may
+// have already posted for real in the same loop, libraryOk=false flips
+// the WHOLE row to status='failed' (posted_date cleared), not merely
+// posted_partial — a worse bug than noise, since a retry pass could
+// re-post the platforms that already succeeded.
+//
+// Calling this BEFORE resolvePlatformTargets() means an unconnected
+// platform is dropped silently, with zero trace in platformSkips/
+// zernio_deliveries — reproducing EXACTLY today's 3-platform behavior for
+// heath-realtor until Heath connects a TikTok account in Zernio. No code
+// change is needed when he does: the very next cron tick that reads this
+// video row will see the new zernio_accounts row and start including
+// 'tiktok'. For owner='dossie' this is always a no-op (ZERNIO_ACCOUNTS
+// hardcoded fallback map guarantees resolveZernioAccountId() never
+// returns null for a known platform), so no existing Dossie routing
+// changes behavior.
+async function filterPlatformsByAccount(platforms, owner) {
+  const kept = [];
+  for (const platform of platforms) {
+    const accountId = await resolveZernioAccountId(platform, owner);
+    if (accountId) {
+      kept.push(platform);
+    } else {
+      console.log(`[cron-post-videos] filterPlatformsByAccount: dropping ${platform} for owner=${owner} — no active zernio_accounts row (not connected in Zernio yet)`);
+    }
+  }
+  return kept;
+}
+
 async function supabaseFetch(path, init = {}) {
   const headers = {
     'Content-Type': 'application/json',
@@ -379,9 +480,14 @@ async function sendForHeathReview(video, { batched = false } = {}) {
   }
 
   const owner = video.target_owner || 'dossie';
-  const platforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
+  const rawPlatforms = (Array.isArray(video.platforms) && video.platforms.length > 0)
     ? video.platforms
     : await defaultPlatformsFor(owner);
+  // Show Heath the platforms this will ACTUALLY reach, not the lane's full
+  // allow-list — filterPlatformsByAccount() header explains why a
+  // configured-but-unconnected platform (e.g. heath-realtor/tiktok before
+  // he connects it in Zernio) must not appear here as if it'll post.
+  const platforms = await filterPlatformsByAccount(rawPlatforms, owner);
 
   const text = [
     `Video ready for review: ${video.topic || video.id}${owner === 'heath-realtor' ? ' [REALTOR]' : ''}`,
@@ -442,10 +548,42 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     }
   }
 
+  // Instagram Trial Reels (Atlas, 2026-10-05). Per memory
+  // social-growth-research-2026-09-26.md, Instagram's Reels ranking
+  // explicitly weights follower count — a documented headwind for the
+  // Dossie brand account (10 followers, zernio_accounts owner='dossie').
+  // Trial Reels bypass that: shown only to non-followers, 24h insights,
+  // auto-graduating to the normal follower-feed Reel if it performs within
+  // 72h. Field names verified against docs.zernio.com/platforms/instagram
+  // (2026-10-05) — Zernio exposes Meta's `trial_params.graduation_strategy`
+  // as platformSpecificData.trialParams.graduationStrategy. Default ON for
+  // target_owner='dossie' only — per-row escape hatch is
+  // video_library.ig_trial_reel_opt_out (20261005 migration). Heath's own
+  // realtor account (owner='heath-realtor', 982 followers) never gets this
+  // — it doesn't have the cold-start problem Trial Reels solve, and an
+  // opted-in personal post should reach its real followers immediately.
+  const trialReelOptedOut = opts.trialReelOptOut === true;
+  if (platform === 'instagram' && owner === 'dossie' && !trialReelOptedOut) {
+    platformBlock.platformSpecificData = {
+      ...(platformBlock.platformSpecificData || {}),
+      trialParams: { graduationStrategy: 'SS_PERFORMANCE' },
+    };
+  }
+
   // YouTube requires a title in platformSpecificData.
   // Use topic as title (max 100 chars), fall back to first line of caption.
   if (platform === 'youtube') {
-    const rawTitle = topic || caption.split('\n')[0] || 'Dossie - AI Transaction Coordinator for Texas Agents';
+    // Title source (Atlas 2026-09-25). This used to be `topic || firstLine`,
+    // which was fine while video_library.topic held a human sentence
+    // ("Every TREC deadline, cited to the paragraph"). The 2026-09-17 feature
+    // -demo ingestion writes an internal SLUG there instead
+    // ("dossie-d1-cap6-977d5507"), and that slug shipped as the public title
+    // of a real YouTube video. Prefer the caption's first line whenever the
+    // topic looks like a slug — no spaces, or the id-with-hash shape.
+    const looksLikeSlug = !!topic && (!/\s/.test(topic) || /^[a-z0-9]+(-[a-z0-9]+)+$/i.test(topic));
+    const firstCaptionLine = caption.split('\n').map((l) => l.trim()).find(Boolean) || '';
+    const rawTitle = (looksLikeSlug ? (firstCaptionLine || topic) : (topic || firstCaptionLine))
+      || 'Dossie - AI Transaction Coordinator for Texas Agents';
     platformBlock.platformSpecificData = {
       ...(platformBlock.platformSpecificData || {}),
       title: rawTitle.replace(/[^\w\s\-.,!?'"()&]/g, '').slice(0, 100).trim(),
@@ -492,9 +630,67 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     };
   }
 
+  // ── Cover / thumbnail (Carter, 2026-10-02) ────────────────────────────────
+  // THE BUG THIS FIXES: video_library.cover_url has been a write-only column
+  // since 20260915_video_library_quality_gate.sql. scripts/queue-finished-
+  // videos.py renders a cover, uploads it to the public social-cards bucket
+  // and stores the URL on the row — and nothing ever read it back. This
+  // function sent `mediaItems: [{ url, type: 'video' }]` and nothing else, so
+  // every platform fell back to deriving its own thumbnail from frame 0 of
+  // the MP4. Frame 0 of a document-explainer is a wall of contract body text,
+  // which is why Heath's Instagram grid was a page of identical grey tiles.
+  //
+  // Field names verified against docs.zernio.com on 2026-10-02 (never guess an
+  // API shape). Three different mechanisms, because Zernio mirrors each
+  // platform's own API rather than normalising them:
+  //   mediaItems[].thumbnail                        -> Facebook video + Reels,
+  //                                                    YouTube videos, LinkedIn
+  //                                                    video  (JPG/PNG, <=10MB)
+  //   platformSpecificData.instagramThumbnail       -> Instagram Reels
+  //                                                    (aka `reelCover`; takes
+  //                                                    priority over thumbOffset)
+  //   tiktokSettings.video_cover_image_url          -> TikTok (overrides
+  //                                                    video_cover_timestamp_ms)
+  // Twitter/X has no cover field at all — it uses the first meaningful frame,
+  // so for X the only lever is the video's own frame 0. Noted, not fixable here.
+  //
+  // Caveat recorded from the docs rather than discovered in production:
+  // YouTube only honours a custom thumbnail on a PHONE-VERIFIED channel, and
+  // only on regular videos — never on Shorts. We send it regardless; YouTube
+  // silently skips it when unsupported, which is the same no-op as today.
+  const coverUrl = typeof opts.coverUrl === 'string' && /^https:\/\//.test(opts.coverUrl)
+    ? opts.coverUrl
+    : null;
+
+  const mediaItem = { url: videoUrl, type: 'video' };
+  if (coverUrl) {
+    // Covers facebook / youtube / linkedin in one field.
+    mediaItem.thumbnail = coverUrl;
+
+    if (platform === 'instagram') {
+      platformBlock.platformSpecificData = {
+        ...(platformBlock.platformSpecificData || {}),
+        instagramThumbnail: coverUrl,
+      };
+    }
+    if (platform === 'tiktok') {
+      platformBlock.platformSpecificData = {
+        ...(platformBlock.platformSpecificData || {}),
+        tiktokSettings: {
+          ...((platformBlock.platformSpecificData && platformBlock.platformSpecificData.tiktokSettings) || {}),
+          video_cover_image_url: coverUrl,
+        },
+      };
+    }
+  } else {
+    // Loud, because a silent fallback to frame 0 is exactly the failure that
+    // went unnoticed for weeks. feedback_silent-failure-is-the-enemy.md.
+    console.warn(`[cron-post-videos] ${platform}: no cover_url on this row — platform will fall back to a frame grab`);
+  }
+
   const payload = {
     content: caption,
-    mediaItems: [{ url: videoUrl, type: 'video' }],
+    mediaItems: [mediaItem],
     platforms: [platformBlock],
   };
   if (opts.scheduledFor) {
@@ -543,7 +739,14 @@ async function postToZernio(platform, videoUrl, caption, topic, opts = {}, owner
     // real URL usually only shows up later via GET /posts/:id, which
     // cron-verify-zernio-deliveries.js polls). Never invented — only used
     // if actually present in this exact response.
+    // Verified live 2026-09-25 (Atlas): on a publishNow call Zernio returns
+    // the real permalink at data.post.platforms[0].platformPostUrl. None of
+    // the paths below it were ever populated, so every synchronous publish
+    // recorded platform_url=null and looked unproven even when Zernio had
+    // handed us a working URL in the same response. platformPostUrl first.
     const platformUrl =
+      (data?.post?.platforms && Array.isArray(data.post.platforms) && data.post.platforms[0]?.platformPostUrl) ||
+      (Array.isArray(data?.platforms) && data.platforms[0]?.platformPostUrl) ||
       data?.url ||
       data?.platform_url ||
       data?.post?.url ||
@@ -580,18 +783,52 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
     return res.status(200).json({ ok: true, skipped: true, reason: 'zernio not configured' });
   }
 
-  const summary = { queued_for_review: [], posted: [], skipped: [] };
-
-  // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
-  const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
-    '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
-  );
-
-  if (!approvedOk) {
-    return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
+  // --- Manual debug scoping (Atlas 2026-09-25) --------------------------
+  // Approved manual-trigger pattern per CLAUDE.md §15: debug params gated
+  // behind the existing `Bearer ${CRON_SECRET}` check. NEVER honored on a
+  // real Vercel cron invocation — a scheduled run always behaves exactly as
+  // it did before this block existed.
+  //
+  //   ?video_id=<video_library.id>  restrict the publish pass to one row
+  //   ?platform=<platform>          restrict that row to ONE platform
+  //   ?publish_now=1                publish immediately instead of booking
+  //                                 the platform's next posting_schedule
+  //                                 slot. The is_active and max_per_day
+  //                                 gates still apply — this only collapses
+  //                                 "schedule for 14:00" into "publish now",
+  //                                 which is the ONLY way to get Zernio to
+  //                                 return a synchronous platformPostUrl
+  //                                 (scheduled posts return an id and
+  //                                 nothing else, so a scheduled post can
+  //                                 never be proven live in the same run).
+  const dbg = (!isVercelCron && isManualAuth) ? (req.query || {}) : {};
+  const onlyVideoId = dbg.video_id ? String(dbg.video_id) : null;
+  const onlyPlatform = dbg.platform ? String(dbg.platform).toLowerCase() : null;
+  const forcePublishNow = String(dbg.publish_now || '') === '1';
+  if (onlyVideoId || onlyPlatform || forcePublishNow) {
+    console.log(`[cron-post-videos] MANUAL DEBUG SCOPE video_id=${onlyVideoId || '-'} platform=${onlyPlatform || '-'} publish_now=${forcePublishNow}`);
   }
 
-  const approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+  const summary = { queued_for_review: [], posted: [], skipped: [] };
+  if (onlyVideoId || onlyPlatform || forcePublishNow) {
+    summary.manual_scope = { video_id: onlyVideoId, platform: onlyPlatform, publish_now: forcePublishNow };
+  }
+
+  // --- STEP 1: Queue any 'approved' videos for Heath's review (do NOT post them) ---
+  // Skipped entirely under a manual ?video_id= scope: a targeted one-row
+  // publish must not also fire a batch of review notifications at Heath.
+  let approvedVideos = [];
+  if (!onlyVideoId) {
+    const { data: approvedRows, ok: approvedOk } = await supabaseFetch(
+      '/rest/v1/video_library?status=eq.approved&order=created_at.asc',
+    );
+
+    if (!approvedOk) {
+      return res.status(502).json({ ok: false, error: 'Failed to query approved videos' });
+    }
+
+    approvedVideos = Array.isArray(approvedRows) ? approvedRows : [];
+  }
 
   // Read the batching capability ONCE for the whole pass. Fail closed to the
   // old per-item send: if the flag can't be read we do not risk a video
@@ -631,16 +868,54 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // oldest rows and post the first one that has at least one platform with
   // cap room today. Rows skipped this pass are untouched and re-considered
   // next run (or picked up sooner once cap room frees up).
+  // scheduled_for gate (Atlas 2026-09-25): a row with a future scheduled_for
+  // is not due yet and must not be treated as "oldest" just because nothing
+  // else is ready. NULL scheduled_for (every pre-2026-09-25 row, and any new
+  // row a registration path couldn't find a slot for) is unconditionally
+  // eligible. Ordering puts NULL rows first (nullsfirst), sorted by
+  // created_at exactly as before, so the existing queue's behavior is
+  // untouched; due scheduled rows sort among themselves by scheduled_for.
+  //
+  // VISIBILITY FIX (Atlas 2026-09-28): the scheduled_for cutoff used to be
+  // applied AS A SQL WHERE CLAUSE (`or=(scheduled_for.is.null,scheduled_for.
+  // lte.now)`), which means a not-yet-due row never entered the `candidates`
+  // array at all — it was excluded before a single line of this file's skip
+  // logging ever ran. That's exactly what made dossie_trec_p8_disclosure-
+  // heath's skip on 2026-09-28 invisible across two consecutive invocations
+  // (no console line, no summary.skipped entry): it had a real future
+  // scheduled_for from auto-scheduling at registration (video-schedule.js
+  // pickScheduledFor), the SQL filter dropped it from the result set before
+  // this function ever saw its id, and it only "reappeared" once wall-clock
+  // time carried its scheduled_for into the past — nothing else changed
+  // between the invocations, which is why it looked like nothing happened.
+  // Fix: pull the due/not-due split into JS so every row this cron even
+  // glances at gets a trace. The SQL query now only filters on status (and
+  // the manual ?video_id= scope); scheduled_for is evaluated per-row below,
+  // and any not-yet-due row gets an explicit summary.skipped entry instead
+  // of silently vanishing from the result set.
   const CANDIDATE_BATCH_SIZE = 20;
+  // Fetch enough rows past CANDIDATE_BATCH_SIZE to also capture the
+  // near-future not-yet-due rows worth logging (nullsfirst/created_at
+  // ordering puts due rows first, so this is generous, not exact).
+  const FETCH_LIMIT = CANDIDATE_BATCH_SIZE * 2;
+  const now = new Date();
   const { data: heathApprovedRows, ok: heathApprovedOk } = await supabaseFetch(
-    `/rest/v1/video_library?status=eq.heath_approved&order=created_at.asc&limit=${CANDIDATE_BATCH_SIZE}`,
+    `/rest/v1/video_library?status=eq.heath_approved${onlyVideoId ? `&id=eq.${encodeURIComponent(onlyVideoId)}` : ''}&order=scheduled_for.asc.nullsfirst,created_at.asc&limit=${FETCH_LIMIT}`,
   );
 
   if (!heathApprovedOk) {
     return res.status(502).json({ ok: false, error: 'Failed to query heath_approved videos' });
   }
 
-  const candidates = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
+  const fetchedRows = Array.isArray(heathApprovedRows) ? heathApprovedRows : [];
+  const isDue = (row) => !row.scheduled_for || new Date(row.scheduled_for) <= now;
+  const candidates = fetchedRows.filter(isDue).slice(0, CANDIDATE_BATCH_SIZE);
+  const notYetDue = fetchedRows.filter((row) => !isDue(row));
+  for (const row of notYetDue) {
+    const minutesOut = Math.round((new Date(row.scheduled_for) - now) / 60000);
+    console.log(`[cron-post-videos] Video ${row.id}: not yet due — scheduled_for=${row.scheduled_for} (${minutesOut}m from now), leaving heath_approved`);
+    summary.skipped.push({ id: row.id, reason: `not yet due (scheduled_for=${row.scheduled_for}, ${minutesOut}m from now)` });
+  }
 
   let libraryOk = true;
   let videoResults = [];
@@ -681,14 +956,21 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           continue;
         }
 
-        const captionCheck = (candidate.caption || '').trim().toLowerCase();
-        if (!captionCheck || captionCheck.startsWith('pulled') || captionCheck.includes('do not repost') || captionCheck.includes('internal')) {
+        // FAILED-RETRYABLE (Atlas 2026-10-03, video 8 incident): an invalid
+        // caption is purely a property of this row's own `caption` column —
+        // a human/script rewriting it makes the row postable again with no
+        // other state change. status='failed_retryable' (not plain
+        // 'failed') keeps the row visible to checkNoVideoScheduledToday()'s
+        // "owed today" check and the video-priority reservation, both of
+        // which would otherwise treat a 'failed' row as if it never
+        // existed — see api/_lib/video-retry.js for the full model.
+        if (!isCaptionValid(candidate.caption)) {
           const warn = `Video ${candidate.id} has an invalid caption ("${(candidate.caption || '').slice(0, 60)}") — skipping to prevent internal notes from posting publicly`;
           console.warn(`[cron-post-videos] ${warn}`);
           await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
           await supabaseFetch(
             `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
-            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+            { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed_retryable', failure_reason: 'invalid_caption', failed_at: new Date().toISOString() }) },
           );
           summary.skipped.push({ id: candidate.id, reason: 'invalid caption' });
           continue;
@@ -699,15 +981,17 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         // now" language while iOS/Android aren't both live yet. The CTA is
         // always the waitlist at rustfitness.app. Caught here so a caption
         // slipping past generation still can't ship a broken/premature CTA.
+        // Also failed_retryable (same reasoning as invalid_caption above) —
+        // this too is purely a caption-content problem, fixed the moment
+        // the caption is rewritten without the CTA language.
         if ((candidate.target_owner || 'dossie') === 'rust') {
-          const rustCta = captionCheck;
-          if (/\b(download( it)? now|get it on|app store|google play|available now on)\b/.test(rustCta)) {
+          if (hasRustStoreCta(candidate.caption)) {
             const warn = `Video ${candidate.id} (owner=rust) caption references a store/download CTA before iOS/Android are live: "${(candidate.caption || '').slice(0, 80)}"`;
             console.warn(`[cron-post-videos] ${warn}`);
             await sendTelegramMessage(`Video pipeline safety check: ${warn}`);
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(candidate.id)}`,
-              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+              { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed_retryable', failure_reason: 'rust_store_cta', failed_at: new Date().toISOString() }) },
             );
             summary.skipped.push({ id: candidate.id, reason: 'rust store-link CTA before launch' });
             continue;
@@ -721,10 +1005,28 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         }
 
         const owner = candidate.target_owner || 'dossie';
-        const requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
+        let requested = (Array.isArray(candidate.platforms) && candidate.platforms.length > 0)
           ? candidate.platforms
           : await defaultPlatformsFor(owner);
+        // Drop any platform with no live zernio_accounts row for this owner
+        // BEFORE it ever reaches resolvePlatformTargets()/gatePlatform() —
+        // see filterPlatformsByAccount()'s header. This must run ahead of
+        // gating, not just ahead of postToZernio(), or an unconnected
+        // platform would already be "targeted" and a hard Zernio failure on
+        // it would flip the whole row to status='failed' even after other
+        // platforms genuinely posted.
+        requested = await filterPlatformsByAccount(requested, owner);
+        // Manual ?platform= narrows to one of the row's OWN platforms. It can
+        // never add a platform the row wasn't already configured for.
+        if (onlyPlatform) {
+          requested = requested.filter((p) => String(p).toLowerCase() === onlyPlatform);
+        }
         const resolved = resolvePlatformTargets(`video ${candidate.id}`, requested, scheduleByPlatform, counts, owner);
+        // ?publish_now=1 collapses a booked slot into an immediate publish.
+        // The is_active / max_per_day gates above already ran and still bind.
+        if (forcePublishNow) {
+          for (const t of resolved.targets) t.scheduledFor = null;
+        }
 
         if (resolved.targets.length === 0) {
           console.log(`[cron-post-videos] Video ${candidate.id}: no platform eligible today — leaving heath_approved, checking next candidate`);
@@ -756,7 +1058,15 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
         );
 
         if (!lockOk) {
-          console.error('[cron-post-videos] Failed to acquire posting lock');
+          // Same visibility fix as the scheduled_for gate above: this used
+          // to log a console.error and set libraryOk=false with no
+          // summary.skipped entry — a row that lost the race (WHERE
+          // status=eq.heath_approved matched zero rows because a concurrent
+          // invocation already flipped it to 'posting') vanished from the
+          // response with no trace of why. Now every failed lock leaves an
+          // explicit reason.
+          console.error(`[cron-post-videos] Failed to acquire posting lock on ${video.id} — status likely changed from heath_approved by a concurrent run`);
+          summary.skipped.push({ id: video.id, reason: 'posting lock not acquired — status changed before claim (likely concurrent invocation)' });
           libraryOk = false;
         } else {
           platformsAttempted = targets.map((t) => t.platform);
@@ -767,7 +1077,14 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
           for (const t of targets) {
             const result = await postToZernio(
               t.platform, video.supabase_url, caption, video.topic,
-              { scheduledFor: t.scheduledFor, usesClonedVoice: video.uses_cloned_voice === true }, owner,
+              {
+                scheduledFor: t.scheduledFor,
+                usesClonedVoice: video.uses_cloned_voice === true,
+                // The row is fetched with no `select=`, so cover_url has always
+                // been present in memory here — it was simply never passed on.
+                coverUrl: video.cover_url,
+                trialReelOptOut: video.ig_trial_reel_opt_out === true,
+              }, owner,
             );
             videoResults.push({ platform: t.platform, scheduledFor: t.scheduledFor, ...result });
             deliveryEntries.push(buildDeliveryEntry({
@@ -783,39 +1100,78 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
               console.log(`[cron-post-videos] ${t.platform} accepted (${t.scheduledFor ? `scheduled ${t.scheduledFor}` : 'publish now'})${result.unverified ? ' — UNVERIFIED (no post id)' : ''}`);
             }
           }
+          // Record a bookkeeping entry for every platform the row TARGETED
+          // but that never reached postToZernio() at all — gated out by
+          // resolvePlatformTargets()/gatePlatform() above (daily cap,
+          // inactive posting_schedule row, or none for today). Fixes the
+          // gap this whole change exists for: previously a gated-out
+          // platform left NO trace anywhere on the row, and the row still
+          // read status='posted' as if every targeted platform had been
+          // reached. See buildSkipEntry()'s header for the measured
+          // 2026-09-28 evidence (Atlas 2026-09-30).
+          const skipEntries = platformSkips.map((s) => buildSkipEntry({
+            platform: s.platform,
+            reason: s.reason,
+            nowIso,
+          }));
           // Persist per-platform delivery state so cron-verify-zernio-deliveries.js
           // can confirm actual delivery later — previously this was logged
           // and discarded, the exact gap this fix closes.
-          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, deliveryEntries);
+          const zernioDeliveries = mergeDeliveryEntries(video.zernio_deliveries, [...deliveryEntries, ...skipEntries]);
 
           if (libraryOk) {
+            // PARTIAL-DELIVERY STATUS (Atlas 2026-09-30). libraryOk only
+            // reflects "no platform we actually CALLED came back with a
+            // hard Zernio failure" — it says nothing about platforms that
+            // never got called in the first place (platformSkips, above).
+            // A row must not read 'posted' when a targeted platform got
+            // nothing: status='posted' now means every originally-targeted
+            // platform was at least attempted; status='posted_partial'
+            // means some were gated out before ever reaching Zernio. Either
+            // way zernioDeliveries carries a complete per-platform record
+            // (attempted AND skipped) — see 20260930e_video_library_
+            // posted_partial_status.sql for the constraint widen and
+            // api/_lib/silence-alarm.js's checkPartialVideoDeliveries() for
+            // the alarm that makes this visible without Heath having to go
+            // looking.
+            const hasGateSkips = platformSkips.length > 0;
+            const finalStatus = hasGateSkips ? 'posted_partial' : 'posted';
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'posted', posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
+                body: JSON.stringify({ status: finalStatus, posted_date: new Date().toISOString(), zernio_deliveries: zernioDeliveries }),
               },
             );
             const unverified = videoResults.filter((r) => r.unverified).map((r) => r.platform);
             const msgLines = [
-              `Video posted: ${video.id}`,
+              `Video ${hasGateSkips ? 'PARTIALLY posted' : 'posted'}: ${video.id}`,
               `Platforms: ${videoResults.map((r) => `${r.platform}${r.scheduledFor ? ` @ ${r.scheduledFor}` : ' (now)'}`).join(', ')}`,
             ];
-            if (platformSkips.length) msgLines.push(`Skipped: ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
+            if (hasGateSkips) msgLines.push(`NEVER ATTEMPTED (gated before publish): ${platformSkips.map((s) => `${s.platform} (${s.reason})`).join(', ')}`);
             if (unverified.length) msgLines.push(`UNVERIFIED (Zernio returned no post id): ${unverified.join(', ')} — check Zernio dashboard`);
             msgLines.push(caption.slice(0, 100));
             await sendTelegramMessage(msgLines.join('\n'));
-            console.log(`[cron-post-videos] Video ${video.id} posted successfully`);
+            console.log(`[cron-post-videos] Video ${video.id} ${hasGateSkips ? 'posted_partial' : 'posted'} (${hasGateSkips ? `missing: ${platformSkips.map((s) => s.platform).join(',')}` : 'all targeted platforms attempted'})`);
             summary.posted.push(video.id);
+            if (hasGateSkips) {
+              summary.posted_partial = summary.posted_partial || [];
+              summary.posted_partial.push({ id: video.id, missing: platformSkips.map((s) => s.platform) });
+            }
           } else {
             const errorSummary = videoResults.filter((r) => !r.ok).map((r) => `${r.platform}: ${r.error}`).join('; ');
+            // Terminal 'failed', never 'failed_retryable' — an actual Zernio
+            // post attempt was made and rejected. There is no cheap way to
+            // tell a transient Zernio hiccup apart from a genuinely broken
+            // video file from here, and a genuinely broken video must never
+            // be auto-retried (api/_lib/video-retry.js file header).
             await supabaseFetch(
               `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
               {
                 method: 'PATCH',
                 headers: { Prefer: 'return=minimal' },
-                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries }),
+                body: JSON.stringify({ status: 'failed', posted_date: null, zernio_deliveries: zernioDeliveries, failure_reason: 'zernio_delivery_error', failed_at: new Date().toISOString() }),
               },
             );
             await sendTelegramMessage(`Video post FAILED: ${video.id}\nErrors: ${errorSummary}`);
@@ -827,7 +1183,11 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   }
 
   // --- STEP 3: Post any video_approved skits to Zernio ---
-  const skitPostResult = await postApprovedSkits();
+  // Skipped under a manual scope — a targeted one-row run must not also
+  // publish an unrelated skit as a side effect.
+  const skitPostResult = (onlyVideoId || onlyPlatform)
+    ? { posted: [], skipped: [], scoped_out: true }
+    : await postApprovedSkits();
   summary.skit_posted = skitPostResult.posted;
 
   // --- STEP 4: Alert if approved videos have sat unposted for 48h+ ---
@@ -837,6 +1197,21 @@ module.exports = withTelemetry('cron-post-videos', async function handler(req, r
   // has no approved_at column, so created_at is the best available proxy
   // for "how long has this been sitting."
   summary.stale_approved = await alertStaleApprovedVideos();
+
+  // --- STEP 5: content-calendar runway check (Atlas 2026-10-03) ---
+  // Rides this already-firing cron (no new cron-job.org registration) so
+  // "nothing queued for tomorrow" surfaces on jarvis_todos BEFORE the queue
+  // actually goes empty, not after. See api/_lib/video-queue-runway.js.
+  // Skipped under a manual single-row/platform debug scope, same reasoning
+  // as Steps 1 and 3 — a targeted run must not also mutate the todo list.
+  if (!onlyVideoId && !onlyPlatform) {
+    try {
+      summary.queue_runway = await checkVideoQueueRunway({ supabaseFetch });
+    } catch (err) {
+      console.warn('[cron-post-videos] checkVideoQueueRunway threw (non-fatal):', err && err.message);
+      summary.queue_runway = { ok: false, error: err && err.message };
+    }
+  }
 
   return res.status(200).json({
     ok: libraryOk,

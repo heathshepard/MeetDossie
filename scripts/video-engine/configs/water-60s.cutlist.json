@@ -1,0 +1,19 @@
+{
+  "keepSegments": [
+    {
+      "start": 0.84,
+      "end": 25.58
+    },
+    {
+      "start": 33.26,
+      "end": 66.24
+    },
+    {
+      "start": 109.76,
+      "end": 116.65
+    }
+  ],
+  "stats": {
+    "keptSeconds": 64.61
+  }
+}

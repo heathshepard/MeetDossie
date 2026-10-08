@@ -1,0 +1,73 @@
+{
+  "slug": "dossie-deadline-chain-2026-10-03",
+  "brand": "dossie",
+  "voice_id": "6rOxfAnZpbM3VIEhFaeV",
+  "model_id": "eleven_v4",
+  "voice_settings": {
+    "stability": 0.4,
+    "similarity_boost": 0.75,
+    "style": 0.3,
+    "use_speaker_boost": true
+  },
+
+  "_voice_note": "Luna = 6rOxfAnZpbM3VIEhFaeV, confirmed against the live GET /v1/voices listing on 2026-10-03 ('Luna - Calm & Grounded', category professional). CLAUDE.md §2 AND memory heath-voice-clone-usage-scope.md BOTH record Luna as lxYfHSkYm1EzQzGhdbfc -- that id is a different voice entirely ('Jessica Anne Bogart - A VO Professional; now cloned!'). Both docs need correcting. Heath's clone is refused on this brand in code by guard() in the builder, not just by convention. These voice_settings are MY choice for Luna and are NOT a locked, Heath-approved set the way the clone's 0.3/0.75/0.4 are.",
+
+  "_capability_gate": [
+    "Shows exactly ONE capability, allowlisted WORKS in docs/DOSSIE-VERIFIED-CAPABILITIES.md #6: 'TREC deadline calculator -- Deadlines shown with real TREC paragraph citations (5A, 5B, 6A, 9A), recomputed live when a date field is edited.'",
+    "NOT shown and NOT implied anywhere in script, cards or footage: CMA (#20 DOESN'T EXIST), MLS (#21), member SMS (#22), brokerage-portal upload (#24), e-sign completion (#16 -- zero envelopes have ever completed in production).",
+    "Contract scan is NOT mentioned: #3 was corrected 2026-10-01 to 8-9 of 41 fields, and #4 (compliance audit) is intermittent. Neither is safe to dramatise, so neither appears.",
+    "The footage is the indexed Dossie recording only. Media/b-roll/boerne/LIBRARY.md scopes that footage to 'Heath's REALTOR brand and Boerne/Hill Country market content. Not Dossie product video.' -- so no Boerne clip appears here."
+  ],
+
+  "music": "bright-optimistic-pop.mp3",
+  "music_gain_db": -5,
+  "_music_why": "114.7 BPM measured, 106s long (no loop seam), drive 0.137 -- warm with real forward motion, which is where this video's energy has to come from: Luna is literally 'Calm & Grounded' and will not supply it vocally.",
+
+  "default_gap": 0.15,
+  "speed": 1.06,
+
+  "hook_card": {
+    "lines": ["ONE DATE CHANGED.", "WHICH DEADLINES", "JUST MOVED?"],
+    "until": 2.4
+  },
+  "caption_suppress_until": 2.4,
+  "cta_card": {
+    "lines": ["DOSSIE", "YOUR DEALS. HER JOB."],
+    "from_end": 2.9
+  },
+
+  "accent_words": ["5A", "5B", "6A", "9A"],
+  "caption_rewrite": [
+    ["paragraph five A", "¶5A"],
+    ["five B", "¶5B"],
+    ["six A", "¶6A"],
+    ["nine A", "¶9A"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",   "text": "One date on the contract changed. Do you know which deadlines just moved?" },
+    { "id": "SETUP",  "text": "Dossie does." },
+    { "id": "DETAIL", "text": "She recomputes the chain, and cites the paragraph for every single one." },
+    { "id": "PROOF",  "text": "Earnest money, paragraph five A. Option period, five B. Title, six A. Closing, nine A." },
+    { "id": "TURN",   "text": "Not a generic reminder. The actual paragraph, so you can check her against the form." },
+    { "id": "CTA",    "text": "Dossie. Your deals, her job." }
+  ],
+
+  "_source_corrections": "Media/screen-recordings/LIBRARY.md describes this recording as '1080x1920, 10.3s'. Both numbers are wrong and I only found it by looking: ffprobe reports 26.36s at 25fps, and the app content is a 540x960 capture padded into the 1080x1920 canvas with flat grey 128 (measured by scanning a decoded frame for the non-pad bounding box -- content occupies rows 0..959, cols 0..539 exactly). So every shot takes src_crop 540:960:0:0 and is upscaled 2x, which is clean because 540x960 is already 9:16. Without that crop the app sits in one corner and three quarters of the frame is grey -- which is exactly what the first build of this video shipped.",
+
+  "_shot_rhythm": "Only ONE indexed portrait Dossie recording exists, so variety comes from WHERE in it each cut lands. The take is a real journey and roughly the first 9s is the sign-in screen (including a masked password field) -- useless for a capability demo and faintly bad-looking, so nothing before t=10 is used. The TREC deadlines payoff lives at t=19-26 and carries the three PROOF cuts. No synthetic push anywhere: the footage is already upscaled 2x and a zoom on top would only soften it further. This is still the weakest of the three on visual variety, and the honest fix is more app footage, not more effects -- see README.",
+
+  "shots": [
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 10.4, "dur": 1.8, "motion": "none", "src_crop": "540:960:0:0", "label": "742 Lakeview detail" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 18.6, "dur": 1.7, "motion": "none", "src_crop": "540:960:0:0", "label": "Deadlines tab" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 21.4, "dur": 1.9, "motion": "none", "src_crop": "540:960:0:0", "label": "TREC deadlines list" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 24.3, "dur": 2.0, "motion": "none", "src_crop": "540:960:0:0", "label": "PROOF citations 5A/5B/6A/9A" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 13.2, "dur": 1.7, "motion": "none", "src_crop": "540:960:0:0", "label": "detail scrolled" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 23.0, "dur": 1.9, "motion": "none", "src_crop": "540:960:0:0", "label": "deadlines mid" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 16.2, "dur": 1.7, "motion": "none", "src_crop": "540:960:0:0", "label": "needs-you-now" },
+    { "clip": "dossier-deadlines-mobile-2026-09-30.mp4", "in": 24.9, "dur": 2.0, "motion": "none", "src_crop": "540:960:0:0", "label": "citations close" }
+  ],
+
+  "cover_t": 1.0,
+  "verify_frames": [0.0, 1.0, 2.2, 2.5, 2.9, 7.0, 12.0, 17.0, 21.0]
+}

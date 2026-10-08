@@ -10,7 +10,6 @@
 // auth, cadence, and failure-isolation are preserved per sub-job.
 //
 // Members (unchanged handlers, unchanged individual auth checks):
-//   - /api/cron-post-videos
 //   - /api/cron-deletion-reminders
 //   - /api/cron-deal-watch   (added 2026-09-20; reuses this dispatcher rather
 //     than adding a vercel.json entry, per the current convention. 08:30 CT is
@@ -18,14 +17,30 @@
 //     race, and after cron-email-to-dossier has had all night at 15-minute
 //     intervals to file overnight mail onto the dossiers this job reads.)
 //
+// cron-post-videos MOVED OUT (Atlas 2026-09-28) to cron-dispatch-every15 —
+// this group only fires once a day at 13:30 UTC (8:30am CT). Heath approved
+// two videos at 11:16am CT and they would have sat 'heath_approved' for ~21
+// hours until the next run; he had to be manually triggered same-day.
+// cron-post-videos is gated on status='heath_approved' (never acts without
+// Heath's Telegram tap), scheduled_for<=now() (no-ops when nothing is due),
+// and per-(owner,platform) daily caps in getPostCountsToday()/gatePlatform()
+// (frequent runs cannot over-post) — safe to run every 15 minutes. See that
+// file's own header/Step 2 comments for the full gate chain.
+//
 // DO NOT rename member files without updating the require() list below —
 // there is no dynamic file-glob here on purpose (explicit > magic for a
 // dispatcher that gates money/data-writing jobs).
 
 const { runGroup, isAuthorizedDispatch } = require('./_lib/cron-multiplex.js');
 
+// Single source of truth for this dispatcher's time budget -- used for BOTH
+// the per-member deadline default (runGroup's budgetMs below) and Vercel's
+// own maxDuration a few lines down, so the two can never drift apart (Atlas,
+// 2026-09-29 -- a flat per-member default previously killed 300s-budget
+// members like cron-post-videos at 20s; see api/_lib/cron-multiplex.js).
+const MAX_DURATION_S = 20;
+
 const HANDLERS = [
-  { name: 'cron-post-videos', mod: require('./cron-post-videos.js') },
   { name: 'cron-deletion-reminders', mod: require('./cron-deletion-reminders.js') },
   { name: 'cron-deal-watch', mod: require('./cron-deal-watch.js') },
 ];
@@ -38,7 +53,7 @@ module.exports = async function handler(req, res) {
   if (!isAuthorizedDispatch(req)) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
-  const results = await runGroup(req, HANDLERS);
+  const results = await runGroup(req, HANDLERS, { budgetMs: MAX_DURATION_S * 1000 });
   const anyFail = results.some((r) => r.status >= 400);
   return res.status(anyFail ? 207 : 200).json({
     ok: !anyFail,
@@ -49,4 +64,4 @@ module.exports = async function handler(req, res) {
   });
 };
 
-module.exports.config = { maxDuration: 20 };
+module.exports.config = { maxDuration: MAX_DURATION_S };

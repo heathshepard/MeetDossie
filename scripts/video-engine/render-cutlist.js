@@ -5,7 +5,7 @@
  * once — no lossy multi-generation re-encodes).
  *
  * Usage: node scripts/video-engine/render-cutlist.js --src <video> \
- *   --cutlist <cutlist json> --out <output mp4> [--scale 720:1280]
+ *   --cutlist <cutlist json> --out <output mp4> [--scale 720:1280] [--preset fast] [--fps 30]
  */
 const fs = require('fs');
 const { execFileSync } = require('child_process');
@@ -56,7 +56,7 @@ function main() {
     '-filter_complex', filter,
     '-map', mapV, '-map', mapA,
     '-r', String(args.fps || 30), '-vsync', 'cfr',
-    '-c:v', 'libx264', '-crf', '20', '-preset', 'fast',
+    '-c:v', 'libx264', '-crf', '20', '-preset', args.preset || 'fast', '-hide_banner', '-nostats',
     '-c:a', 'aac',
     out,
   ];

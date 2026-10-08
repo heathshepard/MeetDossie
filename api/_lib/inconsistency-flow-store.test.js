@@ -7,7 +7,7 @@
 // only go wrong in the I/O:
 //
 //   1. EXECUTION DETECTION. documents.signature_status reads 'none' on all 357
-//      live rows, including the executed 23 Nopalito contract. If the store ever
+//      live rows, including the executed 14 Sablewood contract. If the store ever
 //      starts trusting it, every executed instrument routes down the "just edit
 //      it" path and the whole flow is worse than useless.
 //   2. TENANT SCOPING. Every request must carry user_id. A regression here
@@ -25,20 +25,20 @@ const {
 } = require('./inconsistency-flow-store');
 const { CHOICE, REMEDY, conflictId } = require('./inconsistency-flow');
 
-const USER = '0cd05e2f-491f-411f-afe7-f8d3fbbdbff6';
+const USER = 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb';
 const OTHER_USER = 'ffffffff-0000-0000-0000-000000000000';
-const TX = '952e0d82-c453-4137-87b4-1ed46e738eb3';
-const DOC = '7d669016-a2c4-4cde-9d10-cdfa4bbd8cd1';
+const TX = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
+const DOC = 'cccccccc-3333-4333-8333-cccccccccccc';
 
-const NOPALITO_CONFLICT = {
+const SABLEWOOD_CONFLICT = {
   column: 'seller2_name',
   party: 'seller',
   kind: 'name',
-  existing: 'Jenny Whyte',
-  parsed: 'Jennifer Whyte',
+  existing: 'Cathy Thorne',
+  parsed: 'Catherine Thorne',
   source_field: 'sellerName',
   source_block: 'signature block',
-  document: { document_id: DOC, file_name: 'executed-TREC 20-19 Contract - 23 Nopalito.pdf', document_label: 'trec-20-17' },
+  document: { document_id: DOC, file_name: 'executed-TREC 20-19 Contract - 14 Sablewood.pdf', document_label: 'trec-20-17' },
 };
 
 /**
@@ -70,21 +70,21 @@ function fakeSb(fixture, calls = []) {
   };
 }
 
-function nopalitoFixture(overrides = {}) {
+function sablewoodFixture(overrides = {}) {
   return {
     tx: {
       id: TX,
       user_id: USER,
-      property_address: '23 Nopalito',
+      property_address: '14 Sablewood',
       role: 'listing',
-      seller_name: 'Barry Whyte',
-      seller2_name: 'Jenny Whyte',
-      contact_provenance: { _conflicts: [NOPALITO_CONFLICT] },
+      seller_name: 'Marcus Thorne',
+      seller2_name: 'Cathy Thorne',
+      contact_provenance: { _conflicts: [SABLEWOOD_CONFLICT] },
       ...(overrides.tx || {}),
     },
     documents: overrides.documents !== undefined ? overrides.documents : [{
       id: DOC,
-      file_name: 'executed-TREC 20-19 Contract - 23 Nopalito.pdf',
+      file_name: 'executed-TREC 20-19 Contract - 14 Sablewood.pdf',
       document_type: 'signed',
       // The live value. It is a lie and the store must not believe it.
       signature_status: 'none',
@@ -93,7 +93,7 @@ function nopalitoFixture(overrides = {}) {
     }],
     events: overrides.events !== undefined ? overrides.events : [{
       document_id: DOC,
-      document_name: '23 Nopalito - Seller Signature Packet has been completed by Jennifer Whyte, Barry Whyte',
+      document_name: '14 Sablewood - Seller Signature Packet has been completed by Catherine Thorne, Marcus Thorne',
       action: 'completed',
       verification_verdict: 'signed',
       event_at: '2026-09-20T23:46:41Z',
@@ -107,17 +107,17 @@ function nopalitoFixture(overrides = {}) {
 // ---------------------------------------------------------------------------
 
 test('a document is executed on the esign_events verdict, NOT on signature_status', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const docs = await loadDocumentEvidence(fakeSb(fx), { userId: USER, transactionId: TX });
   assert.strictEqual(docs.length, 1);
   assert.strictEqual(docs[0].executed, true, "signature_status='none' must not win over verdict='signed'");
   assert.strictEqual(docs[0].executed_at, '2026-09-20T23:46:41Z');
-  assert.strictEqual(docs[0].signer_names, 'Jennifer Whyte, Barry Whyte');
+  assert.strictEqual(docs[0].signer_names, 'Catherine Thorne, Marcus Thorne');
   assert.strictEqual(docs[0].label, 'the TREC 20-19 contract');
 });
 
 test('partially_signed is NOT executed, and is flagged separately', async () => {
-  const fx = nopalitoFixture({
+  const fx = sablewoodFixture({
     events: [{ document_id: DOC, action: 'completed', verification_verdict: 'partially_signed', event_at: '2026-09-20T23:46:41Z' }],
   });
   const docs = await loadDocumentEvidence(fakeSb(fx), { userId: USER, transactionId: TX });
@@ -126,17 +126,17 @@ test('partially_signed is NOT executed, and is flagged separately', async () => 
 });
 
 test('a document with no esign event at all is not executed', async () => {
-  const fx = nopalitoFixture({ events: [] });
+  const fx = sablewoodFixture({ events: [] });
   const docs = await loadDocumentEvidence(fakeSb(fx), { userId: USER, transactionId: TX });
   assert.strictEqual(docs[0].executed, false);
   assert.strictEqual(docs[0].verdict, null);
 });
 
 test('a later ambiguous event cannot downgrade a confirmed execution', async () => {
-  const fx = nopalitoFixture({
+  const fx = sablewoodFixture({
     events: [
       { document_id: DOC, action: 'other', verification_verdict: 'unverifiable', event_at: '2026-09-21T10:00:00Z' },
-      { document_id: DOC, action: 'completed', verification_verdict: 'signed', event_at: '2026-09-20T23:46:41Z', document_name: 'x completed by Jennifer Whyte' },
+      { document_id: DOC, action: 'completed', verification_verdict: 'signed', event_at: '2026-09-20T23:46:41Z', document_name: 'x completed by Catherine Thorne' },
     ],
   });
   const docs = await loadDocumentEvidence(fakeSb(fx), { userId: USER, transactionId: TX });
@@ -148,7 +148,7 @@ test('a later ambiguous event cannot downgrade a confirmed execution', async () 
 // ---------------------------------------------------------------------------
 
 test('every query carries user_id', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const calls = [];
   await reviewDealInconsistencies(fakeSb(fx, calls), { userId: USER, transactionId: TX, now: '2026-09-21T00:00:00Z' });
   assert.ok(calls.length >= 4, `expected transactions + documents + esign_events + compliance_sends, got ${calls.length}`);
@@ -158,17 +158,17 @@ test('every query carries user_id', async () => {
 });
 
 test("another member's user id gets nothing, not someone else's deal", async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await reviewDealInconsistencies(fakeSb(fx), { userId: OTHER_USER, transactionId: TX });
   assert.strictEqual(out.ok, false);
   assert.strictEqual(out.reason, 'deal_not_found_for_user');
 });
 
 test('the resolution PATCH is scoped by id AND user_id in one filter', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const calls = [];
   await resolveInconsistency(fakeSb(fx, calls), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
     choice: CHOICE.DOCUMENT, now: '2026-09-21T00:00:00Z',
   });
   const patch = calls.find((c) => c.method === 'PATCH');
@@ -181,22 +181,22 @@ test('the resolution PATCH is scoped by id AND user_id in one filter', async () 
 // 3. END TO END ON THE REAL CASE
 // ---------------------------------------------------------------------------
 
-test('the real Nopalito conflict surfaces as critical, with the executed doc seen', async () => {
-  const fx = nopalitoFixture();
+test('the real Sablewood conflict surfaces as critical, with the executed doc seen', async () => {
+  const fx = sablewoodFixture();
   const out = await reviewDealInconsistencies(fakeSb(fx), { userId: USER, transactionId: TX, now: '2026-09-21T00:00:00Z' });
   assert.strictEqual(out.ok, true);
   assert.strictEqual(out.executed_documents, 1);
   assert.strictEqual(out.raise.length, 1);
   assert.strictEqual(out.raise[0].severity, 'critical');
-  assert.match(out.raise[0].message, /Jennifer Whyte/);
-  assert.match(out.raise[0].message, /Jenny Whyte/);
+  assert.match(out.raise[0].message, /Catherine Thorne/);
+  assert.match(out.raise[0].message, /Cathy Thorne/);
 });
 
 test('"same person" writes a resolution, corrects only the dossier, and drafts nothing', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await resolveInconsistency(fakeSb(fx), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
-    choice: CHOICE.SAME, value: 'Jennifer Whyte',
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
+    choice: CHOICE.SAME, value: 'Catherine Thorne',
     note: "Confirmed against her driver's licence.", now: '2026-09-21T00:00:00Z',
   });
   assert.strictEqual(out.ok, true);
@@ -205,20 +205,20 @@ test('"same person" writes a resolution, corrects only the dossier, and drafts n
 
   const patch = fx.patched[fx.patched.length - 1];
   // The dossier is aligned to the legal spelling...
-  assert.strictEqual(patch.seller2_name, 'Jennifer Whyte');
+  assert.strictEqual(patch.seller2_name, 'Catherine Thorne');
   // ...and the answer is on the record, in ONE shape, with the member's words.
   const rec = patch.contact_provenance._resolutions.slice(-1)[0];
   assert.strictEqual(rec.choice, 'same');
-  assert.deepStrictEqual(rec.equivalent_values, ['Jenny Whyte', 'Jennifer Whyte']);
+  assert.deepStrictEqual(rec.equivalent_values, ['Cathy Thorne', 'Catherine Thorne']);
   assert.strictEqual(rec.note, "Confirmed against her driver's licence.");
   // Nothing was left pending, because nothing is wrong.
   assert.deepStrictEqual(out.pending, []);
 });
 
 test('"my dossier is right" returns a PENDING amendment and does NOT touch the dossier', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await resolveInconsistency(fakeSb(fx), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
     choice: CHOICE.DOSSIER, now: '2026-09-21T00:00:00Z',
   });
   assert.strictEqual(out.ok, true);
@@ -227,19 +227,19 @@ test('"my dossier is right" returns a PENDING amendment and does NOT touch the d
   assert.deepStrictEqual(out.applied, []);
   const patch = fx.patched[fx.patched.length - 1];
   // seller2_name must NOT have been written — the contract still legally says
-  // Jennifer until an amendment is executed.
+  // Catherine until an amendment is executed.
   assert.ok(!('seller2_name' in patch), 'must not pre-apply a value the contract does not yet carry');
   assert.ok(patch.contact_provenance._resolutions.length >= 1);
 });
 
 test('"the document is right" applies the dossier fix immediately', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await resolveInconsistency(fakeSb(fx), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
     choice: CHOICE.DOCUMENT, now: '2026-09-21T00:00:00Z',
   });
-  assert.deepStrictEqual(out.applied, [{ remedy: REMEDY.UPDATE_FIELD, column: 'seller2_name', value: 'Jennifer Whyte' }]);
-  assert.strictEqual(fx.patched.slice(-1)[0].seller2_name, 'Jennifer Whyte');
+  assert.deepStrictEqual(out.applied, [{ remedy: REMEDY.UPDATE_FIELD, column: 'seller2_name', value: 'Catherine Thorne' }]);
+  assert.strictEqual(fx.patched.slice(-1)[0].seller2_name, 'Catherine Thorne');
 });
 
 // ---------------------------------------------------------------------------
@@ -247,8 +247,8 @@ test('"the document is right" applies the dossier fix immediately', async () => 
 // ---------------------------------------------------------------------------
 
 test('two open mismatches on one column refuse rather than pick one', async () => {
-  const second = { ...NOPALITO_CONFLICT, parsed: 'Jenni Whyte', document: { document_id: 'other-doc', file_name: 'b.pdf' } };
-  const fx = nopalitoFixture({ tx: { contact_provenance: { _conflicts: [NOPALITO_CONFLICT, second] } } });
+  const second = { ...SABLEWOOD_CONFLICT, parsed: 'Cathi Thorne', document: { document_id: 'other-doc', file_name: 'b.pdf' } };
+  const fx = sablewoodFixture({ tx: { contact_provenance: { _conflicts: [SABLEWOOD_CONFLICT, second] } } });
   const out = await resolveInconsistency(fakeSb(fx), {
     userId: USER, transactionId: TX, column: 'seller2_name', choice: CHOICE.DOSSIER, now: '2026-09-21T00:00:00Z',
   });
@@ -258,23 +258,23 @@ test('two open mismatches on one column refuse rather than pick one', async () =
 });
 
 test('answering by column works when it is unambiguous', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await resolveInconsistency(fakeSb(fx), {
     userId: USER, transactionId: TX, column: 'seller2_name', choice: CHOICE.DOCUMENT, now: '2026-09-21T00:00:00Z',
   });
   assert.strictEqual(out.ok, true);
-  assert.strictEqual(out.correct_value, 'Jennifer Whyte');
+  assert.strictEqual(out.correct_value, 'Catherine Thorne');
 });
 
 test('the ledger records the raise so the next deal-open is quiet', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const sb = fakeSb(fx);
   const first = await reviewDealInconsistencies(sb, { userId: USER, transactionId: TX, now: '2026-09-21T00:00:00Z' });
   assert.strictEqual(first.raise.length, 1);
 
   await recordSurfaced(sb, { userId: USER, transactionId: TX, raised: first.raise, now: '2026-09-21T00:00:00Z' });
   const ledger = fx.patched.slice(-1)[0].contact_provenance._surfaced;
-  const id = conflictId(NOPALITO_CONFLICT);
+  const id = conflictId(SABLEWOOD_CONFLICT);
   assert.strictEqual(ledger[id].raise_count, 1);
   assert.strictEqual(ledger[id].last_severity, 'critical');
 
@@ -286,8 +286,8 @@ test('the ledger records the raise so the next deal-open is quiet', async () => 
 });
 
 test('a document gate speaks anyway, and blocks', async () => {
-  const fx = nopalitoFixture();
-  const id = conflictId(NOPALITO_CONFLICT);
+  const fx = sablewoodFixture();
+  const id = conflictId(SABLEWOOD_CONFLICT);
   fx.tx = {
     ...fx.tx,
     contact_provenance: {
@@ -304,20 +304,20 @@ test('a document gate speaks anyway, and blocks', async () => {
 });
 
 test('"not now" snoozes instead of resolving, and writes no resolution', async () => {
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const out = await resolveInconsistency(fakeSb(fx), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
     choice: CHOICE.NOT_NOW, now: '2026-09-21T00:00:00Z',
   });
   assert.strictEqual(out.resolved, false);
   const patch = fx.patched.slice(-1)[0];
   assert.ok(!patch.contact_provenance._resolutions, 'a deferral is not an answer');
-  const snooze = patch.contact_provenance._surfaced[conflictId(NOPALITO_CONFLICT)].snoozed_until;
+  const snooze = patch.contact_provenance._surfaced[conflictId(SABLEWOOD_CONFLICT)].snoozed_until;
   assert.strictEqual(snooze, '2026-09-28T00:00:00.000Z');
 });
 
 test('a deal with no recorded conflicts skips the evidence queries entirely', async () => {
-  const fx = nopalitoFixture({ tx: { contact_provenance: {} } });
+  const fx = sablewoodFixture({ tx: { contact_provenance: {} } });
   const calls = [];
   const out = await reviewDealInconsistencies(fakeSb(fx, calls), { userId: USER, transactionId: TX, now: '2026-09-21T00:00:00Z' });
   assert.strictEqual(out.ok, true);
@@ -327,11 +327,11 @@ test('a deal with no recorded conflicts skips the evidence queries entirely', as
 });
 
 test("a third-party copy adds a notice remedy to the pending list", async () => {
-  const fx = nopalitoFixture({
-    sends: [{ recipient_role: 'title', sent_to_name: 'Upward Title and Closing', sent_at: '2026-09-20T10:00:00Z' }],
+  const fx = sablewoodFixture({
+    sends: [{ recipient_role: 'title', sent_to_name: 'Crosswind Title and Escrow', sent_at: '2026-09-20T10:00:00Z' }],
   });
   const out = await resolveInconsistency(fakeSb(fx), {
-    userId: USER, transactionId: TX, conflictId: conflictId(NOPALITO_CONFLICT),
+    userId: USER, transactionId: TX, conflictId: conflictId(SABLEWOOD_CONFLICT),
     choice: CHOICE.DOSSIER, now: '2026-09-21T00:00:00Z',
   });
   const kinds = out.pending.map((r) => r.remedy);
@@ -342,7 +342,7 @@ test("a third-party copy adds a notice remedy to the pending list", async () => 
 test('a dry-run compliance send creates no obligation', async () => {
   // dry_run=is.false is in the query string, so the fake never returns it —
   // this asserts the filter is actually present rather than applied in JS.
-  const fx = nopalitoFixture();
+  const fx = sablewoodFixture();
   const calls = [];
   await reviewDealInconsistencies(fakeSb(fx, calls), { userId: USER, transactionId: TX, now: '2026-09-21T00:00:00Z' });
   const sendsCall = calls.find((c) => c.path.startsWith('compliance_sends?'));

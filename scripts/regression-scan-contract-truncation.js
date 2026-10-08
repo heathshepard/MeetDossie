@@ -2,17 +2,18 @@
 'use strict';
 
 /**
- * Regression test for the 2026-09-29 production truncation regression.
+ * Regression test for the 2026-09-29 extraction truncation regression AND
+ * the 2026-10-05 compliance-audit truncation regression (same root cause,
+ * same file, hit auditCompliance() six weeks after it was fixed in
+ * scanContract()).
  *
- * Live failure: POST /api/scan-contract returned EVERY extracted field as
- * null with ok:true for any real multi-page TREC contract. The extraction
- * schema grew to ~90 fields the same day (money-stack fields), and
- * scanContract() ran it on Haiku at MAX_TOKENS=4096 — the JSON response
+ * 2026-09-29 (extraction): POST /api/scan-contract returned EVERY extracted
+ * field as null with ok:true for any real multi-page TREC contract. The
+ * extraction schema grew to ~90 fields the same day (money-stack fields),
+ * and scanContract() ran it on Haiku at MAX_TOKENS=4096 — the JSON response
  * truncated mid-object, JSON.parse threw, and the catch fell through to
  * emptyResult(), which wipes the ENTIRE extracted object to null while the
- * handler still returned ok:true. auditCompliance() hit an identical
- * truncation on 2026-08-06 and was fixed there (Sonnet + 6144 tokens for
- * trec-20-17); that fix was never mirrored onto extraction.
+ * handler still returned ok:true.
  *
  * Mirroring the model/token bump alone was not sufficient: verified live
  * against a real 12-page contract (2026-09-29) that claude-sonnet-5 also
@@ -21,18 +22,31 @@
  * the model spent the entire budget thinking and emitted ZERO characters
  * of JSON (stop_reason:max_tokens, thinking_tokens:6144, no text block at
  * all) — a worse truncation than the original bug, since there wasn't even
- * partial text to repair. The real fix is `thinking: { type: 'disabled' }`
- * plus EXTRACT_MAX_TOKENS=8192 (verified live: end_turn, 5178 output
- * tokens on the real fixture, well under budget).
+ * partial text to repair. The fix was `thinking: { type: 'disabled' }` plus
+ * EXTRACT_MAX_TOKENS=8192 (verified live: end_turn, 5178 output tokens on
+ * the real fixture, well under budget).
+ *
+ * 2026-10-05 (compliance audit): auditCompliance()'s trec-20-17 call (Sonnet,
+ * 6144 max_tokens) was never updated to disable thinking when the identical
+ * bug was fixed in scanContract() above — it hit the exact same pathology.
+ * Reproduced live against production: 2 of 5 real scans of
+ * generated-docs/sample-resale-contract.pdf came back with an unparsable
+ * response, falling through to emptyComplianceReport(). Fixed the same way
+ * (`thinking: { type: 'disabled' }`, budget raised to 8192) plus added a
+ * repairTruncatedJson() fallback (previously audit had none — any parse
+ * failure discarded the whole report) that recovers findings emitted before
+ * a cutoff while forcing passed:false/auditNotPerformed:true regardless of
+ * what the model said before truncating, so the 2026-10-01 false-pass
+ * incident cannot reappear through this path.
  *
  * This test does not call the live Anthropic API (no cost, deterministic,
  * safe for CI) — it monkey-patches Messages.prototype.create on the same
  * @anthropic-ai/sdk class instance scan-contract.js uses (Node's module
  * cache guarantees the class is shared) to return canned responses that
  * reproduce each failure mode, then asserts against the real
- * scanContract()/runFullScan() code paths.
+ * scanContract()/runFullScan()/auditCompliance() code paths.
  *
- * Covers:
+ * Covers (extraction, scanContract()):
  *   1. A fully successful, well-formed response -> success:true, all real
  *      fields populated (not the false-negative case).
  *   2. Thinking exhausts the entire token budget, zero text emitted (the
@@ -45,9 +59,20 @@
  *      partial data must survive).
  *   4. A response that is not JSON at all (garbage/empty) -> success:false,
  *      every field genuinely null (nothing to recover), never ok:true.
- *   5. runFullScan()'s extractionFailed flag: true when trec-20-17
+ *   5-6. runFullScan()'s extractionFailed flag: true when trec-20-17
  *      extraction fails, false/absent for every other document type (where
  *      extraction never runs — not a failure, expected behavior).
+ * Covers (compliance audit, auditCompliance()):
+ *   7. A fully successful, well-formed response -> real findings,
+ *      auditNotPerformed:false.
+ *   8. Thinking exhausts the entire token budget, zero text emitted (the
+ *      2026-10-05 shape) -> auditNotPerformed:true, passed:false, never a
+ *      silent pass.
+ *   9. A response truncated mid-JSON-object with some findings already
+ *      emitted -> those findings survive, but passed/auditNotPerformed are
+ *      FORCED to false/true regardless of what the model emitted before the
+ *      cutoff — a partial read is never a confirmed-clean contract.
+ *   10. A response that is not JSON at all -> empty report, never a pass.
  *
  * Run manually:
  *   node scripts/regression-scan-contract-truncation.js
@@ -96,6 +121,17 @@ function thinkingOnlyResponse() {
     usage: { output_tokens: 6144, output_tokens_details: { thinking_tokens: 6144 } },
     content: [{ type: 'thinking', thinking: '(ran out of budget before answering)' }],
   };
+}
+
+// 2026-10-05 — auditCompliance() now also sets `thinking: { type: 'disabled' }`
+// (the compliance-audit truncation fix), so `params.thinking` can no longer
+// distinguish the extraction call from the audit call the way it used to —
+// both disable thinking now. Match on the prompt text itself instead: the
+// extraction prompt's opening line is unique to that call.
+function isExtractionCall(params) {
+  const content = params && params.messages && params.messages[0] && params.messages[0].content;
+  const textBlock = Array.isArray(content) ? content.find((b) => b.type === 'text') : null;
+  return !!(textBlock && typeof textBlock.text === 'string' && textBlock.text.includes('extracting structured data'));
 }
 
 // Installs a mock messages.create keyed by a discriminator so identify /
@@ -215,13 +251,18 @@ async function main() {
   }
 
   // --- 5. runFullScan() surfaces extractionFailed for trec-20-17 only ---------
+  // 300, not 200 — identifyDocument's real budget since the 2026-10-01 fix
+  // (was a stale 200 here, which meant this branch never matched and the
+  // identify call fell through to the audit-shaped response below,
+  // silently passing this test for the wrong reason until the
+  // isExtractionCall() split above made the bug visible).
   {
     const restore = mockAnthropicCreate((params) => {
-      if (params.thinking && params.thinking.type === 'disabled') {
-        return thinkingOnlyResponse(); // extraction fails
-      }
-      if (params.max_tokens === 200) {
+      if (params.max_tokens === 300) {
         return textResponse({ documentType: 'trec-20-17', confidence: 0.99 }); // identify
+      }
+      if (isExtractionCall(params)) {
+        return thinkingOnlyResponse(); // extraction fails
       }
       return textResponse({ passed: true, missingSignatures: [], missingInitials: [], blankRequiredFields: [], checkedAddenda: [], missingAddenda: [], extractedFields: {}, warnings: [], summary: 'ok' }); // audit
     });
@@ -236,7 +277,7 @@ async function main() {
   }
   {
     const restore = mockAnthropicCreate((params) => {
-      if (params.max_tokens === 200) {
+      if (params.max_tokens === 300) {
         return textResponse({ documentType: 'iabs-form', confidence: 0.95 }); // identify — not trec-20-17
       }
       return textResponse({ passed: true, missingSignatures: [], missingInitials: [], blankRequiredFields: [], checkedAddenda: [], missingAddenda: [], extractedFields: {}, warnings: [], summary: 'ok' }); // audit
@@ -246,6 +287,86 @@ async function main() {
       assert.strictEqual(result.documentType, 'iabs-form');
       assert.strictEqual(result.extractionFailed, false, 'extraction never runs for non-trec-20-17 docs — that is expected, not a failure');
       console.log('  [PASS] runFullScan() leaves extractionFailed:false for a document type extraction never applies to');
+    } finally {
+      restore();
+    }
+  }
+
+  // --- 7. auditCompliance(): clean response -> real findings, not a truncation ---
+  {
+    const restore = mockAnthropicCreate(() => textResponse({
+      passed: false,
+      missingSignatures: ['Buyer signature missing on signature page'],
+      missingInitials: ['page 3 - seller initials missing'],
+      blankRequiredFields: ['Option Fee (Paragraph 23)'],
+      checkedAddenda: ['Third Party Financing Addendum'],
+      missingAddenda: [],
+      warnings: [],
+      summary: 'Missing buyer signature and option fee.',
+    }));
+    try {
+      const report = await scanner.auditCompliance(dummyPdf, 'trec-20-17');
+      assert.strictEqual(report.auditNotPerformed, false, 'a clean, fully-parsed response is a completed audit');
+      assert.strictEqual(report.passed, false);
+      assert.strictEqual(report.missingSignatures.length, 1);
+      assert.strictEqual(report.blankRequiredFields.length, 1);
+      console.log('  [PASS] auditCompliance() clean response -> real findings, auditNotPerformed:false');
+    } finally {
+      restore();
+    }
+  }
+
+  // --- 8. auditCompliance(): thinking exhausts the whole budget, zero text ----
+  // THE 2026-10-05 BUG: this call never disabled thinking, so claude-sonnet-5
+  // could spend the entire max_tokens budget reasoning and emit no JSON at
+  // all — reproduced live 2 of 5 real runs against production. Must never
+  // render as a pass.
+  {
+    const restore = mockAnthropicCreate(() => thinkingOnlyResponse());
+    try {
+      const report = await scanner.auditCompliance(dummyPdf, 'trec-20-17');
+      assert.strictEqual(report.passed, false, 'a response with zero parseable JSON must never report passed:true');
+      assert.strictEqual(report.auditNotPerformed, true, 'the audit did not complete — it must say so, not render a quiet pass');
+      assert.strictEqual(report.missingSignatures.length, 0);
+      console.log('  [PASS] auditCompliance() thinking-exhausted-budget (zero text) -> auditNotPerformed:true, never a pass — THE 2026-10-05 BUG, now caught');
+    } finally {
+      restore();
+    }
+  }
+
+  // --- 9. auditCompliance(): mid-object truncation with real findings emitted -
+  // Mirrors the real production shape: some arrays made it through fully
+  // before the cutoff. Those findings must survive (not be discarded
+  // wholesale), but the report as a whole must still never claim to have
+  // passed — a partial read is not a confirmed-clean contract.
+  {
+    const truncatedJson = '{"passed": true, "missingSignatures": ["Buyer signature missing on signature page"], '
+      + '"missingInitials": ["page 3 - seller initials missing", "page 4 - buyer initials mis';
+    const restore = mockAnthropicCreate(() => textResponse(truncatedJson, { stop_reason: 'max_tokens' }));
+    try {
+      const report = await scanner.auditCompliance(dummyPdf, 'trec-20-17');
+      assert.strictEqual(report.passed, false, 'passed must be forced false on a truncated response, even though the model emitted "passed": true before the cutoff');
+      assert.strictEqual(report.auditNotPerformed, true, 'a truncated audit is an incomplete audit — must say so');
+      assert.strictEqual(report.missingSignatures.length, 1, 'the one fully-emitted finding before the cutoff must survive');
+      assert.strictEqual(report.missingSignatures[0], 'Buyer signature missing on signature page');
+      assert.ok(
+        report.warnings.some((w) => /cut short|incomplete/i.test(w)),
+        'a warning must tell the member this audit did not finish'
+      );
+      console.log('  [PASS] auditCompliance() mid-object truncation -> findings before cutoff preserved, but never a pass');
+    } finally {
+      restore();
+    }
+  }
+
+  // --- 10. auditCompliance(): not JSON at all -> empty report, never a pass ---
+  {
+    const restore = mockAnthropicCreate(() => textResponse('Sorry, I cannot process this document.', { stop_reason: 'end_turn' }));
+    try {
+      const report = await scanner.auditCompliance(dummyPdf, 'trec-20-17');
+      assert.strictEqual(report.passed, false);
+      assert.strictEqual(report.auditNotPerformed, true);
+      console.log('  [PASS] auditCompliance() non-JSON response -> empty report, auditNotPerformed:true, never a pass');
     } finally {
       restore();
     }

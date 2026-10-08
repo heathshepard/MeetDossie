@@ -44,13 +44,15 @@
       "source": { "w": 1170, "h": 2532, "window_h": 2080, "composer_h": 380 },
       "captions": {
         "font": "Plus Jakarta Sans",
-        "size": 64,
+        "size": 88,
+        "_size_2026_10_05": "Was 64. On a full-bleed 1080x1920 app screen recording that rendered SMALLER than the app's own body text, so the captions lost the hierarchy fight with the UI behind them - the exact defect founder-video-production-standard.md s4 calls out ('captions must out-weigh the callout chips'). Verified by frame inspection, not by the gate, which scored the 64px captions as legible.",
         "primary": "#FFFFFF",
         "outline": "#1A1A2E",
         "back": "#1A1A2E",
         "margin_v": 500,
         "margin_lr": 150,
-        "max_words": 5
+        "max_words": 3,
+        "_chunking_2026_10_05": "3 words per card, per the locked caption standard in founder-video-production-standard.md s4 (3-word / 19-char / 0.4s-gap chunking). Was 5, which produced 1.1-3.9s cards; the quality gate samples PAIRS of nearby frames and a card that long reads as a frozen caption (captions_present scored 2/5 pairs changing). margin_v stays 500, NOT the founder standard's 1005: 1005 puts the caption near mid-frame, which on a full-bleed app screen recording covers the UI the video exists to show. 1005 was tuned to clear Heath's head in talking-head footage."
       },
       "palette": {
         "bg": "#1A1A2E",
@@ -71,13 +73,14 @@
         "forbidden_reason": "Founding closed 2026-08-04 and never reopens (CLAUDE.md §5). The CTA is meetdossie.com/signup. A /founding or $29 CTA sends a prospect to an offer that does not exist."
       },
       "voices": {
-        "persona": { "name": "Dossie", "voice_id": "lxYfHSkYm1EzQzGhdbfc", "note": "Luna IS Dossie's voice. Never substituted." },
+        "persona": { "name": "Dossie", "voice_id": "6rOxfAnZpbM3VIEhFaeV", "note": "Luna IS Dossie's voice. Never substituted.",
+          "_corrected_2026_10_05": "Was lxYfHSkYm1EzQzGhdbfc, the id CLAUDE.md also calls 'Luna'. Verified live against the ElevenLabs API 2026-10-05: lxYfHSkYm1EzQzGhdbfc resolves to 'Jessica Anne Bogart - A VO Professional; now cloned!' - a DIFFERENT voice. 6rOxfAnZpbM3VIEhFaeV resolves to 'Luna - Calm & Grounded'. Anything rendered against the old id was spoken by the wrong voice. CLAUDE.md section 2 still carries the wrong id and needs the same correction." },
         "allowed_speaker_voices": {
-          "Dossie": "lxYfHSkYm1EzQzGhdbfc",
+          "Dossie": "6rOxfAnZpbM3VIEhFaeV",
           "Heath": "i41TA0Q36AUrp4axERi3"
         },
         "forbidden_speaker_voices": {
-          "Dossie": ["i41TA0Q36AUrp4axERi3"]
+          "Dossie": ["i41TA0Q36AUrp4axERi3", "lxYfHSkYm1EzQzGhdbfc"]
         },
         "forbidden_reason": "Heath's clone may speak AS HEATH in Dossie founder/instructional content, but never AS DOSSIE."
       },
@@ -96,7 +99,8 @@
         "back": "#2B2B24",
         "margin_v": 500,
         "margin_lr": 150,
-        "max_words": 5
+        "max_words": 3,
+        "_chunking_2026_10_05": "3 words per card, per the locked caption standard in founder-video-production-standard.md s4 (3-word / 19-char / 0.4s-gap chunking). Was 5, which produced 1.1-3.9s cards; the quality gate samples PAIRS of nearby frames and a card that long reads as a frozen caption (captions_present scored 2/5 pairs changing). margin_v stays 500, NOT the founder standard's 1005: 1005 puts the caption near mid-frame, which on a full-bleed app screen recording covers the UI the video exists to show. 1005 was tuned to clear Heath's head in talking-head footage."
       },
       "palette": {
         "bg": "#2B2B24",
@@ -128,9 +132,9 @@
         "forbidden_reason": "Two separate hard rules. (1) listing-copy-never-signal-weakness.md: no hint of a price cut, motivated seller, or DOM emphasis - Heath represents the seller and copy that invites lowballs is a fiduciary problem, not a style problem. (2) docs/CONTENT-DO-NOT-WRITE-LIST.md: fair-housing steering language is a HARD_BLOCK."
       },
       "trec": {
-        "attribution": "Heath Shepard, REALTOR (R) | Keller Williams City View | TX Lic #751964",
-        "broker_name": "Keller Williams City View",
-        "note": "TREC 535.154/535.155 - social media and video ARE advertisements. The broker name must appear at >= half the size of the largest agent/team contact info and be readily noticeable. OPEN VERIFICATION ITEM (CONTENT-FORMAT-LIBRARY.md §10.1): the rendered type sizes on the closing card have never been measured against the rule. cta-realtor.html sets broker at 0.62x the agent line to clear it with margin, but that ratio has not been checked against a TREC reviewer's reading of 'largest contact info'.",
+        "attribution": "Heath Shepard, REALTOR (R) | Keller Willis San Antonio Inc | TX Lic #751964",
+        "broker_name": "Keller Willis San Antonio Inc",
+        "note": "TREC 535.154/535.155 - social media and video ARE advertisements. The broker name must appear at >= half the size of the largest agent/team contact info and be readily noticeable. Broker corrected 2026-10-05 (fix/trec-video-attribution-1004): this is the SPONSORING broker on Heath's TREC license record (license #751964-SA, broker license #547594-BB, verified via trec.texas.gov 2026-09-17 -- memory heath-trec-license-record.md), which is the entity that belongs in advertising attribution. 'Keller Williams City View' is a real, correctly-spelled, different entity -- it is the Designated Broker line on the IABS, not the TREC-advertising sponsoring broker, and was wrongly substituted here. Measured 2026-10-05: cta-realtor.html renders the broker line LARGER than the agent line (ratio 1.13x, see that file's own header comment), so this correction does not touch the sizing margin.",
         "min_broker_to_agent_size_ratio": 0.5
       },
       "voices": {
@@ -148,13 +152,15 @@
       "source": { "w": 1170, "h": 2532, "window_h": 2080, "composer_h": 380 },
       "captions": {
         "font": "Plus Jakarta Sans",
-        "size": 64,
+        "size": 88,
+        "_size_2026_10_05": "Was 64. On a full-bleed 1080x1920 app screen recording that rendered SMALLER than the app's own body text, so the captions lost the hierarchy fight with the UI behind them - the exact defect founder-video-production-standard.md s4 calls out ('captions must out-weigh the callout chips'). Verified by frame inspection, not by the gate, which scored the 64px captions as legible.",
         "primary": "#FFFFFF",
         "outline": "#120C0A",
         "back": "#000000",
         "margin_v": 500,
         "margin_lr": 150,
-        "max_words": 5
+        "max_words": 3,
+        "_chunking_2026_10_05": "3 words per card, per the locked caption standard in founder-video-production-standard.md s4 (3-word / 19-char / 0.4s-gap chunking). Was 5, which produced 1.1-3.9s cards; the quality gate samples PAIRS of nearby frames and a card that long reads as a frozen caption (captions_present scored 2/5 pairs changing). margin_v stays 500, NOT the founder standard's 1005: 1005 puts the caption near mid-frame, which on a full-bleed app screen recording covers the UI the video exists to show. 1005 was tuned to clear Heath's head in talking-head footage."
       },
       "palette": {
         "bg": "#0D0D0F",
@@ -165,8 +171,8 @@
       },
       "cta": {
         "card": "cta-rust.html",
-        "url": "rust-eight-rosy.vercel.app/waitlist.html",
-        "url_note": "rustfitness.app is NXDOMAIN as of 2026-09-16 (verified: no A or NS record). This Vercel URL is the real, live waitlist (confirmed 200, API validating) - ugly beats dead. Swap this ONE value back to rustfitness.app once Heath buys the domain; build-shortform-video.py renders cta-rust.html's {{CTA_URL}} from this field, so nothing else needs to change.",
+        "url": "rustfitness.app",
+        "url_note": "Domain registered 2026-09-16 and pointed at the rust Vercel project (apex serves /waitlist.html via routes+filesystem-handle in the Rust repo's vercel.json). Verified 200 over HTTPS with a valid cert same day. Swapped back from the rust-eight-rosy.vercel.app/waitlist.html stopgap now that this resolves.",
         "offer": "join the waitlist",
         "hold_seconds": 2.2,
         "forbidden": [

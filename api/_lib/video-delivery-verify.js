@@ -28,7 +28,14 @@
 //                                          to poll (see 'unconfirmable' below)
 //     scheduled_for:   iso string | null
 //     accepted_at:     iso string      -- when the POST /posts call returned ok
-//     status:          'accepted' | 'confirmed' | 'failed' | 'post_rejected'
+//                                          (for 'gate_skipped', the time the
+//                                          row was processed and the skip
+//                                          recorded, not a Zernio timestamp)
+//     status:          'accepted' | 'accepted_unverified' | 'confirmed' |
+//                       'confirmed_no_url' | 'failed' | 'post_rejected' |
+//                       'gate_skipped' (added 2026-09-30 — see
+//                       buildSkipEntry() below: platform was targeted but
+//                       never reached postToZernio() at all)
 //     proof_level:     see PROOF_LEVELS below
 //     platform_url:    string | null   -- real permalink, captured whenever we have one
 //     verified_at:     iso string | null -- when Zernio's GET /posts/:id confirmed delivery
@@ -105,6 +112,37 @@ function buildDeliveryEntry({ platform, scheduledFor, postResult, nowIso }) {
   };
 }
 
+// Build a bookkeeping entry for a platform the row TARGETED (present in
+// video_library.platforms) but that never reached postToZernio() at all —
+// gated out by gatePlatform() in cron-post-videos.js (daily cap already
+// reached, posting_schedule row INACTIVE, or no schedule row for today).
+// Distinct from 'post_rejected' (buildDeliveryEntry above, postResult.ok
+// false — Zernio WAS called and said no): this is "we never asked."
+//
+// WHY THIS EXISTS (Atlas, 2026-09-30 — partial-delivery investigation):
+// measured against live video_library data, rows targeting 3-5 platforms in
+// a single row (e.g. dossie_trec_p12b_contribution-dossie-multi) were
+// marked status='posted' with zernio_deliveries covering only the
+// platforms that happened to have cap room that run — the gated-out
+// platforms left NO trace anywhere on the row. A human (or this file's own
+// isDueForStaleAlert) reading that row's zernio_deliveries had no way to
+// tell "gated, by design, might retry later" from "never had this platform
+// at all." Every platform a row ever targets now gets an entry, full stop.
+function buildSkipEntry({ platform, reason, nowIso }) {
+  return {
+    platform,
+    zernio_post_id: null,
+    scheduled_for: null,
+    accepted_at: nowIso || new Date().toISOString(),
+    status: 'gate_skipped',
+    proof_level: PROOF_LEVELS.UNCONFIRMED,
+    platform_url: null,
+    verified_at: null,
+    error: reason || 'gated before publish attempt (see cron-post-videos.js gatePlatform())',
+    alerted_at: null,
+  };
+}
+
 // Merge freshly-built entries into an existing zernio_deliveries array,
 // replacing any prior entry for the same platform. Pure — returns a new
 // array, never mutates the input.
@@ -159,6 +197,7 @@ module.exports = {
   DEFAULT_STALE_WINDOW_MS,
   proofLevelFor,
   buildDeliveryEntry,
+  buildSkipEntry,
   mergeDeliveryEntries,
   patchDeliveryEntry,
   isDueForStaleAlert,

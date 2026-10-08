@@ -84,19 +84,19 @@ function check(name, cond, extra) {
   check('crypto-signed but visually blank -> still "blank"', cryptoButBlank.verdict === 'blank', cryptoButBlank.verdict);
   check('crypto-signed but visually blank -> not safe to file', cryptoButBlank.safeToFileAsExecuted === false);
 
-  // --- happy path: the Wild Cherry case ------------------------------------
+  // --- happy path: the Amberwood case ------------------------------------
   stubVision({
     signature_blocks_found: 2,
     signatures_visibly_present: 2,
     blank_signature_lines: 0,
-    signer_names_seen: ['Thomas Linton', 'Carol Linton'],
+    signer_names_seen: ['Gregory Hale', 'Carol Hale'],
     dates_seen: ['08/13/2026'],
     blank_date_or_other_lines: ['EXECUTED the ___ day of ___, needs broker final-acceptance date'],
     verdict: 'signed',
     detail: 'Both sellers signed.',
   });
   const signed = await verifyExecutedPdf({
-    buffer: realPdf, expectedSigners: ['Thomas Linton', 'Carol Linton'],
+    buffer: realPdf, expectedSigners: ['Gregory Hale', 'Carol Hale'],
     apiKey: 'test-key', providerStatus: 'completed',
   });
   check('fully signed -> verdict "signed"', signed.verdict === 'signed', signed.verdict);
@@ -109,22 +109,22 @@ function check(name, cond, extra) {
   // --- expected signer missing downgrades the verdict -----------------------
   stubVision({
     signature_blocks_found: 2, signatures_visibly_present: 1, blank_signature_lines: 0,
-    signer_names_seen: ['Thomas Linton'], verdict: 'signed', detail: 'One signature.',
+    signer_names_seen: ['Gregory Hale'], verdict: 'signed', detail: 'One signature.',
   });
   const missingSigner = await verifyExecutedPdf({
-    buffer: realPdf, expectedSigners: ['Thomas Linton', 'Carol Linton'],
+    buffer: realPdf, expectedSigners: ['Gregory Hale', 'Carol Hale'],
     apiKey: 'test-key', providerStatus: 'completed',
   });
   check('missing expected signer -> downgraded to partially_signed',
     missingSigner.verdict === 'partially_signed', missingSigner.verdict);
   check('missing expected signer -> names the missing party',
-    missingSigner.problems.some((p) => /Carol Linton/.test(p)), missingSigner.problems);
+    missingSigner.problems.some((p) => /Carol Hale/.test(p)), missingSigner.problems);
   check('missing expected signer -> not safe to file', missingSigner.safeToFileAsExecuted === false);
 
   // --- partial signing ------------------------------------------------------
   stubVision({
     signature_blocks_found: 2, signatures_visibly_present: 1, blank_signature_lines: 1,
-    signer_names_seen: ['Thomas Linton'], verdict: 'partially_signed', detail: 'One left.',
+    signer_names_seen: ['Gregory Hale'], verdict: 'partially_signed', detail: 'One left.',
   });
   const partial = await verifyExecutedPdf({ buffer: realPdf, apiKey: 'test-key' });
   check('partial -> verdict "partially_signed"', partial.verdict === 'partially_signed', partial.verdict);

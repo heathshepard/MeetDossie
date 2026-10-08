@@ -58,11 +58,10 @@ const MAX_PDF_BYTES = 32 * 1024 * 1024; // 32MB Anthropic doc limit
 
 const IDENTIFY_PROMPT = `You are a Texas real estate document expert. Identify this document type precisely using the TREC form number, title, and key distinguishing features.
 
-Return ONLY a JSON object with no markdown:
+Return ONLY a JSON object with no markdown — exactly these two keys, nothing else:
 {
   "documentType": "<type>",
-  "confidence": <0-1>,
-  "reasoning": "<one sentence explaining what you saw that led to this identification>"
+  "confidence": <0-1>
 }
 
 Document types and their KEY IDENTIFIERS:
@@ -161,7 +160,7 @@ const DOCUMENT_LABELS = {
 };
 
 const COMPLIANCE_PROMPTS = {
-  // 2026-09-21 — 23 Nopalito: Dossie told Heath "TREC 20-17" in chat about a
+  // 2026-09-21 — 14 Sablewood: Dossie told Heath "TREC 20-17" in chat about a
   // document that is actually a TREC 20-19. This prompt is where that
   // number came from — it told the MODEL the document's name was literally
   // "TREC 20-17" (the internal document_type slug, which per the comment
@@ -409,7 +408,7 @@ Extract these fields:
 - brokerage_name
 - commission_rate
 
-For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "104 Wild Cherry Lane" not "104 Wild Cherry Ln, Lot 7, Cherry Ridge, 2.236 acres".
+For property_address: extract ONLY the street number and street name. Never include lot numbers, subdivision names, acreage, legal descriptions, or county information. Example: extract "88 Amberwood Lane" not "88 Amberwood Ln, Lot 7, Cherry Ridge, 2.236 acres".
 
 REQUIRED signatures:
 - Seller signature and date
@@ -458,14 +457,26 @@ Return compliance JSON:
   "summary": ""
 }`,
 
-  'other': `You are a Texas TC reviewing a real estate document. Extract any relevant fields you can find including names, dates, addresses, amounts, and contact information. Note the document type and purpose.
+  // 2026-10-01: this branch used to hardcode "passed": true and omit all
+  // four compliance array keys — Dossie could not identify the document,
+  // ran no audit against it at all, and still rendered a green "Verified /
+  // Everything looks good — no missing signatures" card on a contract
+  // whose signature lines were blank. Unknown document type must render as
+  // UNKNOWN, never as a pass. auditNotPerformed:true is read by the
+  // frontend (ComplianceReportCard) to suppress the "no issues found"
+  // claim for every category entirely, since none of them were checked.
+  'other': `You are a Texas TC reviewing a real estate document that could not be confidently classified into a known TREC/TAR form type. Extract any relevant fields you can find. Note the document type and purpose. Do NOT attempt to judge whether signatures, initials, or required fields are complete — you do not know what this document requires, so do not claim it passed or failed.
 
-Return JSON:
+Use these exact flat key names in extractedFields (omit any key you found nothing for — do not nest, do not invent new key names):
+propertyAddress, cityStateZip, buyerName, sellerName, buyerEmail, buyerPhone, sellerEmail, sellerPhone, salePrice, earnestMoney, optionFee, closingDate, contractEffectiveDate, titleCompany, lenderName, loanOfficerName, loanOfficerEmail, loanOfficerPhone, hoaName, hoaPhone, hoaManagementCompany.
+
+Return ONLY this JSON — "passed" must always be false and "auditNotPerformed" must always be true, because no compliance check was run:
 {
-  "passed": true,
+  "passed": false,
+  "auditNotPerformed": true,
   "documentDescription": "description of what this document is",
   "extractedFields": {},
-  "warnings": [],
+  "warnings": ["This document type wasn't automatically recognized, so Dossie did not run a compliance check on it. Review it manually."],
   "summary": "brief description of document contents"
 }`,
 };
@@ -605,7 +616,7 @@ Read that sentence for EVERY block before assigning a single field. The seller's
 
 Within each 20-19 block the labels are: "(Broker Firm)" on the first line -> brokerage; "Associate's Name:" -> the agent; "Associate's Email:" -> their email; "Associate's Phone No.:" -> their phone. IGNORE "Licensed Supervisor of Associate" and "Phone No. of Licensed Supervisor" — that is the broker who supervises the agent, NOT the agent, and NOT the person to contact about the deal. IGNORE "Team Name" and every "License No." field.
 
-IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Stephen D. Foster & Associates, 2141 NW Military Hwy # 101 San Antonio TX 78213  Phone: 2107893727  Fax:  Nopalito" followed by "Clyde Johnson   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Stephen D. Foster & Associates" while the actual buyer's broker firm on the form is "Pure Home River". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
+IGNORE THE PAGE FOOTER ENTIRELY. Every page of a Lone Wolf / zipForm-produced contract carries a footer naming the office that PRODUCED the document and the person who printed it, e.g. "Halstead Foster & Associates, 900 Example Pkwy # 100 San Antonio TX 78200  Phone: 2105550182  Fax:  Sablewood" followed by "Dale Whitaker   Produced with Lone Wolf Transactions (zipForm Edition) ... www.lwolf.com". That footer firm is NOT a party to the deal and is frequently NOT the same as the broker firm printed inside the block — on the real contract quoted above the footer says "Halstead Foster & Associates" while the actual buyer's broker firm on the form is "Riverbend Realty". Take brokerage names ONLY from the "(Broker Firm)" line inside a block. Likewise ignore any "Docusign Envelope ID:" header line.
 
 Inside each block, the fields are typically laid out as:
 - "Broker/Firm Name" or just "Broker" → buyerBrokerage / listingBrokerage
@@ -977,8 +988,8 @@ function repairTruncatedJson(text) {
 
 // 2026-08-22 — Structured buyer2Name/seller2Name, captured at scan time.
 // TREC contracts print multi-person parties as one combined string on the
-// signature line ("Chelsea Linton, Thomas Linton" or "Kathleen Champie and
-// Clark Champie"). buyerName/sellerName stay as that combined string
+// signature line ("Chelsea Hale, Gregory Hale" or "Margaret Kendrick and
+// Arthur Kendrick"). buyerName/sellerName stay as that combined string
 // (unchanged — emailTemplates.js, net-sheet.js, download-zip.js, chat.js and
 // the PDF fill pipeline all read it as one display string and must keep
 // working), but Dossie's actual party model caps at two people per side
@@ -1597,7 +1608,7 @@ async function scanContract(pdfBase64) {
   // CRITICAL: Parse earnestMoney and optionFee dollar amounts directly from
   // the debugParagraph5A/5B verbatim text using regex, same reasoning as the
   // optionDays/surveyDeadline backstops above. Found 2026-08-06 auditing a
-  // real executed contract (Wild Cherry, GF 70378) — document identification
+  // real executed contract (Amberwood, GF 70378) — document identification
   // and the compliance audit both succeeded, but Claude's own earnestMoney/
   // optionFee JSON fields came back null even though both dollar amounts
   // were plainly filled in on the form, silently skipping the auto-checklist
@@ -1793,7 +1804,7 @@ async function scanContract(pdfBase64) {
   // gate (dossie-app.jsx handleUploadDocument) then silently drops the
   // correct backstop value and leaves the dossier field blank or at its
   // prior default — this is the exact "0 days" / blank Key Dates bug Heath
-  // found live on the Pfeiffers Gate dossier. Same fix pattern as
+  // found live on the Harrow Lane dossier. Same fix pattern as
   // possessionDate/earnestMoneyReceiptDate immediately above, applied to
   // every field a backstop can touch.
   if (typeof extracted.optionDays === 'number') confidence.optionDays = 1.0;
@@ -1952,9 +1963,18 @@ async function identifyDocument(pdfBase64) {
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
   const modelToUse = isLargePdf ? MODEL : IDENTIFY_MODEL;
 
+  // 2026-10-01: was max_tokens:200 against a 35-entry enum + a free-text
+  // "reasoning" sentence — that reasoning field had no length cap, and on
+  // 3 of 7 real production runs (specimen TREC 20-17) the response
+  // truncated mid-JSON, safeParseJson failed, and this silently fell back
+  // to documentType:'other', confidence:0. Dropped the free-text field
+  // (prompt above now asks for only documentType + confidence, which
+  // cannot meaningfully overflow 300 tokens) and raised the budget as a
+  // second line of defense. Parse failure is now logged loudly instead of
+  // silently degrading — see console.error below.
   const response = await anthropic.messages.create({
     model: modelToUse,
-    max_tokens: 200,
+    max_tokens: 300,
     messages: [{
       role: 'user',
       content: [
@@ -1964,18 +1984,28 @@ async function identifyDocument(pdfBase64) {
     }],
   });
   const textBlock = (response.content || []).find((b) => b.type === 'text');
-  const parsed = safeParseJson(textBlock ? textBlock.text : '') || {};
-  const rawType = typeof parsed.documentType === 'string' ? parsed.documentType : 'other';
+  const rawText = textBlock ? textBlock.text : '';
+  const parsed = safeParseJson(rawText);
+  if (!parsed || typeof parsed !== 'object') {
+    console.error('[identifyDocument] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
+      response.stop_reason, rawText.length, rawText.slice(0, 400));
+  }
+  const safeParsed = parsed || {};
+  const rawType = typeof safeParsed.documentType === 'string' ? safeParsed.documentType : 'other';
   const documentType = DOCUMENT_LABELS[rawType] ? rawType : 'other';
+  if (documentType === 'other' && rawType !== 'other') {
+    console.error('[identifyDocument] model returned unrecognized documentType=%s, falling back to other', rawType);
+  }
   return {
     documentType,
-    confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0,
+    confidence: typeof safeParsed.confidence === 'number' ? safeParsed.confidence : 0,
   };
 }
 
 function emptyComplianceReport(docLabel) {
   return {
     passed: false,
+    auditNotPerformed: true,
     missingSignatures: [],
     missingInitials: [],
     blankRequiredFields: [],
@@ -2004,11 +2034,25 @@ async function auditCompliance(pdfBase64, documentType) {
   const isLargePdf = pdfSizeBytes > 5 * 1024 * 1024;
   const isTrec2017 = documentType === 'trec-20-17';
   const modelToUse = isLargePdf ? 'claude-opus-4-5-20251101' : (isTrec2017 ? 'claude-sonnet-5' : MODEL);
-  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 6144 : 2048);
+  // 2026-10-05 — root cause of the ~2/5 production truncation rate: this
+  // call never disabled extended thinking. claude-sonnet-5 (and opus-4-5)
+  // auto-enable it, and thinking tokens draw from the SAME max_tokens
+  // budget as the visible JSON — the identical pathology already fixed in
+  // scanContract() (see EXTRACT_MAX_TOKENS comment above) and documented in
+  // scripts/regression-scan-contract-truncation.js, just never mirrored
+  // here. Reproduced live against production 2026-10-05: 2 of 5 real scans
+  // of generated-docs/sample-resale-contract.pdf came back with a response
+  // safeParseJson couldn't parse, falling through to emptyComplianceReport()
+  // below. `thinking: { type: 'disabled' }` plus a larger trec-20-17 budget
+  // (8192, matching the proven-safe extraction budget) is the fix — this is
+  // a bounded classification/judgment task, not something that benefits
+  // from chain-of-thought, same rationale as the extraction call.
+  const maxTokensToUse = isLargePdf ? 4096 : (isTrec2017 ? 8192 : 2048);
 
   const response = await anthropic.messages.create({
     model: modelToUse,
     max_tokens: maxTokensToUse,
+    thinking: { type: 'disabled' },
     messages: [{
       role: 'user',
       content: [
@@ -2019,22 +2063,57 @@ async function auditCompliance(pdfBase64, documentType) {
   });
   const textBlock = (response.content || []).find((b) => b.type === 'text');
   const rawText = textBlock ? textBlock.text : '';
-  const parsed = safeParseJson(rawText);
+  let parsed = safeParseJson(rawText);
+  let truncated = false;
   if (!parsed || typeof parsed !== 'object') {
-    console.error('[auditCompliance] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
-      response.stop_reason, rawText.length, rawText.slice(0, 400));
-    return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
+    // Direct parse failed — most commonly a response cut off mid-object by
+    // max_tokens. Try to salvage whatever findings were fully emitted
+    // before the cutoff (repairTruncatedJson(), shared with scanContract())
+    // rather than discarding the whole audit. Whatever is recovered is
+    // still only PARTIAL — never trusted as a complete, passing audit (see
+    // the auditNotPerformed override below) — but surfacing the findings
+    // that did make it through beats showing nothing at all, same "silent
+    // failure is the enemy" fix already applied to extraction.
+    const repaired = repairTruncatedJson(rawText);
+    if (repaired && typeof repaired === 'object') {
+      parsed = repaired;
+      truncated = true;
+    } else {
+      console.error('[auditCompliance] unparsable response, stop_reason=%s, len=%d, first 400 chars: %s',
+        response.stop_reason, rawText.length, rawText.slice(0, 400));
+      return emptyComplianceReport(DOCUMENT_LABELS[documentType] || 'document');
+    }
   }
   const arr = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string') : []);
+  // documentType === 'other' means Dossie could not confidently classify
+  // this document — enforced server-side (not just via the prompt) so a
+  // model that ignores its instructions can never make an unaudited
+  // document render as "passed". See 2026-10-01 fix comment above
+  // COMPLIANCE_PROMPTS.other.
+  const isUnclassified = documentType === 'other' || !COMPLIANCE_PROMPTS[documentType];
+  const warnings = arr(parsed.warnings);
+  if (isUnclassified && !warnings.some((w) => /did not run a compliance check|could not be classified|wasn.t automatically recognized/i.test(w))) {
+    warnings.push("This document type wasn't automatically recognized, so Dossie did not run a compliance check on it. Review it manually.");
+  }
+  if (truncated) {
+    console.error('[auditCompliance] response truncated mid-JSON, stop_reason=%s, recovered partial result, len=%d',
+      response.stop_reason, rawText.length);
+    warnings.push('This compliance check was cut short before it finished — some findings below may be incomplete. Review the document manually.');
+  }
   return {
-    passed: parsed.passed === true,
+    // A truncated/repaired response is NEVER allowed to render as a pass,
+    // regardless of what the model emitted for "passed" before the cutoff —
+    // the 2026-10-01 incident (unknown doc type rendering a false "no
+    // issues found" pass) must not reappear through this path either.
+    passed: (isUnclassified || truncated) ? false : parsed.passed === true,
+    auditNotPerformed: (isUnclassified || truncated) ? true : parsed.auditNotPerformed === true,
     missingSignatures: arr(parsed.missingSignatures),
     missingInitials: arr(parsed.missingInitials),
     blankRequiredFields: arr(parsed.blankRequiredFields),
     checkedAddenda: arr(parsed.checkedAddenda),
     missingAddenda: arr(parsed.missingAddenda),
     extractedFields: (parsed.extractedFields && typeof parsed.extractedFields === 'object') ? parsed.extractedFields : {},
-    warnings: arr(parsed.warnings),
+    warnings,
     summary: typeof parsed.summary === 'string' ? parsed.summary : '',
     documentDescription: typeof parsed.documentDescription === 'string' ? parsed.documentDescription : null,
   };

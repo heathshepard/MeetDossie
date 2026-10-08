@@ -41,6 +41,18 @@ const { checkGoogleTokenHealth } = require('./google-token-health.js');
 // SMS/Phone Link import gone silent (Atlas, 2026-10-01) -- see
 // api/_lib/sms-import-health.js header for the incident this closes.
 const { checkSmsImportStale } = require('./sms-import-health.js');
+// Timezone-correct "today" boundary for checkNoVideoScheduledToday() below --
+// already a hard dependency of api/_lib/video-schedule.js for the exact
+// same America/Chicago day-boundary math, so this is not a new dependency.
+const { DateTime } = require('luxon');
+// DossieMarketingBot webhook self-heal + alarm (Atlas, 2026-10-02) -- see
+// api/_lib/telegram-webhook-health.js header for the incident this closes
+// (two group_posts Approve taps did nothing -- webhook was unregistered).
+const { checkTelegramWebhookHealth } = require('./telegram-webhook-health.js');
+// FAILED-RETRYABLE self-heal (Atlas, 2026-10-02/03 -- "three days and no
+// video" incident, video 8). See that file's header for the full model;
+// used by checkNoVideoScheduledToday() below.
+const { MAX_VIDEO_RETRIES, isRetryPreconditionMet } = require('./video-retry.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -609,15 +621,23 @@ async function checkCommentsAwaitingReplyStale(staleHours = COMMENT_REPLY_STALE_
     });
   }
 
+  // FIXED 2026-09-29 (Atlas, cron-publish-comment-replies build): this query
+  // read reply_status=eq.draft against a column that has never held that
+  // value (the real enum is 'drafted') and filtered on created_at, which
+  // does not exist on this table at all -- every call 400'd, supabaseFetch
+  // swallowed it as {ok:false}, and this condition has therefore returned
+  // [] on every single run since it was written. A broken alarm reporting
+  // healthy is the exact failure class feedback_silent-failure-is-the-enemy.md
+  // exists to catch, just one layer up (the alarm itself, not the pipeline).
   const social = await supabaseFetch(
-    `/rest/v1/social_comment_replies?reply_status=eq.draft&created_at=lt.${encodeURIComponent(cutoff)}&select=id,created_at&order=created_at.asc`,
+    `/rest/v1/social_comment_replies?reply_status=eq.drafted&drafted_at=lt.${encodeURIComponent(cutoff)}&select=id,drafted_at&order=drafted_at.asc`,
   );
   if (social.ok && Array.isArray(social.data) && social.data.length > 0) {
     results.push({
       key: 'comments_awaiting_reply:social',
       count: social.data.length,
       oldest: social.data[0],
-      message: `${social.data.length} drafted comment reply(s) sitting >${staleHours}h without posting (oldest drafted ${social.data[0].created_at}).`,
+      message: `${social.data.length} drafted comment reply(s) sitting >${staleHours}h without posting (oldest drafted ${social.data[0].drafted_at}). Check api/cron-publish-comment-replies.js and its ops_flags.zernio_comment_replies switch.`,
     });
   }
 
@@ -767,6 +787,54 @@ async function checkCommentOppApprovedStale(staleHours = COMMENT_OPP_APPROVED_ST
     oldest: res.data[0],
     message: `${res.data.length} Heath-approved comment(s) sitting >${staleHours}h without posting (oldest: "${res.data[0].group_name}", approved ${res.data[0].approved_at}). `
       + 'Check node scripts/fb-comment-opp-poster.js --dry-run and scripts/.comment-hunt-halt.json for a halt (global or scoped to that group).',
+  }];
+}
+
+// 9c. The comment-reply PUBLISHER (api/cron-publish-comment-replies.js,
+// Atlas, 2026-09-29) has gone silent: rows that ARE eligible to post
+// (reply_status='drafted', not spam, not escalated) are sitting well past a
+// normal publish cycle even though Heath has turned the pipeline ON. This is
+// a narrower, more actionable signal than checkCommentsAwaitingReplyStale
+// above -- that one only says a backlog EXISTS; this one excludes exactly
+// the rows the publisher is SUPPOSED to leave alone (age>14d -> the
+// publisher itself marks those 'expired'; an escalation-guard match -> the
+// publisher marks those 'held'), so a nonzero count here means "the
+// publisher should have posted these and didn't."
+//
+// Deliberately does NOT fire while ops_flags.zernio_comment_replies is off.
+// That flag is the intentional gate Heath hasn't flipped yet as of
+// 2026-09-29 (a dry-run-only build, pending his review of the first live
+// list) -- alarming on an intentionally-paused pipeline is exactly the
+// "alarm becomes wallpaper" failure this file exists to avoid.
+const COMMENT_REPLY_PUBLISH_STALE_HOURS = 6;
+// Mirrors api/cron-publish-comment-replies.js's own AGE_CUTOFF_DAYS as a
+// plain number rather than an import -- same reasoning as the TC-harvest
+// constants above: this file must never pull a cron's whole require graph
+// in just to read one number.
+const COMMENT_REPLY_PUBLISH_AGE_CUTOFF_DAYS_MIRROR = 14;
+
+async function checkCommentReplyPublisherStale(staleHours = COMMENT_REPLY_PUBLISH_STALE_HOURS) {
+  const flag = await supabaseFetch('/rest/v1/ops_flags?key=eq.zernio_comment_replies&select=enabled');
+  const enabled = flag.ok && Array.isArray(flag.data) && flag.data[0] && flag.data[0].enabled === true;
+  if (!enabled) return [];
+
+  const cutoff = hoursAgoIso(staleHours);
+  const res = await supabaseFetch(
+    '/rest/v1/social_comment_replies?reply_status=eq.drafted&is_spam=not.is.true'
+    + `&escalated=is.false&drafted_at=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,platform,drafted_at,comment_created_at&order=drafted_at.asc',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  const cutoffMs = Date.now() - COMMENT_REPLY_PUBLISH_AGE_CUTOFF_DAYS_MIRROR * 24 * 60 * 60 * 1000;
+  const stillEligible = res.data.filter((r) => new Date(r.comment_created_at).getTime() >= cutoffMs);
+  if (stillEligible.length === 0) return [];
+
+  return [{
+    key: 'comment_reply_publisher_stale',
+    count: stillEligible.length,
+    oldest: stillEligible[0],
+    message: `${stillEligible.length} eligible drafted comment repl${stillEligible.length === 1 ? 'y is' : 'ies are'} sitting unposted >${staleHours}h even though zernio_comment_replies is ON (oldest drafted ${stillEligible[0].drafted_at}). Check cron-dispatch-every20 for a member_timeout on cron-publish-comment-replies, and the daily/platform caps in scripts/_lib/comment-caps.js.`,
   }];
 }
 
@@ -992,6 +1060,478 @@ async function checkCronSanity(scanOpts) {
   }));
 }
 
+// ─── structurally unpublishable approved posts ────────────────────────────
+//
+// The linkedin_personal incident, 2026-09-30: cron-generate-heath-linkedin.js
+// generated a post every weekday into social_posts with platform=
+// 'linkedin_personal'. Nothing ever added a posting_schedule row OR a
+// zernio_accounts row for that platform, so cron-publish-approved.js's
+// isDueForPublish() correctly (and silently) skipped every single one,
+// forever — `skipped_schedule` climbed in the cron's JSON response body,
+// which nobody reads, while cron_runs kept reporting 'ok' because the cron
+// itself never errored. 7 rows piled up, one 101 minutes past its
+// scheduled_for, before anyone noticed.
+//
+// checkStaleApprovals() above catches "approved and old" generically but
+// can't say WHY — a post stuck behind a full daily cap or a not-yet-reached
+// time slot looks identical to one sitting behind a schedule/account gap
+// that can NEVER resolve on its own. This check is deliberately narrower
+// and structural: it only fires when the (platform, owner) pair the row
+// would publish through has no active posting_schedule row AND/OR no
+// active zernio_accounts row at all — not "hasn't hit its slot yet" (that's
+// normal, expected, and must stay silent) but "the destination doesn't
+// exist." A post waiting on a real, wired destination is never included
+// here, however long it waits.
+const STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES = 30;
+
+function minutesAgoIso(minutes) {
+  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+}
+
+async function checkStructurallyUnpublishablePosts(staleMinutes = STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES) {
+  const cutoff = minutesAgoIso(staleMinutes);
+
+  const stale = await supabaseFetch(
+    `/rest/v1/social_posts?status=eq.approved&scheduled_for=not.is.null&scheduled_for=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,platform,target_owner,scheduled_for&order=scheduled_for.asc',
+  );
+  if (!stale.ok || !Array.isArray(stale.data) || stale.data.length === 0) return [];
+
+  const [scheduleRes, zernioRes] = await Promise.all([
+    supabaseFetch('/rest/v1/posting_schedule?select=platform,owner,is_active'),
+    supabaseFetch('/rest/v1/zernio_accounts?select=platform,owner,is_active'),
+  ]);
+  // Fail SAFE (not closed) here, deliberately the opposite of
+  // ops-policy.js's checkCapability(): a failed read of posting_schedule or
+  // zernio_accounts must never be treated as "these rows don't exist" — that
+  // would flag every approved-and-stale row on every platform as
+  // structurally broken on a transient network blip, which is exactly how
+  // an alarm becomes wallpaper Heath stops trusting. If either lookup table
+  // itself is unreadable, skip this run's structural check entirely rather
+  // than guess.
+  if (!scheduleRes.ok || !Array.isArray(scheduleRes.data) || !zernioRes.ok || !Array.isArray(zernioRes.data)) {
+    return [];
+  }
+  const scheduleRows = scheduleRes.data;
+  const zernioRows = zernioRes.data;
+
+  // Mirrors findScheduleRow() in cron-publish-approved.js: an owner-specific
+  // active row OR the shared (owner IS NULL) active row counts as "wired."
+  function hasSchedule(platform, owner) {
+    return scheduleRows.some((r) => r.platform === platform && r.is_active
+      && (r.owner === owner || !r.owner));
+  }
+  // Mirrors lookupZernioAccountId()/lookupZernioPageId() in
+  // cron-publish-approved.js: EXACT owner match only, no shared-row
+  // fallback — a post's zernio_account_id is always resolved per-owner.
+  function hasZernio(platform, owner) {
+    return zernioRows.some((r) => r.platform === platform && r.is_active && r.owner === owner);
+  }
+
+  const byPair = new Map();
+  for (const row of stale.data) {
+    const owner = row.target_owner || 'dossie';
+    const scheduleOk = hasSchedule(row.platform, owner);
+    const zernioOk = hasZernio(row.platform, owner);
+    if (scheduleOk && zernioOk) continue; // wired destination, just hasn't fired yet — not our concern
+
+    const pairKey = `${row.platform}/${owner}`;
+    if (!byPair.has(pairKey)) {
+      byPair.set(pairKey, { platform: row.platform, owner, rows: [], missingSchedule: !scheduleOk, missingZernio: !zernioOk });
+    }
+    byPair.get(pairKey).rows.push(row);
+  }
+
+  const results = [];
+  for (const [pairKey, info] of byPair) {
+    const missing = [];
+    if (info.missingSchedule) missing.push('no active posting_schedule row');
+    if (info.missingZernio) missing.push('no active zernio_accounts row');
+    results.push({
+      key: `structurally_unpublishable:${pairKey}`,
+      platform: info.platform,
+      target_owner: info.owner,
+      count: info.rows.length,
+      oldest: info.rows[0],
+      message: `${info.rows.length} social_posts row(s) on platform '${info.platform}'`
+        + `${info.owner !== 'dossie' ? ` (owner ${info.owner})` : ''} sat approved >${staleMinutes}min past `
+        + `scheduled_for and can NEVER publish as-is (${missing.join(' and ')}) — oldest scheduled_for `
+        + `${info.rows[0].scheduled_for}. Either park generation for this platform/owner or wire the missing `
+        + 'posting_schedule/zernio_accounts row.',
+    });
+  }
+  return results;
+}
+
+// video_library rows landing status='posted_partial' — one or more
+// originally-targeted platforms were gated out (daily cap / inactive
+// posting_schedule row / no schedule row) before ever reaching Zernio. See
+// 20260930e_video_library_posted_partial_status.sql and
+// api/_lib/video-delivery-verify.js's buildSkipEntry() for the full
+// incident this closes.
+//
+// Deliberately NOT restricted to "recent" rows the way most checks here
+// are — a posted_partial row with a genuinely missing platform stays wrong
+// forever unless something (Heath, or a future retry pass) fixes it; there
+// is no cron that will quietly resolve it on its own the way a "not yet
+// due" gate skip does. staleMinutes below gates only how soon after the
+// row is marked partial this starts firing, to give
+// cron-verify-zernio-deliveries.js a chance to finish confirming the
+// platforms that DID get attempted before Heath is bothered about the ones
+// that didn't.
+const PARTIAL_VIDEO_DELIVERY_STALE_MINUTES = 30;
+
+async function checkPartialVideoDeliveries(staleMinutes = PARTIAL_VIDEO_DELIVERY_STALE_MINUTES) {
+  const cutoff = minutesAgoIso(staleMinutes);
+
+  const res = await supabaseFetch(
+    `/rest/v1/video_library?status=eq.posted_partial&posted_date=lt.${encodeURIComponent(cutoff)}`
+    + '&select=id,topic,target_owner,platforms,zernio_deliveries,posted_date&order=posted_date.asc&limit=25',
+  );
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return [];
+
+  const results = [];
+  for (const row of res.data) {
+    const deliveries = Array.isArray(row.zernio_deliveries) ? row.zernio_deliveries : [];
+    const missing = deliveries
+      .filter((e) => e && e.status === 'gate_skipped')
+      .map((e) => `${e.platform} (${e.error || 'gated before publish'})`);
+    // Defensive: a posted_partial row with no gate_skipped entries would
+    // mean the status and the bookkeeping disagree — still worth surfacing,
+    // just with an honest "reason unknown" rather than an empty list.
+    const missingLabel = missing.length > 0 ? missing.join(', ') : 'no gate_skipped entries found on this row — status/bookkeeping mismatch, investigate directly';
+    results.push({
+      key: `partial_video_delivery:${row.id}`,
+      video_id: row.id,
+      target_owner: row.target_owner || 'dossie',
+      topic: row.topic,
+      count: 1,
+      oldest: row,
+      message: `video_library ${row.id}${row.target_owner && row.target_owner !== 'dossie' ? ` [${row.target_owner}]` : ''} posted_partial — `
+        + `targeted [${(row.platforms || []).join(', ')}], never reached: ${missingLabel}. `
+        + `Retry candidates require Zernio-side absence confirmation before resending — see scripts/retry-missed-video-platforms-dry-run.js.`,
+    });
+  }
+  return results;
+}
+
+// ─── no video scheduled or posted today ────────────────────────────────────
+//
+// THE INCIDENT THIS CLOSES (Atlas, 2026-10-02): video 7 published
+// 2026-10-01. Video 8 was built and ready. Cole stopped a publishing agent
+// mid-task (a SEPARATE video that day was wrong) and told it to reschedule
+// video 8 for 2026-10-02 -- it halted before creating any video_library row
+// at all, so nothing was scheduled. Heath found the empty day himself the
+// next morning: "I really don't like how I had to catch you not posting
+// anything today... Where was the breakdown?"
+//
+// Two failures stacked: a reschedule was reported done without being
+// verified, AND nothing in the system ever asks "is a video going out
+// today?" -- an empty day was completely silent. Every other check in this
+// file answers "did something go WRONG"; none of them answer "did NOTHING
+// happen at all today", which is exactly the shape that let this slide.
+//
+// WHY "TODAY" IS America/Chicago, NOT UTC: the daily cadence is framed
+// around Heath's first posting slot, 07:00-08:00 CT (docs/VIDEO-RULES.md /
+// posting_schedule). A UTC calendar day would clip or extend that window by
+// 5-6h depending on DST and make "today" mean something Heath never framed
+// it as.
+//
+// SELF-HEALS (Heath's own framing: "the right behaviour may be to schedule
+// it automatically... err toward scheduling a heath_approved video that's
+// sitting idle"). Mirrors api/_lib/google-token-health.js's shape: try to
+// fix it first, only alert on what the fix couldn't reach. Exactly ONE
+// write path exists here, and it is narrow by design --
+// PATCH video_library.scheduled_for on a row that is ALREADY
+// status='heath_approved' AND quality_status='passed'. This can only ever
+// change WHEN an already-approved video posts, never WHETHER -- it never
+// creates a row, never flips status, never touches an unapproved row. That
+// is the same approval boundary cron-post-videos.js itself already trusts
+// (STEP 2 only ever acts on heath_approved rows); this just corrects a
+// scheduled_for that drifted past today back onto today, which is the
+// literal shape of today's incident ("reschedule video 8 for 10-02").
+//
+// THREE independent outcomes, each its own alert_state key so one doesn't
+// suppress a different, newer failure's cooldown (same reasoning as
+// checkGoogleTokenHealth):
+//   1. Something already posted today, something heath_approved+passed is
+//      already due today (scheduled_for null or <= end of today), or
+//      something still earlier in the pipeline (approved /
+//      pending_heath_review) already carries a real scheduled_for inside
+//      today -- HEALTHY, silent. A row in the last case still has to clear
+//      the normal approval steps, but it is a genuine commitment to post
+//      today, which is the thing this check actually cares about.
+//   2. Nothing is queued for today at all, but a heath_approved+passed row exists with
+//      scheduled_for pushed past today -- SELF-HEAL: pull the earliest one
+//      back to now() so the next cron-post-videos.js pass (within 20 min)
+//      posts it today instead of waiting on its deferred date.
+//   3. Nothing postable exists ANYWHERE for today and there is nothing to
+//      pull forward -- genuinely nothing to post. ALERT, naming whatever IS
+//      sitting in the pipeline (ready/pending_approval/pending_heath_review/
+//      quality_hold) so the human fix is "build or approve one today", not
+//      a guess.
+const NO_VIDEO_TODAY_TZ = 'America/Chicago';
+
+async function checkNoVideoScheduledToday(now = new Date()) {
+  const today = DateTime.fromJSDate(now).setZone(NO_VIDEO_TODAY_TZ);
+  const startOfDayUtc = today.startOf('day').toUTC().toISO();
+  const endOfDayUtc = today.endOf('day').toUTC().toISO();
+
+  // 1a. Already posted (or posted_partial -- still "a video went out") today.
+  const posted = await supabaseFetch(
+    `/rest/v1/video_library?status=in.(posted,posted_partial)`
+    + `&posted_date=gte.${encodeURIComponent(startOfDayUtc)}&posted_date=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id&limit=1',
+  );
+  if (!posted.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `Could not read video_library to check today's (${today.toFormat('yyyy-LL-dd')} CT) posting status (status ${posted.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(posted.data) && posted.data.length > 0) return [];
+
+  // 1b. Something heath_approved+quality-passed is already due today (NULL
+  // scheduled_for is immediately due per cron-post-videos.js's own isDue()).
+  // That cron runs every 20 min (cron-dispatch-every20.js) -- it will reach
+  // this row on its own well within today; nothing for this check to do.
+  const dueToday = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed'
+    + `&or=(scheduled_for.is.null,scheduled_for.lte.${encodeURIComponent(endOfDayUtc)})`
+    + '&select=id,scheduled_for&limit=1',
+  );
+  if (!dueToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted-today check passed, but the heath_approved/due-today query failed (status ${dueToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(dueToday.data) && dueToday.data.length > 0) return [];
+
+  // 1c. Something is QUEUED for today even if it hasn't reached
+  // heath_approved yet. "Scheduled counts, not just posted" (Heath's own
+  // framing) -- a row sitting at status='approved' or 'pending_heath_review'
+  // with a real scheduled_for inside today's CT window is a genuine
+  // commitment to post today (api/register-video.js / video-schedule.js
+  // already stamped it there), even though it still has to clear the
+  // approved -> pending_heath_review -> heath_approved steps in
+  // cron-post-videos.js before it can actually publish. This is exactly the
+  // state a video sits in moments after it's built and scheduled -- the
+  // live run that proved this check (2026-10-02) caught video 8 in exactly
+  // this shape (status='approved', scheduled_for=today). Deliberately
+  // excludes 'pending_approval' -- that status is a dead end nothing
+  // re-reads on its own (see checkVideoLibraryPendingApprovalStale's
+  // header) and should not read as "queued" just because a scheduled_for
+  // happens to be set on it. Bounded to TODAY specifically (not "any time
+  // in the past") so a long-stale leftover scheduled_for from a different
+  // day can't masquerade as covering today.
+  const queuedToday = await supabaseFetch(
+    '/rest/v1/video_library?status=in.(approved,pending_heath_review,heath_approved)&quality_status=eq.passed'
+    + `&scheduled_for=gte.${encodeURIComponent(startOfDayUtc)}&scheduled_for=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,status,scheduled_for&limit=1',
+  );
+  if (!queuedToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted/due-today checks passed, but the queued-today query failed (status ${queuedToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  if (Array.isArray(queuedToday.data) && queuedToday.data.length > 0) return [];
+
+  // 1d. FAILED-RETRYABLE (Atlas 2026-10-03 -- "three days and no video"
+  // incident, video 8): a row that failed TODAY (failed_at inside today's
+  // CT window) for a purely caption-shaped reason -- see api/_lib/
+  // video-retry.js -- is still today's obligation, not an absence. It must
+  // not fall through to the "genuinely nothing" branch below just because
+  // status='failed_retryable' isn't a status the posted/due/queued checks
+  // above look at.
+  //
+  // Before ever re-arming a row, re-check the EXACT precondition that
+  // failed (the row's CURRENT caption) via isRetryPreconditionMet() -- the
+  // same gate cron-post-videos.js itself enforces at publish time. A row
+  // whose caption is STILL bad would just reproduce the identical failure
+  // on the very next cron-post-videos.js pass if re-armed blindly, which is
+  // worse than staying quiet: it would burn a retry for nothing and loop.
+  // Such a row is ALERTED instead, naming exactly what's still wrong, so
+  // the human fix (rewrite the caption) is obvious.
+  //
+  // Capped at MAX_VIDEO_RETRIES: a row that has already been re-armed that
+  // many times is flipped to terminal 'failed' instead of retried again --
+  // this is the only path in this file that ever MOVES a row OUT of
+  // failed_retryable without the caption having been fixed, and it only
+  // fires the dedicated 'video_failed_retryable_exhausted' key, never the
+  // generic 'video_failed_retryable_today' one, so exhaustion is visible as
+  // its own distinct condition rather than silently blending into "still
+  // broken, will keep trying."
+  const failedRetryableToday = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.failed_retryable'
+    + `&failed_at=gte.${encodeURIComponent(startOfDayUtc)}&failed_at=lte.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,topic,target_owner,caption,failure_reason,failed_at,retry_count&order=failed_at.asc',
+  );
+  if (!failedRetryableToday.ok) {
+    return [{
+      key: 'no_video_today_query_failed',
+      message: `video_library posted/due/queued-today checks passed, but the failed_retryable-today query failed (status ${failedRetryableToday.status}). Treat the daily video cadence as unverified until this query works.`,
+    }];
+  }
+  const failedRetryableRows = Array.isArray(failedRetryableToday.data) ? failedRetryableToday.data : [];
+  if (failedRetryableRows.length > 0) {
+    const stillBroken = [];
+    const exhausted = [];
+    for (const row of failedRetryableRows) {
+      const retryCount = row.retry_count || 0;
+
+      if (retryCount >= MAX_VIDEO_RETRIES) {
+        // Exhausted -- move to terminal 'failed' rather than try again.
+        // status filter in the PATCH itself (not just the earlier SELECT)
+        // so a row another process already touched between read and write
+        // is never double-handled.
+        await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.failed_retryable`,
+          { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'failed' }) },
+        );
+        exhausted.push(row);
+        continue;
+      }
+
+      if (isRetryPreconditionMet(row)) {
+        const patch = await supabaseFetch(
+          `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.failed_retryable`,
+          {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({ status: 'heath_approved', scheduled_for: new Date().toISOString(), retry_count: retryCount + 1 }),
+          },
+        );
+        if (patch.ok && Array.isArray(patch.data) && patch.data.length > 0) {
+          // Self-healed -- silent, same convention as the deferred
+          // self-heal below: nothing for Heath to do, so nothing to say.
+          continue;
+        }
+        stillBroken.push({ ...row, selfHealPatchFailed: true });
+        continue;
+      }
+
+      // Precondition not met -- caption is still whatever made this row
+      // fail in the first place. Do NOT re-arm; alert instead.
+      stillBroken.push(row);
+    }
+
+    if (stillBroken.length === 0 && exhausted.length === 0) return [];
+
+    const conditions = [];
+    if (stillBroken.length > 0) {
+      conditions.push({
+        key: 'video_failed_retryable_today',
+        message: `${stillBroken.length} video(s) failed today (${today.toFormat('yyyy-LL-dd')} CT) and are not safe to auto-retry yet: `
+          + stillBroken.map((r) => `${r.id} (${r.topic || 'untitled'}`
+            + `${r.target_owner && r.target_owner !== 'dossie' ? `, ${r.target_owner}` : ''}) -- ${r.failure_reason || 'unknown reason'}, `
+            + (r.selfHealPatchFailed ? 'caption now looks valid but the re-arm PATCH did not confirm' : 'caption still fails the same check')
+            + ` (retry ${r.retry_count || 0}/${MAX_VIDEO_RETRIES})`).join('; ')
+          + '. Fix the caption on each row (or rebuild the video) -- it will be retried automatically once it passes.',
+      });
+    }
+    if (exhausted.length > 0) {
+      conditions.push({
+        key: 'video_failed_retryable_exhausted',
+        message: `${exhausted.length} video(s) hit the ${MAX_VIDEO_RETRIES}-retry cap and were moved to terminal 'failed' instead of being retried again: `
+          + exhausted.map((r) => `${r.id} (${r.topic || 'untitled'})`).join(', ')
+          + '. This needs a human fix (rewrite the caption and manually re-approve) -- it will not be auto-retried again.',
+      });
+    }
+    return conditions;
+  }
+
+  // 2. SELF-HEAL: a ready, already-approved video exists but is deferred
+  // past today -- pull the EARLIEST deferred one back to now().
+  const deferred = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed'
+    + `&scheduled_for=gt.${encodeURIComponent(endOfDayUtc)}`
+    + '&select=id,topic,target_owner,scheduled_for&order=scheduled_for.asc&limit=1',
+  );
+  if (deferred.ok && Array.isArray(deferred.data) && deferred.data.length > 0) {
+    const row = deferred.data[0];
+    const patch = await supabaseFetch(
+      // status=eq.heath_approved in the PATCH filter itself (not just the
+      // earlier SELECT) so a row that moved on (e.g. another process just
+      // posted/rejected it) between the read and the write is never
+      // touched -- PostgREST matches zero rows and the PATCH is a silent
+      // no-op rather than a stale overwrite.
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(row.id)}&status=eq.heath_approved`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ scheduled_for: new Date().toISOString() }),
+      },
+    );
+    if (patch.ok && Array.isArray(patch.data) && patch.data.length > 0) {
+      // Self-healed -- silent, same convention as checkGoogleTokenHealth's
+      // 'healthy' outcome. Nothing for Heath to do, so nothing to say.
+      return [];
+    }
+    return [{
+      key: 'no_video_today_selfheal_failed',
+      message: `No video posted or due today (${today.toFormat('yyyy-LL-dd')} CT), and video_library "${row.id}" (${row.topic || 'untitled'}`
+        + `${row.target_owner && row.target_owner !== 'dossie' ? `, ${row.target_owner}` : ''}) is heath_approved+ready but deferred to ${row.scheduled_for} -- `
+        + `tried to pull it forward to post today but the PATCH did not confirm (status ${patch.status}). Set scheduled_for on that row manually.`,
+    }];
+  }
+
+  // 3. Genuinely nothing postable exists for today, and nothing to pull
+  // forward. Name whatever IS sitting in the pipeline so the fix is
+  // actionable, not a guess.
+  const pipeline = await supabaseFetch(
+    '/rest/v1/video_library?status=in.(ready,pending_approval,pending_heath_review,quality_hold)&select=status',
+  );
+  const counts = {};
+  if (pipeline.ok && Array.isArray(pipeline.data)) {
+    for (const row of pipeline.data) counts[row.status] = (counts[row.status] || 0) + 1;
+  }
+  const reasonParts = Object.entries(counts).map(([status, n]) => `${n} ${status}`);
+  const reason = reasonParts.length ? reasonParts.join(', ') : 'nothing anywhere in the video pipeline (not even a draft/ready row)';
+
+  return [{
+    key: 'no_video_today',
+    message: `No video has posted today (${today.toFormat('yyyy-LL-dd')} CT) and nothing is heath_approved+ready to post today -- the daily video cadence breaks today unless someone builds/approves one. Pipeline right now: ${reason}.`,
+  }];
+}
+
+// ─── video content runway ───────────────────────────────────────────────────
+//
+// Cheap, separate signal from checkNoVideoScheduledToday() above: that check
+// only answers "is today covered" and can go quiet for days while the ready
+// buffer quietly shrinks toward zero one video at a time. This answers "how
+// many days of runway are actually left" so a shrinking buffer surfaces
+// BEFORE the morning it finally hits zero -- which is what already happened
+// once (Heath, 2026-10-02: "after video 8 there's roughly one unfinished
+// take left"). Deliberately scoped to video_library's own
+// heath_approved+quality_status='passed' count (the same "ready to post"
+// definition buildHeartbeatSnapshot() already reports as video_ready_to_post)
+// -- NOT raw/unedited footage sitting on Heath's PC, which this table has no
+// column for and which would need new filesystem-scanning infra to track
+// (same category of gap as local_video_orphans, but genuinely a separate,
+// bigger build -- skipped here as speculative rather than guessed at).
+const VIDEO_RUNWAY_MIN_READY = 2;
+
+async function checkVideoRunwayLow(minReady = VIDEO_RUNWAY_MIN_READY) {
+  const res = await supabaseFetch(
+    '/rest/v1/video_library?status=eq.heath_approved&quality_status=eq.passed&select=id',
+  );
+  if (!res.ok) {
+    return [{
+      key: 'video_runway_query_failed',
+      message: `Could not read video_library to check the ready-to-post buffer (status ${res.status}). Treat video content runway as unverified until this query works.`,
+    }];
+  }
+  const count = Array.isArray(res.data) ? res.data.length : 0;
+  if (count >= minReady) return [];
+  return [{
+    key: 'video_runway_low',
+    count,
+    message: `Only ${count} video(s) are heath_approved+ready to post (buffer < ${minReady}) -- at roughly one video/day this runs out in under ${minReady} day(s) unless more footage gets built and approved soon.`,
+  }];
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -1022,9 +1562,22 @@ async function markFired(key, reason, metadata) {
 async function runAllChecks(opts = {}) {
   // Positional destructuring — this list must stay in the SAME ORDER as the
   // Promise.all below, or a detector's results are silently attributed to the
-  // wrong condition. dealWatch, telegramGateSuppressed, and googleToken were
-  // added by separate changes (2026-09-20, 2026-09-28); all are present.
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken, smsImportStale] = await Promise.all([
+  // wrong condition. dealWatch (2026-09-20) and googleToken (2026-09-28) were
+  // both added by separate changes; googleToken was added independently on
+  // both staging and main and is kept once here. Everything after
+  // smsImportStale (telegramGateSuppressed, staging; the rest, main) is
+  // APPEND ONLY — every earlier entry's position is load-bearing (positional
+  // destructuring), so a merge of two divergent branches that both appended
+  // new checks must append both sets, never interleave or reorder:
+  //   telegramGateSuppressed — staging-only (telegram-gate suppression alarm).
+  //   smsImportStale — staging-only, 2026-10-01 (SMS/Phone Link import).
+  //   commentReplyPublisherStale — main-only, 2026-09-29 (cron-publish-comment-replies).
+  //   structurallyUnpublishable — main-only, 2026-09-30 (linkedin_personal incident).
+  //   partialVideoDeliveries — main-only, 2026-09-30 (video partial-delivery investigation).
+  //   noVideoToday / videoRunwayLow — main-only, 2026-10-02 ("I had to catch
+  //     you not posting anything today" incident).
+  //   telegramWebhookHealth — main-only, 2026-10-02 (group-post Approve silent-tap incident).
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken, smsImportStale, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow, telegramWebhookHealth] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1045,9 +1598,15 @@ async function runAllChecks(opts = {}) {
     checkTelegramGateSuppressionSilence(opts.telegramSuppressionLookbackDays, opts.telegramSuppressionMinCount, opts.telegramSuppressionMinSpanDays),
     checkGoogleTokenHealth(opts.googleTokenOpts),
     checkSmsImportStale(opts.smsImportStaleHours),
+    checkCommentReplyPublisherStale(opts.commentReplyPublishStaleHours),
+    checkStructurallyUnpublishablePosts(opts.structuralUnpublishableStaleMinutes),
+    checkPartialVideoDeliveries(opts.partialVideoDeliveryStaleMinutes),
+    checkNoVideoScheduledToday(opts.noVideoTodayNow),
+    checkVideoRunwayLow(opts.videoRunwayMinReady),
+    checkTelegramWebhookHealth(opts.telegramWebhookOpts),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken, ...smsImportStale];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken, ...smsImportStale, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow, ...telegramWebhookHealth];
   const fired = [];
   const suppressed = [];
 
@@ -1126,7 +1685,10 @@ async function buildHeartbeatSnapshot(cronSanityScanOpts) {
     supabaseFetch(`/rest/v1/video_library?status=eq.quality_hold&select=id`),
     supabaseFetch(`/rest/v1/video_library?status=eq.failed&select=id`),
     supabaseFetch(`/rest/v1/tc_discovery_responses?reply_status=eq.notified&select=id`),
-    supabaseFetch(`/rest/v1/social_comment_replies?reply_status=eq.draft&select=id`),
+    // FIXED 2026-09-29 (Atlas): same eq.draft/'drafted' typo as
+    // checkCommentsAwaitingReplyStale above -- this heartbeat count read 0
+    // every single morning regardless of real backlog size.
+    supabaseFetch(`/rest/v1/social_comment_replies?reply_status=eq.drafted&select=id`),
     // Folded in from the retired cron-social-digest.js (2026-09-18): what got
     // CREATED (not posted) in the last 24h, by status, per platform. Distinct
     // signal from posted_last_24h below — this shows drafts/approvals/
@@ -1409,6 +1971,7 @@ module.exports = {
   REPLY_UNVERIFIED_STALE_HOURS,
   COMMENT_OPP_SCANNER_STALE_HOURS,
   COMMENT_OPP_APPROVED_STALE_HOURS,
+  COMMENT_REPLY_PUBLISH_STALE_HOURS,
   GROUP_POSTING_SILENCE_HOURS,
   TELEGRAM_SUPPRESSION_LOOKBACK_DAYS,
   TELEGRAM_SUPPRESSION_MIN_COUNT,
@@ -1431,10 +1994,20 @@ module.exports = {
   checkUnverifiedRepliesStuck,
   checkCommentOppScannerSilence,
   checkCommentOppApprovedStale,
+  checkCommentReplyPublisherStale,
   checkGroupPostingSilence,
   checkSupportTriageSilence,
   checkDealWatchSilence,
   checkCronSanity,
+  checkStructurallyUnpublishablePosts,
+  STRUCTURAL_UNPUBLISHABLE_STALE_MINUTES,
+  checkPartialVideoDeliveries,
+  PARTIAL_VIDEO_DELIVERY_STALE_MINUTES,
+  checkNoVideoScheduledToday,
+  NO_VIDEO_TODAY_TZ,
+  checkVideoRunwayLow,
+  VIDEO_RUNWAY_MIN_READY,
+  checkTelegramWebhookHealth,
   shouldFire,
   markFired,
   runAllChecks,

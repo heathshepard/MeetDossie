@@ -11,9 +11,13 @@
 // the party names for months. Nothing ever wrote them down. Both callers --
 // the dossier scan in the browser and import_email_attachments in
 // api/_lib/inbox-tools.js -- take the returned `extracted` object, show it or
-// hand it to the model, and drop the contacts on the floor. Verified on 23
-// Nopalito 2026-09-20: 69 fields read off a TREC 20-19, all 17 contact columns
+// hand it to the model, and drop the contacts on the floor. Verified on a live
+// listing 2026-09-20: 69 fields read off a TREC 20-19, all 17 contact columns
 // null, `parties` = {}.
+//
+// NOTE: every party named in the comments and tests below is INVENTED. This
+// repo is public; real client names, addresses and phone numbers must never
+// appear in it. `scripts/check-no-personal-data.js` enforces that.
 //
 // Everything downstream that acts on a PERSON therefore fails on a deal that
 // otherwise looks complete:
@@ -38,8 +42,8 @@
 //    with a value already on the record, we do NOT resolve it -- we record a
 //    conflict and leave the existing value alone. A member who typed a
 //    corrected spelling is the authority, not the OCR.
-//    (Live example: Nopalito has seller_name = "Jenny Whyte", typed by Heath.
-//    The contract signature block says "Barry Whyte, Jennifer Whyte". That is
+//    (Live example: a listing has seller_name = "Cathy Thorne", typed by hand.
+//    The contract signature block says "Marcus Thorne, Catherine Thorne". That is
 //    a conflict to surface, not a correction to apply.)
 //
 // 2. PARSED CONTACT DATA IS A CLAIM, NOT A FACT.
@@ -176,7 +180,7 @@ function validateName(raw) {
   if (!v) return null;
 
   // Trim the punctuation a ruled form line leaves behind — but NOT a trailing
-  // period, which is part of the name in "Clark L. Champie, Jr." and in a
+  // period, which is part of the name in "Arthur W. Kendrick, Jr." and in a
   // trailing middle initial. Only a period standing on its own after a space
   // is stray.
   v = v.replace(/^[:\-–—,.\s]+/, '')
@@ -209,7 +213,7 @@ function isBlank(v) {
 /**
  * Two names refer to the same person for conflict purposes when they are the
  * same string ignoring case, punctuation and spacing. Deliberately strict:
- * "Jenny Whyte" and "Jennifer Whyte" are NOT the same, because deciding they
+ * "Cathy Thorne" and "Catherine Thorne" are NOT the same, because deciding they
  * are is exactly the silent correction rule 1 forbids.
  */
 function sameValue(a, b) {
@@ -252,9 +256,9 @@ const PARTY_KEYS = ['buyer', 'seller', 'buyerAgent', 'listingAgent', 'title', 'l
 // A comma before one of these is punctuation inside ONE person's name, not a
 // separator between two people.
 //
-// Found on the real 104 Wild Cherry contract, whose buyer is "Clark L.
-// Champie, Jr.". scan-contract.js's own splitPartyNames() splits that into
-// ["Clark L. Champie", "Jr"] — and "Jr" would have been written to
+// Found on a real contract whose buyer was written "Arthur W. Kendrick,
+// Jr." (name substituted). scan-contract.js's own splitPartyNames() splits
+// that into ["Arthur W. Kendrick", "Jr"] — and "Jr" would have been written to
 // buyer2_name as a second human being. Plausible, wrong, and exactly the class
 // of value that looks like something the member typed once it is in a column.
 const NAME_SUFFIX = /^(?:jr|sr|ii|iii|iv|v|vi|md|m\.d|phd|ph\.d|esq|esquire|dds|cpa|trustee|trustees?|as\s+trustee.*|life\s+estate)\.?$/i;
@@ -281,13 +285,13 @@ function splitPartyNames(combined) {
  * Is this parsed name already on the record for this party, in any spelling
  * and in either slot?
  *
- * TREC prints a multi-person party as ONE combined string ("Andres Ramirez,
- * Vanessa Ramirez") and Dossie has always stored it that way — scan-contract.js
+ * TREC prints a multi-person party as ONE combined string ("Miguel Ortega,
+ * Carmen Ortega") and Dossie has always stored it that way — scan-contract.js
  * says so explicitly, and several live deals hold the combined form in
  * buyer_name and even in buyer2_name. So a naive "does the parsed first name
  * equal the existing column" test reports a conflict on every one of those
- * deals: verified against the real corpus 2026-09-20, where it flagged
- * Pfeiffers Gate and Wild Cherry as disagreeing with contracts they agree with
+ * deals: verified against the real corpus 2026-09-20, where it flagged two
+ * live listings as disagreeing with contracts they agree with
  * perfectly. A conflict the member cannot act on is noise, and noise is how a
  * real conflict gets ignored.
  */
@@ -504,15 +508,16 @@ function planContactWrites({ tx, extracted, source = {}, profile = null }) {
 
     // --- Guard C: a disputed FIRST name puts the whole ordering in doubt ----
     //
-    // Found running this against the real Nopalito contract. The dossier said
-    // seller_name = "Jenny Whyte" (typed by Heath). The contract signature
-    // block says "Barry Whyte, Jennifer Whyte". Filling the empty second slot
-    // from the parsed list produced seller_name "Jenny Whyte" + seller2_name
-    // "Jennifer Whyte" -- the same woman twice, with Barry, an actual seller
+    // Found running this against a real executed contract (parties renamed
+    // below — this repo is public). The dossier said
+    // seller_name = "Cathy Thorne" (typed by Heath). The contract signature
+    // block says "Marcus Thorne, Catherine Thorne". Filling the empty second slot
+    // from the parsed list produced seller_name "Cathy Thorne" + seller2_name
+    // "Catherine Thorne" -- the same woman twice, with Marcus, an actual seller
     // on the contract, dropped entirely.
     //
     // The cause is that we cannot know WHICH parsed name the member's single
-    // typed name corresponds to. "Jenny" is obviously Jennifer to a human and
+    // typed name corresponds to. "Cathy" is obviously Catherine to a human and
     // deliberately not obviously anything to sameValue() (rule 1 forbids that
     // kind of guess). So when the first name disagrees, we stop: neither slot
     // is written, and the member is shown the full list off the contract
@@ -613,9 +618,9 @@ function planContactWrites({ tx, extracted, source = {}, profile = null }) {
       if (!isBlank(existing)) {
         if (!sameValue(existing, c.value)) {
           // For a principal's name, report EVERY name the contract lists, not
-          // just the first. "The contract says Barry Whyte" is misleading when
-          // the contract actually says "Barry Whyte, Jennifer Whyte" and the
-          // member has "Jenny Whyte" -- they need the whole list to see that
+          // just the first. "The contract says Marcus Thorne" is misleading when
+          // the contract actually says "Marcus Thorne, Catherine Thorne" and the
+          // member has "Cathy Thorne" -- they need the whole list to see that
           // one name is probably theirs and the other is a seller they are
           // missing.
           const everyParsed = (party === 'buyer' || party === 'seller') && kind === 'name' && kinds.name2 && kinds.name2.value
