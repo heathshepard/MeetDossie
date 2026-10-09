@@ -501,11 +501,28 @@ async function sendForHeathReview(video, { batched = false } = {}) {
     { text: 'Reject',  callback_data: `video_reject_${video.id}` },
   ]];
 
-  await sendTelegramMessage(text, {
+  const tgResult = await sendTelegramMessage(text, {
     reply_markup: { inline_keyboard },
   });
 
-  console.log(`[cron-post-videos] Sent ${video.id} to Heath for review`);
+  // Persist the Telegram message_id (mirrors cron-video-approval.js) so
+  // outcome-causes.js and the silence alarm can tell "sent, no reply yet"
+  // apart from "never sent" — a null here used to make a correctly-sent
+  // card look like a silent failure. Send failures (tgResult null, or no
+  // result.message_id) leave the column null, which is correct.
+  const messageId = tgResult?.result?.message_id || null;
+  if (messageId) {
+    await supabaseFetch(
+      `/rest/v1/video_library?id=eq.${encodeURIComponent(video.id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ telegram_message_id: messageId }),
+      },
+    );
+  }
+
+  console.log(`[cron-post-videos] Sent ${video.id} to Heath for review${messageId ? ` (telegram_message_id=${messageId})` : ' (no message_id captured)'}`);
 }
 
 // opts.scheduledFor: ISO timestamp → Zernio schedules the post for that
