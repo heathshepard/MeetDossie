@@ -1,0 +1,69 @@
+{
+  "slug": "heath-realtor-boerne-why-people-move-2026-10-14",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.4, "use_speaker_boost": true },
+
+  "_script_of_record": "docs/SCRIPTS-HEADLESS-BANK-1009.md -- VIDEO 4.",
+  "_bank": "Headless bank 10/11-10/15, video 4 of 5. Posts Wed 2026-10-14 07:00 CT. Keyword BOERNE is an engagement question only -- dm_keyword stays NULL, no automation, nothing promised.",
+  "_no_statistics": "Zero contract content and zero market numbers by design (Heath: mix in content other than paragraph pieces). Every concrete noun is visible in the footage or recorded in Media/b-roll/boerne/LIBRARY.md. No drive time or mileage is stated because none is verified on disk. Not claimed: that Heath lives in Boerne.",
+
+  "music": "inspiring-uplifting-cinematic.mp3",
+  "music_gain_db": -8,
+
+  "default_gap": 0.17,
+  "speed": 1.18,
+  "beat_lead_trim_db": -45,
+  "beat_onset_ramp_ms": 50,
+  "beat_onset_floor": 0.07,
+  "gap_noise_db": -63,
+  "_join_shaping": "Same four measured values as bank-1009-01 (see its _join_shaping_why). Probe result: 0 of 6 joins above p99.",
+
+  "hook_card": { "lines": ["NOBODY MOVES HERE", "FOR A SPREADSHEET"], "until": 2.6 },
+  "caption_suppress_until": 2.6,
+  "cta_card": { "lines": ["COMMENT BOERNE", "WHAT GOT YOU?"], "from_end": 3.4 },
+
+  "accent_words": ["BOERNE", "BOERNE,", "CREEK", "BANDSTAND", "DUCKS", "TOWN,", "SPREADSHEET."],
+  "caption_rewrite": [
+    ["Bernie", "BOERNE"],
+    ["Bernie,", "BOERNE,"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",    "text": "Nobody moves to the Hill Country for a spreadsheet." },
+    { "id": "PLACE",   "text": "This is Bernie, Texas. Cibolo Creek runs straight through the middle of town, lined with bald cypress that go copper every fall." },
+    { "id": "PLAZA",   "text": "There is a bandstand on the Main Plaza. There are ducks that own the pond next to that bandstand, and the ducks know it. Main Street still has the limestone storefronts, and the Hill Country ridge sits right behind the rooftops, so the sunset is part of the address." },
+    { "id": "COMMUTE", "text": "Close enough to San Antonio to work there. Far enough that Bernie does not feel like San Antonio." },
+    { "id": "REHOOK",  "text": "But here is what the drone cannot show you. The reason people stay is not the view. The reason people stay is that Bernie still feels like a town, not a suburb." },
+    { "id": "DRIVE",   "text": "Drive through once. Park on Main Street. Walk down to the creek. Then try to stop thinking about it." },
+    { "id": "CTA",     "text": "If you have already made that drive, comment BOERNE and tell me the first thing that got you." }
+  ],
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Pure place. Hero ridge opens, creek cypress under the creek line, plaza approach + ducks under the plaza line (ducks-closeup and ducks-swimming carry no decor; the duck-pond clip has the decorated tree behind and is skipped), storefront + rooftops + mural for Main Street, town overview and underbridge for the commute line, plaza/mural/creek again under the rehook and drive, hero close. Evergreen only: no christmas-tree, nutcracker, seasons-greetings, statue (Santa hat) or gazebo (decorated tree beside it) clips.",
+  "_broll_gate": "Every clip marked clear in Media/b-roll/boerne/LIBRARY.md; the six flagged clips are not referenced.",
+
+  "shots": [
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 0.6, "dur": 2.2, "motion": "none", "label": "HERO ridge (open)" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-cibolo-creek-cypress-aerial-mobile-2024-12-18.mp4","in": 0.6, "dur": 2.0, "motion": "none", "label": "creek cypress" },
+    { "clip": "boerne-cibolo-creek-fall-aerial-mobile-2024-12-18.mp4",   "in": 1.0, "dur": 1.9, "motion": "none", "label": "creek fall colour" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.9, "motion": "none", "label": "plaza approach / bandstand" },
+    { "clip": "boerne-plaza-ducks-closeup-mobile-2024-12-17.mp4",        "in": 0.5, "dur": 1.8, "motion": "none", "label": "ducks closeup" },
+    { "clip": "boerne-plaza-ducks-swimming-mobile-2024-12-17.mp4",       "in": 0.8, "dur": 1.8, "motion": "none", "label": "ducks swimming" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.9, "motion": "push", "label": "storefront" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 0.6, "dur": 1.9, "motion": "none", "label": "rooftops + ridge" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 2.0, "motion": "none", "label": "Main St aerial" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 2.0, "dur": 1.9, "motion": "none", "label": "underbridge" },
+    { "clip": "boerne-old-town-mural-reveal-mobile-2024-12-17.mp4",      "in": 3.0, "dur": 1.8, "motion": "none", "label": "BOERNE mural reveal" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.8, "motion": "push", "label": "TX flags" },
+    { "clip": "boerne-creek-cypress-tree-aerial-mobile-2024-12-18.mp4",  "in": 0.8, "dur": 1.9, "motion": "none", "label": "lone cypress" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 1.0,"dur": 1.9, "motion": "none", "label": "bridge approach" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 3.4, "dur": 1.9, "motion": "none", "label": "plaza approach b" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.6, "dur": 2.2, "motion": "none", "label": "HERO close" }
+  ],
+
+  "cover_t": 1.2,
+  "verify_frames": [0.0, 1.0, 2.4, 2.8, 8.0, 15.0, 25.0, 35.0, 45.0, 52.0]
+}

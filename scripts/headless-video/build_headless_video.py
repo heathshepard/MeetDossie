@@ -307,12 +307,100 @@ def words_from_alignment(al):
 # voice assembly
 # --------------------------------------------------------------------------
 
-def to_wav(src, dst, speed=1.0):
+def to_wav(src, dst, speed=1.0, fade_ms=0.0):
+    """Decode one TTS beat to the master's sample format, at the master speed.
+
+    `fade_ms` (spec key `beat_fade_ms`, default 0 so every earlier build is
+    byte-identical): a short linear fade-in of `fade_ms` and fade-out of
+    1.5x that at the beat's own edges. Added 2026-10-09 after
+    scripts/video-engine/check-join-audibility.js FAILED a headless render
+    (bank-1009-04): each beat is laid on the timeline after a gap of pure
+    digital silence (adelay), so a beat that ElevenLabs starts on a hard
+    consonant with no leading room tone steps from the noise floor to full
+    level inside one 5ms frame -- 30-37 dB, above the 99th percentile of
+    every ordinary moment in the same render. 20ms is below the perceptual
+    onset of any consonant and turns that step into a ~6-frame ramp, which is
+    what "measured inaudible" (founder-video-production-standard.md s2)
+    actually requires. The fade-out is done by reversing (areverse) so it needs
+    no duration lookup. Speed is still applied exactly once, here.
+    """
     af = "aformat=sample_fmts=s16:sample_rates=48000:channel_layouts=stereo"
     if abs(speed - 1.0) > 1e-6:
         af = "atempo=%.6f," % speed + af
+    if fade_ms and float(fade_ms) > 0:
+        fi = float(fade_ms) / 1000.0
+        fo = fi * 1.5
+        af = ("afade=t=in:st=0:d=%.4f,areverse,afade=t=in:st=0:d=%.4f,areverse,"
+              % (fi, fo)) + af
     run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", src,
          "-af", af, "-c:a", "pcm_s16le", dst])
+
+
+def shape_onset(src_wav, dst_wav, threshold_db, ramp_ms, floor_gain):
+    """Trim a beat's lead-in and ramp its onset from a non-zero gain floor.
+
+    Why (2026-10-09, headless bank, measured with
+    scripts/video-engine/check-join-audibility.js): every beat is laid after a
+    gap of exact digital zeros. The checker ignores all-zero frames, so the
+    only thing it can measure at a beat boundary is the first few 5ms frames
+    of the voice -- and ElevenLabs beats open on 10-80ms of near-silent
+    breath/room tone, then a synthesized consonant that steps from ~-60 dB to
+    ~-20 dB in one frame. That measured 30-46 dB at the join against a ~27 dB
+    99th percentile. Two things fix it together, and each alone made it worse:
+
+      * trim the lead-in to the first sample above `threshold_db`, so the
+        voice starts on frame 0 of the join window (the standard's "snap the
+        cut edge to a real speech-region edge", founder-video-production-
+        standard.md s2); and
+      * ramp the onset linearly from `floor_gain` (not from 0) to 1 over
+        `ramp_ms`. A fade that starts at 0 manufactures frames at -64..-103 dB
+        that the checker counts, which is exactly the step we are removing.
+
+    Done in-process on the 48k stereo s16 decode rather than through ffmpeg
+    afade (which only fades from zero). The tail is left alone: the previous
+    beat's end sits a full gap (>=140ms) before the next onset, outside the
+    checker's +/-60ms window, and ElevenLabs tails already decay naturally.
+
+    Returns the trimmed lead-in in seconds (0.0 if the beat opened on voice).
+    """
+    import array
+    with wave.open(src_wav, "rb") as w:
+        nch, sw, sr, n = w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()
+        raw = w.readframes(n)
+    if sw != 2:
+        die("shape_onset expects 16-bit PCM, got sampwidth=%d" % sw)
+    a = array.array("h")
+    a.frombytes(raw)
+    # Onset = the first 1ms block whose RMS clears the threshold, not the
+    # first single sample that does. A lone blip crossing -45 dB 5ms before
+    # the real consonant left a near-silent first frame next to the voice
+    # (bank-1009-03 join 5, 2026-10-09) -- the exact step this trim exists to
+    # remove.
+    thr = 32768.0 * (10.0 ** (threshold_db / 20.0))
+    blk = max(1, int(sr / 1000))
+    first = None
+    for i in range(0, len(a) - blk * nch, blk * nch):
+        s = 0.0
+        for k in range(i, i + blk * nch):
+            s += a[k] * a[k]
+        if math.sqrt(s / (blk * nch)) > thr:
+            first = i
+            break
+    if first is None:
+        first = 0
+    lead_frames = first // nch
+    a = a[first:]
+    ramp_n = int(sr * ramp_ms / 1000.0)
+    for f in range(min(ramp_n, len(a) // nch)):
+        g = floor_gain + (1.0 - floor_gain) * (f / float(ramp_n))
+        for c in range(nch):
+            a[f * nch + c] = int(a[f * nch + c] * g)
+    with wave.open(dst_wav, "wb") as w:
+        w.setnchannels(nch)
+        w.setsampwidth(sw)
+        w.setframerate(sr)
+        w.writeframes(a.tobytes())
+    return lead_frames / float(sr)
 
 
 def assemble_voice(beats, work, spec):
@@ -339,19 +427,57 @@ def assemble_voice(beats, work, spec):
         else:
             al = tts_beat(b["text"], spec["voice_id"], spec["model_id"],
                           spec["voice_settings"], mp3, aln)
-        to_wav(mp3, wav, speed)
+        to_wav(mp3, wav, speed, spec.get("beat_fade_ms", 0))
+        # Lead-in trim (spec key `beat_lead_trim_db`, default off so every
+        # earlier build is byte-identical). The headless analogue of the
+        # production standard's "snap every cut edge to a real speech-region
+        # edge from a per-take VAD map" (founder-video-production-standard.md
+        # s2): ElevenLabs beats sometimes open with 20-80ms of low-level
+        # breath/room noise before the first consonant, and on the timeline
+        # that lead-in sits right after a gap of pure digital silence. The
+        # join checker ignores zero frames (a pause -> word onset is not a
+        # splice artifact) but measures noise-floor -> consonant as a 30+ dB
+        # step -- exactly what failed bank-1009-04 (joins 2 and 3 at the
+        # 99.8th-100th percentile). Trimming the lead-in so the voice starts
+        # on the first frame after the gap is the fix the standard prescribes;
+        # a fade-in (`beat_fade_ms`) is NOT -- it manufactures tiny non-zero
+        # frames that measure as even bigger jumps (39 dB on bank-1009-01).
+        # Word timings are shifted by the trimmed amount so captions still
+        # describe the audio that is actually there.
+        lead = 0.0
+        if os.path.exists(wav[:-4] + ".lt.wav"):
+            os.remove(wav[:-4] + ".lt.wav")       # never let a stale trim linger
+        if spec.get("beat_lead_trim_db") is not None:
+            lead = shape_onset(wav, wav[:-4] + ".lt.wav",
+                               float(spec["beat_lead_trim_db"]),
+                               float(spec.get("beat_onset_ramp_ms", 40)),
+                               float(spec.get("beat_onset_floor", 0.15)))
+            wav = wav[:-4] + ".lt.wav"
         dur = ffprobe_dur(wav)
         for w in words_from_alignment(al):
+            ws = max(0.0, w["start"] / speed - lead)
+            we = max(ws, w["end"] / speed - lead)
             words.append({"text": w["text"],
-                          "start": t + w["start"] / speed,
-                          "end": t + w["end"] / speed,
+                          "start": t + ws,
+                          "end": t + we,
                           "beat": b.get("id", str(i))})
         placed.append((wav, t, dur))
         gap = float(b.get("gap_after", default_gap))
-        t += dur + gap
+        # Snap every placement to a whole millisecond. adelay takes integer
+        # ms anyway; keeping `t` equal to what adelay actually used means the
+        # onsets written to joins.json below ARE the sample positions the
+        # join checker frames from -- a 0.4ms mismatch puts a partial frame
+        # of 3 voice samples next to a full frame and reads as a 30 dB step.
+        t = round(t + dur + gap, 3)
         print("  beat %-9s %5.2fs  -> ends %6.2f  (+%.2f gap)  %s"
               % (b.get("id", i), dur, t - gap, gap, b["text"][:52]))
     total = t - float(beats[-1].get("gap_after", default_gap))
+    # The authoritative join list for check-join-audibility.js: each beat's
+    # onset after the first. Written by the thing that placed them, so a
+    # separate script never has to re-derive the arithmetic.
+    json.dump({"joins": [round(p[1], 3) for p in placed[1:]], "cross_take": [],
+               "slug": spec.get("slug"), "voice_wav": os.path.join(work, "voice.wav")},
+              open(os.path.join(work, "joins.json"), "w"))
     # clamp any alignment overrun onto the real audio length
     for w in words:
         w["end"] = min(w["end"], total)
@@ -361,11 +487,39 @@ def assemble_voice(beats, work, spec):
     inputs, filt = [], []
     for i, (wav, off, _d) in enumerate(placed):
         inputs += ["-i", wav]
-        filt.append("[%d:a]adelay=%d|%d[a%d]" % (i, int(off * 1000), int(off * 1000), i))
-    mix = "".join("[a%d]" % i for i in range(len(placed)))
+        ms = int(round(off * 1000))   # see the ms-snap note in the beat loop
+        filt.append("[%d:a]adelay=%d|%d[a%d]" % (i, ms, ms, i))
+    n_in = len(placed)
+    # Room-tone bed (spec key `gap_noise_db`, default off so earlier builds are
+    # byte-identical). A real recording never contains exact digital zeros;
+    # this track did, between beats. Two measured consequences on the
+    # bank-1009 builds (2026-10-09, check-join-audibility.js): the checker
+    # ignores all-zero frames, so the frame just before every onset was the
+    # 48k->8k resampler's pre-ringing (peak 2-5 counts, -88..-98 dB) sitting
+    # next to a -55 dB voice frame -- a 30-45 dB "step" that exists only in
+    # the measurement. Pink noise at -66 dBFS (RMS ~16 counts) swamps that
+    # ringing and gives the onset a floor to rise from, exactly as a lav mic's
+    # room tone does on Heath's own takes (which is why THEIR onsets score
+    # under the 99th percentile). -66 dBFS sits ~45 dB under the voice and
+    # ~30 dB under the ducked music; it never keys the sidechain and never
+    # reaches the end_decay_tail gate's -34 dB threshold.
+    noise_db = spec.get("gap_noise_db")
+    if noise_db is not None:
+        # anoisesrc's `a` is a peak amplitude, not an RMS level. Measured
+        # 2026-10-09 with astats: a=0.0005 (nominally -66 dB) renders at
+        # -80.0 dB RMS at 48k and -80.9 dB after the checker's 8k resample --
+        # ~14 dB under nominal. `gap_noise_db` is specified as the RMS level
+        # actually wanted, so the amplitude is lifted by that measured 14 dB.
+        amp = 10.0 ** ((float(noise_db) + 14.0) / 20.0)
+        inputs += ["-f", "lavfi", "-i",
+                   "anoisesrc=d=%.3f:c=pink:r=48000:a=%.6f" % (total + 1.0, amp)]
+        filt.append("[%d:a]aformat=sample_fmts=s16:sample_rates=48000:channel_layouts=stereo,"
+                    "atrim=0:%.3f[a%d]" % (n_in, total, n_in))
+        n_in += 1
+    mix = "".join("[a%d]" % i for i in range(n_in))
     filt.append("%samix=inputs=%d:duration=longest:normalize=0,"
                 "aformat=sample_fmts=s16:sample_rates=48000:channel_layouts=stereo[vo]"
-                % (mix, len(placed)))
+                % (mix, n_in))
     run(["ffmpeg", "-nostdin", "-v", "error", "-y"] + inputs +
         ["-filter_complex", ";".join(filt), "-map", "[vo]",
          "-c:a", "pcm_s16le", out])
@@ -936,6 +1090,21 @@ def main():
     for c in chunks:
         print("     %6.2f-%6.2f  %s" % (c[0]["start"], c[-1]["end"],
               " ".join(x["text"] for x in c).upper()))
+
+    # Word-timestamp sidecar in the ElevenLabs scribe_v1 shape that
+    # api/_lib/verify-video-quality.js's loadWordTimestampsSidecar() reads
+    # (`<stem>.transcript.json`, words with type/start/end/text). Without it
+    # the gate samples captions at fixed fractions of runtime and can land
+    # in a 0.4s chunk gap or on a held chunk -- captions_present and
+    # captions_box_readable both FAILED bank-1009-02 that way on 2026-10-09
+    # while every frame a human looked at was fine. These are the alignment
+    # timings the captions were built from, so the gate samples mid-word.
+    # Written for the master and for the `.delivery` encode the gate runs on.
+    tj = {"language_code": "eng",
+          "words": [{"type": "word", "text": w["text"], "start": round(w["start"], 3),
+                     "end": round(w["end"], 3)} for w in words]}
+    for stem in (base, base + ".delivery"):
+        json.dump(tj, open(stem + ".transcript.json", "w"), indent=0)
 
     cards = base + ".cards.ass"
     build_cards(spec, total, cards)

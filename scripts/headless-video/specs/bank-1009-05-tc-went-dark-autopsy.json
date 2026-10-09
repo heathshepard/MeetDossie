@@ -1,0 +1,67 @@
+{
+  "slug": "heath-realtor-tc-went-dark-autopsy-2026-10-15",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.4, "use_speaker_boost": true },
+
+  "_script_of_record": "docs/SCRIPTS-HEADLESS-BANK-1009.md -- VIDEO 5.",
+  "_bank": "Headless bank 10/11-10/15, video 5 of 5. Posts Thu 2026-10-15 07:00 CT. Keyword BACKUP -> https://meetdossie.com/marketing/trec-deadline-checklist.html",
+  "_story_allowlist": "memory heath-verified-war-stories.md item 1 ('The TC went dark' -- unreachable mid-transaction, exposed how much sat on one person). The script states only those facts; no deal, client, address, date, outcome or gender. Item 2 (Low Oak) deliberately NOT used -- active dispute. The 'what a coordinator holds' line describes the role, not what was lost on that file; the fix lines are advice to the viewer, not a claim about a system Heath built.",
+  "_fact_note": "20-19 p.2 5.E verbatim: 'Time is of the essence for this paragraph and strict compliance with the time for performance is required.' Spoken as 'for that paragraph' -- never stretched to other paragraphs.",
+
+  "music": "documentary-trust-piano.mp3",
+  "music_gain_db": -7,
+
+  "default_gap": 0.16,
+  "speed": 1.18,
+  "beat_lead_trim_db": -45,
+  "beat_onset_ramp_ms": 50,
+  "beat_onset_floor": 0.07,
+  "gap_noise_db": -63,
+  "_join_shaping": "Same four measured values as bank-1009-01 (see its _join_shaping_why). Probe result: 0 of 5 joins above p99.",
+
+  "hook_card": { "lines": ["MY TC WENT DARK.", "THE AUTOPSY."], "until": 2.8 },
+  "caption_suppress_until": 2.8,
+  "cta_card": { "lines": ["COMMENT BACKUP", "FOR THE CHECKLIST"], "from_end": 3.4 },
+
+  "accent_words": ["¶5.E", "ONE", "PERSON.", "PERSON", "UNREACHABLE.", "BACKUP", "SYSTEM"],
+  "caption_rewrite": [
+    ["Paragraph five E", "¶5.E"],
+    ["paragraph five", "¶5"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",     "text": "My transaction coordinator went dark in the middle of a deal. Here is the autopsy." },
+    { "id": "STORY",    "text": "Mid-transaction, my coordinator became unreachable. That is when I found out how much of that file sat on one person. The dates, the contacts, the status of every notice. All of that sat with someone I could not reach." },
+    { "id": "CONTRACT", "text": "The contract did not care. Paragraph five E says time is of the essence for that paragraph, and strict compliance with the time for performance is required. None of the paragraph five deadlines pause because the person tracking them disappeared." },
+    { "id": "REHOOK",   "text": "But the lesson is not hire a better coordinator. The lesson is that no deadline in your file should have exactly one person who knows about it." },
+    { "id": "FIX",      "text": "Every date written where you can see it. Every contact in the file, not in someone's head. If the person watching your deadlines vanished tomorrow, could you list every date due this week?" },
+    { "id": "CTA",      "text": "Comment BACKUP and I will send you the checklist of every deadline in the contract, so the dates live somewhere besides one inbox." }
+  ],
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Frame 0 is the full page-2 establishing framing (dense body text under the hook). The story plays over moody drone (underbridge, mirror creek, bridge approach); the 5.E highlight (existing 09-30 clip) comes up under CONTRACT; the fix plays over town/plaza. Clause in-points >= 4.6s.",
+  "_broll_gate": "All b-roll marked clear; trec-5e-time-of-essence-mobile-2026-09-30.mp4 and trec-5a-delivery-mobile-2026-10-09.mp4 are indexed blank-form captures.",
+
+  "shots": [
+    { "clip": "trec-5a-delivery-mobile-2026-10-09.mp4",                  "in": 0.2, "dur": 2.0, "motion": "none", "label": "page 2 establishing (frame 0)" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 1.6, "dur": 1.9, "motion": "none", "label": "underbridge" },
+    { "clip": "boerne-cibolo-creek-mirror-aerial-mobile-2024-12-18.mp4", "in": 0.8, "dur": 1.9, "motion": "none", "label": "mirror creek" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 1.0,"dur": 1.8, "motion": "none", "label": "bridge approach" },
+    { "clip": "trec-5e-time-of-essence-mobile-2026-09-30.mp4",           "in": 5.0, "dur": 2.1, "motion": "none", "label": "5.E highlighted" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 1.8, "motion": "none", "label": "Main St aerial" },
+    { "clip": "trec-5e-time-of-essence-mobile-2026-09-30.mp4",           "in": 7.4, "dur": 2.0, "motion": "none", "label": "5.E + label" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 1.0, "dur": 1.9, "motion": "none", "label": "hero ridge" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.8, "motion": "push", "label": "storefront" },
+    { "clip": "trec-5a-delivery-mobile-2026-10-09.mp4",                  "in": 5.0, "dur": 2.0, "motion": "none", "label": "5.A highlighted" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.8, "motion": "none", "label": "plaza approach" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 0.6, "dur": 1.8, "motion": "none", "label": "rooftops" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.6, "dur": 2.1, "motion": "none", "label": "hero close" }
+  ],
+
+  "cover_t": 10.8,
+  "verify_frames": [0.0, 1.0, 2.6, 3.0, 10.8, 18.0, 26.0, 36.0, 46.0, 54.0]
+}

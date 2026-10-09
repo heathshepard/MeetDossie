@@ -1,0 +1,80 @@
+{
+  "slug": "heath-realtor-boerne-vs-sa-buyer-2026-10-11",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.4, "use_speaker_boost": true },
+
+  "_script_of_record": "docs/SCRIPTS-HEADLESS-BANK-1009.md -- VIDEO 1. Every fact and the verification trail live there; this file is the build.",
+  "_bank": "Headless bank 10/11-10/15, video 1 of 5. Posts Sun 2026-10-11 07:00 CT. Keyword DEADLINES -> https://meetdossie.com/marketing/trec-deadline-checklist.html",
+  "_facts": "connectMLS pull by Heath 2026-10-03 (recorded in boerne-market-correction.json _fact_verification): Boerne Sept 2026 50 closings / $625,022 avg / 107 CDOM / 96% SP:LP; San Antonio same filters $337,087 / 96 days / 99%. Averages, not medians -- spoken as such. SA's -1.2% YoY and the 17.3% Boerne drop are NOT used (the first is not re-derivable, the second is already the 10/09 video).",
+
+  "music": "inspiring-uplifting-cinematic.mp3",
+  "music_gain_db": -8,
+  "_music_why": "Same track and gain as the two prior Boerne drone pieces (highest drive of the 12 tracks, 132s so no loop seam under ~60s). Keeps the Boerne set sonically consistent. Licence-clean, Media/Music/LICENSE.md.",
+
+  "default_gap": 0.16,
+  "speed": 1.18,
+  "_speed_why": "founder-video-production-standard.md s3 -- 1.18 is the measured intelligibility ceiling; applied in exactly one place (to_wav atempo).",
+  "beat_lead_trim_db": -45,
+  "beat_onset_ramp_ms": 50,
+  "beat_onset_floor": 0.07,
+  "gap_noise_db": -63,
+  "_join_shaping_why": "Measured on all five bank specs with check-join-audibility.js (2026-10-09, probe runs on the voice track only): the raw builds scored 30-46 dB at beat onsets against a ~25 dB 99th percentile because every beat starts after exact digital zeros -- the checker ignores zero frames, so what it measured was the 48k->8k resampler's pre-ringing (-88..-98 dB) next to a synthesized consonant. Four things fixed it TOGETHER, each measured: trim the lead-in to the first 1ms block over -45 dB (bank-03 join 5 needed the block, not a single sample), ramp the onset over 50 ms from a 0.07 gain floor (a fade from zero scored 39-65 dB; a 0.15 floor left a plosive 'But' at 29 dB), and a -63 dB RMS pink room-tone bed so no frame is ever exact zero (what a lav mic gives Heath's own takes). Result: 0 of 5/6/5/6/5 joins above p99 on specs 01-05. Same four values on every bank spec.",
+
+  "hook_card": { "lines": ["BOERNE SELLERS TOOK", "96 CENTS ON THE DOLLAR"], "until": 2.9 },
+  "caption_suppress_until": 2.9,
+  "cta_card": { "lines": ["COMMENT DEADLINES", "FOR THE CHECKLIST"], "from_end": 3.4 },
+
+  "accent_words": ["96", "99", "$625,022", "$337,087", "107", "4%", "$24,000", "DEADLINES", "AVERAGES"],
+  "caption_rewrite": [
+    ["Bernie", "BOERNE"],
+    ["six hundred twenty five thousand", "$625,022"],
+    ["three hundred thirty seven thousand", "$337,087"],
+    ["one hundred seven", "107"],
+    ["ninety six cents on the dollar", "96 CENTS ON THE DOLLAR"],
+    ["ninety nine cents on the dollar", "99 CENTS ON THE DOLLAR"],
+    ["ninety six days", "96 DAYS"],
+    ["four percent", "4%"],
+    ["six hundred thousand dollar", "$600,000"],
+    ["twenty four thousand dollars", "$24,000"],
+    ["fifty sales", "50 SALES"],
+    ["Fifty", "50"],
+    ["a hundred days", "100 DAYS"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",     "text": "If you are buying in Bernie this month, the September numbers just handed you leverage." },
+    { "id": "NUMBERS",  "text": "Fifty Bernie homes closed in September. Average sale price, six hundred twenty five thousand. Average days on market, one hundred seven. And the average seller took ninety six cents on the dollar against list." },
+    { "id": "CONTRAST", "text": "San Antonio, same filters, same month. Three hundred thirty seven thousand average, ninety six days, ninety nine cents on the dollar." },
+    { "id": "POINT",    "text": "So San Antonio sellers are barely moving off list. Bernie sellers, on average, came down four percent. On a six hundred thousand dollar house, that four percent is twenty four thousand dollars." },
+    { "id": "REHOOK",   "text": "But those numbers are averages, one month, fifty sales. A fresh listing in a hot pocket is not negotiating. A house sitting past a hundred days probably is. Ask your agent for days on market before you write an offer." },
+    { "id": "CTA",      "text": "Comment DEADLINES and I will send you every date in the Texas contract, so the deal you just negotiated does not die on a missed day." }
+  ],
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Evergreen clips only (no December decor under an October market piece). Hero ridge opens under the hook, town/Main Street aerials under the Boerne numbers, bridge + underbridge push under the San Antonio contrast, storefront/plaza under the point, rooftops + mural under the rehook, hero close. 1.7-2.1s cuts; the engine cycles the list with rotating in-points to fill the runtime.",
+  "_broll_gate": "Every clip is marked clear in Media/b-roll/boerne/LIBRARY.md. The six flagged clips (main-street-shops x2, main-street-shops-b x2, neighborhood-aerial x2) are not referenced; resolve_clip() would refuse them anyway.",
+
+  "shots": [
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 1.0, "dur": 2.1, "motion": "none", "label": "HERO ridge (open)" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 2.0, "motion": "none", "label": "Main St aerial" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 0.6, "dur": 1.8, "motion": "none", "label": "rooftops" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 1.0,"dur": 1.9, "motion": "none", "label": "bridge approach" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 2.0, "dur": 1.8, "motion": "none", "label": "underbridge" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.8, "motion": "push", "label": "storefront" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.8, "motion": "none", "label": "plaza approach" },
+    { "clip": "boerne-cibolo-creek-cypress-aerial-mobile-2024-12-18.mp4","in": 0.6, "dur": 1.9, "motion": "none", "label": "creek cypress" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags" },
+    { "clip": "boerne-old-town-mural-reveal-mobile-2024-12-17.mp4",      "in": 3.0, "dur": 1.8, "motion": "none", "label": "BOERNE mural reveal" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 2.4, "dur": 1.8, "motion": "none", "label": "rooftops b" },
+    { "clip": "boerne-creek-cypress-tree-aerial-mobile-2024-12-18.mp4",  "in": 0.8, "dur": 1.8, "motion": "none", "label": "lone cypress" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 3.2, "dur": 1.9, "motion": "none", "label": "town overview b" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 3.4, "dur": 2.0, "motion": "none", "label": "Main St aerial b" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.6, "dur": 2.2, "motion": "none", "label": "HERO close" }
+  ],
+
+  "cover_t": 4.0,
+  "verify_frames": [0.0, 1.0, 2.7, 3.1, 8.0, 15.0, 25.0, 35.0, 45.0, 52.0]
+}

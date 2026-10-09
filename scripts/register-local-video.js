@@ -135,6 +135,23 @@ async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const approve = process.argv.includes('--approve');
   const scheduledFor = arg('--scheduled-for');
+  // Caller-known row facts (2026-10-09, headless bank) -- passed through
+  // queueVariant()'s rowExtras, which refuses anything that file owns.
+  //   --uses-cloned-voice        the AI-disclosure fact cron-post-videos reads
+  //                              (true for every Heath-clone narration)
+  //   --dm-keyword <WORD>        comment trigger; needs --dm-asset-url or the
+  //                              automation never arms (assetReachable())
+  //   --dm-asset-url <url>       the thing the DM delivers (must resolve 200)
+  //   --type <text>              video_library.type (default screen_recording)
+  const rowExtras = {};
+  if (process.argv.includes('--uses-cloned-voice')) rowExtras.uses_cloned_voice = true;
+  if (arg('--dm-keyword')) rowExtras.dm_keyword = String(arg('--dm-keyword')).trim().toUpperCase();
+  if (arg('--dm-asset-url')) rowExtras.dm_asset_url = arg('--dm-asset-url');
+  if (arg('--type')) rowExtras.type = arg('--type');
+  if (rowExtras.dm_keyword && !rowExtras.dm_asset_url) {
+    console.error('FAILED: --dm-keyword without --dm-asset-url would promise a DM that can never arm');
+    process.exit(1);
+  }
 
   if (!platforms.length) {
     console.error('FAILED: --platforms is required (comma-separated, e.g. tiktok,instagram,facebook)');
@@ -172,7 +189,7 @@ async function main() {
   try {
     const out = await queueVariant({
       videoPath, coverPath, id, topic, caption, platforms, owner,
-      gateResult, approve, dryRun, scheduledFor,
+      gateResult, approve, dryRun, scheduledFor, rowExtras,
       extraDetail: { registered_by: 'scripts/register-local-video.js', orientation },
     });
     console.log(JSON.stringify(out, null, 2));
