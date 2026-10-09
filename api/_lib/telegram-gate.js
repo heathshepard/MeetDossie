@@ -202,6 +202,17 @@ const ALWAYS_ALLOW = new Set([
                           // still muted by default until this audit, meaning the approval card itself
                           // simply never reached Heath. Same class as cron-tc-reply-approval /
                           // cron-comment-opp-approval already above — Carter, 2026-09-18.
+  'cron-post-videos', // sendForHeathReview()'s individual-card path (non-batched): the SAME
+                       // Approve/Reject video_library card as cron-video-approval directly above,
+                       // just sent from a different route. Missed in the 2026-09-18 audit because
+                       // it wasn't recognized as the same job class. Found 2026-10-09: the
+                       // TELEGRAM_CRON_NOTIFICATIONS allowlist omitted it, so all 4 of that day's
+                       // heath-realtor review cards were silently faked (fakeTelegramOk,
+                       // message_id:0 -> null) while the rows correctly advanced to
+                       // pending_heath_review -- status moved, card never arrived. Confirmed via
+                       // telegram_gate_suppressions rows 46-49. Recovered by hand-sending the 4
+                       // cards and backfilling telegram_message_id; this entry closes the hole so
+                       // the next batch doesn't repeat it — Atlas, 2026-10-09.
   'cron-send-for-approval', // daily social_posts Approve/Reject/Edit cards. Also carries
                              // api/_lib/telegram-send-retry.js's alertFinalFailure() bounded-retry
                              // escape hatch, whose own comment claims it sends "even if
