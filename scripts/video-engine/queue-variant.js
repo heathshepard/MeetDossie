@@ -186,6 +186,16 @@ async function queueVariant(o) {
     videoPath, coverPath, id, topic, caption, platforms,
     owner = 'dossie', gateResult, approve = false, dryRun = false, extraDetail = {},
     scheduledFor: explicitScheduledFor = undefined,
+    // rowExtras (2026-10-09, headless bank): extra video_library columns the
+    // CALLER knows as facts about this exact file and the row shape below
+    // has no slot for -- `uses_cloned_voice` (the AI-disclosure fact
+    // api/cron-post-videos.js reads off the row; the watch-folder scanner
+    // sets it from its meta sidecar, this path never could), `dm_keyword` /
+    // `dm_asset_url` (api/_lib/video-comment-automations.js arms the
+    // comment->DM automation only from the row), and `type`. Merged AFTER
+    // the fixed fields so a caller can set these, but the status / quality /
+    // scheduling fields this file owns stay this file's decision.
+    rowExtras = {},
   } = o;
 
   // ---- refuse to queue anything the gate did not pass -------------------
@@ -247,6 +257,16 @@ async function queueVariant(o) {
       ...extraDetail,
     },
   };
+  // Caller-known facts only (see the rowExtras note at the top of this
+  // function). The fields this file OWNS -- status, quality_*, scheduled_for,
+  // supabase_url/cover_url, target_owner -- can never be overridden from here,
+  // so a caller cannot use this to skip the gate or write heath_approved.
+  const PROTECTED = new Set(['id', 'status', 'quality_status', 'quality_failed_rules', 'quality_checked_at',
+    'quality_detail', 'scheduled_for', 'supabase_url', 'cover_url', 'target_owner', 'platforms']);
+  for (const [k, v] of Object.entries(rowExtras || {})) {
+    if (PROTECTED.has(k)) throw new Error(`refusing rowExtras.${k}: that column is owned by queue-variant.js`);
+    if (v !== undefined) row[k] = v;
+  }
 
   if (dryRun) {
     return {
