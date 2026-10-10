@@ -1,0 +1,72 @@
+{
+  "slug": "heath-realtor-trec-6b-title-commitment-2026-10-12",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.4, "use_speaker_boost": true },
+
+  "_script_of_record": "docs/SCRIPTS-HEADLESS-BANK-1009.md -- VIDEO 2. Verbatim 20-19 quotes and the proven negatives live there.",
+  "_bank": "Headless bank 10/11-10/15, video 2 of 5. Posts Mon 2026-10-12 07:00 CT. Keyword TITLE -> https://meetdossie.com/marketing/trec-deadline-checklist.html",
+  "_fact_note": "The brief said 6.A; the commitment is 6.B (6.A is the Title Policy). Operative words, 20-19 p.2: 'Within 20 days after the Title Company receives a copy of this contract, Seller shall furnish to Buyer a commitment for title insurance' / 'automatically extended up to 15 days or 3 days before the Closing Date, whichever is earlier' / 'Buyer may terminate this contract and the earnest money will be refunded to Buyer'. 'receives a copy of this contract' occurs exactly once in the form.",
+
+  "music": "documentary-trust-piano.mp3",
+  "music_gain_db": -10,
+  "_music_why": "The TREC 20-19 series track (docs/VIDEO-PRODUCTION-RECIPE.md s12), drive 0.159, 176s so no loop seam. Licence-clean. Gain -10, not the -7 the 32s 5.E cut used: the first build of THIS script at -7 measured a median of only 16.5 dB under the voice (min 11.8) against the 18-19 dB standard -- this read has longer sustained phrases, so the sidechain releases less. -10 is the measured correction, not a guess.",
+
+  "default_gap": 0.15,
+  "speed": 1.18,
+  "beat_lead_trim_db": -45,
+  "beat_onset_ramp_ms": 50,
+  "beat_onset_floor": 0.07,
+  "gap_noise_db": -63,
+  "_join_shaping": "Same four measured values as bank-1009-01 (see its _join_shaping_why). Probe result: 0 of 6 joins above p99.",
+
+  "hook_card": { "lines": ["THE DEADLINE THAT", "STARTS ON TITLE'S DESK"], "until": 2.9 },
+  "caption_suppress_until": 2.9,
+  "cta_card": { "lines": ["COMMENT TITLE", "FOR THE CHECKLIST"], "from_end": 3.4 },
+
+  "accent_words": ["¶6.B", "20", "15", "3", "RECEIVES", "TITLE", "TERMINATE"],
+  "caption_rewrite": [
+    ["Paragraph six B", "¶6.B"],
+    ["twenty days", "20 DAYS"],
+    ["twenty day", "20-DAY"],
+    ["fifteen more days", "15 MORE DAYS"],
+    ["three days", "3 DAYS"]
+  ],
+
+  "beats": [
+    { "id": "HOOK",   "text": "One deadline in the Texas contract does not start on the effective date. That deadline starts on the title company's desk." },
+    { "id": "QUOTE",  "text": "Paragraph six B. Within twenty days after the title company receives a copy of this contract, the seller shall furnish to the buyer a commitment for title insurance." },
+    { "id": "TURN",   "text": "Receives. Not the effective date. The twenty day clock starts the day the title company gets the contract in hand. If nobody sends the executed contract to title, that clock never started." },
+    { "id": "EXTEND", "text": "Miss the twenty days, and the time extends automatically, up to fifteen more days or three days before closing, whichever comes first." },
+    { "id": "REHOOK", "text": "But miss the extension too, and the buyer may terminate, and the earnest money goes back to the buyer. That is a free exit, handed over by the listing side." },
+    { "id": "FIX",    "text": "So send the contract to title the day it is executed, and note the day title received it." },
+    { "id": "CTA",    "text": "Comment TITLE and I will send you my checklist of every deadline in the contract." }
+  ],
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Frame 0 is the 6.B clip's full-page establishing framing (dense body text under the hook card, nothing else large-type). The 6.B highlight returns under QUOTE, TURN, EXTEND and REHOOK (in-points >= 4.6s so the gold box and label card are up). Drone/town cuts between document cuts so the page is evidence, not reading material. 1.7-2.1s cuts, cycled.",
+  "_broll_gate": "All b-roll marked clear; trec-6b-commitment-mobile-2026-10-09.mp4 is indexed in Media/screen-recordings/LIBRARY.md and is a blank promulgated form (assert-blessed-pdf passed on scripts/trec-forms/20-19.pdf before capture).",
+
+  "shots": [
+    { "clip": "trec-6b-commitment-mobile-2026-10-09.mp4",                "in": 0.3, "dur": 2.0, "motion": "none", "label": "6.B establishing (frame 0)" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 0.6,"dur": 1.8, "motion": "none", "label": "bridge approach" },
+    { "clip": "trec-6b-commitment-mobile-2026-10-09.mp4",                "in": 5.0, "dur": 2.1, "motion": "none", "label": "6.B highlighted" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 1.8, "motion": "none", "label": "Main St aerial" },
+    { "clip": "trec-6b-commitment-mobile-2026-10-09.mp4",                "in": 7.4, "dur": 2.0, "motion": "none", "label": "6.B + label card" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.7, "motion": "push", "label": "storefront" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 1.2, "dur": 1.9, "motion": "none", "label": "hero ridge" },
+    { "clip": "trec-6b-commitment-mobile-2026-10-09.mp4",                "in": 4.6, "dur": 2.0, "motion": "none", "label": "6.B reprise" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 2.0, "dur": 1.8, "motion": "none", "label": "underbridge" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags" },
+    { "clip": "trec-6b-commitment-mobile-2026-10-09.mp4",                "in": 8.0, "dur": 2.0, "motion": "none", "label": "6.B late" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.8, "motion": "none", "label": "plaza approach" },
+    { "clip": "boerne-downtown-rooftops-aerial-mobile-2024-12-18.mp4",   "in": 0.6, "dur": 1.8, "motion": "none", "label": "rooftops" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.6, "dur": 2.1, "motion": "none", "label": "hero close" }
+  ],
+
+  "cover_t": 6.2,
+  "_cover_t_why": "Lands on the 6.B highlighted page (shot 3) after the hook card has cleared, so the engine's own poster frame carries the clause; the designed cover is built separately by scripts/generate-video-cover.js.",
+  "verify_frames": [0.0, 1.0, 2.7, 3.1, 6.2, 12.0, 20.0, 30.0, 42.0, 52.0]
+}

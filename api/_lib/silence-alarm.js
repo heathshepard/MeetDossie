@@ -1532,6 +1532,50 @@ async function checkVideoRunwayLow(minReady = VIDEO_RUNWAY_MIN_READY) {
   }];
 }
 
+// ─── post_analytics sync silence ────────────────────────────────────────────
+//
+// Heath, 2026-10-09 (analytics-sync-video-link task): cron-analytics-sync.js
+// had been returning HTTP 200 every week while silently upserting ZERO rows
+// -- the 2026-09-30 owner-attribution migration added columns to every
+// upsert payload before the migration that creates them had ever been run,
+// so every single row 400'd and the cron's own summary just listed the
+// errors without anyone reading them. post_analytics.synced_at went stale
+// from 2026-09-27 onward with no alarm anywhere -- cron_runs showed this
+// cron as "healthy" the whole time (it never errors at the HTTP level,
+// see the cron_runs-lies-about-health lesson), which is exactly the kind
+// of gap this file exists to close. Checks the data itself, not the cron's
+// self-report.
+const ANALYTICS_SYNC_STALE_DAYS = 8;
+
+async function checkPostAnalyticsSyncStale(staleDays = ANALYTICS_SYNC_STALE_DAYS) {
+  const res = await supabaseFetch(
+    '/rest/v1/post_analytics?select=synced_at&order=synced_at.desc.nullslast&limit=1',
+  );
+  if (!res.ok) {
+    return [{
+      key: 'post_analytics_sync_query_failed',
+      message: `Could not read post_analytics to check sync freshness (status ${res.status}). Treat video/post view-count reporting as unverified until this query works.`,
+    }];
+  }
+  const rows = Array.isArray(res.data) ? res.data : [];
+  if (rows.length === 0 || !rows[0].synced_at) {
+    return [{
+      key: 'post_analytics_never_synced',
+      message: 'post_analytics has no synced_at on any row -- cron-analytics-sync.js has never successfully written a row (view/like/share counts for every post and video are unmeasured).',
+    }];
+  }
+  const lastSynced = rows[0].synced_at;
+  const cutoff = daysAgoIso(staleDays);
+  if (lastSynced >= cutoff) return [];
+  const ageDays = Math.floor((Date.now() - new Date(lastSynced).getTime()) / (24 * 60 * 60 * 1000));
+  return [{
+    key: 'post_analytics_sync_stale',
+    lastSynced,
+    ageDays,
+    message: `post_analytics hasn't synced in ${ageDays} day(s) (last synced_at: ${lastSynced}, threshold: ${staleDays}d) -- view/like/share counts for every post and video are going stale with no alarm from cron_runs (it reports this cron as healthy regardless). Call cron-analytics-sync.js directly and read the real response, don't trust cron_runs.`,
+  }];
+}
+
 // ─── dedupe ────────────────────────────────────────────────────────────────
 
 async function shouldFire(key) {
@@ -1577,7 +1621,10 @@ async function runAllChecks(opts = {}) {
   //   noVideoToday / videoRunwayLow — main-only, 2026-10-02 ("I had to catch
   //     you not posting anything today" incident).
   //   telegramWebhookHealth — main-only, 2026-10-02 (group-post Approve silent-tap incident).
-  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken, smsImportStale, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow, telegramWebhookHealth] = await Promise.all([
+  //   postAnalyticsSyncStale — main-only, 2026-10-09 (post_analytics hadn't
+  //     synced since 09-27; cron_runs showed this cron as healthy the whole
+  //     time -- see analytics-sync-video-link task).
+  const [silence, approvals, drafts, backlog, videoReview, videoPendingApprovalStale, tcHarvestStale, tcHarvestGap, commentsStale, newNeverNotified, unverifiedReplies, commentOppScannerSilent, commentOppApprovedStale, groupPostingSilent, supportTriage, dealWatch, cronSanity, telegramGateSuppressed, googleToken, smsImportStale, commentReplyPublisherStale, structurallyUnpublishable, partialVideoDeliveries, noVideoToday, videoRunwayLow, telegramWebhookHealth, postAnalyticsSyncStale] = await Promise.all([
     checkPlatformSilence(opts.silenceDays),
     checkStaleApprovals(opts.approvalStaleHours),
     checkStaleDrafts(opts.draftStaleHours),
@@ -1604,9 +1651,10 @@ async function runAllChecks(opts = {}) {
     checkNoVideoScheduledToday(opts.noVideoTodayNow),
     checkVideoRunwayLow(opts.videoRunwayMinReady),
     checkTelegramWebhookHealth(opts.telegramWebhookOpts),
+    checkPostAnalyticsSyncStale(opts.analyticsSyncStaleDays),
   ]);
 
-  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken, ...smsImportStale, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow, ...telegramWebhookHealth];
+  const all = [...silence, ...approvals, ...drafts, ...backlog, ...videoReview, ...videoPendingApprovalStale, ...tcHarvestStale, ...tcHarvestGap, ...commentsStale, ...newNeverNotified, ...unverifiedReplies, ...commentOppScannerSilent, ...commentOppApprovedStale, ...groupPostingSilent, ...supportTriage, ...dealWatch, ...cronSanity, ...telegramGateSuppressed, ...googleToken, ...smsImportStale, ...commentReplyPublisherStale, ...structurallyUnpublishable, ...partialVideoDeliveries, ...noVideoToday, ...videoRunwayLow, ...telegramWebhookHealth, ...postAnalyticsSyncStale];
   const fired = [];
   const suppressed = [];
 
@@ -2008,6 +2056,8 @@ module.exports = {
   checkVideoRunwayLow,
   VIDEO_RUNWAY_MIN_READY,
   checkTelegramWebhookHealth,
+  checkPostAnalyticsSyncStale,
+  ANALYTICS_SYNC_STALE_DAYS,
   shouldFire,
   markFired,
   runAllChecks,

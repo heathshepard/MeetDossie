@@ -1,0 +1,78 @@
+{
+  "slug": "heath-realtor-trec-5a-three-day-rule-2026-10-13",
+  "brand": "realtor",
+  "voice_id": "i41TA0Q36AUrp4axERi3",
+  "model_id": "eleven_v4",
+  "voice_settings": { "stability": 0.3, "similarity_boost": 0.75, "style": 0.4, "use_speaker_boost": true },
+
+  "_script_of_record": "docs/SCRIPTS-HEADLESS-BANK-1009.md -- VIDEO 3. Verbatim 20-19 quotes and the proven negatives live there.",
+  "_bank": "Headless bank 10/11-10/15, video 3 of 5. Was to post Tue 2026-10-13 07:00 CT. Keyword OPTION -> https://meetdossie.com/marketing/trec-deadline-checklist.html",
+  "_status_2026_10_09": "BUILT, NOT REGISTERED -- cut from the bank. Passed joins (0/5), runtime, speed-once, decay tail, captions_box_readable 5/5; failed the vision rule captions_present twice (3/5 then 2/5 pairs). Cut-after-two per the brief. See docs/SCRIPTS-HEADLESS-BANK-1009.md VIDEO 3.",
+  "_fact_note": "20-19 p.2 5.A: 'Within 3 days after the Effective Date, Buyer must deliver ... earnest money and ... the option fee' (3 is printed, 'days' not 'business days'). 5.A(2) quoted verbatim in the ROLL beat. 'Saturday, Sunday, or Legal Holiday' occurs exactly twice in the 12-page form, both inside 5.A(2) -- same proof as the 09-30 verification. 5.B: 'Notices under this paragraph must be given by 5:00 p.m. (local time where the Property is located) by the date specified.' 5.D: late option fee -> 'Buyer shall not have the unrestricted right to terminate'.",
+
+  "music": "documentary-trust-piano.mp3",
+  "music_gain_db": -10,
+  "_music_why": "Gain -10 (first build at -7 measured a 16.2 dB median under the voice, min 6.4, against the 18-19 dB standard). Same correction as bank-1009-02.",
+
+  "default_gap": 0.14,
+  "_length_note": "First build of the 189-word draft ran 63.6s. Trimmed BEFORE the final render (not a drop from a delivered script): hook lost 'one of two ways', 'Same paragraph, part two' became 'Part two', the 5.B scenario became a question form, 'paragraph five D' became 'five D' on its second mention. Every fact, both verbatim quotes and the closing CTA line are intact.",
+  "speed": 1.18,
+  "beat_lead_trim_db": -45,
+  "beat_onset_ramp_ms": 50,
+  "beat_onset_floor": 0.07,
+  "gap_noise_db": -63,
+  "_join_shaping": "Same four measured values as bank-1009-01 (see its _join_shaping_why). Probe result: 0 of 5 joins above p99.",
+
+  "hook_card": { "lines": ["THE 3-DAY RULE", "NOBODY READS RIGHT"], "until": 2.7 },
+  "caption_suppress_until": 3.2,
+  "_suppress_why": "First gate run (2026-10-09) failed hook_cleared_by_3s because the vision check read the first caption chunk ('MOST AGENTS READ', up at 3.09s) as a second hook overlay. Hook now clears at 2.7 and captions start at 3.2, so the 3.0s sample frame is bare footage. Cost: the first ~0.3s of speech ('Three days') is uncaptioned -- those exact words are on the hook card.",
+  "cta_card": { "lines": ["COMMENT OPTION", "FOR THE CHECKLIST"], "from_end": 3.4 },
+
+  "accent_words": ["¶5.A", "¶5.B", "¶5.D", "3", "SATURDAY,", "SUNDAY,", "HOLIDAY", "TWICE", "5", "P.M.", "OPTION"],
+  "caption_rewrite": [
+    ["Paragraph five A", "¶5.A"],
+    ["paragraph five A", "¶5.A"],
+    ["Paragraph five B", "¶5.B"],
+    ["paragraph five D", "¶5.D"],
+    ["five D", "¶5.D"],
+    ["Three days", "3 DAYS"],
+    ["three days", "3 DAYS"],
+    ["day three", "DAY 3"],
+    ["five p.m.", "5 P.M."]
+  ],
+
+  "beats": [
+    { "id": "HOOK",   "text": "Three days to deliver earnest money. Most agents read that rule wrong." },
+    { "id": "QUOTE",  "text": "Paragraph five A. Within three days after the effective date, the buyer must deliver the earnest money and the option fee to the escrow agent. Calendar days, not business days. Sign on Thursday, and day three is Sunday." },
+    { "id": "ROLL",   "text": "Part two. If the last day to deliver falls on a Saturday, Sunday, or legal holiday, the time to deliver is extended until the end of the next day that is not a Saturday, Sunday, or legal holiday. That Sunday rolls to Monday." },
+    { "id": "REHOOK", "text": "But that weekend extension appears exactly twice in the whole contract, both inside paragraph five A. The extension covers the earnest money, the option fee, and additional earnest money. Nothing else." },
+    { "id": "FIVEB",  "text": "Paragraph five B does not roll. Option period ends on a Saturday? The termination notice is due by five p.m. Saturday. Deliver the option fee late, and five D says the buyer loses the unrestricted right to terminate." },
+    { "id": "CTA",    "text": "Comment OPTION and I will send you the checklist with every date and which ones roll." }
+  ],
+  "_closing_clause": "The final spoken line is the CTA beat in full. Dropped lines: NONE.",
+
+  "_shot_rhythm": "Frame 0 is the 5.A clip's full-page establishing framing under the hook. QUOTE sits on the 5.A highlight (whole clause), ROLL on the 5.A(2)-only highlight, REHOOK returns to 5.A(2), FIVEB uses the existing 5.B clip (the 5:00 p.m. line is inside its box). Drone/town cuts between. In-points on clause clips >= 4.6s so the box and label card are up.",
+  "_broll_gate": "All b-roll marked clear. trec-5a-delivery / trec-5a2-weekend-rollover (2026-10-09) and trec-5b-option-period (2026-09-30) are indexed in Media/screen-recordings/LIBRARY.md; all three are the blank promulgated form.",
+
+  "shots": [
+    { "clip": "trec-5a-delivery-mobile-2026-10-09.mp4",                  "in": 0.3, "dur": 2.0, "motion": "none", "label": "5.A establishing (frame 0)" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 0.8, "dur": 1.8, "motion": "none", "label": "hero ridge" },
+    { "clip": "trec-5a-delivery-mobile-2026-10-09.mp4",                  "in": 5.0, "dur": 2.1, "motion": "none", "label": "5.A highlighted" },
+    { "clip": "boerne-downtown-main-street-aerial-mobile-2024-12-18.mp4","in": 0.8, "dur": 1.8, "motion": "none", "label": "Main St aerial" },
+    { "clip": "trec-5a2-weekend-rollover-mobile-2026-10-09.mp4",         "in": 5.0, "dur": 2.1, "motion": "none", "label": "5.A(2) highlighted" },
+    { "clip": "boerne-creek-bridge-approach-aerial-mobile-2024-12-18.mp4","in": 1.0,"dur": 1.8, "motion": "none", "label": "bridge approach" },
+    { "clip": "trec-5a2-weekend-rollover-mobile-2026-10-09.mp4",         "in": 7.6, "dur": 2.0, "motion": "none", "label": "5.A(2) + label" },
+    { "clip": "boerne-texas-flags-wide-mobile-2024-12-17.mp4",           "in": 0.8, "dur": 1.7, "motion": "push", "label": "TX flags" },
+    { "clip": "trec-5b-option-period-mobile-2026-09-30.mp4",             "in": 5.4, "dur": 2.0, "motion": "none", "label": "5.B 5pm line" },
+    { "clip": "boerne-main-street-storefront-mobile-2024-12-17.mp4",     "in": 0.8, "dur": 1.7, "motion": "push", "label": "storefront" },
+    { "clip": "trec-5a-delivery-mobile-2026-10-09.mp4",                  "in": 7.6, "dur": 2.0, "motion": "none", "label": "5.A + label" },
+    { "clip": "boerne-creek-underbridge-aerial-mobile-2024-12-18.mp4",   "in": 2.0, "dur": 1.8, "motion": "none", "label": "underbridge" },
+    { "clip": "trec-5b-option-period-mobile-2026-09-30.mp4",             "in": 7.6, "dur": 1.9, "motion": "none", "label": "5.B + label" },
+    { "clip": "boerne-town-overview-aerial-mobile-2024-12-18.mp4",       "in": 0.6, "dur": 1.9, "motion": "none", "label": "town overview" },
+    { "clip": "boerne-main-plaza-approach-mobile-2024-12-17.mp4",        "in": 1.0, "dur": 1.8, "motion": "none", "label": "plaza approach" },
+    { "clip": "boerne-hill-country-golden-aerial-mobile-2024-12-18.mp4", "in": 3.6, "dur": 2.1, "motion": "none", "label": "hero close" }
+  ],
+
+  "cover_t": 6.2,
+  "verify_frames": [0.0, 1.0, 2.7, 3.1, 6.2, 12.0, 20.0, 30.0, 42.0, 52.0]
+}

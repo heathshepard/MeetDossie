@@ -449,6 +449,17 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
       if (matchedVideoRow) {
         totalMatched++;
         totalVideoMatched++;
+        // on_conflict MUST include platform (fixed 2026-10-09, Atlas): a
+        // single video_library row has one delivery per platform
+        // (facebook/instagram/tiktok/youtube...), all synced on the SAME
+        // sync_date in the SAME run. on_conflict=video_library_id,sync_date
+        // alone collided across platforms -- confirmed live, every
+        // multi-platform video ended up with exactly ONE surviving
+        // post_analytics row (whichever platform's account this loop
+        // processed last for that owner), silently overwriting every
+        // earlier platform's row for the same video+day. Needs the matching
+        // unique index -- see idx_post_analytics_video_per_day in
+        // supabase/migrations/20261009_post_analytics_video_unique_fix.sql.
         const videoAnalyticsRow = {
           video_library_id: matchedVideoRow.id,
           zernio_post_id: zId,
@@ -460,7 +471,7 @@ module.exports = withTelemetry('cron-analytics-sync', async function handler(req
           ...metrics,
         };
         const videoUpsertRes = await supabaseFetch(
-          '/rest/v1/post_analytics?on_conflict=video_library_id,sync_date',
+          '/rest/v1/post_analytics?on_conflict=video_library_id,platform,sync_date',
           {
             method: 'POST',
             headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },

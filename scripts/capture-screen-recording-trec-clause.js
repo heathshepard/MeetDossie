@@ -99,6 +99,63 @@ const CLAUSES = {
     // 422.9-424.9pt (before ¶6).
     bboxPt: [51, 401.9, 566, 423.5],
   },
+  // --- Added 2026-10-09 (headless bank, feat/headless-bank-1009). Every
+  // boundary below was re-derived the same way as the entries above: page
+  // rendered to 400 DPI grayscale PGM, rows scanned for a genuinely blank
+  // (255) run across the text column, bboxPt picked from the middle of that
+  // confirmed-blank band. Word bboxes from `pdftotext -bbox` overclaim 1-2pt
+  // and were used only to find the lines, never to set an edge.
+  'para-5a-delivery': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 2,
+    label: 'Paragraph 5.A — Delivery of Earnest Money and Option Fee (3 days + weekend rollover)',
+    // Whole lettered clause A, heading through "(4) ... closing." Top: blank
+    // band 62.82-66.42pt between the "5. EARNEST MONEY AND TERMINATION
+    // OPTION:" heading and "A. DELIVERY OF ...". Bottom: blank band
+    // 253.80-255.06pt between "closing." and "B. TERMINATION OPTION:" — the
+    // same band para-5b-option-period's top edge sits in.
+    bboxPt: [51, 64.6, 566, 254.3],
+  },
+  'para-5a2-weekend-rollover': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 2,
+    label: 'Paragraph 5.A(2) — Saturday / Sunday / Legal Holiday extension',
+    // Just the (2) sub-paragraph. Left edge 74pt (inside the "(1)/(2)/(3)"
+    // gutter, which has no checkbox glyphs on this page) so the box never
+    // crosses the indented item labels. Top: blank band 140.76-141.12pt
+    // between "(1) ... days after the Effective Date of this contract." and
+    // "(2) If the last day ...". Bottom: blank band 192.24-192.42pt
+    // (text column x>=75 only — the full-width scan finds NO blank row from
+    // 141 to 222pt because of the tight leading) between "... Texas
+    // Government Code." and "(3) The amount(s) ...".
+    bboxPt: [74, 140.9, 566, 192.3],
+  },
+  'para-6b-commitment': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 2,
+    label: 'Paragraph 6.B — Commitment (20 days after the Title Company receives the contract)',
+    // Whole lettered clause B at the foot of page 2. Top: blank band
+    // 652.68-655.38pt between "(9) ... Insurance." and "B. COMMITMENT:".
+    // Bottom: blank band 750.78-756.90pt between "... refunded to Buyer."
+    // and the "Initialed for identification" footer line.
+    bboxPt: [51, 654.0, 566, 753.0],
+  },
+  'para-7b-sellers-disclosure': {
+    pdf: path.join(REPO_ROOT, 'scripts', 'trec-forms', '20-19.pdf'),
+    page: 4,
+    label: "Paragraph 7.B — Seller's Disclosure Notice (delivery + 7-day termination right)",
+    // Heading through the end of box (2). Page 4's leading is tighter than
+    // page 2's: the full-width scan finds no blank row anywhere between
+    // 559.26pt and 750.42pt. Top: blank band 536.58-537.30pt between
+    // "... in effect." (¶7.A) and the "B. SELLER'S DISCLOSURE NOTICE"
+    // heading. Bottom: the single near-blank row at 650.34-650.52pt
+    // (min pixel 223-255 across x>=90) between "... refunded to Buyer." and
+    // "(3) The Seller is not required ...". Left edge 74pt keeps the box
+    // clear of the (1)/(2)/(3) checkbox glyphs at x 61.8-73.4pt, so the
+    // bottom edge cannot slice the (3) checkbox. Frame-checked by eye on
+    // the rendered capture before use.
+    bboxPt: [74, 536.9, 566, 650.4],
+  },
 };
 
 const PAGE_W_PT = 612; // TREC 20-19 is standard Letter, portrait
