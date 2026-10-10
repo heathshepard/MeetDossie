@@ -1,0 +1,64 @@
+{
+  "form_type": "sellers-disclosure",
+  "generated_at": "2026-10-10T04:36:11.489Z",
+  "source_pdf": "txr-1406-sellers-disclosure-base64.js",
+  "derived_from": "txr-1406-address-coords.json",
+  "page_count": 7,
+  "page_sizes": [
+    {
+      "page": 1,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 2,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 3,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 4,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 5,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 6,
+      "width_pt": 612,
+      "height_pt": 792
+    },
+    {
+      "page": 7,
+      "width_pt": 612,
+      "height_pt": 792
+    }
+  ],
+  "field_count": 1,
+  "mapped_field_count": 1,
+  "fields": [
+    {
+      "pdf_field_name": "property_address_p1",
+      "type": "text",
+      "page": 1,
+      "x_pt": 205,
+      "y_pt": 137,
+      "w_pt": 380,
+      "h_pt": 13,
+      "x_pct": 33.497,
+      "y_pct": 17.298,
+      "w_pct": 62.092,
+      "h_pct": 1.641,
+      "key": "property_address",
+      "label": "Property address (page 1 header)",
+      "category": "TXR-1406"
+    }
+  ]
+}

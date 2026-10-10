@@ -209,8 +209,11 @@ function flatten(fieldMap) {
     assert.ok(execFields.every((f) => f.role === 'Seller 1'));
   });
 
-  check("esign-create.js: TREC 55-1 (sellers-disclosure) has no EXECUTED block -> untouched", () => {
-    const formEntry = resolveEsignFieldMapForDoc({ form_type: 'sellers-disclosure' });
+  check("esign-create.js: TREC 55-1 (sellers-disclosure-trec-55-1) has no EXECUTED block -> untouched", () => {
+    // 2026-10-09 CARTER — 'sellers-disclosure' now means TXR 1406; this
+    // Mode-A map entry (and this test) is specifically about TREC 55-1,
+    // which moved to its own distinct key.
+    const formEntry = resolveEsignFieldMapForDoc({ form_type: 'sellers-disclosure-trec-55-1' });
     assert.equal(formHasExecutedBlock(formEntry.form_type), false);
     const signers = [{ name: 'Synthetic Seller', email: 's@example.test', role: 'Seller 1' }];
     const built = buildMappedFieldMap(formEntry, signers);

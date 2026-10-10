@@ -61,7 +61,11 @@ const EXPECTED_FORMS = [
   'gulf-waterway', 'hoa-addendum', 'hydrostatic-testing', 'improvement-district',
   'lead-paint-addendum', 'loan-assumption', 'oil-gas-minerals', 'propane-gas',
   'residential-leases', 'sale-other-property', 'seller-financing',
-  'sellers-disclosure', 'sellers-temp-lease', 'short-sale', 'unimproved-property',
+  // 2026-10-09 CARTER — 'sellers-disclosure' now means TXR 1406 in
+  // api/fill-form.js (flat PDF, deliberately NOT in this Mode-A map per
+  // scripts/build-txr-1406-packet.js's own docstring). TREC 55-1 (the form
+  // this Mode-A entry actually covers) moved to its own distinct key.
+  'sellers-disclosure-trec-55-1', 'sellers-temp-lease', 'short-sale', 'unimproved-property',
 ];
 
 // Pages that print an "Initialed for identification..." footer, verified by

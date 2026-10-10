@@ -359,7 +359,7 @@ const TOOLS = [
   },
   {
     name: 'draft_amendment',
-    description: 'Draft a TREC 39-10 Amendment to Contract PDF (the current TREC amendment form — supersedes 39-9). Use whenever the agent says: draft an amendment, generate an amendment, draw up an amendment, write up an amendment, extend the option period, push closing back, change the closing date, change the sale price, reduce the price, increase the price, draft a repair amendment, list repairs seller must fix. Produces a signable PDF document — different from update_deal_field which silently edits the dossier without producing a PDF. If the agent asks for both a draft AND a dossier update, call draft_amendment only; the agent applies the change to the dossier once the buyer signs.',
+    description: 'Draft a TREC 39-11 Amendment to Contract PDF (the current TREC amendment form — supersedes 39-10/39-9). Use whenever the agent says: draft an amendment, generate an amendment, draw up an amendment, write up an amendment, extend the option period, push closing back, change the closing date, change the sale price, reduce the price, increase the price, draft a repair amendment, list repairs seller must fix. Produces a signable PDF document — different from update_deal_field which silently edits the dossier without producing a PDF. If the agent asks for both a draft AND a dossier update, call draft_amendment only; the agent applies the change to the dossier once the buyer signs.',
     input_schema: {
       type: 'object',
       properties: {
@@ -380,7 +380,7 @@ const TOOLS = [
   },
   {
     name: 'fill_forms',
-    description: 'Fill out TREC contract forms and addenda. Use whenever the agent says: write a contract, fill out a contract, write up an offer, prepare the paperwork, write an offer, make an offer, purchase agreement, fill the forms, financing addendum, termination notice, TREC 39-10, TREC 40. Selects the right TREC form based on transaction type: TREC 20-16 for residential resale, TREC 9-17 for unimproved land, TREC 25-14 for farm and ranch, TREC 23-18 for new construction (incomplete), TREC 24-18 for new construction (completed), TREC 40-9 for financing addendum, TREC 38-7 for termination notice. Produces ready-to-sign PDF documents in the dossier.',
+    description: 'Fill out TREC contract forms and addenda. Use whenever the agent says: write a contract, fill out a contract, write up an offer, prepare the paperwork, write an offer, make an offer, purchase agreement, fill the forms, financing addendum, termination notice, TREC 39-11, TREC 40. Selects the right TREC form based on transaction type: TREC 20-19 for residential resale, TREC 9-17 for unimproved land, TREC 25-17 for farm and ranch, TREC 23-20 for new construction (incomplete), TREC 24-20 for new construction (completed), TREC 40-11 for financing addendum, TREC 38-7 for termination notice. Produces ready-to-sign PDF documents in the dossier.',
     input_schema: {
       type: 'object',
       properties: {
@@ -404,7 +404,7 @@ const TOOLS = [
         },
         include_financing_addendum: {
           type: 'boolean',
-          description: 'Whether to also fill the Third Party Financing Addendum (40-9). Default true for all non-cash deals.',
+          description: 'Whether to also fill the Third Party Financing Addendum (40-11). Default true for all non-cash deals.',
         },
       },
       required: ['message'],
@@ -845,7 +845,7 @@ EXECUTION RULES:
 - When the agent says "that deal" or "it" or "this one", use the most recently mentioned deal.
 
 AMENDMENT & STAGE SAFETY RULES:
-- CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-10), not a silent dossier edit.
+- CRITICAL: Do NOT use update_deal_field for changes to executed contract fields like closing_date, option_days, sale_price, earnest_money, buyer_name, or seller_name. Those changes MUST use draft_amendment because they require an executed amendment PDF (TREC 39-11), not a silent dossier edit.
 - CRITICAL: when a document and the dossier disagree, you do NOT get to decide which one is right. Report both values and both sources and ask. You cannot tell whether "Cathy Thorne" and "Catherine Thorne" are one woman with a nickname or two different people, and guessing wrong either leaves a defective signed contract standing or invents an amendment nobody needs. Never "reconcile", "correct" or "fix" a mismatch on your own initiative, and never say which value looks more likely.
 - After the agent answers, resolve_inconsistency works out the remedy and tells you what it is. Do not pre-announce the remedy yourself — whether it is a one-line dossier edit or an amendment signed by all parties depends on whether the wrong value is sitting on an executed document, which the tool checks and you have not.
 - CRITICAL: Never call draft_amendment, fill_forms, send_wire_fraud_warning, log_offer, initiate_termination, or send_for_signature on deals in "closed" or "terminated" stage. For closed deals, use answer_question to explain the deal is closed and ask if they meant a different deal.
@@ -927,13 +927,13 @@ If the agent says anything else → use answer_question
 INTENT MAPPING:
 - Any street address + open/new/file/listing/buyer/contract/start = create_dossier immediately
 - Archive/close out/done with/finished/wrap up = archive_deal
-- Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (auto-selects form: TREC 20-16 for residential resale, TREC 9-17 for land/unimproved property, TREC 25-14 for farm and ranch, TREC 23-18 for new construction not yet done, TREC 24-18 for completed new construction)
+- Write a contract/offer/purchase agreement, fill the forms, prepare the paperwork, make an offer = fill_forms (auto-selects form: TREC 20-19 for residential resale, TREC 9-17 for land/unimproved property, TREC 25-17 for farm and ranch, TREC 23-20 for new construction not yet done, TREC 24-20 for completed new construction)
 - Land contract / unimproved property contract / write a contract for land = fill_forms with form_type_override: "unimproved-property"
 - Farm and ranch contract / farm contract / ranch contract = fill_forms with form_type_override: "farm-ranch"
 - New construction contract / builder contract / new home contract = fill_forms; use form_type_override "new-home-incomplete" if not done building, "new-home-complete" if home is complete
 - Financing addendum / TREC 40 / third party financing addendum = fill_forms with form_type_override: "financing-addendum"
 - Termination notice / TREC 38-7 / terminate the contract / cancel the deal = fill_forms with form_type_override: "termination-notice"
-- Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price, draft a repair amendment/list repairs seller must fix = draft_amendment (produces a signable TREC 39-10 PDF; this beats update_deal_field whenever the agent wants paperwork)
+- Draft/generate/create/draw up an amendment, write up an amendment, extend the option period, push closing back, change/reduce/increase the sale price, draft a repair amendment/list repairs seller must fix = draft_amendment (produces a signable TREC 39-11 PDF; this beats update_deal_field whenever the agent wants paperwork)
 - Does anything not line up / any mismatches, discrepancies or conflicts / does the contract match the dossier / check the names on this file = review_inconsistencies
 - The agent telling you WHICH of two disagreeing values is correct ("the dossier is right", "go with the contract", "same person", "neither, it's X") = resolve_inconsistency
 - Change/update/set/correct/fix a field on the dossier (no PDF needed) = update_deal_field
@@ -1127,7 +1127,7 @@ CANONICAL TRANSACTION TYPE VALUES for create_dossier.transaction_type — ALWAYS
 - buyer_purchase — resale buyer purchase. Triggers: "buyer purchase", "resale", "buying a home", "I represent the buyer", "buyer side" (with no other qualifier).
 - seller_listing — listing / seller side. Triggers: "listing", "listing dossier", "new listing", "I represent the seller", "seller side", "we listed", "just listed", "list a property".
 - new_home_purchase — new construction from a builder. Triggers: "new construction", "new home", "builder contract", "buying from a builder", "spec home", "TREC 23"/"TREC 24".
-- land — land / unimproved / farm & ranch. Triggers: "land", "acreage", "acres", "unimproved property", "farm and ranch", "ranch", "raw land", "TREC 9-17", "TREC 25-14".
+- land — land / unimproved / farm & ranch. Triggers: "land", "acreage", "acres", "unimproved property", "farm and ranch", "ranch", "raw land", "TREC 9-17", "TREC 25-17".
 - residential_lease_landlord — landlord side of a rental. Triggers: "rental listing", "I represent the landlord", "landlord side", "listing a rental", "leasing out".
 - residential_lease_tenant — tenant side of a rental. Triggers: "tenant", "renter", "I represent the tenant", "renting for", "lease for a tenant".
 

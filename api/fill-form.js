@@ -72,6 +72,12 @@ const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
 // AcroForm is a strict superset of 55-0's (all 179 of 55-0's field names present,
 // plus 7 new), so every field this module writes still resolves.
 const TREC_SELLERS_DISCLOSURE_B64 = require('./_assets/trec-sellers-disclosure-55-1-base64.js');
+// 2026-10-09 CARTER — TXR 1406, the Seller's Disclosure Notice actually used
+// on Heath's live files. See FORM_CONFIGS['sellers-disclosure'] below.
+const TXR_1406_B64 = require('./_assets/txr-1406-sellers-disclosure-base64.js');
+const TXR_1406_ADDRESS_COORDS = require('./_assets/field-maps/txr-1406-address-coords.json');
+const TXR_1406_DOCUSEAL_FIELDS = require('./_assets/field-maps/txr-1406-sellers-disclosure-docuseal-fields.json');
+const { resolveDerivableTxr1406Values } = require('./_lib/txr-1406-field-map');
 const TREC_39_11_B64 = require('./_assets/trec-amendment-39-11-base64.js');
 const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
@@ -167,12 +173,34 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_LEAD_PAINT_B64,
     documentType: 'lead_paint_addendum',
   },
-  // Seller's Disclosure Notice (TREC 55-1)
+  // Seller's Disclosure Notice (TXR 1406) — the form actually on every one
+  // of Heath's live files (rev 06-15-26). Was wrongly wired to TREC 55-1
+  // (TREC's own promulgated disclosure form — legally valid, but not what
+  // any of Heath's real TXR-member-brokerage files use) — fixed 2026-10-09.
+  // 1406 is a flat PDF (0 AcroForm fields, unlike 55-1), so the fill path is
+  // a coordinate bake (fillSellersDisclosureTxr1406) of only the fields
+  // Dossie can derive from the transaction — address + seller names + HOA
+  // block (see api/_lib/txr-1406-field-map.js). The ~250-item disclosure
+  // grid is the seller's own knowledge and stays blank here; it's answered
+  // live at signing via the separate, deliberate DocuSeal pipeline in
+  // scripts/build-txr-1406-packet.js. 55-1 kept under its own distinct type
+  // below so it isn't lost (rare — non-TXR-member brokerages only).
   'sellers-disclosure': {
+    name: "Seller's Disclosure Notice (TXR 1406)",
+    shortName: 'TXR-1406-SDN',
+    getBase64: () => TXR_1406_B64,
+    documentType: 'sellers_disclosure',
+    formVersion: 'txr-1406',
+  },
+  // TREC's own Seller's Disclosure Notice (TREC 55-1) — TREC's promulgated
+  // form, used rarely in practice (most brokerages use the TXR 1406
+  // equivalent above). Registered under its own type per the 2026-10-09
+  // audit so it stays reachable rather than being silently dropped.
+  'sellers-disclosure-trec-55-1': {
     name: "Seller's Disclosure Notice (TREC 55-1)",
     shortName: 'TREC-55-SDN',
     getBase64: () => TREC_SELLERS_DISCLOSURE_B64,
-    documentType: 'sellers_disclosure',
+    documentType: 'sellers_disclosure_trec_55_1',
   },
   // Amendment to Contract (TREC 39-11)
   'amendment': {
@@ -2473,6 +2501,66 @@ async function fillLeadPaintAddendum(pdfDoc, fv) {
 //   CheckBox7[n] = Section 15 No
 //   TextField1[3..7] = signature page fields (seller names, dates, agent notes)
 // ---------------------------------------------------------------------------
+// 2026-10-09 CARTER — TXR 1406 Seller's Disclosure Notice. Flat PDF (0
+// AcroForm fields), so this bakes real PDF text instead of setting named
+// widget values, same mechanism scripts/build-txr-1406-packet.js's
+// bakeAddress() already uses for the property address. Only draws fields
+// classified "derivable" in api/_lib/txr-1406-field-map.js (address, seller
+// name(s), HOA block if present) — the ~250-item disclosure grid is the
+// seller's own knowledge and is deliberately left blank here; it is
+// answered live at signing via the separate DocuSeal submission that same
+// script builds. Coordinates for the HOA/seller-name widgets are read
+// directly from the real, collision-proven widget list
+// (txr-1406-sellers-disclosure-docuseal-fields.json, top-left-origin
+// {x,y,w,h}) so a baked draft lines up with the live-signing widget box;
+// converted to pdf-lib's bottom-left origin the same way bakeAddress()
+// already converts the address coords (y_bottomleft = pageHeight - y_top).
+async function fillSellersDisclosureTxr1406(pdfDoc, fv) {
+  const { rgb, StandardFonts } = require('pdf-lib');
+  const PAGE_HEIGHT = 792;
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+
+  // Property address — baked on every page (1-7).
+  const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
+  if (addr) {
+    for (const spec of Object.values(TXR_1406_ADDRESS_COORDS.fields)) {
+      const page = pages[spec.page - 1];
+      if (!page) continue;
+      page.drawText(addr.slice(0, 120), {
+        x: spec.x,
+        y: PAGE_HEIGHT - spec.y,
+        size: spec.font_size,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    }
+  }
+
+  // Seller name(s) + HOA block — the only other widgets Dossie can answer
+  // itself. resolveDerivableTxr1406Values already excludes address (baked
+  // above, not a widget) and anything signature/date/initials-policy-owned.
+  const widgetByName = {};
+  for (const w of TXR_1406_DOCUSEAL_FIELDS.fields) widgetByName[w.name] = w;
+
+  const derivableByRole = resolveDerivableTxr1406Values(fv);
+  for (const roleValues of Object.values(derivableByRole)) {
+    for (const [name, value] of Object.entries(roleValues)) {
+      const w = widgetByName[name];
+      if (!w || !value) continue;
+      const page = pages[w.page - 1];
+      if (!page) continue;
+      page.drawText(String(value).slice(0, 80), {
+        x: w.x + 2,
+        y: PAGE_HEIGHT - (w.y + w.h) + 2,
+        size: 9,
+        font,
+        color: rgb(0, 0, 0),
+      });
+    }
+  }
+}
+
 async function fillSellersDisclosure(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
@@ -4038,7 +4126,8 @@ async function fillForm(formType, fieldValues) {
     case 'lead-paint-addendum':   await fillLeadPaintAddendum(pdfDoc, fv); break;
     case 'termination-notice':    await fillTerminationNotice(pdfDoc, fv); break;
     case 'wire-fraud-warning':    await fillWireFraudWarning(pdfDoc, fv); break;
-    case 'sellers-disclosure':    await fillSellersDisclosure(pdfDoc, fv); break;
+    case 'sellers-disclosure':    await fillSellersDisclosureTxr1406(pdfDoc, fv); break;
+    case 'sellers-disclosure-trec-55-1': await fillSellersDisclosure(pdfDoc, fv); break;
     case 'amendment':             await fillAmendment(pdfDoc, fv); break;
     case 'buyer-rep-agreement':   await fillBuyerRepAgreement(pdfDoc, fv); break;
     case 'appraisal-termination': await fillAppraisalTermination(pdfDoc, fv); break;

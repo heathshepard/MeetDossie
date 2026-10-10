@@ -39,7 +39,10 @@ const FORM_B64_MAP = {
   'wire-fraud-warning':    () => require('./_assets/tar-wire-fraud-base64.js'),
   'hoa-addendum':          () => require('./_assets/trec-hoa-addendum-36-11-base64.js'),
   'lead-paint-addendum':   () => require('./_assets/trec-lead-paint-base64.js'),
-  'sellers-disclosure':    () => require('./_assets/trec-sellers-disclosure-55-1-base64.js'),
+  // 2026-10-09 CARTER — kept in sync with api/_lib/resolve-blank-template-pdf.js
+  // and api/fill-form.js: 'sellers-disclosure' now means TXR 1406.
+  'sellers-disclosure':    () => require('./_assets/txr-1406-sellers-disclosure-base64.js'),
+  'sellers-disclosure-trec-55-1': () => require('./_assets/trec-sellers-disclosure-55-1-base64.js'),
   'amendment':             () => require('./_assets/trec-amendment-39-11-base64.js'),
   'buyer-rep-agreement':   () => require('./_assets/tar-buyer-rep-base64.js'),
   'listing-agreement':     () => require('./_assets/tar-listing-agreement-base64.js'),
@@ -77,7 +80,9 @@ const SHORT_NAME_TO_FORM_TYPE = {
   'TREC 49-1':                     'appraisal-termination',
 
   // Secondary TREC forms
-  'OP-H':                          'sellers-disclosure',
+  'OP-H':                          'sellers-disclosure-trec-55-1',
+  'TREC 55-1':                     'sellers-disclosure-trec-55-1',
+  'TXR 1406':                      'sellers-disclosure',
   'Seller Financing':              'seller-financing',
   'Sale of Other Property':        'sale-other-property',
   'Back-Up Contract':              'backup-contract',

@@ -3209,14 +3209,14 @@
    "excluded_party_fields": [],
    "document_type": "seller_financing_addendum"
   },
-  "sellers-disclosure": {
-   "form_type": "sellers-disclosure",
+  "sellers-disclosure-trec-55-1": {
+   "form_type": "sellers-disclosure-trec-55-1",
    "trec_no": "55-1",
    "page_count": 4,
    "mode": "A",
    "asset_module": "trec-sellers-disclosure-55-1-base64.js",
    "blank_pdf_sha256": "cebab031402fef2d1a16b91e6820b778f3e8971764177700706ec3f6ad8f359b",
-   "source_role_map": "scripts/esign-role-maps/sellers-disclosure.json",
+   "source_role_map": "scripts/esign-role-maps/sellers-disclosure-trec-55-1.json",
    "source_role_map_generated_at": "2026-09-02T02:51:58.171Z",
    "roles": {
     "seller1": [
@@ -3367,7 +3367,7 @@
     "buyer2": 2
    },
    "excluded_party_fields": [],
-   "document_type": "sellers_disclosure"
+   "document_type": "sellers_disclosure_trec_55_1"
   },
   "sellers-temp-lease": {
    "form_type": "sellers-temp-lease",
@@ -4452,7 +4452,7 @@
   "residential_leases_addendum": "residential-leases",
   "sale_other_property_addendum": "sale-other-property",
   "seller_financing_addendum": "seller-financing",
-  "sellers_disclosure": "sellers-disclosure",
+  "sellers_disclosure_trec_55_1": "sellers-disclosure-trec-55-1",
   "sellers_temp_lease": "sellers-temp-lease",
   "short_sale_addendum": "short-sale",
   "unimproved_property_contract": "unimproved-property"

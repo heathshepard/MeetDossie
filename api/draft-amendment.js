@@ -1,6 +1,9 @@
 // Vercel Serverless Function: /api/draft-amendment
-// Drafts a TREC 39-10 Amendment to Contract PDF (the current TREC amendment
-// form — 39-9 has been superseded by 39-10) by filling the AcroForm fields
+// Drafts a TREC 39-11 Amendment to Contract PDF (the current TREC amendment
+// form — 39-9 and 39-10 have been superseded by 39-11; the asset loaded
+// below, trec-amendment-39-11-base64.js, was already correct — only the
+// comments/description text here and in api/chat.js said "39-10") by
+// filling the AcroForm fields
 // with dossier data plus the agent's amendment input. The filled PDF is
 // uploaded to the documents bucket and recorded in both the `documents` and
 // `amendments` tables.

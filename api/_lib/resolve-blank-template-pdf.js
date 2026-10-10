@@ -35,7 +35,11 @@ const FORM_TEMPLATE_B64 = {
   'wire-fraud-warning':    () => require('../_assets/tar-wire-fraud-base64.js'),
   'hoa-addendum':          () => require('../_assets/trec-hoa-addendum-36-11-base64.js'),
   'lead-paint-addendum':   () => require('../_assets/trec-lead-paint-base64.js'),
-  'sellers-disclosure':    () => require('../_assets/trec-sellers-disclosure-55-1-base64.js'),
+  // 2026-10-09 CARTER — 'sellers-disclosure' now means TXR 1406 (the form
+  // actually on Heath's live files); TREC 55-1 moved to its own distinct
+  // key below. See api/fill-form.js FORM_CONFIGS for the full rationale.
+  'sellers-disclosure':    () => require('../_assets/txr-1406-sellers-disclosure-base64.js'),
+  'sellers-disclosure-trec-55-1': () => require('../_assets/trec-sellers-disclosure-55-1-base64.js'),
   'amendment':             () => require('../_assets/trec-amendment-39-11-base64.js'),
   'buyer-rep-agreement':   () => require('../_assets/tar-buyer-rep-base64.js'),
   'listing-agreement':     () => require('../_assets/tar-listing-agreement-base64.js'),
@@ -74,10 +78,15 @@ const SHORT_NAME_TO_FORM_TYPE = {
   'OP-L':                          'lead-paint-addendum',
   'Amendment':                     'amendment',
   'TREC 49-1':                     'appraisal-termination',
-  'OP-H':                          'sellers-disclosure',
+  // OP-H is specifically TREC's own form number (predecessor name for
+  // TREC 55-1) — not the TXR 1406 equivalent, so it keeps pointing at 55-1.
+  'OP-H':                          'sellers-disclosure-trec-55-1',
+  'TREC 55-1':                     'sellers-disclosure-trec-55-1',
+  'TXR 1406':                      'sellers-disclosure',
   'Seller Financing':              'seller-financing',
   'Sale of Other Property':        'sale-other-property',
   'Back-Up Contract':              'backup-contract',
+  // Generic "Seller Disclosure" label defaults to the common case, TXR 1406.
   'Seller Disclosure':             'sellers-disclosure',
   'T-47':                          't47-affidavit',
   'TREC 9':                        'unimproved-property',

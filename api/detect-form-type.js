@@ -33,7 +33,9 @@ const SHORT_NAME_TO_FORM_TYPE = {
   'OP-L':                          'lead-paint-addendum',
   'Amendment':                     'amendment',
   'TREC 49-1':                     'appraisal-termination',
-  'OP-H':                          'sellers-disclosure',
+  'OP-H':                          'sellers-disclosure-trec-55-1',
+  'TREC 55-1':                     'sellers-disclosure-trec-55-1',
+  'TXR 1406':                      'sellers-disclosure',
   'Seller Financing':              'seller-financing',
   'Sale of Other Property':        'sale-other-property',
   'Back-Up Contract':              'backup-contract',
@@ -153,7 +155,8 @@ Older revisions of the same form map to the same key (e.g. a TREC 20-18 upload i
 - appraisal-termination: TREC 49-1, "Addendum Concerning Right to Terminate Due to Lender's Appraisal"
 - termination-notice: TREC 38-7, "Notice of Buyer's Termination of Contract"
 - amendment: TREC 39-11, "Amendment to Contract"
-- sellers-disclosure: TREC 55-1 (formerly OP-H), "Seller's Disclosure Notice"
+- sellers-disclosure: TXR 1406, "Seller's Disclosure Notice"
+- sellers-disclosure-trec-55-1: TREC 55-1 (formerly OP-H), "Seller's Disclosure Notice"
 - hoa-addendum: TREC 36-11, "Addendum for Property Subject to Mandatory Membership in a Property Owners Association"
 - lead-paint-addendum: TREC 56-0 (formerly OP-L), "Addendum for Seller's Disclosure of Information on Lead-Based Paint and Lead-Based Paint Hazards as Required by Federal Law"
 - wire-fraud-warning: TXR 2517, "Wire Fraud Warning"

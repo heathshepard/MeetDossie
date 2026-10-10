@@ -52,6 +52,19 @@ const REQUIRED_FIELDS_BY_FORM_TYPE = {
     'earnest_money',
     'financing_type',
   ],
+  // 2026-10-09 CARTER — TXR 1406 Seller's Disclosure Notice. Only the
+  // derivable fields from api/_lib/txr-1406-field-map.js belong here —
+  // property address (baked on every page) and the seller's own name
+  // (printed-name widget on page 6). hoa_name/hoa_phone/hoa_management_company
+  // are also derivable but genuinely optional (not every property has an
+  // HOA). The ~250-item disclosure grid is the seller's own knowledge and
+  // is answered live at signing — it is never a `transactions` column, so
+  // it can never appear in this list (see getMustAskWidgetNames() instead).
+  'sellers-disclosure': [
+    'property_address',
+    'city_state_zip',
+    'seller_name',
+  ],
 };
 
 /**

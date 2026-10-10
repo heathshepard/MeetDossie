@@ -66,6 +66,8 @@ const ALLOWED_FORM_TYPES = new Set([
   // already has a FORM_CONFIGS entry in api/fill-form.js, so the re-render
   // step below (POST /api/fill-form) works unchanged.
   'sellers-disclosure',
+  // 2026-10-09 CARTER — the new distinct TREC 55-1 key (see api/fill-form.js).
+  'sellers-disclosure-trec-55-1',
   'amendment',
   'unimproved-property',
   'seller-financing',

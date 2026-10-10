@@ -63,7 +63,13 @@ const SLUG_TO_ASSET = {
   'amendment': 'trec-amendment-39-11-base64.js',
   'seller-financing': 'trec-seller-financing-base64.js',
   'lead-paint-addendum': 'trec-lead-paint-base64.js',
-  'sellers-disclosure': 'trec-sellers-disclosure-55-1-base64.js',
+  // 2026-10-09 CARTER — renamed from 'sellers-disclosure': that slug now
+  // means TXR 1406 in api/fill-form.js (see FORM_CONFIGS). This Mode-A
+  // AcroForm map was always built against TREC 55-1 specifically (see
+  // scripts/esign-role-maps/sellers-disclosure-trec-55-1.json's own
+  // description), so it moved to its own distinct slug rather than being
+  // silently pointed at a PDF it was never measured against.
+  'sellers-disclosure-trec-55-1': 'trec-sellers-disclosure-55-1-base64.js',
   'appraisal-termination': 'trec-49-1-base64.js',
   'unimproved-property': 'trec-unimproved-property-base64.js',
   'buyers-temp-lease': 'trec-buyers-temp-lease-base64.js',

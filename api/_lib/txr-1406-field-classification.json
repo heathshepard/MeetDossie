@@ -1,0 +1,1751 @@
+{
+  "generated_at": "2026-10-10T04:43:25.388Z",
+  "source": "api/_assets/field-maps/txr-1406-sellers-disclosure-docuseal-fields.json",
+  "total_widgets": 287,
+  "counts": {
+    "derivable": 6,
+    "signature_policy": 16,
+    "must_ask": 266
+  },
+  "derivable": [
+    {
+      "name": "Property address (all 7 pages, \"Concerning the Property at ___\")",
+      "type": "baked_text",
+      "role": null,
+      "page": "all",
+      "transactionField": "property_address + city_state_zip",
+      "mechanism": "api/_assets/field-maps/txr-1406-address-coords.json via bakeAddress()"
+    },
+    {
+      "name": "HOA - Name of association",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5,
+      "transactionField": "hoa_name"
+    },
+    {
+      "name": "HOA - Manager's name",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5,
+      "transactionField": "hoa_management_company"
+    },
+    {
+      "name": "HOA - Manager phone",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5,
+      "transactionField": "hoa_phone"
+    },
+    {
+      "name": "Seller 1 Printed Name",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 6,
+      "transactionField": "seller_name"
+    },
+    {
+      "name": "Seller 2 Printed Name",
+      "type": "text",
+      "role": "Seller 2",
+      "page": 6,
+      "transactionField": "seller2_name"
+    }
+  ],
+  "signature_policy": [
+    {
+      "name": "Seller 1 Signature",
+      "type": "signature",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Seller 1 Date",
+      "type": "date",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Seller 2 Signature",
+      "type": "signature",
+      "role": "Seller 2",
+      "page": 6
+    },
+    {
+      "name": "Seller 2 Date",
+      "type": "date",
+      "role": "Seller 2",
+      "page": 6
+    },
+    {
+      "name": "Seller 1 Initials p1",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Seller 2 Initials p1",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 1
+    },
+    {
+      "name": "Seller 1 Initials p2",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Seller 2 Initials p2",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 2
+    },
+    {
+      "name": "Seller 1 Initials p3",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Seller 2 Initials p3",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 3
+    },
+    {
+      "name": "Seller 1 Initials p4",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Seller 2 Initials p4",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 4
+    },
+    {
+      "name": "Seller 1 Initials p5",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Seller 2 Initials p5",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 5
+    },
+    {
+      "name": "Seller 1 Initials p7",
+      "type": "initials",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Seller 2 Initials p7",
+      "type": "initials",
+      "role": "Seller 2",
+      "page": 7
+    }
+  ],
+  "must_ask": [
+    {
+      "name": "Seller occupying Property?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "If unoccupied - approximate date last occupied",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Never occupied the Property",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Cable TV Wiring (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Carbon Monoxide Det. (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Ceiling Fans (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Cooktop/Range/Stove (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Dishwasher (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Disposal (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Emergency Escape Ladder(s) (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Exhaust Fans (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fences (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fire Detection Equip. (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "French Drain (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Gas Fixtures (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Liquid Propane (LP) Gas: (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "-LP Community (Captive) (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "-LP on Property (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Natural Gas Lines (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fuel Gas Piping: (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "-Black Iron Pipe (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "-Copper (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "-Corrugated Stainless Steel Tubing (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Hot Tub (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Intercom System (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Microwave (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Outdoor Grill (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Patio/Decking (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Plumbing System (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Pool (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Pool Equipment (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Pool Maint. Accessories (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Pool Heater (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Pump: sump/grinder (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Rain Gutters (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Roof/Attic Vents (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Sauna (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Smoke Detector (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Smoke Detector - Hearing Impaired (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Spa (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Trash Compactor (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "TV Antenna (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Washer/Dryer Hookup (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Window Screens (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Public Sewer System (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central A/C (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central A/C - electric",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central A/C - gas",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central A/C - number of units",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Evaporative Coolers (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Evaporative Coolers - additional info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Wall/Window AC Units (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Wall/Window AC Units - additional info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Attic Fan(s) (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Attic Fan(s) - additional info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central Heat (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central Heat - electric",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central Heat - gas",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Central Heat - number of units",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Other Heat (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Other Heat - additional info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven - number of ovens",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven - electric",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven - gas",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven - other",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Oven - other fuel describe",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney - wood",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney - gas logs",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney - mock",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney - other",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Fireplace & Chimney - other describe",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Carport (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Carport - attached",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Carport - not attached",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage - attached",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage - not attached",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage Door Openers (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage Door Openers - number of units",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Garage Door Openers - number of remotes",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Satellite Dish & Controls (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Satellite Dish & Controls - owned",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Satellite Dish & Controls - leased",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Satellite Dish & Controls - leased from",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Security System (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Security System - owned",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Security System - leased",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Security System - leased from",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 1
+    },
+    {
+      "name": "Solar Panels (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Solar Panels - owned",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Solar Panels - leased",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Solar Panels - leased from",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater - electric",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater - gas",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater - other",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater - other fuel describe",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Heater - number of units",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Softener (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Softener - owned",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Softener - leased",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Softener - leased from",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Other Leased Items(s) (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Other Leased Items(s) - additional info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Underground Lawn Sprinkler (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Underground Lawn Sprinkler - automatic",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Underground Lawn Sprinkler - manual",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Underground Lawn Sprinkler - areas covered",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Septic / On-Site Sewer Facility (Y/N/U)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water supply provided by",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water supply - other",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Property built before 1978?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Roof Type",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Roof Age (approximate)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Overlay roof covering on the Property?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Aware of Section 1 items not working/needing repair?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Section 1 - explain (defects/repairs needed)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Basement (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Ceilings (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Doors (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Driveways (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Electrical Systems (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Exterior Walls (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Floors (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Foundation / Slab(s) (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Interior Walls (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Lighting Fixtures (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Plumbing Systems (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Roof (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Sidewalks (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Walls / Fences (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Windows (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Other Structural Components (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Section 2 - explain (line 1)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Section 2 - explain (line 2)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Section 2 - explain (line 3)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Section 2 - explain (line 4)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Aluminum Wiring (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Asbestos Components (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Diseased Trees: (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Endangered Species/Habitat on Property (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Fault Lines (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Hazardous or Toxic Waste (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Improper Drainage (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Intermittent or Weather Springs (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Landfill (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Lead-Based Paint or Lead-Based Pt. Hazards (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Encroachments onto the Property (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Improvements encroaching on others' property (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Located in Historic District (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Diseased Trees - oak wilt",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Diseased Trees - other",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Diseased Trees - other describe",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Radon Gas (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Settling (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Soil Movement (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Unplatted Easements (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Unrecorded Easements (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Urea-formaldehyde Insulation (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Water Damage Not Due to a Flood Event (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Wetlands on Property (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Wood Rot (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Active infestation of termites or other WDI (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Previous treatment for termites or WDI (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Previous termite or WDI damage repaired (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Termite or WDI damage needing repair (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 2
+    },
+    {
+      "name": "Historic Property Designation (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous Foundation Repairs (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous Roof Repairs or Replacement (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous Other Structural Repairs (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous Use of Premises for Manufacture of Methamphetamine (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "A private road on or adjoining the Property (buyer financially responsible) (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Alkali-Silica Reaction (ASR) or \"Concrete Cancer\" (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous Fires (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Single Blockable Main Drain in Pool/Hot Tub/Spa* (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Subsurface Structure or Pits (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Underground Storage Tanks** (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Aboveground Storage Tanks** (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Aboveground Storage Tanks 500gal+ w/ petroleum/chemicals** (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Conservation Easements*** (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 3 - explain (line 1)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 3 - explain (line 2)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 3 - explain (line 3)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 3 - explain (line 4)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Sec 4 - aware of unrepaired item/equipment/system not yet disclosed?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 4 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Property presently covered by insurance (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Property presently covered by flood insurance (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Property presently covered by windstorm insurance (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Seller unable to insure the Property for any reason (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 5 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Sec 6 - ever filed an insurance/NFIP claim for Property damage?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 6 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Sec 7 - received claim proceeds not used for repairs?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Section 7 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 3
+    },
+    {
+      "name": "Previous flooding due to reservoir failure/breach/release (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Previous flooding due to a natural flood event (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Previous water penetration into a structure due to a natural flood (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in 100-year floodplain (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in 500-year floodplain (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in a floodway (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in a flood pool (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in a reservoir (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in 100-yr floodplain - wholly/partly",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in 500-yr floodplain - wholly/partly",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in floodway - wholly/partly",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in flood pool - wholly/partly",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Located in reservoir - wholly/partly",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Section 8 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Sec 9 - received FEMA/SBA flood assistance?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Section 9 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 4
+    },
+    {
+      "name": "Room additions/structural mods without permits or not code-compliant (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Notices of deed restriction/ordinance violations (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Lawsuits or other legal proceedings affecting the Property (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Death on the Property (except natural/suicide/unrelated accident) (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Condition materially affecting health or safety (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Repairs/treatments for environmental hazards incl. MOLD (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Rainwater harvesting system >500 gal using public water as auxiliary (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Property in a propane gas system service area (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Portion of Property in groundwater conservation/subsidence district (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Section 10 - explain",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA / maintenance fees or assessments apply (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA - Fees/assessments amount ($)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA - Fees/assessments per (period)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA fees mandatory or voluntary",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA - any unpaid fees/assessment?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA - unpaid amount ($)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "HOA - other associations info",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Common area co-owned in undivided interest (Y/N)",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Common area - optional user fees charged?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Common area - describe fees",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 5
+    },
+    {
+      "name": "Sec 11 - received written inspection reports (last 4 yrs)?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Section 11 - number of reports attached",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Homestead",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Wildlife Management",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Other",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Other - describe",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Senior Citizen",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Agricultural",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Disabled",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Disabled Veteran",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Exemption: Unknown",
+      "type": "checkbox",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Sec 13 - working smoke detectors per Ch. 766?",
+      "type": "radio",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Section 13 - explain (if no/unknown)",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 6
+    },
+    {
+      "name": "Electric provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Electric phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Sewer provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Sewer phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Water provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Water phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Cable provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Cable phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Trash provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Trash phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Natural Gas provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Natural Gas phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Phone Company",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Phone Company phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Propane provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Propane phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Internet provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Internet phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Security System provider",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    },
+    {
+      "name": "Security System phone#",
+      "type": "text",
+      "role": "Seller 1",
+      "page": 7
+    }
+  ]
+}
