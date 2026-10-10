@@ -29,8 +29,21 @@
 
 DROP INDEX IF EXISTS public.idx_post_analytics_video_per_day;
 
+-- THIRD DEFECT found verifying real numbers after the first two fixes
+-- below went in, 2026-10-09: (video_library_id, sync_date) alone is not
+-- enough. A single video_library row delivers to MULTIPLE platforms
+-- (facebook/instagram/tiktok/youtube...), all synced on the same
+-- sync_date in the same cron run -- every platform after the first
+-- collided on this index and silently overwrote the previous platform's
+-- row via the upsert's merge-duplicates resolution. Confirmed live: every
+-- one of the 7 videos posted 2026-10-03..10-09 ended up with exactly ONE
+-- post_analytics row (whichever platform the per-account loop in
+-- cron-analytics-sync.js happened to process last for that video's
+-- owner) even though Zernio had real analytics for 3-4 platforms per
+-- video. platform must be part of the unique key; see the matching
+-- on_conflict=video_library_id,platform,sync_date fix in that file.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_post_analytics_video_per_day
-  ON public.post_analytics (video_library_id, sync_date);
+  ON public.post_analytics (video_library_id, platform, sync_date);
 
 -- SECOND DEFECT found applying the fix above live, 2026-10-09: the live
 -- post_analytics.social_post_id column is NOT NULL (the original

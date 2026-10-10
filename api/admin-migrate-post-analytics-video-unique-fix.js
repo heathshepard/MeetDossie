@@ -2,7 +2,12 @@
 // idx_post_analytics_video_per_day (video_library_id, sync_date) WHERE
 // video_library_id IS NOT NULL -- created by
 // 20260930_post_analytics_owner_attribution.sql -- with a plain unique
-// index on the same two columns.
+// index on (video_library_id, platform, sync_date). platform is included
+// because a single video_library row delivers to multiple platforms in
+// the same sync run -- without it, each platform's upsert overwrote the
+// previous one for the same video+day (found live, 2026-10-09, verifying
+// real per-video numbers: every multi-platform video had only ONE
+// surviving row).
 //
 // WHY (Atlas, 2026-10-09 -- analytics-sync-video-link task): confirmed
 // live that every video_library post_analytics upsert 400'd with
@@ -46,7 +51,7 @@ const SQL = `
 DROP INDEX IF EXISTS public.idx_post_analytics_video_per_day;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_post_analytics_video_per_day
-  ON public.post_analytics (video_library_id, sync_date);
+  ON public.post_analytics (video_library_id, platform, sync_date);
 
 ALTER TABLE public.post_analytics
   ALTER COLUMN social_post_id DROP NOT NULL;
