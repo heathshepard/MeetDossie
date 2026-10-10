@@ -1,0 +1,776 @@
+{
+  "generated_at": "2026-10-10T06:05:21.411Z",
+  "source": "api/_assets/trec-financing-40-11-base64.js (live form.getFields() dump)",
+  "total_widgets": 64,
+  "counts": {
+    "derivable": 2,
+    "signature_policy": 8,
+    "must_ask": 54
+  },
+  "derivable": [
+    {
+      "name": "Street Address and City",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 55.1441,
+        "y": 636.461,
+        "width": 504.1209,
+        "height": 13.884999999999991
+      },
+      "transactionField": "property_full"
+    },
+    {
+      "name": "Address of Property",
+      "type": "TextField",
+      "page": 2,
+      "rect": {
+        "x": 56.88,
+        "y": 727.658,
+        "width": 498.12,
+        "height": 15.768000000000029
+      },
+      "transactionField": "property_full"
+    }
+  ],
+  "signature_policy": [
+    {
+      "name": "Initialed for identification by Buyer",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 205.44,
+        "y": 20.76,
+        "width": 22.920000000000016,
+        "height": 11.16
+      }
+    },
+    {
+      "name": "undefined_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 237.24,
+        "y": 20.76,
+        "width": 27.120000000000005,
+        "height": 11.16
+      }
+    },
+    {
+      "name": "and Seller",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 325.68,
+        "y": 20.76,
+        "width": 28.680000000000007,
+        "height": 11.16
+      }
+    },
+    {
+      "name": "undefined_3",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 363.24,
+        "y": 20.76,
+        "width": 27.120000000000005,
+        "height": 11.16
+      }
+    },
+    {
+      "name": "Signature1",
+      "type": "Signature",
+      "page": 2,
+      "rect": {
+        "x": 55.9635,
+        "y": 166.477,
+        "width": 243.9805,
+        "height": 32
+      }
+    },
+    {
+      "name": "Signature2",
+      "type": "Signature",
+      "page": 2,
+      "rect": {
+        "x": 54.9588,
+        "y": 114.073,
+        "width": 243.4142,
+        "height": 32.000000000000014
+      }
+    },
+    {
+      "name": "Signature3",
+      "type": "Signature",
+      "page": 2,
+      "rect": {
+        "x": 311.381,
+        "y": 166.52,
+        "width": 238.885,
+        "height": 32
+      }
+    },
+    {
+      "name": "Signature4",
+      "type": "Signature",
+      "page": 2,
+      "rect": {
+        "x": 311.905,
+        "y": 114.073,
+        "width": 239.45100000000002,
+        "height": 32.000000000000014
+      }
+    }
+  ],
+  "must_ask": [
+    {
+      "name": "years with interest not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 374.225,
+        "y": 542.247,
+        "width": 101.815,
+        "height": 11.160000000000082
+      },
+      "label": "Conventional — principal amount ($)"
+    },
+    {
+      "name": "1 Conventional Financing",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 56.88,
+        "y": 557.215,
+        "width": 12.163599999999995,
+        "height": 10.166999999999916
+      },
+      "label": "Loan type checkbox — Conventional"
+    },
+    {
+      "name": "2 Texas Veterans Loan A loans from the Texas Veterans Land Board of",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 56.3564,
+        "y": 449.574,
+        "width": 12.163599999999995,
+        "height": 11.214999999999975
+      },
+      "label": "Loan type checkbox — Texas Veterans"
+    },
+    {
+      "name": "3 FHA Insured Financing A Section",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 57.4037,
+        "y": 414.742,
+        "width": 11.639899999999997,
+        "height": 10.166999999999973
+      },
+      "label": "Loan type checkbox — FHA"
+    },
+    {
+      "name": "4 VA Guaranteed Financing A VA guaranteed loan of not less than",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 56.88,
+        "y": 300.349,
+        "width": 11.639999999999993,
+        "height": 10.691000000000031
+      },
+      "label": "Loan type checkbox — USDA (mislabeled; verified position)"
+    },
+    {
+      "name": "5 USDA Guaranteed Financing A USDAguaranteed loan of not less than",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 56.4873,
+        "y": 242.389,
+        "width": 11.509099999999997,
+        "height": 10.691000000000003
+      },
+      "label": "Loan type checkbox — Reverse Mortgage (mislabeled; verified position)"
+    },
+    {
+      "name": "a A first mortgage loan in the principal amount of",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 85.9964,
+        "y": 543.862,
+        "width": 11.64,
+        "height": 10.16700000000003
+      },
+      "label": "Conventional — first mortgage checkbox"
+    },
+    {
+      "name": "b A second mortgage loan in the principal amount of",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 87.0436,
+        "y": 496.647,
+        "width": 11.116399999999999,
+        "height": 9.120000000000005
+      },
+      "label": "Conventional — second mortgage checkbox"
+    },
+    {
+      "name": "any financed PMI premium due in full in 1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 291.709,
+        "y": 529.658,
+        "width": 37.78899999999999,
+        "height": 12.20799999999997
+      },
+      "label": "Conventional 1st mtg — due-in-full years"
+    },
+    {
+      "name": "any financed PMI premium due in full in 2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 514.504,
+        "y": 530.509,
+        "width": 29.095000000000027,
+        "height": 11.159999999999968
+      },
+      "label": "Conventional 1st mtg — interest rate cap (%)"
+    },
+    {
+      "name": "per annum for the first",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 219.12,
+        "y": 518.989,
+        "width": 45.24000000000001,
+        "height": 11.159999999999968
+      },
+      "label": "Conventional 1st mtg — rate-cap period (years)"
+    },
+    {
+      "name": "shown on Buyers Loan Estimate for the loan not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 351.524,
+        "y": 508.964,
+        "width": 41.25799999999998,
+        "height": 11.68300000000005
+      },
+      "label": "Conventional 1st mtg — origination charges cap (%)"
+    },
+    {
+      "name": "excluding",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 389.793,
+        "y": 494.378,
+        "width": 87.19599999999997,
+        "height": 10.766999999999996
+      },
+      "label": "Conventional 2nd mtg — principal amount ($)"
+    },
+    {
+      "name": "any financed PMI premium due in full in 1_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 302.673,
+        "y": 484.146,
+        "width": 62.32400000000001,
+        "height": 11.683999999999969
+      },
+      "label": "Conventional 2nd mtg — due-in-full years"
+    },
+    {
+      "name": "any financed PMI premium due in full in 2_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 101.095,
+        "y": 472.822,
+        "width": 31.403999999999996,
+        "height": 11.160000000000025
+      },
+      "label": "Conventional 2nd mtg — interest rate cap (%)"
+    },
+    {
+      "name": "per annum for the first_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 267.382,
+        "y": 473.345,
+        "width": 46.12399999999997,
+        "height": 11.159999999999968
+      },
+      "label": "Conventional 2nd mtg — rate-cap period (years)"
+    },
+    {
+      "name": "shown on Buyers Loan Estimate for the loan not to exceed_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 402.793,
+        "y": 461.618,
+        "width": 52.80000000000001,
+        "height": 11.160000000000025
+      },
+      "label": "Conventional 2nd mtg — origination charges cap (%)"
+    },
+    {
+      "name": "for a period in the total amount of",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 94.6806,
+        "y": 436.557,
+        "width": 94.6584,
+        "height": 11.683999999999969
+      },
+      "label": "Texas Veterans — loan amount ($)"
+    },
+    {
+      "name": "years at the interest rate established by the",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 375.304,
+        "y": 437.76,
+        "width": 48.31700000000001,
+        "height": 11.160000000000025
+      },
+      "label": "Texas Veterans — loan term (years)"
+    },
+    {
+      "name": "undefined",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 280.854,
+        "y": 413.174,
+        "width": 103.16700000000003,
+        "height": 10.636000000000024
+      },
+      "label": "FHA — loan section (e.g. 203(b))"
+    },
+    {
+      "name": "excluding any financed MIP amortizable monthly for not less",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 94.6915,
+        "y": 402.12,
+        "width": 105.81849999999999,
+        "height": 10.635999999999967
+      },
+      "label": "FHA — loan amount ($)"
+    },
+    {
+      "name": "than",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 113.785,
+        "y": 391.298,
+        "width": 49.20000000000002,
+        "height": 11.160000000000025
+      },
+      "label": "FHA — amortization term (years)"
+    },
+    {
+      "name": "years with interest not to exceed_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 336.076,
+        "y": 390.773,
+        "width": 44.39999999999998,
+        "height": 11.159999999999968
+      },
+      "label": "FHA — interest rate cap (%), VOIDS contingency if blank"
+    },
+    {
+      "name": "Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 484.353,
+        "y": 298.047,
+        "width": 69.59999999999997,
+        "height": 11.682999999999993
+      },
+      "label": "USDA — loan amount ($) (verified position)"
+    },
+    {
+      "name": "excluding any financed Funding Fee amortizable monthly for not less than",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 391.19,
+        "y": 276.228,
+        "width": 42.315999999999974,
+        "height": 11.159999999999968
+      },
+      "label": "VA — years (verified position)"
+    },
+    {
+      "name": "years",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 479.704,
+        "y": 286.602,
+        "width": 40.43099999999998,
+        "height": 10.637
+      },
+      "label": "USDA — loan term (years) (verified position)"
+    },
+    {
+      "name": "with interest not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 227.607,
+        "y": 276.545,
+        "width": 28.319999999999993,
+        "height": 11.039999999999964
+      },
+      "label": "USDA — interest rate cap (%) (verified position)"
+    },
+    {
+      "name": "per annum for the first_4",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 411.414,
+        "y": 229.418,
+        "width": 79.60300000000001,
+        "height": 11.563999999999993
+      },
+      "label": "Reverse Mortgage — loan amount ($) (verified position)"
+    },
+    {
+      "name": "Origination Charges as shown on Buyers Loan Estimate for the loan not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 274.964,
+        "y": 194.662,
+        "width": 25.680000000000007,
+        "height": 11.159999999999997
+      },
+      "label": "Reverse Mortgage — origination charges cap (%) (verified position)"
+    },
+    {
+      "name": "any financed PMI premium or other costs with interest not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 451.047,
+        "y": 217.799,
+        "width": 34.31999999999999,
+        "height": 11.159999999999997
+      },
+      "label": "Reverse Mortgage — interest rate cap (%) (verified position)"
+    },
+    {
+      "name": "This contract is subject to Buyer obtaining Buyer Approval If Buyer cannot obtain Buyer",
+      "type": "CheckBox",
+      "page": 2,
+      "rect": {
+        "x": 83.9964,
+        "y": 591.92,
+        "width": 10.996300000000005,
+        "height": 10.691000000000031
+      },
+      "label": "ELECTION — ¶2.A \"contract is NOT subject to Buyer obtaining Buyer Approval\" checkbox (mislabeled; verified position)"
+    },
+    {
+      "name": "value of the Property established by the Department of Veterans Affairs",
+      "type": "TextField",
+      "page": 2,
+      "rect": {
+        "x": 75.9044,
+        "y": 408.316,
+        "width": 127.16260000000001,
+        "height": 12.364000000000033
+      },
+      "label": "FHA/VA — appraised value floor ($)"
+    },
+    {
+      "name": "Text1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 88.6865,
+        "y": 380.564,
+        "width": 40.32849999999999,
+        "height": 11.228999999999985
+      },
+      "label": "FHA — rate-cap period (years) (verified position)"
+    },
+    {
+      "name": "for the first",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 148.625,
+        "y": 207.643,
+        "width": 41.879999999999995,
+        "height": 11.159999999999997
+      },
+      "label": "Reverse Mortgage — rate-cap period (years) (verified position)"
+    },
+    {
+      "name": "Estimate for the loan not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 513.554,
+        "y": 265.736,
+        "width": 29.215000000000032,
+        "height": 11.04000000000002
+      },
+      "label": "USDA — origination charges cap (%) (verified position)"
+    },
+    {
+      "name": "will not be an FHA insured loan",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 526.559,
+        "y": 196.051,
+        "width": 10.591999999999985,
+        "height": 9.207000000000022
+      },
+      "label": "Reverse Mortgage — \"will NOT be FHA insured\" checkbox (verified position, swapped w/ \"will\")"
+    },
+    {
+      "name": "Check Box2",
+      "type": "CheckBox",
+      "page": 2,
+      "rect": {
+        "x": 82.1021,
+        "y": 692.02,
+        "width": 11.716800000000006,
+        "height": 12.240000000000009
+      },
+      "label": "ELECTION — ¶2.A \"contract IS subject to Buyer obtaining Buyer Approval\" checkbox (mislabeled; verified position)"
+    },
+    {
+      "name": "Conversion Mortgage loan in the original principal amount of",
+      "type": "TextField",
+      "page": 2,
+      "rect": {
+        "x": 361.204,
+        "y": 680.533,
+        "width": 31.033000000000015,
+        "height": 10.635999999999967
+      },
+      "label": "ELECTION — ¶2.A termination days blank (mislabeled; verified position; code defaults to 21)"
+    },
+    {
+      "name": "not to exceed",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 204.23,
+        "y": 370.08,
+        "width": 38.76000000000002,
+        "height": 11.160000000000025
+      },
+      "label": "FHA — origination charges cap (%) (verified position)"
+    },
+    {
+      "name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 57.9273,
+        "y": 356.705,
+        "width": 9.021799999999999,
+        "height": 10.16700000000003
+      },
+      "label": "Loan type checkbox — VA (mislabeled; verified position)"
+    },
+    {
+      "name": "excluding_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 444.556,
+        "y": 355.679,
+        "width": 105.79699999999997,
+        "height": 11.684000000000026
+      },
+      "label": "VA — loan amount ($) (verified position)"
+    },
+    {
+      "name": "not to exceed_2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 224.978,
+        "y": 333.338,
+        "width": 37.952999999999975,
+        "height": 11.683999999999969
+      },
+      "label": "VA — interest rate cap (%) (verified position)"
+    },
+    {
+      "name": "any financed Funding Fee amortizable monthly for not less than",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 481.723,
+        "y": 344.138,
+        "width": 38.585999999999956,
+        "height": 11.68300000000005
+      },
+      "label": "VA — rate-cap period (years) (verified position)"
+    },
+    {
+      "name": "per annum for the first_3",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 395.826,
+        "y": 333.379,
+        "width": 39.23999999999995,
+        "height": 11.159999999999968
+      },
+      "label": "G. Other Financing — rate-cap period (years) (verified position)"
+    },
+    {
+      "name": "Text2",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 85.7458,
+        "y": 311.216,
+        "width": 43.3082,
+        "height": 11.526999999999987
+      },
+      "label": "VA — origination charges cap (%); duplicate-name widget also writes G. Other Financing (see fill-form.js note)"
+    },
+    {
+      "name": "6 Reverse Mortgage Financing A reverse mortgage loan also known as a Home Equity-1",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 58.4746,
+        "y": 165.848,
+        "width": 9.021799999999992,
+        "height": 10.167999999999978
+      },
+      "label": "Loan type checkbox — G. Other Financing (mislabeled; verified position)"
+    },
+    {
+      "name": "excluding_2-1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 426.863,
+        "y": 165.822,
+        "width": 126.55300000000005,
+        "height": 11.685000000000002
+      },
+      "label": "G. Other Financing — principal amount ($)"
+    },
+    {
+      "name": "not to exceed-1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 331.204,
+        "y": 154.435,
+        "width": 70.209,
+        "height": 11.788999999999987
+      },
+      "label": "G. Other Financing — interest rate cap (%)"
+    },
+    {
+      "name": "any financed Funding Fee amortizable monthly for not less than-1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 443.16,
+        "y": 154.91,
+        "width": 39.214999999999975,
+        "height": 12.313000000000017
+      },
+      "label": "G. Other Financing — term (years)"
+    },
+    {
+      "name": "not to exceed_2-1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 212.525,
+        "y": 143.482,
+        "width": 23.486999999999995,
+        "height": 11.682999999999993
+      },
+      "label": "G. Other Financing — rate-cap period (years)"
+    },
+    {
+      "name": "per annum for the first_3-1",
+      "type": "TextField",
+      "page": 1,
+      "rect": {
+        "x": 386.405,
+        "y": 143.522,
+        "width": 34.20800000000003,
+        "height": 11.159999999999997
+      },
+      "label": "G. Other Financing — origination charges cap (%)"
+    },
+    {
+      "name": "will",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 88.8436,
+        "y": 180.6,
+        "width": 10.592700000000008,
+        "height": 10.691000000000003
+      },
+      "label": "Reverse Mortgage — \"will be FHA insured\" checkbox (verified position, swapped w/ \"will not...\")"
+    },
+    {
+      "name": "will-1",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 405.391,
+        "y": 130.852,
+        "width": 10.592999999999961,
+        "height": 10.691000000000003
+      },
+      "label": "ELECTION — G. Other Financing ¶2.B \"waives\" checkbox"
+    },
+    {
+      "name": "will-2",
+      "type": "CheckBox",
+      "page": 1,
+      "rect": {
+        "x": 448.391,
+        "y": 130.852,
+        "width": 10.592999999999961,
+        "height": 11.319999999999993
+      },
+      "label": "ELECTION — G. Other Financing ¶2.B \"does not waive\" checkbox"
+    }
+  ]
+}

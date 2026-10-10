@@ -63,6 +63,11 @@ const BUCKET = 'documents';
 const TREC_RESALE_B64 = require('./_assets/trec-resale-20-19-base64.js');
 const TREC_FINANCING_B64 = require('./_assets/trec-financing-40-11-base64.js');
 const TREC_TERMINATION_B64 = require('./_assets/trec-termination-base64.js');
+// 2026-10-10 CARTER — real blank (was pinned to a 2-1-18 revision; current
+// printed revision is 06-15-26, verified by rendering page 1). Still a flat
+// PDF, 0 AcroForm fields (verified, matches the prior asset's shape), so
+// fillWireFraudWarning()'s content-stream footer redaction path (the actual
+// fill mechanism for this form) is unaffected by the swap.
 const TAR_WIRE_FRAUD_B64 = require('./_assets/tar-wire-fraud-base64.js');
 const TREC_HOA_ADDENDUM_B64 = require('./_assets/trec-hoa-addendum-36-11-base64.js');
 const TREC_LEAD_PAINT_B64 = require('./_assets/trec-lead-paint-base64.js');
@@ -79,9 +84,25 @@ const TXR_1406_ADDRESS_COORDS = require('./_assets/field-maps/txr-1406-address-c
 const TXR_1406_DOCUSEAL_FIELDS = require('./_assets/field-maps/txr-1406-sellers-disclosure-docuseal-fields.json');
 const { resolveDerivableTxr1406Values } = require('./_lib/txr-1406-field-map');
 const TREC_39_11_B64 = require('./_assets/trec-amendment-39-11-base64.js');
+// 2026-10-10 CARTER — real blank (was a 1.3KB fake-PDF stub with 0 pages of
+// real content). TXR-1501 rev 06-15-26, verified by rendering page 1 against
+// the printed title "BUYER/TENANT REPRESENTATION AGREEMENT LONG FORM". Flat
+// PDF, 0 AcroForm fields (verified) — fillBuyerRepAgreement()'s safeSetText
+// calls below were already no-ops against the old stub (also 0 fields) and
+// remain harmless no-ops now; no field-map built yet.
 const TAR_BUYER_REP_B64 = require('./_assets/tar-buyer-rep-base64.js');
 const TREC_49_1_B64 = require('./_assets/trec-49-1-base64.js');
 const T47_AFFIDAVIT_B64 = require('./_assets/t47-affidavit-base64.js');
+// 2026-10-10 CARTER — four newly-registered forms (2026-10-09 zipForm pull,
+// verified by rendering page 1 of each against its printed title/revision).
+// REGISTRATION ONLY per the audit brief — asset + FORM_CONFIGS entry + a
+// documented no-op filler, same pattern buyer-rep-agreement/appraisal-
+// termination already used before their field maps existed. No coordinate
+// or AcroForm field map built yet for any of these four.
+const TXR_1404_B64 = require('./_assets/txr-1404-base64.js');
+const TXR_2501_IABS_B64 = require('./_assets/txr-2501-iabs-base64.js');
+const TREC_57_0_NONREALTY_B64 = require('./_assets/trec-57-0-nonrealty-base64.js');
+const TXR_1102_LEASE_LISTING_B64 = require('./_assets/txr-1102-lease-listing-base64.js');
 const TREC_UNIMPROVED_PROPERTY_B64 = require('./_assets/trec-unimproved-property-base64.js');
 // 2026-08-31 CARTER — these three were pointed at the WRONG PDF revision
 // (trec-new-home-incomplete-base64.js / trec-new-home-complete-base64.js /
@@ -209,8 +230,11 @@ const FORM_CONFIGS = {
     getBase64: () => TREC_39_11_B64,
     documentType: 'amendment',
   },
-  // Block 9E — Buyer Representation Agreement (TAR 1501)
-  // NOTE: Replace api/_assets/tar-buyer-rep-base64.js with the real TAR 1501 PDF.
+  // Block 9E — Buyer Representation Agreement (TAR/TXR 1501)
+  // 2026-10-10 CARTER — real blank asset (rev 06-15-26) as of this date; the
+  // prior 1.3KB fake-PDF stub is gone. No field map built yet — fillBuyerRep
+  // Agreement()'s safeSetText calls below are harmless no-ops against this
+  // flat (0 AcroForm field) PDF, same as they were against the old stub.
   'buyer-rep-agreement': {
     name: 'Residential Buyer Representation Agreement (TAR 1501)',
     shortName: 'TAR-Buyer-Rep',
@@ -218,7 +242,8 @@ const FORM_CONFIGS = {
     documentType: 'buyer_rep_agreement',
   },
   // Block 10 — TREC 49-1 Appraisal Termination
-  // NOTE: Replace api/_assets/trec-49-1-base64.js with the real TREC 49-1 PDF.
+  // Real PDF (not a placeholder) — sha256 matches the blank_pdf_sha256 pin
+  // in api/_assets/esign-field-maps.json's appraisal-termination entry.
   'appraisal-termination': {
     name: 'Right to Terminate Due to Lenders Appraisal (TREC 49-1)',
     shortName: 'TREC-49-1',
@@ -226,12 +251,43 @@ const FORM_CONFIGS = {
     documentType: 'appraisal_termination',
   },
   // Block 12 — T-47 Affidavit
-  // NOTE: Replace api/_assets/t47-affidavit-base64.js with the real T-47 PDF.
+  // Real PDF (not a placeholder) — out of scope for the 2026-10-10 asset
+  // audit (not flagged in that brief); the prior "Replace with the real PDF"
+  // note here was stale and is corrected, asset itself untouched.
   't47-affidavit': {
     name: 'T-47 Residential Real Property Affidavit',
     shortName: 'T-47-Affidavit',
     getBase64: () => T47_AFFIDAVIT_B64,
     documentType: 't47_affidavit',
+  },
+  // 2026-10-10 CARTER — four newly-registered forms (2026-10-09 asset
+  // audit). REGISTRATION ONLY: real blank asset + config entry + blank-
+  // preview resolution, no field map / coordinate fill built yet. Each
+  // filler below is a documented no-op that returns the blank PDF
+  // unmodified so a fill-form call never 500s; it does NOT fill anything.
+  'listing-amendment': {
+    name: 'Amendment to Listing Agreement, Exclusive Right to Sell (TXR 1404)',
+    shortName: 'TXR-1404-Listing-Amendment',
+    getBase64: () => TXR_1404_B64,
+    documentType: 'listing_amendment',
+  },
+  'iabs': {
+    name: 'Information About Brokerage Services (TXR 2501 / IABS)',
+    shortName: 'TXR-2501-IABS',
+    getBase64: () => TXR_2501_IABS_B64,
+    documentType: 'iabs',
+  },
+  'non-realty-items': {
+    name: 'Non-Realty Items Addendum (TREC 57-0)',
+    shortName: 'TREC-57-0-NonRealty',
+    getBase64: () => TREC_57_0_NONREALTY_B64,
+    documentType: 'non_realty_items_addendum',
+  },
+  'lease-listing-agreement': {
+    name: 'Residential Real Estate Listing Agreement, Exclusive Right to Lease (TXR 1102)',
+    shortName: 'TXR-1102-Lease-Listing',
+    getBase64: () => TXR_1102_LEASE_LISTING_B64,
+    documentType: 'lease_listing_agreement',
   },
   // TREC 9-17 — Unimproved Property Contract (land purchase)
   // PDF has 270 AcroForm fields. Field names verified against AcroForm inspection of 9-17.pdf.
@@ -2752,32 +2808,72 @@ async function fillSellersDisclosure(pdfDoc, fv) {
 //   [TextField] "date 5" -> termination_deadline_date
 //   [TextField] "20_25" -> termination_deadline_year_2digit
 // ---------------------------------------------------------------------------
+// 2026-10-10 CARTER — EXECUTED-block fix (trec-executed-date-field-gate
+// / trec-executed-date-block-needs-a-field.md). Verified 2026-10-10 via
+// pdftotext -bbox against the real printed "EXECUTED the ___ day of
+// ______________, 20___. (BROKER: FILL IN THE DATE OF FINAL ACCEPTANCE.)"
+// line (see api/_lib/trec-amendment-39-11-field-map.js /
+// getExecutedBlockWidgets()): fields 'DATE OF FINAL ACCEPTANCE' / '20_4' /
+// 'BROKER FILL IN THE' DO correctly sit on that line's day / month-name /
+// 2-digit-year blanks respectively (their NAMES are stale/misleading, but
+// the positions check out) — the bug was the VALUE SHAPE being written:
+// the old code wrote a full formatted date string ("10/09/2026") into the
+// single-digit DAY blank and a bare 2-digit year into the wide MONTH-NAME
+// blank. This splits one ISO date into the three correctly-shaped pieces
+// each blank actually needs.
+const AMENDMENT_MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+function splitExecutedDateParts(isoLike) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(isoLike || ''));
+  if (!m) return null;
+  return {
+    day: String(parseInt(m[3], 10)),
+    month: AMENDMENT_MONTH_NAMES[parseInt(m[2], 10) - 1],
+    year2: m[1].slice(2),
+  };
+}
+
 async function fillAmendment(pdfDoc, fv) {
   const form = pdfDoc.getForm();
 
   // PROPERTY + HEADER
   const addr = [fv.property_address, fv.city_state_zip].filter(Boolean).join(', ');
   safeSetText(form, 'Street Address and City', addr);
-  if (fv.contract_effective_date) {
-    safeSetText(form, 'BROKER FILL IN THE', formatDate(fv.contract_effective_date));
-    safeSetText(form, 'Date', formatDate(fv.contract_effective_date));
-  }
-  const today = new Date().toISOString().slice(0, 10);
-  safeSetText(form, 'Date_2', fv.amendment_date ? formatDate(fv.amendment_date) : formatDate(today));
-  if (fv.date_of_final_acceptance) {
-    safeSetText(form, 'DATE OF FINAL ACCEPTANCE', formatDate(fv.date_of_final_acceptance));
-    safeSetText(form, '20_4', formatTwoDigitYear(fv.date_of_final_acceptance));
+
+  // EXECUTED / DATE OF FINAL ACCEPTANCE — see splitExecutedDateParts() note
+  // above. date_of_final_acceptance is the authoritative source (the
+  // broker's own entry of when the LAST party signed); contract_effective_
+  // date is a fallback only for drafts generated before that's known, same
+  // precedence the prior code used.
+  const executedSource = fv.date_of_final_acceptance || fv.contract_effective_date;
+  const executedParts = splitExecutedDateParts(executedSource);
+  if (executedParts) {
+    safeSetText(form, 'DATE OF FINAL ACCEPTANCE', executedParts.day);
+    safeSetText(form, '20_4', executedParts.month);
+    safeSetText(form, 'BROKER FILL IN THE', executedParts.year2);
   }
 
   // PARAGRAPH 1 — SALES PRICE CHANGE
+  // 2026-10-10 CARTER — the current rev (05-04-2026) restructured ¶(1)
+  // entirely into an A/B/C cash-portion/financing/total breakdown with NO
+  // will/will-not sub-choice at all (verified via pdftotext -bbox + a
+  // pdftoppm render of the live asset). The REMOVED lines below used to
+  // target field 'will' (does not exist on this asset — silent no-op) and
+  // 'will not' (which by VERIFIED POSITION is actually ¶(5)(2)'s "Buyer
+  // pays — % of Sales Price" checkbox) and wrote the new sales price into
+  // 'be credited to the Sales Price' / '20_2' (which by verified position
+  // are ¶(7)'s option-fee expiration-date fields) — i.e. every price-change
+  // amendment was silently corrupting an unrelated ¶(5) checkbox and
+  // writing the sales price into ¶(7)'s date blank. See
+  // api/_lib/trec-amendment-39-11-field-map.js / scripts/build-trec-39-11-
+  // field-classification.js for the full verified field inventory. The
+  // A/B/C fields ('undefined'/'undefined_2'/'undefined_3') are not wired
+  // here yet — new_sales_price alone doesn't determine a cash/financing
+  // split — left as a known gap rather than guessed.
   if (fv.amend_sales_price === true || fv.amendment_type === 'price_change') {
     safeCheck(form, '1 The Sales Price in Paragraph 3 of the contract is');
-    if (fv.new_sales_price != null && fv.new_sales_price !== '') {
-      safeSetText(form, 'be credited to the Sales Price', formatMoney(fv.new_sales_price));
-    }
-    safeSetText(form, '20_2', fv.price_change_year_2digit || '');
-    if (fv.sales_price_will_be_credited === true) safeCheck(form, 'will');
-    else safeCheck(form, 'will not');
   }
 
   // PARAGRAPH 2 — REPAIRS
@@ -2973,6 +3069,32 @@ async function fillT47Affidavit(pdfDoc, fv) {
   if (fv.surveyor_name) safeSetText(form, 'Surveyor Name', fv.surveyor_name);
   const today = new Date().toISOString().slice(0, 10);
   safeSetText(form, 'Date', formatDate(today));
+  return pdfDoc;
+}
+
+// ---------------------------------------------------------------------------
+// 2026-10-10 CARTER — four newly-registered forms (2026-10-09 asset audit).
+// REGISTRATION ONLY: each blank asset is real and verified, but no field
+// map exists yet for any of these. Every filler below returns the blank
+// PDF byte-for-byte unmodified — no safeSetText/safeCheck calls at all —
+// so a fill-form request for one of these form types never silently ships
+// a wrong-field PDF; it ships the correct blank, honestly, until a real
+// map is built (same "registration before mapping" precedent as buyer-rep-
+// agreement / appraisal-termination before their maps existed).
+// ---------------------------------------------------------------------------
+async function fillListingAmendment(pdfDoc /*, fv */) {
+  return pdfDoc;
+}
+
+async function fillIabs(pdfDoc /*, fv */) {
+  return pdfDoc;
+}
+
+async function fillNonRealtyItems(pdfDoc /*, fv */) {
+  return pdfDoc;
+}
+
+async function fillLeaseListingAgreement(pdfDoc /*, fv */) {
   return pdfDoc;
 }
 
@@ -4132,6 +4254,10 @@ async function fillForm(formType, fieldValues) {
     case 'buyer-rep-agreement':   await fillBuyerRepAgreement(pdfDoc, fv); break;
     case 'appraisal-termination': await fillAppraisalTermination(pdfDoc, fv); break;
     case 't47-affidavit':         await fillT47Affidavit(pdfDoc, fv); break;
+    case 'listing-amendment':     await fillListingAmendment(pdfDoc, fv); break;
+    case 'iabs':                  await fillIabs(pdfDoc, fv); break;
+    case 'non-realty-items':      await fillNonRealtyItems(pdfDoc, fv); break;
+    case 'lease-listing-agreement': await fillLeaseListingAgreement(pdfDoc, fv); break;
     case 'unimproved-property':   await fillUnimprovedProperty(pdfDoc, fv); break;
     case 'new-home-incomplete':   await fillNewHomeIncomplete(pdfDoc, fv); break;
     case 'new-home-complete':     await fillNewHomeComplete(pdfDoc, fv); break;

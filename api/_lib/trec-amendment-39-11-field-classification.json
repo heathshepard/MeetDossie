@@ -1,0 +1,619 @@
+{
+  "generated_at": "2026-10-10T06:11:42.232Z",
+  "source": "api/_assets/trec-amendment-39-11-base64.js (live form.getFields() dump)",
+  "total_widgets": 51,
+  "counts": {
+    "derivable": 1,
+    "signature_policy": 4,
+    "must_ask": 46
+  },
+  "derivable": [
+    {
+      "name": "Street Address and City",
+      "type": "TextField",
+      "rect": {
+        "x": 125.283,
+        "y": 687.25,
+        "width": 359.216,
+        "height": 14.594000000000051
+      },
+      "transactionField": "property_full"
+    }
+  ],
+  "signature_policy": [
+    {
+      "name": "Signature3",
+      "type": "Signature",
+      "rect": {
+        "x": 36.2334,
+        "y": 167.816,
+        "width": 259.83259999999996,
+        "height": 32
+      }
+    },
+    {
+      "name": "Signature5",
+      "type": "Signature",
+      "rect": {
+        "x": 314.211,
+        "y": 167.816,
+        "width": 263.23,
+        "height": 32
+      }
+    },
+    {
+      "name": "Signature7",
+      "type": "Signature",
+      "rect": {
+        "x": 35.1011,
+        "y": 124.768,
+        "width": 261.5309,
+        "height": 32
+      }
+    },
+    {
+      "name": "Signature8",
+      "type": "Signature",
+      "rect": {
+        "x": 314.778,
+        "y": 125.334,
+        "width": 261.53,
+        "height": 32
+      }
+    }
+  ],
+  "must_ask": [
+    {
+      "name": "1 The Sales Price in Paragraph 3 of the contract is",
+      "type": "CheckBox",
+      "rect": {
+        "x": 37.44,
+        "y": 651.926,
+        "width": 11.0728,
+        "height": 8.553999999999974
+      },
+      "label": "ELECTION — ¶(1) Sales Price change checkbox",
+      "executed_block": false
+    },
+    {
+      "name": "2 In addition to any repairs and treatments otherwise required by the contract Seller at Sellers",
+      "type": "CheckBox",
+      "rect": {
+        "x": 38.0061,
+        "y": 605.48,
+        "width": 11.073899999999995,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(2) Repairs checkbox",
+      "executed_block": false
+    },
+    {
+      "name": "3 The date in Paragraph 9 of the contract is changed to",
+      "type": "CheckBox",
+      "rect": {
+        "x": 38.44,
+        "y": 525.891,
+        "width": 11.036900000000003,
+        "height": 9.829000000000065
+      },
+      "label": "ELECTION — ¶(3) Closing date change checkbox",
+      "executed_block": false
+    },
+    {
+      "name": "4 The amount in Paragraph 12A1b of the contract is changed to",
+      "type": "CheckBox",
+      "rect": {
+        "x": 37.44,
+        "y": 513.767,
+        "width": 11.64,
+        "height": 8.552999999999997
+      },
+      "label": "ELECTION — ¶(4) Seller concession (12A(1)(b)) checkbox",
+      "executed_block": false
+    },
+    {
+      "name": "5 The cost of lender required repairs and treatment as itemized on the attached list will be paid",
+      "type": "CheckBox",
+      "rect": {
+        "x": 38.0061,
+        "y": 497.8,
+        "width": 11.073899999999995,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(5) outer checkbox, \"amounts in ¶12B changed\" (mislabeled; verified position — NOT ¶(6) lender repairs)",
+      "executed_block": false
+    },
+    {
+      "name": "6 Buyer has paid Seller an additional Option Fee of",
+      "type": "CheckBox",
+      "rect": {
+        "x": 37.44,
+        "y": 455.16,
+        "width": 11.64,
+        "height": 9.119999999999948
+      },
+      "label": "ELECTION — ¶(6) outer checkbox, lender-required-repairs cost split (field name echoes ¶(7)'s text from a prior revision; the leading digit in the field NAME is reliable, the descriptive suffix is not — verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "7 Buyer waives the unrestricted right to terminate the contract for which the Option Fee was paid",
+      "type": "CheckBox",
+      "rect": {
+        "x": 37.44,
+        "y": 430,
+        "width": 11.64,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(7) outer checkbox, additional option fee for extension (field name echoes ¶(8)'s text from a prior revision — verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "8 The date for Buyer to give written notice to Seller that Buyer cannot obtain Buyer Approval as",
+      "type": "CheckBox",
+      "rect": {
+        "x": 38.0061,
+        "y": 379.6,
+        "width": 11.639999999999993,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(8) outer checkbox, Buyer waives unrestricted option-termination right (field name echoes ¶(9)'s text from a prior revision — verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "BROKER FILL IN THE",
+      "type": "TextField",
+      "rect": {
+        "x": 395.28,
+        "y": 222.24,
+        "width": 34.56,
+        "height": 12.719999999999999
+      },
+      "label": "EXECUTED block — 2-digit-year blank (verified position; field name is stale)",
+      "executed_block": true
+    },
+    {
+      "name": "undefined",
+      "type": "TextField",
+      "rect": {
+        "x": 469.44,
+        "y": 639.68,
+        "width": 90.11999999999995,
+        "height": 12.720000000000027
+      },
+      "label": "¶(1)A — cash portion of Sales Price at closing ($) (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "undefined_2",
+      "type": "TextField",
+      "rect": {
+        "x": 469.56,
+        "y": 627.56,
+        "width": 89.99999999999994,
+        "height": 11.400000000000091
+      },
+      "label": "¶(1)B — sum of financing described in contract ($) (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "undefined_3",
+      "type": "TextField",
+      "rect": {
+        "x": 469.56,
+        "y": 616.32,
+        "width": 89.99999999999994,
+        "height": 11.519999999999982
+      },
+      "label": "¶(1)C — Sales Price, sum of A+B ($) (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "undefined_4",
+      "type": "TextField",
+      "rect": {
+        "x": 414.126,
+        "y": 510.181,
+        "width": 98.15999999999997,
+        "height": 14.334000000000003
+      },
+      "label": "¶(4) — new ¶12A(1)(b) amount ($)",
+      "executed_block": false
+    },
+    {
+      "name": "for an extension of the",
+      "type": "TextField",
+      "rect": {
+        "x": 340.88,
+        "y": 440.12,
+        "width": 144.24,
+        "height": 11.759999999999991
+      },
+      "label": "¶(6) — lender-repair cost paid by Buyer ($) (verified position — NOT an extension date; corrected from an earlier pass that matched on the field's misleading name)",
+      "executed_block": false
+    },
+    {
+      "name": "as follows",
+      "type": "TextField",
+      "rect": {
+        "x": 138.08,
+        "y": 440.12,
+        "width": 137.28,
+        "height": 11.759999999999991
+      },
+      "label": "¶(6) — lender-repair cost paid by Seller ($) (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "contract",
+      "type": "TextField",
+      "rect": {
+        "x": 329.522,
+        "y": 426.188,
+        "width": 113.178,
+        "height": 12.720000000000027
+      },
+      "label": "¶(7) — additional option fee amount ($) (verified position — NOT \"option period days\" the field name suggests)",
+      "executed_block": false
+    },
+    {
+      "name": "Text6",
+      "type": "TextField",
+      "rect": {
+        "x": 390.157,
+        "y": 350.272,
+        "width": 105.57500000000005,
+        "height": 12.376000000000033
+      },
+      "label": "¶(9) — new Buyer-Approval notice date, free text (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "20_3",
+      "type": "TextField",
+      "rect": {
+        "x": 516.08,
+        "y": 349.92,
+        "width": 38.27999999999997,
+        "height": 11.759999999999991
+      },
+      "label": "¶(9) — new Buyer-Approval notice date, 2-digit year (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "DATE OF FINAL ACCEPTANCE",
+      "type": "TextField",
+      "rect": {
+        "x": 126.72,
+        "y": 222.24,
+        "width": 38.400000000000006,
+        "height": 12.719999999999999
+      },
+      "label": "EXECUTED block — day-of-month blank (verified position; field name is stale, does not sit on a separate \"date of final acceptance\" line)",
+      "executed_block": true
+    },
+    {
+      "name": "20_4",
+      "type": "TextField",
+      "rect": {
+        "x": 203.28,
+        "y": 221.674,
+        "width": 170.4,
+        "height": 12.719999999999999
+      },
+      "label": "EXECUTED block — month-name blank (verified position; field name is stale)",
+      "executed_block": true
+    },
+    {
+      "name": "Text3.1",
+      "type": "TextField",
+      "rect": {
+        "x": 71.2719,
+        "y": 304.657,
+        "width": 484.17709999999994,
+        "height": 11.29200000000003
+      },
+      "label": "¶(10) Other Modifications — free-text line 1 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text4.1",
+      "type": "TextField",
+      "rect": {
+        "x": 71.1347,
+        "y": 314.146,
+        "width": 484.7003,
+        "height": 12.338999999999999
+      },
+      "label": "¶(10) Other Modifications — free-text line 2 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text5.1",
+      "type": "TextField",
+      "rect": {
+        "x": 71.3818,
+        "y": 326.436,
+        "width": 485.2242,
+        "height": 10.769000000000005
+      },
+      "label": "¶(10) Other Modifications — free-text line 3 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text7 1",
+      "type": "TextField",
+      "rect": {
+        "x": 527.111,
+        "y": 338.181,
+        "width": 28.20500000000004,
+        "height": 11.814999999999998
+      },
+      "label": "¶(10) Other Modifications — free-text line 4 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text1",
+      "type": "TextField",
+      "rect": {
+        "x": 195.407,
+        "y": 572.193,
+        "width": 362.49199999999996,
+        "height": 9.890999999999963
+      },
+      "label": "¶(2) — repairs/treatments description, free-text line 1 (verified position — NOT an \"Other Modifications\" line as fillAmendment()'s current code assumes)",
+      "executed_block": false
+    },
+    {
+      "name": "Text 8",
+      "type": "TextField",
+      "rect": {
+        "x": 68.6065,
+        "y": 538.678,
+        "width": 488.2635,
+        "height": 11.649999999999977
+      },
+      "label": "¶(2) — repairs/treatments description, free-text line 2 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text 9",
+      "type": "TextField",
+      "rect": {
+        "x": 68.22,
+        "y": 549.751,
+        "width": 488.2629999999999,
+        "height": 11.649999999999977
+      },
+      "label": "¶(2) — repairs/treatments description, free-text line 3 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Text 10",
+      "type": "TextField",
+      "rect": {
+        "x": 68.2805,
+        "y": 561.09,
+        "width": 488.26349999999996,
+        "height": 11.649999999999977
+      },
+      "label": "¶(2) — repairs/treatments description, free-text line 4 (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "9 Other Modifications Insert only factual statements and business details applicable to this sale",
+      "type": "CheckBox",
+      "rect": {
+        "x": 37.44,
+        "y": 364.08,
+        "width": 11.64,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(9) outer checkbox, Buyer-Approval notice date change (field name echoes ¶(10)'s text from a prior revision — verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "be credited to the Sales Price",
+      "type": "TextField",
+      "rect": {
+        "x": 71.8978,
+        "y": 400.968,
+        "width": 145.9192,
+        "height": 12.827999999999975
+      },
+      "label": "¶(7) — \"on or before 5:00 p.m. on ___\" expiration date text (field name is stale/misleading — verified position, NOT a sales-price credit amount)",
+      "executed_block": false
+    },
+    {
+      "name": "20_2",
+      "type": "TextField",
+      "rect": {
+        "x": 238.368,
+        "y": 400.392,
+        "width": 33.45100000000002,
+        "height": 12.007999999999981
+      },
+      "label": "¶(7) — expiration date, 2-digit year (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Fee",
+      "type": "CheckBox",
+      "rect": {
+        "x": 412.12,
+        "y": 402.64,
+        "width": 11.639999999999986,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(7) \"additional option fee WILL be credited to Sales Price\" checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "Fee 2",
+      "type": "CheckBox",
+      "rect": {
+        "x": 447.04,
+        "y": 402.64,
+        "width": 11.639999999999986,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(7) \"additional option fee will NOT be credited\" checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "10",
+      "type": "CheckBox",
+      "rect": {
+        "x": 35.8787,
+        "y": 339.469,
+        "width": 11.64,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(10) Other Modifications outer checkbox (reliable — bare \"10\", no stale descriptive suffix)",
+      "executed_block": false
+    },
+    {
+      "name": "date 5",
+      "type": "TextField",
+      "rect": {
+        "x": 346.72,
+        "y": 524.822,
+        "width": 148.93699999999995,
+        "height": 11.620999999999981
+      },
+      "label": "¶(3) — new closing date (verified position; NOT the termination deadline the old field name suggests)",
+      "executed_block": false
+    },
+    {
+      "name": "20_25",
+      "type": "TextField",
+      "rect": {
+        "x": 518.208,
+        "y": 524.039,
+        "width": 37.676000000000045,
+        "height": 12.008000000000038
+      },
+      "label": "¶(3) — new closing date, 2-digit year (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "undefined_5",
+      "type": "TextField",
+      "rect": {
+        "x": 413.403,
+        "y": 466.824,
+        "width": 34.197,
+        "height": 12.115999999999985
+      },
+      "label": "¶(5)(2) — Buyer pays, % of Sales Price (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will not",
+      "type": "CheckBox",
+      "rect": {
+        "x": 398.284,
+        "y": 468.409,
+        "width": 11.639999999999986,
+        "height": 9.120000000000005
+      },
+      "label": "¶(5)(2) — Buyer pays, \"%\" choice checkbox (verified position — NOT the price-credit toggle the old code targets)",
+      "executed_block": false
+    },
+    {
+      "name": "20",
+      "type": "TextField",
+      "rect": {
+        "x": 316.632,
+        "y": 467.258,
+        "width": 53.26999999999998,
+        "height": 12.720000000000027
+      },
+      "label": "¶(5)(2) — Buyer pays, $ amount (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will5",
+      "type": "CheckBox",
+      "rect": {
+        "x": 73.6548,
+        "y": 483.231,
+        "width": 11.639900000000011,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(5)(1) \"Seller will pay\" row-enable checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will6",
+      "type": "CheckBox",
+      "rect": {
+        "x": 296.31,
+        "y": 482.703,
+        "width": 11.639999999999986,
+        "height": 9.120000000000005
+      },
+      "label": "¶(5)(1) — Seller pays, \"$\" choice checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "203",
+      "type": "TextField",
+      "rect": {
+        "x": 315.578,
+        "y": 481.552,
+        "width": 53.27000000000004,
+        "height": 12.71999999999997
+      },
+      "label": "¶(5)(1) — Seller pays, $ amount (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will not7",
+      "type": "CheckBox",
+      "rect": {
+        "x": 397.23,
+        "y": 482.703,
+        "width": 11.639999999999986,
+        "height": 9.120000000000005
+      },
+      "label": "¶(5)(1) — Seller pays, \"%\" choice checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "undefined_8",
+      "type": "TextField",
+      "rect": {
+        "x": 412.349,
+        "y": 481.118,
+        "width": 34.197,
+        "height": 12.115999999999985
+      },
+      "label": "¶(5)(1) — Seller pays, % of Sales Price (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will9",
+      "type": "CheckBox",
+      "rect": {
+        "x": 74.7088,
+        "y": 468.938,
+        "width": 11.64,
+        "height": 9.120000000000005
+      },
+      "label": "ELECTION — ¶(5)(2) \"Buyer will pay\" row-enable checkbox (verified position)",
+      "executed_block": false
+    },
+    {
+      "name": "will10",
+      "type": "CheckBox",
+      "rect": {
+        "x": 297.364,
+        "y": 468.409,
+        "width": 11.640000000000043,
+        "height": 9.120000000000005
+      },
+      "label": "¶(5)(2) — Buyer pays, \"$\" choice checkbox (verified position)",
+      "executed_block": false
+    }
+  ]
+}

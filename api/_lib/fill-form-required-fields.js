@@ -12,10 +12,27 @@ const REQUIRED_FIELDS_BY_FORM_TYPE = {
     'financing_type',
     'title_policy_paid_by',
   ],
+  // 2026-10-10 CARTER — TREC 40-11 Third Party Financing Addendum. Expanded
+  // from the original 3 (loan_amount/down_payment_amt/financing_type) per
+  // the 2026-10-10 classification audit (api/_lib/trec-40-11-field-map.js) —
+  // 'rate'/'term' (loan_term_years, interest_rate_cap) and the two real
+  // elections fillFinancingAddendum() wires are now in this list too, per
+  // feedback_verify-contract-elections-before-execution.md (Pfeiffers Gate:
+  // ¶7D shipped blank on a base contract, nobody caught it — every
+  // "check one box only" election belongs in the required set). The ¶2.A
+  // BUYER APPROVAL pair itself is NOT listed separately here — it's
+  // computed automatically from financing_type (already required), not a
+  // distinct fv field an agent fills in; buyer_approval_days (the ¶2.A
+  // termination-days blank) and financing_other_waive_2b (G. Other
+  // Financing's ¶2.B waiver pair) ARE distinct fv fields and are listed.
   'financing-addendum': [
     'loan_amount',
     'down_payment_amt',
     'financing_type',
+    'loan_term_years',
+    'interest_rate_cap',
+    'buyer_approval_days',
+    'financing_other_waive_2b',
   ],
   'unimproved-property': [
     'sale_price',
@@ -64,6 +81,22 @@ const REQUIRED_FIELDS_BY_FORM_TYPE = {
     'property_address',
     'city_state_zip',
     'seller_name',
+  ],
+  // 2026-10-10 CARTER — TREC 39-11 Amendment (rev 05-04-2026). Per
+  // trec-executed-date-block-needs-a-field.md (omitted twice in 3 days on
+  // live deals, deadlines run off it) the EXECUTED/final-acceptance date is
+  // a REQUIRED field on this form, not decoration — now wired for real
+  // (see fillAmendment()'s EXECUTED-block fix, api/fill-form.js). The
+  // numbered-paragraph elections (sales price change, closing date change,
+  // repairs, etc.) are each independently optional — which ones apply is
+  // the agent's choice per deal, not a blanket requirement — so they are
+  // NOT listed here; see api/_lib/trec-amendment-39-11-field-map.js /
+  // trec-amendment-39-11-field-classification.json for the full must_ask
+  // inventory of every election widget on the form.
+  'amendment': [
+    'property_address',
+    'city_state_zip',
+    'date_of_final_acceptance',
   ],
 };
 
@@ -116,6 +149,11 @@ function fieldNameToPrompt(fieldName) {
     down_payment_amt: "Down payment amount",
     land_acreage: "Land acreage",
     expected_completion_date: "Expected completion date",
+    loan_term_years: "Loan term (years)",
+    interest_rate_cap: "Interest rate cap (%)",
+    buyer_approval_days: "¶2.A days to terminate if Buyer Approval not obtained",
+    financing_other_waive_2b: "G. Other Financing — does Buyer waive ¶2.B Property Approval?",
+    date_of_final_acceptance: "EXECUTED / date of final acceptance",
   };
 
   return prompts[fieldName] || fieldName.replace(/_/g, ' ');
