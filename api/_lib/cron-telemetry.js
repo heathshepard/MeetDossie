@@ -206,6 +206,33 @@ function withTelemetry(cronName, handler) {
       }
       const status = code >= 400 ? 'error' : 'ok';
       const extra = code >= 400 ? { error: `http_${code}` } : {};
+      // DETAIL ON ERROR (Atlas, 2026-10-10 — cron-deadline-reminders http_500
+      // diagnosis). Before this, every error response collapsed to the single
+      // string `http_${code}` in cron_runs.last_meta — enough to know a cron
+      // failed, nothing about why. A cron that deliberately returns 500 with
+      // a populated `errors`/`silent_failure_alerts` array (the pattern several
+      // crons use to surface partial per-customer failures without crashing)
+      // left no trail once the response landed, so diagnosing a transient,
+      // already-self-healed failure meant replaying the cron blind. Pull the
+      // first real error (or the handler's own `error` string on an uncaught
+      // throw) into last_meta, capped so a pathological body can't bloat the
+      // row.
+      if (code >= 400) {
+        const parsed = parseBody(body);
+        if (parsed && typeof parsed === 'object') {
+          const firstItem = (arr) => (Array.isArray(arr) && arr.length ? arr[0] : null);
+          const detail = parsed.error
+            || firstItem(parsed.errors)
+            || firstItem(parsed.silent_failure_alerts);
+          if (detail !== null && detail !== undefined) {
+            extra.detail = JSON.stringify(detail).slice(0, 400);
+          }
+          if (Array.isArray(parsed.errors) && parsed.errors.length) extra.error_count = parsed.errors.length;
+          if (Array.isArray(parsed.silent_failure_alerts) && parsed.silent_failure_alerts.length) {
+            extra.silent_failure_count = parsed.silent_failure_alerts.length;
+          }
+        }
+      }
       // AUTOMATIC ITEM COUNTING (Atlas, 2026-09-25). Nearly every cron here
       // already returns something like {ok:true, published:0, errors:0} — the
       // count exists, it just never reached cron_runs. Sniffing the response
