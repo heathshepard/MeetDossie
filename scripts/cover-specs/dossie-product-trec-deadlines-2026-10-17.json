@@ -1,0 +1,11 @@
+{
+  "_note": "Product screen-recording (no face). The plate is the Dossie 'D' mark from public/dossie-logo-d.png, so head-box is the whole 400x400 plate and the mask is widened to keep the full circle opaque. Rerender of dossie-trec-deadlines-1005 (captions_box_readable fail x2); Luna narrates.",
+  "id": "dossie-product-trec-deadlines-2026-10-17",
+  "face-image": "public/dossie-logo-d.png",
+  "head-box": "0:400:0:400",
+  "mask": "400:400:0.5",
+  "hook": "EVERY DEADLINE CITED",
+  "kicker": "DOSSIE",
+  "accent": "gold",
+  "out": "scripts/headless-video/covers/dossie-product-trec-deadlines-2026-10-17.cover.png"
+}

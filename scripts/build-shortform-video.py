@@ -661,6 +661,29 @@ def write_ass(cues, out_path, style):
     back = ass_colour(style.get("back", "#000000"), alpha="D0")
     mv = style.get("margin_v", DEFAULT_CAPTION_MARGIN_V)
     mlr = style.get("margin_lr", DEFAULT_CAPTION_MARGIN_LR)
+    # Fixed-width opaque band under every cue (2026-10-09). With 3-word
+    # chunking a cue like "I am" or "$6,470." renders a BorderStyle=3 box
+    # ~230px wide on a 1080px frame. The quality gate's captions_box_readable
+    # rule locates the box by scanning rows for >=35% dark pixels across the
+    # FULL frame width, so a box narrower than ~380px is invisible to it and
+    # the video fails closed ("could not locate a caption box in enough
+    # samples") — exactly what failed dossie-talk-to-dossie-1005 and
+    # dossie-trec-deadlines-1005 twice each. Padding with libass hard spaces
+    # (\h) was tried first and does nothing: libass trims them at the line
+    # edges. So instead a Layer-0 vector rectangle in the outline colour is
+    # drawn behind each cue, `band_width` px wide and sized to the text's own
+    # box (font size + 2*outline, measured 116px tall at size 88 / outline 14,
+    # bottom edge at H - margin_v + outline) plus `band_pad` px. The words are
+    # untouched and verbatim; every caption now reads as one solid band —
+    # the "opaque bottom captions" look founder-video-production-standard.md
+    # §4 asks for. Off unless the style sets band_width.
+    band_w = int(style.get("band_width") or 0)
+    band_pad = int(style.get("band_pad", 6))
+    outline_px = 14  # matches the Style line below
+    band_fill = "&H" + ass_colour(style.get("outline", "#120C0A"))[4:] + "&"  # \1c wants &HBBGGRR&
+    band_h = size + 2 * outline_px + 2 * band_pad
+    band_top = H - mv + outline_px + band_pad - band_h
+    band_x = (W - band_w) // 2
 
     head = f"""[Script Info]
 ScriptType: v4.00+
@@ -679,7 +702,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     lines = []
     for st, en, tx, who in cues:
         tx = tx.replace("\n", " ").replace("{", "(").replace("}", ")")
-        lines.append(f"Dialogue: 0,{ts(st)},{ts(en)},Cap,,0,0,0,,{tx}")
+        if band_w:
+            lines.append(
+                f"Dialogue: 0,{ts(st)},{ts(en)},Cap,,0,0,0,,"
+                f"{{\\an7\\pos({band_x},{band_top})\\bord0\\shad0\\1c{band_fill}\\p1}}"
+                f"m 0 0 l {band_w} 0 l {band_w} {band_h} l 0 {band_h}{{\\p0}}")
+        lines.append(f"Dialogue: 1,{ts(st)},{ts(en)},Cap,,0,0,0,,{tx}")
     Path(out_path).write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 
 
