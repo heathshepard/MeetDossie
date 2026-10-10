@@ -31,3 +31,19 @@ DROP INDEX IF EXISTS public.idx_post_analytics_video_per_day;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_post_analytics_video_per_day
   ON public.post_analytics (video_library_id, sync_date);
+
+-- SECOND DEFECT found applying the fix above live, 2026-10-09: the live
+-- post_analytics.social_post_id column is NOT NULL (the original
+-- 20260612_post_analytics_and_delivery_verification.sql DDL on file for
+-- this table does not show that, but the live column has it regardless --
+-- probably set via the Supabase dashboard at some point, outside this
+-- migration history). 20260930_post_analytics_owner_attribution.sql's
+-- "exactly one of social_post_id / video_library_id" CHECK constraint is
+-- unsatisfiable for a video row with that NOT NULL still in place -- every
+-- video upsert 400'd with Postgres 23502 ("null value in column
+-- social_post_id ... violates not-null constraint") even after the index
+-- fix above. Drop it; the new CHECK constraint is the thing enforcing
+-- "never actually orphaned from both" now, so the column-level NOT NULL is
+-- redundant for social rows and actively wrong for video rows.
+ALTER TABLE public.post_analytics
+  ALTER COLUMN social_post_id DROP NOT NULL;

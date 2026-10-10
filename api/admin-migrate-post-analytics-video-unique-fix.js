@@ -14,11 +14,19 @@
 // A plain unique index behaves identically here -- NULLs are never
 // treated as equal in a unique index, so social_posts rows
 // (video_library_id always NULL) still never collide with each other.
+//
+// ALSO drops the NOT NULL on social_post_id -- found live after applying
+// the index fix alone: every video upsert still 400'd, now with Postgres
+// 23502 ("null value in column social_post_id violates not-null
+// constraint"). That NOT NULL isn't in this repo's migration history for
+// this table but is present on the live column regardless, and it's
+// incompatible with a video-sourced row (social_post_id NULL by design).
 // See supabase/migrations/20261009_post_analytics_video_unique_fix.sql
 // for the full writeup.
 //
 // Safe to re-run -- DROP INDEX IF EXISTS / CREATE UNIQUE INDEX IF NOT
-// EXISTS, no data touched.
+// EXISTS / DROP NOT NULL (idempotent, no-op if already dropped), no data
+// touched.
 //
 // NOT INVOKED as part of this branch/PR — changes the live production
 // database immediately regardless of git branch/merge state. Trigger
@@ -39,6 +47,9 @@ DROP INDEX IF EXISTS public.idx_post_analytics_video_per_day;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_post_analytics_video_per_day
   ON public.post_analytics (video_library_id, sync_date);
+
+ALTER TABLE public.post_analytics
+  ALTER COLUMN social_post_id DROP NOT NULL;
 `;
 
 module.exports = async function handler(req, res) {
@@ -54,7 +65,7 @@ module.exports = async function handler(req, res) {
     await runAdminSql(SQL);
     return res.status(200).json({
       ok: true,
-      message: 'idx_post_analytics_video_per_day rebuilt as a plain (non-partial) unique index',
+      message: 'idx_post_analytics_video_per_day rebuilt as a plain (non-partial) unique index; social_post_id NOT NULL dropped',
     });
   } catch (err) {
     const status = err.message === 'postgres_connection_env_missing' ? 503 : 500;
